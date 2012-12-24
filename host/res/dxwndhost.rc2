@@ -1,0 +1,13 @@
+//
+// DXWNDHOST.RC2 - this file is not editable by Microsoft Visual C++
+//
+
+#ifdef APSTUDIO_INVOKED
+	#error this file is not editable by Microsoft Visual C++
+#endif //APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+// If you want to edit your own resources, please add here... 
+
+/////////////////////////////////////////////////////////////////////////////
