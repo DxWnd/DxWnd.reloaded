@@ -1,4 +1,5 @@
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 #include "syslibs.h"
 #include "dxhook.h"
 #include "glhook.h"
@@ -14,14 +15,14 @@ extern short iPosX, iPosY, iSizX, iSizY;
 void WINAPI extglViewport(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height)
 {
 	RECT client;
-	(*pGetClientRect)(hWnd, &client);
+	(*pGetClientRect)(dxw.GethWnd(), &client);
 	OutTraceD("glViewport: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	if(IsDebug) OutTrace("glViewport: DEBUG win=(%d,%d) screen=(%d,%d)\n",
-		client.right, client.bottom, VirtualScr.dwWidth, VirtualScr.dwHeight);
-	x = (x * (GLint)client.right) / (GLint)VirtualScr.dwWidth;
-	y = (y * (GLint)client.bottom) / (GLint)VirtualScr.dwHeight;
-	width = (width * (GLint)client.right) / (GLint)VirtualScr.dwWidth;
-	height = (height * (GLint)client.bottom) / (GLint)VirtualScr.dwHeight;
+		client.right, client.bottom, dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	x = (x * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
+	y = (y * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
+	width = (width * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
+	height = (height * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
 	OutTraceD("glViewport: remapped pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	(*pglViewport)(x, y, width, height);
 }
@@ -29,12 +30,12 @@ void WINAPI extglViewport(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height
 void WINAPI extglScissor(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height)
 {
 	RECT client;
-	(*pGetClientRect)(hWnd, &client);
+	(*pGetClientRect)(dxw.GethWnd(), &client);
 	OutTraceD("glScissor: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
-	x = (x * (GLint)client.right) / (GLint)VirtualScr.dwWidth;
-	y = (y * (GLint)client.bottom) / (GLint)VirtualScr.dwHeight;
-	width = (width * (GLint)client.right) / (GLint)VirtualScr.dwWidth;
-	height = (height * (GLint)client.bottom) / (GLint)VirtualScr.dwHeight;
+	x = (x * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
+	y = (y * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
+	width = (width * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
+	height = (height * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
 	OutTraceD("glScissor: remapped pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	(*pglScissor)(x, y, width, height);
 }

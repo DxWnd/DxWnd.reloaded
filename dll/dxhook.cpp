@@ -6,16 +6,17 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 #include "dxhook.h"
 #include "glhook.h"
 #include "syslibs.h"
 #include "dxhelper.h"
 
+dxwCore dxw;
+
 extern BOOL MakeWindowTransparent(HWND, unsigned char);
 
-extern void dx_ScreenRefresh();
 extern void InitScreenParameters();
-//extern char *ExplainStyle(DWORD);
 
 int WINAPI extGetDeviceCaps(HDC, int);
 BOOL WINAPI extGetCursorPos(LPPOINT);
@@ -108,16 +109,6 @@ extern BOOL WINAPI extSetDeviceGammaRamp(HDC, LPVOID);
 extern BOOL WINAPI extGetDeviceGammaRamp(HDC, LPVOID);
 extern LRESULT WINAPI extSendMessage(HWND, UINT, WPARAM, LPARAM);
 
-
-DWORD dwFlags;
-DWORD dwFlags2;
-DWORD dwTFlags;
-DWORD dwVersion=0;
-BOOL bActive = 1;
-BOOL Filler = 99;
-HWND hWnd = 0;
-HWND hParentWnd = 0;
-HWND hChildWnd = 0;
 extern HANDLE hTraceMutex;
 char *gsModules;
 
@@ -234,9 +225,9 @@ static void OutTraceHeader(FILE *fp)
 	fprintf(fp, "*** DxWnd %s log BEGIN: %02d-%02d-%04d %02d:%02d:%02d ***\n",
 		Version, Time.wDay, Time.wMonth, Time.wYear, Time.wHour, Time.wMinute, Time.wSecond);
 	fprintf(fp, "*** Flags= ");
-	for(i=0, dword=dwFlags;  i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", FlagNames[i]);
-	for(i=0, dword=dwFlags2; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag2Names[i]);
-	for(i=0, dword=dwTFlags; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", TFlagNames[i]);
+	for(i=0, dword=dxw.dwFlags1;  i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", FlagNames[i]);
+	for(i=0, dword=dxw.dwFlags2; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag2Names[i]);
+	for(i=0, dword=dxw.dwTFlags; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", TFlagNames[i]);
 	fprintf(fp, "***\n");
 }
 
@@ -247,7 +238,7 @@ void OutTrace(const char *format, ...)
 	static FILE *fp=NULL; // GHO: thread safe???
 
 	// check global log flag
-	if(!(dwTFlags & OUTTRACE)) return;
+	if(!(dxw.dwTFlags & OUTTRACE)) return;
 
 	WaitForSingleObject(hTraceMutex, INFINITE);
 	if (fp == NULL){
@@ -260,7 +251,7 @@ void OutTrace(const char *format, ...)
 			fp = fopen(path, "a+");
 		}
 		if (fp==NULL){ // last chance: do not log... 
-			dwTFlags &= ~OUTTRACE; // turn flag OFF
+			dxw.dwTFlags &= ~OUTTRACE; // turn flag OFF
 			return;
 		}
 		else 
@@ -277,15 +268,15 @@ void OutTrace(const char *format, ...)
 static void dx_ToggleLogging()
 {
 	// toggle LOGGING
-	if(dwTFlags & OUTTRACE){
+	if(dxw.dwTFlags & OUTTRACE){
 		OutTraceD("Toggle logging OFF\n");
-		dwTFlags &= ~OUTTRACE;
+		dxw.dwTFlags &= ~OUTTRACE;
 	}
 	else {
-		dwTFlags |= OUTTRACE;
+		dxw.dwTFlags |= OUTTRACE;
 		OutTraceD("Toggle logging ON\n");
 	}
-	DxWndStatus.isLogging=(dwTFlags & OUTTRACE);
+	DxWndStatus.isLogging=(dxw.dwTFlags & OUTTRACE);
 	SetHookStatus(&DxWndStatus);
 }
 
@@ -555,109 +546,6 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	*hookedproc = tmp;
 }
 
-// v2.1.93: FixCursorPos completely revised to introduce a clipping tolerance in
-// clipping regions as well as in normal operations
-
-#define CLIP_TOLERANCE 4
-
-static POINT FixCursorPos(HWND hwnd, POINT prev)
-{
-	POINT curr;
-	RECT rect;
-	extern LPRECT lpClipRegion;
-
-	curr=prev;
-
-	// scale mouse coordinates
-	// remember: rect from GetClientRect always start at 0,0!
-	if(dwFlags & MODIFYMOUSE){
-		if (!(*pGetClientRect)(hwnd, &rect)) {
-			OutTraceD("GetClientRect ERROR %d at %d\n", GetLastError(),__LINE__);
-			curr.x = curr.y = 0;
-		}
-
-		if (rect.right)  curr.x = (curr.x * VirtualScr.dwWidth) / rect.right;
-		if (rect.bottom) curr.y = (curr.y * VirtualScr.dwHeight) / rect.bottom;
-	}
-
-	if((dwFlags & ENABLECLIPPING) && lpClipRegion){
-		// v2.1.93:
-		// in clipping mode, avoid the cursor position to lay outside the valid rect
-		// note 1: the rect follow the convention and valid coord lay between left to righ-1,
-		// top to bottom-1
-		// note 2: CLIP_TOLERANCE is meant to handle possible integer divide tolerance errors
-		// that may prevent reaching the clip rect borders. The smaller you shrink the window, 
-		// the bigger tolerance is required
-		if (curr.x < lpClipRegion->left+CLIP_TOLERANCE) curr.x=lpClipRegion->left;
-		if (curr.y < lpClipRegion->top+CLIP_TOLERANCE) curr.y=lpClipRegion->top;
-		if (curr.x >= lpClipRegion->right-CLIP_TOLERANCE) curr.x=lpClipRegion->right-1;
-		if (curr.y >= lpClipRegion->bottom-CLIP_TOLERANCE) curr.y=lpClipRegion->bottom-1;
-	}
-	else{
-		if (curr.x < CLIP_TOLERANCE) curr.x=0;
-		if (curr.y < CLIP_TOLERANCE) curr.y=0;
-		if (curr.x >= (LONG)VirtualScr.dwWidth-CLIP_TOLERANCE) curr.x=VirtualScr.dwWidth-1;
-		if (curr.y >= (LONG)VirtualScr.dwHeight-CLIP_TOLERANCE) curr.y=VirtualScr.dwHeight-1;
-	}
-
-	return curr;
-}
-
-static void FixNCHITCursorPos(LPPOINT lppoint)
-{
-	RECT rect;
-	POINT point;
-
-	point=*lppoint;
-	(*pGetClientRect)(hWnd, &rect);
-	(*pScreenToClient)(hWnd, &point);
-
-	if (point.x < 0) return;
-	if (point.y < 0) return;
-	if (point.x > rect.right) return;
-	if (point.y > rect.bottom) return;
-
-	*lppoint=point;
-	lppoint->x = (lppoint->x * VirtualScr.dwWidth) / rect.right;
-	lppoint->y = (lppoint->y * VirtualScr.dwHeight) / rect.bottom;
-	if(lppoint->x < CLIP_TOLERANCE) lppoint->x=0;
-	if(lppoint->y < CLIP_TOLERANCE) lppoint->y=0;
-	if(lppoint->x > (LONG)VirtualScr.dwWidth-CLIP_TOLERANCE) lppoint->x=VirtualScr.dwWidth-1;
-	if(lppoint->y > (LONG)VirtualScr.dwHeight-CLIP_TOLERANCE) lppoint->y=VirtualScr.dwHeight-1;
-}
-
-
-void DxWndSetClipCursor()
-{
-	RECT Rect;
-	POINT UpLeftCorner;
-
-	OutTraceD("DxWndSetClipCursor:\n");
-	if (hWnd==NULL) {
-		OutTraceD("DxWndSetClipCursor: ASSERT hWnd==NULL\n");
-		return;
-	}
-	(*pGetClientRect)(hWnd, &Rect);
-	UpLeftCorner.x=UpLeftCorner.y=0;
-	(*pClientToScreen)(hWnd, &UpLeftCorner);
-	Rect.left+=UpLeftCorner.x;
-	Rect.right+=UpLeftCorner.x;
-	Rect.top+=UpLeftCorner.y;
-	Rect.bottom+=UpLeftCorner.y;
-	(*pClipCursor)(NULL);
-	if(!(*pClipCursor)(&Rect)){
-		OutTraceE("ClipCursor: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	}
-	OutTraceD("DxWndSetClipCursor: rect=(%d,%d)-(%d,%d)\n",
-		Rect.left, Rect.top, Rect.right, Rect.bottom);
-}
-
-void DxWndEraseClipCursor()
-{
-	OutTraceD("DxWndEraseClipCursor:\n");
-	(*pClipCursor)(NULL);
-}
-
 // v.2.1.80: unified positioning logic into CalculateWindowPos routine
 // now taking in account for window menus (see "Alien Cabal")
 
@@ -718,11 +606,10 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 
 	OutTraceD("AdjustWindowFrame hwnd=%x, wxh=%dx%d\n", hwnd, width, height); 
 
-	if (width) VirtualScr.dwWidth = width;
-	if (height) VirtualScr.dwHeight = height;
+	dxw.SetScreenSize(width, height);
 	if (hwnd==NULL) return;
 
-	(*pSetWindowLong)(hwnd, GWL_STYLE, (dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
+	(*pSetWindowLong)(hwnd, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
 	(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0); 
 	(*pShowWindow)(hwnd, SW_SHOWNORMAL);
 	OutTraceD("AdjustWindowFrame hwnd=%x, set style=WS_OVERLAPPEDWINDOW extstyle=0\n", hwnd); 
@@ -749,10 +636,10 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 
 	// fixing cursor view and clipping region
 
-	if (dwFlags & HIDEHWCURSOR) while (ShowCursor(0) >= 0);
-	if (dwFlags & CLIPCURSOR) {
+	if (dxw.dwFlags1 & HIDEHWCURSOR) while (ShowCursor(0) >= 0);
+	if (dxw.dwFlags1 & CLIPCURSOR) {
 		OutTraceD("AdjustWindowFrame: setting clip region\n");
-		DxWndSetClipCursor();
+		dxw.SetClipCursor();
 	}
 
 	(*pInvalidateRect)(hwnd, NULL, TRUE);
@@ -792,36 +679,9 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	static int i=0;
 	static WINDOWPOS *wp;
 	WNDPROC pWindowProc;
-	extern BOOL isFullScreen;
 
 	OutTraceW("DEBUG: ChildWinMsg [0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
 	switch(message){
-#if 0
-	// deleted after interception of MoveWindow API with WS_CHILD special case.
-	// don't make the same compensation twice!!!
-	case WM_WINDOWPOSCHANGING:
-		{
-			// WINDOWPOS coordinates update for Age of Empires I & II edit controls.
-			WINDOWPOS *wp;
-			RECT rect;
-			wp = (LPWINDOWPOS)lparam;
-			OutTraceD("ChildWindowProc: WM_WINDOWPOSCHANGING pos=(%d,%d) size=(%d,%d)\n", 
-				wp->x, wp->y, wp->cx, wp->cy);
-			if(isFullScreen){
-				// scale coordinates
-				if (!(*pGetClientRect)(hWnd, &rect)) { // note! hWnd, the main form. Fixed again v70
-					OutTraceE("GetClientRect ERROR %d at %d\n", GetLastError(),__LINE__);
-					break;
-				}
-				wp->x = (wp->x * rect.right) / VirtualScr.dwWidth;
-				wp->cx = (wp->cx * rect.right) / VirtualScr.dwWidth;
-				wp->y = (wp->y * rect.bottom) / VirtualScr.dwHeight;
-				wp->cy = (wp->cy * rect.bottom) / VirtualScr.dwHeight;
-				OutTraceD("ChildWindowProc: fixed pos=(%d,%d) size=(%d,%d)\n", wp->x, wp->y, wp->cx, wp->cy);
-			}
-		}
-		break;
-#endif
 
 	// Cybermercs: it seems that all game menus are conveniently handled by the WindowProc routine,
 	// while the action screen get messages processed by the ChildWindowProc, that needs some different
@@ -839,13 +699,13 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	case WM_MBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MBUTTONDBLCLK:
-		if(dwFlags & MODIFYMOUSE){ // mouse processing  
+		if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing  
 			POINT prev, curr;
 			// scale mouse coordinates
 			prev.x = LOWORD(lparam);
 			prev.y = HIWORD(lparam);
 			//OutTraceC("ChildWindowProc: hwnd=%x pos XY prev=(%d,%d)\n", hwnd, prev.x, prev.y);
-			curr=FixCursorPos(hWnd, prev); // Warn! the correction must refer to the main window hWnd, not the current hwnd one !!!
+			curr=dxw.FixCursorPos(prev); // Warn! the correction must refer to the main window hWnd, not the current hwnd one !!!
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("ChildWindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
@@ -862,10 +722,10 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 static void dx_TogglePositionLock(HWND hwnd)
 {
 	// toggle position locking
-	if(dwFlags & LOCKWINPOS){
+	if(dxw.dwFlags1 & LOCKWINPOS){
 		// unlock
 		OutTraceD("Toggle position lock OFF\n");
-		dwFlags &= ~LOCKWINPOS;
+		dxw.dwFlags1 &= ~LOCKWINPOS;
 	}
 	else {
 		// lock and update window position!!!
@@ -874,7 +734,7 @@ static void dx_TogglePositionLock(HWND hwnd)
 		POINT p={0,0};
 		(*pGetClientRect)(hwnd,&rect);
 		(*pClientToScreen)(hwnd,&p);
-		dwFlags |= LOCKWINPOS;
+		dxw.dwFlags1 |= LOCKWINPOS;
 		OutTraceD("Toggle position lock ON\n");
 		iPosX=(short)p.x;
 		iPosY=(short)p.y;
@@ -885,12 +745,12 @@ static void dx_TogglePositionLock(HWND hwnd)
 
 void dx_ToggleDC()
 {
-	if(dwFlags & HANDLEDC){
-		dwFlags &= ~HANDLEDC;
+	if(dxw.dwFlags1 & HANDLEDC){
+		dxw.dwFlags1 &= ~HANDLEDC;
 		OutTrace("ToggleDC: HANDLEDC mode OFF\n");
 	}
 	else {
-		dwFlags |= HANDLEDC;
+		dxw.dwFlags1 |= HANDLEDC;
 		OutTrace("ToggleDC: HANDLEDC mode ON\n");
 	}
 }
@@ -913,7 +773,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	OutTraceW("WindowProc: WinMsg=[0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
 	switch(message){
 	case WM_NCHITTEST:
-		if((dwFlags2 & FIXNCHITTEST) && (dwFlags & MODIFYMOUSE)){ // mouse processing 
+		if((dxw.dwFlags2 & FIXNCHITTEST) && (dxw.dwFlags1 & MODIFYMOUSE)){ // mouse processing 
 			POINT cursor;
 			LRESULT ret;
 			ret=(*pDefWindowProc)(hwnd, message, wparam, lparam);
@@ -921,7 +781,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			if (ret==HTCLIENT) {
 				cursor.x=LOWORD(lparam);
 				cursor.y=HIWORD(lparam);
-				FixNCHITCursorPos(&cursor);
+				dxw.FixNCHITCursorPos(&cursor);
 				lparam = MAKELPARAM(cursor.x, cursor.y); 
 			}
 			else
@@ -933,8 +793,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		return 1; // 1 == OK, erased
 		break;
 	case WM_DISPLAYCHANGE:
-		extern int isFullScreen;
-		if ((dwFlags & LOCKWINPOS) && isFullScreen){
+		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
 			OutTraceD("WindowProc: prevent WM_DISPLAYCHANGE depth=%d size=(%d,%d)\n",
 				wparam, HIWORD(lparam), LOWORD(lparam));
 			return 0;
@@ -948,20 +807,20 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;
 	case WM_ENTERSIZEMOVE:
 		while(ShowCursor(1) < 0);
-		if(dwFlags & CLIPCURSOR) DxWndEraseClipCursor();
-		if(dwFlags & ENABLECLIPPING) (*pClipCursor)(NULL);
+		if(dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
+		if(dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
 	case WM_EXITSIZEMOVE:
-		if (dwFlags & HIDEHWCURSOR) while(ShowCursor(0) >= 0);
-		if(dwFlags & ENABLECLIPPING) extClipCursor(lpClipRegion);
-		if(dwFlags2 & REFRESHONRESIZE) dx_ScreenRefresh();
+		if (dxw.dwFlags1 & HIDEHWCURSOR) while(ShowCursor(0) >= 0);
+		if(dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
+		if(dxw.dwFlags2 & REFRESHONRESIZE) dxw.ScreenRefresh();
 		break;
 	case WM_ACTIVATE:
-		bActive = (LOWORD(wparam) == WA_ACTIVE || LOWORD(wparam) == WA_CLICKACTIVE) ? 1 : 0;
+		dxw.bActive = (LOWORD(wparam) == WA_ACTIVE || LOWORD(wparam) == WA_CLICKACTIVE) ? 1 : 0;
 	case WM_NCACTIVATE:
-		if(message == WM_NCACTIVATE) bActive = wparam;
+		if(message == WM_NCACTIVATE) dxw.bActive = wparam;
 		(*pSetWindowPos)(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-		if(dwFlags & UNNOTIFY){
+		if(dxw.dwFlags1 & UNNOTIFY){
 			DefWindowProc(hwnd, message, wparam, lparam);
 			return false;
 		}
@@ -976,7 +835,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_MOUSEMOVE:
 		prev.x = LOWORD(lparam);
 		prev.y = HIWORD(lparam);
-		if (dwFlags & HIDEHWCURSOR) {
+		if (dxw.dwFlags1 & HIDEHWCURSOR) {
 			(*pGetClientRect)(hwnd, &rect);
 			if(prev.x >= 0 && prev.x < rect.right && prev.y >= 0 && prev.y < rect.bottom)
 				while(ShowCursor(0) >= 0);
@@ -986,9 +845,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		else {
 			while(ShowCursor(1) < 0);
 		}
-		if(dwFlags & MODIFYMOUSE){ // mouse processing 
+		if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
 			// scale mouse coordinates
-			curr=FixCursorPos(hwnd, prev);
+			curr=dxw.FixCursorPos(hwnd, prev);
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
@@ -1004,26 +863,26 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_MBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MBUTTONDBLCLK:
-		if((dwFlags & CLIPCURSOR) && ClipCursorToggleState) DxWndSetClipCursor();
-		if(dwFlags & MODIFYMOUSE){ // mouse processing 
+		if((dxw.dwFlags1 & CLIPCURSOR) && ClipCursorToggleState) dxw.SetClipCursor();
+		if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
 			// scale mouse coordinates
 			prev.x = LOWORD(lparam);
 			prev.y = HIWORD(lparam);
-			curr=FixCursorPos(hwnd, prev);
+			curr=dxw.FixCursorPos(hwnd, prev);
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
 		break;	
 	case WM_SETFOCUS:
-		//if (dwFlags & CLIPCURSOR) if (ClipCursorToggleState) DxWndSetClipCursor();
-		if (dwFlags & ENABLECLIPPING) extClipCursor(lpClipRegion);
+		//if (dxw.dwFlags1 & CLIPCURSOR) if (ClipCursorToggleState) dxw.SetClipCursor();
+		if (dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		break;
 	case WM_KILLFOCUS:
-		if (dwFlags & CLIPCURSOR) DxWndEraseClipCursor();
-		if (dwFlags & ENABLECLIPPING) (*pClipCursor)(NULL);
+		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
+		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
 	case WM_CLOSE:
-		//if (dwFlags & HANDLECOSEICON) {
+		//if (dxw.dwFlags1 & HANDLECOSEICON) {
 		{
 			OutTraceD("WindowProc: WM_CLOSE - terminating process\n");
 			TerminateProcess(GetCurrentProcess(),0);
@@ -1033,13 +892,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		OutTraceW("event WM_SYSKEYDOWN wparam=%x lparam=%x\n", wparam, lparam);
 		switch (wparam){
 		case VK_F12:
-			if(dwFlags & CLIPCURSOR){
+			if(dxw.dwFlags1 & CLIPCURSOR){
 				OutTraceD("WindowProc: WM_SYSKEYDOWN key=%x ToggleState=%x\n",wparam,ClipCursorToggleState);
 				ClipCursorToggleState = !ClipCursorToggleState;
-				ClipCursorToggleState ? DxWndSetClipCursor() : DxWndEraseClipCursor();
+				ClipCursorToggleState ? dxw.SetClipCursor() : dxw.EraseClipCursor();
 			}
 		case VK_F11:
-			dx_ScreenRefresh();
+			dxw.ScreenRefresh();
 			break;
 		case VK_F10:
 			dx_ToggleLogging();
@@ -1051,7 +910,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			dx_ToggleDC();
 			break;
 		case VK_F4:
-			if (dwFlags & HANDLEALTF4) {
+			if (dxw.dwFlags1 & HANDLEALTF4) {
 				OutTraceD("WindowProc: WM_SYSKEYDOWN(ALT-F4) - terminating process\n");
 				TerminateProcess(GetCurrentProcess(),0);
 			}
@@ -1062,9 +921,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	default:
 		break;
 	}
-	if (dwFlags & AUTOREFRESH)
+	if (dxw.dwFlags1 & AUTOREFRESH)
 	{
-		dx_ScreenRefresh();
+		dxw.ScreenRefresh();
 	}
 
 	pWindowProc=WhndGetWindowProc(hwnd);
@@ -1074,7 +933,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		// save last NCHITTEST cursor position for use with KEEPASPECTRATIO scaling
 		if(message==WM_NCHITTEST) LastCursorPos=ret;
 		// v2.1.89: if FORCEWINRESIZE add standard processing for the missing WM_NC* messages
-		if(dwFlags2 & FORCEWINRESIZE){ 
+		if(dxw.dwFlags2 & FORCEWINRESIZE){ 
 			switch(message){
 			//case WM_NCHITTEST:
 			//case WM_NCPAINT:
@@ -1189,7 +1048,7 @@ void HookSysLibs(char *module)
 	if(tmp) pBeginPaint = (BeginPaint_Type)tmp;
 	tmp = HookAPI("user32.dll", EndPaint, "EndPaint", extEndPaint);
 	if(tmp) pEndPaint = (EndPaint_Type)tmp;
-	if(dwFlags & MAPGDITOPRIMARY){
+	if(dxw.dwFlags1 & MAPGDITOPRIMARY){
 		tmp = HookAPI("GDI32.dll", CreateCompatibleDC, "CreateCompatibleDC", extDDCreateCompatibleDC);
 		if(tmp) pCreateCompatibleDC = (CreateCompatibleDC_Type)tmp;
 		tmp = HookAPI("GDI32.dll", DeleteDC, "DeleteDC", extDDDeleteDC);
@@ -1234,7 +1093,7 @@ void HookSysLibs(char *module)
 		//if(tmp) pInvalidateRgn = (InvalidateRgn_Type)tmp;
 	}
 
-	if (dwFlags & CLIENTREMAPPING){
+	if (dxw.dwFlags1 & CLIENTREMAPPING){
 		tmp = HookAPI("user32.dll", ScreenToClient, "ScreenToClient", extScreenToClient);
 		if(tmp) pScreenToClient = (ScreenToClient_Type)tmp;
 		tmp = HookAPI("user32.dll", ClientToScreen, "ClientToScreen", extClientToScreen);
@@ -1263,7 +1122,7 @@ void HookSysLibs(char *module)
 	if(tmp) pClipCursor = (ClipCursor_Type)tmp;
 	tmp = HookAPI("user32.dll", FillRect, "FillRect", extFillRect);
 	if(tmp) pFillRect = (FillRect_Type)tmp;
-	if (dwFlags & MESSAGEPROC) {
+	if (dxw.dwFlags1 & MESSAGEPROC) {
 		tmp = HookAPI("user32.dll", PeekMessageA, "PeekMessageA", extPeekMessage); // added for GPL 
 		if(tmp) pPeekMessage = (PeekMessage_Type)tmp;
 		tmp = HookAPI("user32.dll", GetMessageA, "GetMessageA", extGetMessage); // added for GPL 
@@ -1285,7 +1144,7 @@ void HookSysLibs(char *module)
 	if(tmp) pRegisterClassExA = (RegisterClassExA_Type)tmp;
 	tmp = HookAPI("GDI32.dll", Rectangle, "Rectangle", extRectangle);
 	if(tmp) pRectangle = (Rectangle_Type)tmp;
-	if (dwFlags & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)){
+	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)){
 		tmp = HookAPI("user32.dll", ShowWindow, "ShowWindow", extShowWindow);
 		if(tmp) pShowWindow = (ShowWindow_Type)tmp;
 		tmp = HookAPI("user32.dll", SetWindowLongA, "SetWindowLongA", extSetWindowLong);
@@ -1302,7 +1161,7 @@ void HookSysLibs(char *module)
 		//tmp = HookAPI("user32.dll", SetWindowPlacement, "SetWindowPlacement", extSetWindowPlacement);
 		//if(tmp) pSetWindowPlacement = (SetWindowPlacement_Type)tmp;
 	}
-	if ((dwFlags & EMULATESURFACE) && (dwFlags & HANDLEDC)){
+	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC)){
 		tmp = HookAPI("GDI32.dll", SetTextColor, "SetTextColor", extSetTextColor);
 		if(tmp) pSetTextColor = (SetTextColor_Type)tmp;
 		tmp = HookAPI("GDI32.dll", SetBkColor, "SetBkColor", extSetBkColor);
@@ -1321,7 +1180,7 @@ void HookSysLibs(char *module)
 	tmp = HookAPI("user32.dll", GetDesktopWindow, "GetDesktopWindow", extGetDesktopWindow);
 	if(tmp) pGetDesktopWindow = (GetDesktopWindow_Type)tmp;
 
-	if(dwFlags & MODIFYMOUSE){
+	if(dxw.dwFlags1 & MODIFYMOUSE){
 		tmp = HookAPI("user32.dll", GetCursorPos, "GetCursorPos", extGetCursorPos);
 		if(tmp) pGetCursorPos = (GetCursorPos_Type)tmp;
 		//tmp = HookAPI("user32.dll", GetPhysicalCursorPos, "", extGetCursorPos);
@@ -1331,7 +1190,7 @@ void HookSysLibs(char *module)
 		tmp = HookAPI("user32.dll", SendMessageA, "SendMessageA", extSendMessage);
 		if(tmp) pSendMessage = (SendMessage_Type)tmp;
 	}
-	if((dwFlags & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dwFlags2 & KEEPCURSORFIXED)){ 
+	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)){ 
 		tmp = HookAPI("user32.dll", SetCursorPos, "SetCursorPos", extSetCursorPos);
 		if(tmp) pSetCursorPos = (SetCursorPos_Type)tmp;
 	}
@@ -1370,7 +1229,7 @@ void HookSysLibs(char *module)
 		if(tmp) pMoveWindow = (MoveWindow_Type)tmp;
 	}
 
-	if(dwFlags2 & DISABLEGAMMARAMP){
+	if(dxw.dwFlags2 & DISABLEGAMMARAMP){
 		tmp = HookAPI("GDI32.dll", SetDeviceGammaRamp, "SetDeviceGammaRamp", extSetDeviceGammaRamp);
 		if(tmp) pSetDeviceGammaRamp = (SetDeviceGammaRamp_Type)tmp;
 		tmp = HookAPI("GDI32.dll", GetDeviceGammaRamp, "GetDeviceGammaRamp", extGetDeviceGammaRamp);
@@ -1466,7 +1325,7 @@ void HookExceptionHandler(void)
 void HookModule(char *module, int dxversion)
 {
 	HookSysLibs(module);
-	if(dwFlags & HOOKDI) HookDirectInput(dxversion);
+	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(dxversion);
 	HookDirectDraw(dxversion);
 	HookDirect3D(dxversion);
 	HookOle32(dxversion); // unfinished business
@@ -1483,36 +1342,36 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 		"DirectX7", "DirectX8", "DirectX9", "None\\OpenGL", "", "", ""
 	};
 
-	dwFlags = target->flags;
-	dwFlags2 = target->flags2;
-	dwTFlags = target->tflags;
+	dxw.dwFlags1 = target->flags;
+	dxw.dwFlags2 = target->flags2;
+	dxw.dwTFlags = target->tflags;
 	gsModules = target->module;
 
 	// v2.1.75: is it correct to set hWnd here?
-	hWnd=hwnd;
-	hParentWnd=GetParent(hwnd);
-	hChildWnd=hwnd;
+	dxw.SethWnd(hwnd);
+	dxw.hParentWnd=GetParent(hwnd);
+	dxw.hChildWnd=hwnd;
 
 	// bounds control
 	if(target->dxversion<0) target->dxversion=0;
 	if(target->dxversion>10) target->dxversion=10;
-	OutTraceD("HookInit: path=\"%s\" module=\"%s\" dxversion=%s hWnd=%x hParentWnd=%x\n", 
-		target->path, target->module, dxversions[target->dxversion], hwnd, hParentWnd);
+	OutTraceD("HookInit: path=\"%s\" module=\"%s\" dxversion=%s hWnd=%x dxw.hParentWnd=%x\n", 
+		target->path, target->module, dxversions[target->dxversion], hwnd, dxw.hParentWnd);
 	if (IsDebug){
 		DWORD dwStyle, dwExStyle;
-		dwStyle=GetWindowLong(hWnd, GWL_STYLE);
-		dwExStyle=GetWindowLong(hWnd, GWL_EXSTYLE);
+		dwStyle=GetWindowLong(dxw.GethWnd(), GWL_STYLE);
+		dwExStyle=GetWindowLong(dxw.GethWnd(), GWL_EXSTYLE);
 		OutTrace("HookInit: hWnd style=%x(%s) exstyle=%x(%s)\n", dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
-		dwStyle=GetWindowLong(hParentWnd, GWL_STYLE);
-		dwExStyle=GetWindowLong(hParentWnd, GWL_EXSTYLE);
-		OutTrace("HookInit: hParentWnd style=%x(%s) exstyle=%x(%s)\n", dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+		dwStyle=GetWindowLong(dxw.hParentWnd, GWL_STYLE);
+		dwExStyle=GetWindowLong(dxw.hParentWnd, GWL_EXSTYLE);
+		OutTrace("HookInit: dxw.hParentWnd style=%x(%s) exstyle=%x(%s)\n", dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 	}
 
-	if(dwFlags & HANDLEEXCEPTIONS) HookExceptionHandler();
+	if(dxw.dwFlags1 & HANDLEEXCEPTIONS) HookExceptionHandler();
 
-	if (dwTFlags & OUTIMPORTTABLE) DumpImportTable(NULL);
+	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(NULL);
 
-	if (dwTFlags & DXPROXED){
+	if (dxw.dwTFlags & DXPROXED){
 		HookDDProxy(target->dxversion);
 		return 0;
 	}
@@ -1532,16 +1391,16 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 		sModule=strtok(NULL," ");
 	}
 
-	if(dwFlags2 & RECOVERSCREENMODE) RecoverScreenMode();
+	if(dxw.dwFlags2 & RECOVERSCREENMODE) RecoverScreenMode();
 
 	InitScreenParameters();
 
 	if (IsDebug) OutTraceD("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", iPosX, iPosY, iSizX, iSizY);
-	if(dwFlags & FIXPARENTWIN){
+	if(dxw.dwFlags1 & FIXPARENTWIN){
 		CalculateWindowPos(hwnd, iSizX, iSizY, &wp);
-		if (IsDebug) OutTraceD("MoveWindow: hParentWnd=%x pos=(%d,%d) size=(%d,%d)\n", hParentWnd, wp.x, wp.y, wp.cx, wp.cy);
-		res=(*pMoveWindow)(hParentWnd, wp.x, wp.y, wp.cx, wp.cy, FALSE);
-		if(!res) OutTraceE("MoveWindow ERROR: hParentWnd=%x err=%d at %d\n", hParentWnd, GetLastError(), __LINE__);
+		if (IsDebug) OutTraceD("MoveWindow: dxw.hParentWnd=%x pos=(%d,%d) size=(%d,%d)\n", dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy);
+		res=(*pMoveWindow)(dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy, FALSE);
+		if(!res) OutTraceE("MoveWindow ERROR: dxw.hParentWnd=%x err=%d at %d\n", dxw.hParentWnd, GetLastError(), __LINE__);
 	}
 
 	return 0;
@@ -1558,13 +1417,13 @@ HRESULT WINAPI extGDIGetDisplayMode(HDC dev, int mode)
 	OutTraceD("GDIGetDisplayMode, mode=%x\n", mode);
 
 	res=(*pGDIGetDisplayMode)(dev, mode);
-	if((dwFlags & EMULATESURFACE) && (VirtualScr.PixelFormat.dwRGBBitCount == 8)){
+	if((dxw.dwFlags1 & EMULATESURFACE) && (dxw.VirtualPixelFormat.dwRGBBitCount == 8)){
 		//lpddsd->ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8;
 		//lpddsd->ddpfPixelFormat.dwRGBBitCount = 8;
 		//lpddsd->ddsCaps.dwCaps |= DDSCAPS_PALETTE;
 	}
 	else
-	if((dwFlags & EMULATESURFACE) && (VirtualScr.PixelFormat.dwRGBBitCount == 16)){
+	if((dxw.dwFlags1 & EMULATESURFACE) && (dxw.VirtualPixelFormat.dwRGBBitCount == 16)){
 		//lpddsd->ddpfPixelFormat.dwRGBBitCount = 16;
 	}
 	//OutTraceD("GetDisplayMode: returning WxH=(%dx%d), PixelFormat Flags=%x, RGBBitCount=%d, Caps=%x\n",
@@ -1578,13 +1437,12 @@ HRESULT WINAPI extGDIGetDisplayMode(HDC dev, int mode)
 HWND WINAPI extGetDesktopWindow(void)
 {
 	// V2.1.73: correct ???
-	extern BOOL isFullScreen;
 	HWND res;
 
-	OutTraceD("GetDesktopWindow: FullScreen=%x\n", isFullScreen);
-	if (isFullScreen){
-		OutTraceD("GetDesktopWindow: returning main window hwnd=%x\n", hWnd);
-		return hWnd;
+	OutTraceD("GetDesktopWindow: FullScreen=%x\n", dxw.IsFullScreen());
+	if (dxw.IsFullScreen()){
+		OutTraceD("GetDesktopWindow: returning main window hwnd=%x\n", dxw.GethWnd());
+		return dxw.GethWnd();
 	}
 	else{
 		res=(*pGetDesktopWindow)();

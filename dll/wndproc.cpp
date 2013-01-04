@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <ddraw.h>
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 #include "dxhook.h"
 #include "syslibs.h"
 #include "dxhelper.h"

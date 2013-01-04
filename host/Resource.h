@@ -131,6 +131,7 @@
 #define ID_TRAY_RESTORE                 32808
 #define ID_VIEW_STATUS                  32809
 #define ID_DXAPP_EXIT                   32810
+#define ID_SAVEFILE                     32810
 
 // Next default values for new objects
 // 
@@ -138,7 +139,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32809
+#define _APS_NEXT_COMMAND_VALUE         32811
 #define _APS_NEXT_CONTROL_VALUE         1032
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

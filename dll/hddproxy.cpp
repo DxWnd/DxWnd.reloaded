@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 #include "dxhook.h"
 #include "syslibs.h"
 #include "dxhelper.h"
@@ -280,7 +281,7 @@ int HookDDProxy(int dxVersion)
 //	LPDIRECTDRAW lpdd;
 //	BOOL res;
 
-	dwFlags |= OUTDDRAWTRACE;
+	dxw.dwFlags1 |= OUTDDRAWTRACE;
 	
 	pCreateCompatibleDC=CreateCompatibleDC;
 	pGDIGetDC=GetDC;
@@ -1747,7 +1748,7 @@ static void HookDDSessionProxy(LPDIRECTDRAW *lplpdd, int dxVersion)
 HRESULT WINAPI extDirectDrawCreateProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, IUnknown FAR *pu)
 {
 	HRESULT res;
-	int dwDDVersion;
+	int DDVersion;
 
 	OutTraceP("DirectDrawCreate: PROXED guid=%x(%s)\n", 
 		lpguid, ExplainGUID(lpguid));
@@ -1758,19 +1759,19 @@ HRESULT WINAPI extDirectDrawCreateProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplp
 		return res;
 	}
 
-	dwDDVersion=1;
+	DDVersion=1;
 	if (lpguid) switch (*(DWORD *)lpguid){
-		case 0x6C14DB80: dwDDVersion=1; break;
-		case 0xB3A6F3E0: dwDDVersion=2; break;
-		case 0x9c59509a: dwDDVersion=4; break;
-		case 0x15e65ec0: dwDDVersion=7; break;
+		case 0x6C14DB80: DDVersion=1; break;
+		case 0xB3A6F3E0: DDVersion=2; break;
+		case 0x9c59509a: DDVersion=4; break;
+		case 0x15e65ec0: DDVersion=7; break;
 	}
 
 	OutTraceP("DirectDrawCreate: lpdd=%x guid=%x DDVersion=%d\n", 
-		*lplpdd, (lpguid ? *(DWORD *)lpguid:0), dwDDVersion);
+		*lplpdd, (lpguid ? *(DWORD *)lpguid:0), DDVersion);
 
 #ifdef HOOKDDRAW
-	HookDDSessionProxy(lplpdd, dwDDVersion);
+	HookDDSessionProxy(lplpdd, DDVersion);
 #endif
 	return 0;
 }
@@ -1778,7 +1779,7 @@ HRESULT WINAPI extDirectDrawCreateProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplp
 HRESULT WINAPI extDirectDrawCreateExProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, REFIID RefIid, IUnknown FAR *pu)
 {
 	HRESULT res;
-	int dwDDVersion;
+	int DDVersion;
 
 	OutTraceP("DirectDrawCreateEx: PROXED guid=%x(%s) refiid=%x\n", 
 		lpguid, ExplainGUID(lpguid), RefIid);
@@ -1789,19 +1790,19 @@ HRESULT WINAPI extDirectDrawCreateExProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lp
 		return res;
 	}
 
-	dwDDVersion=1;
+	DDVersion=1;
 	if (lpguid) switch (*(DWORD *)lpguid){
-		case 0x6C14DB80: dwDDVersion=1; break;
-		case 0xB3A6F3E0: dwDDVersion=2; break;
-		case 0x9c59509a: dwDDVersion=4; break;
-		case 0x15e65ec0: dwDDVersion=7; break;
+		case 0x6C14DB80: DDVersion=1; break;
+		case 0xB3A6F3E0: DDVersion=2; break;
+		case 0x9c59509a: DDVersion=4; break;
+		case 0x15e65ec0: DDVersion=7; break;
 	}
 
 	OutTraceP("DirectDrawCreateEx: lpdd=%x guid=%x DDVersion=%d\n", 
-		*lplpdd, (lpguid ? *(DWORD *)lpguid:0), dwDDVersion);
+		*lplpdd, (lpguid ? *(DWORD *)lpguid:0), DDVersion);
 
 #ifdef HOOKDDRAW
-	HookDDSessionProxy(lplpdd, dwDDVersion);
+	HookDDSessionProxy(lplpdd, DDVersion);
 #endif
 	return 0;
 }
@@ -1854,7 +1855,7 @@ HRESULT WINAPI extDirectDrawEnumerateExProxy(LPDDENUMCALLBACKEX lpCallback, LPVO
 {
 	HRESULT ret;
 	OutTraceP("DirectDrawEnumerateEx: PROXED lpCallback=%x lpContext=%x Flags=%x(%s)\n", 
-		lpCallback, lpContext, dwFlags, ExplainDDEnumerateFlags(dwFlags));
+		lpCallback, lpContext, dxw.dwFlags1, ExplainDDEnumerateFlags(dwFlags));
 	(*pDirectDrawEnumerateEx)(DDEnumerateCallbackEx, lpContext, dwFlags);
 	ret=(*pDirectDrawEnumerateEx)(lpCallback, lpContext, dwFlags);
 	if(ret) OutTraceP("DirectDrawEnumerateEx: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));

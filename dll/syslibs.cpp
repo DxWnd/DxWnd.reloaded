@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <ddraw.h>
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 #include "dxhook.h"
 #include "glhook.h"
 #include "syslibs.h"
@@ -21,7 +22,6 @@ extern DWORD PaletteEntries[256];
 extern HDC PrimSurfaceHDC;
 extern LPDIRECTDRAWSURFACE lpDDSPrimHDC;
 extern LPDIRECTDRAW lpDD;
-extern POINT FixCursorPos(HWND, POINT);
 extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
 
 extern GetDC_Type pGetDC;
@@ -36,7 +36,6 @@ extern void do_slow(int);
 extern LPDIRECTDRAWSURFACE GetPrimarySurface(void);
 extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX);
 extern HRESULT WINAPI sBlt(char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
-extern BOOL isFullScreen;
 
 static SetLayeredWindowAttributes_Type pSetLayeredWindowAttributes = NULL;
 #ifndef WS_EX_LAYERED
@@ -101,8 +100,8 @@ static POINT FixMessagePt(HWND hwnd, POINT point)
 	if (curr.y < 0) curr.y=0;
 	if (curr.x > rect.right) curr.x=rect.right;
 	if (curr.y > rect.bottom) curr.y=rect.bottom;
-	if (rect.right)  curr.x = (curr.x * VirtualScr.dwWidth) / rect.right;
-	if (rect.bottom) curr.y = (curr.y * VirtualScr.dwHeight) / rect.bottom;
+	if (rect.right)  curr.x = (curr.x * dxw.GetScreenWidth()) / rect.right;
+	if (rect.bottom) curr.y = (curr.y * dxw.GetScreenHeight()) / rect.bottom;
 
 	return curr;
 }
@@ -123,12 +122,12 @@ static COLORREF GetMatchingColor(COLORREF crColor)
 		iDistance=0;
 
 		PalColor=PaletteEntries[iColorIndex];
-		switch(ActualScr.PixelFormat.dwRGBBitCount){
+		switch(dxw.ActualPixelFormat.dwRGBBitCount){
 		case 32:
 			PalColor = ((PalColor & 0x00FF0000) >> 16) | (PalColor & 0x0000FF00) | ((PalColor & 0x000000FF) << 16);
 			break;
 		case 16:
-			if(ActualScr.PixelFormat.dwGBitMask==0x03E0){
+			if(dxw.ActualPixelFormat.dwGBitMask==0x03E0){
 				// RGB555 screen settings
 				PalColor = ((PalColor & 0x7C00) >> 7) | ((PalColor & 0x03E0) << 6) | ((PalColor & 0x001F) << 19);
 			}
@@ -167,12 +166,12 @@ static COLORREF GetMatchingColor(COLORREF crColor)
 	OutTraceD("GetMatchingColor: color=%x matched with palette[%d]=%x dist=%d\n", 
 		crColor, iMinColorIndex, PaletteEntries[iMinColorIndex], iDistance);
 	PalColor=PaletteEntries[iMinColorIndex];
-	switch(ActualScr.PixelFormat.dwRGBBitCount){
+	switch(dxw.ActualPixelFormat.dwRGBBitCount){
 	case 32:
 		crColor = ((PalColor & 0x00FF0000) >> 16) | (PalColor & 0x0000FF00) | ((PalColor & 0x000000FF) << 16); 
 		break;
 	case 16:
-		if(ActualScr.PixelFormat.dwGBitMask==0x03E0){
+		if(dxw.ActualPixelFormat.dwGBitMask==0x03E0){
 			// RGB555 screen settings
 			crColor = ((PalColor & 0x7C00) >> 7) | ((PalColor & 0x03E0) << 6) | ((PalColor & 0x001F) << 19);
 		}
@@ -205,15 +204,14 @@ HWND WINAPI extCreateWindowExA(
 	HWND wndh;
 	WNDPROC pWindowProc;
 	BOOL isValidHandle=TRUE;
-	extern BOOL isFullScreen;
 
 	OutTraceD("CreateWindowEx: class=\"%s\" wname=\"%s\" pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
 		lpClassName, lpWindowName, x, y, nWidth, nHeight, 
 		dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
-	if(IsDebug) OutTrace("CreateWindowEx: DEBUG screen=(%d,%d)\n", VirtualScr.dwWidth, VirtualScr.dwHeight);
+	if(IsDebug) OutTrace("CreateWindowEx: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	// no maximized windows in any case
-	if (dwFlags & PREVENTMAXIMIZE){
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		OutTraceD("CreateWindowEx: handling PREVENTMAXIMIZE mode\n");
 		dwStyle &= ~(WS_MAXIMIZE | WS_POPUP);
 		dwExStyle &= ~WS_EX_TOPMOST;
@@ -230,20 +228,19 @@ HWND WINAPI extCreateWindowExA(
 				((x==0)&&(y==0)) || ((x==CW_USEDEFAULT)&&(y==CW_USEDEFAULT))
 			)
 		&&
-			(((DWORD)nWidth>=VirtualScr.dwWidth)&&((DWORD)nHeight>=VirtualScr.dwHeight))
+			(((DWORD)nWidth>=dxw.GetScreenWidth())&&((DWORD)nHeight>=dxw.GetScreenHeight()))
 		){
 		RECT screen;
 		POINT upleft = {0,0};
 		// update virtual screen size if it has grown 
-		VirtualScr.dwWidth=nWidth;
-		VirtualScr.dwHeight=nHeight;
+		dxw.SetScreenSize(nWidth, nHeight);
 		// inserted some checks here, since the main window could be destroyed
 		// or minimized (see "Jedi Outcast") so that you may get a dangerous 
 		// zero size. In this case, better renew the hWnd assignement and its coordinates.
 		do { // fake loop
 			isValidHandle = FALSE;
-			if (!(*pGetClientRect)(hWnd,&screen)) break;
-			if (!(*pClientToScreen)(hWnd,&upleft)) break;
+			if (!(*pGetClientRect)(dxw.GethWnd(),&screen)) break;
+			if (!(*pClientToScreen)(dxw.GethWnd(),&upleft)) break;
 			if (screen.right==0 || screen.bottom==0) break;
 			isValidHandle = TRUE;
 		} while(FALSE);
@@ -263,10 +260,10 @@ HWND WINAPI extCreateWindowExA(
 			nHeight=iSizY;
 			OutTraceD("CreateWindowEx: renewed BIG win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
 		}
-		isFullScreen = TRUE;
+		dxw.SetFullScreen(TRUE);
 	}
 
-	if(!isFullScreen){ // v2.1.63: needed for "Monster Truck Madness"
+	if(!dxw.IsFullScreen()){ // v2.1.63: needed for "Monster Truck Madness"
 		wndh= (*pCreateWindowExA)(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, 
 			hWndParent, hMenu, hInstance, lpParam);
 		OutTraceD("CreateWindowEx: windowed mode ret=%x\n", wndh);
@@ -277,11 +274,11 @@ HWND WINAPI extCreateWindowExA(
 	// Age of Empires....
 	if (dwStyle & WS_CHILD){ 
 		RECT screen;
-		(*pGetClientRect)(hWnd,&screen);
-		x=x*screen.right/VirtualScr.dwWidth;
-		y=y*screen.bottom/VirtualScr.dwHeight;
-		nWidth=nWidth*screen.right/VirtualScr.dwWidth;
-		nHeight=nHeight*screen.bottom/VirtualScr.dwHeight;
+		(*pGetClientRect)(dxw.GethWnd(),&screen);
+		x=x*screen.right/dxw.GetScreenWidth();
+		y=y*screen.bottom/dxw.GetScreenHeight();
+		nWidth=nWidth*screen.right/dxw.GetScreenWidth();
+		nHeight=nHeight*screen.bottom/dxw.GetScreenHeight();
 		OutTraceD("CreateWindowEx: fixed WS_CHILD pos=(%d,%d) size=(%d,%d)\n",
 			x, y, nWidth, nHeight);
 	}
@@ -290,8 +287,8 @@ HWND WINAPI extCreateWindowExA(
 	else if (dwExStyle & WS_EX_CONTROLPARENT){
 		RECT screen;
 		POINT upleft = {0,0};
-		(*pGetClientRect)(hWnd,&screen);
-		(*pClientToScreen)(hWnd,&upleft);
+		(*pGetClientRect)(dxw.GethWnd(),&screen);
+		(*pClientToScreen)(dxw.GethWnd(),&upleft);
 		x=upleft.x;
 		y=upleft.y;
 		nWidth=screen.right;
@@ -312,18 +309,18 @@ HWND WINAPI extCreateWindowExA(
 		return wndh;
 	}
 
-	if ((!isValidHandle) && isFullScreen) {
-		hWnd = wndh;
+	if ((!isValidHandle) && dxw.IsFullScreen()) {
+		dxw.SethWnd(wndh);
 		extern void AdjustWindowPos(HWND, DWORD, DWORD);
-		(*pSetWindowLong)(wndh, GWL_STYLE, (dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
+		(*pSetWindowLong)(wndh, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
 		(*pSetWindowLong)(wndh, GWL_EXSTYLE, 0); 
 		//(*pShowWindow)(wndh, SW_SHOWNORMAL);
-		OutTraceD("CreateWindow: hWnd=%x, set style=WS_OVERLAPPEDWINDOW extstyle=0\n", wndh); 
+		OutTraceD("CreateWindow: hwnd=%x, set style=WS_OVERLAPPEDWINDOW extstyle=0\n", wndh); 
 		AdjustWindowPos(wndh, nWidth, nHeight);
 		(*pShowWindow)(wndh, SW_SHOWNORMAL);
 	}
 
-	if ((dwFlags & FIXWINFRAME) && !(dwStyle & WS_CHILD))
+	if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwStyle & WS_CHILD))
 		FixWindowFrame(wndh);
 
 	// to do: handle inner child, and leave dialogue & modal child alone!!!
@@ -344,7 +341,7 @@ COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor)
 {
 	COLORREF res;
 
-	if ((dwFlags & EMULATESURFACE) && (dwFlags & HANDLEDC) && (VirtualScr.PixelFormat.dwRGBBitCount==8))
+	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC) && (dxw.VirtualPixelFormat.dwRGBBitCount==8))
 		crColor=GetMatchingColor(crColor);
 
 	res=(*pSetTextColor)(hdc, crColor);
@@ -356,7 +353,7 @@ COLORREF WINAPI extSetBkColor(HDC hdc, COLORREF crColor)
 {
 	COLORREF res;
 
-	if ((dwFlags & EMULATESURFACE) && (dwFlags & HANDLEDC) && (VirtualScr.PixelFormat.dwRGBBitCount==8))
+	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC) && (dxw.VirtualPixelFormat.dwRGBBitCount==8))
 		crColor=GetMatchingColor(crColor);
 
 	res=(*pSetBkColor)(hdc, crColor);
@@ -385,7 +382,7 @@ BOOL WINAPI extClipCursor(RECT *lpRectArg)
 			OutTrace("ClipCursor: rect=(NULL)\n");
 	}
 
- 	if (!(dwFlags & ENABLECLIPPING)) return 1;
+ 	if (!(dxw.dwFlags1 & ENABLECLIPPING)) return 1;
 
 	if(lpRectArg){
 		Rect=*lpRectArg;
@@ -394,45 +391,16 @@ BOOL WINAPI extClipCursor(RECT *lpRectArg)
 	else
 		lpRect=NULL;
 
-	if(dwFlags & MODIFYMOUSE){
-		RECT rect;
-		POINT corner;
-		RECT ClientArea;
-
-		// beware: computations for RECT coordinates: the range is 1 pixel wider
-		// than accettable coordinates for cursor positions ???
-
-		// find window metrics
-		if (!(*pGetClientRect)(hWnd, &rect)){
-			OutTraceE("GetClientRect ERROR %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		corner.x=corner.y=0;
-		if (!(*pClientToScreen)(hWnd, &corner)){
-			OutTraceE("ClientToScreen ERROR %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}		
+	if(dxw.dwFlags1 & MODIFYMOUSE){
+		// save desired clip region
 		if (lpRect) {
-			// save desired clip region
 			ClipRegion=*lpRectArg;
 			lpClipRegion=&ClipRegion;
-			// need no scaling for upper left, since they're set to 0.
-			lpRect->left = corner.x + (lpRect->left * rect.right) / VirtualScr.dwWidth;
-			lpRect->right = corner.x + (lpRect->right * rect.right) / VirtualScr.dwWidth;
-			lpRect->top = corner.y + (lpRect->top * rect.bottom) / VirtualScr.dwHeight;
-			lpRect->bottom = corner.y + (lpRect->bottom * rect.bottom) / VirtualScr.dwHeight;
 		}
-		else {
-			// NULL -> whole screen -> whole client area!!!
-			// save desired clip region
+		else
 			lpClipRegion=NULL;
-			// map space for null ptr
-			lpRect=&ClientArea;
-			lpRect->left = corner.x;
-			lpRect->right = corner.x + rect.right;
-			lpRect->top = corner.y;
-			lpRect->bottom = corner.y + rect.bottom;
-		}
+
+		*lpRect=dxw.MapWindowRect(lpRect);
 	}
 
 	if (pClipCursor) res=(*pClipCursor)(lpRect);
@@ -449,7 +417,7 @@ BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 	BOOL ret;
 
 	// proxy....
-	if (!(dwFlags & ENABLECLIPPING)) {
+	if (!(dxw.dwFlags1 & ENABLECLIPPING)) {
 		ret=(*pGetClipCursor)(lpRect);
 		if(IsTraceD){
 			if (lpRect)
@@ -466,8 +434,8 @@ BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 			*lpRect=ClipRegion;
 		else{
 			lpRect->top = lpRect->left = 0;
-			lpRect->right = VirtualScr.dwWidth;
-			lpRect->bottom = VirtualScr.dwHeight;
+			lpRect->right = dxw.GetScreenWidth();
+			lpRect->bottom = dxw.GetScreenHeight();
 		}
 		OutTraceD("ClipCursor: rect=(%d,%d)-(%d,%d) ret=%d\n", 
 			lpRect->left,lpRect->top,lpRect->right,lpRect->bottom, TRUE);
@@ -483,13 +451,7 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 	HRESULT res;
 	static int PrevX, PrevY;
 
-	if(dwFlags & SLOWDOWN) do_slow(2);
-
-	//if(dwFlags2 & KEEPCURSORFIXED) {
-	//	lppoint->x=LastCurPosX;
-	//	lppoint->y=LastCurPosY;
-	//	return 1;
-	//}
+	if(dxw.dwFlags1 & SLOWDOWN) do_slow(2);
 
 	if (pGetCursorPos) {
 		res=(*pGetCursorPos)(lppoint);
@@ -499,14 +461,14 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 		res=1;
 	}
 
-	if(dwFlags2 & DIFFERENTIALMOUSE){
+	if(dxw.dwFlags2 & DIFFERENTIALMOUSE){
 		int NewX, NewY;
 		RECT client;
 		POINT corner={0,0};
 
 		// get win placement
-		(*pGetClientRect)(hWnd, &client);
-		(*pClientToScreen)(hWnd, &corner);
+		(*pGetClientRect)(dxw.GethWnd(), &client);
+		(*pClientToScreen)(dxw.GethWnd(), &corner);
 		NewX = lppoint->x - PrevX + LastCurPosX;
 		NewY = lppoint->y - PrevY + LastCurPosY;
 		// handle virtual clipping
@@ -525,23 +487,22 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 		return TRUE;
 	}
 
-
 	PrevX=lppoint->x;
 	PrevY=lppoint->y;
 
-	if(dwFlags & MODIFYMOUSE){
+	if(dxw.dwFlags1 & MODIFYMOUSE){
 		RECT rect;
 
 		// find window metrics
-		if (!(*pGetClientRect)(hWnd, &rect)){
-			OutTraceE("GetClientRect(%x) ERROR %d at %d\n", hWnd, GetLastError(), __LINE__);
+		if (!(*pGetClientRect)(dxw.GethWnd(), &rect)){
+			OutTraceE("GetClientRect(%x) ERROR %d at %d\n", dxw.GethWnd(), GetLastError(), __LINE__);
 			lppoint->x =0; lppoint->y=0;
 			return TRUE;
 		}
 
 		// convert absolute screen coordinates to frame relative
-		if (!(*pScreenToClient)(hWnd, lppoint)) {
-			OutTraceE("ScreenToClient(%x) ERROR %d at %d\n", hWnd, GetLastError(), __LINE__);
+		if (!(*pScreenToClient)(dxw.GethWnd(), lppoint)) {
+			OutTraceE("ScreenToClient(%x) ERROR %d at %d\n", dxw.GethWnd(), GetLastError(), __LINE__);
 			lppoint->x =0; lppoint->y=0;
 			return TRUE;
 		}
@@ -560,11 +521,11 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 		if (lppoint->x > rect.right) lppoint->x=rect.right;
 		if (lppoint->y > rect.bottom) lppoint->y=rect.bottom;
 
-		lppoint->x = (lppoint->x * VirtualScr.dwWidth) / rect.right;
-		lppoint->y = (lppoint->y * VirtualScr.dwHeight) / rect.bottom;
+		lppoint->x = (lppoint->x * dxw.GetScreenWidth()) / rect.right;
+		lppoint->y = (lppoint->y * dxw.GetScreenHeight()) / rect.bottom;
 
 		OutTraceC("GetCursorPos: hwnd=%x res=%x XY=(%d,%d)->(%d,%d)\n", 
-			hWnd, res, PrevX, PrevY, lppoint->x, lppoint->y);
+			dxw.GethWnd(), res, PrevX, PrevY, lppoint->x, lppoint->y);
 	}
 	
 	return res;
@@ -578,33 +539,33 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 	PrevX=x;
 	PrevY=y;
 
-	if(dwFlags2 & KEEPCURSORFIXED) {
+	if(dxw.dwFlags2 & KEEPCURSORFIXED) {
 		OutTraceC("SetCursorPos: FIXED pos=(%d,%d)\n", x, y);
 		LastCurPosX=x;
 		LastCurPosY=y;
 		return 1;
 	}
 
-	if(dwFlags & SLOWDOWN) do_slow(2);
+	if(dxw.dwFlags1 & SLOWDOWN) do_slow(2);
 
-	if(dwFlags & KEEPCURSORWITHIN){
+	if(dxw.dwFlags1 & KEEPCURSORWITHIN){
 		// Intercept SetCursorPos outside screen boundaries (used as Cursor OFF in some games)
-		if ((y<0)||(y>=(int)VirtualScr.dwHeight)||(x<0)||(x>=(int)VirtualScr.dwWidth)) return 1;
+		if ((y<0)||(y>=(int)dxw.GetScreenHeight())||(x<0)||(x>=(int)dxw.GetScreenWidth())) return 1;
 	}
 
-	if(dwFlags & MODIFYMOUSE){
+	if(dxw.dwFlags1 & MODIFYMOUSE){
 		POINT cur;
 		RECT rect;
 
 		// find window metrics
-		if (!(*pGetClientRect)(hWnd, &rect)) {
+		if (!(*pGetClientRect)(dxw.GethWnd(), &rect)) {
 			// report error and ignore ...
-			OutTraceE("GetClientRect(%x) ERROR %d at %d\n", hWnd, GetLastError(), __LINE__);
+			OutTraceE("GetClientRect(%x) ERROR %d at %d\n", dxw.GethWnd(), GetLastError(), __LINE__);
 			return 0;
 		}
 
-		x= x * rect.right / VirtualScr.dwWidth;
-		y= y * rect.bottom / VirtualScr.dwHeight;
+		x= x * rect.right / dxw.GetScreenWidth();
+		y= y * rect.bottom / dxw.GetScreenHeight();
 
 		// check for boundaries (???)
 		if (x >= rect.right) x=rect.right-1;
@@ -615,8 +576,8 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 		// make it screen absolute
 		cur.x = x;
 		cur.y = y;
-		if (!(*pClientToScreen)(hWnd, &cur)) {
-			OutTraceE("ClientToScreen(%x) ERROR %d at %d\n", hWnd, GetLastError(), __LINE__);
+		if (!(*pClientToScreen)(dxw.GethWnd(), &cur)) {
+			OutTraceE("ClientToScreen(%x) ERROR %d at %d\n", dxw.GethWnd(), GetLastError(), __LINE__);
 			return 0;
 		}
 		x = cur.x;
@@ -633,11 +594,11 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 BOOL WINAPI extTextOutA(HDC hdc, int nXStart, int nYStart, LPCTSTR lpString, int cchString)
 {
 	OutTraceD("TextOut: hdc=%x xy=(%d,%d) str=(%d)\"%s\"\n", hdc, nXStart, nYStart, cchString, lpString);
-	if (dwFlags & FIXTEXTOUT) {
+	if (dxw.dwFlags1 & FIXTEXTOUT) {
 		POINT anchor;
 		anchor.x=nXStart;
 		anchor.y=nYStart;
-		(*pClientToScreen)(hWnd, &anchor);
+		(*pClientToScreen)(dxw.GethWnd(), &anchor);
 		nXStart=anchor.x;
 		nYStart=anchor.y;
 	}
@@ -647,16 +608,16 @@ BOOL WINAPI extTextOutA(HDC hdc, int nXStart, int nYStart, LPCTSTR lpString, int
 BOOL WINAPI extRectangle(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
 {
 	OutTraceD("Rectangle: hdc=%x xy=(%d,%d)-(%d,%d)\n", hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
-	if (dwFlags & FIXTEXTOUT) {
+	if (dxw.dwFlags1 & FIXTEXTOUT) {
 		POINT anchor;
 		anchor.x=nLeftRect;
 		anchor.y=nTopRect;
-		(*pClientToScreen)(hWnd, &anchor);
+		(*pClientToScreen)(dxw.GethWnd(), &anchor);
 		nLeftRect=anchor.x;
 		nTopRect=anchor.y;
 		anchor.x=nRightRect;
 		anchor.y=nBottomRect;
-		(*pClientToScreen)(hWnd, &anchor);
+		(*pClientToScreen)(dxw.GethWnd(), &anchor);
 		nRightRect=anchor.x;
 		nBottomRect=anchor.y;
 	}
@@ -668,16 +629,16 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 	RECT rc;
 	OutTraceD("FillRect: hdc=%x xy=(%d,%d)-(%d,%d)\n", hdc, lprc->left, lprc->top, lprc->right, lprc->bottom);
 	memcpy(&rc, lprc, sizeof(rc));
-	if (dwFlags & FIXTEXTOUT) {
+	if (dxw.dwFlags1 & FIXTEXTOUT) {
 		POINT anchor;
 		anchor.x=rc.left;
 		anchor.y=rc.top;
-		(*pClientToScreen)(hWnd, &anchor);
+		(*pClientToScreen)(dxw.GethWnd(), &anchor);
 		rc.left=anchor.x;
 		rc.top=anchor.y;
 		anchor.x=rc.right;
 		anchor.y=rc.bottom;
-		(*pClientToScreen)(hWnd, &anchor);
+		(*pClientToScreen)(dxw.GethWnd(), &anchor);
 		rc.right=anchor.x;
 		rc.bottom=anchor.y;
 	}
@@ -689,16 +650,16 @@ int WINAPI extDrawFocusRect(HDC hdc, const RECT *lprc)
 	RECT rc;
 	OutTraceD("DrawFocusRect: hdc=%x xy=(%d,%d)-(%d,%d)\n", hdc, lprc->left, lprc->top, lprc->right, lprc->bottom);
 	memcpy(&rc, lprc, sizeof(rc));
-	if (dwFlags & FIXTEXTOUT) {
+	if (dxw.dwFlags1 & FIXTEXTOUT) {
 		POINT anchor;
 		anchor.x=rc.left;
 		anchor.y=rc.top;
-		(*pClientToScreen)(hWnd, &anchor);
+		(*pClientToScreen)(dxw.GethWnd(), &anchor);
 		rc.left=anchor.x;
 		rc.top=anchor.y;
 		anchor.x=rc.right;
 		anchor.y=rc.bottom;
-		(*pClientToScreen)(hWnd, &anchor);
+		(*pClientToScreen)(dxw.GethWnd(), &anchor);
 		rc.right=anchor.x;
 		rc.bottom=anchor.y;
 	}
@@ -739,7 +700,7 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 	BOOL res;
 
 	OutTraceD("ShowWindow: hwnd=%x, CmdShow=%x(%s)\n", hwnd, nCmdShow, ExplainShowCmd(nCmdShow));
-	if (dwFlags & PREVENTMAXIMIZE){
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		if(nCmdShow==SW_MAXIMIZE){
 			OutTraceD("ShowWindow: suppress maximize\n");
 			nCmdShow=SW_SHOWNORMAL;
@@ -776,9 +737,9 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong)
 	OutTraceD("SetWindowLong: hwnd=%x, Index=%x(%s) Val=%x\n", 
 		hwnd, nIndex, ExplainSetWindowIndex(nIndex), dwNewLong);
 
-	//if(!hwnd) hwnd=hWnd;
+	//if(!hwnd) hwnd=dxw.GethWnd();
 
-	if (dwFlags & LOCKWINSTYLE){
+	if (dxw.dwFlags1 & LOCKWINSTYLE){
 		if(nIndex==GWL_STYLE){
 			OutTraceD("SetWindowLong: Lock GWL_STYLE=%x\n", dwNewLong);
 			//return 1;
@@ -791,7 +752,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong)
 		}
 	}
 
-	if (dwFlags & PREVENTMAXIMIZE){
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		if(nIndex==GWL_STYLE){
 			OutTraceD("SetWindowLong: GWL_STYLE %x suppress MAXIMIZE\n", dwNewLong);
 			dwNewLong |= WS_OVERLAPPEDWINDOW; 
@@ -803,7 +764,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong)
 		}
 	}
 
-	if (dwFlags & FIXWINFRAME){
+	if (dxw.dwFlags1 & FIXWINFRAME){
 		if((nIndex==GWL_STYLE) && !(dwNewLong & WS_CHILD)){
 			OutTraceD("SetWindowLong: GWL_STYLE %x force OVERLAPPEDWINDOW\n", dwNewLong);
 			dwNewLong |= WS_OVERLAPPEDWINDOW; 
@@ -829,40 +790,38 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong)
 
 BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags)
 {
-	extern BOOL isFullScreen;
 	BOOL res;
 
 	OutTraceD("SetWindowPos: hwnd=%x%s pos=(%d,%d) dim=(%d,%d) Flags=%x\n", 
-		hwnd, isFullScreen?"(FULLSCREEN)":"", X, Y, cx, cy, uFlags);
+		hwnd, dxw.IsFullScreen()?"(FULLSCREEN)":"", X, Y, cx, cy, uFlags);
 
-	if ((hwnd != hWnd) || !isFullScreen){
+	if ((hwnd != dxw.GethWnd()) || !dxw.IsFullScreen()){
 		// just proxy
 		res=(*pSetWindowPos)(hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 		if(!res)OutTraceE("SetWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return res;
 	}
 
-	if ((dwFlags & LOCKWINPOS) && isFullScreen){
+	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
 		// Note: any attempt to change the window position, no matter where and how, through the
 		// SetWindowPos API is causing resizing to the default 1:1 pixed size in Commandos. 
 		// in such cases, there is incompatibility between LOCKWINPOS and LOCKWINSTYLE.
 		return 1;
 	}
 
-	if (dwFlags & PREVENTMAXIMIZE){
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag =0;
 		int MaxX, MaxY;
 		MaxX = iSizX;
 		MaxY = iSizY;
-		if (!MaxX) MaxX = VirtualScr.dwWidth;
-		if (!MaxY) MaxY = VirtualScr.dwHeight;
+		if (!MaxX) MaxX = dxw.GetScreenWidth();
+		if (!MaxY) MaxY = dxw.GetScreenHeight();
 		if(cx>MaxX) { cx=MaxX; UpdFlag=1; }
 		if(cy>MaxY) { cy=MaxY; UpdFlag=1; }
 		if (UpdFlag) 
 			OutTraceD("SetWindowPos: using max dim=(%d,%d)\n", cx, cy);
 	}
 
-	//OutTraceD("SetWindowPos: DEBUG hWnd=%x hwnd=%x isFullScreen=%x\n", hwnd, hWnd, isFullScreen);
 	// useful??? to be demonstrated....
 	// when altering main window in fullscreen mode, fix the coordinates for borders
 	DWORD dwCurStyle;
@@ -881,30 +840,29 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 
 HDWP WINAPI extDeferWindowPos(HDWP hWinPosInfo, HWND hwnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags)
 {
-	extern BOOL isFullScreen;
 	HDWP res;
 
 	OutTraceD("DeferWindowPos: hwnd=%x%s pos=(%d,%d) dim=(%d,%d) Flags=%x\n", 
-		hwnd, isFullScreen?"(FULLSCREEN)":"", X, Y, cx, cy, uFlags);
+		hwnd, dxw.IsFullScreen()?"(FULLSCREEN)":"", X, Y, cx, cy, uFlags);
 
-	if ((hwnd != hWnd) || !isFullScreen){
+	if ((hwnd != dxw.GethWnd()) || !dxw.IsFullScreen()){
 		// just proxy
 		res=(*pDeferWindowPos)(hWinPosInfo, hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 		if(!res)OutTraceE("SetWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return res;
 	}
 
-	if (dwFlags & LOCKWINPOS){
+	if (dxw.dwFlags1 & LOCKWINPOS){
 		return hWinPosInfo;
 	}
 
-	if (dwFlags & PREVENTMAXIMIZE){
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag =0;
 		int MaxX, MaxY;
 		MaxX = iSizX;
 		MaxY = iSizY;
-		if (!MaxX) MaxX = VirtualScr.dwWidth;
-		if (!MaxY) MaxY = VirtualScr.dwHeight;
+		if (!MaxX) MaxX = dxw.GetScreenWidth();
+		if (!MaxY) MaxY = dxw.GetScreenHeight();
 		if(cx>MaxX) { cx=MaxX; UpdFlag=1; }
 		if(cy>MaxY) { cy=MaxY; UpdFlag=1; }
 		if (UpdFlag) 
@@ -934,8 +892,8 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	wp = (LPWINDOWPOS)lParam;
 	MaxX = iSizX;
 	MaxY = iSizY;
-	if (!MaxX) MaxX = VirtualScr.dwWidth;
-	if (!MaxY) MaxY = VirtualScr.dwHeight;
+	if (!MaxX) MaxX = dxw.GetScreenWidth();
+	if (!MaxY) MaxY = dxw.GetScreenHeight();
 	static int iLastCX, iLastCY;
 	static int BorderX=-1;
 	static int BorderY=-1;
@@ -944,13 +902,13 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	OutTraceD("%s: GOT hwnd=%x pos=(%d,%d) dim=(%d,%d) Flags=%x\n", 
 		ApiName, hwnd, wp->x, wp->y, wp->cx, wp->cy, wp->flags);
 
-	if ((dwFlags & LOCKWINPOS) && isFullScreen && (hwnd==hWnd)){ 
+	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
 		extern void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
 		CalculateWindowPos(hwnd, MaxX, MaxY, wp);
 		OutTraceD("%s: LOCK pos=(%d,%d) dim=(%d,%d)\n", ApiName, wp->x, wp->y, wp->cx, wp->cy);
 	}
 
-	if ((dwFlags2 & KEEPASPECTRATIO) && isFullScreen && (hwnd==hWnd)){ 
+	if ((dxw.dwFlags2 & KEEPASPECTRATIO) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
 		// note: while keeping aspect ration, resizing from one corner doesn't tell
 		// which coordinate is prevalent to the other. We made an arbitrary choice.
 		// note: v2.1.93: compensation must refer to the client area, not the wp
@@ -971,7 +929,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 			case HTBOTTOMRIGHT:
 			case HTTOPLEFT:
 			case HTTOPRIGHT:
-				cx = BorderX + ((wp->cy - BorderY) * VirtualScr.dwWidth) / VirtualScr.dwHeight;
+				cx = BorderX + ((wp->cy - BorderY) * dxw.GetScreenWidth()) / dxw.GetScreenHeight();
 				if(cx!=wp->cx){
 					OutTraceD("%s: KEEPASPECTRATIO adjusted cx=%d->%d\n", ApiName, wp->cx, cx);
 					wp->cx = cx;
@@ -979,7 +937,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 				break;
 			case HTLEFT:
 			case HTRIGHT:
-				cy = BorderY + ((wp->cx - BorderX) * VirtualScr.dwHeight) / VirtualScr.dwWidth;
+				cy = BorderY + ((wp->cx - BorderX) * dxw.GetScreenHeight()) / dxw.GetScreenWidth();
 				if(cy!=wp->cy){
 					OutTraceD("%s: KEEPASPECTRATIO adjusted cy=%d->%d\n", ApiName, wp->cy, cy);
 					wp->cy = cy;
@@ -988,7 +946,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 		}
 	}
 
-	if (dwFlags & PREVENTMAXIMIZE){
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag = 0;
 
 		if(wp->cx>MaxX) { wp->cx=MaxX; UpdFlag=1; }
@@ -1003,7 +961,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 
 void dxwFixMinMaxInfo(char *ApiName, HWND hwnd, LPARAM lParam)
 {
-	if (dwFlags & PREVENTMAXIMIZE){
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		LPMINMAXINFO lpmmi;
 		lpmmi=(LPMINMAXINFO)lParam;
 		OutTraceD("%s: GOT MaxPosition=(%d,%d) MaxSize=(%d,%d)\n", ApiName, 
@@ -1015,23 +973,23 @@ void dxwFixMinMaxInfo(char *ApiName, HWND hwnd, LPARAM lParam)
 			lpmmi->ptMaxSize.y = pSetDevMode->dmPelsHeight;
 		}
 		else{
-			lpmmi->ptMaxSize.x = VirtualScr.dwWidth;
-			lpmmi->ptMaxSize.y = VirtualScr.dwHeight;
+			lpmmi->ptMaxSize.x = dxw.GetScreenWidth();
+			lpmmi->ptMaxSize.y = dxw.GetScreenHeight();
 		}
 		OutTraceD("%s: SET PREVENTMAXIMIZE MaxPosition=(%d,%d) MaxSize=(%d,%d)\n", ApiName, 
 			lpmmi->ptMaxPosition.x, lpmmi->ptMaxPosition.y, lpmmi->ptMaxSize.x, lpmmi->ptMaxSize.y);
 	}
 	// v2.1.75: added logic to fix win coordinates to selected ones. 
 	// fixes the problem with "Achtung Spitfire", that can't be managed through PREVENTMAXIMIZE flag.
-	if (dwFlags & LOCKWINPOS){
+	if (dxw.dwFlags1 & LOCKWINPOS){
 		LPMINMAXINFO lpmmi;
 		lpmmi=(LPMINMAXINFO)lParam;
 		OutTraceD("%s: GOT MaxPosition=(%d,%d) MaxSize=(%d,%d)\n", ApiName, 
 			lpmmi->ptMaxPosition.x, lpmmi->ptMaxPosition.y, lpmmi->ptMaxSize.x, lpmmi->ptMaxSize.y);
 		lpmmi->ptMaxPosition.x=iPosX;
 		lpmmi->ptMaxPosition.y=iPosY;
-		lpmmi->ptMaxSize.x = iSizX ? iSizX : VirtualScr.dwWidth;
-		lpmmi->ptMaxSize.y = iSizY ? iSizY : VirtualScr.dwHeight;
+		lpmmi->ptMaxSize.x = iSizX ? iSizX : dxw.GetScreenWidth();
+		lpmmi->ptMaxSize.y = iSizY ? iSizY : dxw.GetScreenHeight();
 		OutTraceD("%s: SET LOCKWINPOS MaxPosition=(%d,%d) MaxSize=(%d,%d)\n", ApiName, 
 			lpmmi->ptMaxPosition.x, lpmmi->ptMaxPosition.y, lpmmi->ptMaxSize.x, lpmmi->ptMaxSize.y);
 	}
@@ -1045,13 +1003,13 @@ void dxwFixStyle(char *ApiName, HWND hwnd, LPARAM lParam)
 	OutTraceD("%s: new Style=%x(%s)\n", 
 		ApiName, lpSS->styleNew, ExplainStyle(lpSS->styleNew));
 
-	if (dwFlags & FIXWINFRAME){ // set canonical style
+	if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
 		lpSS->styleNew= WS_OVERLAPPEDWINDOW;
 	}
-	if (dwFlags & LOCKWINSTYLE){ // set to current value
+	if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
 		lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_STYLE);
 	}
-	if (dwFlags & PREVENTMAXIMIZE){ // disable maximize settings
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
 		if (lpSS->styleNew & WS_MAXIMIZE){
 			OutTraceD("%s: prevent maximize style\n", ApiName);
 			lpSS->styleNew &= ~WS_MAXIMIZE;
@@ -1067,13 +1025,13 @@ void dxwFixExStyle(char *ApiName, HWND hwnd, LPARAM lParam)
 	OutTraceD("%s: new ExStyle=%x(%s)\n", 
 		ApiName, lpSS->styleNew, ExplainExStyle(lpSS->styleNew));
 
-	if (dwFlags & FIXWINFRAME){ // set canonical style
+	if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
 		lpSS->styleNew= 0;
 	}
-	if (dwFlags & LOCKWINSTYLE){ // set to current value
+	if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
 			lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 	}
-	if (dwFlags & PREVENTMAXIMIZE){ // disable maximize settings
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
 		if (lpSS->styleNew & WS_EX_TOPMOST){
 			OutTraceD("%s: prevent EXSTYLE topmost style\n", ApiName);
 			lpSS->styleNew &= ~WS_EX_TOPMOST;
@@ -1092,7 +1050,7 @@ static LRESULT WINAPI FixWindowProc(char *ApiName, HWND hwnd, UINT Msg, WPARAM w
 	switch(Msg){
 	// attempt to fix Sleepwalker
 	//case WM_NCCALCSIZE:
-	//	if (dwFlags & PREVENTMAXIMIZE)
+	//	if (dxw.dwFlags1 & PREVENTMAXIMIZE)
 	//		return 0;
 	//	break;
 	case WM_ERASEBKGND:
@@ -1115,21 +1073,21 @@ static LRESULT WINAPI FixWindowProc(char *ApiName, HWND hwnd, UINT Msg, WPARAM w
 		break;
 	case WM_DISPLAYCHANGE:
 		// too late? to be deleted....
-		if ((dwFlags & LOCKWINPOS) && isFullScreen) return 0;
-		if (dwFlags & PREVENTMAXIMIZE){
+		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()) return 0;
+		if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 			OutTraceD("%s: WM_DISPLAYCHANGE depth=%d size=(%d,%d)\n",
 				ApiName, wParam, HIWORD(lParam), LOWORD(lParam));
 			return 0;
 		}
 		break;
 	case WM_SIZE:
-		if ((dwFlags & LOCKWINPOS) && isFullScreen) return 0;
-		if (dwFlags & PREVENTMAXIMIZE){
+		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()) return 0;
+		if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 			if ((wParam == SIZE_MAXIMIZED)||(wParam == SIZE_MAXSHOW)){
 				OutTraceD("%s: prevent screen SIZE to fullscreen wparam=%d(%s) size=(%d,%d)\n", ApiName,
 					wParam, ExplainResizing(wParam), HIWORD(lParam), LOWORD(lParam));
 				return 0; // checked
-				//lParam = MAKELPARAM(VirtualScr.dwWidth, VirtualScr.dwHeight); 
+				//lParam = MAKELPARAM(dxw.GetScreenWidth(), dxw.GetScreenHeight()); 
 				//OutTraceD("%s: updated SIZE wparam=%d(%s) size=(%d,%d)\n", ApiName,
 				//	wParam, ExplainResizing(wParam), HIWORD(lParam), LOWORD(lParam));
 			}
@@ -1196,35 +1154,35 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 
 	switch(nindex){
 	case VERTRES:
-		res= VirtualScr.dwHeight;
+		res= dxw.GetScreenHeight();
 		OutTraceD("GetDeviceCaps: fix VERTRES cap=%d\n", res);
 		break;
 	case HORZRES:
-		res= VirtualScr.dwWidth;
+		res= dxw.GetScreenWidth();
 		OutTraceD("GetDeviceCaps: fix HORZRES cap=%d\n", res);
 		break;
 	// WARNING: in no-emu mode, the INIT8BPP and INIT16BPP flags expose capabilities that
 	// are NOT implemented and may cause later troubles!
 	case RASTERCAPS:
-		if(dwFlags2 & INIT8BPP) {
+		if(dxw.dwFlags2 & INIT8BPP) {
 			res = RC_PALETTE;
 			OutTraceD("GetDeviceCaps: fix RASTERCAPS setting RC_PALETTE cap=%x\n",res);
 		}
 		break;
 	case BITSPIXEL:
 	case COLORRES:
-		if(dwFlags2 & INIT8BPP|INIT16BPP){
-			if(dwFlags2 & INIT8BPP) res = 8;
-			if(dwFlags2 & INIT16BPP) res = 16;
+		if(dxw.dwFlags2 & INIT8BPP|INIT16BPP){
+			if(dxw.dwFlags2 & INIT8BPP) res = 8;
+			if(dxw.dwFlags2 & INIT16BPP) res = 16;
 			OutTraceD("GetDeviceCaps: fix BITSPIXEL/COLORRES cap=%d\n",res);
 		}
 		break;
 	}
 
-	if(dwFlags & EMULATESURFACE){
+	if(dxw.dwFlags1 & EMULATESURFACE){
 		switch(nindex){
 		case RASTERCAPS:
-			if((VirtualScr.PixelFormat.dwRGBBitCount==8) || (dwFlags2 & INIT8BPP)){
+			if((dxw.VirtualPixelFormat.dwRGBBitCount==8) || (dxw.dwFlags2 & INIT8BPP)){
 				res = RC_PALETTE;
 				OutTraceD("GetDeviceCaps: fix RASTERCAPS setting RC_PALETTE cap=%x\n",res);
 			}
@@ -1233,9 +1191,9 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 		case COLORRES:
 			int PrevRes;
 			PrevRes=res;
-			if(VirtualScr.PixelFormat.dwRGBBitCount!=0) res = VirtualScr.PixelFormat.dwRGBBitCount;
-			if(dwFlags2 & INIT8BPP) res = 8;
-			if(dwFlags2 & INIT16BPP) res = 16;
+			if(dxw.VirtualPixelFormat.dwRGBBitCount!=0) res = dxw.VirtualPixelFormat.dwRGBBitCount;
+			if(dxw.dwFlags2 & INIT8BPP) res = 8;
+			if(dxw.dwFlags2 & INIT16BPP) res = 16;
 			if(PrevRes != res) OutTraceD("GetDeviceCaps: fix BITSPIXEL/COLORRES cap=%d\n",res);
 			break;
 		case SIZEPALETTE:
@@ -1277,12 +1235,12 @@ int WINAPI extGetSystemMetrics(int nindex)
 	switch(nindex){
 	case SM_CXFULLSCREEN:
 	case SM_CXSCREEN:
-		res= VirtualScr.dwWidth;
+		res= dxw.GetScreenWidth();
 		OutTraceD("GetSystemMetrics: fix SM_CXSCREEN=%d\n", res);
 		break;
 	case SM_CYFULLSCREEN:
 	case SM_CYSCREEN:
-		res= VirtualScr.dwHeight;
+		res= dxw.GetScreenHeight();
 		OutTraceD("GetSystemMetrics: fix SM_CYSCREEN=%d\n", res);
 		break;
 	}
@@ -1295,7 +1253,7 @@ BOOL WINAPI extScaleWindowExtEx(HDC hdc, int Xnum, int Xdenom, int Ynum, int Yde
 	OutTraceD("ScaleWindowExtEx: hdc=%x num=(%d,%d) denom=(%d,%d) lpSize=%d\n",
 		hdc, Xnum, Ynum, Xdenom, Ydenom, lpSize);
 
-	if ((dwFlags & LOCKWINPOS) && isFullScreen) return 1;
+	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()) return 1;
 
 	return (*pScaleWindowExtEx)(hdc, Xnum, Xdenom, Ynum, Ydenom, lpSize);
 }
@@ -1333,7 +1291,7 @@ BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDES
 	OutTraceD("GDISetPixelFormat: hdc=%x\n", hdc);
 
 #if 0
-	if(dwFlags & EMULATESURFACE){
+	if(dxw.dwFlags1 & EMULATESURFACE){
 		// set VirtualScr view
 		VirtualScr.dwRGBBitCount=ppfd->cColorBits;
 		VirtualScr.dwFlags=ppfd->dwFlags;
@@ -1362,12 +1320,10 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, DEVMODE *lpDevMode, DWORD dwfla
 
 	// save desired settings first v.2.1.89
 	// v2.1.95 protect when lpDevMode is null (closing game... Jedi Outcast 
-	if(lpDevMode){
-		VirtualScr.dwWidth = lpDevMode->dmPelsWidth;
-		VirtualScr.dwHeight = lpDevMode->dmPelsHeight;
-	}
+	if(lpDevMode)
+		dxw.SetScreenSize(lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight);
 
-	if (dwFlags & EMULATESURFACE){
+	if (dxw.dwFlags1 & EMULATESURFACE){
 		OutTraceD("%s: BYPASS res=DISP_CHANGE_SUCCESSFUL\n", fname);
 		return DISP_CHANGE_SUCCESSFUL;
 	}
@@ -1468,7 +1424,7 @@ ATOM WINAPI extRegisterClassExA(WNDCLASSEX *lpwcx)
 
 BOOL WINAPI extClientToScreen(HWND whnd, LPPOINT lppoint)
 {
-	if (lppoint && isFullScreen && (whnd == hWnd))
+	if (lppoint && dxw.IsFullScreen() && (whnd == dxw.GethWnd()))
 		return 1;
 	else
 		return (*pClientToScreen)(whnd, lppoint);
@@ -1477,7 +1433,7 @@ BOOL WINAPI extClientToScreen(HWND whnd, LPPOINT lppoint)
 
 BOOL WINAPI extScreenToClient(HWND whnd, LPPOINT lppoint)
 {
-	if (lppoint && isFullScreen && (whnd == hWnd))
+	if (lppoint && dxw.IsFullScreen() && (whnd == dxw.GethWnd()))
 		return 1;
 	else
 		return (*pScreenToClient)(whnd, lppoint);
@@ -1487,12 +1443,12 @@ BOOL WINAPI extScreenToClient(HWND whnd, LPPOINT lppoint)
 BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
 {
 	// do (almost) nothing !!!
-	OutTraceD("GetClientRect: whnd=%x isFullScreen=%x\n", hwnd, isFullScreen);
-	if (lpRect && isFullScreen && (hwnd == hWnd)){
+	OutTraceD("GetClientRect: whnd=%x FullScreen=%x\n", hwnd, dxw.IsFullScreen());
+	if (lpRect && dxw.IsFullScreen() && (hwnd == dxw.GethWnd())){
 		lpRect->left=0;
 		lpRect->top=0;
-		lpRect->right=VirtualScr.dwWidth;
-		lpRect->bottom=VirtualScr.dwHeight;
+		lpRect->right=dxw.GetScreenWidth();
+		lpRect->bottom=dxw.GetScreenHeight();
 		OutTraceD("GetClientRect: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 		return 1;
 	}
@@ -1503,8 +1459,8 @@ BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
 	if ((hwnd==(*pGetDesktopWindow)()) || (hwnd==0)){
 		lpRect->left=0;
 		lpRect->top=0;
-		lpRect->right=VirtualScr.dwWidth;
-		lpRect->bottom=VirtualScr.dwHeight;
+		lpRect->right=dxw.GetScreenWidth();
+		lpRect->bottom=dxw.GetScreenHeight();
 		OutTraceD("GetClientRect: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 		return 1;
 	}
@@ -1518,42 +1474,33 @@ BOOL WINAPI extGetWindowRect(HWND hwnd, LPRECT lpRect)
 {
 	BOOL ret;
 
-	OutTraceD("GetWindowRect: hwnd=%x hWnd=%x isFullScreen=%x\n", hwnd, hWnd, isFullScreen);
-	if (lpRect && isFullScreen && (hwnd == hWnd)){
+	OutTraceD("GetWindowRect: hwnd=%x hWnd=%x FullScreen=%x\n", hwnd, dxw.GethWnd(), dxw.IsFullScreen());
+	if (lpRect && dxw.IsFullScreen() && (hwnd == dxw.GethWnd())){
 		// a fullscreen window should have NO BORDERS!
 		lpRect->left = 0;
 		lpRect->top = 0;
-		lpRect->right = VirtualScr.dwWidth;
-		lpRect->bottom = VirtualScr.dwHeight;
+		lpRect->right = dxw.GetScreenWidth();
+		lpRect->bottom = dxw.GetScreenHeight();
 		OutTraceD("GetWindowRect: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 		return 1;
 	}
 
-	if (isFullScreen && ((*pGetWindowLong)(hwnd, GWL_STYLE) & WS_CHILD)){
+	if (dxw.IsFullScreen() && ((*pGetWindowLong)(hwnd, GWL_STYLE) & WS_CHILD)){
 		// a child win should return the original supposed size
 		// so you basically revert here the coordinates compensation.
 		// Used by "Road Rash" to blit graphic on top of child windows
 		POINT upleft={0,0};
 		RECT client;
-		(*pClientToScreen)(hWnd,&upleft);
-		(*pGetClientRect)(hWnd,&client);
-#if 1
+		(*pClientToScreen)(dxw.GethWnd(),&upleft);
+		(*pGetClientRect)(dxw.GethWnd(),&client);
+
 		// using GetWindowRect and compensate for displacement.....
 		ret=(*pGetWindowRect)(hwnd, lpRect);
 		if (client.right && client.bottom){ // avoid divide by 0
-			lpRect->left = ((lpRect->left - upleft.x) * VirtualScr.dwWidth) / client.right;
-			lpRect->top = ((lpRect->top - upleft.y) * VirtualScr.dwHeight) / client.bottom;
-			lpRect->right = ((lpRect->right - upleft.x) * VirtualScr.dwWidth) / client.right;
-			lpRect->bottom = ((lpRect->bottom - upleft.y) * VirtualScr.dwHeight) / client.bottom;
-#else
-		// using GetClientRect (simpler....) but not working.....
-		ret=(*pGetClientRect)(hwnd, lpRect);
-		if (client.right && client.bottom){ // avoid divide by 0
-			lpRect->left = (lpRect->left * VirtualScr.dwWidth) / client.right;
-			lpRect->top = (lpRect->top * VirtualScr.dwHeight) / client.bottom;
-			lpRect->right = (lpRect->right * VirtualScr.dwWidth) / client.right;
-			lpRect->bottom = (lpRect->bottom * VirtualScr.dwHeight) / client.bottom;
-#endif
+			lpRect->left = ((lpRect->left - upleft.x) * dxw.GetScreenWidth()) / client.right;
+			lpRect->top = ((lpRect->top - upleft.y) * dxw.GetScreenHeight()) / client.bottom;
+			lpRect->right = ((lpRect->right - upleft.x) * dxw.GetScreenWidth()) / client.right;
+			lpRect->bottom = ((lpRect->bottom - upleft.y) * dxw.GetScreenHeight()) / client.bottom;
 			OutTraceD("GetWindowRect: fixed CHILD rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 		}
 		return ret;
@@ -1568,9 +1515,9 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 {
 	// a rarely used API, but responsible for a painful headache: needs hooking for "Commandos 2".
 
-	OutTraceD("MapWindowPoints: hWndFrom=%x hWndTo=%x cPoints=%d isFullScreen=%x\n", 
-		hWndFrom, hWndTo, cPoints, isFullScreen);
-	if((hWndTo==HWND_DESKTOP) && (hWndFrom==hWnd) && isFullScreen){
+	OutTraceD("MapWindowPoints: hWndFrom=%x hWndTo=%x cPoints=%d FullScreen=%x\n", 
+		hWndFrom, hWndTo, cPoints, dxw.IsFullScreen());
+	if((hWndTo==HWND_DESKTOP) && (hWndFrom==dxw.GethWnd()) && dxw.IsFullScreen()){
 		OutTraceD("MapWindowPoints: fullscreen condition\n"); 
 		SetLastError(0);
 		return 0; // = 0,0 shift
@@ -1606,7 +1553,7 @@ BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsg
 	if(wRemoveMsg){
 		static MSG MsgCopy;
 		MsgCopy=*lpMsg;
-		MsgCopy.pt=FixMessagePt(hWnd, MsgCopy.pt);
+		MsgCopy.pt=FixMessagePt(dxw.GethWnd(), MsgCopy.pt);
 		if((MsgCopy.message <= WM_MOUSELAST) && (MsgCopy.message >= WM_MOUSEFIRST)) MsgCopy.lParam = MAKELPARAM(MsgCopy.pt.x, MsgCopy.pt.y); 
 		OutTraceC("PeekMessage: fixed lparam/pt=(%d,%d)\n", MsgCopy.pt.x, MsgCopy.pt.y);
 		lpMsg=&MsgCopy;
@@ -1632,7 +1579,7 @@ BOOL WINAPI extGetMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgF
 	DWORD Message;
 	Message=lpMsg->message & 0xFFFF;
 	if((Message <= WM_MOUSELAST) && (Message >= WM_MOUSEFIRST)){
-		FixedHwnd=(hwnd)?hwnd:hWnd;
+		FixedHwnd=(hwnd)?hwnd:dxw.GethWnd();
 		lpMsg->pt=FixMessagePt(FixedHwnd, lpMsg->pt);
 		lpMsg->lParam = MAKELPARAM(lpMsg->pt.x, lpMsg->pt.y); 
 		OutTraceC("PeekMessage: fixed lparam/pt=(%d,%d)\n", lpMsg->pt.x, lpMsg->pt.y);
@@ -1647,7 +1594,7 @@ LRESULT WINAPI extDispatchMessage(LPMSG lpMsg)
 #if WORKONCOPY
 	static MSG MsgCopy;
 	MsgCopy=*lpMsg;
-	MsgCopy.pt=FixMessagePt(hWnd, MsgCopy.pt);
+	MsgCopy.pt=FixMessagePt(dxw.GethWnd(), MsgCopy.pt);
 	Message=MsgCopy.message & 0xFFFF;
 	if((Message <= WM_MOUSELAST) && (Message >= WM_MOUSEFIRST)){
 		MsgCopy.lParam = MAKELPARAM(MsgCopy.pt.x, MsgCopy.pt.y); 
@@ -1658,7 +1605,7 @@ LRESULT WINAPI extDispatchMessage(LPMSG lpMsg)
 		lpMsg, MsgCopy.message, ExplainWinMessage(MsgCopy.message & 0xFFFF), 
 		MsgCopy.wParam, MsgCopy.lParam, MsgCopy.pt.x, MsgCopy.pt.y, res);
 #else
-	lpMsg->pt=FixMessagePt(hWnd, lpMsg->pt);
+	lpMsg->pt=FixMessagePt(dxw.GethWnd(), lpMsg->pt);
 	Message=lpMsg->message & 0xFFFF;
 	if((Message <= WM_MOUSELAST) && (Message >= WM_MOUSEFIRST)){
 		lpMsg->lParam = MAKELPARAM(lpMsg->pt.x, lpMsg->pt.y); 
@@ -1892,9 +1839,9 @@ HDC WINAPI extGDIGetDC(HWND hwnd)
 	HWND lochwnd;
 	OutTraceD("GDI.GetDC: hwnd=%x\n", hwnd);
 	lochwnd=hwnd;
-	if (isFullScreen && ((hwnd==0) || (hwnd==(*pGetDesktopWindow)()))) {
-		OutTraceD("GDI.GetDC: desktop remapping hwnd=%x->%x\n", hwnd, hWnd);
-		lochwnd=hWnd;
+	if (dxw.IsFullScreen() && ((hwnd==0) || (hwnd==(*pGetDesktopWindow)()))) {
+		OutTraceD("GDI.GetDC: desktop remapping hwnd=%x->%x\n", hwnd, dxw.GethWnd());
+		lochwnd=dxw.GethWnd();
 	}
 	ret=(*pGDIGetDC)(lochwnd);
 	if(ret){
@@ -1922,8 +1869,8 @@ HDC WINAPI extGDIGetWindowDC(HWND hwnd)
 	OutTraceD("GDI.GetWindowDC: hwnd=%x\n", hwnd);
 	lochwnd=hwnd;
 	if ((hwnd==0) || (hwnd==(*pGetDesktopWindow)())) {
-		OutTraceD("GDI.GetWindowDC: desktop remapping hwnd=%x->%x\n", hwnd, hWnd);
-		lochwnd=hWnd;
+		OutTraceD("GDI.GetWindowDC: desktop remapping hwnd=%x->%x\n", hwnd, dxw.GethWnd());
+		lochwnd=dxw.GethWnd();
 	}
 	ret=(*pGDIGetWindowDC)(lochwnd);
 	if(ret){
@@ -1948,7 +1895,7 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 {
 	int res;
 	OutTraceD("GDI.ReleaseDC: hwnd=%x hdc=%x\n", hwnd, hDC);
-	if (hwnd==0) hwnd=hWnd;
+	if (hwnd==0) hwnd=dxw.GethWnd();
 	res=(*pGDIReleaseDC)(hwnd, hDC);
 	if (!res) OutTraceE("GDI.ReleaseDC ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 	return(res);
@@ -1962,9 +1909,9 @@ HDC WINAPI extGDICreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMOD
 
 	if (!Driver || !strncmp(Driver,"DISPLAY",7)) {
 		OutTraceD("GDI.CreateDC: returning window surface DC\n");
-		WinHDC=(*pGDIGetDC)(hWnd);
+		WinHDC=(*pGDIGetDC)(dxw.GethWnd());
 		RetHDC=(*pCreateCompatibleDC)(WinHDC);
-		(*pGDIReleaseDC)(hWnd, WinHDC);
+		(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
 	}
 	else{
 		RetHDC=(*pCreateDC)(Driver, Device, Output, InitData);
@@ -1985,8 +1932,8 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 
 	OutTraceD("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 	if(hdc==0){
-		SrcHdc=(*pGDIGetDC)(hWnd);
-		OutTraceD("GDI.CreateCompatibleDC: duplicating win HDC hWnd=%x\n", hWnd); 
+		SrcHdc=(*pGDIGetDC)(dxw.GethWnd());
+		OutTraceD("GDI.CreateCompatibleDC: duplicating win HDC hWnd=%x\n", dxw.GethWnd()); 
 	}
 	RetHdc=(*pCreateCompatibleDC)(hdc);
 	if(RetHdc)
@@ -2008,14 +1955,14 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	res=(*pBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 #else
-	if (isFullScreen){
+	if (dxw.IsFullScreen()){
 		RECT client;
 		int nWDest, nHDest;
-		(*pGetClientRect)(hWnd, &client);
-		nXDest= nXDest * client.right / VirtualScr.dwWidth;
-		nYDest= nYDest * client.bottom / VirtualScr.dwHeight;
-		nWDest= nWidth * client.right / VirtualScr.dwWidth;
-		nHDest= nHeight * client.bottom / VirtualScr.dwHeight;
+		(*pGetClientRect)(dxw.GethWnd(), &client);
+		nXDest= nXDest * client.right / dxw.GetScreenWidth();
+		nYDest= nYDest * client.bottom / dxw.GetScreenHeight();
+		nWDest= nWidth * client.right / dxw.GetScreenWidth();
+		nHDest= nHeight * client.bottom / dxw.GetScreenHeight();
 		res=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
 	}
 	else {
@@ -2038,14 +1985,14 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	res=(*pPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
 	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 #else
-	if (isFullScreen){
+	if (dxw.IsFullScreen()){
 		RECT client;
 		int nWDest, nHDest;
-		(*pGetClientRect)(hWnd, &client);
-		nXDest= nXDest * client.right / VirtualScr.dwWidth;
-		nYDest= nYDest * client.bottom / VirtualScr.dwHeight;
-		nWDest= nWidth * client.right / VirtualScr.dwWidth;
-		nHDest= nHeight * client.bottom / VirtualScr.dwHeight;
+		(*pGetClientRect)(dxw.GethWnd(), &client);
+		nXDest= nXDest * client.right / dxw.GetScreenWidth();
+		nYDest= nYDest * client.bottom / dxw.GetScreenHeight();
+		nWDest= nWidth * client.right / dxw.GetScreenWidth();
+		nHDest= nHeight * client.bottom / dxw.GetScreenHeight();
 		res=(*pPatBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, dwRop);
 	}
 	else {
@@ -2083,11 +2030,9 @@ static HANDLE AutoRefreshThread;
 static DWORD dwThrdId;
 void AutoRefresh(HDC hdc)
 {
-//	HRESULT res;
-//	extern void dx_ScreenRefresh();
 	while(1){
 		Sleep(10);
-		(*pInvalidateRect)(hWnd, 0, FALSE);
+		(*pInvalidateRect)(dxw.GethWnd(), 0, FALSE);
 	}
 }
 
@@ -2128,7 +2073,7 @@ HDC WINAPI extDDCreateCompatibleDC(HDC hdc)
 
 	OutTraceD("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 
-	if(hdc==0 && pGetDC && isFullScreen){
+	if(hdc==0 && pGetDC && dxw.IsFullScreen()){
 		if(!lpDDSPrimHDC) lpDDSPrimHDC=GetPrimarySurface();
 		(*pGetDC)(lpDDSPrimHDC,&SrcHdc);
 		OutTraceD("GDI.CreateCompatibleDC: duplicating screen HDC lpDDSPrimHDC=%x\n", lpDDSPrimHDC); 
@@ -2192,7 +2137,7 @@ static HDC WINAPI winDDGetDC(HWND hwnd, char *api)
 		}
 	}
 	else {
-		hdc=(*pGDIGetDC)(hwnd ? hwnd : hWnd);
+		hdc=(*pGDIGetDC)(hwnd ? hwnd : dxw.GethWnd());
 		OutTraceD("%s: returning window DC handle hwnd=%x hdc=%x\n", api, hwnd, hdc);
 		PrimHDC=NULL;
 	}
@@ -2350,7 +2295,7 @@ BOOL WINAPI extDDStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 
 	if(hdcDest != hdcSrc){
-		(*pGetClientRect)(hWnd,&ClientRect);
+		(*pGetClientRect)(dxw.GethWnd(),&ClientRect);
 		ret=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
 		if(!ret) {
 			OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -2375,14 +2320,14 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
 
 	// proxy part ...
-	OutTraceD("GDI.BeginPaint: hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, isFullScreen);
+	OutTraceD("GDI.BeginPaint: hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, dxw.IsFullScreen());
 	hdc=(*pBeginPaint)(hwnd, lpPaint);
 
 	// if not in fullscreen mode, that's all!
-	if(!isFullScreen) return hdc;
+	if(!dxw.IsFullScreen()) return hdc;
 
 	// on MAPGDITOPRIMARY, return the PrimHDC handle instead of the window DC
-	if(dwFlags & MAPGDITOPRIMARY) {
+	if(dxw.dwFlags1 & MAPGDITOPRIMARY) {
 		if(pGetDC && lpDDSPrimHDC){
 			//(*pGetDC)(lpDDSPrimHDC,&PrimHDC);
 			extGetDC(lpDDSPrimHDC,&PrimHDC);
@@ -2395,11 +2340,11 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	}
 
 	// on CLIENTREMAPPING, resize the paint area to virtual screen size
-	if(dwFlags & CLIENTREMAPPING){
+	if(dxw.dwFlags1 & CLIENTREMAPPING){
 		lpPaint->rcPaint.top=0;
 		lpPaint->rcPaint.left=0;
-		lpPaint->rcPaint.right=VirtualScr.dwWidth;
-		lpPaint->rcPaint.bottom=VirtualScr.dwHeight;
+		lpPaint->rcPaint.right=dxw.GetScreenWidth();
+		lpPaint->rcPaint.bottom=dxw.GetScreenHeight();
 	}
 
 	return hdc;
@@ -2416,7 +2361,7 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 	if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 
 	// if not in fullscreen mode, that's all!
-	if(!isFullScreen) return ret;
+	if(!dxw.IsFullScreen()) return ret;
 
 	return ret;
 }
@@ -2446,7 +2391,7 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 	isWithinDialog=TRUE;
 	OutTraceD("CreateDialogIndirectParam: hInstance=%x lpTemplate=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, "tbd", hWndParent, lpDialogFunc, lParamInit);
-	if(hWndParent==NULL) hWndParent=hWnd;
+	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
 	RetHWND=(*pCreateDialogIndirectParam)(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit);
 
 	WhndStackPush(RetHWND, (WNDPROC)lpDialogFunc);
@@ -2467,7 +2412,7 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	isWithinDialog=TRUE;
 	OutTraceD("CreateDialogParam: hInstance=%x lpTemplateName=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, "tbd", hWndParent, lpDialogFunc, lParamInit);
-	if(hWndParent==NULL) hWndParent=hWnd;
+	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
 	RetHWND=(*pCreateDialogParam)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, lParamInit);
 
 	WhndStackPush(RetHWND, (WNDPROC)lpDialogFunc);
@@ -2583,7 +2528,7 @@ UINT WINAPI extRealizePalette(HDC hdc)
 	// then don't override the current palette set by the DirectDrawPalette class.
 	// should be cleaned up a little....
 	// maybe not: now both Diable & Dementia colors are working...
-	if(dwFlags & EMULATESURFACE)
+	if(dxw.dwFlags1 & EMULATESURFACE)
 		mySetPalette(0, MyPal.palNumEntries, MyPal.palPalEntry);
 	// DEBUGGING
 	if(IsDebug){
@@ -2607,7 +2552,7 @@ UINT WINAPI extGetSystemPaletteEntries(HDC hdc, UINT iStartIndex, UINT nEntries,
 	OutTraceD("GetSystemPaletteEntries: hdc=%x start=%d num=%d\n", hdc, iStartIndex, nEntries);
 	ret=(*pGetSystemPaletteEntries)(hdc, iStartIndex, nEntries, lppe);
 	OutTraceD("GetSystemPaletteEntries: ret=%d\n", ret);
-	if((ret == 0) && (dwFlags & EMULATESURFACE)) {
+	if((ret == 0) && (dxw.dwFlags1 & EMULATESURFACE)) {
 		OutTraceD("GetSystemPaletteEntries: fixing ret=%d\n", nEntries);
 		ret = nEntries;
 	}
@@ -2627,17 +2572,14 @@ HCURSOR WINAPI extSetCursor(HCURSOR hCursor)
 BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL bRepaint)
 {
 	BOOL ret;
-	extern HWND hParentWnd;
 	OutTraceD("MoveWindow: hwnd=%x xy=(%d,%d) size=(%d,%d) repaint=%x indialog=%x\n",
 		hwnd, X, Y, nWidth, nHeight, bRepaint, isWithinDialog);
 
-	if((hwnd==hWnd) || (hwnd==hParentWnd)){
+	if((hwnd==dxw.GethWnd()) || (hwnd==dxw.hParentWnd)){
 		OutTraceD("MoveWindow: prevent moving main win\n");
 		if (nHeight && nWidth){
 			OutTraceD("MoveWindow: setting screen size=(%d,%d)\n", nHeight, nWidth);
-			VirtualScr.dwHeight=nHeight;
-			VirtualScr.dwWidth=nWidth;
-//			isFullScreen=TRUE;
+			dxw.SetScreenSize(nWidth, nHeight);
 		}
 		return TRUE;
 	}
@@ -2648,47 +2590,45 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 		// v2.1.93: moving the desktop seems a way to change its resolution?
 		if (nHeight && nWidth){
 			OutTraceD("MoveWindow: setting screen size=(%d,%d)\n", nHeight, nWidth);
-			VirtualScr.dwHeight=nHeight;
-			VirtualScr.dwWidth=nWidth;
-//			isFullScreen=TRUE;
+			dxw.SetScreenSize(nWidth, nHeight);
 		}
 		return TRUE;
 	}
 
-	if (isFullScreen){
+	if (dxw.IsFullScreen()){
 		POINT upleft={0,0};
 		RECT client;
 		BOOL isChild;
-		(*pClientToScreen)(hWnd,&upleft);
-		(*pGetClientRect)(hWnd,&client);
+		(*pClientToScreen)(dxw.GethWnd(),&upleft);
+		(*pGetClientRect)(dxw.GethWnd(),&client);
 		if ((*pGetWindowLong)(hwnd, GWL_STYLE) & WS_CHILD){
 			isChild=TRUE;
 			// child coordinate adjustement
-			X = (X * client.right) / VirtualScr.dwWidth;
-			Y = (Y * client.bottom) / VirtualScr.dwHeight;
-			nWidth = (nWidth * client.right) / VirtualScr.dwWidth;
-			nHeight = (nHeight * client.bottom) / VirtualScr.dwHeight;
+			X = (X * client.right) / dxw.GetScreenWidth();
+			Y = (Y * client.bottom) / dxw.GetScreenHeight();
+			nWidth = (nWidth * client.right) / dxw.GetScreenWidth();
+			nHeight = (nHeight * client.bottom) / dxw.GetScreenHeight();
 		}
 		else {
 			isChild=FALSE;
 			// regular win coordinate adjustement
-			X = upleft.x + (X * client.right) / VirtualScr.dwWidth;
-			Y = upleft.y + (Y * client.bottom) / VirtualScr.dwHeight;
-			nWidth = (nWidth * client.right) / VirtualScr.dwWidth;
-			nHeight = (nHeight * client.bottom) / VirtualScr.dwHeight;
+			X = upleft.x + (X * client.right) / dxw.GetScreenWidth();
+			Y = upleft.y + (Y * client.bottom) / dxw.GetScreenHeight();
+			nWidth = (nWidth * client.right) / dxw.GetScreenWidth();
+			nHeight = (nHeight * client.bottom) / dxw.GetScreenHeight();
 		}
 		OutTraceD("MoveWindow: DEBUG client=(%d,%d) screen=(%d,%d)\n",
-			client.right, client.bottom, VirtualScr.dwWidth, VirtualScr.dwHeight);
+			client.right, client.bottom, dxw.GetScreenWidth(), dxw.GetScreenHeight());
 		OutTraceD("MoveWindow: hwnd=%x child=%x relocated to xy=(%d,%d) size=(%d,%d)\n",
 			hwnd, isChild, X, Y, nWidth, nHeight);
 	}
 	else{
-		if((X==0)&&(Y==0)&&(nWidth==VirtualScr.dwWidth)&&(nHeight==VirtualScr.dwHeight)){
+		if((X==0)&&(Y==0)&&(nWidth==dxw.GetScreenWidth())&&(nHeight==dxw.GetScreenHeight())){
 			// evidently, this was supposed to be a fullscreen window....
 			RECT screen;
 			POINT upleft = {0,0};
-			(*pGetClientRect)(hWnd,&screen);
-			(*pClientToScreen)(hWnd,&upleft);
+			(*pGetClientRect)(dxw.GethWnd(),&screen);
+			(*pClientToScreen)(dxw.GethWnd(),&upleft);
 			X=upleft.x;
 			Y=upleft.y;
 			nWidth=screen.right;
@@ -2724,7 +2664,7 @@ BOOL WINAPI extSetDeviceGammaRamp(HDC hDC, LPVOID lpRamp)
 {
 	BOOL ret;
 	OutTraceD("SetDeviceGammaRamp: hdc=%x\n", hDC);
-	if(dwFlags2 & DISABLEGAMMARAMP) {
+	if(dxw.dwFlags2 & DISABLEGAMMARAMP) {
 		OutTraceD("SetDeviceGammaRamp: SUPPRESSED\n");
 		return TRUE;
 	}
@@ -2747,7 +2687,7 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	LRESULT ret;
 	OutTraceW("SendMessage: hwnd=%x WinMsg=[0x%x]%s(%x,%x)\n", 
 		hwnd, Msg, ExplainWinMessage(Msg), wParam, lParam);
-	if(dwFlags & MODIFYMOUSE){
+	if(dxw.dwFlags1 & MODIFYMOUSE){
 		switch (Msg){
 		case WM_MOUSEMOVE:
 		case WM_MOUSEWHEEL:
@@ -2765,9 +2705,9 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 			RECT rect;
 			prev.x = LOWORD(lParam);
 			prev.y = HIWORD(lParam);
-			(*pGetClientRect)(hWnd, &rect);
-			if (VirtualScr.dwWidth)  curr.x = (prev.x * rect.right) / VirtualScr.dwWidth;
-			if (VirtualScr.dwHeight) curr.y = (prev.y * rect.bottom) / VirtualScr.dwHeight;
+			(*pGetClientRect)(dxw.GethWnd(), &rect);
+			curr.x = (prev.x * rect.right) / dxw.GetScreenWidth();
+			curr.y = (prev.y * rect.bottom) / dxw.GetScreenHeight();
 			lParam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("SendMessage: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 			break;

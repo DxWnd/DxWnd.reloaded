@@ -89,8 +89,6 @@ typedef BOOL (WINAPI *SetDeviceGammaRamp_Type)(HDC, LPVOID);
 typedef BOOL (WINAPI *GetDeviceGammaRamp_Type)(HDC, LPVOID);
 typedef LRESULT (WINAPI *SendMessage_Type)(HWND, UINT, WPARAM, LPARAM);
 
-extern DWORD dwFlags, dwFlags2;
-extern HWND hWnd;
 extern GetCursorPos_Type pGetCursorPos;
 extern SetCursorPos_Type pSetCursorPos;
 extern ClipCursor_Type pClipCursor;

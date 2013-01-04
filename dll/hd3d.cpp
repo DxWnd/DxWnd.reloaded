@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <d3d9.h>
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 
 typedef void* (WINAPI *Direct3DCreate8_Type)(UINT);
 typedef void* (WINAPI *Direct3DCreate9_Type)(UINT);
@@ -18,9 +19,6 @@ HRESULT WINAPI extEnumAdapterModes9(void *, UINT, D3DFORMAT, UINT , D3DDISPLAYMO
 HRESULT WINAPI extGetAdapterDisplayMode(void *, UINT, D3DDISPLAYMODE *);
 HRESULT WINAPI extGetDisplayMode(void *, D3DDISPLAYMODE *);
 
-extern HWND hWnd;
-extern DWORD dwFlags;
-extern BOOL bActive;
 extern char *ExplainDDError(DWORD);
 
 Direct3DCreate8_Type pDirect3DCreate8 = 0;
@@ -115,7 +113,7 @@ HRESULT WINAPI extGetDisplayMode(void *lpd3d, D3DDISPLAYMODE *pMode)
 	res=(*pGetDisplayMode)(lpd3d, pMode);
 	OutTraceD("DEBUG: GetDisplayMode: size=(%dx%d) RefreshRate=%d Format=%d\n",
 		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
-	if(dwFlags2 & KEEPASPECTRATIO){
+	if(dxw.dwFlags2 & KEEPASPECTRATIO){
 		pMode->Width=iSizX;
 		pMode->Height=iSizY;
 		OutTraceD("DEBUG: GetDisplayMode: fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
@@ -148,7 +146,7 @@ HRESULT WINAPI extGetAdapterDisplayMode(void *lpd3d, UINT Adapter, D3DDISPLAYMOD
 	res=(*pGetAdapterDisplayMode)(lpd3d, Adapter, pMode);
 	OutTraceD("DEBUG: GetAdapterDisplayMode: size=(%dx%d) RefreshRate=%d Format=%d\n",
 		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
-	if(dwFlags2 & KEEPASPECTRATIO){
+	if(dxw.dwFlags2 & KEEPASPECTRATIO){
 		pMode->Width=iSizX;
 		pMode->Height=iSizY;
 		OutTraceD("DEBUG: GetDisplayMode: fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
@@ -163,7 +161,6 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	DWORD param[64], *tmp;
 	D3DDISPLAYMODE mode;
 	int Windowed;
-	extern BOOL isFullScreen;
 
 	if(dwD3DVersion == 9){
 		memcpy(param, ppresentparam, 56);
@@ -174,16 +171,9 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		OutTraceD("D3D8::CreateDevice\n");
 	}
 
-	hWnd = hfocuswindow;
-	VirtualScr.dwWidth = param[0];
-	VirtualScr.dwHeight = param[1];
-	// The Fellowship of the Ring: starts with 0,0 size, but this doesn't fully help 
-	//if ((VirtualScr.dwWidth==0) && (VirtualScr.dwHeight==0)){
-	//	OutTraceD("CreateDevice: setting default size 800x600\n");
-	//	VirtualScr.dwWidth=800;
-	//	VirtualScr.dwHeight=600;
-	//}
-	AdjustWindowFrame(hWnd, VirtualScr.dwWidth, VirtualScr.dwHeight);
+	dxw.SethWnd(hfocuswindow);
+	dxw.SetScreenSize(param[0], param[1]);
+	AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	tmp = param;
 	OutTraceD("  Adapter = %i\n", adapter);
@@ -213,14 +203,14 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 
 	if(dwD3DVersion == 9){
 		param[7] = 0;			//hDeviceWindow
-		isFullScreen = ~param[8]?TRUE:FALSE; 
+		dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
 		param[8] = 1;			//Windowed
 		param[12] = 0;			//FullScreen_RefreshRateInHz;
 		param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 	}
 	else{
 		param[6] = 0;			//hDeviceWindow
-		isFullScreen = ~param[7]?TRUE:FALSE; 
+		dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
 		param[7] = 1;			//Windowed
 		param[11] = 0;			//FullScreen_RefreshRateInHz;
 		param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
@@ -246,11 +236,11 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
 	}
 
-	DxWndStatus.IsFullScreen = isFullScreen;
+	DxWndStatus.IsFullScreen = dxw.IsFullScreen();
 	DxWndStatus.DXVersion=(short)dwD3DVersion;
-	DxWndStatus.Height=(short)VirtualScr.dwHeight;
-	DxWndStatus.Width=(short)VirtualScr.dwWidth;
-	DxWndStatus.ColorDepth=(short)VirtualScr.PixelFormat.dwRGBBitCount;
+	DxWndStatus.Height=(short)dxw.GetScreenHeight();
+	DxWndStatus.Width=(short)dxw.GetScreenWidth();
+	DxWndStatus.ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
 	SetHookStatus(&DxWndStatus);
 	
 	return 0;

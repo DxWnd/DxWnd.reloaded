@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <dinput.h>
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 #include "syslibs.h"
 
 typedef HRESULT (WINAPI *QueryInterface_Type)(void *, REFIID, LPVOID *);
@@ -26,12 +27,6 @@ HRESULT WINAPI extQueryInterfaceI(void *, REFIID, LPVOID *);
 void GetMousePosition(int *, int *);
 void InitPosition(int, int, int, int, int, int);
 	
-extern DWORD dwFlags;
-extern BOOL bActive;
-extern HWND hWnd;
-extern DWORD dwWidth;
-extern DWORD dwHeight;
-
 DirectInputCreate_Type pDirectInputCreate = 0;
 DirectInputCreateEx_Type pDirectInputCreateEx = 0;
 DICreateDevice_Type pDICreateDevice = 0;
@@ -41,8 +36,6 @@ GetDeviceState_Type pGetDeviceState;
 DISetCooperativeLevel_Type pDISetCooperativeLevel;
 SetDataFormat_Type pSetDataFormat;
 QueryInterface_Type pQueryInterfaceI;
-
-BOOL bDInputAbs = 0;
 
 int iCursorX;
 int iCursorY;
@@ -205,14 +198,14 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 	res = (*pGetDeviceData)(lpdid, cbdata, rgdod, pdwinout, dwflags);
 	if(res) return res;
 
-	if(!bActive) *pdwinout = 0;
+	if(!dxw.bActive) *pdwinout = 0;
 	GetMousePosition((int *)&p.x, (int *)&p.y);
 	if(cbdata == 20 || cbdata == 24){
 		tmp = (BYTE *)rgdod;
 		for(i = 0; i < *pdwinout; i ++){
 			if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_X){
 				((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.x;
-				if(!bDInputAbs){
+				if(!dxw.bDInputAbs){
 					if(p.x < iCurMinX) p.x = iCurMinX;
 					if(p.x > iCurMaxX) p.x = iCurMaxX;
 					((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.x - iCursorXBuf;
@@ -221,7 +214,7 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 			}
 			if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_Y){
 				((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.y;
-				if(!bDInputAbs){
+				if(!dxw.bDInputAbs){
 					if(p.y < iCurMinY) p.y = iCurMinY;
 					if(p.y > iCurMaxY) p.y = iCurMaxY;
 					((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.y - iCursorYBuf;
@@ -240,7 +233,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	HRESULT res;
 	POINT p = {0, 0};
 
-	OutTraceD("GetDeviceState cbData:%i %i\n", cbdata, bActive);
+	OutTraceD("GetDeviceState cbData:%i %i\n", cbdata, dxw.bActive);
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
 	if(res) return res;
@@ -248,7 +241,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 		GetMousePosition((int *)&p.x, (int *)&p.y);
 		lpvdata->lX = p.x;
 		lpvdata->lY = p.y;
-		if(!bDInputAbs){
+		if(!dxw.bDInputAbs){
 			if(p.x < iCurMinX) p.x = iCurMinX;
 			if(p.x > iCurMaxX) p.x = iCurMaxX;
 			if(p.y < iCurMinY) p.y = iCurMinY;
@@ -258,14 +251,14 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 			iCursorX = p.x;
 			iCursorY = p.y;
 		}
-		if(!bActive){
+		if(!dxw.bActive){
 			lpvdata->lZ = 0;
 			*(DWORD *)lpvdata->rgbButtons = 0;
 		}
 		OutTraceD("DEBUG: directinput mousestate=(%d,%d)\n", p.x, p.y);
 	}
 	
-	if(cbdata == 256 && !bActive) ZeroMemory(lpvdata, 256);
+	if(cbdata == 256 && !dxw.bActive) ZeroMemory(lpvdata, 256);
 	return 0;
 }
 	
@@ -273,8 +266,8 @@ HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 {
 	OutTraceD("SetDataFormat: flags = 0x%x\n", lpdf->dwFlags);
 
-	if(lpdf->dwFlags & DIDF_ABSAXIS) bDInputAbs = 1;
-	if(lpdf->dwFlags & DIDF_RELAXIS) bDInputAbs = 0;
+	if(lpdf->dwFlags & DIDF_ABSAXIS) dxw.bDInputAbs = 1;
+	if(lpdf->dwFlags & DIDF_RELAXIS) dxw.bDInputAbs = 0;
 	return (*pSetDataFormat)(lpdid, lpdf);
 }
 

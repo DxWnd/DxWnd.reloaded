@@ -19,6 +19,7 @@ protected: // Create from serialization only features.
 
 private:
 	void Resize(void);
+	void SaveConfigFile();
 	TARGETMAP TargetMaps[MAXTARGETS];
 	PRIVATEMAP TitleMaps[MAXTARGETS];
 	char InitPath[MAX_PATH];
@@ -69,6 +70,7 @@ protected:
 	afx_msg void OnRun();
 	afx_msg void OnClearAllLogs();
 	afx_msg void OnGoToTrayIcon();
+	afx_msg void OnSaveFile();
 	afx_msg void OnHookStart();
 	afx_msg void OnInitMenu();
 	afx_msg void OnHookStop();

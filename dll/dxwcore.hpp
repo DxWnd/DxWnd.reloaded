@@ -1,7 +1,5 @@
 #include <windows.h>
 
-#define CLIP_TOLERANCE 4
-
 class dxwCore
 {
 // Construction/destruction
@@ -10,15 +8,46 @@ public:
     virtual ~dxwCore();
 
 // Operations
-public:
-	void SethWnd(HWND);
-public:
+public: // methods
+	void SethWnd(HWND hwnd) {hWnd=hwnd;}
+	HWND GethWnd(void) {return hWnd;}
+	void SetScreenSize(void) {dwScreenWidth=800; dwScreenHeight=600;}
+	void SetScreenSize(int x, int y) {if(x)dwScreenWidth=x; if(y)dwScreenHeight=y;}
+	DWORD GetScreenWidth(void) {return dwScreenWidth;}
+	DWORD GetScreenHeight(void) {return dwScreenHeight;}
+	RECT GetScreenRect(void);
+	void SetFullScreen(BOOL fs) {FullScreen=fs;}
+	BOOL IsFullScreen() {return FullScreen;}
 	POINT FixCursorPos(POINT);
+	POINT FixCursorPos(HWND, POINT);
+	void FixNCHITCursorPos(LPPOINT);
+	void SetClipCursor(void);
+	void EraseClipCursor(void);
+	RECT MapWindowRect(LPRECT lpRect);
+	RECT MapWindowRect(void);
+	void ScreenRefresh(void);
+
+public: // simple data variables
+	DDPIXELFORMAT ActualPixelFormat;
+	DDPIXELFORMAT VirtualPixelFormat;
+	DWORD dwPrimarySurfaceCaps;
+	DWORD dwBackBufferCount;
+	DWORD dwDDVersion;
+	DWORD dwMaxDDVersion;
+	DWORD dwFlags1;
+	DWORD dwFlags2;
+	DWORD dwTFlags;
+	HWND hParentWnd;
+	HWND hChildWnd;
+	BOOL bActive;
+	BOOL bDInputAbs;
 
 // Implementation
 protected:
+	DWORD dwScreenWidth;
+	DWORD dwScreenHeight;
+	BOOL FullScreen;
 	HWND hWnd;
-	int dwScreenWidth;
-	int dwScreenHeight;
-	BOOL IsFullScreen;
 };
+
+extern dxwCore dxw;

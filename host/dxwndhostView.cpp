@@ -45,6 +45,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_FILE_SORTPROGRAMSLIST, OnSort)
 	ON_COMMAND(ID_FILE_CLEARALLLOGS, OnClearAllLogs)
 	ON_COMMAND(ID_FILE_GOTOTRAYICON, OnGoToTrayIcon)
+	ON_COMMAND(ID_FILE_SAVE, OnSaveFile)
 	ON_COMMAND(ID_HOOK_START, OnHookStart)
 	ON_COMMAND(ID_HOOK_STOP, OnHookStop)
 	ON_COMMAND(ID_DXAPP_EXIT, OnExit)
@@ -92,11 +93,100 @@ CDxwndhostView::CDxwndhostView()
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &this->InitDevMode);
 }
 
-CDxwndhostView::~CDxwndhostView()
+void CDxwndhostView::SaveConfigFile()
 {
 	int i;
 	char key[32], val[32];
 
+	for(i = 0; i < MAXTARGETS; i ++){
+		if(!TargetMaps[i].path[0]) break;
+		sprintf_s(key, sizeof(key), "title%i", i);
+		WritePrivateProfileString("target", key, TitleMaps[i].title, InitPath);
+		sprintf_s(key, sizeof(key), "path%i", i);
+		WritePrivateProfileString("target", key, TargetMaps[i].path, InitPath);
+		sprintf_s(key, sizeof(key), "module%i", i);
+		WritePrivateProfileString("target", key, TargetMaps[i].module, InitPath);
+		sprintf_s(key, sizeof(key), "ver%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].dxversion);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "flag%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "flagg%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags2);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "tflag%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].tflags);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "initx%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].initx);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "inity%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].inity);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "minx%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].minx);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "miny%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].miny);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "maxx%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].maxx);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "maxy%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].maxy);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "posx%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].posx);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "posy%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].posy);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "sizx%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].sizx);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "sizy%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].sizy);
+		WritePrivateProfileString("target", key, val, InitPath);
+	}
+	for(; i < MAXTARGETS; i ++){
+		sprintf_s(key, sizeof(key), "path%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "ver%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "flag%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "flagg%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "tflag%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "initx%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "inity%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "minx%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "miny%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "maxx%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "maxy%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "posx%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "posy%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "sizx%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "sizy%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+	}	
+
+	this->isUpdated=FALSE;
+}
+
+CDxwndhostView::~CDxwndhostView()
+{
 	EndHook();
 
 	RevertScreenChanges(&this->InitDevMode);
@@ -106,92 +196,7 @@ CDxwndhostView::~CDxwndhostView()
 		"Task list has changed.\n"
 		"Do you want to save it?", 
 		"Warning", MB_YESNO | MB_ICONQUESTION, NULL)==IDYES) 
-	{
-		for(i = 0; i < MAXTARGETS; i ++){
-			if(!TargetMaps[i].path[0]) break;
-			sprintf_s(key, sizeof(key), "title%i", i);
-			WritePrivateProfileString("target", key, TitleMaps[i].title, InitPath);
-			sprintf_s(key, sizeof(key), "path%i", i);
-			WritePrivateProfileString("target", key, TargetMaps[i].path, InitPath);
-			sprintf_s(key, sizeof(key), "module%i", i);
-			WritePrivateProfileString("target", key, TargetMaps[i].module, InitPath);
-			sprintf_s(key, sizeof(key), "ver%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].dxversion);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "flag%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "flagg%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags2);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "tflag%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].tflags);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "initx%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].initx);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "inity%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].inity);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "minx%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].minx);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "miny%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].miny);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "maxx%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].maxx);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "maxy%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].maxy);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "posx%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].posx);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "posy%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].posy);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "sizx%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].sizx);
-			WritePrivateProfileString("target", key, val, InitPath);
-			sprintf_s(key, sizeof(key), "sizy%i", i);
-			sprintf_s(val, sizeof(val), "%i", TargetMaps[i].sizy);
-			WritePrivateProfileString("target", key, val, InitPath);
-		}
-		for(; i < MAXTARGETS; i ++){
-			sprintf_s(key, sizeof(key), "path%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "ver%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "flag%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "flagg%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "tflag%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "initx%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "inity%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "minx%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "miny%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "maxx%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "maxy%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "posx%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "posy%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "sizx%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-			sprintf_s(key, sizeof(key), "sizy%i", i);
-			WritePrivateProfileString("target", key, 0, InitPath);
-		}	
-	}
-	this->isUpdated=FALSE;
+	this->SaveConfigFile();
 
 	if(this->SystemTray.Enabled()){
 		this->SystemTray.StopAnimation();
@@ -964,6 +969,16 @@ void CDxwndhostView::OnGoToTrayIcon()
     this->SystemTray.SetMenuDefaultItem(0, TRUE);
 	this->SystemTray.SetTargetWnd(pParent);		// Send all menu messages here.
 	this->SystemTray.MinimiseToTray(pParent, FALSE);
+}
+
+void CDxwndhostView::OnSaveFile() 
+{
+	if (this->isUpdated) 
+	if (MessageBoxEx(0, 
+		"Task list has changed.\n"
+		"Do you want to save it?", 
+		"Warning", MB_YESNO | MB_ICONQUESTION, NULL)==IDYES) 
+	this->SaveConfigFile();
 }
 
 void CDxwndhostView::OnTrayRestore() 

@@ -80,6 +80,7 @@ IDR_MAINFRAME MENU
 BEGIN
     POPUP "&File"
     BEGIN
+        MENUITEM "Save",                        ID_FILE_SAVE
         MENUITEM "&Sort programs list",         ID_FILE_SORTPROGRAMSLIST
         MENUITEM "&Clear all logs",             ID_FILE_CLEARALLLOGS
         POPUP "Hook"
@@ -393,7 +394,7 @@ BEGIN
     ID_FILE_NEW             "Create a new file\nNew File"
     ID_FILE_OPEN            "Open an existing file\nOpen"
     ID_FILE_CLOSE           "Close the active file\nClose"
-    ID_FILE_SAVE            "Save overwriting the files in the working directory\nSave"
+    ID_FILE_SAVE            "Save the configuration file\nSave"
     ID_FILE_SAVE_AS         "Save with a new name\nrename and save"
 END
 

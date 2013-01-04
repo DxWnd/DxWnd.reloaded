@@ -2,6 +2,7 @@
 #include <ddraw.h>
 #include <stdio.h>
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 #include "hddraw.h"
 
 typedef HRESULT (WINAPI *Lock_Type)(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, DWORD, HANDLE);
@@ -13,8 +14,6 @@ extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
 
 extern DWORD PaletteEntries[256];
 extern DWORD *Palette16BPP;
-extern DWORD dwDDVersion;
-extern DWORD dwFlags;
 extern char *ExplainDDError(DWORD);
 extern int Set_dwSize_From_Surface(LPDIRECTDRAWSURFACE);
 
@@ -156,7 +155,7 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	if (!Palette16BPP) { // first time through .....
 		unsigned int pi;
 		Palette16BPP = (DWORD *)malloc(0x10000 * sizeof(DWORD));
-		if (dwFlags & USERGB565){
+		if (dxw.dwFlags1 & USERGB565){
 			for (pi=0; pi<0x10000; pi++) {
 				Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x7E0)<<5 | (pi & 0xF800)<<8; // RGB565
 			}
@@ -285,7 +284,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
 	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
-	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	ddsd_dst.dxw.dwFlags1 = DDSD_LPSURFACE | DDSD_PITCH;
 	if(res=(*pLock)(lpddsdst, 0, (LPDIRECTDRAWSURFACE)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
@@ -293,7 +292,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
 	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
-	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	ddsd_src.dxw.dwFlags1 = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt32_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -846,15 +845,15 @@ static HRESULT WINAPI RevBlt_Null(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrec
 void SetBltTransformations()
 {
 	OutTraceD("SetBltTransformations: color transformation %d->%d\n", 
-		VirtualScr.PixelFormat.dwRGBBitCount, ActualScr.PixelFormat.dwRGBBitCount);
+		dxw.VirtualPixelFormat.dwRGBBitCount, dxw.ActualPixelFormat.dwRGBBitCount);
 
 	/* default (bad) setting */
 	pRevBlt=RevBlt_Null;
 	pEmuBlt=EmuBlt_Null;
 
-	switch (ActualScr.PixelFormat.dwRGBBitCount){
+	switch (dxw.ActualPixelFormat.dwRGBBitCount){
 	case 32:
-		switch(VirtualScr.PixelFormat.dwRGBBitCount){
+		switch(dxw.VirtualPixelFormat.dwRGBBitCount){
 		case 8:
 			pRevBlt=RevBlt_32_to_8; 
 			pEmuBlt=EmuBlt_8_to_32;
@@ -875,12 +874,12 @@ void SetBltTransformations()
 			OutTraceD("set color transformation 32->32\n");
 			break;
 		default:
-			OutTraceD("unsupported color transformation %d->32\n", VirtualScr.PixelFormat.dwRGBBitCount);
+			OutTraceD("unsupported color transformation %d->32\n", dxw.VirtualPixelFormat.dwRGBBitCount);
 			break;
 		}
 		break;
 	case 16:
-		switch(VirtualScr.PixelFormat.dwRGBBitCount){
+		switch(dxw.VirtualPixelFormat.dwRGBBitCount){
 		case 8:
 			pRevBlt=RevBlt_16_to_8;
 			pEmuBlt=EmuBlt_8_to_16;
@@ -900,14 +899,14 @@ void SetBltTransformations()
 			pEmuBlt=EmuBlt_32_to_16;
 			break;
 		default:
-			OutTraceD("unsupported color transformation %d->16\n", VirtualScr.PixelFormat.dwRGBBitCount);
+			OutTraceD("unsupported color transformation %d->16\n", dxw.VirtualPixelFormat.dwRGBBitCount);
 			break;
 		}
 		break;
 	default:
 		OutTraceD("unsupported color transformation %d->%d\n",
-			VirtualScr.PixelFormat.dwRGBBitCount,
-			ActualScr.PixelFormat.dwRGBBitCount);
+			dxw.VirtualPixelFormat.dwRGBBitCount,
+			dxw.ActualPixelFormat.dwRGBBitCount);
 		break;
 	}
 	return;

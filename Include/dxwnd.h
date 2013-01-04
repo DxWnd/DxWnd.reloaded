@@ -1,4 +1,5 @@
 #include <ddraw.h>
+//#include "dxwcore.hpp"
 
 #define DXW_IDLE		0
 #define DXW_ACTIVE		1
@@ -8,7 +9,7 @@
 
 #define DXWACTIVATESINGLETASK 1 // comment to allow multiple task activations
 
-// first flags DWORD dwFlags:
+// first flags DWORD dwFlags1:
 #define UNNOTIFY			0x00000001
 #define EMULATESURFACE		0x00000002
 #define CLIPCURSOR		 	0x00000004 // Force cursor clipping within window
@@ -42,7 +43,7 @@
 #define HOOKCHILDWIN		0x40000000 // hook CHILD windows to alter placement coordinates (UNUSED)
 #define MESSAGEPROC			0x80000000 // process peek/get messages
 
-// second flags DWORD dwFlags2:
+// second flags DWORD dxw.dwFlags2:
 #define RECOVERSCREENMODE	0x00000001 // actively set screen mode to initial state after hooking
 #define REFRESHONRESIZE		0x00000002 // forces a refresh (blitting from backbuffer to primary) upon win resize
 #define BACKBUFATTACH		0x00000004 // sets backbuf wxh dim. equal to primary surface so that ZBUFFER is attachable.....
@@ -103,16 +104,6 @@ typedef struct
 	BOOL isLogging;
 } DXWNDSTATUS;
 
-typedef struct
-{
-	// (full)screen width & height
-	DWORD dwWidth, dwHeight;
-	DDPIXELFORMAT PixelFormat;
-	DWORD dwPrimarySurfaceCaps;
-	DWORD dwBackBufferCount;
-} ScreenDef_Type;
-
-extern ScreenDef_Type ActualScr, VirtualScr;
 extern DXWNDSTATUS DxWndStatus;
 
 int SetTarget(TARGETMAP *);
@@ -132,25 +123,24 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 
 // defines below to condition debug message handling
 
-#define OutTraceW if(dwTFlags & OUTWINMESSAGES) OutTrace
-#define OutTraceX if(dwTFlags & OUTPROXYTRACE) OutTrace
-#define OutTraceD if(dwTFlags & OUTDDRAWTRACE) OutTrace
-#define OutTraceC if(dwTFlags & OUTCURSORTRACE) OutTrace
+#define OutTraceW if(dxw.dwTFlags & OUTWINMESSAGES) OutTrace
+#define OutTraceX if(dxw.dwTFlags & OUTPROXYTRACE) OutTrace
+#define OutTraceD if(dxw.dwTFlags & OUTDDRAWTRACE) OutTrace
+#define OutTraceC if(dxw.dwTFlags & OUTCURSORTRACE) OutTrace
 #define OutTraceP OutTrace
 #define OutTraceE OutTrace
 
-#define IsTraceW (dwTFlags & OUTWINMESSAGES)
-#define IsTraceX (dwTFlags & OUTPROXYTRACE)
-#define IsTraceD (dwTFlags & OUTDDRAWTRACE)
-#define IsTraceC (dwTFlags & OUTCURSORTRACE)
+#define IsTraceW (dxw.dwTFlags & OUTWINMESSAGES)
+#define IsTraceX (dxw.dwTFlags & OUTPROXYTRACE)
+#define IsTraceD (dxw.dwTFlags & OUTDDRAWTRACE)
+#define IsTraceC (dxw.dwTFlags & OUTCURSORTRACE)
 #define IsTraceP (TRUE)
 #define IsTraceE (TRUE)
-#define IsDebug  (dwTFlags & OUTDEBUG)
-#define IsAssertEnabled (dwTFlags & ASSERTDIALOG)
+#define IsDebug  (dxw.dwTFlags & OUTDEBUG)
+#define IsAssertEnabled (dxw.dwTFlags & ASSERTDIALOG)
+#define STEP OutTrace("STEP at %s:%d\n", __MODULE__, __LINE__)
 
 extern void WhndStackPush(HWND, WNDPROC);
 extern WNDPROC WhndGetWindowProc(HWND );
-extern DWORD dwFlags, dwFlags2, dwTFlags;
 
-#define debugstep OutTrace("STEP at %d\n", __LINE__)
 
