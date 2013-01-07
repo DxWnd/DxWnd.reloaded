@@ -29,6 +29,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	DDX_Check(pDX, IDC_FAKEVERSION, cTarget->m_FakeVersion);
 	DDX_LBIndex(pDX, IDC_LISTFAKE, cTarget->m_FakeVersionId);
+	DDX_Check(pDX, IDC_SINGLEPROCAFFINITY, cTarget->m_SingleProcAffinity);
 	DDX_Check(pDX, IDC_HANDLEEXCEPTIONS, cTarget->m_HandleExceptions);
 	DDX_Check(pDX, IDC_LIMITRESOURCES, cTarget->m_LimitResources);
 	DDX_Check(pDX, IDC_SUPPRESSIME, cTarget->m_SuppressIME);

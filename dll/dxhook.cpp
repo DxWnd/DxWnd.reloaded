@@ -53,8 +53,8 @@ static char *Flag2Names[32]={
 static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
-	"SAVECAPS", "", "", "",
-	"", "", "", "",
+	"SAVECAPS", "SINGLEPROCAFFINITY", "Flag3:11", "Flag3:12",
+	"Flag3:13", "Flag3:14", "Flag3:15", "Flag3:16",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1256,6 +1256,24 @@ void DisableIME()
 #endif
 }
 
+void SetSingleProcessAffinity(void)
+{
+	int i;
+	DWORD ProcessAffinityMask, SystemAffinityMask;
+	if(!GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
+		OutTraceE("GetProcessAffinityMask: ERROR err=%d\n", GetLastError());
+	OutTraceD("Process affinity=%x\n", ProcessAffinityMask);
+	for (i=0; i<(8 * sizeof(DWORD)); i++){
+		if (ProcessAffinityMask & 0x1) break;
+		ProcessAffinityMask >>= 1;
+	}
+	OutTraceD("First process affinity bit=%d\n", i);
+	ProcessAffinityMask &= 0x1;
+	for (; i; i--) ProcessAffinityMask <<= 1;
+	OutTraceD("Process affinity=%x\n", ProcessAffinityMask);
+	if (!SetProcessAffinityMask(GetCurrentProcess(), ProcessAffinityMask))
+		OutTraceE("SetProcessAffinityMask: ERROR err=%d\n", GetLastError());
+}
 
 int HookInit(TARGETMAP *target, HWND hwnd)
 {
@@ -1291,6 +1309,7 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	}
 
 	base=GetModuleHandle(NULL);
+	if(dxw.dwFlags3 & SINGLEPROCAFFINITY) SetSingleProcessAffinity();
 	if(dxw.dwFlags1 & HANDLEEXCEPTIONS) HookExceptionHandler();
 	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
 	//if(dxw.dwFlags2 & SUPPRESSIME) DisableIME();

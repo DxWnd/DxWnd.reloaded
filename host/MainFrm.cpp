@@ -105,12 +105,21 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
 	char InitPath[MAX_PATH];
+	RECT DesktopRect;
 	GetCurrentDirectory(MAX_PATH, InitPath);
 	strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
 	cs.x = GetPrivateProfileInt("window", "posx", 50, InitPath);
 	cs.y = GetPrivateProfileInt("window", "posy", 50, InitPath);
 	cs.cx = GetPrivateProfileInt("window", "sizx", 320, InitPath);
 	cs.cy = GetPrivateProfileInt("window", "sizy", 200, InitPath);
+
+	// keep window inside desktop boundaries
+	::GetWindowRect(::GetDesktopWindow(), &DesktopRect);
+	if(cs.x < DesktopRect.left) cs.x = DesktopRect.left;
+	if(cs.y < DesktopRect.top) cs.y = DesktopRect.top;
+	if(cs.x+cs.cx > DesktopRect.right) cs.x = DesktopRect.right - cs.cx;
+	if(cs.y+cs.cy > DesktopRect.bottom) cs.y = DesktopRect.bottom - cs.cy;
+
 	if( !CFrameWnd::PreCreateWindow(cs) )
 		return FALSE;
 	return TRUE;

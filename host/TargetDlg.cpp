@@ -39,6 +39,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SuppressD3DExt = FALSE;
 	m_SetCompatibility = FALSE;
 	m_SaveCaps = FALSE;
+	m_SingleProcAffinity = FALSE;
 	m_LimitResources = FALSE;
 	m_UnNotify = FALSE;
 	m_Windowize = TRUE; // default true !!

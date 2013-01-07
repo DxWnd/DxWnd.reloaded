@@ -28,6 +28,7 @@ extern UINT m_StartToTray;
 extern UINT m_InitialState;
 extern char m_ConfigFileName[20+1];
 extern BOOL Inject(DWORD, const char *);
+extern int KillProcByName(char *);
 
 PRIVATEMAP *pTitles; // global ptr: get rid of it!!
 TARGETMAP *pTargets; // idem.
@@ -49,6 +50,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_ADD, OnAdd)
 	ON_COMMAND(ID_MODIFY, OnModify)
 	ON_COMMAND(ID_PEXPORT, OnExport)
+	ON_COMMAND(ID_PKILL, OnProcessKill)
 	ON_COMMAND(ID_FILE_IMPORT, OnImport)
 	ON_COMMAND(ID_DELETE, OnDelete)
 	ON_COMMAND(ID_FILE_SORTPROGRAMSLIST, OnSort)
@@ -525,6 +527,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_SuppressD3DExt = TargetMaps[i].flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg.m_SetCompatibility = TargetMaps[i].flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg.m_SaveCaps = TargetMaps[i].flags3 & SAVECAPS ? 1 : 0;
+	dlg.m_SingleProcAffinity = TargetMaps[i].flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg.m_LimitResources = TargetMaps[i].flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg.m_SaveLoad = TargetMaps[i].flags & SAVELOAD ? 1 : 0;
 	dlg.m_SlowDown = TargetMaps[i].flags & SLOWDOWN ? 1 : 0;
@@ -646,6 +649,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_SuppressD3DExt) TargetMaps[i].flags3 |= SUPPRESSD3DEXT;
 		if(dlg.m_SetCompatibility) TargetMaps[i].flags2 |= SETCOMPATIBILITY;
 		if(dlg.m_SaveCaps) TargetMaps[i].flags3 |= SAVECAPS;
+		if(dlg.m_SingleProcAffinity) TargetMaps[i].flags3 |= SINGLEPROCAFFINITY;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;
 		if(dlg.m_BlitFromBackBuffer) TargetMaps[i].flags |= BLITFROMBACKBUFFER;
@@ -922,7 +926,6 @@ void CDxwndhostView::OnResume()
 {
 	CTargetDlg dlg;
 	HRESULT res;
-	HANDLE TargetHandle;
 	char sMsg[128+1];
 	DXWNDSTATUS DxWndStatus;
 	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
@@ -967,6 +970,34 @@ void CDxwndhostView::OnKill()
 		ClipCursor(NULL);
 	}
 
+	RevertScreenChanges(&this->InitDevMode);
+}
+
+void CDxwndhostView::OnProcessKill() 
+{
+	int i;
+	POSITION pos;
+	CListCtrl& listctrl = GetListCtrl();
+	char FilePath[MAX_PATH+1];
+	char *lpProcName, *lpNext;
+	HRESULT res;
+	char sMsg[128+1];
+
+	if(!listctrl.GetSelectedCount()) return ;
+	pos = listctrl.GetFirstSelectedItemPosition();
+	i = listctrl.GetNextSelectedItem(pos);
+
+	strncpy(FilePath,TargetMaps[i].path,MAX_PATH);
+	sprintf_s(sMsg, 128, "Do you want to kill \nthe \"%s\" task?", TitleMaps[i].title);
+	res=MessageBoxEx(0, sMsg, "Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+	if(res!=IDYES) return;
+
+	lpProcName=FilePath;
+	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
+
+	KillProcByName(lpProcName);
+
+	ClipCursor(NULL);
 	RevertScreenChanges(&this->InitDevMode);
 }
 
@@ -1037,6 +1068,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_SuppressD3DExt) TargetMaps[i].flags3 |= SUPPRESSD3DEXT;
 		if(dlg.m_SetCompatibility) TargetMaps[i].flags2 |= SETCOMPATIBILITY;
 		if(dlg.m_SaveCaps) TargetMaps[i].flags3 |= SAVECAPS;
+		if(dlg.m_SingleProcAffinity) TargetMaps[i].flags3 |= SINGLEPROCAFFINITY;
 		if(dlg.m_LimitResources) TargetMaps[i].flags2 |= LIMITRESOURCES;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;
@@ -1390,6 +1422,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	case ID_TASK_KILL:
 		OnKill();
 		break;
+	case ID_PKILL:
+		OnProcessKill();
+		break;
 	case ID_TASK_PAUSE:
 		OnPause();
 		break;
@@ -1475,11 +1510,17 @@ DWORD WINAPI StartDebug(void *p)
 					li->hFile, GetFileNameFromHandle(li->hFile));
 				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
 				if(res!=IDYES) step=FALSE;
-				if(!Inject(pinfo.dwProcessId, path)){
-					sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, path);
-					MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
-				}
+
 			}
+			//li=(LOAD_DLL_DEBUG_INFO *)&debug_event.u;
+			//if(strstr(GetFileNameFromHandle(li->hFile), "ddraw.dll")){
+			//	res=MessageBoxEx(0, GetFileNameFromHandle(li->hFile), "ddraw.dll intercepted", MB_OK, NULL);
+			//	GetFullPathName("dxwnd.dll", MAX_PATH, path, NULL);
+			//	if(!Inject(pinfo.dwProcessId, path)){
+			//		sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, path);
+			//		MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
+			//	}
+			//}
 			break;
 		case UNLOAD_DLL_DEBUG_EVENT:
 			SetWindowText(Ghwnd, "UNLOAD DLL");

@@ -286,7 +286,7 @@ static void DumpSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 	LogSurfaceAttributes(lpddsd, label, line);
 }
 
-#define CAPSHASHSIZE 100
+#define CAPSHASHSIZE 113
 
 typedef struct {
 	LPDIRECTDRAWSURFACE lpdds;
@@ -294,14 +294,15 @@ typedef struct {
 	DWORD Caps;
 	DDPIXELFORMAT PixelFormat;
 } CapsHash_Type;
-static CapsHash_Type CapsHash[CAPSHASHSIZE];
+static CapsHash_Type *CapsHash;
 	
 static void PushCaps(LPDDSURFACEDESC2 lpddsd, LPDIRECTDRAWSURFACE lpdds)
 {
 	static BOOL DoFirst = TRUE;
 	int i;
 	if (DoFirst) { // initialize
-		memset(CapsHash, 0, sizeof(CapsHash));
+		CapsHash=(CapsHash_Type *)malloc(CAPSHASHSIZE * sizeof(CapsHash_Type));
+		memset(CapsHash, 0, CAPSHASHSIZE * sizeof(CapsHash_Type));
 		DoFirst = FALSE;
 	}
 	if(IsDebug){
@@ -311,7 +312,7 @@ static void PushCaps(LPDDSURFACEDESC2 lpddsd, LPDIRECTDRAWSURFACE lpdds)
 			lpddsd->ddpfPixelFormat.dwRBitMask, lpddsd->ddpfPixelFormat.dwGBitMask, lpddsd->ddpfPixelFormat.dwBBitMask, lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask);
 		OutTrace("\n");
 	}
-	i = (DWORD)lpdds % CAPSHASHSIZE;
+	i = ((DWORD)lpdds >> 3) % CAPSHASHSIZE;
 	if(CapsHash[i].lpdds && (CapsHash[i].lpdds != lpdds)) {
 		char sMsg[80];
 		sprintf(sMsg, "PushCaps CONFLICT %x:%x\n", lpdds, CapsHash[i].lpdds); 
@@ -329,8 +330,7 @@ static void PushCaps(LPDDSURFACEDESC2 lpddsd, LPDIRECTDRAWSURFACE lpdds)
 static int PopCaps(LPDDSURFACEDESC2 lpddsd, LPDIRECTDRAWSURFACE lpdds)
 {
 	int i;
-	//DWORD Flags;
-	i = (DWORD)lpdds % 100;
+	i = ((DWORD)lpdds >> 3) % CAPSHASHSIZE;
 	if(lpdds != CapsHash[i].lpdds){
 		char sMsg[80];
 		sprintf(sMsg, "PopCaps MISMATCH %x:%x\n", lpdds, CapsHash[i].lpdds); 
@@ -338,13 +338,11 @@ static int PopCaps(LPDDSURFACEDESC2 lpddsd, LPDIRECTDRAWSURFACE lpdds)
 		if (IsAssertEnabled) MessageBox(0, sMsg, "PopCaps", MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
-	//Flags = lpddsd->ddpfPixelFormat.dwFlags;
 	if (lpddsd->dwSize > (DWORD)&((LPDDSURFACEDESC2)NULL)->dwFlags) lpddsd->dwFlags = CapsHash[i].Flags;
 	if (lpddsd->dwSize > (DWORD)&((LPDDSURFACEDESC2)NULL)->ddsCaps.dwCaps) lpddsd->ddsCaps.dwCaps = CapsHash[i].Caps;
 	if ((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->dwSize > (DWORD)&((LPDDSURFACEDESC2)NULL)->ddpfPixelFormat))
 		memcpy(&(lpddsd->ddpfPixelFormat), (void *)&CapsHash[i].PixelFormat, sizeof(DDPIXELFORMAT));
-	//lpddsd->ddpfPixelFormat.dwFlags = Flags;
-	
+
 	if(IsDebug){
 		OutTrace("PopCaps: lpdds=%x dwFlags=%x dwCaps=%x", lpdds, lpddsd->dwFlags, lpddsd->ddsCaps.dwCaps); 
 		if (lpddsd->dwFlags & DDSD_PIXELFORMAT) OutTrace(" PF.dwFlags=%x PF.dwFourCC=%x PF.dwRGBBitCount=%x RGBA=(%x,%x,%x,%x)", 
@@ -1532,6 +1530,8 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 		DDSURFACEDESC2 ddsd;
 		if (PopCaps(&ddsd, (LPDIRECTDRAWSURFACE)lpdds)) PushCaps(&ddsd, (LPDIRECTDRAWSURFACE)*obp);	
 	}
+
+	if(lpdds == lpDDSBack) lpDDSBack = (LPDIRECTDRAWSURFACE)*obp;
 	return 0;
 }
 
@@ -3112,12 +3112,15 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc)
 {
 	HRESULT res;
+	BOOL IsPrim;
 	POINT p = {0, 0};
 	RECT client;
 
 	// this must cope with the action policy of GetDC.
 
-	OutTraceD("ReleaseDC: lpdds=%x hdc=%x\n",lpdds, hdc);
+	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	OutTraceD("ReleaseDC: lpdss=%x%s hdc=%x\n",lpdds, IsPrim?"(PRIM)":"", hdc);	
+
 	res=(*pReleaseDC)(lpdds,hdc);
 	if (res==DD_OK) return res;
 
@@ -3438,10 +3441,10 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 		// if primary, clean primay surface list
 		if(IsPrim) dxw.UnmarkPrimarySurface(lpdds);
 		// service surfaces cleanup
-		//if(lpdds==lpDDSBack) { // v2.02.24fixed: to be investigated
-		//	OutTraceD("Release(S): Clearing lpDDSBack pointer\n");
-		//	lpDDSBack=NULL;
-		//}
+		if(lpdds==lpDDSBack) {
+			OutTraceD("Release(S): NOT Clearing lpDDSBack pointer\n");
+			//lpDDSBack=NULL;
+		}
 		if (dxw.dwFlags1 & EMULATESURFACE) {
 			if(lpdds==lpDDSEmu_Prim) {
 				OutTraceD("Release(S): Clearing lpDDSEmu_Prim pointer\n");
@@ -3782,9 +3785,9 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 		if (PopCaps((LPDDSURFACEDESC2)lpddsd, lpdds)) IsFixed=TRUE;
 		if (lpddsd->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
 	}
-
-	lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
-
+	
+	if(dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+	
 	if(IsFixed) DumpSurfaceAttributes(lpddsd, "GetSurfaceDesc [FIXED]", __LINE__);
 	return DD_OK;
 }

@@ -137,6 +137,7 @@ BEGIN
             MENUITEM "&Delete",                     ID_PLOG_DELETE
         END
         MENUITEM "e&Xport ...",                 ID_PEXPORT
+        MENUITEM "&Kill",                       ID_PKILL
     END
 END
 
@@ -417,10 +418,12 @@ BEGIN
     GROUPBOX        "Fake Version",IDC_STATIC,7,3,139,64
     CONTROL         "",IDC_FAKEVERSION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,26,12,10
     LISTBOX         IDC_LISTFAKE,39,15,98,43,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Handle Exceptions",IDC_HANDLEEXCEPTIONS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,201,109,12
+    CONTROL         "Handle Exceptions",IDC_HANDLEEXCEPTIONS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,200,109,12
     CONTROL         "Limit available resources",IDC_LIMITRESOURCES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,212,109,12
-    CONTROL         "Suppress IME",IDC_SUPPRESSIME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,190,109,12
-    CONTROL         "Suppress d3d9 extensions",IDC_SUPPRESSD3DEXT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,179,109,12
+    CONTROL         "Suppress IME",IDC_SUPPRESSIME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,188,109,12
+    CONTROL         "Suppress d3d9 extensions",IDC_SUPPRESSD3DEXT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,176,109,12
+    CONTROL         "Set single core process affinity",IDC_SINGLEPROCAFFINITY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,164,109,12
 END
 
 IDD_TAB_GDI DIALOGEX 0, 0, 300, 240

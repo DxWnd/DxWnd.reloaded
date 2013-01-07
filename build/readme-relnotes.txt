@@ -139,5 +139,15 @@ Improved the primary emulation capacity to handle 3D games
 Added the "preserve surface capabilities" flag
 Fixed an hooking bug for user32.dll
 
-v2.02.23/24.fix1
-Fixed a few things to make Grand Prix World playable in emulation mode - sorry, no movies!
+v2.02.25
+CORE:
+Added 'Single CPU Process Affinity' flag to let old games run on a single CPU core.
+Fixed bug causing possible crash using 'preserve surface caps' flag
+Switched lpDDSBack reference when backbuffer is upgraded through QueryInterface
+Eliminated lpDDSBack clearing when refcount is zero - why is this working better? Needs further investigation
+Added DDSCAPS_3DDEVICE capability when in EMULATED mode
+GUI:
+Added Kill process by name functionality (right click menu on program's list)
+Fixed GUI initial position: now checks for desktop size to fit GUI within visible borders
+Added single cpu process affinity checkbox in compatibility tab
+

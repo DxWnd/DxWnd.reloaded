@@ -105,6 +105,7 @@ public:
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_SaveCaps;
+	BOOL	m_SingleProcAffinity;
 	BOOL	m_WireFrame;
 	BOOL	m_BlackWhite;
 	BOOL	m_SuppressD3DExt;

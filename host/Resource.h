@@ -152,6 +152,7 @@
 #define IDC_TIMESLIDER                  1108
 #define IDC_BLACKWHITE                  1109
 #define IDC_SAVECAPS                    1110
+#define IDC_SINGLEPROCAFFINITY          1111
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -192,6 +193,7 @@
 #define ID_FILE_IMPORT                  32820
 #define ID_INDEX0_EXPORT                32821
 #define ID_PEXPORT                      32822
+#define ID_PKILL                        32823
 
 // Next default values for new objects
 // 
@@ -199,7 +201,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        156
-#define _APS_NEXT_COMMAND_VALUE         32823
+#define _APS_NEXT_COMMAND_VALUE         32825
 #define _APS_NEXT_CONTROL_VALUE         1091
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

@@ -87,6 +87,7 @@
 #define FORCE16BPP			0x00000040 // Forces 16BPP desktop color depth
 #define BLACKWHITE			0x00000080 // Simulate a B&W screen monitor mapping colors to grayscales
 #define SAVECAPS			0x00000100 // Saves and restores original surface flags & capabilities
+#define SINGLEPROCAFFINITY	0x00000200 // Set Process Affinity to a single core
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
