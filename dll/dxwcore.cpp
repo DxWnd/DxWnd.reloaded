@@ -2,8 +2,9 @@
 #include "dxwcore.hpp"
 #include "syslibs.h"
 
-extern GetCursorPos_Type pGetCursorPos;
-extern ClientToScreen_Type pClientToScreen;
+/* ------------------------------------------------------------------ */
+// Constructor, destructor, initialization....
+/* ------------------------------------------------------------------ */
 
 dxwCore::dxwCore()
 {
@@ -17,6 +18,11 @@ dxwCore::dxwCore()
 	bActive = TRUE;
 	bDInputAbs = 0;
 	TimeShift = 0;
+	lpDDSPrimHDC = NULL;
+	//IsWithinDDraw = FALSE;
+	IsGDIPalette = FALSE;
+
+	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
 
 	// preserved syslibs pointers
 	pClientToScreen=ClientToScreen;
@@ -38,10 +44,95 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwTFlags = target->tflags;
 	gsModules = target->module;
 	MaxFPS = target->MaxFPS;
+	CustomOpenGLLib = target->OpenGLLib;
+	if(!strlen(CustomOpenGLLib)) CustomOpenGLLib=NULL;
 	// bounds control
 	dwTargetDDVersion = target->dxversion;
 	if(dwTargetDDVersion<0) dwTargetDDVersion=0;
 	if(dwTargetDDVersion>10) dwTargetDDVersion=10;
+	TimeShift = target->InitTS;
+	if(TimeShift < -4) TimeShift = -4;
+	if(TimeShift >  4) TimeShift =  4;
+}
+
+/* ------------------------------------------------------------------ */
+// Primary surfaces auxiliary functions
+/* ------------------------------------------------------------------ */
+
+void dxwCore::MarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	// OutTraceD("PRIMARYSURFACE add %x\n",ps);
+	for (i=0;i<DDSQLEN;i++) {
+		if (PrimSurfaces[i]==(DWORD)ps) return; // if already there ....
+		if (PrimSurfaces[i]==(DWORD)0) break; // got end of list
+	}
+	PrimSurfaces[i]=(DWORD)ps;
+}
+
+// Note: since MS itself declares that the object refcount is not reliable and should
+// be used for debugging only, it's not safe to rely on refcount==0 when releasing a
+// surface to terminate its classification as primary. As an alternate and more reliable
+// way, we use UnmarkPrimarySurface each time you create a new not primary surface, 
+// eliminating the risk that a surface previously classified as primary and then closed
+// had the same surface handle than this new one that is not primary at all.
+
+void dxwCore::UnmarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	// OutTraceD("PRIMARYSURFACE del %x\n",ps);
+	for (i=0;i<DDSQLEN;i++) {
+		if (PrimSurfaces[i]==(DWORD)ps) break; 
+		if (PrimSurfaces[i]==0) break;
+	}
+	if (PrimSurfaces[i]==(DWORD)ps){
+		for (; i<DDSQLEN; i++){
+			PrimSurfaces[i]=PrimSurfaces[i+1];
+			if (PrimSurfaces[i]==0) break;
+		}
+		PrimSurfaces[DDSQLEN]=0;
+	}
+}
+
+BOOL dxwCore::IsAPrimarySurface(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	// treat NULL surface ptr as a non primary
+	if(!ps) return FALSE;
+	for (i=0;i<DDSQLEN;i++) {
+		if (PrimSurfaces[i]==(DWORD)ps) return TRUE;
+		if (PrimSurfaces[i]==0) return FALSE;
+	}
+	return FALSE;
+}
+
+LPDIRECTDRAWSURFACE dxwCore::GetPrimarySurface(void)
+{
+	// return last opened one....
+	int i;
+	for (i=0;i<DDSQLEN;i++) {
+		if (PrimSurfaces[i]==0) break;
+	}
+	if (i) return((LPDIRECTDRAWSURFACE)PrimSurfaces[i-1]);
+	return NULL;
+}
+
+void dxwCore::SetPrimarySurface(void)
+{
+	if (!lpDDSPrimHDC) lpDDSPrimHDC=GetPrimarySurface();
+}
+
+void dxwCore::ResetPrimarySurface(void)
+{
+	lpDDSPrimHDC=NULL;
+}
+
+void dxwCore::InitWindowPos(int x, int y, int w, int h)
+{
+	iPosX = x;
+	iPosX = y;
+	iSizX = w;
+	iSizY = h;
 }
 
 RECT dxwCore::GetScreenRect()
@@ -135,9 +226,9 @@ void dxwCore::SetClipCursor()
 	RECT Rect;
 	POINT UpLeftCorner;
 
-	OutTraceD("Core::SetClipCursor:\n");
+	OutTraceD("SetClipCursor:\n");
 	if (hWnd==NULL) {
-		OutTraceD("Core::SetClipCursor: ASSERT hWnd==NULL\n");
+		OutTraceD("SetClipCursor: ASSERT hWnd==NULL\n");
 		return;
 	}
 	(*pGetClientRect)(hWnd, &Rect);
@@ -151,13 +242,13 @@ void dxwCore::SetClipCursor()
 	if(!(*pClipCursor)(&Rect)){
 		OutTraceE("ClipCursor: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
-	OutTraceD("Core::SetClipCursor: rect=(%d,%d)-(%d,%d)\n",
+	OutTraceD("SetClipCursor: rect=(%d,%d)-(%d,%d)\n",
 		Rect.left, Rect.top, Rect.right, Rect.bottom);
 }
 
 void dxwCore::EraseClipCursor()
 {
-	OutTraceD("Core::EraseClipCursor:\n");
+	OutTraceD("EraseClipCursor:\n");
 	(*pClipCursor)(NULL);
 }
 
@@ -212,7 +303,7 @@ void dxwCore::ScreenRefresh(void)
 	#define DXWREFRESHINTERVAL 20
 
 	LPDIRECTDRAWSURFACE lpDDSPrim;
-	extern LPDIRECTDRAWSURFACE GetPrimarySurface();
+//	extern LPDIRECTDRAWSURFACE GetPrimarySurface();
 	extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx);
 
 	static int t = -1;
@@ -222,7 +313,7 @@ void dxwCore::ScreenRefresh(void)
 
 	if (tn-t < DXWREFRESHINTERVAL) return;
 
-	lpDDSPrim=GetPrimarySurface();
+	lpDDSPrim=dxw.GetPrimarySurface();
 	// if too early ....
 	if (lpDDSPrim)
 		extBlt(lpDDSPrim, NULL, lpDDSPrim, NULL, 0, NULL);
@@ -293,12 +384,62 @@ DWORD dxwCore::GetTickCount(void)
 	static DWORD dwLastRealTick=0;
 	static DWORD dwLastFakeTick=0;
 	DWORD dwNextRealTick;
+//	extern DXWNDSTATUS *pStatus;
 
 	dwNextRealTick=(*pGetTickCount)();
 	dwTick=(dwNextRealTick-dwLastRealTick);
+//	TimeShift=pStatus->iTimeShift;
+	TimeShift=GetTimeShift();
 	if (TimeShift > 0) dwTick >>= TimeShift;
 	if (TimeShift < 0) dwTick <<= -TimeShift;
 	dwLastFakeTick += dwTick;
 	dwLastRealTick = dwNextRealTick;
 	return dwLastFakeTick;
+}
+
+DWORD dxwCore::StretchTime(DWORD dwTimer)
+{
+	//extern DXWNDSTATUS *pStatus;
+	//TimeShift=pStatus->iTimeShift;
+	TimeShift=GetTimeShift();
+	if (TimeShift > 0) dwTimer <<= TimeShift;
+	if (TimeShift < 0) dwTimer >>= -TimeShift;
+	return dwTimer;
+}
+
+void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
+{
+	DWORD dwTick;
+	DWORD dwCurrentTick;
+	FILETIME CurrFileTime;
+	static DWORD dwStartTick=0;
+	static DWORD dwUpdateTick=0;
+	static FILETIME StartFileTime;
+	extern DXWNDSTATUS *pStatus;
+
+	//TimeShift=pStatus->iTimeShift;
+	if(dwStartTick==0) {
+		SYSTEMTIME StartingTime;
+		// first time through, initialize & return true time
+		dwStartTick = (*pGetTickCount)();
+		(*pGetSystemTime)(&StartingTime);
+		SystemTimeToFileTime(&StartingTime, &StartFileTime);
+		*lpSystemTime = StartingTime;
+	}
+	else {
+		dwCurrentTick=(*pGetTickCount)();
+		dwTick=(dwCurrentTick-dwStartTick);
+		TimeShift=GetTimeShift();
+		if (TimeShift > 0) dwTick >>= TimeShift;
+		if (TimeShift < 0) dwTick <<= -TimeShift;
+		// From MSDN: Contains a 64-bit value representing the number of 
+		// 100-nanosecond intervals since January 1, 1601 (UTC).
+		// So, since 1mSec = 10.000 * 100nSec, you still have to multiply by 10.000.
+		CurrFileTime.dwHighDateTime = StartFileTime.dwHighDateTime; // wrong !!!!
+		CurrFileTime.dwLowDateTime = StartFileTime.dwLowDateTime + (10000 * dwTick); // wrong !!!!
+		FileTimeToSystemTime(&CurrFileTime, lpSystemTime);
+		// reset to avoid time jumps on TimeShift changes...
+		StartFileTime = CurrFileTime;
+		dwStartTick = dwCurrentTick;
+	}
 }

@@ -33,16 +33,16 @@ GetAdapterDisplayMode_Type pGetAdapterDisplayMode;
 GetDisplayMode_Type pGetDisplayMode;
 DWORD dwD3DVersion;
 
-int HookDirect3D(int version){
+int HookDirect3D(char *module, int version){
 	HINSTANCE hinst;
 	void *tmp;
 	LPDIRECT3D9 lpd3d;
 
 	switch(version){
 	case 0:
-		tmp = HookAPI("d3d8.dll", NULL, "Direct3DCreate8", extDirect3DCreate8);
+		tmp = HookAPI(module, "d3d8.dll", NULL, "Direct3DCreate8", extDirect3DCreate8);
 		if(tmp) pDirect3DCreate8 = (Direct3DCreate8_Type)tmp;
-		tmp = HookAPI("d3d9.dll", NULL, "Direct3DCreate9", extDirect3DCreate9);
+		tmp = HookAPI(module, "d3d9.dll", NULL, "Direct3DCreate9", extDirect3DCreate9);
 		if(tmp) pDirect3DCreate9 = (Direct3DCreate9_Type)tmp;
 		break;
 	case 8:
@@ -126,13 +126,12 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresentationParamet
 HRESULT WINAPI extGetDisplayMode(void *lpd3d, D3DDISPLAYMODE *pMode)
 {
 	HRESULT res;
-	extern short iSizX, iSizY;
 	res=(*pGetDisplayMode)(lpd3d, pMode);
 	OutTraceD("DEBUG: GetDisplayMode: size=(%dx%d) RefreshRate=%d Format=%d\n",
 		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
 	if(dxw.dwFlags2 & KEEPASPECTRATIO){
-		pMode->Width=iSizX;
-		pMode->Height=iSizY;
+		pMode->Width=dxw.iSizX;
+		pMode->Height=dxw.iSizY;
 		OutTraceD("DEBUG: GetDisplayMode: fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
 	}
 	return res;
@@ -159,13 +158,12 @@ HRESULT WINAPI extEnumAdapterModes9(void *lpd3d, UINT Adapter, D3DFORMAT Format,
 HRESULT WINAPI extGetAdapterDisplayMode(void *lpd3d, UINT Adapter, D3DDISPLAYMODE *pMode)
 {
 	HRESULT res;
-	extern short iSizX, iSizY;
 	res=(*pGetAdapterDisplayMode)(lpd3d, Adapter, pMode);
 	OutTraceD("DEBUG: GetAdapterDisplayMode: size=(%dx%d) RefreshRate=%d Format=%d\n",
 		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
 	if(dxw.dwFlags2 & KEEPASPECTRATIO){
-		pMode->Width=iSizX;
-		pMode->Height=iSizY;
+		pMode->Width=dxw.iSizX;
+		pMode->Height=dxw.iSizY;
 		OutTraceD("DEBUG: GetDisplayMode: fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
 	}
 	return res;

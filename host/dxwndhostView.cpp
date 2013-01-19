@@ -13,6 +13,7 @@
 #include "TargetDlg.h"
 #include "SystemTray.h"
 #include "StatusDialog.h"
+#include "TimeSliderDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -26,6 +27,7 @@ extern UINT m_StartToTray;
 extern UINT m_InitialState;
 extern char m_ConfigFileName[20+1];
 PRIVATEMAP *pTitles; // global ptr: get rid of it!!
+TARGETMAP *pTargets; // idem.
 
 /////////////////////////////////////////////////////////////////////////////
 // CDxwndhostView
@@ -54,6 +56,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_RUN, OnRun)
 	ON_COMMAND(ID_TRAY_RESTORE, OnTrayRestore)
 	ON_COMMAND(ID_VIEW_STATUS, OnViewStatus)
+	ON_COMMAND(ID_VIEW_TIMESLIDER, OnViewTimeSlider)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -106,6 +109,8 @@ void CDxwndhostView::SaveConfigFile()
 		WritePrivateProfileString("target", key, TargetMaps[i].path, InitPath);
 		sprintf_s(key, sizeof(key), "module%i", i);
 		WritePrivateProfileString("target", key, TargetMaps[i].module, InitPath);
+		sprintf_s(key, sizeof(key), "opengllib%i", i);
+		WritePrivateProfileString("target", key, TargetMaps[i].OpenGLLib, InitPath);
 		sprintf_s(key, sizeof(key), "ver%i", i);
 		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].dxversion);
 		WritePrivateProfileString("target", key, val, InitPath);
@@ -147,8 +152,12 @@ void CDxwndhostView::SaveConfigFile()
 		WritePrivateProfileString("target", key, val, InitPath);
 		sprintf_s(key, sizeof(key), "sizy%i", i);
 		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].sizy);
+		WritePrivateProfileString("target", key, val, InitPath);
 		sprintf_s(key, sizeof(key), "maxfps%i", i);
 		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].MaxFPS);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "initts%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].InitTS);
 		WritePrivateProfileString("target", key, val, InitPath);
 	}
 	for(; i < MAXTARGETS; i ++){
@@ -183,6 +192,8 @@ void CDxwndhostView::SaveConfigFile()
 		sprintf_s(key, sizeof(key), "sizy%i", i);
 		WritePrivateProfileString("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "maxfps%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "initts%i", i);
 		WritePrivateProfileString("target", key, 0, InitPath);
 	}	
 
@@ -260,6 +271,8 @@ void CDxwndhostView::OnInitialUpdate()
 		GetPrivateProfileString("target", key, "", TitleMaps[i].title, sizeof(TitleMaps[i].title)-1, InitPath);
 		sprintf_s(key, sizeof(key), "module%i", i);
 		GetPrivateProfileString("target", key, "", TargetMaps[i].module, sizeof(TargetMaps[i].module)-1, InitPath);
+		sprintf_s(key, sizeof(key), "opengllib%i", i);
+		GetPrivateProfileString("target", key, "", TargetMaps[i].OpenGLLib, sizeof(TargetMaps[i].OpenGLLib)-1, InitPath);
 		sprintf_s(key, sizeof(key), "ver%i", i);
 		TargetMaps[i].dxversion = GetPrivateProfileInt("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "flag%i", i);
@@ -290,6 +303,8 @@ void CDxwndhostView::OnInitialUpdate()
 		TargetMaps[i].sizy = GetPrivateProfileInt("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "maxfps%i", i);
 		TargetMaps[i].MaxFPS = GetPrivateProfileInt("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "initts%i", i);
+		TargetMaps[i].InitTS = GetPrivateProfileInt("target", key, 0, InitPath);
 		listitem.mask = LVIF_TEXT;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
@@ -306,6 +321,7 @@ void CDxwndhostView::OnInitialUpdate()
 	if(m_StartToTray) this->OnGoToTrayIcon();
 	this->isUpdated=FALSE;
 	pTitles = &TitleMaps[0];
+	pTargets= &TargetMaps[0];
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -353,6 +369,7 @@ void CDxwndhostView::OnModify()
 	if(dlg.m_DXVersion > 6) dlg.m_DXVersion -= 5;
 	dlg.m_FilePath = TargetMaps[i].path;
 	dlg.m_Module = TargetMaps[i].module;
+	dlg.m_OpenGLLib = TargetMaps[i].OpenGLLib;
 	dlg.m_Title = TitleMaps[i].title;
 	dlg.m_UnNotify = TargetMaps[i].flags & UNNOTIFY ? 1 : 0;
 	dlg.m_EmulateSurface = TargetMaps[i].flags & EMULATESURFACE ? 1 : 0;
@@ -379,6 +396,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_AutoRefresh = TargetMaps[i].flags & AUTOREFRESH ? 1 : 0;
 	dlg.m_FixWinFrame = TargetMaps[i].flags & FIXWINFRAME ? 1 : 0;
 	dlg.m_HideHwCursor = TargetMaps[i].flags & HIDEHWCURSOR ? 1 : 0;
+	dlg.m_ShowHwCursor = TargetMaps[i].flags2 & SHOWHWCURSOR ? 1 : 0;
 	dlg.m_EnableClipping = TargetMaps[i].flags & ENABLECLIPPING ? 1 : 0;
 	dlg.m_CursorClipping = TargetMaps[i].flags & CLIPCURSOR ? 1 : 0;
 	dlg.m_VideoToSystemMem = TargetMaps[i].flags & SWITCHVIDEOMEMORY ? 1 : 0;
@@ -396,7 +414,9 @@ void CDxwndhostView::OnModify()
 	dlg.m_ModalStyle = TargetMaps[i].flags2 & MODALSTYLE ? 1 : 0;
 	dlg.m_KeepAspectRatio = TargetMaps[i].flags2 & KEEPASPECTRATIO ? 1 : 0;
 	dlg.m_ForceWinResize = TargetMaps[i].flags2 & FORCEWINRESIZE ? 1 : 0;
+	dlg.m_HookGDI = TargetMaps[i].flags2 & HOOKGDI ? 1 : 0;
 	dlg.m_HideMultiMonitor = TargetMaps[i].flags2 & HIDEMULTIMONITOR ? 1 : 0;
+	dlg.m_WallpaperMode = TargetMaps[i].flags2 & WALLPAPERMODE ? 1 : 0;
 	dlg.m_HookChildWin = TargetMaps[i].flags & HOOKCHILDWIN ? 1 : 0;
 	dlg.m_MessageProc = TargetMaps[i].flags & MESSAGEPROC ? 1 : 0;
 	dlg.m_FixNCHITTEST = TargetMaps[i].flags2 & FIXNCHITTEST ? 1 : 0;
@@ -410,6 +430,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_SkipFPS = TargetMaps[i].flags2 & SKIPFPS ? 1 : 0;
 	dlg.m_ShowFPS = TargetMaps[i].flags2 & SHOWFPS ? 1 : 0;
 	dlg.m_TimeStretch = TargetMaps[i].flags2 & TIMESTRETCH ? 1 : 0;
+	dlg.m_HookOpenGL = TargetMaps[i].flags2 & HOOKOPENGL ? 1 : 0;
 	dlg.m_InitX = TargetMaps[i].initx;
 	dlg.m_InitY = TargetMaps[i].inity;
 	dlg.m_MinX = TargetMaps[i].minx;
@@ -421,9 +442,11 @@ void CDxwndhostView::OnModify()
 	dlg.m_SizX = TargetMaps[i].sizx;
 	dlg.m_SizY = TargetMaps[i].sizy;
 	dlg.m_MaxFPS = TargetMaps[i].MaxFPS;
+	dlg.m_InitTS = TargetMaps[i].InitTS;
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strcpy_s(TargetMaps[i].path, sizeof(TargetMaps[i].path), dlg.m_FilePath);
 		strcpy_s(TargetMaps[i].module, sizeof(TargetMaps[i].module), dlg.m_Module);
+		strcpy_s(TargetMaps[i].OpenGLLib, sizeof(TargetMaps[i].OpenGLLib), dlg.m_OpenGLLib);
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
 		if(dlg.m_DXVersion > 1) dlg.m_DXVersion += 5;
 		TargetMaps[i].dxversion = dlg.m_DXVersion;
@@ -469,6 +492,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_AutoRefresh) TargetMaps[i].flags |= AUTOREFRESH;
 		if(dlg.m_FixWinFrame) TargetMaps[i].flags |= FIXWINFRAME;
 		if(dlg.m_HideHwCursor) TargetMaps[i].flags |= HIDEHWCURSOR;
+		if(dlg.m_ShowHwCursor) TargetMaps[i].flags2 |= SHOWHWCURSOR;
 		if(dlg.m_EnableClipping) TargetMaps[i].flags |= ENABLECLIPPING;
 		if(dlg.m_CursorClipping) TargetMaps[i].flags |= CLIPCURSOR;
 		if(dlg.m_VideoToSystemMem) TargetMaps[i].flags |= SWITCHVIDEOMEMORY;
@@ -486,7 +510,9 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_ModalStyle) TargetMaps[i].flags2 |= MODALSTYLE;
 		if(dlg.m_KeepAspectRatio) TargetMaps[i].flags2 |= KEEPASPECTRATIO;
 		if(dlg.m_ForceWinResize) TargetMaps[i].flags2 |= FORCEWINRESIZE;
+		if(dlg.m_HookGDI) TargetMaps[i].flags2 |= HOOKGDI;
 		if(dlg.m_HideMultiMonitor) TargetMaps[i].flags2 |= HIDEMULTIMONITOR;
+		if(dlg.m_WallpaperMode) TargetMaps[i].flags2 |= WALLPAPERMODE;
 		if(dlg.m_HookChildWin) TargetMaps[i].flags |= HOOKCHILDWIN;
 		if(dlg.m_MessageProc) TargetMaps[i].flags |= MESSAGEPROC;
 		if(dlg.m_FixNCHITTEST) TargetMaps[i].flags2 |= FIXNCHITTEST;
@@ -500,6 +526,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_SkipFPS) TargetMaps[i].flags2 |= SKIPFPS;
 		if(dlg.m_ShowFPS) TargetMaps[i].flags2 |= SHOWFPS;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
+		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;
@@ -511,7 +538,9 @@ void CDxwndhostView::OnModify()
 		TargetMaps[i].sizx = dlg.m_SizX;
 		TargetMaps[i].sizy = dlg.m_SizY;
 		TargetMaps[i].MaxFPS = dlg.m_MaxFPS;
+		TargetMaps[i].InitTS = dlg.m_InitTS;
 		strcpy_s(TargetMaps[i].module, sizeof(TargetMaps[i].module), dlg.m_Module);
+		strcpy_s(TargetMaps[i].OpenGLLib, sizeof(TargetMaps[i].OpenGLLib), dlg.m_OpenGLLib);
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT;
@@ -706,6 +735,7 @@ void CDxwndhostView::OnAdd()
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strcpy_s(TargetMaps[i].path,sizeof(TargetMaps[i].path),dlg.m_FilePath);
 		strcpy_s(TargetMaps[i].module,sizeof(TargetMaps[i].module),dlg.m_Module);
+		strcpy_s(TargetMaps[i].OpenGLLib,sizeof(TargetMaps[i].OpenGLLib),dlg.m_OpenGLLib);
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
 		if(dlg.m_DXVersion > 1) dlg.m_DXVersion += 5;
 		TargetMaps[i].dxversion = dlg.m_DXVersion;
@@ -751,6 +781,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_AutoRefresh) TargetMaps[i].flags |= AUTOREFRESH;
 		if(dlg.m_FixWinFrame) TargetMaps[i].flags |= FIXWINFRAME;
 		if(dlg.m_HideHwCursor) TargetMaps[i].flags |= HIDEHWCURSOR;
+		if(dlg.m_ShowHwCursor) TargetMaps[i].flags2 |= SHOWHWCURSOR;
 		if(dlg.m_EnableClipping) TargetMaps[i].flags |= ENABLECLIPPING;
 		if(dlg.m_CursorClipping) TargetMaps[i].flags |= CLIPCURSOR;
 		if(dlg.m_VideoToSystemMem) TargetMaps[i].flags |= SWITCHVIDEOMEMORY;
@@ -768,7 +799,9 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_ModalStyle) TargetMaps[i].flags2 |= MODALSTYLE;
 		if(dlg.m_KeepAspectRatio) TargetMaps[i].flags2 |= KEEPASPECTRATIO;
 		if(dlg.m_ForceWinResize) TargetMaps[i].flags2 |= FORCEWINRESIZE;
+		if(dlg.m_HookGDI) TargetMaps[i].flags2 |= HOOKGDI;
 		if(dlg.m_HideMultiMonitor) TargetMaps[i].flags2 |= HIDEMULTIMONITOR;
+		if(dlg.m_WallpaperMode) TargetMaps[i].flags2 |= WALLPAPERMODE;
 		if(dlg.m_HookChildWin) TargetMaps[i].flags |= HOOKCHILDWIN;
 		if(dlg.m_MessageProc) TargetMaps[i].flags |= MESSAGEPROC;
 		if(dlg.m_FixNCHITTEST) TargetMaps[i].flags2 |= FIXNCHITTEST;
@@ -782,6 +815,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_SkipFPS) TargetMaps[i].flags2 |= SKIPFPS;
 		if(dlg.m_ShowFPS) TargetMaps[i].flags2 |= SHOWFPS;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
+		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;
@@ -793,6 +827,7 @@ void CDxwndhostView::OnAdd()
 		TargetMaps[i].sizx = dlg.m_SizX;
 		TargetMaps[i].sizy = dlg.m_SizY;
 		TargetMaps[i].MaxFPS = dlg.m_MaxFPS;
+		TargetMaps[i].InitTS = dlg.m_InitTS;
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT;
 		listitem.iItem = i;
@@ -1015,6 +1050,13 @@ void CDxwndhostView::OnViewStatus()
 {
 	CStatusDialog *pDlg = new CStatusDialog();
 	BOOL ret = pDlg->Create(CStatusDialog::IDD, this); 
+	pDlg->ShowWindow(SW_SHOW);
+}
+
+void CDxwndhostView::OnViewTimeSlider()
+{
+	CTimeSliderDialog *pDlg = new CTimeSliderDialog();
+	BOOL ret = pDlg->Create(CTimeSliderDialog::IDD, this); 
 	pDlg->ShowWindow(SW_SHOW);
 }
 

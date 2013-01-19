@@ -372,6 +372,10 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\TimeSliderDlg.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -411,6 +415,10 @@
 			</File>
 			<File
 				RelativePath="TargetDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TimeSliderDialog.h"
 				>
 			</File>
 		</Filter>

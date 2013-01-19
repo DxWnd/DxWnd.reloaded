@@ -8,10 +8,6 @@ glViewport_Type pglViewport;
 glScissor_Type pglScissor;
 glGetIntegerv_Type pglGetIntegerv;
 
-//extern GLenum WINAPI glGetError();
-
-extern short iPosX, iPosY, iSizX, iSizY;
-
 void WINAPI extglViewport(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height)
 {
 	RECT client;
@@ -44,21 +40,6 @@ void WINAPI extglGetIntegerv(GLenum pname, GLint *params)
 {
 	(*pglGetIntegerv)(pname, params);
 	OutTraceD("glGetIntegerv: pname=%d\n", pname);
-//	if(glGetError()!=GL_NO_ERROR) OutTraceE("glGetIntegerv: ERROR %d at %d\n", glGetError(), __LINE__);
-#if 0
-	if (pname==GL_VIEWPORT){
-		OutTraceD("glGetIntegerv: pname=GL_VIEWPORT real viewport=(%d,%d)-(%d,%d)\n", 
-			params[0], params[1], params[2], params[3]);
-		//params[0]=(GLboolean)iPosX;
-		//params[1]=(GLboolean)iPosY;
-		params[0]=(GLint)0;
-		params[1]=(GLint)0;
-		params[2]=(GLint)iSizX;
-		params[3]=(GLint)iSizY;
-		OutTraceD("glGetIntegerv: pname=GL_VIEWPORT remapped viewport=(%d,%d)-(%d,%d)\n", 
-			params[0], params[1], params[2], params[3]);
-	}
-#endif
 }
 
 FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -82,19 +63,18 @@ FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 	return NULL;
 }
 
-void HookOpenGLLibs(int dxversion, char *module)
+void HookOpenGLLibs(char *module, char *customlib)
 {
 	void *tmp;
 	char *DefOpenGLModule="OpenGL32.dll";
 
-	if (dxversion!=10) return;
-	if (!module) module=DefOpenGLModule;
+	if (!customlib) customlib=DefOpenGLModule;
 
-	tmp = HookAPI(module, NULL, "glViewport", extglViewport);
+	tmp = HookAPI(module, customlib, NULL, "glViewport", extglViewport);
 	if(tmp) pglViewport = (glViewport_Type)tmp;
-	tmp = HookAPI(module, NULL, "glScissor", extglScissor);
+	tmp = HookAPI(module, customlib, NULL, "glScissor", extglScissor);
 	if(tmp) pglScissor = (glScissor_Type)tmp;
-	tmp = HookAPI(module, NULL, "glGetIntegerv", extglGetIntegerv);
+	tmp = HookAPI(module, customlib, NULL, "glGetIntegerv", extglGetIntegerv);
 	if(tmp) pglGetIntegerv = (glGetIntegerv_Type)tmp;
 
 	return;

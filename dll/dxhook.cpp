@@ -9,178 +9,18 @@
 #include "dxwcore.hpp"
 #include "dxhook.h"
 #include "glhook.h"
+#define DXWDECLARATIONS 1
 #include "syslibs.h"
+#undef DXWDECLARATIONS
 #include "dxhelper.h"
 
 dxwCore dxw;
 
-extern BOOL MakeWindowTransparent(HWND, unsigned char);
-
 extern void InitScreenParameters();
-
-int WINAPI extGetDeviceCaps(HDC, int);
-BOOL WINAPI extGetCursorPos(LPPOINT);
-BOOL WINAPI extSetCursorPos(int, int);
-HCURSOR WINAPI extSetCursor(HCURSOR);
-BOOL WINAPI extClipCursor(RECT *);
-BOOL WINAPI extGetClipCursor(LPRECT);
-HRESULT WINAPI extGDIGetDisplayMode(HDC, int);
-//BOOL WINAPI extColorCorrectPalette(HDC, HPALETTE, DWORD, DWORD);
-int WINAPI extGetSystemMetrics(int);
-extern HFONT WINAPI extCreateFont(int, int, int, int, int, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, LPCTSTR);
-extern HFONT WINAPI extCreateFontIndirect(const LOGFONT*);
-extern int WINAPI extFillRect(HDC, const RECT *, HBRUSH);
-extern int WINAPI extDrawFocusRect(HDC, const RECT *);
-extern BOOL WINAPI extRectangle(HDC, int, int, int, int);
-extern LONG WINAPI extSetWindowLong(HWND, int, LONG);
-extern LONG WINAPI extGetWindowLong(HWND, int);
-extern BOOL WINAPI extSetWindowPos(HWND, HWND, int, int, int, int, UINT);
-extern HDWP WINAPI extDeferWindowPos(HDWP, HWND, HWND, int, int, int, int, UINT);
-extern LRESULT WINAPI extCallWindowProc(WNDPROC, HWND, UINT, WPARAM, LPARAM);
-extern BOOL WINAPI extScaleWindowExtEx(HDC, int, int, int, int, LPSIZE);
-//extern HRGN WINAPI extCreateRectRgn(int, int, int, int);
-extern LRESULT WINAPI extDefWindowProc(HWND, UINT, WPARAM, LPARAM);
-extern LONG WINAPI extChangeDisplaySettings(DEVMODE *, DWORD);
-extern LONG WINAPI extChangeDisplaySettingsEx(LPCTSTR, DEVMODE *, HWND, DWORD, LPVOID);
-extern LONG WINAPI extEnumDisplaySettings(LPCTSTR, DWORD, DEVMODE *);
-extern BOOL WINAPI extSetWindowPlacement(const WINDOWPLACEMENT*);
-extern HDC WINAPI extGDICreateCompatibleDC(HDC);
-extern HDC WINAPI extDDCreateCompatibleDC(HDC);
-extern BOOL WINAPI extGDIDeleteDC(HDC);
-extern BOOL WINAPI extDDDeleteDC(HDC);
-extern HDC WINAPI extGDIGetDC(HWND);
-extern HDC WINAPI extDDGetDC(HWND);
-extern HDC WINAPI extGDIGetWindowDC(HWND);
-extern HDC WINAPI extDDGetWindowDC(HWND);
-extern int WINAPI extGDIReleaseDC(HWND, HDC);
-extern int WINAPI extDDReleaseDC(HWND, HDC);
-extern BOOL WINAPI extGDIBitBlt(HDC, int, int, int, int, HDC, int, int, DWORD);
-extern BOOL WINAPI extGDIPatBlt(HDC, int, int, int, int, DWORD);
-extern BOOL WINAPI extDDBitBlt(HDC, int, int, int, int, HDC, int, int, DWORD);
-extern BOOL WINAPI extGDIStretchBlt(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
-extern BOOL WINAPI extDDStretchBlt(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
-extern HDC WINAPI extGDICreateDC(LPSTR, LPSTR, LPSTR, CONST DEVMODE *);
-extern HDC WINAPI extDDCreateDC(LPSTR, LPSTR, LPSTR, CONST DEVMODE *);
-extern int WINAPI extGDISaveDC(HDC);
-extern BOOL WINAPI extGDIRestoreDC(HDC, int);
-extern HDC WINAPI extBeginPaint(HWND, LPPAINTSTRUCT);
-extern BOOL WINAPI extEndPaint(HWND, const PAINTSTRUCT *);
-
-extern HMODULE WINAPI extLoadLibraryA(LPCTSTR);
-extern HMODULE WINAPI extLoadLibraryExA(LPCTSTR, HANDLE, DWORD);
-extern BOOL WINAPI extGetClipCursor(LPRECT);
-extern BOOL WINAPI extClipCursor(LPRECT);
-extern BOOL WINAPI extScreenToClient(HWND, LPPOINT);
-extern BOOL WINAPI extClientToScreen(HWND, LPPOINT);
-extern BOOL WINAPI extGetClientRect(HWND, LPRECT);
-extern BOOL WINAPI extGetWindowRect(HWND, LPRECT);
-extern int WINAPI extMapWindowPoints(HWND, HWND, LPPOINT, UINT);
-extern BOOL WINAPI extPeekMessage(LPMSG, HWND, UINT, UINT, UINT);
-extern BOOL WINAPI extGetMessage(LPMSG, HWND, UINT, UINT);
-extern LRESULT WINAPI extDispatchMessage(LPMSG);
-extern FARPROC WINAPI extGetProcAddress(HMODULE, LPCSTR);
-//extern BOOL WINAPI extGetUpdateRect(HWND, LPRECT, BOOL);
-
-// GHO: pro Diablo
-HWND WINAPI extCreateWindowExA(DWORD, LPCTSTR, LPCTSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
-HWND WINAPI extGetDesktopWindow(void);
-BOOL WINAPI extShowWindow(HWND, int);
-BOOL WINAPI extTextOutA(HDC, int, int, LPCTSTR, int);
-ATOM WINAPI extRegisterClassExA(WNDCLASSEXA *);
-
-// GHO: pro GC&C Tiberian Sun
-extern HWND WINAPI extCreateDialogIndirectParam(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
-extern HWND WINAPI extCreateDialogParam(HINSTANCE, LPCSTR, HWND, DLGPROC, LPARAM);
-
-extern HWND WINAPI extSetCapture(HWND);
-extern BOOL WINAPI extReleaseCapture(void);
-extern BOOL WINAPI extDDInvalidateRect(HWND, RECT *, BOOL);
-extern BOOL WINAPI extInvalidateRect(HWND, RECT *, BOOL);
-extern BOOL WINAPI extInvalidateRgn(HWND, HRGN, BOOL);
-
-extern HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *);
-extern HPALETTE WINAPI extSelectPalette(HDC, HPALETTE, BOOL);
-extern UINT WINAPI extRealizePalette(HDC);
-extern UINT WINAPI extGetSystemPaletteEntries(HDC, UINT, UINT, LPPALETTEENTRY);
-extern BOOL WINAPI extMoveWindow(HWND, int, int, int, int, BOOL);
-extern LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
-extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
-extern BOOL WINAPI extSetDeviceGammaRamp(HDC, LPVOID);
-extern BOOL WINAPI extGetDeviceGammaRamp(HDC, LPVOID);
-extern LRESULT WINAPI extSendMessage(HWND, UINT, WPARAM, LPARAM);
-extern DWORD WINAPI extGetTickCount(void);
 
 extern HANDLE hTraceMutex;
 
-GetDeviceCaps_Type pGetDeviceCaps;
-GetCursorPos_Type pGetCursorPos=0;
-SetCursorPos_Type pSetCursorPos=0;
-SetCursor_Type pSetCursor=0;
-ClipCursor_Type pClipCursor=0;
-GetClipCursor_Type pGetClipCursor=0;
-TextOut_Type pTextOutA=0;
-FillRect_Type pFillRect;
-DrawFocusRect_Type pDrawFocusRect;
-Rectangle_Type pRectangle;
-GDIGetDisplayMode_Type pGDIGetDisplayMode;
-//ColorCorrectPalette_Type pColorCorrectPalette;
-GetSystemMetrics_Type pGetSystemMetrics;
-// GHO: pro Diablo
-CreateWindowExA_Type pCreateWindowExA;
-GetDesktopWindow_Type pGetDesktopWindow;
-ShowWindow_Type pShowWindow;
-SetTextColor_Type pSetTextColor;
-SetBkColor_Type pSetBkColor;
-CreateFont_Type pCreateFont;
-CreateFontIndirect_Type pCreateFontIndirect;
-SetWindowLong_Type pSetWindowLong;
-GetWindowLong_Type pGetWindowLong;
-SetWindowPos_Type pSetWindowPos;
-DeferWindowPos_Type pDeferWindowPos;
-CallWindowProc_Type pCallWindowProc;
-ScaleWindowExtEx_Type pScaleWindowExtEx;
-//CreateRectRgn_Type pCreateRectRgn;
-DefWindowProc_Type pDefWindowProc;
-ChangeDisplaySettings_Type pChangeDisplaySettings;
-ChangeDisplaySettingsEx_Type pChangeDisplaySettingsEx;
-EnumDisplaySettings_Type pEnumDisplaySettings = NULL;
-SetWindowPlacement_Type pSetWindowPlacement;
-CreateCompatibleDC_Type pCreateCompatibleDC;
-DeleteDC_Type pDeleteDC;
-extern GDIGetDC_Type pGDIGetDC;
-extern GDIGetDC_Type pGDIGetWindowDC;
-extern GDIReleaseDC_Type pGDIReleaseDC;
-extern CreateDC_Type pCreateDC;
-BitBlt_Type pBitBlt;
-PatBlt_Type pPatBlt;
-StretchBlt_Type pStretchtBlt;
-extern InvalidateRgn_Type pInvalidateRgn;
-GetTickCount_Type pGetTickCount;
-
-LoadLibraryA_Type pLoadLibraryA;
-LoadLibraryExA_Type pLoadLibraryExA;
-//GetClipCursor_Type pGetClipCursor;
-RegisterClassExA_Type pRegisterClassExA;
-ScreenToClient_Type pScreenToClient = NULL;
-ClientToScreen_Type pClientToScreen = NULL;
-GetClientRect_Type  pGetClientRect  = NULL;
-GetWindowRect_Type  pGetWindowRect  = NULL;
-MapWindowPoints_Type pMapWindowPoints = NULL;
-
-PeekMessage_Type pPeekMessage;
-GetMessage_Type pGetMessage;
-DispatchMessage_Type pDispatchMessage;
-GetProcAddress_Type pGetProcAddress;
-SetDeviceGammaRamp_Type pSetDeviceGammaRamp;
-GetDeviceGammaRamp_Type pGetDeviceGammaRamp;
-SendMessage_Type pSendMessage;
-
 CRITICAL_SECTION TraceCS; 
-
-extern COLORREF WINAPI extSetTextColor(HDC, COLORREF);
-extern COLORREF WINAPI extSetBkColor(HDC, COLORREF);
-
-short iPosX, iPosY, iSizX, iSizY;
 
 static char *FlagNames[32]={
 	"UNNOTIFY", "EMULATESURFACE", "CLIPCURSOR", "RESETPRIMARY",
@@ -197,9 +37,9 @@ static char *Flag2Names[32]={
 	"RECOVERSCREENMODE", "REFRESHONRESIZE", "BACKBUFATTACH", "MODALSTYLE",
 	"KEEPASPECTRATIO", "INIT8BPP", "FORCEWINRESIZE", "INIT16BPP",
 	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "DIFFERENTIALMOUSE", "FIXNCHITTEST",
-	"LIMITFPS", "SKIPFPS", "SHOWFPS", "",
-	"", "", "", "",
-	"", "", "", "",
+	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
+	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
+	"HOOKGDI", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 };
@@ -346,180 +186,6 @@ void DumpImportTable(char *module)
 	return;
 }
 
-
-void *HookAPIbyAddr(const char *module, void *apiproc, void *hookproc)
-{
-	DWORD base;
-	PIMAGE_NT_HEADERS pnth;
-	PIMAGE_IMPORT_DESCRIPTOR pidesc;
-	DWORD rva;
-	PSTR impmodule;
-	PIMAGE_THUNK_DATA ptaddr;
-	DWORD oldprotect;
-	void *org;
-
-	if(!apiproc) { // check
-		char *sMsg="HookAPIbyAddr: NULL api ptr\n";
-		OutTraceE(sMsg);
-		if (IsAssertEnabled) MessageBox(0, sMsg, "HookAPIbyAddr", MB_OK | MB_ICONEXCLAMATION);
-		return 0;
-	}
-
-	base = (DWORD)GetModuleHandle(NULL);
-	if(!base) {
-		OutTraceD("HookAPIbyAddr: GetModuleHandle failed, error=%d\n",GetLastError());
-		return 0;
-	}
-
-	__try{
-		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
-		if(!pnth) {
-			OutTraceE("HookAPIbyAddr: ERROR no pnth at %d\n", __LINE__);
-			return 0;
-		}
-		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-		if(!rva) {
-			OutTraceE("HookAPIbyAddr: ERROR no rva at %d\n", __LINE__);
-			return 0;
-		}
-		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
-
-		while(pidesc->FirstThunk){
-			impmodule = (PSTR)(base + pidesc->Name);
-			if(!lstrcmpi(module, impmodule)) break;
-			pidesc ++;
-		}
-		if(!pidesc->FirstThunk) {
-			OutTraceD("HookAPIbyAddr: PE unreferenced module=%s\n", module);
-			return 0;
-		}
-		ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
-		while(ptaddr->u1.Function){
-			if(ptaddr->u1.Function == (DWORD)apiproc) break;
-			ptaddr ++;
-		}
-		if(!ptaddr->u1.Function) return 0;
-
-		org = (void *)ptaddr->u1.Function;
-		if(org == hookproc) return 0; // already hooked
-
-		if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
-			OutTraceD("HookAPIbyAddr: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		ptaddr->u1.Function = (DWORD)hookproc;
-		if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
-			OutTraceD("HookAPIbyAddr: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
-			OutTraceD("HookAPIbyAddr: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		//OutTraceD("HookAPIbyAddr hook=%s.%x address=%x->%x\n", module, apiproc, org, hookproc);
-	 }
-	__except(EXCEPTION_EXECUTE_HANDLER)
-	{       
-		OutTraceD("HookAPIbyAddr: EXCEPTION hook=%s:%x Hook Failed.\n", module, apiproc);
-		org = 0;
-	}
-#ifdef TRYBOTHMODULES
-	}
-#endif
-	return org;
-}
-
-
-void *HookAPIbyName(const char *module, const char *api, void *hookproc)
-{
-	DWORD base;
-	PIMAGE_NT_HEADERS pnth;
-	PIMAGE_IMPORT_DESCRIPTOR pidesc;
-	DWORD rva;
-	PSTR impmodule;
-	PIMAGE_THUNK_DATA ptaddr;
-	PIMAGE_THUNK_DATA ptname;
-	PIMAGE_IMPORT_BY_NAME piname;
-	DWORD oldprotect;
-	void *org;
-
-	if(!*api) { // check
-		char *sMsg="HookAPIbyName: NULL api name\n";
-		OutTraceE(sMsg);
-		if (IsAssertEnabled) MessageBox(0, sMsg, "HookAPIbyName", MB_OK | MB_ICONEXCLAMATION);
-		return 0;
-	}
-
-	base = (DWORD)GetModuleHandle(NULL);
-	if(!base) {
-		OutTraceD("HookAPIbyName: GetModuleHandle failed, error=%d\n",GetLastError());
-		return 0;
-	}
-	__try{
-		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
-		if(!pnth) {
-			OutTraceE("HookAPIbyName: ERROR no pnth at %d\n", __LINE__);
-			return 0;
-		}
-		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-		if(!rva) {
-			OutTraceE("HookAPIbyName: ERROR no rva at %d\n", __LINE__);
-			return 0;
-		}
-		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
-
-		while(pidesc->FirstThunk){
-			impmodule = (PSTR)(base + pidesc->Name);
-			if(!lstrcmpi(module, impmodule)) break;
-			pidesc ++;
-		}
-		if(!pidesc->FirstThunk) {
-			if (IsDebug) OutTraceD("HookAPIbyName: PE unreferenced module=%s\n", module);
-			return 0;
-		}
-		if(!pidesc->OriginalFirstThunk) {
-			OutTraceD("HookAPIbyName: no PE OFTs - stripped module=%s\n", module);
-			return 0;
-		}
-		ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
-		ptname = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk);
-
-		while(ptaddr->u1.Function){
-			if(!IMAGE_SNAP_BY_ORDINAL(ptname->u1.Ordinal)){
-				piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
-				if(!lstrcmpi(api, (char *)piname->Name)) break;
-			}
-			ptaddr ++;
-			ptname ++;
-		}
-		if(!ptaddr->u1.Function) return 0;
-
-		org = (void *)ptaddr->u1.Function;
-		if(org == hookproc) return 0; // already hooked
-			
-		if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
-			OutTraceD("HookAPIbyName: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		ptaddr->u1.Function = (DWORD)hookproc;
-		if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
-			OutTraceD("HookAPIbyName: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
-			OutTraceD("HookAPIbyName: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		//OutTraceD("HookAPIbyName hook=%s.%s address=%x->%x\n", module, api, org, hookproc);
-	 }
-	__except(EXCEPTION_EXECUTE_HANDLER)
-	{       
-		OutTraceD("HookAPIbyName: EXCEPTION hook=%s:%s Hook Failed.\n", module, api);
-		org = 0;
-	}
-	return org;
-}
-
 void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 {
 	void *tmp;
@@ -547,6 +213,103 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	*hookedproc = tmp;
 }
 
+void *HookAPI(const char *module, char *dll, void *apiproc, const char *apiname, void *hookproc)
+{
+	DWORD base;
+	PIMAGE_NT_HEADERS pnth;
+	PIMAGE_IMPORT_DESCRIPTOR pidesc;
+	DWORD rva;
+	PSTR impmodule;
+	PIMAGE_THUNK_DATA ptaddr;
+	PIMAGE_THUNK_DATA ptname;
+	PIMAGE_IMPORT_BY_NAME piname;
+	DWORD oldprotect;
+	void *org;
+
+	if(!*apiname) { // check
+		char *sMsg="HookAPI: NULL api name\n";
+		OutTraceE(sMsg);
+		if (IsAssertEnabled) MessageBox(0, sMsg, "HookAPI", MB_OK | MB_ICONEXCLAMATION);
+		return 0;
+	}
+
+	base = (DWORD)GetModuleHandle(module);
+	if(!base) {
+		OutTraceD("HookAPI: GetModuleHandle failed, error=%d\n",GetLastError());
+		return 0;
+	}
+	__try{
+		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
+		if(!pnth) {
+			OutTraceE("HookAPI: ERROR no pnth at %d\n", __LINE__);
+			return 0;
+		}
+		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+		if(!rva) {
+			OutTraceE("HookAPI: ERROR no rva at %d\n", __LINE__);
+			return 0;
+		}
+		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
+
+		while(pidesc->FirstThunk){
+			impmodule = (PSTR)(base + pidesc->Name);
+			if(!lstrcmpi(dll, impmodule)) break;
+			pidesc ++;
+		}
+		if(!pidesc->FirstThunk) {
+			if (IsDebug) OutTraceD("HookAPI: PE unreferenced dll=%s\n", dll);
+			return 0;
+		}
+
+		ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
+		ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
+
+		if((apiproc==NULL) && (ptname==NULL)){
+			if (IsDebug) OutTraceD("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
+			return 0;
+		}
+
+		while(ptaddr->u1.Function){
+			if (ptname){
+				if(!IMAGE_SNAP_BY_ORDINAL(ptname->u1.Ordinal)){
+					piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
+					if(!lstrcmpi(apiname, (char *)piname->Name)) break;
+				}
+			}
+			if (apiproc){
+				if(ptaddr->u1.Function == (DWORD)apiproc) break;
+			}
+			ptaddr ++;
+			if (ptname) ptname ++;
+		}
+		if(!ptaddr->u1.Function) return 0;
+
+		org = (void *)ptaddr->u1.Function;
+		if(org == hookproc) return 0; // already hooked
+			
+		if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
+			OutTraceD("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
+			return 0;
+		}
+		ptaddr->u1.Function = (DWORD)hookproc;
+		if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
+			OutTraceD("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
+			return 0;
+		}
+		if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
+			OutTraceD("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
+			return 0;
+		}
+		//OutTraceD("HookAPI hook=%s.%s address=%x->%x\n", module, apiname, org, hookproc);
+	 }
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{       
+		OutTraceD("HookAPI: EXCEPTION hook=%s:%s Hook Failed.\n", dll, apiname);
+		org = 0;
+	}
+	return org;
+}
+
 // v.2.1.80: unified positioning logic into CalculateWindowPos routine
 // now taking in account for window menus (see "Alien Cabal")
 
@@ -557,14 +320,14 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	int MaxX, MaxY;
 	HMENU hMenu;
 
-	rect.left =  iPosX;
-	rect.top = iPosY;
-	MaxX = iSizX;
-	MaxY = iSizY;
+	rect.left =  dxw.iPosX;
+	rect.top = dxw.iPosX;
+	MaxX = dxw.iSizX;
+	MaxY = dxw.iSizY;
 	if (!MaxX) MaxX = width;
 	if (!MaxY) MaxY = height;
-	rect.right = iPosX+MaxX;
-	rect.bottom = iPosY+MaxY;
+	rect.right = dxw.iPosX+MaxX;
+	rect.bottom = dxw.iPosX+MaxY;
 
 	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 	hMenu = GetMenu(hwnd);	
@@ -637,7 +400,8 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 
 	// fixing cursor view and clipping region
 
-	if (dxw.dwFlags1 & HIDEHWCURSOR) while (ShowCursor(0) >= 0);
+	if (dxw.dwFlags1 & HIDEHWCURSOR) while ((*pShowCursor)(0) >= 0);
+	if (dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
 	if (dxw.dwFlags1 & CLIPCURSOR) {
 		OutTraceD("AdjustWindowFrame: setting clip region\n");
 		dxw.SetClipCursor();
@@ -668,7 +432,6 @@ INT_PTR CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPA
 
 	pWindowProc=WhndGetWindowProc(hwnd);
 	if(pWindowProc) return(*pWindowProc)(hwnd, message, wparam, lparam);
-	//OutTraceD("ASSERT: DialogWinMsg pWindowProc=NULL !!!\n");
 	char *sMsg="ASSERT: DialogWinMsg pWindowProc=NULL !!!\n";
 	OutTraceD(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "WindowProc", MB_OK | MB_ICONEXCLAMATION);
@@ -737,10 +500,7 @@ static void dx_TogglePositionLock(HWND hwnd)
 		(*pClientToScreen)(hwnd,&p);
 		dxw.dwFlags1 |= LOCKWINPOS;
 		OutTraceD("Toggle position lock ON\n");
-		iPosX=(short)p.x;
-		iPosY=(short)p.y;
-		iSizX=(short)(rect.right-rect.left);
-		iSizY=(short)(rect.bottom-rect.top);
+		dxw.InitWindowPos(p.x, p.y, rect.right-rect.left, rect.bottom-rect.top);
 	}
 }
 
@@ -758,7 +518,6 @@ void dx_ToggleDC()
 
 LRESULT LastCursorPos;
 
-
 LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	POINT prev, curr;
@@ -772,6 +531,25 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	// v2.1.93: adjust clipping region
 
 	OutTraceW("WindowProc: WinMsg=[0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
+
+#if 0
+	if(dxw.dwFlags2 & WALLPAPERMODE) {
+		static int t=0;
+		if ((*pGetTickCount)() - t > 100){
+			//if (GetTopWindow(NULL)==hwnd){
+			{
+				(*pSetWindowPos)(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE);
+				t = (*pGetTickCount)();
+			}
+		}
+		//if ((message >= WM_MOUSEFIRST) && (message <= WM_MOUSELAST)) return 0;
+		//if (message == WM_WINDOWPOSCHANGED) {
+		//	t=0;
+		//	return 0;
+		//}
+	}
+#endif
+
 	switch(message){
 	case WM_NCHITTEST:
 		if((dxw.dwFlags2 & FIXNCHITTEST) && (dxw.dwFlags1 & MODIFYMOUSE)){ // mouse processing 
@@ -806,12 +584,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		dxwFixWindowPos("WindowProc", hwnd, lparam);
 		break;
 	case WM_ENTERSIZEMOVE:
-		while(ShowCursor(1) < 0);
+		while((*pShowCursor)(1) < 0);
 		if(dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 		if(dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
 	case WM_EXITSIZEMOVE:
-		if (dxw.dwFlags1 & HIDEHWCURSOR) while(ShowCursor(0) >= 0);
+		if (dxw.dwFlags1 & HIDEHWCURSOR) while((*pShowCursor)(0) >= 0);
+		if (dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
 		if(dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		if(dxw.dwFlags2 & REFRESHONRESIZE) dxw.ScreenRefresh();
 		break;
@@ -830,7 +609,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		// This message is posted to the window that contains the cursor. 
 		// If a window has captured the mouse, this message is not posted.
 		// V2.1.90: on nonclient areas the cursor is always shown.
-		while(ShowCursor(1) < 0);
+		while((*pShowCursor)(1) < 0);
 		break;
 	case WM_MOUSEMOVE:
 		prev.x = LOWORD(lparam);
@@ -838,12 +617,12 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if (dxw.dwFlags1 & HIDEHWCURSOR) {
 			(*pGetClientRect)(hwnd, &rect);
 			if(prev.x >= 0 && prev.x < rect.right && prev.y >= 0 && prev.y < rect.bottom)
-				while(ShowCursor(0) >= 0);
+				while((*pShowCursor)(0) >= 0);
 			else
-				while(ShowCursor(1) < 0);
+				while((*pShowCursor)(1) < 0);
 		}
 		else {
-			while(ShowCursor(1) < 0);
+			while((*pShowCursor)(1) < 0);
 		}
 		if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
 			// scale mouse coordinates
@@ -874,7 +653,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;	
 	case WM_SETFOCUS:
-		//if (dxw.dwFlags1 & CLIPCURSOR) if (ClipCursorToggleState) dxw.SetClipCursor();
 		if (dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		break;
 	case WM_KILLFOCUS:
@@ -882,11 +660,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
 	case WM_CLOSE:
-		//if (dxw.dwFlags1 & HANDLECOSEICON) {
-		{
-			OutTraceD("WindowProc: WM_CLOSE - terminating process\n");
-			TerminateProcess(GetCurrentProcess(),0);
-		}
+		OutTraceD("WindowProc: WM_CLOSE - terminating process\n");
+		TerminateProcess(GetCurrentProcess(),0);
 		break;
 	case WM_SYSKEYDOWN:
 		OutTraceW("event WM_SYSKEYDOWN wparam=%x lparam=%x\n", wparam, lparam);
@@ -916,23 +691,14 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			}
 			break;
 		case VK_F5:
-		//case '+':
-			if ((dxw.dwFlags2 & TIMESTRETCH) && (dxw.TimeShift < 4)) {
-				dxw.TimeShift++;
-				if(dxw.TimeShift > 0) 
-					OutTrace("Time Stretch: speed %dx slow\n", 1 << dxw.TimeShift);
-				else
-					OutTrace("Time Stretch: speed %dx quick\n", 1 << (-dxw.TimeShift));
-			}
-			break;
 		case VK_F6:
-		//case '-':
-			if ((dxw.dwFlags2 & TIMESTRETCH) && (dxw.TimeShift > -4)) {
-				dxw.TimeShift--;
-				if(dxw.TimeShift > 0) 
-					OutTrace("Time Stretch: speed %dx slow\n", 1 << dxw.TimeShift);
-				else
-					OutTrace("Time Stretch: speed %dx quick\n", 1 << (-dxw.TimeShift));
+			if (dxw.dwFlags2 & TIMESTRETCH) {
+				char *sTSCaption[9]={"x16","x8","x4","x2","x1",":2",":4",":8",":16"};
+				if (wparam == VK_F5 && (dxw.TimeShift <  4)) dxw.TimeShift++;
+				if (wparam == VK_F6 && (dxw.TimeShift > -4)) dxw.TimeShift--;
+				OutTrace("Time Stretch: shift=%d speed=%s\n", dxw.TimeShift, sTSCaption[dxw.TimeShift+4]);
+				DxWndStatus.iTimeShift=dxw.TimeShift;
+				SetHookStatus(&DxWndStatus);
 			}
 			break;
 		default:
@@ -981,37 +747,21 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	return (*pDefWindowProc)(hwnd, message, wparam, lparam);
 }
 
-void *HookAPI(const char *module, void *apiproc, const char *apiname, void *hookproc)
-{
-	void *hookaddr;
-	//OutTraceD("Hooking %s:%s addr=%x\n", module, apiname, apiproc);
-	hookaddr=NULL;
-	if (apiproc) 
-		hookaddr=HookAPIbyAddr(module, apiproc, hookproc);
-	//else
-	if(!hookaddr)
-		hookaddr=HookAPIbyName(module, apiname, hookproc);
-
-	if (hookaddr) OutTraceD("Hooked %s:%s %x->%x\n", module, apiname, apiproc, hookproc);
-	return hookaddr;
-}
-
 void HookSysLibsInit()
 {
 	pLoadLibraryA = LoadLibrary;
 	pGetProcAddress = (GetProcAddress_Type)GetProcAddress;
-	pCreateCompatibleDC=CreateCompatibleDC;
-	pDeleteDC=DeleteDC;
+	pGDICreateCompatibleDC=CreateCompatibleDC;
+	pGDIDeleteDC=DeleteDC;
 	pGDIGetDC=GetDC;
 	pGDIGetWindowDC=GetWindowDC;
 	pGDIReleaseDC=ReleaseDC;
-	pCreateDC=CreateDC;
-	pBitBlt=BitBlt;
-	pStretchBlt=StretchBlt;
+	pGDICreateDC=CreateDC;
+	pGDIBitBlt=BitBlt;
+	pGDIStretchBlt=StretchBlt;
 	pBeginPaint=BeginPaint;
 	pEndPaint=EndPaint;
 	pInvalidateRect=InvalidateRect;
-	pInvalidateRgn=InvalidateRgn;
 	pScreenToClient = ScreenToClient;
 	pClientToScreen = ClientToScreen;
 	pGetClientRect  = GetClientRect;
@@ -1023,26 +773,24 @@ void HookSysLibsInit()
 	pFillRect = FillRect;
 	pPeekMessage = PeekMessage;
 	pGetMessage = GetMessage;
-	pDispatchMessage = (DispatchMessage_Type)DispatchMessage;
 	pDefWindowProc = DefWindowProc;
-	pGetDeviceCaps = GetDeviceCaps;
-	pTextOutA = TextOutA;
-	pScaleWindowExtEx = ScaleWindowExtEx;
+	pGDIGetDeviceCaps = GetDeviceCaps;
+	pGDITextOutA = TextOutA;
+	pGDIScaleWindowExtEx = ScaleWindowExtEx;
 	pCreateWindowExA = CreateWindowExA;
 	pRegisterClassExA = (RegisterClassExA_Type)RegisterClassExA;
-	pRectangle = Rectangle;
+	pGDIRectangle = Rectangle;
 	pSetWindowPos=SetWindowPos;
-	pDeferWindowPos=DeferWindowPos;
+	pGDIDeferWindowPos=DeferWindowPos;
 	pSetWindowLong=SetWindowLongA;
 	pGetWindowLong=GetWindowLongA;
 	pCallWindowProc=CallWindowProcA;
 	pShowWindow=ShowWindow;
-	pSetTextColor = SetTextColor;
-	pSetBkColor = SetBkColor;
-	pCreateFont = CreateFont;
-	pCreateFontIndirect = CreateFontIndirect;
+	pGDISetTextColor = SetTextColor;
+	pGDISetBkColor = SetBkColor;
+	pGDICreateFont = CreateFont;
+	pGDICreateFontIndirect = CreateFontIndirect;
 	pGetSystemMetrics = GetSystemMetrics;
-	//pColorCorrectPalette = ColorCorrectPalette;
 	pGetCursorPos = GetCursorPos;
 	pSetCursorPos = SetCursorPos;
 	pSetCursor    = SetCursor;
@@ -1050,222 +798,225 @@ void HookSysLibsInit()
 	pCreateDialogParam=CreateDialogParamA;
 	pMoveWindow=MoveWindow;
 	pGetDesktopWindow=GetDesktopWindow;
+	pShowCursor=ShowCursor;
 	pGetTickCount=GetTickCount;
+	pSleep=Sleep;
+	pSleepEx=SleepEx;
+	pGetSystemTime=GetSystemTime;
+	pGetLocalTime=GetLocalTime;
+	pSetTimer=SetTimer;
+}
+
+void HookGDILib(char *module)
+{
+	void *tmp;
+
+	if(dxw.dwFlags1 & MAPGDITOPRIMARY){
+		tmp = HookAPI(module, "GDI32.dll", CreateCompatibleDC, "CreateCompatibleDC", extDDCreateCompatibleDC);
+		if(tmp) pGDICreateCompatibleDC = (CreateCompatibleDC_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", DeleteDC, "DeleteDC", extDDDeleteDC);
+		if(tmp) pGDIDeleteDC = (DeleteDC_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", CreateDCA, "CreateDCA", extDDCreateDC);
+		if(tmp) pGDICreateDC = (CreateDC_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", BitBlt, "BitBlt", extDDBitBlt);
+		if(tmp) pGDIBitBlt = (BitBlt_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", StretchBlt, "StretchBlt", extDDStretchBlt);
+		if(tmp) pGDIStretchBlt = (StretchBlt_Type)tmp;
+	}
+	else {
+		tmp = HookAPI(module, "GDI32.dll", CreateCompatibleDC, "CreateCompatibleDC", extGDICreateCompatibleDC);
+		if(tmp) pGDICreateCompatibleDC = (CreateCompatibleDC_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", DeleteDC, "DeleteDC", extGDIDeleteDC);
+		if(tmp) pGDIDeleteDC = (DeleteDC_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", CreateDCA, "CreateDCA", extGDICreateDC);
+		if(tmp) pGDICreateDC = (CreateDC_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", BitBlt, "BitBlt", extGDIBitBlt);
+		if(tmp) pGDIBitBlt = (BitBlt_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", StretchBlt, "StretchBlt", extGDIStretchBlt);
+		if(tmp) pGDIStretchBlt = (StretchBlt_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", PatBlt, "PatBlt", extGDIPatBlt);
+		if(tmp) pGDIPatBlt = (PatBlt_Type)tmp;
+	}
+	tmp = HookAPI(module, "GDI32.dll", GetDeviceCaps, "GetDeviceCaps", extGetDeviceCaps); // GHO: added for caesar3
+	if(tmp) pGDIGetDeviceCaps = (GetDeviceCaps_Type)tmp; 
+	tmp = HookAPI(module, "GDI32.dll", TextOutA, "TextOutA", extTextOutA);
+	if(tmp) pGDITextOutA = (TextOut_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", ScaleWindowExtEx, "ScaleWindowExtEx", extScaleWindowExtEx);
+	if(tmp) pGDIScaleWindowExtEx = (ScaleWindowExtEx_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", Rectangle, "Rectangle", extRectangle);
+	if(tmp) pGDIRectangle = (Rectangle_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", SaveDC, "SaveDC", extGDISaveDC);
+	if(tmp) pGDISaveDC = (SaveDC_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", RestoreDC, "RestoreDC", extGDIRestoreDC);
+	if(tmp) pGDIRestoreDC = (RestoreDC_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", CreatePalette, "CreatePalette", extGDICreatePalette);
+	if(tmp) pGDICreatePalette = (GDICreatePalette_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", SelectPalette, "SelectPalette", extSelectPalette);
+	if(tmp) pGDISelectPalette = (SelectPalette_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", RealizePalette, "RealizePalette", extRealizePalette);
+	if(tmp) pGDIRealizePalette = (RealizePalette_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", GetSystemPaletteEntries, "GetSystemPaletteEntries", extGetSystemPaletteEntries);
+	if(tmp) pGDIGetSystemPaletteEntries = (GetSystemPaletteEntries_Type)tmp;
+	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC)){
+		tmp = HookAPI(module, "GDI32.dll", SetTextColor, "SetTextColor", extSetTextColor);
+		if(tmp) pGDISetTextColor = (SetTextColor_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", SetBkColor, "SetBkColor", extSetBkColor);
+		if(tmp) pGDISetBkColor = (SetBkColor_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", CreateFont, "CreateFont", extCreateFont);
+		if(tmp) pGDICreateFont = (CreateFont_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", CreateFontIndirectA, "CreateFontIndirectA", extCreateFontIndirect);
+		if(tmp) pGDICreateFontIndirect = (CreateFontIndirect_Type)tmp;
+	}
+
+	if(dxw.dwFlags2 & DISABLEGAMMARAMP){
+		tmp = HookAPI(module, "GDI32.dll", SetDeviceGammaRamp, "SetDeviceGammaRamp", extSetDeviceGammaRamp);
+		if(tmp) pGDISetDeviceGammaRamp = (SetDeviceGammaRamp_Type)tmp;
+		tmp = HookAPI(module, "GDI32.dll", GetDeviceGammaRamp, "GetDeviceGammaRamp", extGetDeviceGammaRamp);
+		if(tmp) pGDIGetDeviceGammaRamp = (GetDeviceGammaRamp_Type)tmp;
+	}
 }
 
 void HookSysLibs(char *module)
 {
 	void *tmp;
 
-	tmp = HookAPI("KERNEL32.dll", GetProcAddress, "GetProcAddress", extGetProcAddress);
+	tmp = HookAPI(module, "kernel32.dll", GetProcAddress, "GetProcAddress", extGetProcAddress);
 	if(tmp) pGetProcAddress = (GetProcAddress_Type)tmp;
-
-	tmp = HookAPI("kernel32.dll", LoadLibraryA, "LoadLibraryA", extLoadLibraryA);
+	tmp = HookAPI(module, "kernel32.dll", LoadLibraryA, "LoadLibraryA", extLoadLibraryA);
 	if(tmp) pLoadLibraryA = (LoadLibraryA_Type)tmp;
-	tmp = HookAPI("kernel32.dll", LoadLibraryExA, "LoadLibraryExA", extLoadLibraryExA);
+	tmp = HookAPI(module, "kernel32.dll", LoadLibraryExA, "LoadLibraryExA", extLoadLibraryExA);
 	if(tmp) pLoadLibraryExA = (LoadLibraryExA_Type)tmp;
 
-	tmp = HookAPI("user32.dll", BeginPaint, "BeginPaint", extBeginPaint);
+	tmp = HookAPI(module, "user32.dll", BeginPaint, "BeginPaint", extBeginPaint);
 	if(tmp) pBeginPaint = (BeginPaint_Type)tmp;
-	tmp = HookAPI("user32.dll", EndPaint, "EndPaint", extEndPaint);
+	tmp = HookAPI(module, "user32.dll", EndPaint, "EndPaint", extEndPaint);
 	if(tmp) pEndPaint = (EndPaint_Type)tmp;
+	tmp = HookAPI(module, "user32.dll", ShowCursor, "ShowCursor", extShowCursor);
+	if(tmp) pShowCursor = (ShowCursor_Type)tmp;
 	if(dxw.dwFlags1 & MAPGDITOPRIMARY){
-		tmp = HookAPI("GDI32.dll", CreateCompatibleDC, "CreateCompatibleDC", extDDCreateCompatibleDC);
-		if(tmp) pCreateCompatibleDC = (CreateCompatibleDC_Type)tmp;
-		tmp = HookAPI("GDI32.dll", DeleteDC, "DeleteDC", extDDDeleteDC);
-		if(tmp) pDeleteDC = (DeleteDC_Type)tmp;
-		tmp = HookAPI("user32.dll", GetDC, "GetDC", extDDGetDC);
+		tmp = HookAPI(module, "user32.dll", GetDC, "GetDC", extDDGetDC);
 		if(tmp) pGDIGetDC = (GDIGetDC_Type)tmp;
-		tmp = HookAPI("user32.dll", GetWindowDC, "GetWindowDC", extDDGetWindowDC);
+		tmp = HookAPI(module, "user32.dll", GetWindowDC, "GetWindowDC", extDDGetWindowDC);
 		if(tmp) pGDIGetWindowDC = (GDIGetDC_Type)tmp;
-		tmp = HookAPI("user32.dll", ReleaseDC, "ReleaseDC", extDDReleaseDC);
+		tmp = HookAPI(module, "user32.dll", ReleaseDC, "ReleaseDC", extDDReleaseDC);
 		if(tmp) pGDIReleaseDC = (GDIReleaseDC_Type)tmp;
-		tmp = HookAPI("GDI32.dll", CreateDCA, "CreateDCA", extDDCreateDC);
-		if(tmp) pCreateDC = (CreateDC_Type)tmp;
-		tmp = HookAPI("GDI32.dll", BitBlt, "BitBlt", extDDBitBlt);
-		if(tmp) pBitBlt = (BitBlt_Type)tmp;
-		tmp = HookAPI("GDI32.dll", StretchBlt, "StretchBlt", extDDStretchBlt);
-		if(tmp) pStretchBlt = (StretchBlt_Type)tmp;
-		tmp = HookAPI("user32.dll", InvalidateRect, "InvalidateRect", extDDInvalidateRect);
+		tmp = HookAPI(module, "user32.dll", InvalidateRect, "InvalidateRect", extDDInvalidateRect);
 		if(tmp) pInvalidateRect = (InvalidateRect_Type)tmp;
 	}
 	else{
-		tmp = HookAPI("GDI32.dll", CreateCompatibleDC, "CreateCompatibleDC", extGDICreateCompatibleDC);
-		if(tmp) pCreateCompatibleDC = (CreateCompatibleDC_Type)tmp;
-		tmp = HookAPI("GDI32.dll", DeleteDC, "DeleteDC", extGDIDeleteDC);
-		if(tmp) pDeleteDC = (DeleteDC_Type)tmp;
-		tmp = HookAPI("user32.dll", GetDC, "GetDC", extGDIGetDC);
+		tmp = HookAPI(module, "user32.dll", GetDC, "GetDC", extGDIGetDC);
 		if(tmp) pGDIGetDC = (GDIGetDC_Type)tmp;
-		tmp = HookAPI("user32.dll", GetWindowDC, "GetWindowDC", extGDIGetWindowDC);
+		tmp = HookAPI(module, "user32.dll", GetWindowDC, "GetWindowDC", extGDIGetWindowDC);
 		if(tmp) pGDIGetWindowDC = (GDIGetDC_Type)tmp;
-		tmp = HookAPI("user32.dll", ReleaseDC, "ReleaseDC", extGDIReleaseDC);
+		tmp = HookAPI(module, "user32.dll", ReleaseDC, "ReleaseDC", extGDIReleaseDC);
 		if(tmp) pGDIReleaseDC = (GDIReleaseDC_Type)tmp;
-		tmp = HookAPI("GDI32.dll", CreateDCA, "CreateDCA", extGDICreateDC);
-		if(tmp) pCreateDC = (CreateDC_Type)tmp;
-		tmp = HookAPI("GDI32.dll", BitBlt, "BitBlt", extGDIBitBlt);
-		if(tmp) pBitBlt = (BitBlt_Type)tmp;
-		tmp = HookAPI("GDI32.dll", StretchBlt, "StretchBlt", extGDIStretchBlt);
-		if(tmp) pStretchBlt = (StretchBlt_Type)tmp;
-		tmp = HookAPI("GDI32.dll", PatBlt, "PatBlt", extGDIPatBlt);
-		if(tmp) pPatBlt = (PatBlt_Type)tmp;
-		tmp = HookAPI("user32.dll", InvalidateRect, "InvalidateRect", extInvalidateRect);
+		tmp = HookAPI(module, "user32.dll", InvalidateRect, "InvalidateRect", extInvalidateRect);
 		if(tmp) pInvalidateRect = (InvalidateRect_Type)tmp;
-		//tmp = HookAPI("user32.dll", InvalidateRgn, "InvalidateRgn", extInvalidateRgn);
-		//if(tmp) pInvalidateRgn = (InvalidateRgn_Type)tmp;
 	}
 
 	if (dxw.dwFlags1 & CLIENTREMAPPING){
-		tmp = HookAPI("user32.dll", ScreenToClient, "ScreenToClient", extScreenToClient);
+		tmp = HookAPI(module, "user32.dll", ScreenToClient, "ScreenToClient", extScreenToClient);
 		if(tmp) pScreenToClient = (ScreenToClient_Type)tmp;
-		tmp = HookAPI("user32.dll", ClientToScreen, "ClientToScreen", extClientToScreen);
+		tmp = HookAPI(module, "user32.dll", ClientToScreen, "ClientToScreen", extClientToScreen);
 		if(tmp) pClientToScreen = (ClientToScreen_Type)tmp;
-		tmp = HookAPI("user32.dll", GetClientRect, "GetClientRect", extGetClientRect);
+		tmp = HookAPI(module, "user32.dll", GetClientRect, "GetClientRect", extGetClientRect);
 		if(tmp) pGetClientRect = (GetClientRect_Type)tmp;
-		tmp = HookAPI("user32.dll", GetWindowRect, "GetWindowRect", extGetWindowRect);
+		tmp = HookAPI(module, "user32.dll", GetWindowRect, "GetWindowRect", extGetWindowRect);
 		if(tmp) pGetWindowRect = (GetWindowRect_Type)tmp;
-		tmp = HookAPI("user32.dll", MapWindowPoints, "MapWindowPoints", extMapWindowPoints);
+		tmp = HookAPI(module, "user32.dll", MapWindowPoints, "MapWindowPoints", extMapWindowPoints);
 		if(tmp) pMapWindowPoints = (MapWindowPoints_Type)tmp;
 	}
 
 	// get / change display settings
-	tmp = HookAPI("user32.dll", ChangeDisplaySettingsA, "ChangeDisplaySettingsA", extChangeDisplaySettings);
+	tmp = HookAPI(module, "user32.dll", ChangeDisplaySettingsA, "ChangeDisplaySettingsA", extChangeDisplaySettings);
 	if(tmp) pChangeDisplaySettings = (ChangeDisplaySettings_Type)tmp;
-	tmp = HookAPI("user32.dll", ChangeDisplaySettingsExA, "ChangeDisplaySettingsExA", extChangeDisplaySettingsEx);
+	tmp = HookAPI(module, "user32.dll", ChangeDisplaySettingsExA, "ChangeDisplaySettingsExA", extChangeDisplaySettingsEx);
 	if(tmp) pChangeDisplaySettingsEx = (ChangeDisplaySettingsEx_Type)tmp;
-	tmp = HookAPI("user32.dll", EnumDisplaySettingsA, "EnumDisplaySettingsA", extEnumDisplaySettings);
+	tmp = HookAPI(module, "user32.dll", EnumDisplaySettingsA, "EnumDisplaySettingsA", extEnumDisplaySettings);
 	if(tmp) pEnumDisplaySettings = (EnumDisplaySettings_Type)tmp;
 
 	// handle cursor clipping
-	tmp = HookAPI("user32.dll", GetClipCursor, "GetClipCursor", extGetClipCursor);
+	tmp = HookAPI(module, "user32.dll", GetClipCursor, "GetClipCursor", extGetClipCursor);
 	if(tmp) pGetClipCursor = (GetClipCursor_Type)tmp;
 
-	tmp = HookAPI("user32.dll", ClipCursor, "ClipCursor", extClipCursor);
+	tmp = HookAPI(module, "user32.dll", ClipCursor, "ClipCursor", extClipCursor);
 	if(tmp) pClipCursor = (ClipCursor_Type)tmp;
-	tmp = HookAPI("user32.dll", FillRect, "FillRect", extFillRect);
+	tmp = HookAPI(module, "user32.dll", FillRect, "FillRect", extFillRect);
 	if(tmp) pFillRect = (FillRect_Type)tmp;
 	if (dxw.dwFlags1 & MESSAGEPROC) {
-		tmp = HookAPI("user32.dll", PeekMessageA, "PeekMessageA", extPeekMessage); // added for GPL 
+		tmp = HookAPI(module, "user32.dll", PeekMessageA, "PeekMessageA", extPeekMessage); // added for GPL 
 		if(tmp) pPeekMessage = (PeekMessage_Type)tmp;
-		tmp = HookAPI("user32.dll", GetMessageA, "GetMessageA", extGetMessage); // added for GPL 
+		tmp = HookAPI(module, "user32.dll", GetMessageA, "GetMessageA", extGetMessage); // added for GPL 
 		if(tmp) pGetMessage = (GetMessage_Type)tmp;
-		//tmp = HookAPI("user32.dll", DispatchMessageA, "DispatchMessageA", extDispatchMessage); // added for GPL 
-		//if(tmp) pDispatchMessage = (DispatchMessage_Type)tmp;
 	}
-	tmp = HookAPI("user32.dll", DefWindowProcA, "DefWindowProcA", extDefWindowProc); // added for WarWind background erase 
+	tmp = HookAPI(module, "user32.dll", DefWindowProcA, "DefWindowProcA", extDefWindowProc); // added for WarWind background erase 
 	if(tmp) pDefWindowProc = (DefWindowProc_Type)tmp;
-	tmp = HookAPI("GDI32.dll", GetDeviceCaps, "GetDeviceCaps", extGetDeviceCaps); // GHO: added for caesar3
-	if(tmp) pGetDeviceCaps = (GetDeviceCaps_Type)tmp; 
-	tmp = HookAPI("GDI32.dll", TextOutA, "TextOutA", extTextOutA);
-	if(tmp) pTextOutA = (TextOut_Type)tmp;
-	tmp = HookAPI("GDI32.dll", ScaleWindowExtEx, "ScaleWindowExtEx", extScaleWindowExtEx);
-	if(tmp) pScaleWindowExtEx = (ScaleWindowExtEx_Type)tmp;
-	tmp = HookAPI("user32.dll", CreateWindowExA, "CreateWindowExA", extCreateWindowExA);
+	tmp = HookAPI(module, "user32.dll", CreateWindowExA, "CreateWindowExA", extCreateWindowExA);
 	if(tmp) pCreateWindowExA = (CreateWindowExA_Type)tmp;
-	tmp = HookAPI("user32.dll", RegisterClassExA, "RegisterClassExA", extRegisterClassExA);
+	tmp = HookAPI(module, "user32.dll", RegisterClassExA, "RegisterClassExA", extRegisterClassExA);
 	if(tmp) pRegisterClassExA = (RegisterClassExA_Type)tmp;
-	tmp = HookAPI("GDI32.dll", Rectangle, "Rectangle", extRectangle);
-	if(tmp) pRectangle = (Rectangle_Type)tmp;
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)){
-		tmp = HookAPI("user32.dll", ShowWindow, "ShowWindow", extShowWindow);
+		tmp = HookAPI(module, "user32.dll", ShowWindow, "ShowWindow", extShowWindow);
 		if(tmp) pShowWindow = (ShowWindow_Type)tmp;
-		tmp = HookAPI("user32.dll", SetWindowLongA, "SetWindowLongA", extSetWindowLong);
+		tmp = HookAPI(module, "user32.dll", SetWindowLongA, "SetWindowLongA", extSetWindowLong);
 		if(tmp) pSetWindowLong = (SetWindowLong_Type)tmp;
-		tmp = HookAPI("user32.dll", GetWindowLongA, "GetWindowLongA", extGetWindowLong);
+		tmp = HookAPI(module, "user32.dll", GetWindowLongA, "GetWindowLongA", extGetWindowLong);
 		if(tmp) pGetWindowLong = (GetWindowLong_Type)tmp;
-		tmp = HookAPI("user32.dll", SetWindowPos, "SetWindowPos", extSetWindowPos);
+		tmp = HookAPI(module, "user32.dll", SetWindowPos, "SetWindowPos", extSetWindowPos);
 		if(tmp) pSetWindowPos = (SetWindowPos_Type)tmp;
-		tmp = HookAPI("user32.dll", DeferWindowPos, "DeferWindowPos", extDeferWindowPos);
-		if(tmp) pDeferWindowPos = (DeferWindowPos_Type)tmp;
-		tmp = HookAPI("user32.dll", CallWindowProcA, "CallWindowProcA", extCallWindowProc);
+		tmp = HookAPI(module, "user32.dll", DeferWindowPos, "DeferWindowPos", extDeferWindowPos);
+		if(tmp) pGDIDeferWindowPos = (DeferWindowPos_Type)tmp;
+		tmp = HookAPI(module, "user32.dll", CallWindowProcA, "CallWindowProcA", extCallWindowProc);
 		if(tmp) pCallWindowProc = (CallWindowProc_Type)tmp;
-
-		//tmp = HookAPI("user32.dll", SetWindowPlacement, "SetWindowPlacement", extSetWindowPlacement);
-		//if(tmp) pSetWindowPlacement = (SetWindowPlacement_Type)tmp;
 	}
-	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC)){
-		tmp = HookAPI("GDI32.dll", SetTextColor, "SetTextColor", extSetTextColor);
-		if(tmp) pSetTextColor = (SetTextColor_Type)tmp;
-		tmp = HookAPI("GDI32.dll", SetBkColor, "SetBkColor", extSetBkColor);
-		if(tmp) pSetBkColor = (SetBkColor_Type)tmp;
-		tmp = HookAPI("GDI32.dll", CreateFont, "CreateFont", extCreateFont);
-		if(tmp) pCreateFont = (CreateFont_Type)tmp;
-		tmp = HookAPI("GDI32.dll", CreateFontIndirectA, "CreateFontIndirectA", extCreateFontIndirect);
-		if(tmp) pCreateFontIndirect = (CreateFontIndirect_Type)tmp;
-	}
-	tmp = HookAPI("user32.dll", GetSystemMetrics, "GetSystemMetrics", extGetSystemMetrics);
+	tmp = HookAPI(module, "user32.dll", GetSystemMetrics, "GetSystemMetrics", extGetSystemMetrics);
 	if(tmp) pGetSystemMetrics = (GetSystemMetrics_Type)tmp;
-	//tmp = HookAPI("GDI32.dll", ColorCorrectPalette, "ColorCorrectPalette", extColorCorrectPalette);
-	//if(tmp) pColorCorrectPalette = (ColorCorrectPalette_Type)tmp;
 
-	// ATTEMPT TO FIX WORMS SERIES PROBLEMS
-	tmp = HookAPI("user32.dll", GetDesktopWindow, "GetDesktopWindow", extGetDesktopWindow);
+	tmp = HookAPI(module, "user32.dll", GetDesktopWindow, "GetDesktopWindow", extGetDesktopWindow);
 	if(tmp) pGetDesktopWindow = (GetDesktopWindow_Type)tmp;
 
 	if(dxw.dwFlags1 & MODIFYMOUSE){
-		tmp = HookAPI("user32.dll", GetCursorPos, "GetCursorPos", extGetCursorPos);
+		tmp = HookAPI(module, "user32.dll", GetCursorPos, "GetCursorPos", extGetCursorPos);
 		if(tmp) pGetCursorPos = (GetCursorPos_Type)tmp;
-		//tmp = HookAPI("user32.dll", GetPhysicalCursorPos, "", extGetCursorPos);
-		tmp = HookAPI("user32.dll", SetCursor, "SetCursor", extSetCursor);
+		//tmp = HookAPI(module, "user32.dll", GetPhysicalCursorPos, "", extGetCursorPos);
+		tmp = HookAPI(module, "user32.dll", SetCursor, "SetCursor", extSetCursor);
 		if(tmp) pSetCursor = (SetCursor_Type)tmp;
-		//tmp = HookAPI("user32.dll", SetPhysicalCursorPos, "", extSetCursorPos);
-		tmp = HookAPI("user32.dll", SendMessageA, "SendMessageA", extSendMessage);
+		//tmp = HookAPI(module, "user32.dll", SetPhysicalCursorPos, "", extSetCursorPos);
+		tmp = HookAPI(module, "user32.dll", SendMessageA, "SendMessageA", extSendMessage);
 		if(tmp) pSendMessage = (SendMessage_Type)tmp;
 	}
+
 	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)){ 
-		tmp = HookAPI("user32.dll", SetCursorPos, "SetCursorPos", extSetCursorPos);
+		tmp = HookAPI(module, "user32.dll", SetCursorPos, "SetCursorPos", extSetCursorPos);
 		if(tmp) pSetCursorPos = (SetCursorPos_Type)tmp;
 	}
 
-	if(1){
-		tmp = HookAPI("GDI32.dll", SaveDC, "SaveDC", extGDISaveDC);
-		if(tmp) pGDISaveDC = (SaveDC_Type)tmp;
-		tmp = HookAPI("GDI32.dll", RestoreDC, "RestoreDC", extGDIRestoreDC);
-		if(tmp) pGDIRestoreDC = (RestoreDC_Type)tmp;
-
-		tmp = HookAPI("user32.dll", CreateDialogIndirectParamA, "CreateDialogIndirectParamA", extCreateDialogIndirectParam);
-		if(tmp) pCreateDialogIndirectParam = (CreateDialogIndirectParam_Type)tmp;
-		tmp = HookAPI("user32.dll", CreateDialogParamA, "CreateDialogParamA", extCreateDialogParam);
-		if(tmp) pCreateDialogParam = (CreateDialogParam_Type)tmp;
-	}
-
-	if(1){
-		tmp = HookAPI("GDI32.dll", CreatePalette, "CreatePalette", extGDICreatePalette);
-		if(tmp) pGDICreatePalette = (GDICreatePalette_Type)tmp;
-		tmp = HookAPI("GDI32.dll", SelectPalette, "SelectPalette", extSelectPalette);
-		if(tmp) pSelectPalette = (SelectPalette_Type)tmp;
-		tmp = HookAPI("GDI32.dll", RealizePalette, "RealizePalette", extRealizePalette);
-		if(tmp) pRealizePalette = (RealizePalette_Type)tmp;
-		tmp = HookAPI("GDI32.dll", GetSystemPaletteEntries, "GetSystemPaletteEntries", extGetSystemPaletteEntries);
-		if(tmp) pGetSystemPaletteEntries = (GetSystemPaletteEntries_Type)tmp;
-	}
-
-	// just in case you would have to inhibit mouse capture
-	if(0){
-		tmp = HookAPI("user32.dll", SetCapture, "SetCapture", extSetCapture);
-		tmp = HookAPI("user32.dll", ReleaseCapture, "ReleaseCapture", extReleaseCapture);
-	}
-
-	if(1){
-		tmp = HookAPI("USER32.dll", MoveWindow, "MoveWindow", extMoveWindow);
-		if(tmp) pMoveWindow = (MoveWindow_Type)tmp;
-	}
-
-	if(dxw.dwFlags2 & DISABLEGAMMARAMP){
-		tmp = HookAPI("GDI32.dll", SetDeviceGammaRamp, "SetDeviceGammaRamp", extSetDeviceGammaRamp);
-		if(tmp) pSetDeviceGammaRamp = (SetDeviceGammaRamp_Type)tmp;
-		tmp = HookAPI("GDI32.dll", GetDeviceGammaRamp, "GetDeviceGammaRamp", extGetDeviceGammaRamp);
-		if(tmp) pGetDeviceGammaRamp = (GetDeviceGammaRamp_Type)tmp;
-	}
+	tmp = HookAPI(module, "user32.dll", CreateDialogIndirectParamA, "CreateDialogIndirectParamA", extCreateDialogIndirectParam);
+	if(tmp) pCreateDialogIndirectParam = (CreateDialogIndirectParam_Type)tmp;
+	tmp = HookAPI(module, "user32.dll", CreateDialogParamA, "CreateDialogParamA", extCreateDialogParam);
+	if(tmp) pCreateDialogParam = (CreateDialogParam_Type)tmp;
+	tmp = HookAPI(module, "user32.dll", MoveWindow, "MoveWindow", extMoveWindow);
+	if(tmp) pMoveWindow = (MoveWindow_Type)tmp;
 
 #define TRAPLOWRESOURCES 0
 	if(TRAPLOWRESOURCES){
-		tmp = HookAPI("kernel32.dll", GetDiskFreeSpaceA, "GetDiskFreeSpaceA", extGetDiskFreeSpaceA);
+		tmp = HookAPI(module, "kernel32.dll", GetDiskFreeSpaceA, "GetDiskFreeSpaceA", extGetDiskFreeSpaceA);
 		if(tmp) pGetDiskFreeSpaceA = (GetDiskFreeSpaceA_Type)tmp;
 	}
 
 	if(dxw.dwFlags2 & TIMESTRETCH){
-		tmp = HookAPI("kernel32.dll", GetTickCount, "GetTickCount", extGetTickCount);
+		tmp = HookAPI(module, "kernel32.dll", GetTickCount, "GetTickCount", extGetTickCount);
 		if(tmp) pGetTickCount = (GetTickCount_Type)tmp;
+		tmp = HookAPI(module, "kernel32.dll", GetLocalTime, "GetLocalTime", extGetLocalTime);
+		if(tmp) pGetLocalTime = (GetLocalTime_Type)tmp;
+		tmp = HookAPI(module, "kernel32.dll", GetSystemTime, "GetSystemTime", extGetSystemTime);
+		if(tmp) pGetSystemTime = (GetSystemTime_Type)tmp;
+		tmp = HookAPI(module, "kernel32.dll", Sleep, "Sleep", extSleep);
+		if(tmp) pSleep = (Sleep_Type)tmp;
+		tmp = HookAPI(module, "kernel32.dll", SleepEx, "SleepEx", extSleepEx);
+		if(tmp) pSleepEx = (SleepEx_Type)tmp;
+		tmp = HookAPI(module, "user32.dll", SetTimer, "SetTimer", extSetTimer);
+		if(tmp) pSetTimer = (SetTimer_Type)tmp;
 	}
 	return;
 }
@@ -1335,10 +1086,10 @@ void HookExceptionHandler(void)
 	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
 	//v2.1.75 override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	tmp = HookAPI("KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
+	tmp = HookAPI(NULL, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
 	// so far, no need to save the previous handler.
 	//if(tmp) pUnhandledExceptionFilter = (UnhandledExceptionFilter_Type)tmp;
-	tmp = HookAPI("KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
+	tmp = HookAPI(NULL, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
 	//tmp = HookAPI("KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", myUnhandledExceptionFilter);
 	if(tmp) pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
 
@@ -1350,11 +1101,12 @@ void HookExceptionHandler(void)
 void HookModule(char *module, int dxversion)
 {
 	HookSysLibs(module);
-	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(dxversion);
-	HookDirectDraw(dxversion);
-	HookDirect3D(dxversion);
-	HookOle32(dxversion); // unfinished business
-	HookOpenGLLibs(dxversion, module); // unfinished business
+	if(dxw.dwFlags2 & HOOKGDI) HookGDILib(module);
+	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(module, dxversion);
+	HookDirectDraw(module, dxversion);
+	HookDirect3D(module, dxversion);
+	HookOle32(module, dxversion); // unfinished business
+	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(module, dxw.CustomOpenGLLib); 
 }
 
 int HookInit(TARGETMAP *target, HWND hwnd)
@@ -1391,14 +1143,14 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(NULL);
 
 	if (dxw.dwTFlags & DXPROXED){
-		HookDDProxy(dxw.dwTargetDDVersion);
+		HookDDProxy(NULL, dxw.dwTargetDDVersion);
 		return 0;
 	}
 
 	// make InitPosition used for both DInput and DDraw
 	InitPosition(target->initx, target->inity,
 		target->minx, target->miny, target->maxx, target->maxy);
-	InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);
+	dxw.InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);
 
 	HookSysLibsInit(); // this just once...
 
@@ -1406,6 +1158,7 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	sModule=strtok(dxw.gsModules," ");
 	while (sModule) {
 		OutTraceD("HookInit: hooking additional module=%s\n", sModule);
+		if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(sModule);
 		HookModule(sModule, dxw.dwTargetDDVersion);
 		sModule=strtok(NULL," ");
 	}
@@ -1414,43 +1167,15 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 
 	InitScreenParameters();
 
-	if (IsDebug) OutTraceD("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", iPosX, iPosY, iSizX, iSizY);
+	if (IsDebug) OutTraceD("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosX, dxw.iSizX, dxw.iSizY);
 	if(dxw.dwFlags1 & FIXPARENTWIN){
-		CalculateWindowPos(hwnd, iSizX, iSizY, &wp);
+		CalculateWindowPos(hwnd, dxw.iSizX, dxw.iSizY, &wp);
 		if (IsDebug) OutTraceD("MoveWindow: dxw.hParentWnd=%x pos=(%d,%d) size=(%d,%d)\n", dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy);
 		res=(*pMoveWindow)(dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy, FALSE);
 		if(!res) OutTraceE("MoveWindow ERROR: dxw.hParentWnd=%x err=%d at %d\n", dxw.hParentWnd, GetLastError(), __LINE__);
 	}
 
 	return 0;
-}
-
-// Currently un-hooked
-
-HRESULT WINAPI extGDIGetDisplayMode(HDC dev, int mode)
-{
-	HRESULT res; 
-
-	//GHO: TO BE COMPLETED !!!!
-
-	OutTraceD("GDIGetDisplayMode, mode=%x\n", mode);
-
-	res=(*pGDIGetDisplayMode)(dev, mode);
-	if((dxw.dwFlags1 & EMULATESURFACE) && (dxw.VirtualPixelFormat.dwRGBBitCount == 8)){
-		//lpddsd->ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8;
-		//lpddsd->ddpfPixelFormat.dwRGBBitCount = 8;
-		//lpddsd->ddsCaps.dwCaps |= DDSCAPS_PALETTE;
-	}
-	else
-	if((dxw.dwFlags1 & EMULATESURFACE) && (dxw.VirtualPixelFormat.dwRGBBitCount == 16)){
-		//lpddsd->ddpfPixelFormat.dwRGBBitCount = 16;
-	}
-	//OutTraceD("GetDisplayMode: returning WxH=(%dx%d), PixelFormat Flags=%x, RGBBitCount=%d, Caps=%x\n",
-	//	lpddsd->dwWidth, lpddsd->dwHeight, 
-	//	lpddsd->ddpfPixelFormat.dwFlags,
-	//	lpddsd->ddpfPixelFormat.dwRGBBitCount,
-	//	lpddsd->ddsCaps.dwCaps);
-	return res;
 }
 
 HWND WINAPI extGetDesktopWindow(void)
@@ -1468,21 +1193,6 @@ HWND WINAPI extGetDesktopWindow(void)
 		OutTraceD("GetDesktopWindow: returning desktop window hwnd=%x\n", res);
 		return res;
 	}
-}
-
-//BOOL WINAPI extColorCorrectPalette(HDC hDC, HPALETTE hPalette, DWORD dwFirstEntry, DWORD dwNumOfEntries
-//)
-//{
-//	OutTraceD("extColorCorrectPalette: first=%d numentries=%d\n", dwFirstEntry, dwNumOfEntries);
-//	return(1);
-//}
-
-void InitWindowPos(int x, int y, int w, int h)
-{
-	iPosX = x;
-	iPosY = y;
-	iSizX = w;
-	iSizY = h;
 }
 
 LPCSTR ProcToString(LPCSTR proc)

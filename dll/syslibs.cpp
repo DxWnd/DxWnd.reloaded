@@ -15,63 +15,26 @@
 
 #define WINDOWDC 0xFFFFFFFF
 
-extern GDIGetDC_Type pGDIGetDC;
-extern GDIGetDC_Type pGDIGetWindowDC;
-extern GDIReleaseDC_Type pGDIReleaseDC;
 extern DWORD PaletteEntries[256];
-extern HDC PrimSurfaceHDC;
-extern LPDIRECTDRAWSURFACE lpDDSPrimHDC;
 extern LPDIRECTDRAW lpDD;
 extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
 
 extern GetDC_Type pGetDC;
 extern ReleaseDC_Type pReleaseDC;
-extern SetCursor_Type pSetCursor;
 
 DEVMODE SetDevMode;
 DEVMODE *pSetDevMode=NULL;
 
-extern short iPosX, iPosY, iSizX, iSizY;
 extern void do_slow(int);
-extern LPDIRECTDRAWSURFACE GetPrimarySurface(void);
+//extern LPDIRECTDRAWSURFACE GetPrimarySurface(void);
 extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX);
 extern HRESULT WINAPI sBlt(char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
-
-static SetLayeredWindowAttributes_Type pSetLayeredWindowAttributes = NULL;
-#ifndef WS_EX_LAYERED
-#define WS_EX_LAYERED           0x00080000    
-#define LWA_COLORKEY            0x00000001
-#define LWA_ALPHA               0x00000002
-#endif
-// Diablo: end
-//extern char *ExplainShowCmd(int);
 
 extern DirectDrawEnumerate_Type pDirectDrawEnumerate;
 extern DirectDrawEnumerateEx_Type pDirectDrawEnumerateEx;
 
 extern LRESULT CALLBACK extChildWindowProc(HWND, UINT, WPARAM, LPARAM);
 extern INT_PTR CALLBACK extDialogWindowProc(HWND, UINT, WPARAM, LPARAM);
-
-GDIChoosePixelFormat_Type pGDIChoosePixelFormat;
-GDIGetPixelFormat_Type pGDIGetPixelFormat;
-GDISetPixelFormat_Type pGDISetPixelFormat;
-CreateDC_Type pCreateDC;
-StretchBlt_Type pStretchBlt;
-SaveDC_Type pGDISaveDC;
-RestoreDC_Type pGDIRestoreDC;
-CreateDialogParam_Type pCreateDialogParam;
-CreateDialogIndirectParam_Type pCreateDialogIndirectParam;
-BeginPaint_Type pBeginPaint;
-EndPaint_Type pEndPaint;
-InvalidateRect_Type pInvalidateRect;
-InvalidateRgn_Type pInvalidateRgn;
-GDICreatePalette_Type pGDICreatePalette;
-SelectPalette_Type pSelectPalette;
-RealizePalette_Type pRealizePalette;
-GetSystemPaletteEntries_Type pGetSystemPaletteEntries;
-MoveWindow_Type pMoveWindow;
-SetUnhandledExceptionFilter_Type pSetUnhandledExceptionFilter;
-GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA;
 
 /* ------------------------------------------------------------------ */
 
@@ -254,10 +217,10 @@ HWND WINAPI extCreateWindowExA(
 		else {
 			// invalid parent coordinates: use initial placement, but leave the size.
 			// should also fix the window style and compensate for borders here?
-			x=iPosX;
-			y=iPosY;
-			nWidth=iSizX;
-			nHeight=iSizY;
+			x=dxw.iPosX;
+			y=dxw.iPosY;
+			nWidth=dxw.iSizX;
+			nHeight=dxw.iSizY;
 			OutTraceD("CreateWindowEx: renewed BIG win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
 		}
 		dxw.SetFullScreen(TRUE);
@@ -344,7 +307,7 @@ COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor)
 	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC) && (dxw.VirtualPixelFormat.dwRGBBitCount==8))
 		crColor=GetMatchingColor(crColor);
 
-	res=(*pSetTextColor)(hdc, crColor);
+	res=(*pGDISetTextColor)(hdc, crColor);
 	OutTraceD("SetTextColor: color=%x res=%x%s\n", crColor, res, (res==CLR_INVALID)?"(CLR_INVALID)":"");
 	return res;
 }
@@ -356,7 +319,7 @@ COLORREF WINAPI extSetBkColor(HDC hdc, COLORREF crColor)
 	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC) && (dxw.VirtualPixelFormat.dwRGBBitCount==8))
 		crColor=GetMatchingColor(crColor);
 
-	res=(*pSetBkColor)(hdc, crColor);
+	res=(*pGDISetBkColor)(hdc, crColor);
 	OutTraceD("SetBkColor: color=%x res=%x%s\n", crColor, res, (res==CLR_INVALID)?"(CLR_INVALID)":"");
 	return res;
 }
@@ -602,7 +565,7 @@ BOOL WINAPI extTextOutA(HDC hdc, int nXStart, int nYStart, LPCTSTR lpString, int
 		nXStart=anchor.x;
 		nYStart=anchor.y;
 	}
-	return (*pTextOutA)(hdc, nXStart, nYStart, lpString, cchString);
+	return (*pGDITextOutA)(hdc, nXStart, nYStart, lpString, cchString);
 }
 
 BOOL WINAPI extRectangle(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
@@ -621,7 +584,7 @@ BOOL WINAPI extRectangle(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, i
 		nRightRect=anchor.x;
 		nBottomRect=anchor.y;
 	}
-	return (*pRectangle)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
+	return (*pGDIRectangle)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
 }
 
 int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
@@ -645,34 +608,13 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 	return (*pFillRect)(hdc, &rc, hbr);
 }
 
-int WINAPI extDrawFocusRect(HDC hdc, const RECT *lprc)
-{
-	RECT rc;
-	OutTraceD("DrawFocusRect: hdc=%x xy=(%d,%d)-(%d,%d)\n", hdc, lprc->left, lprc->top, lprc->right, lprc->bottom);
-	memcpy(&rc, lprc, sizeof(rc));
-	if (dxw.dwFlags1 & FIXTEXTOUT) {
-		POINT anchor;
-		anchor.x=rc.left;
-		anchor.y=rc.top;
-		(*pClientToScreen)(dxw.GethWnd(), &anchor);
-		rc.left=anchor.x;
-		rc.top=anchor.y;
-		anchor.x=rc.right;
-		anchor.y=rc.bottom;
-		(*pClientToScreen)(dxw.GethWnd(), &anchor);
-		rc.right=anchor.x;
-		rc.bottom=anchor.y;
-	}
-	return (*pDrawFocusRect)(hdc, &rc);
-}
-
 HFONT WINAPI extCreateFont(int nHeight, int nWidth, int nEscapement, int nOrientation, int fnWeight,
 				 DWORD fdwItalic, DWORD fdwUnderline, DWORD fdwStrikeOut, DWORD fdwCharSet,
 				 DWORD fdwOutputPrecision, DWORD fdwClipPrecision, DWORD fdwQuality,
 				 DWORD fdwPitchAndFamily, LPCTSTR lpszFace)
 {
 	OutTraceD("CreateFont: h=%d w=%d face=\"%s\"\n", nHeight, nWidth, lpszFace);
-	return (*pCreateFont)(nHeight, nWidth, nEscapement, nOrientation, fnWeight,
+	return (*pGDICreateFont)(nHeight, nWidth, nEscapement, nOrientation, fnWeight,
 				 fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharSet,
 				 fdwOutputPrecision, fdwClipPrecision, NONANTIALIASED_QUALITY,
 				 fdwPitchAndFamily, lpszFace);
@@ -687,7 +629,7 @@ HFONT WINAPI extCreateFontIndirect(const LOGFONT* lplf)
 	OutTraceD("CreateFontIndirect: h=%d w=%d face=\"%s\"\n", lplf->lfHeight, lplf->lfWidth, lplf->lfFaceName);
 	memcpy((char *)&lf, (char *)lplf, sizeof(LOGFONT));
 	lf.lfQuality=NONANTIALIASED_QUALITY;
-	retHFont=((*pCreateFontIndirect)(&lf));
+	retHFont=((*pGDICreateFontIndirect)(&lf));
 	if(retHFont)
 		OutTraceD("CreateFontIndirect: hfont=%x\n", retHFont);
 	else
@@ -812,8 +754,8 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag =0;
 		int MaxX, MaxY;
-		MaxX = iSizX;
-		MaxY = iSizY;
+		MaxX = dxw.iSizX;
+		MaxY = dxw.iSizY;
 		if (!MaxX) MaxX = dxw.GetScreenWidth();
 		if (!MaxY) MaxY = dxw.GetScreenHeight();
 		if(cx>MaxX) { cx=MaxX; UpdFlag=1; }
@@ -847,7 +789,7 @@ HDWP WINAPI extDeferWindowPos(HDWP hWinPosInfo, HWND hwnd, HWND hWndInsertAfter,
 
 	if ((hwnd != dxw.GethWnd()) || !dxw.IsFullScreen()){
 		// just proxy
-		res=(*pDeferWindowPos)(hWinPosInfo, hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
+		res=(*pGDIDeferWindowPos)(hWinPosInfo, hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 		if(!res)OutTraceE("SetWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return res;
 	}
@@ -859,8 +801,8 @@ HDWP WINAPI extDeferWindowPos(HDWP hWinPosInfo, HWND hwnd, HWND hWndInsertAfter,
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag =0;
 		int MaxX, MaxY;
-		MaxX = iSizX;
-		MaxY = iSizY;
+		MaxX = dxw.iSizX;
+		MaxY = dxw.iSizY;
 		if (!MaxX) MaxX = dxw.GetScreenWidth();
 		if (!MaxY) MaxY = dxw.GetScreenHeight();
 		if(cx>MaxX) { cx=MaxX; UpdFlag=1; }
@@ -880,7 +822,7 @@ HDWP WINAPI extDeferWindowPos(HDWP hWinPosInfo, HWND hwnd, HWND hWndInsertAfter,
 	cx=rect.right; cy=rect.bottom;
 	OutTraceD("SetWindowPos: main form hwnd=%x fixed size=(%d,%d)\n", hwnd, cx, cy);
 
-	res=(*pDeferWindowPos)(hWinPosInfo, hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
+	res=(*pGDIDeferWindowPos)(hWinPosInfo, hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 	if(!res)OutTraceE("DeferWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
@@ -890,8 +832,8 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	LPWINDOWPOS wp;
 	int MaxX, MaxY;
 	wp = (LPWINDOWPOS)lParam;
-	MaxX = iSizX;
-	MaxY = iSizY;
+	MaxX = dxw.iSizX;
+	MaxY = dxw.iSizY;
 	if (!MaxX) MaxX = dxw.GetScreenWidth();
 	if (!MaxY) MaxY = dxw.GetScreenHeight();
 	static int iLastCX, iLastCY;
@@ -986,10 +928,10 @@ void dxwFixMinMaxInfo(char *ApiName, HWND hwnd, LPARAM lParam)
 		lpmmi=(LPMINMAXINFO)lParam;
 		OutTraceD("%s: GOT MaxPosition=(%d,%d) MaxSize=(%d,%d)\n", ApiName, 
 			lpmmi->ptMaxPosition.x, lpmmi->ptMaxPosition.y, lpmmi->ptMaxSize.x, lpmmi->ptMaxSize.y);
-		lpmmi->ptMaxPosition.x=iPosX;
-		lpmmi->ptMaxPosition.y=iPosY;
-		lpmmi->ptMaxSize.x = iSizX ? iSizX : dxw.GetScreenWidth();
-		lpmmi->ptMaxSize.y = iSizY ? iSizY : dxw.GetScreenHeight();
+		lpmmi->ptMaxPosition.x=dxw.iPosX;
+		lpmmi->ptMaxPosition.y=dxw.iPosY;
+		lpmmi->ptMaxSize.x = dxw.iSizX ? dxw.iSizX : dxw.GetScreenWidth();
+		lpmmi->ptMaxSize.y = dxw.iSizY ? dxw.iSizY : dxw.GetScreenHeight();
 		OutTraceD("%s: SET LOCKWINPOS MaxPosition=(%d,%d) MaxSize=(%d,%d)\n", ApiName, 
 			lpmmi->ptMaxPosition.x, lpmmi->ptMaxPosition.y, lpmmi->ptMaxSize.x, lpmmi->ptMaxSize.y);
 	}
@@ -1129,7 +1071,7 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 {
 	DWORD res;
 	
-	res = (*pGetDeviceCaps)(hdc, nindex);
+	res = (*pGDIGetDeviceCaps)(hdc, nindex);
 	OutTraceD("GetDeviceCaps: hdc=%x index=%x(%s) res=%x\n",
 		hdc, nindex, ExplainDeviceCaps(nindex), res);
 
@@ -1255,64 +1197,8 @@ BOOL WINAPI extScaleWindowExtEx(HDC hdc, int Xnum, int Xdenom, int Ynum, int Yde
 
 	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()) return 1;
 
-	return (*pScaleWindowExtEx)(hdc, Xnum, Xdenom, Ynum, Ydenom, lpSize);
+	return (*pGDIScaleWindowExtEx)(hdc, Xnum, Xdenom, Ynum, Ydenom, lpSize);
 }
-
-/* ---- pixel color management ----*/
-
-int WINAPI extGDIChoosePixelFormat(HDC hdc, const PIXELFORMATDESCRIPTOR *ppfd)
-{
-	int ret;
-
-	OutTraceD("GDIChoosePixelFormat: hdc=%x, pfd=%x\n", hdc, ppfd);
-	OutTraceD("GDIChoosePixelFormat: Version=%x Flags-%x PixelType=%x ColorBits=%x RedBits=%x RedShift=%x "
-			 "GreenBits=%x BlueBits=%x BlueShift=%x AlphaBits=%x AlphaShift=%x",
-		ppfd->nVersion, ppfd->dwFlags, ppfd->iPixelType, ppfd->cColorBits, ppfd->cRedBits, ppfd->cRedShift,
-		ppfd->cGreenBits, ppfd->cGreenShift, ppfd->cBlueBits, ppfd->cBlueShift, ppfd->cAlphaBits, ppfd->cAlphaShift);
-		/*
-		  ppfd->cAccumBits, ppfd->cAccumRedBits, ppfd->cAccumGreenBits, ppfd->cAccumBlueBits, ppfd->cAccumAlphaBits,
-		  ppfd->cDepthBits, ppfd->cStencilBits, ppfd->cAuxBuffers, ppfd->iLayerType, ppfd->bReserved,
-		  ppfd->dwLayerMask, ppfd->dwVisibleMask, ppfd->dwDamageMask
-		 */
-
-	ret= (*pGDIChoosePixelFormat)(hdc, ppfd);
-	OutTraceD("GDIChoosePixelFormat: ret=%d\n",ret);
-	return ret;
-}
-
-int WINAPI extGDIGetPixelFormat(HDC hdc)
-{
-	OutTraceD("GDIGetPixelFormat: hdc=%x\n", hdc);
-	return (*pGDIGetPixelFormat)(hdc);
-}
-
-BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDESCRIPTOR *ppfd)
-{
-	OutTraceD("GDISetPixelFormat: hdc=%x\n", hdc);
-
-#if 0
-	if(dxw.dwFlags1 & EMULATESURFACE){
-		// set VirtualScr view
-		VirtualScr.dwRGBBitCount=ppfd->cColorBits;
-		VirtualScr.dwFlags=ppfd->dwFlags;
-		VirtualScr.dwRBitMask=(2^ppfd->cRedBits - 1)<<ppfd->cRedShift;
-		VirtualScr.dwGBitMask=(2^ppfd->cGreenBits - 1)<<ppfd->cGreenShift;
-		VirtualScr.dwBBitMask=(2^ppfd->cBlueBits - 1)<<ppfd->cBlueShift;
-		VirtualScr.dwRGBAlphaBitMask=(2^ppfd->cAlphaBits - 1)<<ppfd->cAlphaShift;
-		OutTraceD("GDISetPixelFormat: RGBA colorbits=%d mask=(%x,%x,%x,%x)\n", 
-			VirtualScr.dwRGBBitCount, VirtualScr.dwRBitMask, VirtualScr.dwGBitMask, VirtualScr.dwBBitMask, VirtualScr.dwRGBAlphaBitMask);
-		return 0;
-	}
-#endif
-
-	return (*pGDISetPixelFormat)(hdc, iPixelFormat, ppfd);
-}
-
-//HRGN WINAPI extCreateRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
-//{
-//	OutTraceD("CreateRectRgn: (%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
-//	return (*pCreateRectRgn)(nLeftRect, nTopRect, nRightRect, nBottomRect);
-//}
 
 LONG WINAPI MyChangeDisplaySettings(char *fname, DEVMODE *lpDevMode, DWORD dwflags)
 {
@@ -1428,7 +1314,6 @@ BOOL WINAPI extClientToScreen(HWND whnd, LPPOINT lppoint)
 		return 1;
 	else
 		return (*pClientToScreen)(whnd, lppoint);
-//	return 1;
 }
 
 BOOL WINAPI extScreenToClient(HWND whnd, LPPOINT lppoint)
@@ -1437,7 +1322,6 @@ BOOL WINAPI extScreenToClient(HWND whnd, LPPOINT lppoint)
 		return 1;
 	else
 		return (*pScreenToClient)(whnd, lppoint);
-//	return 1;
 }
 
 BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
@@ -1587,38 +1471,6 @@ BOOL WINAPI extGetMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgF
 	return res;
 }
 
-LRESULT WINAPI extDispatchMessage(LPMSG lpMsg)
-{
-	BOOL res;
-	DWORD Message;
-#if WORKONCOPY
-	static MSG MsgCopy;
-	MsgCopy=*lpMsg;
-	MsgCopy.pt=FixMessagePt(dxw.GethWnd(), MsgCopy.pt);
-	Message=MsgCopy.message & 0xFFFF;
-	if((Message <= WM_MOUSELAST) && (Message >= WM_MOUSEFIRST)){
-		MsgCopy.lParam = MAKELPARAM(MsgCopy.pt.x, MsgCopy.pt.y); 
-		OutTraceC("PeekMessage: fixed lparam/pt=(%d,%d)\n", MsgCopy.pt.x, MsgCopy.pt.y);
-	}
-	res=(*pDispatchMessage)(&MsgCopy);
-	OutTraceW("DispatchMessage: lpmsg=%x msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-		lpMsg, MsgCopy.message, ExplainWinMessage(MsgCopy.message & 0xFFFF), 
-		MsgCopy.wParam, MsgCopy.lParam, MsgCopy.pt.x, MsgCopy.pt.y, res);
-#else
-	lpMsg->pt=FixMessagePt(dxw.GethWnd(), lpMsg->pt);
-	Message=lpMsg->message & 0xFFFF;
-	if((Message <= WM_MOUSELAST) && (Message >= WM_MOUSEFIRST)){
-		lpMsg->lParam = MAKELPARAM(lpMsg->pt.x, lpMsg->pt.y); 
-		OutTraceC("PeekMessage: fixed lparam/pt=(%d,%d)\n", lpMsg->pt.x, lpMsg->pt.y);
-	}
-	res=(*pDispatchMessage)(lpMsg);
-	OutTraceW("DispatchMessage: lpmsg=%x msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-		lpMsg, lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
-		lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
-#endif
-	return res;
-}
-
 // intercept GetProcAddress to initialize DirectDraw hook pointers.
 // This is necessary in "The Sims" game, that loads DirectDraw dinamically
 
@@ -1667,6 +1519,11 @@ HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
 			break;
 		}
 	}
+	// handle custom OpenGL library
+	if(!lstrcmpi(lpName,dxw.CustomOpenGLLib)){
+		idx=SYSLIBIDX_OPENGL;
+		SysLibs[idx]=ret;
+	}
 	if(idx==SYSLIBIDX_MAX) {
 		OutTraceD("LoadLibraryA: hook %s\n", lpFileName);
 		HookModule((char *)lpFileName, 0);
@@ -1702,7 +1559,7 @@ extern DirectDrawCreateEx_Type pDirectDrawCreateEx;
 extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 extern HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
 extern GetProcAddress_Type pGetProcAddress;
-extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
+//extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
 
 int WINAPI extIsDebuggerPresent(void)
 {
@@ -1775,6 +1632,7 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			break;
 		case SYSLIBIDX_OPENGL:
 		//default:
+			if(!(dxw.dwFlags2 & HOOKOPENGL)) break; 
 			if (remap=Remap_gl_ProcAddress(proc, hModule)) return remap;
 		}
 	}
@@ -1837,6 +1695,7 @@ HDC WINAPI extGDIGetDC(HWND hwnd)
 {
 	HDC ret;
 	HWND lochwnd;
+
 	OutTraceD("GDI.GetDC: hwnd=%x\n", hwnd);
 	lochwnd=hwnd;
 	if (dxw.IsFullScreen() && ((hwnd==0) || (hwnd==(*pGetDesktopWindow)()))) {
@@ -1910,11 +1769,11 @@ HDC WINAPI extGDICreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMOD
 	if (!Driver || !strncmp(Driver,"DISPLAY",7)) {
 		OutTraceD("GDI.CreateDC: returning window surface DC\n");
 		WinHDC=(*pGDIGetDC)(dxw.GethWnd());
-		RetHDC=(*pCreateCompatibleDC)(WinHDC);
+		RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
 		(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
 	}
 	else{
-		RetHDC=(*pCreateDC)(Driver, Device, Output, InitData);
+		RetHDC=(*pGDICreateDC)(Driver, Device, Output, InitData);
 	}
 	if(RetHDC)
 		OutTraceD("GDI.CreateDC: returning HDC=%x\n", RetHDC);
@@ -1926,20 +1785,24 @@ HDC WINAPI extGDICreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMOD
 HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 {
 	HDC RetHdc, SrcHdc;
-	extern HDC PrimSurfaceHDC;
-	extern LPDIRECTDRAWSURFACE lpDDSHDC, lpDDSPrimHDC;
+	extern LPDIRECTDRAWSURFACE lpDDSHDC;
 	extern GetDC_Type pGetDC;
+	DWORD LastError;
 
 	OutTraceD("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 	if(hdc==0){
 		SrcHdc=(*pGDIGetDC)(dxw.GethWnd());
 		OutTraceD("GDI.CreateCompatibleDC: duplicating win HDC hWnd=%x\n", dxw.GethWnd()); 
 	}
-	RetHdc=(*pCreateCompatibleDC)(hdc);
-	if(RetHdc)
+
+	// eliminated error message for errorcode 0.
+	SetLastError(0);
+	RetHdc=(*pGDICreateCompatibleDC)(hdc);
+	LastError=GetLastError();
+	if(!LastError)
 		OutTraceD("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
 	else
-		OutTraceE("GDI.CreateCompatibleDC ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		OutTraceE("GDI.CreateCompatibleDC ERROR: err=%d at %d\n", LastError, __LINE__);
 	return RetHdc;
 }
 
@@ -1962,10 +1825,10 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 		nWDest= nWidth;
 		nHDest= nHeight;
 		dxw.MapRect(&nXDest, &nYDest, &nWDest, &nHDest);
-		res=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+		res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
 	}
 	else {
-		res=(*pBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	}
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
@@ -1984,10 +1847,10 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
 		int nWDest, nHDest;
 		dxw.MapRect(&nXDest, &nYDest, &nWDest, &nHDest);
-		res=(*pPatBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, dwRop);
+		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, dwRop);
 	}
 	else {
-		res=(*pPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
+		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
 	}
 	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
@@ -2006,7 +1869,7 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 
 	// to do: what happend if StretchBlt is applied on screen DC ?
 
-	res=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
+	res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
@@ -2015,7 +1878,7 @@ BOOL WINAPI extGDIDeleteDC(HDC hdc)
 {
 	BOOL res;
 	OutTraceD("GDI.DeleteDC: hdc=%x\n", hdc);
-	res=(*pDeleteDC)(hdc);
+	res=(*pGDIDeleteDC)(hdc);
 	if(!res) OutTraceE("GDI.DeleteDC: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
@@ -2062,20 +1925,19 @@ static HDC PrimHDC=NULL;
 HDC WINAPI extDDCreateCompatibleDC(HDC hdc)
 {
 	HDC RetHdc, SrcHdc;
-	extern LPDIRECTDRAWSURFACE lpDDSPrimHDC;
 	extern GetDC_Type pGetDC;
 
 	OutTraceD("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 
 	if(hdc==0 && pGetDC && dxw.IsFullScreen()){
-		if(!lpDDSPrimHDC) lpDDSPrimHDC=GetPrimarySurface();
-		(*pGetDC)(lpDDSPrimHDC,&SrcHdc);
-		OutTraceD("GDI.CreateCompatibleDC: duplicating screen HDC lpDDSPrimHDC=%x\n", lpDDSPrimHDC); 
-		RetHdc=(*pCreateCompatibleDC)(SrcHdc);
-		(*pReleaseDC)(lpDDSPrimHDC,SrcHdc);
+		dxw.SetPrimarySurface();
+		(*pGetDC)(dxw.lpDDSPrimHDC,&SrcHdc);
+		OutTraceD("GDI.CreateCompatibleDC: duplicating screen HDC lpDDSPrimHDC=%x\n", dxw.lpDDSPrimHDC); 
+		RetHdc=(*pGDICreateCompatibleDC)(SrcHdc);
+		(*pReleaseDC)(dxw.lpDDSPrimHDC,SrcHdc);
 	}
 	else
-		RetHdc=(*pCreateCompatibleDC)(hdc);
+		RetHdc=(*pGDICreateCompatibleDC)(hdc);
 
 	if(RetHdc)
 		OutTraceD("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
@@ -2091,7 +1953,7 @@ BOOL WINAPI extDDDeleteDC(HDC hdc)
 
 	OutTraceD("GDI.DeleteDC: hdc=%x\n", hdc);
 
-	res=(*pDeleteDC)(hdc);
+	res=(*pGDIDeleteDC)(hdc);
 	if(!res) OutTraceE("GDI.DeleteDC: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
@@ -2104,26 +1966,24 @@ static HDC WINAPI winDDGetDC(HWND hwnd, char *api)
 
 	OutTraceD("%s: hwnd=%x\n", api, hwnd);
 
-	lpDDSPrimHDC=GetPrimarySurface();
+	dxw.ResetPrimarySurface();
+	dxw.SetPrimarySurface();
 
-	if(lpDDSPrimHDC){ 
+	if(dxw.lpDDSPrimHDC){ 
 		if (PrimHDC){
 			OutTraceD("%s: reusing primary hdc\n", api);
-			(*pUnlockMethod(lpDDSPrimHDC))(lpDDSPrimHDC, NULL);
+			(*pUnlockMethod(dxw.lpDDSPrimHDC))(dxw.lpDDSPrimHDC, NULL);
 			hdc=PrimHDC;
 		}
 		else{
-			OutTraceD("%s: get hdc from PRIMARY surface lpdds=%x\n", api, lpDDSPrimHDC);
-			//res=(*pGetDC)(lpDDSPrimHDC,&hdc);
-			//res=lpDDSPrimHDC->GetDC(&hdc);
-			res=extGetDC(lpDDSPrimHDC,&hdc);
+			OutTraceD("%s: get hdc from PRIMARY surface lpdds=%x\n", api, dxw.lpDDSPrimHDC);
+			res=extGetDC(dxw.lpDDSPrimHDC,&hdc);
 			if(res) {
-				OutTraceE("%s: GetDC(%x) ERROR %x(%s) at %d\n", api, lpDDSPrimHDC, res, ExplainDDError(res), __LINE__);
+				OutTraceE("%s: GetDC(%x) ERROR %x(%s) at %d\n", api, dxw.lpDDSPrimHDC, res, ExplainDDError(res), __LINE__);
 				if(res==DDERR_DCALREADYCREATED){
 					// try recovery....
-					(*pReleaseDC)(lpDDSPrimHDC,NULL);
-					//res=(*pGetDC)(lpDDSPrimHDC,&hdc);
-					res=extGetDC(lpDDSPrimHDC,&hdc);
+					(*pReleaseDC)(dxw.lpDDSPrimHDC,NULL);
+					res=extGetDC(dxw.lpDDSPrimHDC,&hdc);
 				}
 				if(res)return 0;
 			}
@@ -2153,13 +2013,13 @@ HDC WINAPI extDDCreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMODE
 		//HDC PrimHDC;
 		LPDIRECTDRAWSURFACE lpdds;
 		OutTraceD("GDI.CreateDC: returning primary surface DC\n");
-		lpdds=GetPrimarySurface();
+		lpdds=dxw.GetPrimarySurface();
 		(*pGetDC)(lpdds, &PrimHDC);
-		RetHDC=(*pCreateCompatibleDC)(PrimHDC);
+		RetHDC=(*pGDICreateCompatibleDC)(PrimHDC);
 		(*pReleaseDC)(lpdds, PrimHDC);
 	}
 	else{
-		RetHDC=(*pCreateDC)(Driver, Device, Output, InitData);
+		RetHDC=(*pGDICreateDC)(Driver, Device, Output, InitData);
 	}
 	if(RetHDC)
 		OutTraceD("GDI.CreateDC: returning HDC=%x\n", RetHDC);
@@ -2189,22 +2049,11 @@ int WINAPI extDDReleaseDC(HWND hwnd, HDC hDC)
 
 	OutTraceD("GDI.ReleaseDC: hwnd=%x hdc=%x\n", hwnd, hDC);
 	res=0;
-//	if (hDC == PrimHDC /* && IsAScreenHDC(hDC) */){
 	if ((hDC == PrimHDC) || (hwnd==0)){
-		if(!lpDDSPrimHDC) lpDDSPrimHDC=GetPrimarySurface();
-		OutTraceD("GDI.ReleaseDC: refreshing primary surface lpdds=%x\n",lpDDSPrimHDC);
-		if(!lpDDSPrimHDC) return 0;
-#if 0
-		//extBlt(lpDDSPrimHDC, NULL, lpDDSPrimHDC, NULL, 0, NULL);
-		sBlt("GDI.ReleaseDC", lpDDSPrimHDC, NULL, lpDDSPrimHDC, NULL, 0, NULL, 0);
-		res=(*pUnlockMethod(lpDDSPrimHDC))(lpDDSPrimHDC, NULL);
-		//if(res) OutTraceE("Unlock ERROR: res=%x(%s) at %d\n",  res, ExplainDDError(res), __LINE__);
-		res=(*pReleaseDC)(lpDDSPrimHDC,hDC);
-		if(res) OutTraceE("GDI.ReleaseDC: ReleaseDC ERROR=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-#else
-		//lpDDSPrimHDC->ReleaseDC(hDC);
-		extReleaseDC(lpDDSPrimHDC, hDC);
-#endif
+		dxw.SetPrimarySurface();
+		OutTraceD("GDI.ReleaseDC: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
+		if(!dxw.lpDDSPrimHDC) return 0;
+		extReleaseDC(dxw.lpDDSPrimHDC, hDC);
 		PrimHDC=NULL;
 		res=1; // 1 = OK
 	}
@@ -2222,31 +2071,6 @@ BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHe
 	HRESULT res;
 	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
 
-#if 0
-	OutTraceD("GDI.BitBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x\n", 
-		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-
-	ret=1; // OK
-
-	if(hdcDest==0) extGetDC(lpDDSPrimHDC, &hdcDest);
-	if(hdcDest != hdcSrc){
-		ret=(*pBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-		if(!ret) {
-			OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-			return ret;
-		}
-	}
-
-//	if(hdcDest==PrimHDC){
-	{
-		if(!lpDDSPrimHDC) lpDDSPrimHDC=GetPrimarySurface();
-		OutTraceD("GDI.BitBlt: refreshing primary surface lpdds=%x\n",lpDDSPrimHDC);
-		//extBlt(lpDDSPrimHDC, NULL, lpDDSPrimHDC, NULL, 0, NULL);
-		sBlt("GDI.BitBlt", lpDDSPrimHDC, NULL, lpDDSPrimHDC, NULL, 0, NULL, 0);
-		res=(*pUnlockMethod(lpDDSPrimHDC))(lpDDSPrimHDC, NULL);
-		//if(res) OutTraceE("Unlock: ERROR err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	}
-#else
 	OutTraceD("GDI.BitBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop, ExplainROP(dwRop));
 
@@ -2254,26 +2078,18 @@ BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHe
 
 	if(hdcDest==0) hdcDest=PrimHDC;
 	if(hdcDest==0) {
-		lpDDSPrimHDC=GetPrimarySurface();
-		res=extGetDC(lpDDSPrimHDC, &PrimHDC);
+		dxw.ResetPrimarySurface();
+		dxw.SetPrimarySurface();
+		res=extGetDC(dxw.lpDDSPrimHDC, &PrimHDC);
 		hdcDest=PrimHDC;
 	}
 
-	res=(*pBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+	res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
-		res=(*pBitBlt)(NULL, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+	res=(*pGDIBitBlt)(NULL, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 
-	//if(hdcDest==PrimHDC){
-	//	OutTraceD("GDI.BitBlt: refreshing primary surface lpdds=%x\n",lpDDSPrimHDC);
-	//	//extBlt(lpDDSPrimHDC, NULL, lpDDSPrimHDC, NULL, 0, NULL);
-	//	res=sBlt("GDI.BitBlt", lpDDSPrimHDC, NULL, lpDDSPrimHDC, NULL, 0, NULL, 0);
-	//	if(res) OutTraceE("GDI.BitBlt: ERROR err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	//	res=(*pUnlockMethod(lpDDSPrimHDC))(lpDDSPrimHDC, NULL);
-	//	if(res) OutTraceE("Unlock: ERROR err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	//}
 	if(!res) ret=0;
-#endif
 
 	return ret;
 }
@@ -2290,21 +2106,16 @@ BOOL WINAPI extDDStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int
 
 	if(hdcDest != hdcSrc){
 		(*pGetClientRect)(dxw.GethWnd(),&ClientRect);
-		ret=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+		ret=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
 		if(!ret) {
 			OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 			return ret;
 		}
 	}
-//	if(hdcDest==PrimHDC){
-	{
-		if(!lpDDSPrimHDC) lpDDSPrimHDC=GetPrimarySurface();
-		OutTraceD("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",lpDDSPrimHDC);
-		//extBlt(lpDDSPrimHDC, NULL, lpDDSPrimHDC, NULL, 0, NULL);
-		sBlt("GDI.StretchBlt", lpDDSPrimHDC, NULL, lpDDSPrimHDC, NULL, 0, NULL, 0);
-		res=(*pUnlockMethod(lpDDSPrimHDC))(lpDDSPrimHDC, NULL);
-		//if(res) OutTraceE("Unlock: ERROR err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	}
+	dxw.SetPrimarySurface();
+	OutTraceD("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
+	sBlt("GDI.StretchBlt", dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL, 0);
+	res=(*pUnlockMethod(dxw.lpDDSPrimHDC))(dxw.lpDDSPrimHDC, NULL);
 	return ret;
 }
 
@@ -2322,9 +2133,8 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 
 	// on MAPGDITOPRIMARY, return the PrimHDC handle instead of the window DC
 	if(dxw.dwFlags1 & MAPGDITOPRIMARY) {
-		if(pGetDC && lpDDSPrimHDC){
-			//(*pGetDC)(lpDDSPrimHDC,&PrimHDC);
-			extGetDC(lpDDSPrimHDC,&PrimHDC);
+		if(pGetDC && dxw.lpDDSPrimHDC){
+			extGetDC(dxw.lpDDSPrimHDC,&PrimHDC);
 			OutTraceD("GDI.BeginPaint: redirect hdc=%x -> PrimHDC=%x\n", hdc, PrimHDC);
 			hdc=PrimHDC;
 		}
@@ -2392,8 +2202,6 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 	if(!(*pSetWindowLong)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 		OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
-	//if(!(*pMoveWindow)(RetHWND, iPosX, iPosY, iSizX, iSizY, FALSE))
-	//	OutTraceE("MoveWindow: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	OutTraceD("CreateDialogIndirectParam: hwnd=%x\n", RetHWND);
 	isWithinDialog=FALSE;
 	//if (IsDebug) EnumChildWindows(RetHWND, (WNDENUMPROC)TraceChildWin, (LPARAM)RetHWND);
@@ -2413,24 +2221,10 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	if(!(*pSetWindowLong)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 		OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
-	//if(!(*pMoveWindow)(RetHWND, iPosX, iPosY, iSizX, iSizY, FALSE))
-	//	OutTraceE("MoveWindow: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	OutTraceD("CreateDialogParam: hwnd=%x\n", RetHWND);
 	isWithinDialog=FALSE;
 	//if (IsDebug) EnumChildWindows(RetHWND, (WNDENUMPROC)TraceChildWin, (LPARAM)RetHWND);
 	return RetHWND;
-}
-
-HWND WINAPI extSetCapture(HWND hwnd)
-{
-	OutTraceD("SetCapture: hwnd=%x\n", hwnd);
-	return NULL;
-}
-
-BOOL WINAPI extReleaseCapture(void)
-{
-	OutTraceD("ReleaseCapture\n");
-	return 1;
 }
 
 BOOL WINAPI extDDInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
@@ -2457,13 +2251,6 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 	return (*pInvalidateRect)(hwnd, NULL, bErase);
 }
 
-BOOL WINAPI extInvalidateRgn(HWND hwnd, HRGN hRgn, BOOL bErase)
-{
-	OutTraceD("InvalidateRgn: hwnd=%x hrgn=%x erase=%x\n",
-	hwnd, hRgn, bErase);
-	return (*pInvalidateRgn)(hwnd, hRgn, bErase);
-}
-
 /* --------------------------------------------------------------------------- */
 
 // v2.1.75: Hooking for GDI32 CreatePalette, SelectPalette, RealizePalette: 
@@ -2485,6 +2272,7 @@ HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *plpal)
 	HPALETTE ret;
 	int idx;
 
+	dxw.IsGDIPalette=TRUE;	
 	OutTraceD("GDI.CreatePalette: plpal=%x version=%x NumEntries=%x\n", plpal, plpal->palVersion, plpal->palNumEntries);
 	ret=(*pGDICreatePalette)(plpal);
 	if(IsDebug){
@@ -2504,8 +2292,7 @@ HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
 {
 	HPALETTE ret;
 
-	ret=(*pSelectPalette)(hdc, hpal, bForceBackground);
-	//G_bForceBackground=bForceBackground;
+	ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
 	OutTraceD("GDI.SelectPalette: hdc=%x hpal=%x ForceBackground=%x ret=%x\n", hdc, hpal, bForceBackground, ret);
 	return ret;
 }
@@ -2515,13 +2302,16 @@ UINT WINAPI extRealizePalette(HDC hdc)
 	UINT ret;
 	extern void mySetPalette(int, int, LPPALETTEENTRY);
 
-	ret=(*pRealizePalette)(hdc);
+	ret=(*pGDIRealizePalette)(hdc);
 	OutTraceD("GDI.RealizePalette: hdc=%x ret=%x\n", hdc, ret);
+
+	if(!dxw.IsGDIPalette) return ret;
+
 	// quick & dirty implementation through a nasty global:
 	// if the SelectPalette didn't force to the background (arg bForceBackground==FALSE)
 	// then don't override the current palette set by the DirectDrawPalette class.
 	// should be cleaned up a little....
-	// maybe not: now both Diable & Dementia colors are working...
+	// maybe not: now both Diablo & Dementia colors are working...
 	if(dxw.dwFlags1 & EMULATESURFACE)
 		mySetPalette(0, MyPal.palNumEntries, MyPal.palPalEntry);
 	// DEBUGGING
@@ -2531,7 +2321,6 @@ UINT WINAPI extRealizePalette(HDC hdc)
 		for(idx=0; idx<MyPal.palNumEntries; idx++) OutTraceD("(%x)", PaletteEntries[idx]);
 		OutTraceD("\n");
 	}
-//	return 1;
 	return ret;
 }
 
@@ -2544,7 +2333,7 @@ UINT WINAPI extGetSystemPaletteEntries(HDC hdc, UINT iStartIndex, UINT nEntries,
 {
 	int ret;
 	OutTraceD("GetSystemPaletteEntries: hdc=%x start=%d num=%d\n", hdc, iStartIndex, nEntries);
-	ret=(*pGetSystemPaletteEntries)(hdc, iStartIndex, nEntries, lppe);
+	ret=(*pGDIGetSystemPaletteEntries)(hdc, iStartIndex, nEntries, lppe);
 	OutTraceD("GetSystemPaletteEntries: ret=%d\n", ret);
 	if((ret == 0) && (dxw.dwFlags1 & EMULATESURFACE)) {
 		OutTraceD("GetSystemPaletteEntries: fixing ret=%d\n", nEntries);
@@ -2662,7 +2451,7 @@ BOOL WINAPI extSetDeviceGammaRamp(HDC hDC, LPVOID lpRamp)
 		OutTraceD("SetDeviceGammaRamp: SUPPRESSED\n");
 		return TRUE;
 	}
-	ret=(*pSetDeviceGammaRamp)(hDC, lpRamp);
+	ret=(*pGDISetDeviceGammaRamp)(hDC, lpRamp);
 	if(!ret) OutTraceE("SetDeviceGammaRamp: ERROR err=%d\n", GetLastError());
 	return ret;
 }
@@ -2671,7 +2460,7 @@ BOOL WINAPI extGetDeviceGammaRamp(HDC hDC, LPVOID lpRamp)
 {
 	BOOL ret;
 	OutTraceD("GetDeviceGammaRamp: hdc=%x\n", hDC);
-	ret=(*pGetDeviceGammaRamp)(hDC, lpRamp);
+	ret=(*pGDIGetDeviceGammaRamp)(hDC, lpRamp);
 	if(!ret) OutTraceE("GetDeviceGammaRamp: ERROR err=%d\n", GetLastError());
 	return ret;
 }
@@ -2717,4 +2506,87 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 DWORD WINAPI extGetTickCount(void)
 {
 	return dxw.GetTickCount();
+}
+
+void WINAPI extGetSystemTime(LPSYSTEMTIME lpSystemTime)
+{
+	dxw.GetSystemTime(lpSystemTime);
+	OutTrace("GetSystemTime: %02d:%02d:%02d.%03d\n", 
+		lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond, lpSystemTime->wMilliseconds);
+}
+
+
+void WINAPI extGetLocalTime(LPSYSTEMTIME lpLocalTime)
+{
+	SYSTEMTIME SystemTime;
+	dxw.GetSystemTime(&SystemTime);
+	SystemTimeToTzSpecificLocalTime(NULL, &SystemTime, lpLocalTime);
+	OutTrace("GetLocalTime: %02d:%02d:%02d.%03d\n", 
+		lpLocalTime->wHour, lpLocalTime->wMinute, lpLocalTime->wSecond, lpLocalTime->wMilliseconds);
+}
+
+UINT_PTR WINAPI extSetTimer(HWND hWnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPROC lpTimerFunc)
+{
+	UINT uShiftedElapse;
+	// beware: the quicker the time flows, the more the time clicks are incremented,
+	// and the lesser the pauses must be lasting! Shift operations are reverted in
+	// GetSystemTime vs. Sleep or SetTimer
+	uShiftedElapse = dxw.StretchTime(uElapse);
+	OutTrace("SetTimer: elapse=%d->%d timeshift=%d\n", uElapse, uShiftedElapse, dxw.TimeShift);
+	return (*pSetTimer)(hWnd, nIDEvent, uShiftedElapse, lpTimerFunc);
+}
+
+VOID WINAPI extSleep(DWORD dwMilliseconds)
+{
+	DWORD dwNewDelay;
+	dwNewDelay=dwMilliseconds;
+	if (dwMilliseconds!=INFINITE && dwMilliseconds!=0){
+		dwNewDelay = dxw.StretchTime(dwMilliseconds);
+		if (dwNewDelay==0){ // oh oh! troubles...
+			if (dxw.TimeShift > 0) dwNewDelay=1; // minimum allowed...
+			else dwNewDelay = INFINITE-1; // maximum allowed !!!
+		}
+	}
+	OutTrace("Sleep: msec=%d->%d timeshift=%d\n", dwMilliseconds, dwNewDelay, dxw.TimeShift);
+	(*pSleep)(dwNewDelay);
+}
+
+DWORD WINAPI extSleepEx(DWORD dwMilliseconds, BOOL bAlertable)
+{
+	DWORD dwNewDelay;
+	dwNewDelay=dwMilliseconds;
+	if (dwMilliseconds!=INFINITE && dwMilliseconds!=0){
+		dwNewDelay = dxw.StretchTime(dwMilliseconds);
+		if (dwNewDelay==0){ // oh oh! troubles...
+			if (dxw.TimeShift > 0) dwNewDelay=1; // minimum allowed...
+			else dwNewDelay = INFINITE-1; // maximum allowed !!!
+		}
+	}
+	OutTrace("SleepEx: msec=%d->%d alertable=%x, timeshift=%d\n", dwMilliseconds, dwNewDelay, bAlertable, dxw.TimeShift);
+	return (*pSleepEx)(dwNewDelay, bAlertable);
+}
+
+int WINAPI extShowCursor(BOOL bShow)
+{
+	static int iFakeCounter;
+	int ret;
+
+	OutTraceD("ShowCursor: bShow=%x\n", bShow);
+	if (bShow){
+		if (dxw.dwFlags1 & HIDEHWCURSOR){
+			iFakeCounter++;
+			OutTraceD("ShowCursor: HIDEHWCURSOR ret=%x\n", iFakeCounter);
+			return iFakeCounter;
+		}
+	}
+	else {
+		if (dxw.dwFlags2 & SHOWHWCURSOR){
+			iFakeCounter--;
+			OutTraceD("ShowCursor: SHOWHWCURSOR ret=%x\n", iFakeCounter);
+			return iFakeCounter;
+		}
+	}
+	ret=(*pShowCursor)(bShow);
+	OutTraceD("ShowCursor: ret=%x\n", ret);
+	return ret;
 }

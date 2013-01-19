@@ -61,6 +61,10 @@
 #define SHOWFPS				0x00004000 // shows FPS value to status win / log
 #define HIDEMULTIMONITOR	0x00008000 // hide multimonitor configurations: GetAdapterCount returns 1.
 #define TIMESTRETCH			0x00010000 // make system time stretchable 
+#define HOOKOPENGL			0x00020000 // Hook OpenGL calls
+#define WALLPAPERMODE		0x00040000 // mouse events are discarded (good for screensaver-like)
+#define SHOWHWCURSOR		0x00080000 // mouse events are discarded (good for screensaver-like)
+#define HOOKGDI				0x00100000 // Hook GDI functions
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -80,6 +84,7 @@ typedef struct TARGETMAP
 {
 	char path[MAX_PATH];
 	char module[60+1];
+	char OpenGLLib[20+1];
 	int dxversion;
 	int flags;
 	int flags2;
@@ -95,6 +100,7 @@ typedef struct TARGETMAP
 	short sizx;
 	short sizy;
 	short MaxFPS;
+	short InitTS;
 }TARGETMAP;
 
 typedef struct
@@ -109,6 +115,7 @@ typedef struct
 	DWORD dwPid;
 	BOOL isLogging;
 	DWORD FPSCount;
+	int iTimeShift;
 } DXWNDSTATUS;
 
 extern DXWNDSTATUS DxWndStatus;
@@ -119,12 +126,13 @@ int EndHook(void);
 void GetDllVersion(char *);
 int GetHookStatus(DXWNDSTATUS *);
 void SetHookStatus(DXWNDSTATUS *);
+int GetTimeShift();
 int HookInit(TARGETMAP *, HWND);
 
 void *SetHook(void *, void *);
 void SetHook(void *, void *, void **, char *);
 void OutTrace(const char *, ...);
-void *HookAPI(const char *, void *, const char *, void *);
+void *HookAPI(const char *, char *, void *, const char *, void *);
 void AdjustWindowFrame(HWND, DWORD, DWORD);
 LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 

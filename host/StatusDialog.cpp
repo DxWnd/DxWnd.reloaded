@@ -38,9 +38,12 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 	int IconId;
 	LPCSTR Status;
 	char sMsg[1024];
+	char sMsgBuf[80+1];
 	char DllVersion[21];
 	DXWNDSTATUS DxWndStatus;
 	extern PRIVATEMAP *pTitles; 
+	extern TARGETMAP *pTargets;
+	TARGETMAP *Target;
 
 	CDialog::OnTimer(nIDEvent);
 	DxStatus=GetHookStatus(NULL);
@@ -53,19 +56,32 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 	GetDllVersion(DllVersion);
 	DxWndStatus.Status=DxStatus;
 	if(DxStatus==DXW_RUNNING){
+		int idx;
+		char *sTSCaption[9]={"x16","x8","x4","x2","x1",":2",":4",":8",":16"};
 		GetHookStatus(&DxWndStatus);
+		Target=&pTargets[DxWndStatus.TaskIdx];
+
 		sprintf_s(sMsg, 1024, 
 			"DxWnd %s\nHook status: %s\n"
 			"Running \"%s\"\nScreen = (%dx%d) %dBPP\n"
 			"FullScreen = %s\nDX version = %d\n"
-			"Logging = %s\n"
-			"FPS = %d",
-		DllVersion, Status,
-		pTitles[DxWndStatus.TaskIdx].title,
-		DxWndStatus.Width, DxWndStatus.Height, DxWndStatus.ColorDepth, 
-		DxWndStatus.IsFullScreen ? "Yes":"No", DxWndStatus.DXVersion,
-		DxWndStatus.isLogging?"ON":"OFF",
-		DxWndStatus.FPSCount);   
+			"Logging = %s",	
+			DllVersion, Status,
+			pTitles[DxWndStatus.TaskIdx].title,
+			DxWndStatus.Width, DxWndStatus.Height, DxWndStatus.ColorDepth, 
+			DxWndStatus.IsFullScreen ? "Yes":"No", DxWndStatus.DXVersion,
+			DxWndStatus.isLogging?"ON":"OFF");
+		if(Target->flags2 & SHOWFPS){
+			sprintf(sMsgBuf, "\nFPS = %d", DxWndStatus.FPSCount);   
+			strcat(sMsg, sMsgBuf);
+		}
+		if(Target->flags2 & TIMESTRETCH){
+			idx=DxWndStatus.iTimeShift+4;
+			if(idx>=0 && idx<=8){
+				sprintf(sMsgBuf, "\nTime speed: %s", sTSCaption[DxWndStatus.iTimeShift+4]);
+				strcat(sMsg, sMsgBuf);
+			}
+		}
 	}
 	else
 		sprintf_s(sMsg, 1024, "DxWnd %s\nHook status: %s", DllVersion, Status);

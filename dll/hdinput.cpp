@@ -46,7 +46,7 @@ int iCurMinY;
 int iCurMaxX;
 int iCurMaxY;
 
-int HookDirectInput(int version)
+int HookDirectInput(char *module, int version)
 {
 	HINSTANCE hinst;
 	void *tmp;
@@ -54,13 +54,13 @@ int HookDirectInput(int version)
 	const GUID di7 = {0x9A4CB684,0x236D,0x11D3,0x8E,0x9D,0x00,0xC0,0x4F,0x68,0x44,0xAE};
 	const GUID di8 = {0xBF798030,0x483A,0x4DA2,0xAA,0x99,0x5D,0x64,0xED,0x36,0x97,0x00};
 
-	tmp = HookAPI("dinput.dll", NULL, "DirectInputCreateA", extDirectInputCreate);
+	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateA", extDirectInputCreate);
 	if(tmp) pDirectInputCreate = (DirectInputCreate_Type)tmp;
-	tmp = HookAPI("dinput.dll", NULL, "DirectInputCreateW", extDirectInputCreate);
+	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateW", extDirectInputCreate);
 	if(tmp) pDirectInputCreate = (DirectInputCreate_Type)tmp;
-	tmp = HookAPI("dinput.dll", NULL, "DirectInputCreateEx", extDirectInputCreateEx);
+	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateEx", extDirectInputCreateEx);
 	if(tmp) pDirectInputCreateEx = (DirectInputCreateEx_Type)tmp;
-	tmp = HookAPI("dinput8.dll", NULL, "DirectInput8Create", extDirectInput8Create);
+	tmp = HookAPI(module, "dinput8.dll", NULL, "DirectInput8Create", extDirectInput8Create);
 	if(tmp) pDirectInputCreateEx = (DirectInputCreateEx_Type)tmp;
 	if(!pDirectInputCreate && !pDirectInputCreateEx){
 		if(version < 8){

@@ -76,6 +76,7 @@ protected:
 	afx_msg void OnHookStop();
 	afx_msg void OnTrayRestore();
 	afx_msg void OnViewStatus();
+	afx_msg void OnViewTimeSlider();
 	afx_msg void OnExit();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

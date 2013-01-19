@@ -1,6 +1,8 @@
 #include <windows.h>
 #include "syslibs.h"
 
+#define DDSQLEN 0x10
+
 class dxwCore
 {
 // Construction/destruction
@@ -12,6 +14,7 @@ public:
 public: // methods
 	void InitTarget(TARGETMAP *);
 	void SethWnd(HWND hwnd) {hWnd=hwnd;}
+	void InitWindowPos(int, int, int, int);
 	HWND GethWnd(void) {return hWnd;}
 	void SetScreenSize(void) {dwScreenWidth=800; dwScreenHeight=600;}
 	void SetScreenSize(int x, int y) {if(x)dwScreenWidth=x; if(y)dwScreenHeight=y;}
@@ -29,8 +32,17 @@ public: // methods
 	RECT MapWindowRect(LPRECT lpRect);
 	RECT MapWindowRect(void);
 	void ScreenRefresh(void);
-	BOOL HandleFPS();
+	BOOL HandleFPS(void);
 	DWORD GetTickCount(void);
+	void MarkPrimarySurface(LPDIRECTDRAWSURFACE);
+	void UnmarkPrimarySurface(LPDIRECTDRAWSURFACE);
+	BOOL IsAPrimarySurface(LPDIRECTDRAWSURFACE);
+	LPDIRECTDRAWSURFACE GetPrimarySurface(void);
+	void SetPrimarySurface(void);
+	void ResetPrimarySurface(void);
+	void GetSystemTime(LPSYSTEMTIME lpSystemTime);
+	DWORD StretchTime(DWORD);
+
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;
@@ -50,6 +62,14 @@ public: // simple data variables
 	DWORD MaxFPS;
 	char *gsModules;
 	int TimeShift;
+	LPDIRECTDRAWSURFACE lpDDSPrimHDC;
+	short iPosX;
+	short iPosY;
+	short iSizX;
+	short iSizY;
+	//BOOL IsWithinDDraw; // flag to avoid double intervention at ddraw & GDI level
+	BOOL IsGDIPalette;
+	char *CustomOpenGLLib;
 
 // Implementation
 protected:
@@ -57,6 +77,7 @@ protected:
 	DWORD dwScreenHeight;
 	BOOL FullScreen;
 	HWND hWnd;
+	DWORD PrimSurfaces[DDSQLEN+1];
 	ClientToScreen_Type pClientToScreen;
 	ClipCursor_Type pClipCursor;
 	GetClientRect_Type pGetClientRect;

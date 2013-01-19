@@ -46,6 +46,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_AutoRefresh = FALSE;
 	m_FixWinFrame = FALSE;
 	m_HideHwCursor = FALSE;
+	m_ShowHwCursor = FALSE;
 	m_EnableClipping = FALSE;
 	m_CursorClipping = FALSE;
 	m_VideoToSystemMem = FALSE;
@@ -63,7 +64,9 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_ModalStyle = FALSE;
 	m_KeepAspectRatio = FALSE;
 	m_ForceWinResize = FALSE;
+	m_HookGDI = FALSE;
 	m_HideMultiMonitor = FALSE;
+	m_WallpaperMode = FALSE;
 	m_HookChildWin = FALSE;
 	m_MessageProc = FALSE;
 	m_FixNCHITTEST = FALSE;
@@ -77,6 +80,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SkipFPS = FALSE;
 	m_ShowFPS = FALSE;
 	m_TimeStretch = FALSE;
+	m_HookOpenGL = FALSE;
 	m_InitX = 0;
 	m_InitY = 0;
 	m_MaxX = 0;
@@ -88,6 +92,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SizX = 800;
 	m_SizY = 600;
 	m_MaxFPS = 0;
+	m_InitTS = 0;
 	//}}AFX_DATA_INIT
 }
 
@@ -126,6 +131,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_AUTOREFRESH, m_AutoRefresh);
 	DDX_Check(pDX, IDC_FIXWINFRAME, m_FixWinFrame);
 	DDX_Check(pDX, IDC_HIDEHWCURSOR, m_HideHwCursor);
+	DDX_Check(pDX, IDC_SHOWHWCURSOR, m_ShowHwCursor);
 	DDX_Check(pDX, IDC_ENABLECLIPPING, m_EnableClipping);
 	DDX_Check(pDX, IDC_CLIPCURSOR, m_CursorClipping);
 	DDX_Check(pDX, IDC_VIDEOTOSYSTEMMEM, m_VideoToSystemMem);
@@ -143,7 +149,9 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_MODALSTYLE, m_ModalStyle);
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_FORCEWINRESIZE, m_ForceWinResize);
+	DDX_Check(pDX, IDC_HOOKGDI, m_HookGDI);
 	DDX_Check(pDX, IDC_HIDEMULTIMONITOR, m_HideMultiMonitor);
+	DDX_Check(pDX, IDC_WALLPAPERMODE, m_WallpaperMode);
 	DDX_Check(pDX, IDC_HOOKCHILDWIN, m_HookChildWin);
 	DDX_Check(pDX, IDC_MESSAGEPROC, m_MessageProc);
 	DDX_Check(pDX, IDC_FIXNCHITTEST, m_FixNCHITTEST);
@@ -157,6 +165,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SKIPFPS, m_SkipFPS);
 	DDX_Check(pDX, IDC_SHOWFPS, m_ShowFPS);
 	DDX_Check(pDX, IDC_TIMESTRETCH, m_TimeStretch);
+	DDX_Check(pDX, IDC_HOOKOPENGL, m_HookOpenGL);
 	DDX_Text(pDX, IDC_INITX, m_InitX);
 	DDX_Text(pDX, IDC_INITY, m_InitY);
 	DDX_Text(pDX, IDC_MAXX, m_MaxX);
@@ -168,6 +177,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SIZX, m_SizX);
 	DDX_Text(pDX, IDC_SIZY, m_SizY);
 	DDX_Text(pDX, IDC_MAXFPS, m_MaxFPS);
+	DDX_Text(pDX, IDC_INITTS, m_InitTS);
 	//}}AFX_DATA_MAP
 }
 
@@ -189,7 +199,7 @@ BEGIN_MESSAGE_MAP(CTargetDlg, CDialog)
 	//ON_BN_CLICKED(IDC_ABSOLUTECOORD, &CTargetDlg::OnBnClickedAbsolutecoord)
 	ON_BN_CLICKED(IDC_AUTOREFRESH, &CTargetDlg::OnBnClickedAutorefresh)
 	ON_BN_CLICKED(IDC_FIXWINFRAME, &CTargetDlg::OnBnClickedFixWinFrame)
-	ON_BN_CLICKED(IDC_HIDEHWCURSOR, &CTargetDlg::OnBnClickedHideHwCursor)
+	//ON_BN_CLICKED(IDC_HIDEHWCURSOR, &CTargetDlg::OnBnClickedHideHwCursor)
 	ON_BN_CLICKED(IDC_ENABLECLIPPING, &CTargetDlg::OnBnClickedEnableClipping)
 	ON_BN_CLICKED(IDC_VIDEOTOSYSTEMMEM, &CTargetDlg::OnBnClickedHandleCursorPos)
 	ON_BN_CLICKED(IDC_FIXTEXTOUT, &CTargetDlg::OnBnClickedFixTextOut)
@@ -298,10 +308,10 @@ void CTargetDlg::OnBnClickedFixWinFrame()
 	// TODO: Add your control notification handler code here
 }
 
-void CTargetDlg::OnBnClickedHideHwCursor()
-{
-	// TODO: Add your control notification handler code here
-}
+//void CTargetDlg::OnBnClickedHideHwCursor()
+//{
+//	// TODO: Add your control notification handler code here
+//}
 
 void CTargetDlg::OnBnClickedEnableClipping()
 {

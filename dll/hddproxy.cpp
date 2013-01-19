@@ -169,11 +169,11 @@ extern GDIGetDC_Type pGDIGetDC;
 extern GDIGetDC_Type pGDIGetWindowDC;
 extern GDIReleaseDC_Type pGDIReleaseDC;
 extern CreateDC_Type pGDICreateDC;
-extern CreateCompatibleDC_Type pCreateCompatibleDC;
-extern BitBlt_Type pBitBlt;
-extern PatBlt_Type pPatBlt;
-extern StretchBlt_Type pStretchBlt;
-extern DeleteDC_Type pDeleteDC;
+extern CreateCompatibleDC_Type pGDICreateCompatibleDC;
+extern BitBlt_Type pGDIBitBlt;
+extern PatBlt_Type pGDIPatBlt;
+extern StretchBlt_Type pGDIStretchBlt;
+extern DeleteDC_Type pGDIDeleteDC;
 SaveDC_Type pSaveDC;
 RestoreDC_Type pRestoreDC;
 extern BeginPaint_Type pBeginPaint;
@@ -273,7 +273,7 @@ FARPROC WINAPI extGetProcAddressProxy(HMODULE hModule, LPCSTR proc)
 //
 // ------------------------------------------------------------------------------------------ //
 
-int HookDDProxy(int dxVersion)
+int HookDDProxy(char *module, int dxVersion)
 {
 	HINSTANCE hinst;
 	void *tmp;
@@ -283,60 +283,60 @@ int HookDDProxy(int dxVersion)
 
 	dxw.dwFlags1 |= OUTDDRAWTRACE;
 	
-	pCreateCompatibleDC=CreateCompatibleDC;
+	pGDICreateCompatibleDC=CreateCompatibleDC;
 	pGDIGetDC=GetDC;
 	pGDIGetWindowDC=GetWindowDC;
 	pGDIReleaseDC=ReleaseDC;
-	pCreateDC=CreateDC;
-	pBitBlt=BitBlt;
-	pPatBlt=PatBlt;
-	pStretchBlt=StretchBlt;
-	pDeleteDC=DeleteDC;
+	pGDICreateDC=CreateDC;
+	pGDIBitBlt=BitBlt;
+	pGDIPatBlt=PatBlt;
+	pGDIStretchBlt=StretchBlt;
+	pGDIDeleteDC=DeleteDC;
 	pSaveDC=SaveDC;
 	pRestoreDC=RestoreDC;
-	pSelectPalette=SelectPalette;
-	tmp = HookAPI("GDI32.dll", CreateCompatibleDC, "CreateCompatibleDC", extCreateCompatibleDCProxy);
-	if(tmp) pCreateCompatibleDC = (CreateCompatibleDC_Type)tmp;
-	tmp = HookAPI("user32.dll", GetDC, "GetDC", extGDIGetDCProxy);
+	pGDISelectPalette=SelectPalette;
+	tmp = HookAPI(module, "GDI32.dll", CreateCompatibleDC, "CreateCompatibleDC", extCreateCompatibleDCProxy);
+	if(tmp) pGDICreateCompatibleDC = (CreateCompatibleDC_Type)tmp;
+	tmp = HookAPI(module, "user32.dll", GetDC, "GetDC", extGDIGetDCProxy);
 	if(tmp) pGDIGetDC = (GDIGetDC_Type)tmp;
-	tmp = HookAPI("user32.dll", GetWindowDC, "GetWindowDC", extGetWindowDCProxy);
+	tmp = HookAPI(module, "user32.dll", GetWindowDC, "GetWindowDC", extGetWindowDCProxy);
 	if(tmp) pGDIGetWindowDC = (GDIGetDC_Type)tmp;
-	tmp = HookAPI("user32.dll", ReleaseDC, "ReleaseDC", extGDIReleaseDCProxy);
+	tmp = HookAPI(module, "user32.dll", ReleaseDC, "ReleaseDC", extGDIReleaseDCProxy);
 	if(tmp) pGDIReleaseDC = (GDIReleaseDC_Type)tmp;
-	tmp = HookAPI("GDI32.dll", CreateDCA, "CreateDCA", extCreateDCProxy);
-	if(tmp) pCreateDC = (CreateDC_Type)tmp;
-	tmp = HookAPI("GDI32.dll", BitBlt, "BitBlt", extBitBltProxy);
-	if(tmp) pBitBlt = (BitBlt_Type)tmp;
-	tmp = HookAPI("GDI32.dll", StretchBlt, "StretchBlt", extStretchBltProxy);
-	if(tmp) pStretchBlt = (StretchBlt_Type)tmp;
-	tmp = HookAPI("GDI32.dll", PatBlt, "PatBlt", extPatBltProxy);
-	if(tmp) pPatBlt = (PatBlt_Type)tmp;
-	tmp = HookAPI("GDI32.dll", DeleteDC, "DeleteDC", extDeleteDCProxy);
-	if(tmp) pDeleteDC = (DeleteDC_Type)tmp;
-	tmp = HookAPI("GDI32.dll", SaveDC, "SaveDC", extSaveDCProxy);
+	tmp = HookAPI(module, "GDI32.dll", CreateDCA, "CreateDCA", extCreateDCProxy);
+	if(tmp) pGDICreateDC = (CreateDC_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", BitBlt, "BitBlt", extBitBltProxy);
+	if(tmp) pGDIBitBlt = (BitBlt_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", StretchBlt, "StretchBlt", extStretchBltProxy);
+	if(tmp) pGDIStretchBlt = (StretchBlt_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", PatBlt, "PatBlt", extPatBltProxy);
+	if(tmp) pGDIPatBlt = (PatBlt_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", DeleteDC, "DeleteDC", extDeleteDCProxy);
+	if(tmp) pGDIDeleteDC = (DeleteDC_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", SaveDC, "SaveDC", extSaveDCProxy);
 	if(tmp) pGDISaveDC = (SaveDC_Type)tmp;
-	tmp = HookAPI("GDI32.dll", RestoreDC, "RestoreDC", extRestoreDCProxy);
+	tmp = HookAPI(module, "GDI32.dll", RestoreDC, "RestoreDC", extRestoreDCProxy);
 	if(tmp) pGDIRestoreDC = (RestoreDC_Type)tmp;
-	tmp = HookAPI("GDI32.dll", SelectPalette, "SelectPalette", extSelectPaletteProxy);
-	if(tmp) pSelectPalette = (SelectPalette_Type)tmp;
-	tmp = HookAPI("GDI32.dll", RealizePalette, "RealizePalette", extRealizePaletteProxy);
-	if(tmp) pRealizePalette = (RealizePalette_Type)tmp;
-	tmp = HookAPI("GDI32.dll", GetSystemPaletteEntries, "GetSystemPaletteEntries", extGetSystemPaletteEntriesProxy);
-	if(tmp) pGetSystemPaletteEntries = (GetSystemPaletteEntries_Type)tmp;
-	tmp = HookAPI("user32.dll", BeginPaint, "BeginPaint", extBeginPaintProxy);
+	tmp = HookAPI(module, "GDI32.dll", SelectPalette, "SelectPalette", extSelectPaletteProxy);
+	if(tmp) pGDISelectPalette = (SelectPalette_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", RealizePalette, "RealizePalette", extRealizePaletteProxy);
+	if(tmp) pGDIRealizePalette = (RealizePalette_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", GetSystemPaletteEntries, "GetSystemPaletteEntries", extGetSystemPaletteEntriesProxy);
+	if(tmp) pGDIGetSystemPaletteEntries = (GetSystemPaletteEntries_Type)tmp;
+	tmp = HookAPI(module, "user32.dll", BeginPaint, "BeginPaint", extBeginPaintProxy);
 	if(tmp) pBeginPaint = (BeginPaint_Type)tmp;
 	pGetProcAddress = (GetProcAddress_Type)GetProcAddress;
-	tmp = HookAPI("KERNEL32.dll", GetProcAddress, "GetProcAddress", extGetProcAddressProxy);
+	tmp = HookAPI(module, "KERNEL32.dll", GetProcAddress, "GetProcAddress", extGetProcAddressProxy);
 	if(tmp) pGetProcAddress = (GetProcAddress_Type)tmp;
 	switch(dxVersion){
 	case 0: // automatic
-		tmp = HookAPI("ddraw.dll", NULL, "DirectDrawCreate", extDirectDrawCreateProxy);
+		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreate", extDirectDrawCreateProxy);
 		if(tmp) pDirectDrawCreate = (DirectDrawCreate_Type)tmp;
-		tmp = HookAPI("ddraw.dll", NULL, "DirectDrawCreateEx", extDirectDrawCreateExProxy);
+		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreateEx", extDirectDrawCreateExProxy);
 		if(tmp) pDirectDrawCreateEx = (DirectDrawCreateEx_Type)tmp;
-		tmp = HookAPI("ddraw.dll", NULL, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
+		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
 		if(tmp) pDirectDrawEnumerate = (DirectDrawEnumerate_Type)tmp;
-		tmp = HookAPI("ddraw.dll", NULL, "DirectDrawEnumerateExA", extDirectDrawEnumerateExProxy);
+		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateExA", extDirectDrawEnumerateExProxy);
 		if(tmp) pDirectDrawEnumerateEx = (DirectDrawEnumerateEx_Type)tmp;
 		break;
 	case 1:
@@ -352,8 +352,8 @@ int HookDDProxy(int dxVersion)
 		if(pDirectDrawCreate){
 			LPDIRECTDRAW lpdd;
 			BOOL res;
-			HookAPI("ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreateProxy);
-			HookAPI("ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
+			HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreateProxy);
+			HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
 			res=extDirectDrawCreateProxy(0, &lpdd, 0);
 			if (res){
 				OutTraceP("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
@@ -372,9 +372,9 @@ int HookDDProxy(int dxVersion)
 		if(pDirectDrawCreate){
 			LPDIRECTDRAW lpdd;
 			BOOL res;
-			HookAPI("ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreateProxy);
-			HookAPI("ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
-			HookAPI("ddraw.dll", pDirectDrawEnumerateEx, "DirectDrawEnumerateExA", extDirectDrawEnumerateExProxy);
+			HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreateProxy);
+			HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
+			HookAPI(module, "ddraw.dll", pDirectDrawEnumerateEx, "DirectDrawEnumerateExA", extDirectDrawEnumerateExProxy);
 			res=extDirectDrawCreateProxy(0, &lpdd, 0);
 			if (res){
 				OutTraceP("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
@@ -386,7 +386,7 @@ int HookDDProxy(int dxVersion)
 		if(pDirectDrawCreateEx){
 			LPDIRECTDRAW lpdd;
 			BOOL res;
-			HookAPI("ddraw.dll", pDirectDrawCreateEx, "DirectDrawCreateEx", extDirectDrawCreateExProxy);
+			HookAPI(module, "ddraw.dll", pDirectDrawCreateEx, "DirectDrawCreateEx", extDirectDrawCreateExProxy);
 			res=extDirectDrawCreateExProxy(0, &lpdd, dd7, 0);
 			if (res) OutTraceP("DirectDrawCreateEx: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 			lpdd->Release();
@@ -1868,11 +1868,11 @@ extern GDIGetDC_Type pGDIGetDC;
 //GDIGetDC_Type pGDIGetWinDC;
 extern GDIReleaseDC_Type pGDIReleaseDC;
 extern CreateDC_Type pGDICreateDC;
-extern CreateCompatibleDC_Type pCreateCompatibleDC;
-extern BitBlt_Type pBitBlt;
-extern PatBlt_Type pPatBlt;
-extern StretchBlt_Type pStretchBlt;
-extern DeleteDC_Type pDeleteDC;
+extern CreateCompatibleDC_Type pGDICreateCompatibleDC;
+extern BitBlt_Type pGDIBitBlt;
+extern PatBlt_Type pGDIPatBlt;
+extern StretchBlt_Type pGDIStretchBlt;
+extern DeleteDC_Type pGDIDeleteDC;
 extern SaveDC_Type pSaveDC;
 extern RestoreDC_Type pRestoreDC;
 
@@ -1907,7 +1907,7 @@ HDC WINAPI extCreateDCProxy(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVM
 	OutTraceP("GDI.CreateDC: PROXED Driver=%s Device=%s Output=%s InitData=%x\n", 
 		Driver?Driver:"(NULL)", Device?Device:"(NULL)", Output?Output:"(NULL)", InitData);
 
-	RetHDC=(*pCreateDC)(Driver, Device, Output, InitData);
+	RetHDC=(*pGDICreateDC)(Driver, Device, Output, InitData);
 	if(RetHDC)
 		OutTraceP("GDI.CreateDC: returning HDC=%x\n", RetHDC);
 	else
@@ -1919,7 +1919,7 @@ HDC WINAPI extCreateCompatibleDCProxy(HDC hdc)
 {
 	HDC RetHdc;
 	OutTraceP("GDI.CreateCompatibleDC: PROXED hdc=%x\n", hdc);
-	RetHdc=(*pCreateCompatibleDC)(hdc);
+	RetHdc=(*pGDICreateCompatibleDC)(hdc);
 	if(RetHdc)
 		OutTraceP("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
 	else
@@ -1934,7 +1934,7 @@ BOOL WINAPI extBitBltProxy(HDC hdcDest, int nXDest, int nYDest, int nWidth, int 
 	OutTraceP("GDI.BitBlt: PROXED HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop, ExplainROP(dwRop));
 
-	res=(*pBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+	res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	if(!res) OutTraceP("GDI.BitBlt: ERROR err=%d\n", GetLastError());
 	return res;
 }
@@ -1946,7 +1946,7 @@ BOOL WINAPI extPatBltProxy(HDC hdcDest, int nXDest, int nYDest, int nWidth, int 
 	OutTraceP("GDI.PatBlt: PROXED HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop, ExplainROP(dwRop));
 
-	res=(*pPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
+	res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
 	if(!res) OutTraceP("GDI.PatBlt: ERROR err=%d\n", GetLastError());
 	return res;
 }
@@ -1959,7 +1959,7 @@ BOOL WINAPI extStretchBltProxy(HDC hdcDest, int nXDest, int nYDest, int nWidth, 
 	OutTraceP("GDI.StretchBlt: PROXED HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d nWSrc=%d nHSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop, ExplainROP(dwRop));
 
-	res=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
+	res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 	if(!res) OutTraceP("GDI.StretchBlt: ERROR err=%d\n", GetLastError());
 	return res;
 }
@@ -1969,7 +1969,7 @@ BOOL WINAPI extDeleteDCProxy(HDC hdc)
 	BOOL res;
 
 	OutTraceP("GDI.DeleteDC: PROXED hdc=%x\n", hdc);
-	res=(*pDeleteDC)(hdc);
+	res=(*pGDIDeleteDC)(hdc);
 	if(!res) OutTraceP("GDI.DeleteDC: ERROR err=%d\n", GetLastError());
 	return res;
 }
@@ -1996,7 +1996,7 @@ HPALETTE WINAPI extSelectPaletteProxy(HDC hdc, HPALETTE hpal, BOOL bForceBackgro
 {
 	HPALETTE ret;
 
-	ret=(*pSelectPalette)(hdc, hpal, bForceBackground);
+	ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
 	OutTraceP("GDI.SelectPalette: PROXED hdc=%x hpal=%x ForceBackground=%x ret=%x\n", hdc, hpal, bForceBackground, ret);
 	return ret;
 }
@@ -2005,7 +2005,7 @@ UINT WINAPI extRealizePaletteProxy(HDC hdc)
 {
 	UINT ret;
 
-	ret=(*pRealizePalette)(hdc);
+	ret=(*pGDIRealizePalette)(hdc);
 	OutTraceP("GDI.RealizePalette: PROXED hdc=%x ret=%x\n", hdc, ret);
 	return ret;
 }
@@ -2014,7 +2014,7 @@ UINT WINAPI extGetSystemPaletteEntriesProxy(HDC hdc, UINT iStartIndex, UINT nEnt
 {
 	UINT ret;
 
-	ret=(*pGetSystemPaletteEntries)(hdc, iStartIndex, nEntries, lppe);
+	ret=(*pGDIGetSystemPaletteEntries)(hdc, iStartIndex, nEntries, lppe);
 	OutTrace("GDI.GetSystemPaletteEntries: PROXED hdc=%x start=%d num=%d ret=%d\n", hdc, iStartIndex, nEntries, ret);
 	if(!ret) OutTrace("GDI.GetSystemPaletteEntries: ERROR err=%d\n", GetLastError());
 	return ret;

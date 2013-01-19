@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include "dxwnd.h"
 
-#define VERSION "2.02.02"
+#define VERSION "2.02.04"
 
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam);
 
@@ -125,6 +125,11 @@ void SetHookStatus(DXWNDSTATUS *s)
 	*pStatus=*s;
 }
 
+int GetTimeShift()
+{
+	return pStatus->iTimeShift;
+}
+
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 {
 	char name[MAX_PATH];
@@ -166,6 +171,7 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 					pStatus->IsFullScreen=FALSE;
 					pStatus->hWnd=hwnd;
 					pStatus->dwPid=GetProcessId(GetCurrentProcess());
+					pStatus->iTimeShift=pMapping[i].InitTS;
 					DxWndStatus = *pStatus;
 					HookInit(&pMapping[i], hwnd);
 				}

@@ -41,6 +41,7 @@ public:
 	CString	m_FilePath;
 	CString	m_Module;
 	CString	m_Title;
+	CString	m_OpenGLLib;
 	BOOL	m_SaveLoad;
 	BOOL	m_SlowDown;
 	BOOL	m_BlitFromBackBuffer;
@@ -49,6 +50,7 @@ public:
 	BOOL	m_AutoRefresh;
 	BOOL	m_FixWinFrame;
 	BOOL	m_HideHwCursor;
+	BOOL	m_ShowHwCursor;
 	BOOL	m_EnableClipping;
 	BOOL	m_CursorClipping;
 	BOOL	m_VideoToSystemMem;
@@ -66,7 +68,9 @@ public:
 	BOOL	m_ModalStyle;
 	BOOL	m_KeepAspectRatio;
 	BOOL	m_ForceWinResize;
+	BOOL	m_HookGDI;
 	BOOL	m_HideMultiMonitor;
+	BOOL	m_WallpaperMode;
 	BOOL	m_HookChildWin;
 	BOOL	m_MessageProc;
 	BOOL	m_FixNCHITTEST;
@@ -81,6 +85,7 @@ public:
 	BOOL	m_LimitFPS;
 	BOOL	m_ShowFPS;
 	BOOL	m_TimeStretch;
+	BOOL	m_HookOpenGL;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;
@@ -92,6 +97,7 @@ public:
 	int		m_SizX;
 	int		m_SizY;
 	int		m_MaxFPS;
+	int		m_InitTS;
 	//}}AFX_DATA
 
 
@@ -121,7 +127,7 @@ public:
 	afx_msg void OnEnChangeFile2();
 	afx_msg void OnBnClickedAutorefresh();
 	afx_msg void OnBnClickedFixWinFrame();
-	afx_msg void OnBnClickedHideHwCursor();
+	//afx_msg void OnBnClickedHideHwCursor();
 	afx_msg void OnBnClickedEnableClipping();
 	afx_msg void OnBnClickedHandleCursorPos();
 	afx_msg void OnBnClickedFixTextOut();

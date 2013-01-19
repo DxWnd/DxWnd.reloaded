@@ -24,6 +24,7 @@
 #define IDI_ICON3                       148
 #define IDI_RUN6                        148
 #define IDD_STATUS                      149
+#define IDD_TIMESLIDER                  150
 #define IDC_AUTO                        300
 #define IDC_DIRECTX1                    301
 #define IDC_DIRECTX7                    302
@@ -52,12 +53,14 @@
 #define IDC_MODULE                      1023
 #define IDC_SNOOZE                      1023
 #define IDC_KILL                        1024
+#define IDC_OPENGLLIB                   1024
 #define IDC_AUTOREFRESH                 1025
 #define IDC_FIXWINFRAME                 1026
 #define IDC_HIDEHWCURSOR                1027
 #define IDC_ENABLECLIPPING              1028
 #define IDC_COUNTDOWN                   1028
 #define IDC_EDIT1                       1029
+#define IDC_SHOWHWCURSOR                1029
 #define IDC_VIDEOTOSYSTEMMEM            1030
 #define IDC_FIXTEXTOUT                  1031
 #define IDC_STATUSINFO                  1031
@@ -72,6 +75,7 @@
 #define IDC_TITLE                       1039
 #define IDC_SLOW                        1040
 #define IDC_CLIPCURSOR                  1041
+#define IDC_INITTS                      1042
 #define IDC_CLIENTREMAPPING             1043
 #define IDC_HANDLEALTF4                 1044
 #define IDC_LOCKWINPOS                  1045
@@ -109,7 +113,12 @@
 #define IDC_SKIPFPS                     1076
 #define IDC_SHOWFPS                     1077
 #define IDC_HIDEMULTIMONITOR            1078
+#define IDC_TIMESLIDER                  1078
 #define IDC_TIMESTRETCH                 1079
+#define IDC_TIMESPEED                   1079
+#define IDC_HOOKOPENGL                  1080
+#define IDC_WALLPAPERMODE               1081
+#define IDC_HOOKGDI                     1082
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -138,15 +147,16 @@
 #define ID_VIEW_STATUS                  32809
 #define ID_DXAPP_EXIT                   32810
 #define ID_SAVEFILE                     32810
+#define ID_VIEW_TIMESLIDER              32811
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32811
-#define _APS_NEXT_CONTROL_VALUE         1078
+#define _APS_NEXT_RESOURCE_VALUE        151
+#define _APS_NEXT_COMMAND_VALUE         32812
+#define _APS_NEXT_CONTROL_VALUE         1080
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
