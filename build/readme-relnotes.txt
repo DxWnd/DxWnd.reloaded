@@ -12,4 +12,9 @@ code cleanup - see syslib calls hooking
 new configuration flags: Hook GDI and Hook OpenGL
 OpenGL custom library field
 API hooking fix with module specification
-Time stratching by keyboard control (Alt F5/F6) and/or Time Slider dialog
+Time stretching by keyboard control (Alt F5/F6) and/or Time Slider dialog
+
+v2.02.05:
+hooked winmm timeGetTime() API: makes time stretching work for Age of Empires series
+changed time stretching grain: now it's not the coarse grained 2x, 4x,... series in 9 possible values but the fine grained series 1.5x, 2x, 3x,.... in 17 possible values
+added status and time stretching view panels to tray icon menu

@@ -93,6 +93,9 @@ typedef BOOL	(WINAPI *SetWindowPos_Type)(HWND, HWND, int, int, int, int, UINT);
 typedef int		(WINAPI *ShowCursor_Type)(BOOL);
 typedef BOOL	(WINAPI *ShowWindow_Type)(HWND, int);
 
+// Winmm.dll:
+typedef DWORD	(WINAPI *timeGetTime_Type)(void);
+
 /* ===================================================================
 hooked APIs real pointers
 ====================================================================*/
@@ -189,6 +192,9 @@ DXWEXTERN SetWindowPos_Type pSetWindowPos DXWINITIALIZED;
 DXWEXTERN ShowCursor_Type pShowCursor DXWINITIALIZED;
 DXWEXTERN ShowWindow_Type pShowWindow DXWINITIALIZED;
 
+// Winmm.dll:
+DXWEXTERN timeGetTime_Type ptimeGetTime DXWINITIALIZED;
+
 /* ===================================================================
 hook procedures (possibly more tnan one per each API...)
 ====================================================================*/
@@ -281,5 +287,8 @@ extern LONG WINAPI extSetWindowLong(HWND, int, LONG);
 extern BOOL WINAPI extSetWindowPos(HWND, HWND, int, int, int, int, UINT);
 extern int WINAPI extShowCursor(BOOL);
 extern BOOL WINAPI extShowWindow(HWND, int);
+
+// Winmm.dll:
+extern DWORD WINAPI exttimeGetTime(void);
 
 /* eof */

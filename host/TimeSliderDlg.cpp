@@ -12,7 +12,6 @@ IMPLEMENT_DYNAMIC(CTimeSliderDialog, CDialog)
 CTimeSliderDialog::CTimeSliderDialog(CWnd* pParent /*=NULL*/)
 	: CDialog(CTimeSliderDialog::IDD, pParent)
 {
-	//m_TimeSlider.SetRange(-4, +4, TRUE);
 }
 
 CTimeSliderDialog::~CTimeSliderDialog()
@@ -41,7 +40,7 @@ void CTimeSliderDialog::OnTimer(UINT_PTR nIDEvent)
 	DXWNDSTATUS Status;
 	CSliderCtrl *Slider;
 	CStatic *Text;
-	char *sTSCaption[9]={"x16","x8","x4","x2","x1",":2",":4",":8",":16"};
+	char *sTSCaption[17]={"x16","x12","x8","x6","x4","x3","x2","x1.5","x1",":1.5",":2",":3",":4",":6",":8",":12",":16"};
 	char sMsg[81];
 	static int iLastPos=-1;
 
@@ -62,13 +61,13 @@ void CTimeSliderDialog::OnTimer(UINT_PTR nIDEvent)
 	}
 	else {
 		// slider position changed, set the new value
-		if (i_TimeSlider < -4) i_TimeSlider=-4;
-		if (i_TimeSlider >  4) i_TimeSlider=4;
+		if (i_TimeSlider < -8) i_TimeSlider=-8;
+		if (i_TimeSlider >  8) i_TimeSlider= 8;
 		Status.iTimeShift=i_TimeSlider;
 		SetHookStatus(&Status);
 	}
 	iLastPos = i_TimeSlider;
-	sprintf(sMsg, "Time speed: %s", sTSCaption[i_TimeSlider+4]);
+	sprintf(sMsg, "Time speed: %s", sTSCaption[i_TimeSlider+8]);
 	Text->SetWindowTextA(sMsg);
 }
 
@@ -80,7 +79,7 @@ BOOL CTimeSliderDialog::OnInitDialog()
 
 	GetHookStatus(&Status);
 	Slider=(CSliderCtrl *)this->GetDlgItem(IDC_TIMESLIDER);
-	Slider->SetRange(-4, +4, 0);
+	Slider->SetRange(-8, +8, 0);
 	Slider->SetTicFreq(1);
 	Slider->SetPos(Status.iTimeShift);
 	SetTimer(IDTIMER, 1000, NULL);

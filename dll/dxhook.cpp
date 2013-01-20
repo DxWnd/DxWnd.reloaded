@@ -694,8 +694,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		case VK_F6:
 			if (dxw.dwFlags2 & TIMESTRETCH) {
 				char *sTSCaption[9]={"x16","x8","x4","x2","x1",":2",":4",":8",":16"};
-				if (wparam == VK_F5 && (dxw.TimeShift <  4)) dxw.TimeShift++;
-				if (wparam == VK_F6 && (dxw.TimeShift > -4)) dxw.TimeShift--;
+				if (wparam == VK_F5 && (dxw.TimeShift <  8)) dxw.TimeShift++;
+				if (wparam == VK_F6 && (dxw.TimeShift > -8)) dxw.TimeShift--;
 				OutTrace("Time Stretch: shift=%d speed=%s\n", dxw.TimeShift, sTSCaption[dxw.TimeShift+4]);
 				DxWndStatus.iTimeShift=dxw.TimeShift;
 				SetHookStatus(&DxWndStatus);
@@ -1017,6 +1017,8 @@ void HookSysLibs(char *module)
 		if(tmp) pSleepEx = (SleepEx_Type)tmp;
 		tmp = HookAPI(module, "user32.dll", SetTimer, "SetTimer", extSetTimer);
 		if(tmp) pSetTimer = (SetTimer_Type)tmp;
+		tmp = HookAPI(module, "winmm.dll", NULL, "timeGetTime", exttimeGetTime);
+		if(tmp) ptimeGetTime = (timeGetTime_Type)tmp;
 	}
 	return;
 }

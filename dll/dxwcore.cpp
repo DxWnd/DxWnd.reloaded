@@ -51,8 +51,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	if(dwTargetDDVersion<0) dwTargetDDVersion=0;
 	if(dwTargetDDVersion>10) dwTargetDDVersion=10;
 	TimeShift = target->InitTS;
-	if(TimeShift < -4) TimeShift = -4;
-	if(TimeShift >  4) TimeShift =  4;
+	if(TimeShift < -8) TimeShift = -8;
+	if(TimeShift >  8) TimeShift =  8;
 }
 
 /* ------------------------------------------------------------------ */
@@ -378,20 +378,35 @@ BOOL dxwCore::HandleFPS()
 	return FALSE;
 }
 
+static DWORD TimeShifter(DWORD val, int shift)
+{
+	int exp, reminder;
+	if (shift > 0) {
+		exp = shift >> 1;
+		reminder = shift & 0x1;
+		if (reminder) val -= (val >> 2); // val * (1-1/4) = val * 3/4
+		val >>= exp; // val * 2^exp
+	}
+	if (shift < 0) {
+		exp = (-shift) >> 1;
+		reminder = (-shift) & 0x1;
+		val <<= exp; // val / 2^exp
+		if (reminder) val += (val >> 1); // val * (1+1/2) = val * 3/2
+	}
+	return val;
+}
+
 DWORD dxwCore::GetTickCount(void)
 {
 	DWORD dwTick;
 	static DWORD dwLastRealTick=0;
 	static DWORD dwLastFakeTick=0;
 	DWORD dwNextRealTick;
-//	extern DXWNDSTATUS *pStatus;
 
 	dwNextRealTick=(*pGetTickCount)();
 	dwTick=(dwNextRealTick-dwLastRealTick);
-//	TimeShift=pStatus->iTimeShift;
 	TimeShift=GetTimeShift();
-	if (TimeShift > 0) dwTick >>= TimeShift;
-	if (TimeShift < 0) dwTick <<= -TimeShift;
+	dwTick = TimeShifter(dwTick, TimeShift);
 	dwLastFakeTick += dwTick;
 	dwLastRealTick = dwNextRealTick;
 	return dwLastFakeTick;
@@ -399,11 +414,8 @@ DWORD dxwCore::GetTickCount(void)
 
 DWORD dxwCore::StretchTime(DWORD dwTimer)
 {
-	//extern DXWNDSTATUS *pStatus;
-	//TimeShift=pStatus->iTimeShift;
 	TimeShift=GetTimeShift();
-	if (TimeShift > 0) dwTimer <<= TimeShift;
-	if (TimeShift < 0) dwTimer >>= -TimeShift;
+	dwTimer = TimeShifter(dwTimer, -TimeShift);
 	return dwTimer;
 }
 
@@ -417,7 +429,6 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	static FILETIME StartFileTime;
 	extern DXWNDSTATUS *pStatus;
 
-	//TimeShift=pStatus->iTimeShift;
 	if(dwStartTick==0) {
 		SYSTEMTIME StartingTime;
 		// first time through, initialize & return true time
@@ -430,8 +441,7 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 		dwCurrentTick=(*pGetTickCount)();
 		dwTick=(dwCurrentTick-dwStartTick);
 		TimeShift=GetTimeShift();
-		if (TimeShift > 0) dwTick >>= TimeShift;
-		if (TimeShift < 0) dwTick <<= -TimeShift;
+		dwTick = TimeShifter(dwTick, TimeShift);
 		// From MSDN: Contains a 64-bit value representing the number of 
 		// 100-nanosecond intervals since January 1, 1601 (UTC).
 		// So, since 1mSec = 10.000 * 100nSec, you still have to multiply by 10.000.

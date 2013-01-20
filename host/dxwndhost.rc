@@ -146,6 +146,11 @@ BEGIN
             MENUITEM "Start",                       ID_HOOK_START
             MENUITEM "Stop",                        ID_HOOK_STOP
         END
+        POPUP "View ..."
+        BEGIN
+            MENUITEM "Status",                      ID_VIEW_STATUS
+            MENUITEM "Time Slider",                 ID_VIEW_TIMESLIDER
+        END
         MENUITEM "e&Xit",                       ID_DXAPP_EXIT
     END
 END

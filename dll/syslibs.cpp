@@ -2566,6 +2566,12 @@ DWORD WINAPI extSleepEx(DWORD dwMilliseconds, BOOL bAlertable)
 	return (*pSleepEx)(dwNewDelay, bAlertable);
 }
 
+DWORD WINAPI exttimeGetTime(void)
+{
+	OutTrace("timeGetTime\n");
+	return dxw.GetTickCount();
+}
+
 int WINAPI extShowCursor(BOOL bShow)
 {
 	static int iFakeCounter;

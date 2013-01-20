@@ -148,6 +148,10 @@
 #define ID_DXAPP_EXIT                   32810
 #define ID_SAVEFILE                     32810
 #define ID_VIEW_TIMESLIDER              32811
+#define ID_DXWND_VI                     32812
+#define ID_VIEW_STATUS32813             32813
+#define ID_VIEW_TIMESLIDER32814         32814
+#define ID_VIEW_STATUS3                 32815
 
 // Next default values for new objects
 // 
@@ -155,7 +159,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        151
-#define _APS_NEXT_COMMAND_VALUE         32812
+#define _APS_NEXT_COMMAND_VALUE         32816
 #define _APS_NEXT_CONTROL_VALUE         1080
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

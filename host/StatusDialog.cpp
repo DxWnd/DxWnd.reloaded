@@ -56,8 +56,7 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 	GetDllVersion(DllVersion);
 	DxWndStatus.Status=DxStatus;
 	if(DxStatus==DXW_RUNNING){
-		int idx;
-		char *sTSCaption[9]={"x16","x8","x4","x2","x1",":2",":4",":8",":16"};
+		char *sTSCaption[17]={"x16","x12","x8","x6","x4","x3","x2","x1.5","x1",":1.5",":2",":3",":4",":6",":8",":12",":16"};
 		GetHookStatus(&DxWndStatus);
 		Target=&pTargets[DxWndStatus.TaskIdx];
 
@@ -76,9 +75,8 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 			strcat(sMsg, sMsgBuf);
 		}
 		if(Target->flags2 & TIMESTRETCH){
-			idx=DxWndStatus.iTimeShift+4;
-			if(idx>=0 && idx<=8){
-				sprintf(sMsgBuf, "\nTime speed: %s", sTSCaption[DxWndStatus.iTimeShift+4]);
+			if(DxWndStatus.iTimeShift>=-8 && DxWndStatus.iTimeShift<=8){
+				sprintf(sMsgBuf, "\nTime speed: %s", sTSCaption[DxWndStatus.iTimeShift+8]);
 				strcat(sMsg, sMsgBuf);
 			}
 		}
