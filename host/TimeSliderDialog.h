@@ -10,6 +10,7 @@ class CTimeSliderDialog : public CDialog
 public:
 	CTimeSliderDialog(CWnd* pParent = NULL);   // standard constructor
 	virtual ~CTimeSliderDialog();
+	//~CTimeSliderDialog();
 
 // Dialog Data
 	enum { IDD = IDD_TIMESLIDER };

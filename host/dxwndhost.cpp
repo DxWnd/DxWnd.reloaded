@@ -200,3 +200,14 @@ void CDxwndhostApp::OnAppAbout()
 /////////////////////////////////////////////////////////////////////////////
 // CDxwndhostApp Message Handler
 
+char *GetTSCaption(int shift)
+{
+	static char *sTSCaption[17]={
+		"x16","x12","x8","x6",
+		"x4","x3","x2","x1.5",
+		"x1",
+		":1.5",":2",":3",":4",
+		":6",":8",":12",":16"};
+	if (shift<-8 || shift>8) return "???";
+	return sTSCaption[shift+8];
+}

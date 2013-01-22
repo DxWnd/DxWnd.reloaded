@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
@@ -323,7 +324,7 @@ void dxwCore::ScreenRefresh(void)
 }
 
 
-static void ShowFPS()
+static void CountFPS()
 {
 	static DWORD time = 0xFFFFFFFF;
 	static DWORD FPSCount = 0;
@@ -333,6 +334,7 @@ static void ShowFPS()
 		// log fps count
 		OutTrace("FPSCount=%d\n", FPSCount);
 		// show fps count on status win
+		GetHookStatus(&DxWndStatus);
 		DxWndStatus.FPSCount = FPSCount;
 		SetHookStatus(&DxWndStatus);
 		// reset
@@ -372,7 +374,7 @@ static BOOL SkipFrameCount(int delay)
 
 BOOL dxwCore::HandleFPS()
 {
-	if(dwFlags2 & SHOWFPS) ShowFPS();
+	if(dwFlags2 & SHOWFPS) CountFPS();
 	if(dwFlags2 & LIMITFPS) LimitFrameCount(dxw.MaxFPS);
 	if(dwFlags2 & SKIPFPS) if(SkipFrameCount(dxw.MaxFPS)) return TRUE;
 	return FALSE;
@@ -452,4 +454,58 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 		StartFileTime = CurrFileTime;
 		dwStartTick = dwCurrentTick;
 	}
+}
+
+void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
+{
+	HDC xdc; // the working dc
+	char sBuf[81];
+	static DWORD dwTimer = 0;
+	static int corner = 0;
+	static int x, y;
+	static DWORD color;
+
+	if((*pGetTickCount)()-dwTimer > 4000){
+		if(!dwTimer) srand ((*pGetTickCount)());
+		dwTimer = (*pGetTickCount)();
+		//corner = rand() % 4;
+		corner = dwTimer % 4;
+		//color = ((0x80 + (rand() % 0x80))) + 
+		//		((0x80 + (rand() % 0x80))<<8) + 
+		//		((0x80 + (rand() % 0x80))<<16);
+		// color = rand() % 0x1000000;
+		//color = RGB(rand()%0x100, rand()%0x100, rand()%0x100);
+		//color = RGB(dwTimer%0x100, dwTimer%0x100, dwTimer%0x100);
+		color=0xFF0000; // blue
+		switch (corner) {
+		case 0: x=10; y=10; break;
+		case 1: x=dwScreenWidth-60; y=10; break;
+		case 2: x=dwScreenWidth-60; y=dwScreenHeight-20; break;
+		case 3: x=10; y=dwScreenHeight-20; break;
+		}
+	}
+
+	if (FAILED(lpdds->GetDC(&xdc))) return;
+	SetTextColor(xdc,color);
+	//SetBkMode(xdc, TRANSPARENT);
+	SetBkMode(xdc, OPAQUE);
+	sprintf(sBuf, "FPS: %d", DxWndStatus.FPSCount);
+	TextOut(xdc, x, y, sBuf, strlen(sBuf));
+	lpdds->ReleaseDC(xdc);
+}
+
+char *dxwCore::GetTSCaption(int shift)
+{
+	static char *sTSCaption[17]={
+		"x16","x12","x8","x6",
+		"x4","x3","x2","x1.5",
+		"x1",
+		":1.5",":2",":3",":4",
+		":6",":8",":12",":16"};
+	if (shift<0 || shift>16) return "???";
+	return sTSCaption[shift+8];
+}
+char *dxwCore::GetTSCaption(void)
+{
+	return GetTSCaption(TimeShift);
 }

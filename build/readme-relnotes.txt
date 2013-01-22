@@ -18,3 +18,8 @@ v2.02.05:
 hooked winmm timeGetTime() API: makes time stretching work for Age of Empires series
 changed time stretching grain: now it's not the coarse grained 2x, 4x,... series in 9 possible values but the fine grained series 1.5x, 2x, 3x,.... in 17 possible values
 added status and time stretching view panels to tray icon menu
+
+v2.02.06:
+preliminary FPS counter overlapped on game screen, Alt-F7 to toggle display on/off.
+fixed buf on time stretch logging (and possible game crash).
+revised GetDC handling with 8BPP paletized surfaces: avoided need to emulate reverse-blitting and got an impressive speed improvement for games such as Age of Empires I & II and Hyperblade.

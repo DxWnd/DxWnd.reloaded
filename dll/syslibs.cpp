@@ -2265,6 +2265,7 @@ typedef struct tagDxWndLOGPALETTE
     } 	DxWndLOGPALETTE;
 
 DxWndLOGPALETTE MyPal;
+PALETTEENTRY *GDIPalette = MyPal.palPalEntry;
 //BOOL G_bForceBackground;
 
 HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *plpal)

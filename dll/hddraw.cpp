@@ -210,7 +210,7 @@ SetEntries_Type pSetEntries;
 LPDIRECTDRAWSURFACE lpDDSEmu_Prim=NULL, lpDDSEmu_Back=NULL;
 LPDIRECTDRAWSURFACE lpDDSBack=NULL;
 LPDIRECTDRAWCLIPPER lpDDC=NULL;
-LPDIRECTDRAWPALETTE lpDDP = 0;
+LPDIRECTDRAWPALETTE lpDDP=NULL;
 LPDIRECTDRAW lpDD=NULL;
 // v2.1.87: lpServiceDD is the DIRECTDRAW object to which the primary surface and all 
 // the service objects (emulated backbuffer, emulater primary, ....) are attached.
@@ -1688,14 +1688,12 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 
 		// beware of the different behaviour between older and newer directdraw releases...
 		if(dxversion >= 4){
-			//if (lpDDSHDC) while(lpDDSHDC->Release());
 			if (lpDDC) while(lpDDC->Release());
 			if (lpDDSEmu_Back) while(lpDDSEmu_Back->Release());
 			if (lpDDSEmu_Prim) while(lpDDSEmu_Prim->Release());
 			if (ddsd.dwFlags & DDSD_BACKBUFFERCOUNT) 
 				if (lpDDSBack) while(lpDDSBack->Release());
 		}
-		//lpDDSHDC=NULL;
 		lpDDC=NULL;
 		lpDDSEmu_Back=NULL;
 		lpDDSEmu_Prim=NULL;
@@ -1871,6 +1869,26 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 		OutTraceE("CreateSurface: CreateSurface ERROR res=%x(%s) pfmt=%s at %d\n", res, ExplainDDError(res), pfmt, __LINE__);
 		if(res==DDERR_INVALIDPIXELFORMAT) DumpPixFmt(&ddsd);
 		return res;
+	}
+
+	// for 8BPP palettized surfaces, connect them to either the ddraw emulated palette or the GDI emulated palette
+	if(ddsd.ddpfPixelFormat.dwRGBBitCount==8){ // use a better condition here....
+		if(lpDDP==NULL){
+			// should link here to the GDI palette? See Hyperblade....
+			//static PALETTEENTRY Palette[256];
+			extern PALETTEENTRY *GDIPalette;
+			//res=(*pCreatePalette)(lpdd, DDPCAPS_ALLOW256|DDPCAPS_8BIT|DDPCAPS_INITIALIZE, Palette, &lpDDP, NULL);
+			res=(*pCreatePalette)(lpdd, DDPCAPS_ALLOW256|DDPCAPS_8BIT|DDPCAPS_INITIALIZE, GDIPalette, &lpDDP, NULL);
+			if (res) {
+				OutTraceE("CreateSurface: CreatePalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				return res;
+			}
+		}
+		res=(*pSetPalette)(*lplpdds, lpDDP);
+		if (res) {
+			OutTraceE("CreateSurface: SetPalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
 	}
 
 	// diagnostic hooks ....
@@ -2428,6 +2446,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		work on my PC. 
 		*/
 		if(res==DDERR_UNSUPPORTED){
+			if (dxw.dwFlags2 & SHOWFPS) dxw.ShowFPS(lpddssrc);
 			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2462,6 +2481,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		lpDDSSource = lpdds;
 	}
 
+	if (dxw.dwFlags2 & SHOWFPS) dxw.ShowFPS(lpDDSSource);
 	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 	if (res==DDERR_NOCLIPLIST){
 		RenewClipper(lpDD, lpDDSEmu_Prim);
@@ -2880,6 +2900,7 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 			lpDDSSource=lpdds;
 		}
 
+		if (dxw.dwFlags2 & SHOWFPS) dxw.ShowFPS(lpDDSSource);
 		res=(*pBlt)(lpDDSEmu_Prim, &screen, lpDDSSource, &rect, DDBLT_WAIT, 0);
 		if (res==DDERR_NOCLIPLIST) {
 			RenewClipper(lpDD, lpDDSEmu_Prim);
@@ -2921,7 +2942,7 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 		// Should the surface have a RGB color setting to allow for DC creation?
 
 		// log an error just when not intercepted by EMULATESURFACE|HANDLEDC handling below
-		if ((dxw.dwFlags1 & (EMULATESURFACE|HANDLEDC))!=(EMULATESURFACE|HANDLEDC)) 
+		 if ((dxw.dwFlags1 & (EMULATESURFACE|HANDLEDC))!=(EMULATESURFACE|HANDLEDC)) 
 			OutTraceE("GetDC ERROR: lpdss=%x%s, hdc=%x, res=%x(%s) at %d\n", 
 			lpdds, IsPrim?"(PRIM)":"", *pHDC, res, ExplainDDError(res), __LINE__);
 

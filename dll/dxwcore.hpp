@@ -42,7 +42,9 @@ public: // methods
 	void ResetPrimarySurface(void);
 	void GetSystemTime(LPSYSTEMTIME lpSystemTime);
 	DWORD StretchTime(DWORD);
-
+	void ShowFPS(LPDIRECTDRAWSURFACE);
+	char *GetTSCaption(int);
+	char *GetTSCaption(void);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;

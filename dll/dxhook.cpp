@@ -504,7 +504,7 @@ static void dx_TogglePositionLock(HWND hwnd)
 	}
 }
 
-void dx_ToggleDC()
+static void dx_ToggleDC()
 {
 	if(dxw.dwFlags1 & HANDLEDC){
 		dxw.dwFlags1 &= ~HANDLEDC;
@@ -513,6 +513,18 @@ void dx_ToggleDC()
 	else {
 		dxw.dwFlags1 |= HANDLEDC;
 		OutTrace("ToggleDC: HANDLEDC mode ON\n");
+	}
+}
+
+static void dx_ToggleFPS()
+{
+	if(dxw.dwFlags2 & SHOWFPS){
+		dxw.dwFlags2 &= ~SHOWFPS;
+		OutTrace("ToggleFPS: SHOWFPS mode OFF\n");
+	}
+	else {
+		dxw.dwFlags2 |= SHOWFPS;
+		OutTrace("ToggleFPS: SHOWFPS mode ON\n");
 	}
 }
 
@@ -684,21 +696,24 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		case VK_F8:
 			dx_ToggleDC();
 			break;
+		case VK_F7:
+			dx_ToggleFPS();
+			break;
+		case VK_F6:
+		case VK_F5:
+			if (dxw.dwFlags2 & TIMESTRETCH) {
+				char *sTSCaption[17]={"x16","x8","x4","x2","x1",":2",":4",":8",":16"};
+				if (wparam == VK_F5 && (dxw.TimeShift <  8)) dxw.TimeShift++;
+				if (wparam == VK_F6 && (dxw.TimeShift > -8)) dxw.TimeShift--;
+				OutTrace("Time Stretch: shift=%d speed=%s\n", dxw.TimeShift, dxw.GetTSCaption());
+				DxWndStatus.iTimeShift=dxw.TimeShift;
+				SetHookStatus(&DxWndStatus);
+			}
+			break;
 		case VK_F4:
 			if (dxw.dwFlags1 & HANDLEALTF4) {
 				OutTraceD("WindowProc: WM_SYSKEYDOWN(ALT-F4) - terminating process\n");
 				TerminateProcess(GetCurrentProcess(),0);
-			}
-			break;
-		case VK_F5:
-		case VK_F6:
-			if (dxw.dwFlags2 & TIMESTRETCH) {
-				char *sTSCaption[9]={"x16","x8","x4","x2","x1",":2",":4",":8",":16"};
-				if (wparam == VK_F5 && (dxw.TimeShift <  8)) dxw.TimeShift++;
-				if (wparam == VK_F6 && (dxw.TimeShift > -8)) dxw.TimeShift--;
-				OutTrace("Time Stretch: shift=%d speed=%s\n", dxw.TimeShift, sTSCaption[dxw.TimeShift+4]);
-				DxWndStatus.iTimeShift=dxw.TimeShift;
-				SetHookStatus(&DxWndStatus);
 			}
 			break;
 		default:

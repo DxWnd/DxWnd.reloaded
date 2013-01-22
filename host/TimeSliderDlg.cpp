@@ -16,6 +16,8 @@ CTimeSliderDialog::CTimeSliderDialog(CWnd* pParent /*=NULL*/)
 
 CTimeSliderDialog::~CTimeSliderDialog()
 {
+	MessageBoxEx(0, "Time Slider destructor", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
+	//CTimeSliderDialog::OnOK(); // kill timer....
 }
 
 void CTimeSliderDialog::DoDataExchange(CDataExchange* pDX)
@@ -40,9 +42,9 @@ void CTimeSliderDialog::OnTimer(UINT_PTR nIDEvent)
 	DXWNDSTATUS Status;
 	CSliderCtrl *Slider;
 	CStatic *Text;
-	char *sTSCaption[17]={"x16","x12","x8","x6","x4","x3","x2","x1.5","x1",":1.5",":2",":3",":4",":6",":8",":12",":16"};
 	char sMsg[81];
 	static int iLastPos=-1;
+	extern char *GetTSCaption(int);
 
 	Slider=(CSliderCtrl *)this->GetDlgItem(IDC_TIMESLIDER);
 	Text=(CStatic *)this->GetDlgItem(IDC_TIMESPEED);
@@ -67,7 +69,7 @@ void CTimeSliderDialog::OnTimer(UINT_PTR nIDEvent)
 		SetHookStatus(&Status);
 	}
 	iLastPos = i_TimeSlider;
-	sprintf(sMsg, "Time speed: %s", sTSCaption[i_TimeSlider+8]);
+	sprintf(sMsg, "Time speed %s", GetTSCaption(i_TimeSlider));
 	Text->SetWindowTextA(sMsg);
 }
 
@@ -93,8 +95,9 @@ void CTimeSliderDialog::OnOK()
 {
 	// TODO: Add your specialized code here and/or call the base class
 
-	KillTimer(IDTIMER);
 	// stop timer
+	// MessageBoxEx(0, "Stopping Time Slider dialog", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
+	KillTimer(IDTIMER);
 
 	DXWNDSTATUS Status;
 	GetHookStatus(&Status);
