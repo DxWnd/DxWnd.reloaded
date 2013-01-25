@@ -84,6 +84,7 @@ public:
 	BOOL	m_SkipFPS;
 	BOOL	m_LimitFPS;
 	BOOL	m_ShowFPS;
+	BOOL	m_ShowFPSOverlay;
 	BOOL	m_TimeStretch;
 	BOOL	m_HookOpenGL;
 	int		m_InitX;
@@ -151,6 +152,8 @@ public:
 	afx_msg void OnBnClickedHandleExceptions();
 	afx_msg void OnEnChangeMaxx();
 	afx_msg void OnEnChangeInitx();
+public:
+	virtual BOOL OnInitDialog();
 };
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ Will insert additional declarations immediately before the previous line.

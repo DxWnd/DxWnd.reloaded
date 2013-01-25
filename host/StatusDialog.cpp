@@ -28,7 +28,7 @@ BEGIN_MESSAGE_MAP(CStatusDialog, CDialog)
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
-#define IDTIMER 1
+#define IDStatusTIMER 1
 
 // CStatusDialog message handlers
 
@@ -47,17 +47,17 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 	extern char *GetTSCaption(int);
 
 	CDialog::OnTimer(nIDEvent);
-	DxStatus=GetHookStatus(NULL);
+	DxStatus=GetHookStatus(&DxWndStatus);
 	switch (DxStatus){
 		case DXW_IDLE: IconId=IDI_DXIDLE; Status="DISABLED"; break;
 		case DXW_ACTIVE: IconId=IDI_DXWAIT; Status="READY"; break;
 		case DXW_RUNNING: IconId=IDI_DXRUN; Status="RUNNING"; break;
+		default: IconId=IDI_DXIDLE; Status="???"; break;
 	}
 
 	GetDllVersion(DllVersion);
-	DxWndStatus.Status=DxStatus;
 	if(DxStatus==DXW_RUNNING){
-		GetHookStatus(&DxWndStatus);
+
 		Target=&pTargets[DxWndStatus.TaskIdx];
 
 		sprintf_s(sMsg, 1024, 
@@ -70,13 +70,13 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 			DxWndStatus.Width, DxWndStatus.Height, DxWndStatus.ColorDepth, 
 			DxWndStatus.IsFullScreen ? "Yes":"No", DxWndStatus.DXVersion,
 			DxWndStatus.isLogging?"ON":"OFF");
-		if(Target->flags2 & SHOWFPS){
+		if(Target->flags2 & (SHOWFPS|SHOWFPSOVERLAY)){
 			sprintf(sMsgBuf, "\nFPS = %d", DxWndStatus.FPSCount);   
 			strcat(sMsg, sMsgBuf);
 		}
 		if(Target->flags2 & TIMESTRETCH){
-			if(DxWndStatus.iTimeShift>=-8 && DxWndStatus.iTimeShift<=8){
-				sprintf(sMsgBuf, "\nTime speed: %s", GetTSCaption(DxWndStatus.iTimeShift));
+			if(DxWndStatus.TimeShift>=-8 && DxWndStatus.TimeShift<=8){
+				sprintf(sMsgBuf, "\nTime speed %s", GetTSCaption(DxWndStatus.TimeShift));
 				strcat(sMsg, sMsgBuf);
 			}
 		}
@@ -91,7 +91,7 @@ BOOL CStatusDialog::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
-	SetTimer(IDTIMER, 1000, NULL);
+	SetTimer(IDStatusTIMER, 1000, NULL);
 
 	// TODO:  Add extra initialization here
 
@@ -103,7 +103,7 @@ void CStatusDialog::OnOK()
 {
 	// TODO: Add your specialized code here and/or call the base class
 
-	KillTimer(IDTIMER);
+	KillTimer(IDStatusTIMER);
 	// stop timer
 
 	CDialog::OnOK();

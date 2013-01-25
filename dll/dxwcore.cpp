@@ -324,19 +324,29 @@ void dxwCore::ScreenRefresh(void)
 }
 
 
-static void CountFPS()
+static void CountFPS(HWND hwnd)
 {
 	static DWORD time = 0xFFFFFFFF;
 	static DWORD FPSCount = 0;
+	extern void SetFPS(int);
+	//DXWNDSTATUS Status;
 	DWORD tmp;
 	tmp = GetTickCount();
 	if((tmp - time) > 1000) {
+		char sBuf[80+12+1]; // title + fps string + terminator
+		char *fpss;
 		// log fps count
 		OutTrace("FPSCount=%d\n", FPSCount);
 		// show fps count on status win
-		GetHookStatus(&DxWndStatus);
-		DxWndStatus.FPSCount = FPSCount;
-		SetHookStatus(&DxWndStatus);
+		GetHookInfo()->FPSCount = FPSCount; // for overlay display
+		// show fps on win title bar
+		if (dxw.dwFlags2 & SHOWFPS){
+			GetWindowText(hwnd, sBuf, 80);
+			fpss=strstr(sBuf," ~ (");
+			if(fpss==NULL) fpss=&sBuf[strlen(sBuf)];
+			sprintf(fpss, " ~ (%d FPS)", FPSCount);
+			SetWindowText(hwnd, sBuf);
+		}
 		// reset
 		FPSCount=0;
 		time = tmp;
@@ -346,35 +356,32 @@ static void CountFPS()
 	}
 }
 
-static void LimitFrameCount(int delay)
+
+static void LimitFrameCount(DWORD delay)
 {
-	static DWORD time = 0xFFFFFFFF;
-	extern void do_slow(int);
-	DWORD tmp;
-	tmp = GetTickCount();
-	if((tmp - time) > (DWORD)delay) {
-		time = tmp;
-	}
-	else
-		Sleep(tmp - time);
-		//do_sslow(tmp - time);
+	static DWORD oldtime=(*pGetTickCount)();
+	DWORD newtime;
+	newtime = (*pGetTickCount)();
+	// use '<' and not '<=' to avoid the risk of sleeping forever....
+	if(newtime < oldtime+delay) (*pSleep)(oldtime+delay-newtime);
+	oldtime = newtime;
 }
 
-static BOOL SkipFrameCount(int delay)
+static BOOL SkipFrameCount(DWORD delay)
 {
-	static DWORD time = 0xFFFFFFFF;
-	DWORD tmp;
-	tmp = GetTickCount();
-	if((tmp - time) > (DWORD)delay) {
-		time = tmp;
-		return FALSE;
-	}
-	return TRUE;
+	static DWORD oldtime=(*pGetTickCount)();
+	DWORD newtime;
+	newtime = (*pGetTickCount)();
+	// use '<' and not '<=' to avoid the risk of sleeping forever....
+	if(newtime < oldtime+delay) return TRUE;
+	oldtime = newtime;
+	return FALSE;
+
 }
 
 BOOL dxwCore::HandleFPS()
 {
-	if(dwFlags2 & SHOWFPS) CountFPS();
+	if(dwFlags2 & (SHOWFPS|SHOWFPSOVERLAY)) CountFPS(hWnd);
 	if(dwFlags2 & LIMITFPS) LimitFrameCount(dxw.MaxFPS);
 	if(dwFlags2 & SKIPFPS) if(SkipFrameCount(dxw.MaxFPS)) return TRUE;
 	return FALSE;
@@ -407,7 +414,7 @@ DWORD dxwCore::GetTickCount(void)
 
 	dwNextRealTick=(*pGetTickCount)();
 	dwTick=(dwNextRealTick-dwLastRealTick);
-	TimeShift=GetTimeShift();
+	TimeShift=GetHookInfo()->TimeShift;
 	dwTick = TimeShifter(dwTick, TimeShift);
 	dwLastFakeTick += dwTick;
 	dwLastRealTick = dwNextRealTick;
@@ -416,9 +423,44 @@ DWORD dxwCore::GetTickCount(void)
 
 DWORD dxwCore::StretchTime(DWORD dwTimer)
 {
-	TimeShift=GetTimeShift();
+	TimeShift=GetHookInfo()->TimeShift;
 	dwTimer = TimeShifter(dwTimer, -TimeShift);
 	return dwTimer;
+}
+
+void dxwCore::GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
+{
+	DWORD dwTick;
+	DWORD dwCurrentTick;
+	FILETIME CurrFileTime;
+	static DWORD dwStartTick=0;
+	static DWORD dwUpdateTick=0;
+	static FILETIME StartFileTime;
+	extern DXWNDSTATUS *pStatus;
+
+	if(dwStartTick==0) {
+		SYSTEMTIME StartingTime;
+		// first time through, initialize & return true time
+		dwStartTick = (*pGetTickCount)();
+		(*pGetSystemTime)(&StartingTime);
+		SystemTimeToFileTime(&StartingTime, &StartFileTime);
+		*lpSystemTimeAsFileTime = StartFileTime;
+	}
+	else {
+		dwCurrentTick=(*pGetTickCount)();
+		dwTick=(dwCurrentTick-dwStartTick);
+		TimeShift=GetHookInfo()->TimeShift;
+		dwTick = TimeShifter(dwTick, TimeShift);
+		// From MSDN: Contains a 64-bit value representing the number of 
+		// 100-nanosecond intervals since January 1, 1601 (UTC).
+		// So, since 1mSec = 10.000 * 100nSec, you still have to multiply by 10.000.
+		CurrFileTime.dwHighDateTime = StartFileTime.dwHighDateTime; // wrong !!!!
+		CurrFileTime.dwLowDateTime = StartFileTime.dwLowDateTime + (10000 * dwTick); // wrong !!!!
+		*lpSystemTimeAsFileTime=CurrFileTime;
+		// reset to avoid time jumps on TimeShift changes...
+		StartFileTime = CurrFileTime;
+		dwStartTick = dwCurrentTick;
+	}
 }
 
 void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
@@ -442,7 +484,7 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	else {
 		dwCurrentTick=(*pGetTickCount)();
 		dwTick=(dwCurrentTick-dwStartTick);
-		TimeShift=GetTimeShift();
+		TimeShift=GetHookInfo()->TimeShift;
 		dwTick = TimeShifter(dwTick, TimeShift);
 		// From MSDN: Contains a 64-bit value representing the number of 
 		// 100-nanosecond intervals since January 1, 1601 (UTC).
@@ -456,6 +498,35 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	}
 }
 
+void dxwCore::ShowFPS(HDC xdc)
+{
+	char sBuf[81];
+	static DWORD dwTimer = 0;
+	static int corner = 0;
+	static int x, y;
+	static DWORD color;
+
+	if((*pGetTickCount)()-dwTimer > 4000){
+		RECT rect;
+		dwTimer = (*pGetTickCount)();
+		corner = dwTimer % 4;
+		color=0xFF0000; // blue
+		(*pGetClientRect)(hWnd, &rect);
+		switch (corner) {
+		case 0: x=10; y=10; break;
+		case 1: x=rect.right-60; y=10; break;
+		case 2: x=rect.right-60; y=rect.bottom-20; break;
+		case 3: x=10; y=rect.bottom-20; break;
+		}
+	} 
+
+	SetTextColor(xdc,color);
+	//SetBkMode(xdc, TRANSPARENT);
+	SetBkMode(xdc, OPAQUE);
+	sprintf(sBuf, "FPS: %d", GetHookInfo()->FPSCount);
+	TextOut(xdc, x, y, sBuf, strlen(sBuf));
+}
+
 void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
 {
 	HDC xdc; // the working dc
@@ -466,16 +537,8 @@ void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
 	static DWORD color;
 
 	if((*pGetTickCount)()-dwTimer > 4000){
-		if(!dwTimer) srand ((*pGetTickCount)());
 		dwTimer = (*pGetTickCount)();
-		//corner = rand() % 4;
 		corner = dwTimer % 4;
-		//color = ((0x80 + (rand() % 0x80))) + 
-		//		((0x80 + (rand() % 0x80))<<8) + 
-		//		((0x80 + (rand() % 0x80))<<16);
-		// color = rand() % 0x1000000;
-		//color = RGB(rand()%0x100, rand()%0x100, rand()%0x100);
-		//color = RGB(dwTimer%0x100, dwTimer%0x100, dwTimer%0x100);
 		color=0xFF0000; // blue
 		switch (corner) {
 		case 0: x=10; y=10; break;
@@ -489,7 +552,7 @@ void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
 	SetTextColor(xdc,color);
 	//SetBkMode(xdc, TRANSPARENT);
 	SetBkMode(xdc, OPAQUE);
-	sprintf(sBuf, "FPS: %d", DxWndStatus.FPSCount);
+	sprintf(sBuf, "FPS: %d", GetHookInfo()->FPSCount);
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
 	lpdds->ReleaseDC(xdc);
 }

@@ -43,6 +43,7 @@ typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD,
 typedef void	(WINAPI *GetLocalTime_Type)(LPSYSTEMTIME);
 typedef FARPROC (WINAPI *GetProcAddress_Type)(HMODULE, LPCSTR);
 typedef void	(WINAPI *GetSystemTime_Type)(LPSYSTEMTIME);
+typedef void	(WINAPI *GetSystemTimeAsFileTime_Type)(LPFILETIME);
 typedef DWORD	(WINAPI *GetTickCount_Type)(void);
 typedef HMODULE (WINAPI *LoadLibraryA_Type)(LPCTSTR);
 typedef HMODULE (WINAPI *LoadLibraryExA_Type)(LPCTSTR, HANDLE, DWORD);
@@ -142,6 +143,7 @@ DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
 DXWEXTERN GetLocalTime_Type pGetLocalTime DXWINITIALIZED;
 DXWEXTERN GetProcAddress_Type pGetProcAddress DXWINITIALIZED;
 DXWEXTERN GetSystemTime_Type pGetSystemTime DXWINITIALIZED;
+DXWEXTERN GetSystemTimeAsFileTime_Type pGetSystemTimeAsFileTime DXWINITIALIZED;
 DXWEXTERN GetTickCount_Type pGetTickCount DXWINITIALIZED;
 DXWEXTERN LoadLibraryA_Type pLoadLibraryA DXWINITIALIZED;
 DXWEXTERN LoadLibraryExA_Type pLoadLibraryExA DXWINITIALIZED;
@@ -234,6 +236,7 @@ extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWO
 extern void WINAPI extGetLocalTime(LPSYSTEMTIME);
 extern FARPROC WINAPI extGetProcAddress(HMODULE, LPCSTR);
 extern void WINAPI extGetSystemTime(LPSYSTEMTIME);
+extern void WINAPI extGetSystemTimeAsFileTime(LPFILETIME);
 extern DWORD WINAPI extGetTickCount(void);
 extern HMODULE WINAPI extLoadLibraryA(LPCTSTR);
 extern HMODULE WINAPI extLoadLibraryExA(LPCTSTR, HANDLE, DWORD);

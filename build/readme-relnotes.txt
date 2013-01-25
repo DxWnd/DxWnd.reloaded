@@ -23,3 +23,6 @@ v2.02.06:
 preliminary FPS counter overlapped on game screen, Alt-F7 to toggle display on/off.
 fixed buf on time stretch logging (and possible game crash).
 revised GetDC handling with 8BPP paletized surfaces: avoided need to emulate reverse-blitting and got an impressive speed improvement for games such as Age of Empires I & II and Hyperblade.
+
+v2.02.07:
+many fixes on the FPS and time control features.

@@ -11,6 +11,7 @@ typedef HRESULT (WINAPI *EnumAdapterModes8_Type)(void *, UINT, UINT, D3DDISPLAYM
 typedef HRESULT (WINAPI *EnumAdapterModes9_Type)(void *, UINT, D3DFORMAT ,UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *GetAdapterDisplayMode_Type)(void *, UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *GetDisplayMode_Type)(void *, D3DDISPLAYMODE *);
+typedef HRESULT (WINAPI *Present_Type)(void *, CONST RECT *, CONST RECT *, HWND, CONST RGNDATA *);
 
 void* WINAPI extDirect3DCreate8(UINT);
 void* WINAPI extDirect3DCreate9(UINT);
@@ -20,6 +21,7 @@ HRESULT WINAPI extEnumAdapterModes8(void *, UINT, UINT , D3DDISPLAYMODE *);
 HRESULT WINAPI extEnumAdapterModes9(void *, UINT, D3DFORMAT, UINT , D3DDISPLAYMODE *);
 HRESULT WINAPI extGetAdapterDisplayMode(void *, UINT, D3DDISPLAYMODE *);
 HRESULT WINAPI extGetDisplayMode(void *, D3DDISPLAYMODE *);
+HRESULT WINAPI extPresent(void *, CONST RECT *, CONST RECT *, HWND, CONST RGNDATA *);
 
 extern char *ExplainDDError(DWORD);
 
@@ -31,6 +33,8 @@ EnumAdapterModes8_Type pEnumAdapterModes8;
 EnumAdapterModes9_Type pEnumAdapterModes9;
 GetAdapterDisplayMode_Type pGetAdapterDisplayMode;
 GetDisplayMode_Type pGetDisplayMode;
+Present_Type pPresent;
+
 DWORD dwD3DVersion;
 
 int HookDirect3D(char *module, int version){
@@ -121,6 +125,15 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresentationParamet
 {
 	OutTraceD("DEBUG: neutralizing pd3dd->Reset()\n");
 	return D3D_OK;
+}
+
+HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
+{
+	if (IsDebug) OutTrace("Present\n");
+	// frame counter handling....
+	if (dxw.HandleFPS()) return D3D_OK;
+	// proxy ....
+	return (*pPresent)(pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }
 
 HRESULT WINAPI extGetDisplayMode(void *lpd3d, D3DDISPLAYMODE *pMode)
@@ -243,21 +256,25 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		pReset=NULL; // to avoid assert condition
 		SetHook((void *)(*(DWORD *)lpd3d + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 56), extReset, (void **)&pReset, "Reset(D8)");
+		SetHook((void *)(**(DWORD **)ppd3dd + 60), extPresent, (void **)&pPresent, "Present(D8)");
 	}
 	else {
 		void *pReset;
 		pReset=NULL; // to avoid assert condition
 		SetHook((void *)(*(DWORD *)lpd3d + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
+		SetHook((void *)(**(DWORD **)ppd3dd + 68), extPresent, (void **)&pPresent, "Present(D9)");
 	}
 
-	DxWndStatus.IsFullScreen = dxw.IsFullScreen();
-	DxWndStatus.DXVersion=(short)dwD3DVersion;
-	DxWndStatus.Height=(short)dxw.GetScreenHeight();
-	DxWndStatus.Width=(short)dxw.GetScreenWidth();
-	DxWndStatus.ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
-	SetHookStatus(&DxWndStatus);
+	GetHookInfo()->IsFullScreen = dxw.IsFullScreen();
+	GetHookInfo()->DXVersion=(short)dwD3DVersion;
+	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
+	GetHookInfo()->Width=(short)dxw.GetScreenWidth();
+	GetHookInfo()->ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
 	
 	return 0;
 }
 
+// to do:
+// hook IDirect3DDevice9::CreateAdditionalSwapChain to intercept Present method on further Swap Chains
+// hook SetCursorPosition ShowCursor to handle cursor

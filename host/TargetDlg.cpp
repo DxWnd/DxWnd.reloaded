@@ -79,6 +79,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_LimitFPS = FALSE;
 	m_SkipFPS = FALSE;
 	m_ShowFPS = FALSE;
+	m_ShowFPSOverlay = FALSE;
 	m_TimeStretch = FALSE;
 	m_HookOpenGL = FALSE;
 	m_InitX = 0;
@@ -92,10 +93,41 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SizX = 800;
 	m_SizY = 600;
 	m_MaxFPS = 0;
-	m_InitTS = 0;
+	m_InitTS = 8;
 	//}}AFX_DATA_INIT
+
 }
 
+
+
+//void  TSCombo::OnEnable(BOOL bEnable)
+//{
+//	CComboBox::OnEnable(bEnable); 
+//
+//	// Get edit control which happens to be the first child window
+//	CEdit* pEdit = (CEdit*)GetWindow(GW_CHILD);
+//	
+//	// Always have the edit box enabled
+//	pEdit->EnableWindow(TRUE);
+//	
+//	// Set read only is combo box is disabled
+//	pEdit->SetReadOnly(!bEnable);
+//} 
+
+BOOL CTargetDlg::OnInitDialog()
+{
+
+	CListBox *TSList;
+	CDialog::OnInitDialog();
+	int i;
+	extern char *GetTSCaption(int);
+	//MessageBoxEx(0, "Init Dialog", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
+	TSList=(CListBox *)this->GetDlgItem(IDC_LISTTS);
+	TSList->ResetContent();
+	for(i=-8; i<=8; i++) TSList->AddString(GetTSCaption(i));
+	TSList->SetCurSel(m_InitTS);
+	return TRUE;
+}
 
 void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -164,6 +196,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_LIMITFPS, m_LimitFPS);
 	DDX_Check(pDX, IDC_SKIPFPS, m_SkipFPS);
 	DDX_Check(pDX, IDC_SHOWFPS, m_ShowFPS);
+	DDX_Check(pDX, IDC_SHOWFPSOVERLAY, m_ShowFPSOverlay);
 	DDX_Check(pDX, IDC_TIMESTRETCH, m_TimeStretch);
 	DDX_Check(pDX, IDC_HOOKOPENGL, m_HookOpenGL);
 	DDX_Text(pDX, IDC_INITX, m_InitX);
@@ -177,7 +210,8 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SIZX, m_SizX);
 	DDX_Text(pDX, IDC_SIZY, m_SizY);
 	DDX_Text(pDX, IDC_MAXFPS, m_MaxFPS);
-	DDX_Text(pDX, IDC_INITTS, m_InitTS);
+	//DDX_Text(pDX, IDC_INITTS, m_InitTS);
+	DDX_LBIndex(pDX, IDC_LISTTS, m_InitTS);
 	//}}AFX_DATA_MAP
 }
 

@@ -58,13 +58,14 @@
 #define FIXNCHITTEST		0x00000800 // fixes WM_NCHITTEST message X,Y coordinates 
 #define LIMITFPS			0x00001000 // delays primary blit operations to limit FPS 
 #define SKIPFPS				0x00002000 // skips primary blit operations up to limit
-#define SHOWFPS				0x00004000 // shows FPS value to status win / log
+#define SHOWFPS				0x00004000 // shows FPS value to status win / log / title bar
 #define HIDEMULTIMONITOR	0x00008000 // hide multimonitor configurations: GetAdapterCount returns 1.
 #define TIMESTRETCH			0x00010000 // make system time stretchable 
 #define HOOKOPENGL			0x00020000 // Hook OpenGL calls
 #define WALLPAPERMODE		0x00040000 // mouse events are discarded (good for screensaver-like)
 #define SHOWHWCURSOR		0x00080000 // mouse events are discarded (good for screensaver-like)
 #define HOOKGDI				0x00100000 // Hook GDI functions
+#define SHOWFPSOVERLAY		0x00200000 // shows FPS value to status win / log / screen overlay
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -78,6 +79,7 @@
 #define OUTDEBUG			0x00000100 // detailed debugging indormation
 
 #define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE)
+#define HANDLEFPS			(SHOWFPS | SHOWFPSOVERLAY | LIMITFPS | SKIPFPS)
 
 // DxWnd host app data to be passed to the hook callback
 typedef struct TARGETMAP
@@ -115,7 +117,7 @@ typedef struct
 	DWORD dwPid;
 	BOOL isLogging;
 	DWORD FPSCount;
-	int iTimeShift;
+	int TimeShift;
 } DXWNDSTATUS;
 
 extern DXWNDSTATUS DxWndStatus;
@@ -125,8 +127,7 @@ int StartHook(void);
 int EndHook(void);
 void GetDllVersion(char *);
 int GetHookStatus(DXWNDSTATUS *);
-void SetHookStatus(DXWNDSTATUS *);
-int GetTimeShift();
+DXWNDSTATUS *GetHookInfo();
 int HookInit(TARGETMAP *, HWND);
 
 void *SetHook(void *, void *);

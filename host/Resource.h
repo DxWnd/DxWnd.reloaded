@@ -119,6 +119,10 @@
 #define IDC_HOOKOPENGL                  1080
 #define IDC_WALLPAPERMODE               1081
 #define IDC_HOOKGDI                     1082
+#define IDC_SHOWFPSOVERLAY              1083
+#define IDC_COMBOTS                     1085
+#define IDC_LIST2                       1088
+#define IDC_LISTTS                      1088
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -158,9 +162,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        151
+#define _APS_NEXT_RESOURCE_VALUE        152
 #define _APS_NEXT_COMMAND_VALUE         32816
-#define _APS_NEXT_CONTROL_VALUE         1080
+#define _APS_NEXT_CONTROL_VALUE         1089
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

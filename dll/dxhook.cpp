@@ -117,8 +117,7 @@ static void dx_ToggleLogging()
 		dxw.dwTFlags |= OUTTRACE;
 		OutTraceD("Toggle logging ON\n");
 	}
-	DxWndStatus.isLogging=(dxw.dwTFlags & OUTTRACE);
-	SetHookStatus(&DxWndStatus);
+	GetHookInfo()->isLogging=(dxw.dwTFlags & OUTTRACE);
 }
 
 void DumpImportTable(char *module)
@@ -300,7 +299,7 @@ void *HookAPI(const char *module, char *dll, void *apiproc, const char *apiname,
 			OutTraceD("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
-		//OutTraceD("HookAPI hook=%s.%s address=%x->%x\n", module, apiname, org, hookproc);
+		if(IsDebug) OutTrace("HookAPI hook=%s.%s address=%x->%x\n", module, apiname, org, hookproc);
 	 }
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{       
@@ -706,8 +705,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 				if (wparam == VK_F5 && (dxw.TimeShift <  8)) dxw.TimeShift++;
 				if (wparam == VK_F6 && (dxw.TimeShift > -8)) dxw.TimeShift--;
 				OutTrace("Time Stretch: shift=%d speed=%s\n", dxw.TimeShift, dxw.GetTSCaption());
-				DxWndStatus.iTimeShift=dxw.TimeShift;
-				SetHookStatus(&DxWndStatus);
+				GetHookInfo()->TimeShift=dxw.TimeShift;
 			}
 			break;
 		case VK_F4:
@@ -1026,6 +1024,8 @@ void HookSysLibs(char *module)
 		if(tmp) pGetLocalTime = (GetLocalTime_Type)tmp;
 		tmp = HookAPI(module, "kernel32.dll", GetSystemTime, "GetSystemTime", extGetSystemTime);
 		if(tmp) pGetSystemTime = (GetSystemTime_Type)tmp;
+		tmp = HookAPI(module, "kernel32.dll", GetSystemTimeAsFileTime, "GetSystemTimeAsFileTime", extGetSystemTimeAsFileTime);
+		if(tmp) pGetSystemTimeAsFileTime = (GetSystemTimeAsFileTime_Type)tmp;
 		tmp = HookAPI(module, "kernel32.dll", Sleep, "Sleep", extSleep);
 		if(tmp) pSleep = (Sleep_Type)tmp;
 		tmp = HookAPI(module, "kernel32.dll", SleepEx, "SleepEx", extSleepEx);

@@ -120,14 +120,14 @@ int GetHookStatus(DXWNDSTATUS *s)
 	return HookStatus;
 }
 
-void SetHookStatus(DXWNDSTATUS *s)
+DXWNDSTATUS *GetHookInfo()
 {
-	*pStatus=*s;
+	return pStatus;
 }
 
-int GetTimeShift()
+void SetFPS(int fps)
 {
-	return pStatus->iTimeShift;
+	pStatus->FPSCount=fps;
 }
 
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
@@ -171,7 +171,7 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 					pStatus->IsFullScreen=FALSE;
 					pStatus->hWnd=hwnd;
 					pStatus->dwPid=GetProcessId(GetCurrentProcess());
-					pStatus->iTimeShift=pMapping[i].InitTS;
+					pStatus->TimeShift=pMapping[i].InitTS;
 					DxWndStatus = *pStatus;
 					HookInit(&pMapping[i], hwnd);
 				}

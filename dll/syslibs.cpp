@@ -1825,6 +1825,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 		nWDest= nWidth;
 		nHDest= nHeight;
 		dxw.MapRect(&nXDest, &nYDest, &nWDest, &nHDest);
+		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
 		res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
 	}
 	else {
@@ -1847,6 +1848,7 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
 		int nWDest, nHDest;
 		dxw.MapRect(&nXDest, &nYDest, &nWDest, &nHDest);
+		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
 		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, dwRop);
 	}
 	else {
@@ -1869,6 +1871,7 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 
 	// to do: what happend if StretchBlt is applied on screen DC ?
 
+	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
 	res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
@@ -1888,7 +1891,7 @@ static DWORD dwThrdId;
 void AutoRefresh(HDC hdc)
 {
 	while(1){
-		Sleep(10);
+		(*pSleep)(10);
 		(*pInvalidateRect)(dxw.GethWnd(), 0, FALSE);
 	}
 }
@@ -2257,17 +2260,6 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 // maps the GDI palette to the buffered DirectDraw one. This fixes the screen 
 // output for "Dementia" (a.k.a. "Armed & Delirious").
 
-typedef struct tagDxWndLOGPALETTE
-    {
-    WORD palVersion;
-    WORD palNumEntries;
-    PALETTEENTRY palPalEntry[ 256 ];
-    } 	DxWndLOGPALETTE;
-
-DxWndLOGPALETTE MyPal;
-PALETTEENTRY *GDIPalette = MyPal.palPalEntry;
-//BOOL G_bForceBackground;
-
 HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *plpal)
 {
 	HPALETTE ret;
@@ -2277,14 +2269,14 @@ HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *plpal)
 	OutTraceD("GDI.CreatePalette: plpal=%x version=%x NumEntries=%x\n", plpal, plpal->palVersion, plpal->palNumEntries);
 	ret=(*pGDICreatePalette)(plpal);
 	if(IsDebug){
-		OutTraceD("PalEntry[%x]= ", MyPal.palNumEntries);
-		for(idx=0; idx<MyPal.palNumEntries; idx++) OutTraceD("(%x)", plpal->palPalEntry[idx]);
+		OutTraceD("PalEntry[%x]= ", plpal->palNumEntries);
+		for(idx=0; idx<plpal->palNumEntries; idx++) OutTraceD("(%x)", plpal->palPalEntry[idx]);
 		OutTraceD("\n");
 	}
-	MyPal.palVersion=plpal->palVersion;
-	MyPal.palNumEntries=plpal->palNumEntries;
-	if(MyPal.palNumEntries>256) MyPal.palNumEntries=256;
-	for(idx=0; idx<MyPal.palNumEntries; idx++) MyPal.palPalEntry[idx]=plpal->palPalEntry[idx];
+	dxw.palVersion=plpal->palVersion;
+	dxw.palNumEntries=plpal->palNumEntries;
+	if(dxw.palNumEntries>256) dxw.palNumEntries=256;
+	for(idx=0; idx<dxw.palNumEntries; idx++) dxw.palPalEntry[idx]=plpal->palPalEntry[idx];
 	OutTraceD("GDI.CreatePalette: hPalette=%x\n", ret);
 	return ret;
 }
@@ -2314,12 +2306,12 @@ UINT WINAPI extRealizePalette(HDC hdc)
 	// should be cleaned up a little....
 	// maybe not: now both Diablo & Dementia colors are working...
 	if(dxw.dwFlags1 & EMULATESURFACE)
-		mySetPalette(0, MyPal.palNumEntries, MyPal.palPalEntry);
+		mySetPalette(0, dxw.palNumEntries, dxw.palPalEntry);
 	// DEBUGGING
 	if(IsDebug){
 		int idx;
-		OutTraceD("PaletteEntries[%x]= ", MyPal.palNumEntries);
-		for(idx=0; idx<MyPal.palNumEntries; idx++) OutTraceD("(%x)", PaletteEntries[idx]);
+		OutTraceD("PaletteEntries[%x]= ", dxw.palNumEntries);
+		for(idx=0; idx<dxw.palNumEntries; idx++) OutTraceD("(%x)", PaletteEntries[idx]);
 		OutTraceD("\n");
 	}
 	return ret;
@@ -2512,7 +2504,7 @@ DWORD WINAPI extGetTickCount(void)
 void WINAPI extGetSystemTime(LPSYSTEMTIME lpSystemTime)
 {
 	dxw.GetSystemTime(lpSystemTime);
-	OutTrace("GetSystemTime: %02d:%02d:%02d.%03d\n", 
+	if (IsDebug) OutTrace("GetSystemTime: %02d:%02d:%02d.%03d\n", 
 		lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond, lpSystemTime->wMilliseconds);
 }
 
@@ -2522,7 +2514,7 @@ void WINAPI extGetLocalTime(LPSYSTEMTIME lpLocalTime)
 	SYSTEMTIME SystemTime;
 	dxw.GetSystemTime(&SystemTime);
 	SystemTimeToTzSpecificLocalTime(NULL, &SystemTime, lpLocalTime);
-	OutTrace("GetLocalTime: %02d:%02d:%02d.%03d\n", 
+	if (IsDebug) OutTrace("GetLocalTime: %02d:%02d:%02d.%03d\n", 
 		lpLocalTime->wHour, lpLocalTime->wMinute, lpLocalTime->wSecond, lpLocalTime->wMilliseconds);
 }
 
@@ -2533,7 +2525,7 @@ UINT_PTR WINAPI extSetTimer(HWND hWnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPRO
 	// and the lesser the pauses must be lasting! Shift operations are reverted in
 	// GetSystemTime vs. Sleep or SetTimer
 	uShiftedElapse = dxw.StretchTime(uElapse);
-	OutTrace("SetTimer: elapse=%d->%d timeshift=%d\n", uElapse, uShiftedElapse, dxw.TimeShift);
+	if (IsDebug) OutTrace("SetTimer: elapse=%d->%d timeshift=%d\n", uElapse, uShiftedElapse, dxw.TimeShift);
 	return (*pSetTimer)(hWnd, nIDEvent, uShiftedElapse, lpTimerFunc);
 }
 
@@ -2548,7 +2540,7 @@ VOID WINAPI extSleep(DWORD dwMilliseconds)
 			else dwNewDelay = INFINITE-1; // maximum allowed !!!
 		}
 	}
-	OutTrace("Sleep: msec=%d->%d timeshift=%d\n", dwMilliseconds, dwNewDelay, dxw.TimeShift);
+	if (IsDebug) OutTrace("Sleep: msec=%d->%d timeshift=%d\n", dwMilliseconds, dwNewDelay, dxw.TimeShift);
 	(*pSleep)(dwNewDelay);
 }
 
@@ -2563,14 +2555,20 @@ DWORD WINAPI extSleepEx(DWORD dwMilliseconds, BOOL bAlertable)
 			else dwNewDelay = INFINITE-1; // maximum allowed !!!
 		}
 	}
-	OutTrace("SleepEx: msec=%d->%d alertable=%x, timeshift=%d\n", dwMilliseconds, dwNewDelay, bAlertable, dxw.TimeShift);
+	if (IsDebug) OutTrace("SleepEx: msec=%d->%d alertable=%x, timeshift=%d\n", dwMilliseconds, dwNewDelay, bAlertable, dxw.TimeShift);
 	return (*pSleepEx)(dwNewDelay, bAlertable);
 }
 
 DWORD WINAPI exttimeGetTime(void)
 {
-	OutTrace("timeGetTime\n");
+	if (IsDebug) OutTrace("timeGetTime\n");
 	return dxw.GetTickCount();
+}
+
+void WINAPI extGetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
+{
+	if (IsDebug) OutTrace("GetSystemTimeAsFileTime\n");
+	dxw.GetSystemTimeAsFileTime(lpSystemTimeAsFileTime);
 }
 
 int WINAPI extShowCursor(BOOL bShow)

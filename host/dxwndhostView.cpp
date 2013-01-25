@@ -429,6 +429,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_LimitFPS = TargetMaps[i].flags2 & LIMITFPS ? 1 : 0;
 	dlg.m_SkipFPS = TargetMaps[i].flags2 & SKIPFPS ? 1 : 0;
 	dlg.m_ShowFPS = TargetMaps[i].flags2 & SHOWFPS ? 1 : 0;
+	dlg.m_ShowFPSOverlay = TargetMaps[i].flags2 & SHOWFPSOVERLAY ? 1 : 0;
 	dlg.m_TimeStretch = TargetMaps[i].flags2 & TIMESTRETCH ? 1 : 0;
 	dlg.m_HookOpenGL = TargetMaps[i].flags2 & HOOKOPENGL ? 1 : 0;
 	dlg.m_InitX = TargetMaps[i].initx;
@@ -442,7 +443,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_SizX = TargetMaps[i].sizx;
 	dlg.m_SizY = TargetMaps[i].sizy;
 	dlg.m_MaxFPS = TargetMaps[i].MaxFPS;
-	dlg.m_InitTS = TargetMaps[i].InitTS;
+	dlg.m_InitTS = TargetMaps[i].InitTS+8;
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strcpy_s(TargetMaps[i].path, sizeof(TargetMaps[i].path), dlg.m_FilePath);
 		strcpy_s(TargetMaps[i].module, sizeof(TargetMaps[i].module), dlg.m_Module);
@@ -525,6 +526,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_LimitFPS) TargetMaps[i].flags2 |= LIMITFPS;
 		if(dlg.m_SkipFPS) TargetMaps[i].flags2 |= SKIPFPS;
 		if(dlg.m_ShowFPS) TargetMaps[i].flags2 |= SHOWFPS;
+		if(dlg.m_ShowFPSOverlay) TargetMaps[i].flags2 |= SHOWFPSOVERLAY;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
 		TargetMaps[i].initx = dlg.m_InitX;
@@ -538,7 +540,7 @@ void CDxwndhostView::OnModify()
 		TargetMaps[i].sizx = dlg.m_SizX;
 		TargetMaps[i].sizy = dlg.m_SizY;
 		TargetMaps[i].MaxFPS = dlg.m_MaxFPS;
-		TargetMaps[i].InitTS = dlg.m_InitTS;
+		TargetMaps[i].InitTS = dlg.m_InitTS-8;
 		strcpy_s(TargetMaps[i].module, sizeof(TargetMaps[i].module), dlg.m_Module);
 		strcpy_s(TargetMaps[i].OpenGLLib, sizeof(TargetMaps[i].OpenGLLib), dlg.m_OpenGLLib);
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
@@ -814,6 +816,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_LimitFPS) TargetMaps[i].flags2 |= LIMITFPS;
 		if(dlg.m_SkipFPS) TargetMaps[i].flags2 |= SKIPFPS;
 		if(dlg.m_ShowFPS) TargetMaps[i].flags2 |= SHOWFPS;
+		if(dlg.m_ShowFPSOverlay) TargetMaps[i].flags2 |= SHOWFPSOVERLAY;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
 		TargetMaps[i].initx = dlg.m_InitX;
@@ -827,7 +830,10 @@ void CDxwndhostView::OnAdd()
 		TargetMaps[i].sizx = dlg.m_SizX;
 		TargetMaps[i].sizy = dlg.m_SizY;
 		TargetMaps[i].MaxFPS = dlg.m_MaxFPS;
-		TargetMaps[i].InitTS = dlg.m_InitTS;
+		if (dlg.m_InitTS>=-8 && dlg.m_InitTS<=8)
+			TargetMaps[i].InitTS = dlg.m_InitTS-8;
+		else
+			MessageBoxEx(0, "Bad InitTS", "Warning", MB_OK, NULL);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT;
 		listitem.iItem = i;
@@ -959,6 +965,7 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 			case DXW_IDLE: IconId=IDI_DXIDLE; Status="DISABLED"; break;
 			case DXW_ACTIVE: IconId=IDI_DXWAIT; Status="READY"; break;
 			case DXW_RUNNING: IconId=IDI_DXRUN; Status="RUNNING"; break;
+			default: IconId=IDI_DXIDLE; Status="???"; break;
 		}
 		if (DxStatus != DXW_RUNNING){
 			TickCount=0;

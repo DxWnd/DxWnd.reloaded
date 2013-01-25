@@ -33,13 +33,12 @@ BEGIN_MESSAGE_MAP(CTimeSliderDialog, CDialog)
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
-#define IDTIMER 1
+#define IDTimeSiderTIMER 2
 
 // CTimeSliderDialog message handlers
 
 void CTimeSliderDialog::OnTimer(UINT_PTR nIDEvent)
 {
-	DXWNDSTATUS Status;
 	CSliderCtrl *Slider;
 	CStatic *Text;
 	char sMsg[81];
@@ -51,22 +50,21 @@ void CTimeSliderDialog::OnTimer(UINT_PTR nIDEvent)
 
 	CDialog::OnTimer(nIDEvent);
 	i_TimeSlider=Slider->GetPos();
-	if(GetHookStatus(&Status)!=DXW_RUNNING) {
+	if(GetHookStatus(NULL)!=DXW_RUNNING) {
 		Slider->SetPos(0);
 		Text->SetWindowTextA("idle");
 		return;
 	}
 	if(i_TimeSlider==iLastPos){
 		// no change, check for keyboard input changes
-		i_TimeSlider=Status.iTimeShift;
+		i_TimeSlider=GetHookInfo()->TimeShift;
 		if(i_TimeSlider != iLastPos) Slider->SetPos(i_TimeSlider);
 	}
 	else {
 		// slider position changed, set the new value
 		if (i_TimeSlider < -8) i_TimeSlider=-8;
 		if (i_TimeSlider >  8) i_TimeSlider= 8;
-		Status.iTimeShift=i_TimeSlider;
-		SetHookStatus(&Status);
+		GetHookInfo()->TimeShift=i_TimeSlider;
 	}
 	iLastPos = i_TimeSlider;
 	sprintf(sMsg, "Time speed %s", GetTSCaption(i_TimeSlider));
@@ -77,14 +75,12 @@ BOOL CTimeSliderDialog::OnInitDialog()
 {
 	CSliderCtrl *Slider;
 	CDialog::OnInitDialog();
-	DXWNDSTATUS Status;
 
-	GetHookStatus(&Status);
 	Slider=(CSliderCtrl *)this->GetDlgItem(IDC_TIMESLIDER);
 	Slider->SetRange(-8, +8, 0);
 	Slider->SetTicFreq(1);
-	Slider->SetPos(Status.iTimeShift);
-	SetTimer(IDTIMER, 1000, NULL);
+	Slider->SetPos(GetHookInfo()->TimeShift);
+	SetTimer(IDTimeSiderTIMER, 1000, NULL);
 
 	// TODO:  Add extra initialization here
 
@@ -97,12 +93,10 @@ void CTimeSliderDialog::OnOK()
 
 	// stop timer
 	// MessageBoxEx(0, "Stopping Time Slider dialog", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
-	KillTimer(IDTIMER);
+	KillTimer(IDTimeSiderTIMER);
 
 	DXWNDSTATUS Status;
-	GetHookStatus(&Status);
-	Status.iTimeShift=i_TimeSlider;
-	SetHookStatus(&Status);
+	GetHookInfo()->TimeShift=i_TimeSlider;
 
 	CDialog::OnOK();
 }

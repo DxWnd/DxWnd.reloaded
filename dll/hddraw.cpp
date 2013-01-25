@@ -398,12 +398,11 @@ void InitScreenParameters()
 	// set default VGA mode 800x600
 	// should I make it configurable ? (640x480, 800x600, 1024x768)
 	dxw.SetScreenSize(); // 800 x 600 by default
-	DxWndStatus.Height=(short)dxw.GetScreenHeight();
-	DxWndStatus.Width=(short)dxw.GetScreenWidth();
-	DxWndStatus.ColorDepth=0; // unknown
-	DxWndStatus.DXVersion=0; // unknown
-	DxWndStatus.isLogging=(dxw.dwTFlags & OUTTRACE);
-	SetHookStatus(&DxWndStatus);
+	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
+	GetHookInfo()->Width=(short)dxw.GetScreenWidth();
+	GetHookInfo()->ColorDepth=0; // unknown
+	GetHookInfo()->DXVersion=0; // unknown
+	GetHookInfo()->isLogging=(dxw.dwTFlags & OUTTRACE);
 
 	if(!EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrDevMode)){
 		OutTraceE("EnumDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -679,7 +678,7 @@ void do_slow(int delay)
 			TranslateMessage (&uMsg);
 			DispatchMessage (&uMsg);
 		}	
-		Sleep(1);
+		(*pSleep)(1);
 	}
 }
 
@@ -1492,9 +1491,8 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	}
 
 	dxw.SetScreenSize(dwwidth, dwheight);
-	DxWndStatus.Height=(short)dxw.GetScreenHeight();
-	DxWndStatus.Width=(short)dxw.GetScreenWidth();
-	SetHookStatus(&DxWndStatus);
+	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
+	GetHookInfo()->Width=(short)dxw.GetScreenWidth();
 	AdjustWindowFrame(dxw.GethWnd(), dwwidth, dwheight);
 
 	if(dxw.dwFlags1 & EMULATESURFACE){
@@ -1632,8 +1630,7 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 	if(res)
 		OutTraceE("SetCooperativeLevel: ERROR err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 
-	DxWndStatus.IsFullScreen=dxw.IsFullScreen();
-	SetHookStatus(&DxWndStatus);
+	GetHookInfo()->IsFullScreen=dxw.IsFullScreen();
 
 	// WARN: GP500 was setting cooperative level against the desktop! This can be partially
 	// intercepted by hooking the GetDesktopWindow() call, but in windowed mode this can't be 
@@ -1646,9 +1643,6 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 		else
 			dxw.SethWnd(hwnd); // save the good one	
 	}
-	
-	DxWndStatus.IsFullScreen=dxw.IsFullScreen();
-	SetHookStatus(&DxWndStatus);
 
 	return res;
 }
@@ -1676,11 +1670,10 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 	ddsd.dwSize = CurSize;
 
 	if(ddsd.dwFlags & DDSD_CAPS && ddsd.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE){
-		DxWndStatus.Height=(short)dxw.GetScreenHeight();
-		DxWndStatus.Width=(short)dxw.GetScreenWidth();
-		DxWndStatus.ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
-		DxWndStatus.DXVersion=dxversion;
-		SetHookStatus(&DxWndStatus);
+		GetHookInfo()->Height=(short)dxw.GetScreenHeight();
+		GetHookInfo()->Width=(short)dxw.GetScreenWidth();
+		GetHookInfo()->ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
+		GetHookInfo()->DXVersion=dxversion;
 		lpServiceDD = lpdd; // v2.1.87
 
 		dxw.dwPrimarySurfaceCaps = ddsd.ddsCaps.dwCaps;
@@ -1875,10 +1868,8 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 	if(ddsd.ddpfPixelFormat.dwRGBBitCount==8){ // use a better condition here....
 		if(lpDDP==NULL){
 			// should link here to the GDI palette? See Hyperblade....
-			//static PALETTEENTRY Palette[256];
-			extern PALETTEENTRY *GDIPalette;
-			//res=(*pCreatePalette)(lpdd, DDPCAPS_ALLOW256|DDPCAPS_8BIT|DDPCAPS_INITIALIZE, Palette, &lpDDP, NULL);
-			res=(*pCreatePalette)(lpdd, DDPCAPS_ALLOW256|DDPCAPS_8BIT|DDPCAPS_INITIALIZE, GDIPalette, &lpDDP, NULL);
+			dxw.palNumEntries=256;
+			res=(*pCreatePalette)(lpdd, DDPCAPS_ALLOW256|DDPCAPS_8BIT|DDPCAPS_INITIALIZE, dxw.palPalEntry, &lpDDP, NULL);
 			if (res) {
 				OutTraceE("CreateSurface: CreatePalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 				return res;
@@ -1914,11 +1905,10 @@ HRESULT WINAPI extCreateSurfaceDir(int dxversion, CreateSurface_Type pCreateSurf
 	ddsd.dwSize = dwSize;
 
 	if(ddsd.dwFlags & DDSD_CAPS && ddsd.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE){
-		DxWndStatus.Height=(short)dxw.GetScreenHeight();
-		DxWndStatus.Width=(short)dxw.GetScreenWidth();
-		DxWndStatus.ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
-		DxWndStatus.DXVersion=dxversion;
-		SetHookStatus(&DxWndStatus);
+		GetHookInfo()->Height=(short)dxw.GetScreenHeight();
+		GetHookInfo()->Width=(short)dxw.GetScreenWidth();
+		GetHookInfo()->ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
+		GetHookInfo()->DXVersion=dxversion;
 		dxw.dwPrimarySurfaceCaps = ddsd.ddsCaps.dwCaps;
 		dxw.dwBackBufferCount = (ddsd.dwFlags & DDSD_BACKBUFFERCOUNT) ? ddsd.dwBackBufferCount : 0;
 		lpServiceDD = lpdd; // v2.1.87
@@ -2446,7 +2436,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		work on my PC. 
 		*/
 		if(res==DDERR_UNSUPPORTED){
-			if (dxw.dwFlags2 & SHOWFPS) dxw.ShowFPS(lpddssrc);
+			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc);
 			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2481,7 +2471,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		lpDDSSource = lpdds;
 	}
 
-	if (dxw.dwFlags2 & SHOWFPS) dxw.ShowFPS(lpDDSSource);
+	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
 	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 	if (res==DDERR_NOCLIPLIST){
 		RenewClipper(lpDD, lpDDSEmu_Prim);
@@ -2677,7 +2667,7 @@ HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE 
 	if(!(dxw.dwFlags1 & SAVELOAD)) return (*pWaitForVerticalBlank)(lpdd, dwflags, hevent);
 	tmp = GetTickCount();
 	if((time - tmp) > 32) time = tmp;
-	Sleep(time - tmp);
+	(*pSleep)(time - tmp);
 	if(step) time += 16;
 	else time += 17;
 	step ^= 1;
@@ -2900,7 +2890,7 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 			lpDDSSource=lpdds;
 		}
 
-		if (dxw.dwFlags2 & SHOWFPS) dxw.ShowFPS(lpDDSSource);
+		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
 		res=(*pBlt)(lpDDSEmu_Prim, &screen, lpDDSSource, &rect, DDBLT_WAIT, 0);
 		if (res==DDERR_NOCLIPLIST) {
 			RenewClipper(lpDD, lpDDSEmu_Prim);

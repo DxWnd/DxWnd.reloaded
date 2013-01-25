@@ -41,8 +41,10 @@ public: // methods
 	void SetPrimarySurface(void);
 	void ResetPrimarySurface(void);
 	void GetSystemTime(LPSYSTEMTIME lpSystemTime);
+	void GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime);
 	DWORD StretchTime(DWORD);
 	void ShowFPS(LPDIRECTDRAWSURFACE);
+	void ShowFPS(HDC);
 	char *GetTSCaption(int);
 	char *GetTSCaption(void);
 
@@ -72,6 +74,9 @@ public: // simple data variables
 	//BOOL IsWithinDDraw; // flag to avoid double intervention at ddraw & GDI level
 	BOOL IsGDIPalette;
 	char *CustomOpenGLLib;
+    WORD palVersion;
+    WORD palNumEntries;
+    PALETTEENTRY palPalEntry[256];
 
 // Implementation
 protected:
