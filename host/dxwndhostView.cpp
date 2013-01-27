@@ -432,6 +432,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_ShowFPSOverlay = TargetMaps[i].flags2 & SHOWFPSOVERLAY ? 1 : 0;
 	dlg.m_TimeStretch = TargetMaps[i].flags2 & TIMESTRETCH ? 1 : 0;
 	dlg.m_HookOpenGL = TargetMaps[i].flags2 & HOOKOPENGL ? 1 : 0;
+	dlg.m_FakeVersion = TargetMaps[i].flags2 & FAKEVERSION ? 1 : 0;
 	dlg.m_InitX = TargetMaps[i].initx;
 	dlg.m_InitY = TargetMaps[i].inity;
 	dlg.m_MinX = TargetMaps[i].minx;
@@ -444,6 +445,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_SizY = TargetMaps[i].sizy;
 	dlg.m_MaxFPS = TargetMaps[i].MaxFPS;
 	dlg.m_InitTS = TargetMaps[i].InitTS+8;
+	dlg.m_FakeVersionId = TargetMaps[i].FakeVersionId;
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strcpy_s(TargetMaps[i].path, sizeof(TargetMaps[i].path), dlg.m_FilePath);
 		strcpy_s(TargetMaps[i].module, sizeof(TargetMaps[i].module), dlg.m_Module);
@@ -529,6 +531,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_ShowFPSOverlay) TargetMaps[i].flags2 |= SHOWFPSOVERLAY;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
+		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;
@@ -541,6 +544,7 @@ void CDxwndhostView::OnModify()
 		TargetMaps[i].sizy = dlg.m_SizY;
 		TargetMaps[i].MaxFPS = dlg.m_MaxFPS;
 		TargetMaps[i].InitTS = dlg.m_InitTS-8;
+		TargetMaps[i].FakeVersionId = dlg.m_FakeVersionId;
 		strcpy_s(TargetMaps[i].module, sizeof(TargetMaps[i].module), dlg.m_Module);
 		strcpy_s(TargetMaps[i].OpenGLLib, sizeof(TargetMaps[i].OpenGLLib), dlg.m_OpenGLLib);
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
@@ -819,6 +823,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_ShowFPSOverlay) TargetMaps[i].flags2 |= SHOWFPSOVERLAY;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
+		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;
@@ -830,6 +835,7 @@ void CDxwndhostView::OnAdd()
 		TargetMaps[i].sizx = dlg.m_SizX;
 		TargetMaps[i].sizy = dlg.m_SizY;
 		TargetMaps[i].MaxFPS = dlg.m_MaxFPS;
+		TargetMaps[i].FakeVersionId = dlg.m_FakeVersionId;
 		if (dlg.m_InitTS>=-8 && dlg.m_InitTS<=8)
 			TargetMaps[i].InitTS = dlg.m_InitTS-8;
 		else

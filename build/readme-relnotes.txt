@@ -26,3 +26,7 @@ revised GetDC handling with 8BPP paletized surfaces: avoided need to emulate rev
 
 v2.02.07:
 many fixes on the FPS and time control features.
+
+v2.02.08:
+fixed some errors in the main directdraw palette descriptor. That gives better compatibility and less complicated source code.
+added Fake Version feature: now Dungeon Keeper II (original version, not GOG hack) can detect a fake Win2000 / WinXP environment on Win7 and newer. Tested and working on Win7. Many thanks to Maxim for pushing me hard to win my lazyness and implement this new feature.

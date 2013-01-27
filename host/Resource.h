@@ -120,9 +120,11 @@
 #define IDC_WALLPAPERMODE               1081
 #define IDC_HOOKGDI                     1082
 #define IDC_SHOWFPSOVERLAY              1083
+#define IDC_FAKEVERSION                 1084
 #define IDC_COMBOTS                     1085
 #define IDC_LIST2                       1088
 #define IDC_LISTTS                      1088
+#define IDC_LISTFAKE                    1089
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

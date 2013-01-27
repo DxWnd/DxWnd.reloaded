@@ -77,6 +77,7 @@ public: // simple data variables
     WORD palVersion;
     WORD palNumEntries;
     PALETTEENTRY palPalEntry[256];
+	short FakeVersionId;
 
 // Implementation
 protected:

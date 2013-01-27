@@ -54,6 +54,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	TimeShift = target->InitTS;
 	if(TimeShift < -8) TimeShift = -8;
 	if(TimeShift >  8) TimeShift =  8;
+	FakeVersionId = target->FakeVersionId;
 }
 
 /* ------------------------------------------------------------------ */

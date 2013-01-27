@@ -39,7 +39,7 @@ static char *Flag2Names[32]={
 	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "DIFFERENTIALMOUSE", "FIXNCHITTEST",
 	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
 	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
-	"HOOKGDI", "", "", "",
+	"HOOKGDI", "SHOWFPSOVERLAY", "FAKEVERSION", "",
 	"", "", "", "",
 	"", "", "", "",
 };
@@ -1035,6 +1035,14 @@ void HookSysLibs(char *module)
 		tmp = HookAPI(module, "winmm.dll", NULL, "timeGetTime", exttimeGetTime);
 		if(tmp) ptimeGetTime = (timeGetTime_Type)tmp;
 	}
+
+	if(dxw.dwFlags2 & FAKEVERSION){
+		tmp = HookAPI(module, "kernel32.dll", GetVersion, "GetVersion", extGetVersion);
+		if(tmp) pGetVersion = (GetVersion_Type)tmp;
+		tmp = HookAPI(module, "kernel32.dll", GetVersionEx, "GetVersionEx", extGetVersionEx);
+		if(tmp) pGetVersionEx = (GetVersionEx_Type)tmp;
+	}
+
 	return;
 }
 

@@ -3598,11 +3598,11 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 					while(lpDDSEmu_Back->Release());
 					lpDDSEmu_Back=NULL;
 				}
-				//if (lpDDSHDC) {
-				//	OutTraceD("Release(D): released lpDDSHDC=%x\n", lpDDSHDC);
-				//	while(lpDDSHDC->Release());
-				//	lpDDSHDC=NULL;
-				//}
+				if (lpDDP) {
+					OutTraceD("Release(D): released lpDDP=%x\n", lpDDP);
+					while(lpDDP->Release());
+					lpDDP=NULL;
+				}
 				lpServiceDD = NULL; // v2.1.87
 				ref=0; // it should be ....
 			}
@@ -3613,9 +3613,9 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 				OutTraceD("Release(D): RefCount=0 - service object RESET condition\n");
 				lpDDSEmu_Prim=NULL;
 				lpDDSEmu_Back=NULL;
-				//lpDDSHDC=NULL;
 				lpDDC=NULL;
 				lpDDSBack=NULL;
+				lpDDP=NULL;
 			}
 		}
 	}
@@ -3756,15 +3756,14 @@ HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 	// current palette (ref=0!) causing a game crash. The fix pretends that the palette
 	// was released when attempting the operation to the last object reference (LastRefCount==1)
 	// returning a ref 0 without actually releasing the object.
+	//v2.02.08: Better fix: to avoid the problem, just remember to NULL-ify the global main 
+	// palette pointer lpDDP
 	ULONG ref;
-	static int LastRefCount=-1;
-	OutTraceD("Release(P): lpddPalette=%x\n", lpddPalette);
-	if(LastRefCount==1) {
-		OutTraceD("Release(P): ASSERT lpddPalette=%x Release FIX returning 0\n", lpddPalette);
-		return 0;
-	}
 	ref=(*pReleaseP)(lpddPalette);
-	LastRefCount=ref;
 	OutTraceD("Release(P): lpddPalette=%x ref=%x\n", lpddPalette, ref);
+	if(lpddPalette==lpDDP && ref==0){
+		OutTraceD("Release(P): clearing lpDDP=%x->NULL\n", lpDDP);
+		lpDDP=NULL;
+	}
 	return ref;
 }

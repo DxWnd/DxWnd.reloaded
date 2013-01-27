@@ -66,6 +66,7 @@
 #define SHOWHWCURSOR		0x00080000 // mouse events are discarded (good for screensaver-like)
 #define HOOKGDI				0x00100000 // Hook GDI functions
 #define SHOWFPSOVERLAY		0x00200000 // shows FPS value to status win / log / screen overlay
+#define FAKEVERSION			0x00400000 // pretends the platvorm is a given window version / subversion
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -103,6 +104,7 @@ typedef struct TARGETMAP
 	short sizy;
 	short MaxFPS;
 	short InitTS;
+	short FakeVersionId;
 }TARGETMAP;
 
 typedef struct

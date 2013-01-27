@@ -87,6 +87,7 @@ public:
 	BOOL	m_ShowFPSOverlay;
 	BOOL	m_TimeStretch;
 	BOOL	m_HookOpenGL;
+	BOOL	m_FakeVersion;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;
@@ -99,6 +100,7 @@ public:
 	int		m_SizY;
 	int		m_MaxFPS;
 	int		m_InitTS;
+	int		m_FakeVersionId;
 	//}}AFX_DATA
 
 

@@ -2595,3 +2595,88 @@ int WINAPI extShowCursor(BOOL bShow)
 	OutTraceD("ShowCursor: ret=%x\n", ret);
 	return ret;
 }
+
+/*
+From MSDN:
+Operating system		Version number	dwMajorVersion	dwMinorVersion	Other
+Windows 8				6.2		6		2		OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION
+Windows Server 2012		6.2		6		2		OSVERSIONINFOEX.wProductType != VER_NT_WORKSTATION
+Windows 7				6.1		6		1		OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION
+Windows Server 2008 R2	6.1		6		1		OSVERSIONINFOEX.wProductType != VER_NT_WORKSTATION
+Windows Server 2008		6.0		6		0		OSVERSIONINFOEX.wProductType != VER_NT_WORKSTATION
+Windows Vista			6.0		6		0		OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION
+Windows Server 2003 R2	5.2		5		2		GetSystemMetrics(SM_SERVERR2) != 0
+Windows Home Server		5.2		5		2		OSVERSIONINFOEX.wSuiteMask & VER_SUITE_WH_SERVER
+Windows Server 2003		5.2		5		2		GetSystemMetrics(SM_SERVERR2) == 0
+Windows XP Pro x64 Ed.	5.2		5		2		(OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION) && (SYSTEM_INFO.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64)
+Windows XP				5.1		5		1		Not applicable
+Windows 2000			5.0		5		0		Not applicable
+*/
+
+static struct {char bMajor; char bMinor; char *sName;} WinVersions[6]=
+{
+	{5, 0, "Windows 2000"},
+	{5, 1, "Windows XP"},
+	{5, 2, "Windows Server 2003"},
+	{6, 0, "Windows Vista"},
+	{6, 1, "Windows 7"},
+	{6, 2, "Windows 8"}
+};
+
+BOOL WINAPI extGetVersionEx(LPOSVERSIONINFO lpVersionInfo)
+{
+	BOOL ret;
+
+	ret=(*pGetVersionEx)(lpVersionInfo);
+	if(!ret) {
+		OutTraceE("GetVersionEx: ERROR err=%d\n", GetLastError());
+		return ret;
+	}
+
+	OutTraceD("GetVersionEx: version=%d.%d build=(%d)\n", 
+		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber);
+
+	if(dxw.dwFlags2 & FAKEVERSION) {
+		// fake Win XP build 0
+		lpVersionInfo->dwMajorVersion = WinVersions[dxw.FakeVersionId].bMajor;
+		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
+		lpVersionInfo->dwBuildNumber = 0;
+		OutTraceD("GetVersionEx: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
+			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
+			WinVersions[dxw.FakeVersionId].sName);
+	}
+	return TRUE;
+}
+
+DWORD WINAPI extGetVersion(void)
+{
+    DWORD dwVersion; 
+    DWORD dwMajorVersion;
+    DWORD dwMinorVersion; 
+    DWORD dwBuild = 0;
+
+    dwVersion = (*pGetVersion)();
+ 
+    // Get the Windows version.
+
+    dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
+    dwMinorVersion = (DWORD)(HIBYTE(LOWORD(dwVersion)));
+
+    // Get the build number.
+
+    if (dwVersion < 0x80000000)              
+        dwBuild = (DWORD)(HIWORD(dwVersion));
+
+	OutTraceD("GetVersion: version=%d.%d build=(%d)\n", dwMajorVersion, dwMinorVersion, dwBuild);
+
+	if(dxw.dwFlags2 & FAKEVERSION) {
+		dwVersion = WinVersions[dxw.FakeVersionId].bMajor | (WinVersions[dxw.FakeVersionId].bMinor << 8);
+		dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
+	    dwMinorVersion = (DWORD)(HIBYTE(LOWORD(dwVersion)));
+		dwBuild = (DWORD)(HIWORD(dwVersion));
+		OutTraceD("GetVersion: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
+			dwMajorVersion, dwMinorVersion, dwBuild, WinVersions[dxw.FakeVersionId].sName);
+	}
+
+	return dwVersion;
+}

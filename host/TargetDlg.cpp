@@ -82,6 +82,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_ShowFPSOverlay = FALSE;
 	m_TimeStretch = FALSE;
 	m_HookOpenGL = FALSE;
+	m_FakeVersion = FALSE;
 	m_InitX = 0;
 	m_InitY = 0;
 	m_MaxX = 0;
@@ -114,18 +115,31 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 //	pEdit->SetReadOnly(!bEnable);
 //} 
 
+static struct {char bMajor; char bMinor; char *sName;} WinVersions[6]=
+{
+	{5, 0, "Windows 2000"},
+	{5, 1, "Windows XP"},
+	{5, 2, "Windows Server 2003"},
+	{6, 0, "Windows Vista"},
+	{6, 1, "Windows 7"},
+	{6, 2, "Windows 8"}
+};
+
 BOOL CTargetDlg::OnInitDialog()
 {
 
-	CListBox *TSList;
+	CListBox *List;
 	CDialog::OnInitDialog();
 	int i;
 	extern char *GetTSCaption(int);
-	//MessageBoxEx(0, "Init Dialog", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
-	TSList=(CListBox *)this->GetDlgItem(IDC_LISTTS);
-	TSList->ResetContent();
-	for(i=-8; i<=8; i++) TSList->AddString(GetTSCaption(i));
-	TSList->SetCurSel(m_InitTS);
+	List=(CListBox *)this->GetDlgItem(IDC_LISTTS);
+	List->ResetContent();
+	for(i=-8; i<=8; i++) List->AddString(GetTSCaption(i));
+	List->SetCurSel(m_InitTS);
+	List=(CListBox *)this->GetDlgItem(IDC_LISTFAKE);
+	List->ResetContent();
+	for(i=0; i<6; i++) List->AddString(WinVersions[i].sName);
+	List->SetCurSel(m_FakeVersion);
 	return TRUE;
 }
 
@@ -199,6 +213,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SHOWFPSOVERLAY, m_ShowFPSOverlay);
 	DDX_Check(pDX, IDC_TIMESTRETCH, m_TimeStretch);
 	DDX_Check(pDX, IDC_HOOKOPENGL, m_HookOpenGL);
+	DDX_Check(pDX, IDC_FAKEVERSION, m_FakeVersion);
 	DDX_Text(pDX, IDC_INITX, m_InitX);
 	DDX_Text(pDX, IDC_INITY, m_InitY);
 	DDX_Text(pDX, IDC_MAXX, m_MaxX);
@@ -212,6 +227,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_MAXFPS, m_MaxFPS);
 	//DDX_Text(pDX, IDC_INITTS, m_InitTS);
 	DDX_LBIndex(pDX, IDC_LISTTS, m_InitTS);
+	DDX_LBIndex(pDX, IDC_LISTFAKE, m_FakeVersionId);
 	//}}AFX_DATA_MAP
 }
 
