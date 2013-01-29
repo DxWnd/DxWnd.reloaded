@@ -62,7 +62,7 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 		}
 	}
 	else {
-		if 	((*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+		if(res=(*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
 			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
 			OutTraceE("EmuBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
@@ -131,7 +131,7 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		}
 	}
 	else {
-		if 	(res=(*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+		if(res=(*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
 			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
 			OutTraceE("EmuBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
@@ -227,7 +227,7 @@ static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		}
 	}
 	else {
-		if 	(res=(*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+		if(res=(*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
 			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
 			OutTraceE("EmuBlt24_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
@@ -302,7 +302,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		}
 	}
 	else {
-		if 	((*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+		if(res=(*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
 			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
 			OutTraceE("EmuBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
@@ -371,7 +371,7 @@ static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 		}
 	}
 	else {
-		if 	((*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+		if(res=(*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
 			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
 			OutTraceE("EmuBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
@@ -454,7 +454,7 @@ static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		}
 	}
 	else {
-		if 	((*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+		if(res=(*pLock)(lpddssrc, 0, (LPDIRECTDRAWSURFACE)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
 			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
 			OutTraceE("EmuBlt24_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;

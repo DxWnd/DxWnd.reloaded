@@ -1597,9 +1597,9 @@ HRESULT WINAPI extAddOverlayDirtyRectProxy(LPDIRECTDRAWSURFACE lpdds, LPRECT dre
 	HRESULT res;
 	OutTraceP("AddOverlayDirtyRect(S): PROXED lpdds=%x ", lpdds);
 	if (drect)
-		OutTraceP(" drect=(%d,%d)-(%d,%d)",drect->left, drect->top, drect->right, drect->bottom);
+		OutTraceP(" drect=(%d,%d)-(%d,%d)\n",drect->left, drect->top, drect->right, drect->bottom);
 	else
-		OutTraceP(" drect=(NULL)");
+		OutTraceP(" drect=(NULL)\n");
 
 	res=(*pAddOverlayDirtyRect)(lpdds, drect);
 	if(res) OutTraceP("AddOverlayDirtyRect(S): ERROR res=%x(%s)\n", res, ExplainDDError(res));
@@ -1615,9 +1615,9 @@ HRESULT WINAPI extUpdateOverlayProxy(LPDIRECTDRAWSURFACE lpdds, LPRECT lpSrcRect
 	else
 		OutTraceP(" src=(NULL)");
 	if (lpDestRect)
-		OutTraceP(" dest=(%d,%d)-(%d,%d)",lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom);
+		OutTraceP(" dest=(%d,%d)-(%d,%d)\n",lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom);
 	else
-		OutTraceP(" dest=(NULL)");
+		OutTraceP(" dest=(NULL)\n");
 	res=(*pUpdateOverlay)(lpdds, lpSrcRect, lpddsdest, lpDestRect, dwflags, f);
 	if(res) OutTraceP("UpdateOverlay(S): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	return res;

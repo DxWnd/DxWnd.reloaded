@@ -1308,20 +1308,26 @@ ATOM WINAPI extRegisterClassExA(WNDCLASSEX *lpwcx)
 	return (*pRegisterClassExA)(lpwcx);
 }
 
-BOOL WINAPI extClientToScreen(HWND whnd, LPPOINT lppoint)
+BOOL WINAPI extClientToScreen(HWND hwnd, LPPOINT lppoint)
 {
-	if (lppoint && dxw.IsFullScreen() && (whnd == dxw.GethWnd()))
+	OutTraceB("ClientToScreen: hwnd=%x hWnd=%x FullScreen=%x point=(%d,%d)\n", 
+		hwnd, dxw.GethWnd(), dxw.IsFullScreen(), lppoint->x, lppoint->y);
+
+	if (lppoint && dxw.IsFullScreen() && (hwnd == dxw.GethWnd()))
 		return 1;
 	else
-		return (*pClientToScreen)(whnd, lppoint);
+		return (*pClientToScreen)(hwnd, lppoint);
 }
 
-BOOL WINAPI extScreenToClient(HWND whnd, LPPOINT lppoint)
+BOOL WINAPI extScreenToClient(HWND hwnd, LPPOINT lppoint)
 {
-	if (lppoint && dxw.IsFullScreen() && (whnd == dxw.GethWnd()))
+	OutTraceB("ScreenToClient: hwnd=%x hWnd=%x FullScreen=%x point=(%d,%d)\n", 
+		hwnd, dxw.GethWnd(), dxw.IsFullScreen(), lppoint->x, lppoint->y);
+
+	if (lppoint && dxw.IsFullScreen() && (hwnd == dxw.GethWnd()))
 		return 1;
 	else
-		return (*pScreenToClient)(whnd, lppoint);
+		return (*pScreenToClient)(hwnd, lppoint);
 }
 
 BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
@@ -2160,6 +2166,7 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 {
 	BOOL ret;
+	HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc);
 
 	// proxy part ...
 	OutTraceD("GDI.EndPaint: hwnd=%x lpPaint=%x\n", hwnd, lpPaint);
@@ -2169,6 +2176,14 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 
 	// if not in fullscreen mode, that's all!
 	if(!dxw.IsFullScreen()) return ret;
+
+	// v2.02.09: on MAPGDITOPRIMARY, release the PrimHDC handle 
+	if(dxw.dwFlags1 & MAPGDITOPRIMARY) {
+		if(pReleaseDC && dxw.lpDDSPrimHDC){
+			extReleaseDC(dxw.lpDDSPrimHDC, PrimHDC);
+			OutTraceD("GDI.EndPaint: released hdc=%x\n", PrimHDC);
+		}
+	}
 
 	return ret;
 }

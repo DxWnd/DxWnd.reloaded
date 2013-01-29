@@ -320,13 +320,13 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	HMENU hMenu;
 
 	rect.left =  dxw.iPosX;
-	rect.top = dxw.iPosX;
+	rect.top = dxw.iPosY; //v2.02.09
 	MaxX = dxw.iSizX;
 	MaxY = dxw.iSizY;
 	if (!MaxX) MaxX = width;
 	if (!MaxY) MaxY = height;
 	rect.right = dxw.iPosX+MaxX;
-	rect.bottom = dxw.iPosX+MaxY;
+	rect.bottom = dxw.iPosY+MaxY; //v2.02.09
 
 	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 	hMenu = GetMenu(hwnd);	
@@ -417,8 +417,8 @@ INT_PTR CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPA
 
 	static int t = -1;
 	if (t == -1)
-		t = GetTickCount();
-	int tn = GetTickCount();
+		t = (*pGetTickCount)();
+	int tn = (*pGetTickCount)();
 
 	OutTraceW("DEBUG: DialogWinMsg [0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
 
@@ -1192,7 +1192,7 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 
 	InitScreenParameters();
 
-	if (IsDebug) OutTraceD("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosX, dxw.iSizX, dxw.iSizY);
+	if (IsDebug) OutTraceD("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY); //v2.02.09
 	if(dxw.dwFlags1 & FIXPARENTWIN){
 		CalculateWindowPos(hwnd, dxw.iSizX, dxw.iSizY, &wp);
 		if (IsDebug) OutTraceD("MoveWindow: dxw.hParentWnd=%x pos=(%d,%d) size=(%d,%d)\n", dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy);

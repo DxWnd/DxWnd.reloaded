@@ -669,10 +669,10 @@ void do_slow(int delay)
 {
 	MSG uMsg;
 	int t, tn;
-	t = (*pGetTickCount)();
+	t = GetTickCount();
 
 	uMsg.message=0; // initialize somehow...
-	while((tn = (*pGetTickCount)())-t < delay){
+	while((tn = GetTickCount())-t < delay){
 		while (PeekMessage (&uMsg, NULL, 0, 0, PM_REMOVE) > 0){
 			if(WM_QUIT == uMsg.message) break;
 			TranslateMessage (&uMsg);
@@ -1763,6 +1763,27 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 		// reference to the zero count.
 		lpDDSBack->AddRef(); // should it be repeated BBCount times????
 
+#if 0
+		// for 8BPP palettized surfaces, connect them to either the ddraw emulated palette or the GDI emulated palette
+		if(ddsd.ddpfPixelFormat.dwRGBBitCount==8){ // use a better condition here....
+			if(lpDDP==NULL){
+				// should link here to the GDI palette? See Hyperblade....
+				dxw.palNumEntries=256;
+				res=(*pCreatePalette)(lpdd, DDPCAPS_ALLOW256|DDPCAPS_8BIT|DDPCAPS_INITIALIZE, dxw.palPalEntry, &lpDDP, NULL);
+				if (res) {
+					OutTraceE("CreateSurface: CreatePalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+					return res;
+				}
+			}
+			res=(*pSetPalette)(lpDDSBack, lpDDP);
+			if (res) {
+				OutTraceE("CreateSurface: SetPalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				return res;
+			}
+		}
+#endif
+
+
 		// rebuild emulated primary surface
 
 		if(lpDDSEmu_Prim==NULL){
@@ -1831,6 +1852,7 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 		(ddsd.dwFlags & DDSD_ZBUFFERBITDEPTH) ||
 		(ddsd.dwFlags & DDSD_PIXELFORMAT) ||
 		//((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ||
+		// ((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) || // v2.02.09
 		((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE))){
 		// don't alter pixel format
 		//ddsd.dwFlags &= ~DDSD_PIXELFORMAT; // Warhammer Dark Omen
@@ -1866,6 +1888,26 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 		if(res==DDERR_INVALIDPIXELFORMAT) DumpPixFmt(&ddsd);
 		return res;
 	}
+
+#if 0
+	// for 8BPP palettized surfaces, connect them to either the ddraw emulated palette or the GDI emulated palette
+	if(ddsd.ddpfPixelFormat.dwRGBBitCount==8){ // use a better condition here....
+		if(lpDDP==NULL){
+			// should link here to the GDI palette? See Hyperblade....
+			dxw.palNumEntries=256;
+			res=(*pCreatePalette)(lpdd, DDPCAPS_ALLOW256|DDPCAPS_8BIT|DDPCAPS_INITIALIZE, dxw.palPalEntry, &lpDDP, NULL);
+			if (res) {
+				OutTraceE("CreateSurface: CreatePalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				return res;
+			}
+		}
+		res=(*pSetPalette)(*lplpdds, lpDDP);
+		if (res) {
+			OutTraceE("CreateSurface: SetPalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
+	}
+#endif
 
 	// diagnostic hooks ....
 	HookDDSurfaceGeneric(lplpdds, dxversion);
@@ -2428,8 +2470,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		
 		// Try to handle HDC lock concurrency....		
 		if(res==DDERR_SURFACEBUSY){
-			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
-			if(res) OutTraceE("Unlock ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+			(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 			res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2651,7 +2692,7 @@ HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE 
 	static BOOL step = 0;
 	DWORD tmp;
 	if(!(dxw.dwFlags1 & SAVELOAD)) return (*pWaitForVerticalBlank)(lpdd, dwflags, hevent);
-	tmp = (*pGetTickCount)();
+	tmp = GetTickCount();
 	if((time - tmp) > 32) time = tmp;
 	(*pSleep)(time - tmp);
 	if(step) time += 16;
@@ -2933,9 +2974,7 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 	OutTraceD("GetDC: lpdss=%x%s\n",lpdds, IsPrim?"(PRIM)":"");
 	res=(*pGetDC)(lpdds,pHDC);
 
-	if (res==DDERR_CANTCREATEDC && 
-		(dxw.dwFlags1 & EMULATESURFACE) && 
-		dxw.VirtualPixelFormat.dwRGBBitCount==8) {
+	if (res==DDERR_CANTCREATEDC && (dxw.dwFlags1 & EMULATESURFACE) && dxw.VirtualPixelFormat.dwRGBBitCount==8) {
 		// for 8BPP palettized surfaces, connect them to either the ddraw emulated palette or the GDI emulated palette
 		OutTraceD("GetDC: adding 8BPP palette to surface lpdds=%x\n", lpdds);
 		if(lpDDP==NULL){

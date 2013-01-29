@@ -132,7 +132,7 @@ void dxwCore::ResetPrimarySurface(void)
 void dxwCore::InitWindowPos(int x, int y, int w, int h)
 {
 	iPosX = x;
-	iPosX = y;
+	iPosY = y; //v2.02.09
 	iSizX = w;
 	iSizY = h;
 }
@@ -310,8 +310,8 @@ void dxwCore::ScreenRefresh(void)
 
 	static int t = -1;
 	if (t == -1)
-		t = GetTickCount()-(DXWREFRESHINTERVAL+1); // V.2.1.69: trick - subtract 
-	int tn = GetTickCount();
+		t = (*pGetTickCount)()-(DXWREFRESHINTERVAL+1); // V.2.1.69: trick - subtract 
+	int tn = (*pGetTickCount)();
 
 	if (tn-t < DXWREFRESHINTERVAL) return;
 
@@ -332,12 +332,12 @@ static void CountFPS(HWND hwnd)
 	extern void SetFPS(int);
 	//DXWNDSTATUS Status;
 	DWORD tmp;
-	tmp = GetTickCount();
+	tmp = (*pGetTickCount)();
 	if((tmp - time) > 1000) {
 		char sBuf[80+12+1]; // title + fps string + terminator
 		char *fpss;
 		// log fps count
-		OutTrace("FPSCount=%d\n", FPSCount);
+		OutTrace("FPS: Delta=%x FPSCount=%d\n", (tmp-time), FPSCount);
 		// show fps count on status win
 		GetHookInfo()->FPSCount = FPSCount; // for overlay display
 		// show fps on win title bar
@@ -354,9 +354,9 @@ static void CountFPS(HWND hwnd)
 	}
 	else {
 		FPSCount++;
+		OutTrace("FPS: Delta=%x FPSCount++=%d\n", (tmp-time), FPSCount);
 	}
 }
-
 
 static void LimitFrameCount(DWORD delay)
 {
@@ -364,8 +364,17 @@ static void LimitFrameCount(DWORD delay)
 	DWORD newtime;
 	newtime = (*pGetTickCount)();
 	// use '<' and not '<=' to avoid the risk of sleeping forever....
-	if(newtime < oldtime+delay) (*pSleep)(oldtime+delay-newtime);
-	oldtime = newtime;
+	if(newtime < oldtime+delay) {
+		//extern void do_slow(int);
+		if(IsDebug) OutTrace("FPS limit: old=%x new=%x delay=%d sleep=%d\n", 
+			oldtime, newtime, delay, (oldtime+delay-newtime));
+		(*pSleep)(oldtime+delay-newtime);
+		// no good processing messages in the meanwhile: AoE series won't work at all!
+		//do_slow(oldtime+delay-newtime); 
+		oldtime += delay; // same as doing "oldtime=(*pGetTickCount)();" now
+	}
+	else
+		oldtime = newtime;
 }
 
 static BOOL SkipFrameCount(DWORD delay)
@@ -373,10 +382,9 @@ static BOOL SkipFrameCount(DWORD delay)
 	static DWORD oldtime=(*pGetTickCount)();
 	DWORD newtime;
 	newtime = (*pGetTickCount)();
-	// use '<' and not '<=' to avoid the risk of sleeping forever....
-	if(newtime < oldtime+delay) return TRUE;
+	if(newtime < oldtime+delay) return TRUE; // TRUE => skip the screen refresh
 	oldtime = newtime;
-	return FALSE;
+	return FALSE; // don't skip, do the update
 
 }
 

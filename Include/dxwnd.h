@@ -145,6 +145,7 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define OutTraceX if(dxw.dwTFlags & OUTPROXYTRACE) OutTrace
 #define OutTraceD if(dxw.dwTFlags & OUTDDRAWTRACE) OutTrace
 #define OutTraceC if(dxw.dwTFlags & OUTCURSORTRACE) OutTrace
+#define OutTraceB if(dxw.dwTFlags & OUTDEBUG) OutTrace
 #define OutTraceP OutTrace
 #define OutTraceE OutTrace
 

@@ -30,3 +30,11 @@ many fixes on the FPS and time control features.
 v2.02.08:
 fixed some errors in the main directdraw palette descriptor. That gives better compatibility and less complicated source code.
 added Fake Version feature: now Dungeon Keeper II (original version, not GOG hack) can detect a fake Win2000 / WinXP environment on Win7 and newer. Tested and working on Win7. Many thanks to Maxim for pushing me hard to win my lazyness and implement this new feature.
+
+v2.02.09:
+Fixed some x,y window coordinates bugs
+Fixed some proxy log messages (missing \n line terminator)
+Fixed Trace "DirectX" flag.
+improved GetDC handling in 8BPP palette mode: AddPalette called on demand, and on any surface (including backbuffers): makes Emergency work with no "Handle DC" flag set. Beware: this may affect the "Map GDI HDC on Primary DC" flag causing surface locks.
+Fixed limit FPS timing issues: now the max possible FPS is 1000/delay.
+Fixed EndPaint bug causing HDC lock in "Map GDI HDC to Primary DC" mode.
