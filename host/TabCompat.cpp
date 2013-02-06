@@ -32,6 +32,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HANDLEEXCEPTIONS, cTarget->m_HandleExceptions);
 	DDX_Check(pDX, IDC_LIMITRESOURCES, cTarget->m_LimitResources);
 	DDX_Check(pDX, IDC_SUPPRESSIME, cTarget->m_SuppressIME);
+	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 }
 
 BEGIN_MESSAGE_MAP(CTabCompat, CDialog)

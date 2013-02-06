@@ -124,6 +124,7 @@
 #define IDC_LIMITRESOURCES              1071
 #define IDC_SUPPRESSIME                 1072
 #define IDC_SETCOMPATIBILITY            1073
+#define IDC_SUPPRESSD3DEXT              1073
 #define IDC_FIXNCHITTEST                1074
 #define IDC_LIMITFPS                    1075
 #define IDC_SKIPFPS                     1076
@@ -147,6 +148,8 @@
 #define IDC_STARTDEBUG                  1093
 #define IDC_WIREFRAME                   1094
 #define IDC_DISABLEGAMMARAMP            1095
+#define IDC_WINDOWIZE2                  1095
+#define IDC_HOOKDLLS                    1095
 #define IDC_FORCEWINRESIZE              1096
 #define IDC_TIMESLIDER                  1097
 #define IDC_FORCEHOOKOPENGL             1098

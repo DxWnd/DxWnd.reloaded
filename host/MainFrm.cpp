@@ -41,6 +41,8 @@ IMPLEMENT_DYNCREATE(CMainFrame, CFrameWnd)
 BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	//{{AFX_MSG_MAP(CMainFrame)
 	ON_WM_CREATE()
+	ON_WM_MOVE()
+	ON_WM_SIZE()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -64,6 +66,32 @@ CMainFrame::CMainFrame()
 
 CMainFrame::~CMainFrame()
 {
+	char InitPath[MAX_PATH];
+	char val[32];
+	GetCurrentDirectory(MAX_PATH, InitPath);
+	strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
+
+	// adjust client win coordinates
+	RECT rect;
+	rect.top = y;
+	rect.bottom = y + cy;
+	rect.left = x;
+	rect.right = x + cx;
+	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, 1);
+	x = rect.left;
+	y = rect.top;
+	cx = rect.right - rect.left;
+	cy = rect.bottom - rect.top;
+
+	// save window rect
+	sprintf_s(val, sizeof(val), "%i", x);
+	WritePrivateProfileString("window", "posx", val, InitPath);
+	sprintf_s(val, sizeof(val), "%i", y);
+	WritePrivateProfileString("window", "posy", val, InitPath);
+	sprintf_s(val, sizeof(val), "%i", cx);
+	WritePrivateProfileString("window", "sizx", val, InitPath);
+	sprintf_s(val, sizeof(val), "%i", cy);
+	WritePrivateProfileString("window", "sizy", val, InitPath);
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -76,11 +104,30 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
-	cs.cx = 320;
-	cs.cy = 200;
+	char InitPath[MAX_PATH];
+	GetCurrentDirectory(MAX_PATH, InitPath);
+	strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
+	cs.x = GetPrivateProfileInt("window", "posx", 50, InitPath);
+	cs.y = GetPrivateProfileInt("window", "posy", 50, InitPath);
+	cs.cx = GetPrivateProfileInt("window", "sizx", 320, InitPath);
+	cs.cy = GetPrivateProfileInt("window", "sizy", 200, InitPath);
 	if( !CFrameWnd::PreCreateWindow(cs) )
 		return FALSE;
 	return TRUE;
+}
+
+void CMainFrame::OnMove(int x, int y)
+{
+	CFrameWnd::OnMove(x, y);
+	this->x=x;
+	this->y=y;
+}
+
+void CMainFrame::OnSize(UINT nType, int cx, int cy)
+{
+	CFrameWnd::OnSize(nType, cx, cy);
+	this->cx=cx;
+	this->cy=cy;
 }
 
 /////////////////////////////////////////////////////////////////////////////

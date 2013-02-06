@@ -278,6 +278,7 @@ extern DWORD WINAPI extGetTickCount(void);
 extern DWORD WINAPI extGetVersion(void);
 extern BOOL WINAPI extGetVersionEx(LPOSVERSIONINFO);
 extern void WINAPI extGlobalMemoryStatus(LPMEMORYSTATUS);
+extern int WINAPI extIsDebuggerPresent(void);
 extern HMODULE WINAPI extLoadLibraryA(LPCTSTR);
 extern HMODULE WINAPI extLoadLibraryExA(LPCTSTR, HANDLE, DWORD);
 extern HMODULE WINAPI extLoadLibraryW(LPCWSTR);

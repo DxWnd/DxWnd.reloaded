@@ -32,6 +32,7 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_TITLE, cTarget->m_Title);
 	DDX_Check(pDX, IDC_UNNOTIFY, cTarget->m_UnNotify);
 	DDX_Check(pDX, IDC_WINDOWIZE, cTarget->m_Windowize);
+	DDX_Check(pDX, IDC_HOOKDLLS, cTarget->m_HookDLLs);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);
 	DDX_Check(pDX, IDC_STARTDEBUG, cTarget->m_StartDebug);
 	DDX_Check(pDX, IDC_CLIENTREMAPPING, cTarget->m_ClientRemapping);

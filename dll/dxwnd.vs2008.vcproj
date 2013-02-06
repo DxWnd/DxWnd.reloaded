@@ -249,6 +249,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\dxkernel32.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\dxole32.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\dxuser32.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dxwcore.cpp"
 				>
 			</File>
@@ -354,6 +366,10 @@
 			</File>
 			<File
 				RelativePath=".\msvfwhook.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\smack.cpp"
 				>
 			</File>
 			<File

@@ -41,6 +41,7 @@ public:
 	BOOL	m_HandleDC;
 	BOOL	m_UnNotify;
 	BOOL	m_Windowize;
+	BOOL	m_HookDLLs;
 	BOOL	m_NoBanner;
 	BOOL	m_StartDebug;
 	CString	m_FilePath;
@@ -101,6 +102,7 @@ public:
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_WireFrame;
+	BOOL	m_SuppressD3DExt;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;

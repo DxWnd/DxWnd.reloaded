@@ -27,6 +27,7 @@ private:
 	BOOL isUpdated;
 	DEVMODE InitDevMode;
 	CSystemTray SystemTray;
+	int LastX, LastY, LastCX, LastCY;
 
 // Attributes
 public:
@@ -43,6 +44,9 @@ public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	protected:
 	virtual void OnInitialUpdate(); // Called once after the initial construction.
+	virtual void OnMove(int, int);
+	virtual void OnSize(UINT, int, int);
+	virtual void OnDestroy();
 	//}}AFX_VIRTUAL
 
 // Implementation

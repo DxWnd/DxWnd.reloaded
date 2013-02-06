@@ -17,7 +17,7 @@
 // include this file content only if compiling for DX9 interfaces
 #if(DIRECT3D_VERSION >= 0x0900)
 
-#if defined(_X86_) || defined(_IA64)
+#if defined(_X86_) || defined(_IA64_)
 #pragma pack(4)
 #endif
 
@@ -64,6 +64,59 @@ typedef struct _D3DPSHADERCAPS2_0
 
 #define D3DMIN30SHADERINSTRUCTIONS 512
 #define D3DMAX30SHADERINSTRUCTIONS 32768
+
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+typedef struct _D3DOVERLAYCAPS
+{
+    UINT   Caps;
+    UINT   MaxOverlayDisplayWidth;
+    UINT   MaxOverlayDisplayHeight;
+} D3DOVERLAYCAPS;
+
+#define D3DOVERLAYCAPS_FULLRANGERGB          0x00000001
+#define D3DOVERLAYCAPS_LIMITEDRANGERGB       0x00000002
+#define D3DOVERLAYCAPS_YCbCr_BT601           0x00000004
+#define D3DOVERLAYCAPS_YCbCr_BT709           0x00000008
+#define D3DOVERLAYCAPS_YCbCr_BT601_xvYCC     0x00000010
+#define D3DOVERLAYCAPS_YCbCr_BT709_xvYCC     0x00000020
+#define D3DOVERLAYCAPS_STRETCHX              0x00000040
+#define D3DOVERLAYCAPS_STRETCHY              0x00000080
+
+
+typedef struct _D3DCONTENTPROTECTIONCAPS
+{
+    DWORD     Caps;
+    GUID      KeyExchangeType;
+    UINT      BufferAlignmentStart;
+    UINT      BlockAlignmentSize;
+    ULONGLONG ProtectedMemorySize;
+} D3DCONTENTPROTECTIONCAPS;
+
+#define D3DCPCAPS_SOFTWARE              0x00000001
+#define D3DCPCAPS_HARDWARE              0x00000002
+#define D3DCPCAPS_PROTECTIONALWAYSON    0x00000004
+#define D3DCPCAPS_PARTIALDECRYPTION     0x00000008
+#define D3DCPCAPS_CONTENTKEY            0x00000010
+#define D3DCPCAPS_FRESHENSESSIONKEY     0x00000020
+#define D3DCPCAPS_ENCRYPTEDREADBACK     0x00000040
+#define D3DCPCAPS_ENCRYPTEDREADBACKKEY  0x00000080
+#define D3DCPCAPS_SEQUENTIAL_CTR_IV     0x00000100
+#define D3DCPCAPS_ENCRYPTSLICEDATAONLY  0x00000200
+
+DEFINE_GUID(D3DCRYPTOTYPE_AES128_CTR, 
+0x9b6bd711, 0x4f74, 0x41c9, 0x9e, 0x7b, 0xb, 0xe2, 0xd7, 0xd9, 0x3b, 0x4f);
+DEFINE_GUID(D3DCRYPTOTYPE_PROPRIETARY, 
+0xab4e9afd, 0x1d1c, 0x46e6, 0xa7, 0x2f, 0x8, 0x69, 0x91, 0x7b, 0xd, 0xe8);
+
+DEFINE_GUID(D3DKEYEXCHANGE_RSAES_OAEP, 
+0xc1949895, 0xd72a, 0x4a1d, 0x8e, 0x5d, 0xed, 0x85, 0x7d, 0x17, 0x15, 0x20);
+DEFINE_GUID(D3DKEYEXCHANGE_DXVA, 
+0x43d3775c, 0x38e5, 0x4924, 0x8d, 0x86, 0xd3, 0xfc, 0xcf, 0x15, 0x3e, 0x9b);
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
 
 typedef struct _D3DCAPS9
 {
@@ -167,6 +220,7 @@ typedef struct _D3DCAPS9
 //
 // Caps
 //
+#define D3DCAPS_OVERLAY                 0x00000800L
 #define D3DCAPS_READ_SCANLINE           0x00020000L
 
 //
@@ -178,6 +232,14 @@ typedef struct _D3DCAPS9
 #define D3DCAPS2_CANMANAGERESOURCE      0x10000000L
 #define D3DCAPS2_DYNAMICTEXTURES        0x20000000L
 #define D3DCAPS2_CANAUTOGENMIPMAP       0x40000000L
+
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+#define D3DCAPS2_CANSHARERESOURCE       0x80000000L
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
 
 //
 // Caps3
@@ -195,6 +257,7 @@ typedef struct _D3DCAPS9
 
 #define D3DCAPS3_COPY_TO_VIDMEM         0x00000100L /* Device can acclerate copies from sysmem to local vidmem */
 #define D3DCAPS3_COPY_TO_SYSTEMMEM      0x00000200L /* Device can acclerate copies from local vidmem to sysmem */
+#define D3DCAPS3_DXVAHD                 0x00000400L
 
 
 //
@@ -261,6 +324,15 @@ typedef struct _D3DCAPS9
 #define D3DPMISCCAPS_MRTPOSTPIXELSHADERBLENDING 0x00080000L /* Device supports post-pixel shader operations for MRT */
 #define D3DPMISCCAPS_FOGVERTEXCLAMPED           0x00100000L /* Device clamps fog blend factor per vertex */
 
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+#define D3DPMISCCAPS_POSTBLENDSRGBCONVERT       0x00200000L /* Indicates device can perform conversion to sRGB after blending. */
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
+
+
 //
 // LineCaps
 //
@@ -321,6 +393,16 @@ typedef struct _D3DCAPS9
 #define D3DPBLENDCAPS_BOTHINVSRCALPHA   0x00001000L
 #define D3DPBLENDCAPS_BLENDFACTOR       0x00002000L /* Supports both D3DBLEND_BLENDFACTOR and D3DBLEND_INVBLENDFACTOR */
 
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+#define D3DPBLENDCAPS_SRCCOLOR2         0x00004000L
+#define D3DPBLENDCAPS_INVSRCCOLOR2      0x00008000L
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
+
+
 //
 // ShadeCaps
 //
@@ -364,6 +446,15 @@ typedef struct _D3DCAPS9
 #define D3DPTFILTERCAPS_MINFGAUSSIANQUAD    0x00001000L
 #define D3DPTFILTERCAPS_MIPFPOINT           0x00010000L /* Mip Filter */
 #define D3DPTFILTERCAPS_MIPFLINEAR          0x00020000L
+
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+#define D3DPTFILTERCAPS_CONVOLUTIONMONO     0x00040000L /* Min and Mag for the convolution mono filter */
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
+
 #define D3DPTFILTERCAPS_MAGFPOINT           0x01000000L /* Mag Filter */
 #define D3DPTFILTERCAPS_MAGFLINEAR          0x02000000L
 #define D3DPTFILTERCAPS_MAGFANISOTROPIC     0x04000000L

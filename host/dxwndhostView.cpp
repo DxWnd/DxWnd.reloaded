@@ -55,6 +55,9 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_DXAPP_EXIT, OnExit)
 	ON_WM_RBUTTONDOWN()
 	ON_WM_DESTROY()
+	ON_WM_MOVE()
+	ON_WM_SIZE()
+	ON_WM_DESTROY()
 	ON_COMMAND(ID_RUN, OnRun)
 	ON_COMMAND(ID_TRAY_RESTORE, OnTrayRestore)
 	ON_COMMAND(ID_VIEW_STATUS, OnViewStatus)
@@ -98,22 +101,47 @@ CDxwndhostView::CDxwndhostView()
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &this->InitDevMode);
 }
 
+void CDxwndhostView::OnMove(int x, int y)
+{
+    CWnd::OnMove(x, y);
+	this->LastX=x;
+	this->LastY=y;
+}
+
+void CDxwndhostView::OnSize(UINT nSize, int cx, int cy)
+{
+	this->LastCX=cx;
+	this->LastCY=cy;
+	// save x,y pos since OnMove is not working .... why?
+	RECT rect;
+	this->GetActiveWindow()->GetWindowRect(&rect);
+	this->LastX=rect.left;
+	this->LastY=rect.top;
+}
+
 void CDxwndhostView::SaveWinPos()
 {
 	char val[32];
-	RECT rect;
+	//RECT rect;
 
 	// save window rect
-	//::GetWindowRect(::GetActiveWindow(), &rect);
-	this->GetActiveWindow()->GetWindowRect(&rect);
-	if((rect.top < 0) || (rect.bottom < 0) || (rect.left < 0) || (rect.right < 0)) return;
-	sprintf_s(val, sizeof(val), "%i", rect.left);
+	//this->GetActiveWindow()->GetWindowRect(&rect);
+	//if((rect.top < 0) || (rect.bottom < 0) || (rect.left < 0) || (rect.right < 0)) return;
+	//sprintf_s(val, sizeof(val), "%i", rect.left);
+	//WritePrivateProfileString("window", "posx", val, InitPath);
+	//sprintf_s(val, sizeof(val), "%i", rect.top);
+	//WritePrivateProfileString("window", "posy", val, InitPath);
+	//sprintf_s(val, sizeof(val), "%i", rect.right-rect.left);
+	//WritePrivateProfileString("window", "sizx", val, InitPath);
+	//sprintf_s(val, sizeof(val), "%i", rect.bottom-rect.top);
+	//WritePrivateProfileString("window", "sizy", val, InitPath);
+	sprintf_s(val, sizeof(val), "%i", this->LastX);
 	WritePrivateProfileString("window", "posx", val, InitPath);
-	sprintf_s(val, sizeof(val), "%i", rect.top);
+	sprintf_s(val, sizeof(val), "%i", this->LastY);
 	WritePrivateProfileString("window", "posy", val, InitPath);
-	sprintf_s(val, sizeof(val), "%i", rect.right-rect.left);
+	sprintf_s(val, sizeof(val), "%i", this->LastCX);
 	WritePrivateProfileString("window", "sizx", val, InitPath);
-	sprintf_s(val, sizeof(val), "%i", rect.bottom-rect.top);
+	sprintf_s(val, sizeof(val), "%i", this->LastCY);
 	WritePrivateProfileString("window", "sizy", val, InitPath);
 }
 
@@ -250,6 +278,12 @@ CDxwndhostView::~CDxwndhostView()
 	}
 }
 
+void CDxwndhostView::OnDestroy()
+{
+	this->OnExit();
+	exit(0);
+}
+
 void CDxwndhostView::OnExit()
 {
 	// check for running apps ....
@@ -287,7 +321,6 @@ void CDxwndhostView::OnInitialUpdate()
 	LV_ITEM listitem;
 	int i;
 	char key[32];
-	RECT rect;
 
 	listcol.mask = LVCF_WIDTH;
 	listcol.cx = 100;
@@ -296,16 +329,6 @@ void CDxwndhostView::OnInitialUpdate()
 	GetCurrentDirectory(MAX_PATH, InitPath);
 	strcat_s(InitPath, sizeof(InitPath), "\\");
 	strcat_s(InitPath, sizeof(InitPath), m_ConfigFileName);
-
-	// restore last window pos
-	AfxGetApp()->m_pMainWnd->GetWindowRect(&rect);
-	rect.left = GetPrivateProfileInt("window", "posx", 50, InitPath);
-	rect.top = GetPrivateProfileInt("window", "posy", 50, InitPath);
-	rect.right = rect.left + GetPrivateProfileInt("window", "sizx", 320, InitPath);
-	rect.bottom = rect.top + GetPrivateProfileInt("window", "sizy", 200, InitPath);
-	AfxGetApp()->m_pMainWnd->MoveWindow(&rect, TRUE);
-	AfxGetApp()->m_pMainWnd->ShowWindow(SW_SHOW);
-	AfxGetApp()->m_pMainWnd->UpdateWindow();
 
 	for(i = 0; i < MAXTARGETS; i ++){
 		sprintf_s(key, sizeof(key), "path%i", i);
@@ -421,6 +444,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_Title = TitleMaps[i].title;
 	dlg.m_UnNotify = TargetMaps[i].flags & UNNOTIFY ? 1 : 0;
 	dlg.m_Windowize = TargetMaps[i].flags2 & WINDOWIZE ? 1 : 0;
+	dlg.m_HookDLLs = TargetMaps[i].flags3 & HOOKDLLS ? 1 : 0;
 	dlg.m_NoBanner = TargetMaps[i].flags2 & NOBANNER ? 1 : 0;
 	dlg.m_StartDebug = TargetMaps[i].flags2 & STARTDEBUG ? 1 : 0;
 	dlg.m_EmulateSurface = TargetMaps[i].flags & EMULATESURFACE ? 1 : 0;
@@ -440,6 +464,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_HandleDC = TargetMaps[i].flags & HANDLEDC ? 1 : 0;
 	dlg.m_HandleExceptions = TargetMaps[i].flags & HANDLEEXCEPTIONS ? 1 : 0;
 	dlg.m_SuppressIME = TargetMaps[i].flags2 & SUPPRESSIME ? 1 : 0;
+	dlg.m_SuppressD3DExt = TargetMaps[i].flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg.m_SetCompatibility = TargetMaps[i].flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg.m_LimitResources = TargetMaps[i].flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg.m_SaveLoad = TargetMaps[i].flags & SAVELOAD ? 1 : 0;
@@ -519,6 +544,7 @@ void CDxwndhostView::OnModify()
 		TargetMaps[i].tflags = 0;
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
 		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
+		if(dlg.m_HookDLLs) TargetMaps[i].flags3 |= HOOKDLLS;
 		if(dlg.m_NoBanner) TargetMaps[i].flags2 |= NOBANNER;
 		if(dlg.m_StartDebug) TargetMaps[i].flags2 |= STARTDEBUG;
 		if(dlg.m_NoEmulateSurface) {
@@ -553,6 +579,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_HandleExceptions) TargetMaps[i].flags |= HANDLEEXCEPTIONS;
 		if(dlg.m_LimitResources) TargetMaps[i].flags2 |= LIMITRESOURCES;
 		if(dlg.m_SuppressIME) TargetMaps[i].flags2 |= SUPPRESSIME;
+		if(dlg.m_SuppressD3DExt) TargetMaps[i].flags3 |= SUPPRESSD3DEXT;
 		if(dlg.m_SetCompatibility) TargetMaps[i].flags2 |= SETCOMPATIBILITY;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;
@@ -822,6 +849,7 @@ void CDxwndhostView::OnAdd()
 		TargetMaps[i].tflags = 0;
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
 		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
+		if(dlg.m_HookDLLs) TargetMaps[i].flags3 |= HOOKDLLS;
 		if(dlg.m_NoBanner) TargetMaps[i].flags2 |= NOBANNER;
 		if(dlg.m_StartDebug) TargetMaps[i].flags2 |= STARTDEBUG;
 		if(dlg.m_NoEmulateSurface) {
@@ -855,6 +883,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_HandleDC) TargetMaps[i].flags |= HANDLEDC;
 		if(dlg.m_HandleExceptions) TargetMaps[i].flags |= HANDLEEXCEPTIONS;
 		if(dlg.m_SuppressIME) TargetMaps[i].flags2 |= SUPPRESSIME;
+		if(dlg.m_SuppressD3DExt) TargetMaps[i].flags3 |= SUPPRESSD3DEXT;
 		if(dlg.m_SetCompatibility) TargetMaps[i].flags2 |= SETCOMPATIBILITY;
 		if(dlg.m_LimitResources) TargetMaps[i].flags2 |= LIMITRESOURCES;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
@@ -1128,7 +1157,6 @@ void CDxwndhostView::OnGoToTrayIcon()
 
 void CDxwndhostView::OnSaveFile() 
 {
-	this->SaveWinPos();
 	if (this->isUpdated) 
 	if (MessageBoxEx(0, 
 		"Task list has changed.\n"

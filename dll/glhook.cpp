@@ -9,6 +9,8 @@
 
 FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
+	if(!(dxw.dwFlags2 & HOOKOPENGL)) return NULL; 
+
 	if (!strcmp(proc,"glViewport") && !pglViewport){
 		pglViewport=(glViewport_Type)(*pGetProcAddress)(hModule, proc);
 		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglViewport);
@@ -254,6 +256,7 @@ void WINAPI extglDrawBuffer(GLenum mode)
 		}
 	}
 	(*pglDrawBuffer)(mode);
+	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS();
 }
 
 void WINAPI extglPolygonMode(GLenum face, GLenum mode)

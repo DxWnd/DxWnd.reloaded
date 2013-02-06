@@ -1,6 +1,5 @@
 #include "gl.h"
 
-extern FARPROC Remap_gl_ProcAddress(LPCSTR, HMODULE);
 extern void HookOpenGLLibs(HMODULE, char *);
 
 typedef void (WINAPI *glViewport_Type)(GLint, GLint, GLsizei, GLsizei);

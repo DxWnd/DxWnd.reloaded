@@ -657,6 +657,11 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	}
 }
 
+void dxwCore::ShowFPS()
+{
+	this->ShowFPS(GetDC(hWnd));
+}
+
 void dxwCore::ShowFPS(HDC xdc)
 {
 	char sBuf[81];
@@ -741,13 +746,14 @@ void dxwCore::ShowBanner(HWND hwnd)
 	HBITMAP g_hbmBall;
 	RECT client;
 
-	if(JustOnce || (dwFlags2 & NOBANNER)) return;
 	JustOnce=TRUE;
 
 	hClientDC=GetDC(hwnd);
 	(*pGetClientRect)(hwnd, &client);
-	//BitBlt(hClientDC, 0, 0,  wp.cx, wp.cy, NULL, 0, 0, BLACKNESS);
 	BitBlt(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
+
+	if(JustOnce || (dwFlags2 & NOBANNER)) return;
+
     g_hbmBall = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BANNER));
     HDC hdcMem = CreateCompatibleDC(hClientDC);
     HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, g_hbmBall);
@@ -770,4 +776,57 @@ void dxwCore::ShowBanner(HWND hwnd)
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
 	Sleep(200);
+}
+
+int dxwCore::GetDLLIndex(char *lpFileName)
+{
+	int idx;
+	char *lpName, *lpNext;
+	char *SysNames[]={
+		"kernel32",
+		"USER32",
+		"GDI32",
+		"ADVAPI32",
+		"ole32",
+		"ddraw",
+		"d3d8",
+		"d3d9",
+		"d3d10",
+		"d3d10_1",
+		"d3d11",
+		"opengl32",
+ 		"msvfw32",
+		"smackw32",
+		"version",
+		"dplayx",
+		"dsound",
+		"winmm",
+		"imm32",
+		"wsock32",
+		"dinput",
+		"dinput8",
+		"shfolder",
+		"shell32",
+		"ws2_32",
+		"tapi32",
+		"netapi32",
+		NULL
+	};	
+	
+	lpName=lpFileName;
+	while (lpNext=strchr(lpName,'\\')) lpName=lpNext+1;
+	for(idx=0; SysNames[idx]; idx++){
+		char SysNameExt[81];
+		strcpy(SysNameExt, SysNames[idx]);
+		strcat(SysNameExt, ".dll");
+		if(
+			(!lstrcmpi(lpName,SysNames[idx])) ||
+			(!lstrcmpi(lpName,SysNameExt))
+		){
+			OutTraceB("Registered DLL FileName=%s\n", lpFileName);
+			break;
+		}
+	}
+	if (!SysNames[idx]) return -1;
+	return idx;
 }

@@ -44,8 +44,6 @@ public:
 // Implementation
 	//{{AFX_MSG(CDxwndhostApp)
 	afx_msg void OnAppAbout();
-	//afx_msg void OnClose();
-	//afx_msg void OnAppExit();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

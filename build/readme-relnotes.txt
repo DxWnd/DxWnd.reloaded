@@ -111,7 +111,12 @@ Disabled hooking of system libraries
 Fixed a nasty bug that caused your desktop to freeze until shutdown !!!
 Fixed GetWindowRect handling for windows not created by the task: Diablo queries the explorer window size! Now the retrieved RECT can't be larger than the virtual desktop
 
+v2.02.20
+Fixed an error in D3D10/11 preliminary code: AoE III working again
+Added "Hook all DLLs" option to simplify congiguration: see new Diablo setup
+Added screen coordinates to log
+Some code rearrangement
 
-
-
+v2.02.21
+it's a w.i.p. release, wait 'till finished....
 

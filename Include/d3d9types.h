@@ -23,7 +23,7 @@
 #pragma warning(push)
 #endif
 #pragma warning(disable:4201) // anonymous unions warning
-#if defined(_X86_) || defined(_IA64)
+#if defined(_X86_) || defined(_IA64_)
 #pragma pack(4)
 #endif
 
@@ -224,6 +224,14 @@ typedef enum _D3DBLEND {
     D3DBLEND_BOTHINVSRCALPHA    = 13,
     D3DBLEND_BLENDFACTOR        = 14, /* Only supported if D3DPBLENDCAPS_BLENDFACTOR is on */
     D3DBLEND_INVBLENDFACTOR     = 15, /* Only supported if D3DPBLENDCAPS_BLENDFACTOR is on */
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+    D3DBLEND_SRCCOLOR2          = 16,
+    D3DBLEND_INVSRCCOLOR2       = 17,
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
     D3DBLEND_FORCE_DWORD        = 0x7fffffff, /* force 32-bit size enum */
 } D3DBLEND;
 
@@ -625,6 +633,13 @@ typedef enum _D3DTEXTUREFILTERTYPE
     D3DTEXF_ANISOTROPIC     = 3,    // anisotropic
     D3DTEXF_PYRAMIDALQUAD   = 6,    // 4-sample tent
     D3DTEXF_GAUSSIANQUAD    = 7,    // 4-sample gaussian
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+    D3DTEXF_CONVOLUTIONMONO = 8,    // Convolution filter for monochrome textures
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
     D3DTEXF_FORCE_DWORD     = 0x7fffffff,   // force 32-bit size enum
 } D3DTEXTUREFILTERTYPE;
 
@@ -1377,6 +1392,16 @@ typedef enum _D3DFORMAT
     D3DFMT_D32F_LOCKABLE        = 82,
     D3DFMT_D24FS8               = 83,
 
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+    /* Z-Stencil formats valid for CPU access */
+    D3DFMT_D32_LOCKABLE         = 84,
+    D3DFMT_S8_LOCKABLE          = 85,
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
+
 
     D3DFMT_L16                  = 81,
 
@@ -1401,6 +1426,22 @@ typedef enum _D3DFORMAT
     D3DFMT_A32B32G32R32F        = 116,
 
     D3DFMT_CxV8U8               = 117,
+
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+    // Monochrome 1 bit per pixel format
+    D3DFMT_A1                   = 118,
+
+    // 2.8 biased fixed point
+    D3DFMT_A2B10G10R10_XR_BIAS  = 119,
+
+
+    // Binary format indicating that the data has no inherent type
+    D3DFMT_BINARYBUFFER         = 199,
+    
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
 
 
     D3DFMT_FORCE_DWORD          =0x7fffffff
@@ -1431,6 +1472,13 @@ typedef enum _D3DSWAPEFFECT
     D3DSWAPEFFECT_DISCARD           = 1,
     D3DSWAPEFFECT_FLIP              = 2,
     D3DSWAPEFFECT_COPY              = 3,
+
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+    D3DSWAPEFFECT_OVERLAY           = 4,
+    D3DSWAPEFFECT_FLIPEX            = 5,
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
 
     D3DSWAPEFFECT_FORCE_DWORD       = 0x7fffffff
 } D3DSWAPEFFECT;
@@ -1480,6 +1528,20 @@ typedef struct _D3DPRESENT_PARAMETERS_
 #define D3DPRESENTFLAG_DEVICECLIP               0x00000004
 #define D3DPRESENTFLAG_VIDEO                    0x00000010
 
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+#define D3DPRESENTFLAG_NOAUTOROTATE                    0x00000020
+#define D3DPRESENTFLAG_UNPRUNEDMODE                    0x00000040
+#define D3DPRESENTFLAG_OVERLAY_LIMITEDRGB              0x00000080
+#define D3DPRESENTFLAG_OVERLAY_YCbCr_BT709             0x00000100
+#define D3DPRESENTFLAG_OVERLAY_YCbCr_xvYCC             0x00000200
+#define D3DPRESENTFLAG_RESTRICTED_CONTENT              0x00000400
+#define D3DPRESENTFLAG_RESTRICT_SHARED_RESOURCE_DRIVER 0x00000800
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
+
 /* Gamma Ramp: Same as DX7 */
 
 typedef struct _D3DGAMMARAMP
@@ -1508,7 +1570,7 @@ typedef enum _D3DRESOURCETYPE {
     D3DRTYPE_VOLUMETEXTURE          =  4,
     D3DRTYPE_CUBETEXTURE            =  5,
     D3DRTYPE_VERTEXBUFFER           =  6,
-    D3DRTYPE_INDEXBUFFER            =  7,
+    D3DRTYPE_INDEXBUFFER            =  7,           //if this changes, change _D3DDEVINFO_RESOURCEMANAGER definition
 
 
     D3DRTYPE_FORCE_DWORD            = 0x7fffffff
@@ -1518,6 +1580,14 @@ typedef enum _D3DRESOURCETYPE {
 #define D3DUSAGE_RENDERTARGET       (0x00000001L)
 #define D3DUSAGE_DEPTHSTENCIL       (0x00000002L)
 #define D3DUSAGE_DYNAMIC            (0x00000200L)
+
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+#define D3DUSAGE_NONSECURE          (0x00800000L)
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
 
 // When passed to CheckDeviceFormat, D3DUSAGE_AUTOGENMIPMAP may return
 // D3DOK_NOAUTOGEN if the device doesn't support autogeneration for that format.
@@ -1542,6 +1612,23 @@ typedef enum _D3DRESOURCETYPE {
 #define D3DUSAGE_POINTS             (0x00000040L)
 #define D3DUSAGE_RTPATCHES          (0x00000080L)
 #define D3DUSAGE_NPATCHES           (0x00000100L)
+
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+#define D3DUSAGE_TEXTAPI                         (0x10000000L)
+#define D3DUSAGE_RESTRICTED_CONTENT              (0x00000800L)
+#define D3DUSAGE_RESTRICT_SHARED_RESOURCE        (0x00002000L)
+#define D3DUSAGE_RESTRICT_SHARED_RESOURCE_DRIVER (0x00001000L) 
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
+
+
+
+
+
+
 
 
 
@@ -1756,6 +1843,10 @@ typedef enum _D3DQUERYTYPE {
     D3DQUERYTYPE_PIXELTIMINGS           = 16, /* D3DISSUE_BEGIN, D3DISSUE_END */
     D3DQUERYTYPE_BANDWIDTHTIMINGS       = 17, /* D3DISSUE_BEGIN, D3DISSUE_END */
     D3DQUERYTYPE_CACHEUTILIZATION       = 18, /* D3DISSUE_BEGIN, D3DISSUE_END */
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+    D3DQUERYTYPE_MEMORYPRESSURE         = 19, /* D3DISSUE_BEGIN, D3DISSUE_END */
+#endif // !D3D_DISABLE_9EX
 } D3DQUERYTYPE;
 
 // Flags field for Issue
@@ -1788,7 +1879,11 @@ typedef struct _D3DRESOURCESTATS
 
 typedef struct _D3DDEVINFO_RESOURCEMANAGER
 {
+#ifndef WOW64_ENUM_WORKAROUND
     D3DRESOURCESTATS    stats[D3DRTYPECOUNT];
+#else
+    D3DRESOURCESTATS    stats[8];
+#endif
 } D3DDEVINFO_RESOURCEMANAGER, *LPD3DDEVINFO_RESOURCEMANAGER;
 
 typedef struct _D3DDEVINFO_D3DVERTEXSTATS
@@ -1799,7 +1894,7 @@ typedef struct _D3DDEVINFO_D3DVERTEXSTATS
 
 
 typedef struct _D3DDEVINFO_VCACHE {
-    DWORD   Pattern;                    /* bit pattern, return value must be FOUR_CC(‘C’, ‘A’, ‘C’, ‘H’) */
+    DWORD   Pattern;                    /* bit pattern, return value must be FOUR_CC('C', 'A', 'C', 'H') */
     DWORD   OptMethod;                  /* optimization method 0 means longest strips, 1 means vertex cache based */
     DWORD   CacheSize;                  /* cache size to optimize for  (only required if type is 1) */
     DWORD   MagicNumber;                /* used to determine when to restart strips (only required if type is 1)*/
@@ -1842,6 +1937,472 @@ typedef struct _D3DDEVINFO_D3D9CACHEUTILIZATION
     FLOAT TextureCacheHitRate; // Percentage of cache hits
     FLOAT PostTransformVertexCacheHitRate;
 } D3DDEVINFO_D3D9CACHEUTILIZATION;
+
+/* D3D9Ex only -- */
+#if !defined(D3D_DISABLE_9EX)
+
+typedef struct _D3DMEMORYPRESSURE
+{
+    UINT64  BytesEvictedFromProcess;
+    UINT64  SizeOfInefficientAllocation;
+    DWORD   LevelOfEfficiency;
+} D3DMEMORYPRESSURE;
+
+typedef enum _D3DCOMPOSERECTSOP{
+    D3DCOMPOSERECTS_COPY     = 1,
+    D3DCOMPOSERECTS_OR       = 2,
+    D3DCOMPOSERECTS_AND      = 3,
+    D3DCOMPOSERECTS_NEG      = 4,
+    D3DCOMPOSERECTS_FORCE_DWORD    = 0x7fffffff, /* force 32-bit size enum */
+} D3DCOMPOSERECTSOP;
+
+typedef struct _D3DCOMPOSERECTDESC
+{
+    USHORT  X, Y;           // Top-left coordinates of a rect in the source surface
+    USHORT  Width, Height;  // Dimensions of the rect
+} D3DCOMPOSERECTDESC;
+
+typedef struct _D3DCOMPOSERECTDESTINATION
+{
+    USHORT SrcRectIndex;    // Index of D3DCOMPOSERECTDESC
+    USHORT Reserved;        // For alignment
+    SHORT  X, Y;            // Top-left coordinates of the rect in the destination surface
+} D3DCOMPOSERECTDESTINATION;
+
+#define D3DCOMPOSERECTS_MAXNUMRECTS 0xFFFF
+#define D3DCONVOLUTIONMONO_MAXWIDTH  7
+#define D3DCONVOLUTIONMONO_MAXHEIGHT D3DCONVOLUTIONMONO_MAXWIDTH
+#define D3DFMT_A1_SURFACE_MAXWIDTH  8192
+#define D3DFMT_A1_SURFACE_MAXHEIGHT 2048
+
+
+typedef struct _D3DPRESENTSTATS {
+    UINT PresentCount;
+    UINT PresentRefreshCount;
+    UINT SyncRefreshCount;
+    LARGE_INTEGER SyncQPCTime;
+    LARGE_INTEGER SyncGPUTime;
+} D3DPRESENTSTATS;
+
+typedef enum D3DSCANLINEORDERING
+{
+    D3DSCANLINEORDERING_UNKNOWN                    = 0, 
+    D3DSCANLINEORDERING_PROGRESSIVE                = 1,
+    D3DSCANLINEORDERING_INTERLACED                 = 2,
+} D3DSCANLINEORDERING;
+
+
+typedef struct D3DDISPLAYMODEEX
+{
+    UINT                    Size;
+    UINT                    Width;
+    UINT                    Height;
+    UINT                    RefreshRate;
+    D3DFORMAT               Format;
+    D3DSCANLINEORDERING     ScanLineOrdering;
+} D3DDISPLAYMODEEX;
+
+typedef struct D3DDISPLAYMODEFILTER
+{
+    UINT                    Size;
+    D3DFORMAT               Format;
+    D3DSCANLINEORDERING     ScanLineOrdering;
+} D3DDISPLAYMODEFILTER;
+
+
+typedef enum D3DDISPLAYROTATION
+{
+    D3DDISPLAYROTATION_IDENTITY = 1, // No rotation.           
+    D3DDISPLAYROTATION_90       = 2, // Rotated 90 degrees.
+    D3DDISPLAYROTATION_180      = 3, // Rotated 180 degrees.
+    D3DDISPLAYROTATION_270      = 4  // Rotated 270 degrees.
+} D3DDISPLAYROTATION;
+
+/* For use in ID3DResource9::SetPriority calls */
+#define D3D9_RESOURCE_PRIORITY_MINIMUM       0x28000000
+#define D3D9_RESOURCE_PRIORITY_LOW           0x50000000
+#define D3D9_RESOURCE_PRIORITY_NORMAL        0x78000000
+#define D3D9_RESOURCE_PRIORITY_HIGH          0xa0000000
+#define D3D9_RESOURCE_PRIORITY_MAXIMUM       0xc8000000
+
+#define D3D_OMAC_SIZE    16
+
+typedef struct _D3D_OMAC
+{
+    BYTE Omac[D3D_OMAC_SIZE];
+} D3D_OMAC;
+
+typedef enum _D3DAUTHENTICATEDCHANNELTYPE
+{
+    D3DAUTHENTICATEDCHANNEL_D3D9            = 1,
+    D3DAUTHENTICATEDCHANNEL_DRIVER_SOFTWARE = 2,
+    D3DAUTHENTICATEDCHANNEL_DRIVER_HARDWARE = 3,
+} D3DAUTHENTICATEDCHANNELTYPE;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERY_INPUT
+{
+    GUID                               QueryType;
+    HANDLE                             hChannel;
+    UINT                               SequenceNumber;
+} D3DAUTHENTICATEDCHANNEL_QUERY_INPUT;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT
+{
+    D3D_OMAC                           omac;  
+    GUID                               QueryType;
+    HANDLE                             hChannel;
+    UINT                               SequenceNumber;
+    HRESULT                            ReturnCode;
+} D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT;
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_PROTECTION, 
+0xa84eb584, 0xc495, 0x48aa, 0xb9, 0x4d, 0x8b, 0xd2, 0xd6, 0xfb, 0xce, 0x5);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_PROTECTION_FLAGS
+{
+    union
+    {
+        struct
+        {
+            UINT ProtectionEnabled                       : 1; 
+            UINT OverlayOrFullscreenRequired             : 1;
+            UINT Reserved                                : 30;
+        };
+        UINT  Value;
+    };
+
+} D3DAUTHENTICATEDCHANNEL_PROTECTION_FLAGS;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYPROTECTION_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    D3DAUTHENTICATEDCHANNEL_PROTECTION_FLAGS ProtectionFlags;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYPROTECTION_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_CHANNELTYPE, 
+0xbc1b18a5, 0xb1fb, 0x42ab, 0xbd, 0x94, 0xb5, 0x82, 0x8b, 0x4b, 0xf7, 0xbe);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYCHANNELTYPE_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    D3DAUTHENTICATEDCHANNELTYPE ChannelType;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYCHANNELTYPE_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_DEVICEHANDLE, 
+0xec1c539d, 0x8cff, 0x4e2a, 0xbc, 0xc4, 0xf5, 0x69, 0x2f, 0x99, 0xf4, 0x80);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYDEVICEHANDLE_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    HANDLE   DeviceHandle;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYDEVICEHANDLE_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_CRYPTOSESSION, 
+0x2634499e, 0xd018, 0x4d74, 0xac, 0x17, 0x7f, 0x72, 0x40, 0x59, 0x52, 0x8d);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYCRYPTOSESSION_INPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_INPUT Input;
+
+    HANDLE   DXVA2DecodeHandle;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYCRYPTOSESSION_INPUT;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYCRYPTOSESSION_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    HANDLE   DXVA2DecodeHandle;
+    HANDLE   CryptoSessionHandle;
+    HANDLE   DeviceHandle;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYCRYPTOSESSION_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_RESTRICTEDSHAREDRESOURCEPROCESSCOUNT, 
+0xdb207b3, 0x9450, 0x46a6, 0x82, 0xde, 0x1b, 0x96, 0xd4, 0x4f, 0x9c, 0xf2);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYRESTRICTEDSHAREDRESOURCEPROCESSCOUNT_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    UINT   NumRestrictedSharedResourceProcesses;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYRESTRICTEDSHAREDRESOURCEPROCESSCOUNT_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_RESTRICTEDSHAREDRESOURCEPROCESS, 
+0x649bbadb, 0xf0f4, 0x4639, 0xa1, 0x5b, 0x24, 0x39, 0x3f, 0xc3, 0xab, 0xac);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYRESTRICTEDSHAREDRESOURCEPROCESS_INPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_INPUT Input;
+
+    UINT     ProcessIndex;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYRESTRICTEDSHAREDRESOURCEPROCESS_INPUT;
+
+typedef enum _D3DAUTHENTICATEDCHANNEL_PROCESSIDENTIFIERTYPE
+{
+    PROCESSIDTYPE_UNKNOWN  = 0,
+    PROCESSIDTYPE_DWM      = 1,
+    PROCESSIDTYPE_HANDLE   = 2
+} D3DAUTHENTICATEDCHANNEL_PROCESSIDENTIFIERTYPE;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYRESTRICTEDSHAREDRESOURCEPROCESS_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    UINT                                          ProcessIndex;
+    D3DAUTHENTICATEDCHANNEL_PROCESSIDENTIFIERTYPE ProcessIdentifer;
+    HANDLE                                        ProcessHandle;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYRESTRICTEDSHAREDRESOURCEPROCESS_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_UNRESTRICTEDPROTECTEDSHAREDRESOURCECOUNT, 
+0x12f0bd6, 0xe662, 0x4474, 0xbe, 0xfd, 0xaa, 0x53, 0xe5, 0x14, 0x3c, 0x6d);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYUNRESTRICTEDPROTECTEDSHAREDRESOURCECOUNT_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    UINT   NumUnrestrictedProtectedSharedResources;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYUNRESTRICTEDPROTECTEDSHAREDRESOURCECOUNT_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_OUTPUTIDCOUNT, 
+0x2c042b5e, 0x8c07, 0x46d5, 0xaa, 0xbe, 0x8f, 0x75, 0xcb, 0xad, 0x4c, 0x31);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYOUTPUTIDCOUNT_INPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_INPUT Input;
+
+    HANDLE  DeviceHandle;
+    HANDLE  CryptoSessionHandle;	
+
+} D3DAUTHENTICATEDCHANNEL_QUERYOUTPUTIDCOUNT_INPUT;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYOUTPUTIDCOUNT_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    HANDLE  DeviceHandle;
+    HANDLE  CryptoSessionHandle;	
+    UINT    NumOutputIDs;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYOUTPUTIDCOUNT_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_OUTPUTID, 
+0x839ddca3, 0x9b4e, 0x41e4, 0xb0, 0x53, 0x89, 0x2b, 0xd2, 0xa1, 0x1e, 0xe7);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYOUTPUTID_INPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_INPUT Input;
+
+    HANDLE  DeviceHandle;
+    HANDLE  CryptoSessionHandle;	
+    UINT    OutputIDIndex;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYOUTPUTID_INPUT;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYOUTPUTID_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    HANDLE  DeviceHandle;
+    HANDLE  CryptoSessionHandle;	
+    UINT    OutputIDIndex;
+    UINT64  OutputID;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYOUTPUTID_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_ACCESSIBILITYATTRIBUTES, 
+0x6214d9d2, 0x432c, 0x4abb, 0x9f, 0xce, 0x21, 0x6e, 0xea, 0x26, 0x9e, 0x3b);
+
+typedef enum _D3DBUSTYPE
+{
+    D3DBUSTYPE_OTHER                                     = 0x00000000,
+    D3DBUSTYPE_PCI                                       = 0x00000001,
+    D3DBUSTYPE_PCIX                                      = 0x00000002,
+    D3DBUSTYPE_PCIEXPRESS                                = 0x00000003,
+    D3DBUSTYPE_AGP                                       = 0x00000004,
+    D3DBUSIMPL_MODIFIER_INSIDE_OF_CHIPSET                = 0x00010000,
+    D3DBUSIMPL_MODIFIER_TRACKS_ON_MOTHER_BOARD_TO_CHIP   = 0x00020000,
+    D3DBUSIMPL_MODIFIER_TRACKS_ON_MOTHER_BOARD_TO_SOCKET = 0x00030000,
+    D3DBUSIMPL_MODIFIER_DAUGHTER_BOARD_CONNECTOR         = 0x00040000,
+    D3DBUSIMPL_MODIFIER_DAUGHTER_BOARD_CONNECTOR_INSIDE_OF_NUAE = 0x00050000, 
+    D3DBUSIMPL_MODIFIER_NON_STANDARD                     = 0x80000000,    
+} D3DBUSTYPE;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYINFOBUSTYPE_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    D3DBUSTYPE BusType;
+    BOOL bAccessibleInContiguousBlocks;
+    BOOL bAccessibleInNonContiguousBlocks;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYINFOBUSTYPE_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_ENCRYPTIONWHENACCESSIBLEGUIDCOUNT, 
+0xb30f7066, 0x203c, 0x4b07, 0x93, 0xfc, 0xce, 0xaa, 0xfd, 0x61, 0x24, 0x1e);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYEVICTIONENCRYPTIONGUIDCOUNT_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    UINT   NumEncryptionGuids;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYEVICTIONENCRYPTIONGUIDCOUNT_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_ENCRYPTIONWHENACCESSIBLEGUID, 
+0xf83a5958, 0xe986, 0x4bda, 0xbe, 0xb0, 0x41, 0x1f, 0x6a, 0x7a, 0x1, 0xb7);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYEVICTIONENCRYPTIONGUID_INPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_INPUT Input;
+
+    UINT EncryptionGuidIndex;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYEVICTIONENCRYPTIONGUID_INPUT;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYEVICTIONENCRYPTIONGUID_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    UINT       EncryptionGuidIndex;
+    GUID       EncryptionGuid;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYEVICTIONENCRYPTIONGUID_OUTPUT;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDQUERY_CURRENTENCRYPTIONWHENACCESSIBLE, 
+0xec1791c7, 0xdad3, 0x4f15, 0x9e, 0xc3, 0xfa, 0xa9, 0x3d, 0x60, 0xd4, 0xf0);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_QUERYUNCOMPRESSEDENCRYPTIONLEVEL_OUTPUT
+{
+    D3DAUTHENTICATEDCHANNEL_QUERY_OUTPUT Output;
+
+    GUID       EncryptionGuid;
+
+} D3DAUTHENTICATEDCHANNEL_QUERYUNCOMPRESSEDENCRYPTIONLEVEL_OUTPUT;
+
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_CONFIGURE_INPUT
+{
+    D3D_OMAC                            omac;  
+    GUID                                ConfigureType;      
+    HANDLE                              hChannel;    
+    UINT                                SequenceNumber;     
+
+} D3DAUTHENTICATEDCHANNEL_CONFIGURE_INPUT;
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_CONFIGURE_OUTPUT
+{
+    D3D_OMAC                            omac;  
+    GUID                                ConfigureType;          
+    HANDLE                              hChannel;
+    UINT                                SequenceNumber;     
+    HRESULT                             ReturnCode;
+
+} D3DAUTHENTICATEDCHANNEL_CONFIGURE_OUTPUT;
+
+DEFINE_GUID(D3DAUTHENTICATEDCONFIGURE_INITIALIZE, 
+0x6114bdb, 0x3523, 0x470a, 0x8d, 0xca, 0xfb, 0xc2, 0x84, 0x51, 0x54, 0xf0);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_CONFIGUREINITIALIZE
+{
+    D3DAUTHENTICATEDCHANNEL_CONFIGURE_INPUT   Parameters;
+
+    UINT   StartSequenceQuery;
+    UINT   StartSequenceConfigure;
+
+} D3DAUTHENTICATEDCHANNEL_CONFIGUREINITIALIZE;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDCONFIGURE_PROTECTION, 
+0x50455658, 0x3f47, 0x4362, 0xbf, 0x99, 0xbf, 0xdf, 0xcd, 0xe9, 0xed, 0x29);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_CONFIGUREPROTECTION
+{
+    D3DAUTHENTICATEDCHANNEL_CONFIGURE_INPUT   Parameters;
+
+    D3DAUTHENTICATEDCHANNEL_PROTECTION_FLAGS Protections;
+
+} D3DAUTHENTICATEDCHANNEL_CONFIGUREPROTECTION;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDCONFIGURE_CRYPTOSESSION, 
+0x6346cc54, 0x2cfc, 0x4ad4, 0x82, 0x24, 0xd1, 0x58, 0x37, 0xde, 0x77, 0x0);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_CONFIGURECRYPTOSESSION
+{
+    D3DAUTHENTICATEDCHANNEL_CONFIGURE_INPUT   Parameters;
+
+    HANDLE      DXVA2DecodeHandle;
+    HANDLE      CryptoSessionHandle;
+    HANDLE      DeviceHandle;
+
+} D3DAUTHENTICATEDCHANNEL_CONFIGURECRYPTOSESSION;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDCONFIGURE_SHAREDRESOURCE, 
+0x772d047, 0x1b40, 0x48e8, 0x9c, 0xa6, 0xb5, 0xf5, 0x10, 0xde, 0x9f, 0x1);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_CONFIGURESHAREDRESOURCE
+{
+    D3DAUTHENTICATEDCHANNEL_CONFIGURE_INPUT       Parameters;
+
+    D3DAUTHENTICATEDCHANNEL_PROCESSIDENTIFIERTYPE ProcessIdentiferType;
+    HANDLE                                        ProcessHandle;
+    BOOL                                          AllowAccess;
+
+} D3DAUTHENTICATEDCHANNEL_CONFIGURESHAREDRESOURCE;
+
+
+DEFINE_GUID(D3DAUTHENTICATEDCONFIGURE_ENCRYPTIONWHENACCESSIBLE, 
+0x41fff286, 0x6ae0, 0x4d43, 0x9d, 0x55, 0xa4, 0x6e, 0x9e, 0xfd, 0x15, 0x8a);
+
+typedef struct _D3DAUTHENTICATEDCHANNEL_CONFIGUREUNCOMPRESSEDENCRYPTION
+{
+    D3DAUTHENTICATEDCHANNEL_CONFIGURE_INPUT   Parameters;
+
+    GUID                                      EncryptionGuid;
+
+} D3DAUTHENTICATEDCHANNEL_CONFIGUREUNCOMPRESSEDENCRYPTION;
+
+typedef struct _D3DENCRYPTED_BLOCK_INFO
+{
+    UINT NumEncryptedBytesAtBeginning;    
+    UINT NumBytesInSkipPattern;
+    UINT NumBytesInEncryptPattern;
+} D3DENCRYPTED_BLOCK_INFO;
+
+typedef struct _D3DAES_CTR_IV
+{
+    UINT64   IV;         // Big-Endian IV
+    UINT64   Count;      // Big-Endian Block Count
+} D3DAES_CTR_IV;
+
+
+
+#endif // !D3D_DISABLE_9EX
+/* -- D3D9Ex only */
 
 #pragma pack()
 #if _MSC_VER >= 1200

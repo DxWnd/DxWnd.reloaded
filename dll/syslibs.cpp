@@ -1177,22 +1177,19 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, DEVMODE *lpDevMode, DWORD dwfla
 	if(lpDevMode)
 		dxw.SetScreenSize(lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight);
 
-	if (dxw.dwFlags1 & EMULATESURFACE){
-		OutTraceD("%s: BYPASS res=DISP_CHANGE_SUCCESSFUL\n", fname);
-		return DISP_CHANGE_SUCCESSFUL;
-	}
-	else{
-		if ((dwflags==0 || dwflags==CDS_FULLSCREEN) && lpDevMode){
+	if ((dwflags==0 || dwflags==CDS_FULLSCREEN) && lpDevMode){
+
+		// v2.2.21: save desired mode to possible use in EnumDisplaySettings wrapper v2.2.21
+		SetDevMode=*lpDevMode;
+		pSetDevMode=&SetDevMode;
+
+		if (dxw.dwFlags1 & EMULATESURFACE){
+			OutTraceD("%s: BYPASS res=DISP_CHANGE_SUCCESSFUL\n", fname);
+			return DISP_CHANGE_SUCCESSFUL;
+		}
+		else{
 			DEVMODE NewMode, TryMode;
 			int i;
-			//EnumDisplaySettings_Type pEnum;
-
-			// find what address call to use
-			// pEnum = pEnumDisplaySettings ? pEnumDisplaySettings : EnumDisplaySettings;
-			// pEnum = EnumDisplaySettings;
-
-			SetDevMode=*lpDevMode;
-			pSetDevMode=&SetDevMode;
 
 			// set the proper mode
 			NewMode = *lpDevMode;
@@ -1223,9 +1220,9 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, DEVMODE *lpDevMode, DWORD dwfla
 				res, ExplainDisplaySettingsRetcode(res));
 			return res;
 		}
-		else
-			return (*ChangeDisplaySettings)(lpDevMode, dwflags);
 	}
+	else
+		return (*ChangeDisplaySettings)(lpDevMode, dwflags);
 }
 
 LONG WINAPI extChangeDisplaySettings(DEVMODE *lpDevMode, DWORD dwflags)
@@ -1466,44 +1463,19 @@ BOOL WINAPI extGetMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgF
 // intercept GetProcAddress to initialize DirectDraw hook pointers.
 // This is necessary in "The Sims" game, that loads DirectDraw dinamically
 
-#define SYSLIBIDX_KERNEL32		0
-#define SYSLIBIDX_USER32		1
-#define SYSLIBIDX_GDI32			2
-#define SYSLIBIDX_OLE32			3
-#define SYSLIBIDX_DIRECTDRAW	4
-#define SYSLIBIDX_OPENGL		5
-#define SYSLIBIDX_MSVFW			6
-//#define SYSLIBIDX_SMACK			7
-#define SYSLIBIDX_MAX			7 // array size
-HMODULE SysLibs[SYSLIBIDX_MAX];
-char *SysNames[SYSLIBIDX_MAX]={
-	"kernel32.dll",
-	"USER32.dll",
-	"GDI32.dll",
-	"ole32.dll",
-	"ddraw.dll",
-	"opengl32.dll",
-	//"msvfw32.dll",
-	"smackw32.dll"
-};
-char *SysNames2[SYSLIBIDX_MAX]={
-	"kernel32",
-	"USER32",
-	"GDI32",
-	"ole32",
-	"ddraw",
-	"opengl32",
-	//"msvfw32",
-	"smackw32"
-};
+
 extern void HookModule(HMODULE, int);
 extern void HookSysLibs(HMODULE);
+
+HMODULE SysLibs[SYSLIBIDX_MAX];
 
 HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags, char *api)
 {
 	HMODULE libhandle;
 	int idx;
-	char *lpName, *lpNext;
+	
+	//if(!strcmp(lpFileName, "d3d9.dll") && GetModuleHandle(lpFileName)) return GetModuleHandle(lpFileName); // attempt to avoid loading same dll twice....
+
 	libhandle=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
 	OutTraceD("%s: FileName=%s hFile=%x Flags=%x(%s) hmodule=%x\n", api, lpFileName, hFile, dwFlags, ExplainLoadLibFlags(dwFlags), libhandle);
 	if(!libhandle){
@@ -1515,24 +1487,15 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 	// there's no symbol map, then itìs no possible to hook function calls.
 	if(dwFlags & (LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE|LOAD_LIBRARY_AS_DATAFILE)) return libhandle;
 
-	lpName=(char *)lpFileName;
-	while (lpNext=strchr(lpName,'\\')) lpName=lpNext+1;
-	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
-		if(
-			(!lstrcmpi(lpName,SysNames[idx])) ||
-			(!lstrcmpi(lpName,SysNames2[idx]))
-		){
-			OutTraceD("%s: registered hmodule=%x->FileName=%s\n", api, libhandle, lpFileName);
-			SysLibs[idx]=libhandle;
-			break;
-		}
-	}
+	idx=dxw.GetDLLIndex((char *)lpFileName);
+	if(idx != -1) SysLibs[idx]=libhandle;
 	// handle custom OpenGL library
-	if(!lstrcmpi(lpName,dxw.CustomOpenGLLib)){
+	if(!lstrcmpi(lpFileName,dxw.CustomOpenGLLib)){
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=libhandle;
 	}
-	if (idx == SYSLIBIDX_MAX) HookModule(libhandle, 0);
+	//if (idx == SYSLIBIDX_MAX) HookModule(libhandle, 0);
+	if (idx == -1) HookModule(libhandle, 0);
 	return libhandle;
 }
 
@@ -1567,12 +1530,6 @@ extern HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFI
 extern GetProcAddress_Type pGetProcAddress;
 //extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
 
-int WINAPI extIsDebuggerPresent(void)
-{
-	OutTraceD("extIsDebuggerPresent: return FALSE\n");
-	return FALSE;
-}
-
 FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 {
 	FARPROC ret;
@@ -1596,54 +1553,43 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		FARPROC remap;
 		switch(idx){
 		case SYSLIBIDX_DIRECTDRAW:
-			if (!strcmp(proc,"DirectDrawCreate")){
-				pDirectDrawCreate=(DirectDrawCreate_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreate);
-				return (FARPROC)extDirectDrawCreate;
-			}
-			if (!strcmp(proc,"DirectDrawCreateEx")){
-				pDirectDrawCreateEx=(DirectDrawCreateEx_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreateEx);
-				return (FARPROC)extDirectDrawCreateEx;
-			}
-			if (!strcmp(proc,"DirectDrawEnumerateA")){
-				pDirectDrawEnumerate=(DirectDrawEnumerate_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerate);
-				return (FARPROC)extDirectDrawEnumerateProxy;
-			}
-			if (!strcmp(proc,"DirectDrawEnumerateExA")){
-				pDirectDrawEnumerateEx=(DirectDrawEnumerateEx_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerateEx);
-				return (FARPROC)extDirectDrawEnumerateExProxy;
-			}
+			if (remap=Remap_ddraw_ProcAddress(proc, hModule)) return remap;
 			break;
 		case SYSLIBIDX_USER32:
-			if (!strcmp(proc,"ChangeDisplaySettingsA")){
-				pChangeDisplaySettings=(ChangeDisplaySettings_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pChangeDisplaySettings);
-				return (FARPROC)extChangeDisplaySettings;
-			}
+			if (remap=Remap_user32_ProcAddress(proc, hModule)) return remap;
 			break;
 		case SYSLIBIDX_KERNEL32:
-			if (!strcmp(proc,"IsDebuggerPresent")){
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extIsDebuggerPresent);
-				return (FARPROC)extIsDebuggerPresent;
-			}
-		case SYSLIBIDX_OLE32:
-			if (!strcmp(proc,"CoCreateInstance")){
-				pCoCreateInstance=(CoCreateInstance_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pCoCreateInstance);
-				return (FARPROC)extCoCreateInstance;
-			}
+			if (remap=Remap_kernel32_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_OLE32: 
+			if (remap=Remap_ole32_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_DIRECT3D8:
+			if (remap=Remap_d3d8_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_DIRECT3D9:
+			if (remap=Remap_d3d9_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_DIRECT3D10:
+			if (remap=Remap_d3d10_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_DIRECT3D10_1:
+			if (remap=Remap_d3d10_1_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_DIRECT2D11:
+			if (remap=Remap_d3d11_ProcAddress(proc, hModule)) return remap;
 			break;
 		case SYSLIBIDX_OPENGL:
-			if(!(dxw.dwFlags2 & HOOKOPENGL)) break; 
 			if (remap=Remap_gl_ProcAddress(proc, hModule)) return remap;
 			break;
 		case SYSLIBIDX_MSVFW:
 			if (remap=Remap_vfw_ProcAddress(proc, hModule)) return remap;
 			break;
-		//default:
+		case SYSLIBIDX_SMACK:
+			if (remap=Remap_smack_ProcAddress(proc, hModule)) return remap;
+			break;
+		default:
+			break; 
 		}
 	}
 	else {
@@ -2445,16 +2391,6 @@ LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_E
 	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
 }
 
-BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters)
-{
-	BOOL ret;
-	OutTraceD("GetDiskFreeSpace: RootPathName=\"%s\"\n", lpRootPathName);
-	ret=(*pGetDiskFreeSpaceA)(lpRootPathName, lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters);
-	if(!ret) OutTraceE("GetDiskFreeSpace: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	*lpNumberOfFreeClusters = 16000;
-	return ret;
-}
-
 BOOL WINAPI extSetDeviceGammaRamp(HDC hDC, LPVOID lpRamp)
 {
 	BOOL ret;
@@ -2515,81 +2451,12 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	return ret;
 }
 
-DWORD WINAPI extGetTickCount(void)
-{
-	return dxw.GetTickCount();
-}
-
-void WINAPI extGetSystemTime(LPSYSTEMTIME lpSystemTime)
-{
-	dxw.GetSystemTime(lpSystemTime);
-	if (IsDebug) OutTrace("GetSystemTime: %02d:%02d:%02d.%03d\n", 
-		lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond, lpSystemTime->wMilliseconds);
-}
-
-
-void WINAPI extGetLocalTime(LPSYSTEMTIME lpLocalTime)
-{
-	SYSTEMTIME SystemTime;
-	dxw.GetSystemTime(&SystemTime);
-	SystemTimeToTzSpecificLocalTime(NULL, &SystemTime, lpLocalTime);
-	if (IsDebug) OutTrace("GetLocalTime: %02d:%02d:%02d.%03d\n", 
-		lpLocalTime->wHour, lpLocalTime->wMinute, lpLocalTime->wSecond, lpLocalTime->wMilliseconds);
-}
-
-UINT_PTR WINAPI extSetTimer(HWND hWnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPROC lpTimerFunc)
-{
-	UINT uShiftedElapse;
-	// beware: the quicker the time flows, the more the time clicks are incremented,
-	// and the lesser the pauses must be lasting! Shift operations are reverted in
-	// GetSystemTime vs. Sleep or SetTimer
-	uShiftedElapse = dxw.StretchTime(uElapse);
-	if (IsDebug) OutTrace("SetTimer: elapse=%d->%d timeshift=%d\n", uElapse, uShiftedElapse, dxw.TimeShift);
-	return (*pSetTimer)(hWnd, nIDEvent, uShiftedElapse, lpTimerFunc);
-}
-
-VOID WINAPI extSleep(DWORD dwMilliseconds)
-{
-	DWORD dwNewDelay;
-	dwNewDelay=dwMilliseconds;
-	if (dwMilliseconds!=INFINITE && dwMilliseconds!=0){
-		dwNewDelay = dxw.StretchTime(dwMilliseconds);
-		if (dwNewDelay==0){ // oh oh! troubles...
-			if (dxw.TimeShift > 0) dwNewDelay=1; // minimum allowed...
-			else dwNewDelay = INFINITE-1; // maximum allowed !!!
-		}
-	}
-	if (IsDebug) OutTrace("Sleep: msec=%d->%d timeshift=%d\n", dwMilliseconds, dwNewDelay, dxw.TimeShift);
-	(*pSleep)(dwNewDelay);
-}
-
-DWORD WINAPI extSleepEx(DWORD dwMilliseconds, BOOL bAlertable)
-{
-	DWORD dwNewDelay;
-	dwNewDelay=dwMilliseconds;
-	if (dwMilliseconds!=INFINITE && dwMilliseconds!=0){
-		dwNewDelay = dxw.StretchTime(dwMilliseconds);
-		if (dwNewDelay==0){ // oh oh! troubles...
-			if (dxw.TimeShift > 0) dwNewDelay=1; // minimum allowed...
-			else dwNewDelay = INFINITE-1; // maximum allowed !!!
-		}
-	}
-	if (IsDebug) OutTrace("SleepEx: msec=%d->%d alertable=%x, timeshift=%d\n", dwMilliseconds, dwNewDelay, bAlertable, dxw.TimeShift);
-	return (*pSleepEx)(dwNewDelay, bAlertable);
-}
-
 DWORD WINAPI exttimeGetTime(void)
 {
 	DWORD ret;
 	ret = dxw.GetTickCount();
 	if (IsDebug) OutTrace("timeGetTime: time=%x\n", ret);
 	return ret;
-}
-
-void WINAPI extGetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
-{
-	if (IsDebug) OutTrace("GetSystemTimeAsFileTime\n");
-	dxw.GetSystemTimeAsFileTime(lpSystemTimeAsFileTime);
 }
 
 int WINAPI extShowCursor(BOOL bShow)
@@ -2617,130 +2484,3 @@ int WINAPI extShowCursor(BOOL bShow)
 	return ret;
 }
 
-/*
-From MSDN:
-Operating system		Version number	dwMajorVersion	dwMinorVersion	Other
-Windows 8				6.2		6		2		OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION
-Windows Server 2012		6.2		6		2		OSVERSIONINFOEX.wProductType != VER_NT_WORKSTATION
-Windows 7				6.1		6		1		OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION
-Windows Server 2008 R2	6.1		6		1		OSVERSIONINFOEX.wProductType != VER_NT_WORKSTATION
-Windows Server 2008		6.0		6		0		OSVERSIONINFOEX.wProductType != VER_NT_WORKSTATION
-Windows Vista			6.0		6		0		OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION
-Windows Server 2003 R2	5.2		5		2		GetSystemMetrics(SM_SERVERR2) != 0
-Windows Home Server		5.2		5		2		OSVERSIONINFOEX.wSuiteMask & VER_SUITE_WH_SERVER
-Windows Server 2003		5.2		5		2		GetSystemMetrics(SM_SERVERR2) == 0
-Windows XP Pro x64 Ed.	5.2		5		2		(OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION) && (SYSTEM_INFO.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64)
-Windows XP				5.1		5		1		Not applicable
-Windows 2000			5.0		5		0		Not applicable
-From http://delphi.about.com/cs/adptips2000/a/bltip1100_2.htm 
-Windows 95				4.0		4		0
-Windows 98/SE"			4.10	4		10		if osVerInfo.szCSDVersion[1] = 'A' then Windows98SE
-Windows ME				4.90	4		90
-*/
-
-static struct {char bMajor; char bMinor; char *sName;} WinVersions[9]=
-{
-	{4, 0, "Windows 95"},
-	{4,10, "Windows 98/SE"},
-	{4,90, "Windows ME"},
-	{5, 0, "Windows 2000"},
-	{5, 1, "Windows XP"},
-	{5, 2, "Windows Server 2003"},
-	{6, 0, "Windows Vista"},
-	{6, 1, "Windows 7"},
-	{6, 2, "Windows 8"}
-};
-
-BOOL WINAPI extGetVersionEx(LPOSVERSIONINFO lpVersionInfo)
-{
-	BOOL ret;
-
-	ret=(*pGetVersionEx)(lpVersionInfo);
-	if(!ret) {
-		OutTraceE("GetVersionEx: ERROR err=%d\n", GetLastError());
-		return ret;
-	}
-
-	OutTraceD("GetVersionEx: version=%d.%d build=(%d)\n", 
-		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber);
-
-	if(dxw.dwFlags2 & FAKEVERSION) {
-		// fake Win XP build 0
-		lpVersionInfo->dwMajorVersion = WinVersions[dxw.FakeVersionId].bMajor;
-		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
-		lpVersionInfo->dwBuildNumber = 0;
-		OutTraceD("GetVersionEx: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
-			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
-			WinVersions[dxw.FakeVersionId].sName);
-	}
-	return TRUE;
-}
-
-DWORD WINAPI extGetVersion(void)
-{
-    DWORD dwVersion; 
-    DWORD dwMajorVersion;
-    DWORD dwMinorVersion; 
-    DWORD dwBuild = 0;
-
-    dwVersion = (*pGetVersion)();
- 
-    // Get the Windows version.
-
-    dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
-    dwMinorVersion = (DWORD)(HIBYTE(LOWORD(dwVersion)));
-
-    // Get the build number.
-
-    if (dwVersion < 0x80000000)              
-        dwBuild = (DWORD)(HIWORD(dwVersion));
-
-	OutTraceD("GetVersion: version=%d.%d build=(%d)\n", dwMajorVersion, dwMinorVersion, dwBuild);
-
-	if(dxw.dwFlags2 & FAKEVERSION) {
-		dwVersion = WinVersions[dxw.FakeVersionId].bMajor | (WinVersions[dxw.FakeVersionId].bMinor << 8);
-		dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
-	    dwMinorVersion = (DWORD)(HIBYTE(LOWORD(dwVersion)));
-		dwBuild = (DWORD)(HIWORD(dwVersion));
-		OutTraceD("GetVersion: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
-			dwMajorVersion, dwMinorVersion, dwBuild, WinVersions[dxw.FakeVersionId].sName);
-	}
-
-	return dwVersion;
-}
-
-/* -------------------------------------------------------------------------------
-
-GlobalMemoryStatus: MSDN documents that on modern PCs that have more than DWORD
-memory values the GlobalMemoryStatus sets the fields to -1 (0xFFFFFFFF) and you 
-should use GlobalMemoryStatusEx instead. 
-But in some cases the value is less that DWORD max, but greater that DWORD>>1, that
-is the calling application may get a big value and see it as a signed negative
-value, as it happened to Nocturne on my PC. That's why it's not adviseable to write: 
-if(lpBuffer->dwTotalPhys== -1) ...
-but this way:
-if ((int)lpBuffer->dwTotalPhys < 0) ...
-and also don't set 
-BIGENOUGH 0x80000000 // possibly negative!!!
-but:
-BIGENOUGH 0x20000000 // surely positive !!!
-
-/* ---------------------------------------------------------------------------- */
-#define BIGENOUGH 0x20000000
-
-void WINAPI extGlobalMemoryStatus(LPMEMORYSTATUS lpBuffer)
-{
-	(*pGlobalMemoryStatus)(lpBuffer);
-	OutTraceD("GlobalMemoryStatus: Length=%x MemoryLoad=%x "
-		"TotalPhys=%x AvailPhys=%x TotalPageFile=%x AvailPageFile=%x TotalVirtual=%x AvailVirtual=%x\n",
-		lpBuffer->dwMemoryLoad, lpBuffer->dwTotalPhys, lpBuffer->dwAvailPhys,
-		lpBuffer->dwTotalPageFile, lpBuffer->dwAvailPageFile, lpBuffer->dwTotalVirtual, lpBuffer->dwAvailVirtual);
-	if(lpBuffer->dwLength==sizeof(MEMORYSTATUS)){
-		if ((int)lpBuffer->dwTotalPhys < 0) lpBuffer->dwTotalPhys = BIGENOUGH;
-		if ((int)lpBuffer->dwAvailPhys < 0) lpBuffer->dwAvailPhys = BIGENOUGH;
-		if ((int)lpBuffer->dwTotalPageFile < 0) lpBuffer->dwTotalPageFile = BIGENOUGH;
-		if ((int)lpBuffer->dwAvailPageFile < 0) lpBuffer->dwAvailPageFile = BIGENOUGH;
-		if ((int)lpBuffer->dwTotalVirtual < 0) lpBuffer->dwTotalVirtual = BIGENOUGH;
-		if ((int)lpBuffer->dwAvailVirtual < 0) lpBuffer->dwAvailVirtual = BIGENOUGH;
-	}
-}

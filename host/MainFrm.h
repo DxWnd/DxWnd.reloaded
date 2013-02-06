@@ -31,6 +31,7 @@ public:
 // Implementation
 public:
 	virtual ~CMainFrame();
+	int x, y, cx, cy;
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
@@ -40,6 +41,8 @@ public:
 protected:
 	//{{AFX_MSG(CMainFrame)
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnMove(int, int);
+	afx_msg void OnSize(UINT, int, int);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

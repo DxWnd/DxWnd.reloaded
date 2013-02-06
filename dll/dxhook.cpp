@@ -20,6 +20,9 @@
 dxwCore dxw;
 
 extern void InitScreenParameters();
+void HookModule(HMODULE, int);
+static void RecoverScreenMode();
+static void LockScreenMode(DWORD, DWORD, DWORD);
 
 extern HANDLE hTraceMutex;
 
@@ -48,7 +51,7 @@ static char *Flag2Names[32]={
 };
 
 static char *Flag3Names[32]={
-	"FORCEHOOKOPENGL", "", "", "",
+	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -147,6 +150,68 @@ static void dx_ToggleLogging()
 	GetHookInfo()->isLogging=(dxw.dwTFlags & OUTTRACE);
 }
 
+void HookDlls(HMODULE module)
+{
+	PIMAGE_NT_HEADERS pnth;
+	PIMAGE_IMPORT_DESCRIPTOR pidesc;
+	DWORD base, rva;
+	PSTR impmodule;
+	PIMAGE_THUNK_DATA ptname;
+	extern char *SysNames[];
+
+	base=(DWORD)module;
+	OutTraceB("HookDlls: base=%x\n", base);
+	__try{
+		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
+		if(!pnth) {
+			OutTraceB("HookDlls: ERROR no pnth at %d\n", __LINE__);
+			return;
+		}
+		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+		if(!rva) {
+			OutTraceB("HookDlls: ERROR no rva at %d\n", __LINE__);
+			return;
+		}
+
+		for(pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva); pidesc->FirstThunk; pidesc++){
+			HMODULE DllBase;
+			int idx;
+			extern HMODULE SysLibs[];
+
+			impmodule = (PSTR)(base + pidesc->Name);
+
+			// skip dxwnd and system dll
+			if(!lstrcmpi(impmodule, "DxWnd")) continue; 
+			idx=dxw.GetDLLIndex(impmodule);
+			if(!lstrcmpi(impmodule,dxw.CustomOpenGLLib))idx=SYSLIBIDX_OPENGL;
+			if(idx != -1) {
+				DllBase=GetModuleHandle(impmodule);
+				SysLibs[idx]=DllBase;
+				OutTraceB("HookDlls: system module %s at %x\n", impmodule, DllBase);
+				continue;
+			}
+
+			OutTraceB("HookDlls: ENTRY timestamp=%x module=%s forwarderchain=%x\n", 
+				pidesc->TimeDateStamp, impmodule, pidesc->ForwarderChain);
+			if(pidesc->OriginalFirstThunk) {
+				ptname = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk);
+			}
+			else{
+				ptname = 0;
+				OutTraceB("HookDlls: no PE OFTs - stripped module=%s\n", impmodule);
+			}
+
+			DllBase=GetModuleHandle(impmodule);
+			if(DllBase) HookModule(DllBase, 0);
+		}
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{       
+		OutTraceD("HookDlls: EXCEPTION\n");
+	}
+	return;
+}
+
 void DumpImportTable(HMODULE module)
 {
 	PIMAGE_NT_HEADERS pnth;
@@ -221,7 +286,12 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	dwTmp = *(DWORD *)target;
 	if(dwTmp == (DWORD)hookproc) return; // already hooked
 	if((dwTmp <= MaxHook) && (dwTmp >= MinHook)) return; // already hooked
-	if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) return; // error condition
+	if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) {
+		sprintf(msg,"SetHook ERROR: target=%x err=%d\n", target, GetLastError());
+		OutTraceD(msg);
+		if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
+		return; // error condition
+	}
 	*(DWORD *)target = (DWORD)hookproc;
 	VirtualProtect(target, 4, oldprot, &oldprot);
 	tmp=(void *)dwTmp;
@@ -273,7 +343,7 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 			pidesc ++;
 		}
 		if(!pidesc->FirstThunk) {
-			if (IsDebug) OutTraceD("HookAPI: PE unreferenced dll=%s\n", dll);
+			OutTraceB("HookAPI: PE unreferenced dll=%s\n", dll);
 			return 0;
 		}
 
@@ -386,7 +456,7 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 	HRESULT res=0;
 	WNDPROC pWindowProc;
 
-	OutTraceD("AdjustWindowFrame hwnd=%x, wxh=%dx%d\n", hwnd, width, height); 
+	OutTraceD("AdjustWindowFrame hwnd=%x, size=(%d,%d)\n", hwnd, width, height); 
 
 	dxw.SetScreenSize(width, height);
 	if (hwnd==NULL) return;
@@ -394,7 +464,7 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 	(*pSetWindowLong)(hwnd, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
 	(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0); 
 	(*pShowWindow)(hwnd, SW_SHOWNORMAL);
-	OutTraceD("AdjustWindowFrame hwnd=%x, set style=WS_OVERLAPPEDWINDOW extstyle=0\n", hwnd); 
+	OutTraceD("AdjustWindowFrame hwnd=%x, set style=%s extstyle=0\n", hwnd, (dxw.dwFlags2 & MODALSTYLE) ? "0" : "WS_OVERLAPPEDWINDOW"); 
 	AdjustWindowPos(hwnd, width, height);
 
 	// fixing windows message handling procedure
@@ -1111,39 +1181,7 @@ void HookSysLibs(HMODULE module)
 	tmp = HookAPI(module, "user32.dll", MoveWindow, "MoveWindow", extMoveWindow);
 	if(tmp) pMoveWindow = (MoveWindow_Type)tmp;
 
-	if(dxw.dwFlags2 & LIMITRESOURCES){
-		tmp = HookAPI(module, "kernel32.dll", GetDiskFreeSpaceA, "GetDiskFreeSpaceA", extGetDiskFreeSpaceA);
-		if(tmp) pGetDiskFreeSpaceA = (GetDiskFreeSpaceA_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GlobalMemoryStatus, "GlobalMemoryStatus", extGlobalMemoryStatus);
-		if(tmp) pGlobalMemoryStatus = (GlobalMemoryStatus_Type)tmp;
-	}
-
-	if(dxw.dwFlags2 & TIMESTRETCH){
-		tmp = HookAPI(module, "kernel32.dll", GetTickCount, "GetTickCount", extGetTickCount);
-		if(tmp) pGetTickCount = (GetTickCount_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GetLocalTime, "GetLocalTime", extGetLocalTime);
-		if(tmp) pGetLocalTime = (GetLocalTime_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GetSystemTime, "GetSystemTime", extGetSystemTime);
-		if(tmp) pGetSystemTime = (GetSystemTime_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GetSystemTimeAsFileTime, "GetSystemTimeAsFileTime", extGetSystemTimeAsFileTime);
-		if(tmp) pGetSystemTimeAsFileTime = (GetSystemTimeAsFileTime_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", Sleep, "Sleep", extSleep);
-		if(tmp) pSleep = (Sleep_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", SleepEx, "SleepEx", extSleepEx);
-		if(tmp) pSleepEx = (SleepEx_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", SetTimer, "SetTimer", extSetTimer);
-		if(tmp) pSetTimer = (SetTimer_Type)tmp;
-		tmp = HookAPI(module, "winmm.dll", NULL, "timeGetTime", exttimeGetTime);
-		if(tmp) ptimeGetTime = (timeGetTime_Type)tmp;
-	}
-
-	if(dxw.dwFlags2 & FAKEVERSION){
-		tmp = HookAPI(module, "kernel32.dll", GetVersion, "GetVersion", extGetVersion);
-		if(tmp) pGetVersion = (GetVersion_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GetVersionEx, "GetVersionEx", extGetVersionEx);
-		if(tmp) pGetVersionEx = (GetVersionEx_Type)tmp;
-	}
-
+	HookKernel32(module);
 	return;
 }
 
@@ -1157,6 +1195,23 @@ static void RecoverScreenMode()
 	res=(*pChangeDisplaySettings)(&InitDevMode, 0);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
+
+static void LockScreenMode(DWORD dmPelsWidth, DWORD dmPelsHeight, DWORD dmBitsPerPel)
+{
+	DEVMODE InitDevMode;
+	BOOL res;
+	EnumDisplaySettings(NULL, ENUM_REGISTRY_SETTINGS, &InitDevMode);
+	OutTraceD("ChangeDisplaySettings: LOCK wxh=(%dx%d) BitsPerPel=%d -> wxh=(%dx%d) BitsPerPel=%d\n", 
+		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel,
+		dmPelsWidth, dmPelsHeight, dmBitsPerPel);
+	if( (dmPelsWidth != InitDevMode.dmPelsWidth) ||
+		(dmPelsHeight !=InitDevMode.dmPelsHeight) ||
+		(dmBitsPerPel != InitDevMode.dmBitsPerPel)){
+		res=(*pChangeDisplaySettings)(&InitDevMode, 0);
+		if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	}
+}
+
 
 // to do: find a logic in the exception codes (0xc0000095 impies a bitmask ?)
 // idem for ExceptionFlags
@@ -1292,8 +1347,10 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	dxw.hParentWnd=GetParent(hwnd);
 	dxw.hChildWnd=hwnd;
 
-	OutTraceD("HookInit: path=\"%s\" module=\"%s\" dxversion=%s hWnd=%x dxw.hParentWnd=%x desktop=%x\n", 
-		target->path, target->module, dxversions[dxw.dwTargetDDVersion], hwnd, dxw.hParentWnd, GetDesktopWindow());
+	OutTraceD("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d) hWnd=%x dxw.hParentWnd=%x desktop=%x\n", 
+		target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
+		target->posx, target->posy, target->sizx, target->sizy,
+		hwnd, dxw.hParentWnd, GetDesktopWindow());
 	if (IsDebug){
 		DWORD dwStyle, dwExStyle;
 		dwStyle=GetWindowLong(dxw.GethWnd(), GWL_STYLE);
@@ -1323,11 +1380,8 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 
 	OutTraceB("HookInit: base hmodule=%x\n", base);
 	HookModule(base, dxw.dwTargetDDVersion);
-	// ListProcessModules needs to be fixed: it hangs the exe....
-	//if(1){
-	//	extern BOOL ListProcessModules(BOOL); 
-	//	ListProcessModules(true);
-	//}
+	if (dxw.dwFlags3 & HOOKDLLS) HookDlls(base);
+
 	strncpy(sModuleBuf, dxw.gsModules, 60);
 	sModule=strtok(sModuleBuf," ;");
 	while (sModule) {
