@@ -71,8 +71,11 @@ public: // methods
 	void ShowTimeStretching(void);
 	void ShowFPS(HDC);
 	void ShowTimeStretching(HDC);
-	char *GetTSCaption(int);
+	void ShowOverlay();
+	void ShowOverlay(HDC);
+	void ShowOverlay(LPDIRECTDRAWSURFACE);
 	char *GetTSCaption(void);
+	char *GetTSCaption(int);
 	void DoSlow(int);
 	void ShowBanner(HWND);
 	POINT ScreenToClient(POINT);

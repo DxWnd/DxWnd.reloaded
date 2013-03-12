@@ -124,6 +124,7 @@ typedef BOOL	(WINAPI *QueryPerformanceCounter_Type)(LARGE_INTEGER *);
 // ole32.dll:
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstanceEx_Type)(REFCLSID, IUnknown *, DWORD, COSERVERINFO *, DWORD, MULTI_QI *);
+typedef HRESULT (STDAPICALLTYPE *CoInitialize_Type)(LPVOID);
 
 // user32.dll:
 typedef HDC		(WINAPI *BeginPaint_Type)(HWND, LPPAINTSTRUCT);
@@ -308,6 +309,7 @@ DXWEXTERN QueryPerformanceCounter_Type pQueryPerformanceCounter DXWINITIALIZED;
 // ole32.dll:
 DXWEXTERN CoCreateInstance_Type pCoCreateInstance DXWINITIALIZED;
 DXWEXTERN CoCreateInstanceEx_Type pCoCreateInstanceEx  DXWINITIALIZED;
+DXWEXTERN CoInitialize_Type pCoInitialize  DXWINITIALIZED;
 
 // user32.dll:
 DXWEXTERN BeginPaint_Type pBeginPaint DXWINITIALIZED;
@@ -488,6 +490,7 @@ extern BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *);
 // ole32.dll:
 extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
 extern HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID, IUnknown *, DWORD, COSERVERINFO *, DWORD, MULTI_QI *);
+extern HRESULT STDAPICALLTYPE extCoInitialize(LPVOID);
 
 // user32.dll:
 extern HDC WINAPI extBeginPaint(HWND, LPPAINTSTRUCT);

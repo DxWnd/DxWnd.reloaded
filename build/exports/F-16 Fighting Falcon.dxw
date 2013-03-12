@@ -1,15 +1,15 @@
 [target]
-title0=Kiss Psycho Circus
-path0=D:\Games\Kiss\client.exe
+title0=F-16 Fighting Falcon
+path0=D:\Games\F16\f1695.exe
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=134234148
-flagg0=1207959808
+flag0=134217826
+flagg0=1209008128
 flagh0=20
-flagi0=0
-tflag0=3
+flagi0=4
+tflag0=259
 initx0=0
 inity0=0
 minx0=0

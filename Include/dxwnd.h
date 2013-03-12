@@ -64,7 +64,7 @@
 #define TIMESTRETCH			0x00010000 // make system time stretchable 
 #define HOOKOPENGL			0x00020000 // Hook OpenGL calls
 #define WALLPAPERMODE		0x00040000 // mouse events are discarded (good for screensaver-like)
-#define SHOWHWCURSOR		0x00080000 // mouse events are discarded (good for screensaver-like)
+#define SHOWHWCURSOR		0x00080000 // enable hardware cursor
 #define HOOKGDI				0x00100000 // Hook GDI functions
 #define SHOWFPSOVERLAY		0x00200000 // shows FPS value to status win / log / screen overlay
 #define FAKEVERSION			0x00400000 // pretends the platvorm is a given window version / subversion

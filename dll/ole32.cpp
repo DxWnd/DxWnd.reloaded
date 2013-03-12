@@ -10,6 +10,7 @@ extern void HookModule(HMODULE, int);
 static HookEntry_Type Hooks[]={
 	{"CoCreateInstance", NULL, (FARPROC *)&pCoCreateInstance, (FARPROC)extCoCreateInstance},
 	{"CoCreateInstanceEx", NULL, (FARPROC *)&pCoCreateInstanceEx, (FARPROC)extCoCreateInstanceEx}, 
+	{"CoInitialize", NULL, (FARPROC *)&pCoInitialize, (FARPROC)extCoInitialize}, 
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -28,12 +29,91 @@ FARPROC Remap_ole32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	return NULL;
 }
 
+// so far, there are 4 additional libraries that could be loaded by meand of a CoCreateInstance call....
+
+#define ADDITIONAL_MODULE_COUNT 4
+struct {
+	BOOL Hooked;
+	char *ModuleName;
+} AddedModules[ADDITIONAL_MODULE_COUNT]=
+{
+	{FALSE, "quartz"},
+	{FALSE, "ddrawex"},
+	{FALSE, "amstream"},
+	{FALSE, "dplayx"}
+};
+
+static void HookAdditionalModules()
+{
+	for(int i=0; i<ADDITIONAL_MODULE_COUNT; i++){
+		if(!AddedModules[i].Hooked){
+			HMODULE hModule;
+			hModule=GetModuleHandle(AddedModules[i].ModuleName);
+			if(hModule){ // if not hooked yet...
+				HookModule(hModule, 0); // hook it and ..
+				AddedModules[i].Hooked=TRUE; // .. mark it as already hooked
+				OutTraceD("CoCreateInstance: hooked module=%s hmodule=%x\n", AddedModules[i].ModuleName, hModule);
+				CloseHandle(hModule);
+			}
+		}
+	}
+}
+
 // -------------------------------------------------------------------------------------
 // Ole32 CoCreateInstance handling: you can create DirectDraw objects through it!
 // utilized so far in a single game: Axiz & Allies
 // -------------------------------------------------------------------------------------
 
 static void HookDDSession(LPDIRECTDRAW *, int);
+static HRESULT STDAPICALLTYPE myCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID FAR* ppv)
+{
+	HRESULT res;
+
+	res=(*pCoCreateInstance)(rclsid, pUnkOuter, dwClsContext, riid, ppv);
+	if(res) 
+		OutTraceE("CoCreateInstance: ERROR res=%x\n", res);
+	else
+		OutTraceD("CoCreateInstance: ppv=%x->%x\n", *ppv, *(DWORD *)*ppv);
+
+	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DirectDraw){
+		LPDIRECTDRAW lpOldDDraw;
+		OutTraceD("CoCreateInstance: CLSID_DirectDraw object\n");
+		switch (*(DWORD *)&riid){
+		case 0x6C14DB80:
+			OutTraceD("DirectDrawCreate: IID_DirectDraw RIID\n");
+			res=extDirectDrawCreate(NULL, (LPDIRECTDRAW *)&ppv, 0);
+			if(res)OutTraceD("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
+			break;
+		case 0xB3A6F3E0:
+			OutTraceD("DirectDrawCreate: IID_DirectDraw2 RIID\n");
+			res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
+			if(res)OutTraceD("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
+			res=lpOldDDraw->QueryInterface(IID_IDirectDraw2, (LPVOID *)&ppv);
+			if(res)OutTraceD("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
+			lpOldDDraw->Release();
+			break;
+		case 0x9c59509a:
+			OutTraceD("DirectDrawCreate: IID_DirectDraw4 RIID\n");
+			res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
+			if(res)OutTraceD("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
+			res=lpOldDDraw->QueryInterface(IID_IDirectDraw4, (LPVOID *)&ppv);
+			if(res)OutTraceD("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
+			lpOldDDraw->Release();
+		case 0x15e65ec0:
+			OutTraceD("CoCreateInstance: IID_DirectDraw7 RIID\n");
+			res=extDirectDrawCreateEx(NULL, (LPDIRECTDRAW *)&ppv, IID_IDirectDraw7, 0);
+			if(res)OutTraceD("DirectDrawCreateEx: res=%x(%s)\n", res, ExplainDDError(res));
+			break;
+		case 0xe436ebb3:
+			break;
+		}
+	}
+	else
+	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
+
+	HookAdditionalModules();
+	return res;
+}
 
 HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID FAR* ppv)
 {
@@ -83,26 +163,7 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 	else
 	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
 
-	// hook of library modules loaded by CoCreateInstance without going through LoadLibrary call....
-	char *Module=NULL;
-	char *Class=NULL;
-	HMODULE hModule=NULL;
-	switch (*(DWORD *)&rclsid){
-		case 0xe436ebb3: Module="quartz"; Class="CLSID_FilterGraph"; break;
-		case 0x4fd2a832: Module="ddrawex"; Class="CLSID_DirectDrawEx"; break;
-		case 0x49c47ce5: Module="amstream"; Class="CLSID_AMMultiMediaStream"; break;
-	}
-	if(Module){
-		hModule=GetModuleHandle(Module);
-		if(hModule){
-			OutTraceD("CoCreateInstance: Class=%s RIID=%x lib=%s handle=%x\n", Class, *(DWORD *)&riid, Module, hModule);
-			HookModule(hModule, 0);
-		}
-		else {
-			OutTraceE("CoCreateInstance: GetModuleHandle(%s) ERROR err=%d at %d\n", Module, GetLastError(), __LINE__);
-		}
-	}
-
+	HookAdditionalModules();
 	return res;
 }
 
@@ -176,5 +237,14 @@ HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID rclsid, IUnknown *punkOute
 		if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
 	}
 
+	HookAdditionalModules();
+	return res;
+}
+
+HRESULT WINAPI extCoInitialize(LPVOID pvReserved)
+{
+	HRESULT res;
+	OutTraceD("CoInitialize: Reserved=%x\n", pvReserved);
+	res=(*pCoInitialize)(pvReserved);
 	return res;
 }

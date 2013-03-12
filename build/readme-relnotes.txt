@@ -295,7 +295,7 @@ fix: recovered window destruction
 fix: proper handling of MIPMAP and LOCALVIDMEM surfaces 
 fix: color depth handling - now when the program terminates the desktop is brought to the original color depth
 
-v2.02.45
+v2.02.44
 Improved debug logging for all palette operations
 fixed a bugged log causing the crash of Empire Earth in debug mode
 added show time stretching flag - preliminary version. Some code cleaning as well.
@@ -307,4 +307,8 @@ added interception for CoCreateInstance following cases:
 	case 0x49c47ce5: Module="amstream"; Class="CLSID_AMMultiMediaStream";
 preliminary (proxed) interception for "GetActiveWindow" and "GetForegroundWindow"
 
- 
+v2.02.45
+A small fix for ddraw 7 games that makes Praetorians playable, though with some problems!
+
+v2.02.46
+Fixed handling of user32 CreateDialogIndirectParam call to avoid processing in non fullscreen mode - fix necessary to start "Crimson Skies".

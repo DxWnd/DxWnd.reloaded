@@ -917,6 +917,25 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	}
 }
 
+void dxwCore::ShowOverlay()
+{
+	this->ShowOverlay(GetDC(hWnd));
+}
+
+void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
+{
+	HDC hdc; // the working dc
+	if (FAILED(lpdds->GetDC(&hdc))) return;
+	this->ShowOverlay(hdc);
+	lpdds->ReleaseDC(hdc);
+}
+
+void dxwCore::ShowOverlay(HDC hdc)
+{
+	if (dwFlags2 & SHOWFPSOVERLAY) ShowFPS(hdc);
+	if (dwFlags4 & SHOWTIMESTRETCH) ShowTimeStretching(hdc);
+}
+
 void dxwCore::ShowFPS()
 {
 	this->ShowFPS(GetDC(hWnd));

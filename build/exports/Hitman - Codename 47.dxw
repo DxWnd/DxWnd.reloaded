@@ -1,14 +1,14 @@
 [target]
-title0=Kiss Psycho Circus
-path0=D:\Games\Kiss\client.exe
+title0=Hitman - Codename 47
+path0=D:\Games\Hitman - Codename 47\Hitman.Exe
 module0=
 opengllib0=
-ver0=0
+ver0=1
 coord0=0
-flag0=134234148
+flag0=134234144
 flagg0=1207959808
 flagh0=20
-flagi0=0
+flagi0=4
 tflag0=3
 initx0=0
 inity0=0

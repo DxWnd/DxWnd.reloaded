@@ -40,8 +40,8 @@ static HookEntry_Type Hooks[]={
 	{"SetSysColors", (FARPROC)NULL, (FARPROC *)&pSetSysColors, (FARPROC)extSetSysColors},
 	{"SetCapture", (FARPROC)NULL, (FARPROC *)&pSetCapture, (FARPROC)extSetCapture},
 
-	{"GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
-	{"GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+	//{"GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
+	//{"GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -919,6 +919,7 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 	
 	// should scale the retcode ???
 	ret=(*pMapWindowPoints)(hWndFrom, hWndTo, lpPoints, cPoints);
+
 	OutTraceD("MapWindowPoints: ret=%x (%d,%d)\n", ret, (ret&0xFFFF0000)>>16, ret&0x0000FFFF);
 	return ret;
 }
@@ -1042,7 +1043,8 @@ static HWND WINAPI extCreateWindowCommon(
 			!(dwExStyle & WS_EX_CONTROLPARENT) // Diablo fix
 		&&
 			!(dwStyle & WS_CHILD) // Diablo fix
-		){
+		) 
+		{
 		RECT screen;
 		POINT upleft = {0,0};
 
@@ -1142,7 +1144,7 @@ static HWND WINAPI extCreateWindowCommon(
 		return wndh;
 	}
 
-	if ((!isValidHandle) && dxw.IsFullScreen()) {
+	if ((!isValidHandle) && dxw.IsFullScreen()){
 		dxw.SethWnd(wndh);
 		extern void AdjustWindowPos(HWND, DWORD, DWORD);
 		(*pSetWindowLong)(wndh, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
@@ -1195,9 +1197,16 @@ HWND WINAPI extCreateWindowExW(
   HINSTANCE hInstance,
   LPVOID lpParam) 
 {
-	OutTraceD("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
-		lpClassName, lpWindowName, x, y, nWidth, nHeight, 
-		dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+	if(IsTraceD){
+		char xString[20], yString[20];
+		if (x==CW_USEDEFAULT) strcpy(xString,"CW_USEDEFAULT"); 
+		else sprintf(xString,"%d", x);
+		if (y==CW_USEDEFAULT) strcpy(yString,"CW_USEDEFAULT"); 
+		else sprintf(yString,"%d", y);
+		OutTraceD("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
+			lpClassName, lpWindowName, xString, yString, nWidth, nHeight, 
+			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+	}
 	if(IsDebug) OutTrace("CreateWindowExW: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	return extCreateWindowCommon("CreateWindowExW", TRUE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
@@ -1218,9 +1227,16 @@ HWND WINAPI extCreateWindowExA(
   HINSTANCE hInstance,
   LPVOID lpParam) 
 {
-	OutTraceD("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
-		ClassToStr(lpClassName), lpWindowName, x, y, nWidth, nHeight, 
-		dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+	if(IsTraceD){
+		char xString[20], yString[20];
+		if (x==CW_USEDEFAULT) strcpy(xString,"CW_USEDEFAULT"); 
+		else sprintf(xString,"%d", x);
+		if (y==CW_USEDEFAULT) strcpy(yString,"CW_USEDEFAULT"); 
+		else sprintf(yString,"%d", y);
+		OutTraceD("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
+			ClassToStr(lpClassName), lpWindowName, xString, yString, nWidth, nHeight, 
+			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+	}
 	if(IsDebug) OutTrace("CreateWindowExA: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	return extCreateWindowCommon("CreateWindowExA", false, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
@@ -1614,7 +1630,7 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 	isWithinDialog=TRUE;
 	OutTraceD("CreateDialogIndirectParam: hInstance=%x lpTemplate=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, "tbd", hWndParent, lpDialogFunc, lParamInit);
-	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
+	if(dxw.IsFullScreen() && hWndParent==NULL) hWndParent=dxw.GethWnd();
 	RetHWND=(*pCreateDialogIndirectParam)(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit);
 
 	WhndStackPush(RetHWND, (WNDPROC)lpDialogFunc);

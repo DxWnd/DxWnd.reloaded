@@ -2746,7 +2746,14 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	}
 #endif
 
-	// if not primary, just proxy the method
+	// this is yet to be proven utility.....
+	// v2.02.45: No - it prevents "Praetorians" to work!!! -> commented out.
+	//
+	//if (IsBack && (lpddsc->dwCaps & DDSCAPS_ZBUFFER) && lpDDZBuffer){ 
+	//	*lplpddas = lpDDZBuffer;
+	//	OutTraceD("GetAttachedSurface(%d): emulating ZBUFFER attach on BACKBUFFER lpddsadd=%x\n", dxversion, *lplpddas); 
+	//	return 0;
+	//}
 
 	// v2.1.81: fix to make "Silver" working: if the primary surface was created with 
 	// backbuffercount == 2, the game expects some more surface to be attached to 
@@ -2754,13 +2761,6 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	// the attached backbuffer itself. Makes Silver working, anyway....
 	// beware: "Snowboard Racer" fails if you return an attached surface anyhow! There,
 	// the primary surface was created with back buffer count == 1.
-
-	// this is yet to be proven utility.....
-	if (IsBack && (lpddsc->dwCaps & DDSCAPS_ZBUFFER) && lpDDZBuffer){ 
-		*lplpddas = lpDDZBuffer;
-		OutTraceD("GetAttachedSurface(%d): emulating ZBUFFER attach on BACKBUFFER lpddsadd=%x\n", dxversion, *lplpddas); 
-		return 0;
-	}
 
 	if (IsBack && (DDSD_Prim.dwBackBufferCount > 1)){ 
 		*lplpddas = lpDDSBack;
@@ -3010,8 +3010,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		res=0;
 		// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 		if (lpdds != lpddssrc) {
-			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc); 
-			if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(lpddssrc);
+			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
 			res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 		}
@@ -3071,8 +3070,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		work on my PC. 
 		*/
 		if(res==DDERR_UNSUPPORTED){
-			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc);
-			if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(lpddssrc);
+			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
@@ -3110,8 +3108,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		lpDDSSource = lpdds;
 	}
 
-	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
-	if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(lpDDSSource);
+	dxw.ShowOverlay(lpDDSSource);
 	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
 	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 
@@ -3301,7 +3298,7 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 	OutTraceD("CreatePalette: dwFlags=%x(%s)\n", dwflags, ExplainCreatePaletteFlags(dwflags));
 	if(IsDebug && (dwflags & DDPCAPS_8BIT)) dxw.DumpPalette(256, lpddpa);
 
-	if (dwflags & ~(DDPCAPS_PRIMARYSURFACE|DDPCAPS_8BIT|DDPCAPS_ALLOW256|DDPCAPS_INITIALIZE_LEGACY)) STOPPER("Palette flags");
+	//if (dwflags & ~(DDPCAPS_PRIMARYSURFACE|DDPCAPS_8BIT|DDPCAPS_ALLOW256|DDPCAPS_INITIALIZE_LEGACY)) STOPPER("Palette flags");
 
 	if(dxw.dwFlags1 & EMULATESURFACE) dwflags &= ~DDPCAPS_PRIMARYSURFACE;
 	res = (*pCreatePalette)(lpdd, dwflags, lpddpa, lplpddp, pu);

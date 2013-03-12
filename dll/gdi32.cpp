@@ -42,6 +42,7 @@ static HookEntry_Type Hooks[]={
 	{"StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits},
 	//{"SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
 	//{"CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
+	//{"SetMapMode", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extSetMapMode},
 	{0, NULL, 0, 0} // terminator
 }; 
 
@@ -955,8 +956,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 			nHDest= nHeight;
 			dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
 			res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
-			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
-			if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(hdcDest);
+			dxw.ShowOverlay(hdcDest);
 			OutTrace("Debug: DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
 		}
 		else if(WindowFromDC(hdcDest)==NULL){
@@ -966,8 +966,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 			nHDest= nHeight;
 			dxw.MapWindow(&nXDest, &nYDest, &nWDest, &nHDest);
 			res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
-			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);
-			if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(hdcDest);
+			dxw.ShowOverlay(hdcDest);
 			OutTrace("Debug: NULL dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
 		}
 		else{
@@ -1004,8 +1003,7 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 		if (dxw.dwFlags3 & NOGDIBLT) return TRUE;
 		if (dxw.IsFullScreen()){ 
 			dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
-			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
-			if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(hdcDest);
+			dxw.ShowOverlay(hdcDest);
 			res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
 		}
 		else if(WindowFromDC(hdcDest)==NULL){
@@ -1017,8 +1015,7 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	else {
 		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
 	}
-	if (IsToScreen && (dxw.dwFlags2 & SHOWFPSOVERLAY)) dxw.ShowFPS(hdcDest);
-	if (IsToScreen && (dxw.dwFlags4 & SHOWTIMESTRETCH)) dxw.ShowTimeStretching(hdcDest);
+	if (IsToScreen) dxw.ShowOverlay(hdcDest);
 	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
 	return res;
@@ -1053,8 +1050,7 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 	}
 
 	res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
-	if (IsToScreen && (dxw.dwFlags2 & SHOWFPSOVERLAY)) dxw.ShowFPS(hdcDest);
-	if (IsToScreen && (dxw.dwFlags4 & SHOWTIMESTRETCH)) dxw.ShowTimeStretching(hdcDest);
+	if (IsToScreen) dxw.ShowOverlay(hdcDest);
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
@@ -1800,6 +1796,14 @@ UINT WINAPI extSetSystemPaletteUse(HDC hdc, UINT uUsage)
 	OutTraceD("SetSystemPaletteUse: hdc=%x Usage=%x(%s)\n", hdc, uUsage, ExplainPaletteUse(uUsage));
 	return SYSPAL_NOSTATIC256;
 }
+
+#if 0
+int WINAPI extSetMapMode(HDC hdc, int fnMapMode)
+{
+	OutTraceD("SetMapMode: hdc=%x MapMode=%d\n", hdc, fnMapMode);
+	return TRUE;
+}
+#endif
 
 #if 0
 // to map:

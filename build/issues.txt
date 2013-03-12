@@ -1,3 +1,3 @@
 Ancient Evil: working both in emulated / direct mode, but in emulated mode the cursor is not visible.
-Whiteout: handling of IMultiMediaStream COM interface for intro movie
 window handling for ddraw8 games - see WildFire with keep aspect ratio & client area
+"devastation" intro movie - bad cooordinates
