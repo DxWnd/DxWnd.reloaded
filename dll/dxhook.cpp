@@ -122,23 +122,18 @@ static void dx_ToggleLogging()
 	GetHookInfo()->isLogging=(dxw.dwTFlags & OUTTRACE);
 }
 
-void DumpImportTable(char *module)
+void DumpImportTable(HMODULE module)
 {
-	DWORD base;
 	PIMAGE_NT_HEADERS pnth;
 	PIMAGE_IMPORT_DESCRIPTOR pidesc;
-	DWORD rva;
+	DWORD base, rva;
 	PSTR impmodule;
 	PIMAGE_THUNK_DATA ptaddr;
 	PIMAGE_THUNK_DATA ptname;
 	PIMAGE_IMPORT_BY_NAME piname;
 
-	base = (DWORD)GetModuleHandle(module);
+	base=(DWORD)module;
 	OutTrace("DumpImportTable: base=%x\n", base);
-	if(!base) {
-		OutTrace("DumpImportTable: GetModuleHandle failed, err=%d at %d\n",GetLastError(), __LINE__);
-		return;
-	}
 	__try{
 		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
 		if(!pnth) {
@@ -214,12 +209,11 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	*hookedproc = tmp;
 }
 
-void *HookAPI(const char *module, char *dll, void *apiproc, const char *apiname, void *hookproc)
+void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, void *hookproc)
 {
-	DWORD base;
 	PIMAGE_NT_HEADERS pnth;
 	PIMAGE_IMPORT_DESCRIPTOR pidesc;
-	DWORD rva;
+	DWORD base, rva;
 	PSTR impmodule;
 	PIMAGE_THUNK_DATA ptaddr;
 	PIMAGE_THUNK_DATA ptname;
@@ -234,11 +228,7 @@ void *HookAPI(const char *module, char *dll, void *apiproc, const char *apiname,
 		return 0;
 	}
 
-	base = (DWORD)GetModuleHandle(module);
-	if(!base) {
-		OutTraceD("HookAPI: GetModuleHandle failed, error=%d\n",GetLastError());
-		return 0;
-	}
+	base = (DWORD)module;
 	__try{
 		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
 		if(!pnth) {
@@ -301,7 +291,7 @@ void *HookAPI(const char *module, char *dll, void *apiproc, const char *apiname,
 			OutTraceD("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
-		if(IsDebug) OutTrace("HookAPI hook=%s.%s address=%x->%x\n", module, apiname, org, hookproc);
+		if(IsDebug) OutTrace("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
 	 }
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{       
@@ -566,6 +556,48 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 #endif
 
 	switch(message){
+	// v2.02.13: added WM_GETMINMAXINFO/WM_NCCALCSIZE interception - (see Actua Soccer 3 problems...)
+	case WM_GETMINMAXINFO: 
+		if(dxw.dwFlags1 & LOCKWINPOS){
+			extern void dxwFixMinMaxInfo(char *, HWND, LPARAM);
+			dxwFixMinMaxInfo("WindowProc", hwnd, lparam);
+			return 0;
+		}
+		break;
+	case WM_NCCALCSIZE:
+		if(dxw.dwFlags1 & LOCKWINPOS){
+			OutTraceD("WindowProc: WS_NCCALCSIZE wparam=%x\n", wparam);
+			if(wparam){
+				// nothing so far ....
+				if (IsDebug){
+					NCCALCSIZE_PARAMS *ncp;
+					ncp = (NCCALCSIZE_PARAMS *) lparam;
+					OutTraceD("WindowProc: WS_NCCALCSIZE rect[0]=(%d,%d)-(%d,%d)\n", 
+						ncp->rgrc[0].left, ncp->rgrc[0].top, ncp->rgrc[0].right, ncp->rgrc[0].bottom);
+					OutTraceD("WindowProc: WS_NCCALCSIZE rect[1]=(%d,%d)-(%d,%d)\n", 
+						ncp->rgrc[1].left, ncp->rgrc[1].top, ncp->rgrc[1].right, ncp->rgrc[1].bottom);
+					OutTraceD("WindowProc: WS_NCCALCSIZE rect[2]=(%d,%d)-(%d,%d)\n", 
+						ncp->rgrc[2].left, ncp->rgrc[2].top, ncp->rgrc[2].right, ncp->rgrc[2].bottom);
+					OutTraceD("WindowProc: WS_NCCALCSIZE winrect=(%d,%d)-(%d,%d)\n", 
+						ncp->lppos->x, ncp->lppos->y, ncp->lppos->cx, ncp->lppos->cy);
+				}
+			}
+			else {
+				// enforce win coordinates and return 0xF0 = WVR_ALIGNTOP|WVR_ALIGNLEFT|WVR_ALIGNBOTTOM|WVR_ALIGNRIGHT;
+				LPRECT rect; 
+				rect=(LPRECT)lparam;
+				OutTraceB("WindowProc: WS_NCCALCSIZE proposed rect=(%d,%d)-(%d,%d)\n", 
+					rect->left, rect->top, rect->right, rect->bottom);
+				rect->left=dxw.iPosX;
+				rect->top=dxw.iPosY;
+				rect->right=dxw.iPosX+dxw.iSizX;
+				rect->bottom=dxw.iPosY+dxw.iSizY;
+				OutTraceB("WindowProc: WS_NCCALCSIZE fixed rect=(%d,%d)-(%d,%d)\n", 
+					rect->left, rect->top, rect->right, rect->bottom);
+				return WVR_ALIGNTOP|WVR_ALIGNLEFT|WVR_ALIGNBOTTOM|WVR_ALIGNRIGHT;
+			}
+		}
+		break;
 	case WM_NCCREATE:
 		if(dxw.dwFlags2 & SUPPRESSIME){
 			OutTraceD("WindowProc: SUPPRESS IME\n");
@@ -749,10 +781,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	default:
 		break;
 	}
-	if (dxw.dwFlags1 & AUTOREFRESH)
-	{
-		dxw.ScreenRefresh();
-	}
+	if (dxw.dwFlags1 & AUTOREFRESH) dxw.ScreenRefresh();
 
 	pWindowProc=WhndGetWindowProc(hwnd);
 	if(pWindowProc) {
@@ -852,7 +881,7 @@ void HookSysLibsInit()
 	pSetTimer=SetTimer;
 }
 
-void HookGDILib(char *module)
+void HookGDILib(HMODULE module)
 {
 	void *tmp;
 
@@ -921,7 +950,7 @@ void HookGDILib(char *module)
 	}
 }
 
-void HookSysLibs(char *module)
+void HookSysLibs(HMODULE module)
 {
 	void *tmp;
 
@@ -1047,10 +1076,11 @@ void HookSysLibs(char *module)
 	tmp = HookAPI(module, "user32.dll", MoveWindow, "MoveWindow", extMoveWindow);
 	if(tmp) pMoveWindow = (MoveWindow_Type)tmp;
 
-#define TRAPLOWRESOURCES 0
-	if(TRAPLOWRESOURCES){
+	if(dxw.dwFlags2 & LIMITRESOURCES){
 		tmp = HookAPI(module, "kernel32.dll", GetDiskFreeSpaceA, "GetDiskFreeSpaceA", extGetDiskFreeSpaceA);
 		if(tmp) pGetDiskFreeSpaceA = (GetDiskFreeSpaceA_Type)tmp;
+		tmp = HookAPI(module, "kernel32.dll", GlobalMemoryStatus, "GlobalMemoryStatus", extGlobalMemoryStatus);
+		if(tmp) pGlobalMemoryStatus = (GlobalMemoryStatus_Type)tmp;
 	}
 
 	if(dxw.dwFlags2 & TIMESTRETCH){
@@ -1142,15 +1172,17 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 void HookExceptionHandler(void)
 {
 	void *tmp;
+	HMODULE base;
 
 	OutTraceD("Set exception handlers\n");
+	base=GetModuleHandle(NULL);
 	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
 	//v2.1.75 override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	tmp = HookAPI(NULL, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
+	tmp = HookAPI(base, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
 	// so far, no need to save the previous handler.
 	//if(tmp) pUnhandledExceptionFilter = (UnhandledExceptionFilter_Type)tmp;
-	tmp = HookAPI(NULL, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
+	tmp = HookAPI(base, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
 	//tmp = HookAPI("KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", myUnhandledExceptionFilter);
 	if(tmp) pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
 
@@ -1159,34 +1191,17 @@ void HookExceptionHandler(void)
 	//(*pSetUnhandledExceptionFilter)(NULL);
 }
 
-void HookModule(char *module, int dxversion)
+void HookModule(HMODULE base, int dxversion)
 {
-	HookSysLibs(module);
+	HookSysLibs(base);
 	//if(dxw.dwFlags2 & SUPPRESSIME) HookImeLib(module);
-	if(dxw.dwFlags2 & HOOKGDI) HookGDILib(module);
-	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(module, dxversion);
-	HookDirectDraw(module, dxversion);
-	HookDirect3D(module, dxversion);
-	HookOle32(module, dxversion); // unfinished business
-	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(module, dxw.CustomOpenGLLib); 
-}
-
-void ForceHookOpenGL() // to do .....
-{
-	HMODULE hGlLib;
-	//hGlLib=(*pLoadLibraryA)("OpenGL32.dll");
-	hGlLib=LoadLibrary("OpenGL32.dll");
-	OutTrace("hGlLib=%x\n",hGlLib);
-	pglViewport=(glViewport_Type)GetProcAddress(hGlLib, "glViewport");
-	if(pglViewport) 
-		HookAPI(NULL, "OpenGL32.dll", pglViewport, "glViewport", extglViewport);
-		//SetHook(void *target, void *hookproc, void **hookedproc, char *hookname);
-	pglScissor=(glScissor_Type)GetProcAddress(hGlLib, "glScissor");
-	if(pglScissor) HookAPI(NULL, "OpenGL32.dll", pglScissor, "glScissor", extglScissor);
-	pglGetIntegerv=(glGetIntegerv_Type)GetProcAddress(hGlLib, "glGetIntegerv");
-	if(pglGetIntegerv) HookAPI(NULL, "OpenGL32.dll", pglGetIntegerv, "glGetIntegerv", extglGetIntegerv);
-	pglDrawBuffer=(glDrawBuffer_Type)GetProcAddress(hGlLib, "glDrawBuffer");
-	if(pglDrawBuffer) HookAPI(NULL, "OpenGL32.dll", pglDrawBuffer, "glDrawBuffer", extglDrawBuffer);
+	if(dxw.dwFlags2 & HOOKGDI) HookGDILib(base);
+	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base, dxversion);
+	HookDirectDraw(base, dxversion);
+	HookDirect3D(base, dxversion);
+	HookOle32(base, dxversion); // unfinished business
+	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
+	//ForceHookOpenGL(base);
 }
 
 void DisableIME()
@@ -1224,10 +1239,12 @@ void DisableIME()
 #endif
 }
 
+
 int HookInit(TARGETMAP *target, HWND hwnd)
 {
 	BOOL res;
 	WINDOWPOS wp;
+	HMODULE base;
 	char *sModule;
 	static char *dxversions[14]={
 		"Automatic", "DirectX1~6", "", "", "", "", "", 
@@ -1253,16 +1270,15 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 		OutTrace("HookInit: dxw.hParentWnd style=%x(%s) exstyle=%x(%s)\n", dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 	}
 
+	base=GetModuleHandle(NULL);
 	if(dxw.dwFlags1 & HANDLEEXCEPTIONS) HookExceptionHandler();
-	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(NULL);
+	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
 	//if(dxw.dwFlags2 & SUPPRESSIME) DisableIME();
 
 	if (dxw.dwTFlags & DXPROXED){
-		HookDDProxy(NULL, dxw.dwTargetDDVersion);
+		HookDDProxy(base, dxw.dwTargetDDVersion);
 		return 0;
 	}
-
-	//ForceHookOpenGL();
 
 	// make InitPosition used for both DInput and DDraw
 	InitPosition(target->initx, target->inity,
@@ -1271,16 +1287,25 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 
 	HookSysLibsInit(); // this just once...
 
-	HookModule(NULL, dxw.dwTargetDDVersion);
+	if(IsDebug) OutTrace("HookInit: base hmodule=%x\n", base);
+	HookModule(base, dxw.dwTargetDDVersion);
+	if(IsDebug){
+		extern BOOL ListProcessModules(BOOL); 
+		ListProcessModules(true);
+	}
 	sModule=strtok(dxw.gsModules," ");
 	while (sModule) {
-		HMODULE hm;
-		hm=(*pLoadLibraryA)(sModule);
-		OutTraceD("HookInit: hooking additional module=%s\n", sModule);
-		if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(sModule);
-		HookModule(sModule, dxw.dwTargetDDVersion);
+		base=(*pLoadLibraryA)(sModule);
+		if(!base){
+			OutTraceE("HookInit: LoadLibrary ERROR module=%s err=%d\n", sModule, GetLastError());
+			continue;
+		}
+		OutTraceD("HookInit: hooking additional module=%s base=%x\n", sModule, base);
+		if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
+		HookModule(base, dxw.dwTargetDDVersion);
 		sModule=strtok(NULL," ");
 	}
+
 
 	if(dxw.dwFlags2 & RECOVERSCREENMODE) RecoverScreenMode();
 

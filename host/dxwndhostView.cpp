@@ -374,6 +374,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_UnNotify = TargetMaps[i].flags & UNNOTIFY ? 1 : 0;
 	dlg.m_Windowize = TargetMaps[i].flags2 & WINDOWIZE ? 1 : 0;
 	dlg.m_NoBanner = TargetMaps[i].flags2 & NOBANNER ? 1 : 0;
+	dlg.m_StartDebug = TargetMaps[i].flags2 & STARTDEBUG ? 1 : 0;
 	dlg.m_EmulateSurface = TargetMaps[i].flags & EMULATESURFACE ? 1 : 0;
 	dlg.m_NoEmulateSurface = TargetMaps[i].flags & EMULATEFLAGS ? 0 : 1;
 	dlg.m_EmulateBuffer = TargetMaps[i].flags & EMULATEBUFFER ? 1 : 0; 
@@ -465,6 +466,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
 		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
 		if(dlg.m_NoBanner) TargetMaps[i].flags2 |= NOBANNER;
+		if(dlg.m_StartDebug) TargetMaps[i].flags2 |= STARTDEBUG;
 		if(dlg.m_NoEmulateSurface) {
 			dlg.m_EmulateSurface = FALSE;
 			dlg.m_EmulateBuffer = FALSE;
@@ -763,6 +765,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
 		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
 		if(dlg.m_NoBanner) TargetMaps[i].flags2 |= NOBANNER;
+		if(dlg.m_StartDebug) TargetMaps[i].flags2 |= STARTDEBUG;
 		if(dlg.m_NoEmulateSurface) {
 			dlg.m_EmulateSurface = FALSE;
 			dlg.m_EmulateBuffer = FALSE;
@@ -1144,6 +1147,107 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	CListView::OnRButtonDown(nFlags, point);
 }
 
+// For thread messaging
+#define DEBUG_EVENT_MESSAGE		WM_APP + 0x100
+
+HWND Ghwnd;
+
+DWORD WINAPI StartDebug(void *p)
+{
+	TARGETMAP *TargetMap;
+	STARTUPINFO sinfo;
+	PROCESS_INFORMATION pinfo, *pi;
+	CREATE_THREAD_DEBUG_INFO *ti;
+	LOAD_DLL_DEBUG_INFO *li;
+	char path[MAX_PATH];
+	BOOL step=FALSE; // initialize to TRUE to enable
+	extern char *GetFileNameFromHandle(HANDLE);
+
+	TargetMap=(TARGETMAP *)p;
+	ZeroMemory(&sinfo, sizeof(sinfo));
+	sinfo.cb = sizeof(sinfo);
+	strcpy_s(path, sizeof(path), TargetMap->path);
+	PathRemoveFileSpec(path);
+	CreateProcess(NULL, TargetMap->path, 0, 0, false, DEBUG_ONLY_THIS_PROCESS, NULL, path, &sinfo, &pinfo);
+	CString strEventMessage;
+	DEBUG_EVENT debug_event ={0};
+	bool bContinueDebugging = true;
+	DWORD dwContinueStatus = DBG_CONTINUE;
+	while(bContinueDebugging)
+	{ 
+		int res;
+		char DebugMessage[256+1];
+		if (!WaitForDebugEvent(&debug_event, INFINITE)) return TRUE;
+		switch(debug_event.dwDebugEventCode){
+		case EXIT_PROCESS_DEBUG_EVENT:
+			SetWindowText(Ghwnd, "EXIT PROCESS");
+			bContinueDebugging=false;
+			break;
+		case CREATE_PROCESS_DEBUG_EVENT:
+			if(step){
+				pi=(PROCESS_INFORMATION *)&debug_event.u;
+				sprintf(DebugMessage, "CREATE PROCESS hProcess=%x dwProcessId=%x path=%s", 
+					pi->hProcess, pi->dwProcessId, GetFileNameFromHandle(pi->hProcess));
+				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
+				if(res!=IDYES) step=FALSE;
+			}
+			if(1){
+				// DLL injection:
+				char buf[MAX_PATH] = {0};
+				BOOL Injected;
+				extern BOOL Inject(DWORD, const char *);
+				GetFullPathName("dxinj.dll", MAX_PATH, buf, NULL);
+				Injected=Inject(pinfo.dwProcessId, buf);
+				if(!Injected){
+					sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, buf);
+					MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
+				}
+				// end of DLL injection
+			}
+			break;
+		case CREATE_THREAD_DEBUG_EVENT:
+			if(step){
+				ti=(CREATE_THREAD_DEBUG_INFO *)&debug_event.u;
+				sprintf(DebugMessage, "CREATE THREAD hThread=%x lpThreadLocalBase=%x lpStartAddress=%x", 
+					ti->hThread, ti->lpThreadLocalBase, ti->lpStartAddress);
+				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
+				if(res!=IDYES) step=FALSE;
+			}
+			break;
+		case EXIT_THREAD_DEBUG_EVENT:
+			SetWindowText(Ghwnd, "EXIT THREAD");
+			break;
+		case LOAD_DLL_DEBUG_EVENT:
+			if(step){
+				li=(LOAD_DLL_DEBUG_INFO *)&debug_event.u;
+				sprintf(DebugMessage, "LOAD DLL hFile=%x path=%s", 
+					li->hFile, GetFileNameFromHandle(li->hFile));
+				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
+				if(res!=IDYES) step=FALSE;
+			}
+			break;
+		case UNLOAD_DLL_DEBUG_EVENT:
+			SetWindowText(Ghwnd, "UNLOAD DLL");
+			break;
+		case OUTPUT_DEBUG_STRING_EVENT: 				
+			SetWindowText(Ghwnd, "OUT STRING");
+			break;
+		case EXCEPTION_DEBUG_EVENT:
+			SetWindowText(Ghwnd, "EXCEPTION");
+			break;
+		default:
+			break;
+		}
+		SendMessage(Ghwnd, DEBUG_EVENT_MESSAGE, (WPARAM) &strEventMessage, debug_event.dwDebugEventCode);
+		ContinueDebugEvent(debug_event.dwProcessId, 
+			debug_event.dwThreadId, 
+			dwContinueStatus);
+		// Reset
+		dwContinueStatus = DBG_CONTINUE;
+	}
+	return TRUE;
+}
+
 void CDxwndhostView::OnRun() 
 {
 	CListCtrl& listctrl = GetListCtrl();
@@ -1152,6 +1256,7 @@ void CDxwndhostView::OnRun()
 	STARTUPINFO sinfo;
 	PROCESS_INFORMATION pinfo;
 	char path[MAX_PATH];
+	//extern CString GetFileNameFromHandle(HANDLE);
 
 	if(!listctrl.GetSelectedCount()) return;
 	pos = listctrl.GetFirstSelectedItemPosition();
@@ -1160,5 +1265,11 @@ void CDxwndhostView::OnRun()
 	sinfo.cb = sizeof(sinfo);
 	strcpy_s(path, sizeof(path), TargetMaps[i].path);
 	PathRemoveFileSpec(path);
-	CreateProcess(0, TargetMaps[i].path, 0, 0, 0, CREATE_DEFAULT_ERROR_MODE, 0, path, &sinfo, &pinfo);
+	if(TargetMaps[i].flags2 & STARTDEBUG){
+		Ghwnd=this->m_hWnd;
+		CreateThread( NULL, 0, StartDebug, &TargetMaps[i], 0, NULL); 
+	}
+	else{
+		CreateProcess(NULL, TargetMaps[i].path, 0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
+	}
 }

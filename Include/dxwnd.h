@@ -39,7 +39,7 @@
 #define SWITCHVIDEOMEMORY 	0x04000000 // when VIDEO memory is over, switches to SYSTEM memory
 #define CLIENTREMAPPING		0x08000000 // hooks CLientToRect, RectToClient, GetClientRect, GetWinRect
 #define HANDLEALTF4			0x10000000 // forces quitting the program when receiving Alt-F4 key
-#define LOCKWINPOS			0x20000000 // prevent the origram to change its own windows properties
+#define LOCKWINPOS			0x20000000 // prevent the program to change its own windows properties
 #define HOOKCHILDWIN		0x40000000 // hook CHILD windows to alter placement coordinates (UNUSED)
 #define MESSAGEPROC			0x80000000 // process peek/get messages
 
@@ -73,6 +73,7 @@
 #define NOBANNER			0x04000000 // suppress fancy logo & banneer effects 
 #define WINDOWIZE			0x08000000 // Run in a Window (default TRUE) 
 #define LIMITRESOURCES		0x10000000 // Limit resources to fit an old program's expectations 
+#define STARTDEBUG			0x20000000 // Start in DEBUG mode
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -141,7 +142,7 @@ int HookInit(TARGETMAP *, HWND);
 void *SetHook(void *, void *);
 void SetHook(void *, void *, void **, char *);
 void OutTrace(const char *, ...);
-void *HookAPI(const char *, char *, void *, const char *, void *);
+void *HookAPI(HMODULE, char *, void *, const char *, void *);
 void AdjustWindowFrame(HWND, DWORD, DWORD);
 LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 

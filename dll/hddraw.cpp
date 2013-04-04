@@ -486,8 +486,8 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 		OutTraceD("CoCreateInstance: CLSID_FilterGraph RIID=%x\n", *(DWORD *)&riid);
 		qlib=(*pLoadLibraryA)("quartz.dll");
 		OutTraceD("CoCreateInstance: quartz lib handle=%x\n", qlib);
-		extern void HookSysLibs(char *);
-		HookSysLibs("quartz");
+		extern void HookSysLibs(HMODULE);
+		HookSysLibs(qlib);
 	}
 
 	res=(*pCoCreateInstance)(rclsid, pUnkOuter, dwClsContext, riid, ppv);
@@ -533,7 +533,7 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 	return res;
 }
 
-int HookOle32(char *module, int version)
+int HookOle32(HMODULE module, int version)
 {
 	// used by Axis & Allies ....
 	void *tmp;
@@ -544,7 +544,7 @@ int HookOle32(char *module, int version)
 	return 0;
 }
 
-int HookDirectDraw(char *module, int version)
+int HookDirectDraw(HMODULE module, int version)
 {
 	HINSTANCE hinst;
 	void *tmp;
@@ -1466,7 +1466,10 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 		}
 		else{
 			dxw.UnmarkPrimarySurface((LPDIRECTDRAWSURFACE)*obp);
-			HookDDSurfaceGeneric((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion);
+			// v2.02.13: seems that hooking inconditionally gives troubles. What is the proper hook condition?
+			// maybe when in emulation mode?
+			//ASSERT TO BE FINISHED
+			if(dxw.dwFlags1 & EMULATESURFACE) HookDDSurfaceGeneric((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion);
 		}
 
 		break;
@@ -1834,11 +1837,13 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 	// not primary emulated surface ....
 	if(((ddsd.dwFlags & DDSD_WIDTH) && !(ddsd.dwFlags & DDSD_HEIGHT)) ||
 		(ddsd.dwFlags & DDSD_ZBUFFERBITDEPTH) ||
-		(ddsd.dwFlags & DDSD_PIXELFORMAT) ||
+		//(ddsd.dwFlags & DDSD_PIXELFORMAT) ||
+		((ddsd.dwFlags & DDSD_PIXELFORMAT) && !(ddsd.dwFlags & DDSD_PITCH)) || // fix good for "Wargames"
 		//((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ||
 		((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE))){
 		// don't alter pixel format
 		//ddsd.dwFlags &= ~DDSD_PIXELFORMAT; // Warhammer Dark Omen
+		ddsd.dwFlags &= ~DDSD_PIXELFORMAT; // Wargames ???
 		pfmt="(none)";
 	}
 	else {
@@ -1851,6 +1856,7 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 	}
 
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]" , __LINE__);
+	//OutTrace("pCreateSurface=%x lpdd=%x &ddsd=%x lplpdds=%x pu=%x\n",pCreateSurface, lpdd, &ddsd, lplpdds, pu);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
 	if(res){
 		// v2.1.81: retry on system memory may fix not only the DDERR_OUTOFVIDEOMEMORY
@@ -2102,8 +2108,8 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 {	
 	HRESULT res;
 
-	//GHO: beware: incomplete trace line - must be line terminated below!
 	if(IsTraceD){
+		// beware: incomplete trace lines - must be line terminated below!
 		OutTrace("CreateSurface: Version=%d lpdd=%x Flags=%x(%s)", dxversion, lpdd, lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags));
 		if (lpddsd->dwFlags & DDSD_CAPS && lpddsd->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) OutTrace(" VirtualScreen=(%d,%d)", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 		if (lpddsd->dwFlags & DDSD_BACKBUFFERCOUNT) OutTrace(" BackBufferCount=%d", lpddsd->dwBackBufferCount);
@@ -2117,7 +2123,7 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 		OutTrace("\n");
 	}
 
-	//GHO workaround (needed for WarWind):
+	//GHO workaround (needed for WarWind, Rogue Spear):
 	if (lpddsd->dwFlags && !(lpddsd->dwFlags & 0x1)){
 		OutTraceD("CreateSurface: fixing illegal dwFlags value: %x -> %x\n",
 			lpddsd->dwFlags, lpddsd->dwFlags+1);
@@ -2551,6 +2557,7 @@ HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		lpsrcrect=NULL;
 		lpdestrect=NULL;
 	}
+
 	return sBlt("Blt", lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx, FALSE);
 }
 
@@ -2794,15 +2801,25 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 	// clipping ON & OFF affects blitting on primary surface.
 	if(dxw.dwFlags1 & SUPPRESSCLIPPING) return 0;
 
-	if(isPrim && (dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)) && lpDDSEmu_Prim){
-		res=(*pSetClipper)(lpDDSEmu_Prim, lpddc);
-		if(res) OutTraceE("CreateSurface: SetClipper ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		lpDDC = lpddc;
-		// n.b. SetHWnd was not wrapped, so pSetHWnd is not usable (NULL) !!!
-		if(lpDDC) res=lpDDC->SetHWnd( 0, dxw.GethWnd()); 
-		//res=(*pSetHWnd)(lpDDC, 0, dxw.GethWnd()); 
-		if(res) OutTraceE("CreateSurface: SetHWnd ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		//res = 0;
+	if(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){
+		if (isPrim && lpDDSEmu_Prim) {
+			res=(*pSetClipper)(lpDDSEmu_Prim, lpddc);
+			if(res) OutTraceE("CreateSurface: SetClipper ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			lpDDC = lpddc;
+			// n.b. SetHWnd was not wrapped, so pSetHWnd is not usable (NULL) !!!
+			if(lpDDC) res=lpDDC->SetHWnd( 0, dxw.GethWnd()); 
+			if(res) OutTraceE("CreateSurface: SetHWnd ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		}
+		else if ((lpdds == lpDDSBack) && lpDDSEmu_Back) {
+			res=(*pSetClipper)(lpDDSEmu_Back, lpddc);
+			if(res) OutTraceE("CreateSurface: SetClipper ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			lpDDC = lpddc;
+			// n.b. SetHWnd was not wrapped, so pSetHWnd is not usable (NULL) !!!
+			if(lpDDC) res=lpDDC->SetHWnd( 0, dxw.GethWnd()); 
+			if(res) OutTraceE("CreateSurface: SetHWnd ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		}
+		else 
+			res=(*pSetClipper)(lpdds, lpddc);
 	}
 	else
 		// just proxy ...
@@ -3322,9 +3339,11 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 	__try{
 		HRESULT dw=(DWORD)(*pReleaseS);
 		if ((dw & 0xF0000000) == 0xF0000000) IsClosed=1;
+		if ((*(DWORD *)lpdds & 0xF0000000) == 0xF0000000) IsClosed=1;
+		if(IsClosed) OutTraceE("Release(S): ASSERT got closed surface lpdds=%x\n", lpdds);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER){
-		OutTraceD("Exception at %d\n",__LINE__);
+		OutTraceE("Exception at %d\n",__LINE__);
 		IsClosed=1;
 	};
 	
@@ -3450,28 +3469,35 @@ HRESULT WINAPI extAddAttachedSurface(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURF
 	OutTraceD("AddAttachedSurface: lpdds=%x%s lpddsadd=%x\n", lpdds, IsPrim?"(PRIM)":"", lpddsadd);
 	res=(*pAddAttachedSurface)(lpdds, lpddsadd);
 	if (res) {
+		HRESULT sdres;
+		DDSURFACEDESC2 sd;
+		sd.dwSize=Set_dwSize_From_Surface(lpddsadd);
+		sdres=lpddsadd->GetSurfaceDesc((DDSURFACEDESC *)&sd);
+		if (sdres) 
+			OutTraceE("AddAttachedSurface: GetSurfaceDesc ERROR res=%x at %d\n", sdres, __LINE__);
+		else
+			OutTraceD("AddAttachedSurface: GetSurfaceDesc dwCaps=%x(%s)\n", 
+				sd.ddsCaps.dwCaps, ExplainDDSCaps(sd.ddsCaps.dwCaps));
 		if (IsPrim){
-			HRESULT sdres;
-			DDSURFACEDESC2 sd;
-			sd.dwSize=Set_dwSize_From_Surface(lpddsadd);
-			sdres=lpddsadd->GetSurfaceDesc((DDSURFACEDESC *)&sd);
-			if (sdres) 
-				OutTraceE("AddAttachedSurface: GetSurfaceDesc ERROR res=%x at %d\n", sdres, __LINE__);
-			else
-				OutTraceD("AddAttachedSurface: GetSurfaceDesc dwCaps=%x(%s)\n", 
-					sd.ddsCaps.dwCaps, ExplainDDSCaps(sd.ddsCaps.dwCaps));
 			if (sd.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER)
 			if ((dxw.dwFlags1 & EMULATESURFACE) && (res==DDERR_CANNOTATTACHSURFACE) ||
 				(res==DDERR_NOEXCLUSIVEMODE))
-			OutTraceD("AddAttachedSurface: emulating surface attach on PRIMARY\n");
+			OutTraceD("AddAttachedSurface: emulating BACKBUFFER attach on PRIMARY\n");
 			lpDDSBack=lpddsadd;
-			res=0;
+			(*pAddRefS)(lpdds);
+			res=DD_OK;
 		}
-		//// v2.1.73: Alien Cabal 95 in EMU mode
-		//if((lpdds==lpDDSBack) && (dxw.dwFlags1 & EMULATESURFACE)){
-		//	OutTraceD("AddAttachedSurface: ignoring err=%x(%s) on BACKBUFFER surface attach\n", res, ExplainDDError(res));
-		//	res=DD_OK;
-		//}
+		else if (lpdds == lpDDSBack) {
+			// v2.02.13: emulate ZBUFFER attach to backbuffer: do nothing and return OK
+			// this trick makes at least "Nocturne" work also in emulated mode when hardware acceleration
+			// is set in the game "Options" menu. 
+			if (sd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) // DDSCAPS_BACKBUFFER for double buffering ???
+			if ((dxw.dwFlags1 & EMULATESURFACE) && (res==DDERR_CANNOTATTACHSURFACE)){
+				OutTraceD("AddAttachedSurface: emulating ZBUFFER attach on BACKBUFFER\n");
+				(*pAddRefS)(lpdds);
+				res=DD_OK;
+			}
+		}
 	}
 	if (res) OutTraceE("AddAttachedSurface: ERROR %x(%s)\n", res, ExplainDDError(res));
 	return res;
@@ -3550,11 +3576,24 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 {
 	ULONG ref;
 	int dxversion;
+	BOOL IsClosed;
 
 	dxversion=lpddHookedVersion(lpdd); // must be called BEFORE releasing the session!!
 	OutTraceD("Release(D): lpdd=%x\n", lpdd);
 	
-	ref=(*pReleaseD)(lpdd);
+	IsClosed=0;
+	__try{
+		HRESULT dw=(DWORD)(*pReleaseD);
+		if ((dw & 0xF0000000) == 0xF0000000) IsClosed=1;
+		if ((*(DWORD *)lpdd & 0xF0000000) == 0xF0000000) IsClosed=1;
+		if(IsClosed) OutTraceE("Release(D): ASSERT got closed session lpdd=%x\n", lpdd);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER){
+		OutTraceE("Exception at %d\n",__LINE__);
+		IsClosed=1;
+	};
+
+	ref=IsClosed?0:(*pReleaseD)(lpdd);
 
 	if (lpdd == lpServiceDD) { // v2.1.87: fix for Dungeon Keeper II
 		OutTraceD("Release(D): service lpdd=%x version=%d\n", lpdd, dxversion);
@@ -3708,8 +3747,24 @@ HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 	// returning a ref 0 without actually releasing the object.
 	//v2.02.08: Better fix: to avoid the problem, just remember to NULL-ify the global main 
 	// palette pointer lpDDP
+	//v2.02.13: still problems in Virtua Fighter 2 in emu mode. Added try catch protection.
 	ULONG ref;
-	ref=(*pReleaseP)(lpddPalette);
+	BOOL IsClosed;
+
+	// handling of service closed surfaces 
+	IsClosed=0;
+	__try{
+		HRESULT dw=(DWORD)(*pReleaseP);
+		if ((dw & 0xF0000000) == 0xF0000000) IsClosed=1;
+		if ((*(DWORD*)lpddPalette & 0xF0000000) == 0xF0000000) IsClosed=1;
+		if(IsClosed) OutTraceE("Release(P): ASSERT got closed palette lpddPalette=%x\n", lpddPalette);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER){
+		OutTraceE("Exception at %d\n",__LINE__);
+		IsClosed=1;
+	};
+	
+	ref=IsClosed ? 0 :(*pReleaseP)(lpddPalette);
 	OutTraceD("Release(P): lpddPalette=%x ref=%x\n", lpddPalette, ref);
 	if(lpddPalette==lpDDP && ref==0){
 		OutTraceD("Release(P): clearing lpDDP=%x->NULL\n", lpDDP);

@@ -26,13 +26,13 @@ dxwCore::dxwCore()
 
 	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
 
-	// preserved syslibs pointers
-	pClientToScreen=ClientToScreen;
-	pClipCursor=ClipCursor;
-	pGetClientRect=GetClientRect;
-	pGetCursorPos=GetCursorPos;
-	pInvalidateRect=InvalidateRect;
-	pScreenToClient=ScreenToClient;
+	//// preserved syslibs pointers
+	//pClientToScreen=ClientToScreen;
+	//pClipCursor=ClipCursor;
+	//pGetClientRect=GetClientRect;
+	//pGetCursorPos=GetCursorPos;
+	//pInvalidateRect=InvalidateRect;
+	//pScreenToClient=ScreenToClient;
 }
 
 dxwCore::~dxwCore()
@@ -199,6 +199,16 @@ POINT dxwCore::FixCursorPos(HWND hwnd, POINT prev)
 	}
 
 	return curr;
+}
+
+POINT dxwCore::ScreenToClient(POINT point)
+{
+	// convert absolute screen coordinates to frame relative
+	if (!(*pScreenToClient)(hWnd, &point)) {
+		OutTraceE("ScreenToClient(%x) ERROR %d at %d\n", hWnd, GetLastError(), __LINE__);
+		point.x =0; point.y=0;
+	}
+	return point;
 }
 
 void dxwCore::FixNCHITCursorPos(LPPOINT lppoint)

@@ -46,7 +46,7 @@ int iCurMinY;
 int iCurMaxX;
 int iCurMaxY;
 
-int HookDirectInput(char *module, int version)
+int HookDirectInput(HMODULE module, int version)
 {
 	HINSTANCE hinst;
 	void *tmp;

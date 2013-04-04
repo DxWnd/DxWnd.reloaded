@@ -58,7 +58,7 @@ BOOL WINAPI extImmGetOpenStatus(HIMC hIMC)
 	return(*pImmGetOpenStatus)(hIMC);
 }
 
-void HookImeLib(char *module)
+void HookImeLib(HMODULE module)
 {
 	void *tmp;
 

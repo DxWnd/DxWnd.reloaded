@@ -43,8 +43,11 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CTabCompat message handlers
 
-static struct {char bMajor; char bMinor; char *sName;} WinVersions[6]=
+static struct {char bMajor; char bMinor; char *sName;} WinVersions[9]=
 {
+	{4, 0, "Windows 95"},
+	{4,10, "Windows 98/SE"},
+	{4,90, "Windows ME"},
 	{5, 0, "Windows 2000"},
 	{5, 1, "Windows XP"},
 	{5, 2, "Windows Server 2003"},
@@ -61,7 +64,7 @@ BOOL CTabCompat::OnInitDialog()
 	int i;
 	List=(CListBox *)this->GetDlgItem(IDC_LISTFAKE);
 	List->ResetContent();
-	for(i=0; i<6; i++) List->AddString(WinVersions[i].sName);
+	for(i=0; i<9; i++) List->AddString(WinVersions[i].sName);
 	List->SetCurSel(cTarget->m_FakeVersion);
 	CDialog::OnInitDialog();
 	return TRUE;

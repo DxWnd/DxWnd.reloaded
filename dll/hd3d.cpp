@@ -37,7 +37,7 @@ Present_Type pPresent;
 
 DWORD dwD3DVersion;
 
-int HookDirect3D(char *module, int version){
+int HookDirect3D(HMODULE module, int version){
 	HINSTANCE hinst;
 	void *tmp;
 	LPDIRECT3D9 lpd3d;

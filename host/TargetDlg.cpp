@@ -39,6 +39,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_UnNotify = FALSE;
 	m_Windowize = TRUE;
 	m_NoBanner = FALSE;
+	m_StartDebug = FALSE;
 	m_FilePath = _T("");
 	m_Module = _T("");
 	m_SaveLoad = FALSE;

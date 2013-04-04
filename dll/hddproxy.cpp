@@ -273,7 +273,7 @@ FARPROC WINAPI extGetProcAddressProxy(HMODULE hModule, LPCSTR proc)
 //
 // ------------------------------------------------------------------------------------------ //
 
-int HookDDProxy(char *module, int dxVersion)
+int HookDDProxy(HMODULE module, int dxVersion)
 {
 	HINSTANCE hinst;
 	void *tmp;

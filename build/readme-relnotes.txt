@@ -60,3 +60,15 @@ GUI: Tabbed setup panel. More space for more future options.
 DLL: (optional) splash screen 
 probably, some regression bugs....
  
+v2.02.13
+Added decoding of WINDOWPOS.flags field in trace log
+revised whole hooking procedures to use HMODULE handle instead of module name
+Added WM_GETMINMAXINFO and WM_NCCALCSIZE handling in WinProcess hook
+Attempt to handle double buffering through surface attach to backbuffer (???)
+Fixed CHILD window positioning for BIG windows in CreateWindowExA hook
+Added GlobalMemoryStatus hook to fix huge values when value exceeds DWORD range. Fixes Nocturne intro warning message.
+
+V2.02.14
+Started dll injection to handle startup code
+Fixed directx CreateSurface hook to fix "Wargames" error in emulated mode
+Fixed directx SetClipper hook to properly handle backbuffer clipping and fix "Wargames" clipping problems

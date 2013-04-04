@@ -1,9 +1,9 @@
-extern int HookDirectDraw(char *, int);
-extern int HookDDProxy(char *, int);
-extern int HookDirect3D(char *, int);
-extern int HookOle32(char *, int);
-extern int HookDirectInput(char *, int);
-extern void HookImeLib(char *);
+extern int HookDirectDraw(HMODULE, int);
+extern int HookDDProxy(HMODULE, int);
+extern int HookDirect3D(HMODULE, int);
+extern int HookOle32(HMODULE, int);
+extern int HookDirectInput(HMODULE, int);
+extern void HookImeLib(HMODULE);
 extern void InitPosition(int, int, int, int, int, int);
 //void InitWindowPos(int, int, int, int);
 extern LPCSTR ProcToString(LPCSTR proc);

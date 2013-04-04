@@ -34,21 +34,67 @@ FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 	return NULL;
 }
 
-void HookOpenGLLibs(char *module, char *customlib)
+void ForceHookOpenGL(HMODULE base) // to do .....
+{
+	HMODULE hGlLib;
+	hGlLib=(*pLoadLibraryA)("OpenGL32.dll");
+	//hGlLib=LoadLibrary("OpenGL32.dll");
+	OutTrace("hGlLib=%x\n",hGlLib);
+	if(!hGlLib){
+		OutTraceE("LoadLibrary(\"OpenGL32.dll\") ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		return;
+	}
+
+	pglViewport=(glViewport_Type)GetProcAddress(hGlLib, "glViewport");
+	if(pglViewport) {
+		HookAPI(base, "opengl32", pglViewport, "glViewport", extglViewport);
+		extglViewport(dxw.iPosX,dxw.iPosY,dxw.iSizX,dxw.iSizY);
+	}
+	pglScissor=(glScissor_Type)GetProcAddress(hGlLib, "glScissor");
+	if(pglScissor) {
+		HookAPI(base, "opengl32", pglScissor, "glScissor", extglScissor);
+		//extglScissor(dxw.iPosX,dxw.iPosY,dxw.iSizX,dxw.iSizY);
+	}
+	pglGetIntegerv=(glGetIntegerv_Type)GetProcAddress(hGlLib, "glGetIntegerv");
+	if(pglGetIntegerv) {
+		HookAPI(base, "opengl32", pglGetIntegerv, "glGetIntegerv", extglGetIntegerv);
+		//extglGetIntegerv(0, NULL);
+	}
+	pglDrawBuffer=(glDrawBuffer_Type)GetProcAddress(hGlLib, "glDrawBuffer");
+	if(pglDrawBuffer) {
+		HookAPI(base, "opengl32", pglDrawBuffer, "glDrawBuffer", extglDrawBuffer);
+		//extglDrawBuffer(0);
+	}
+}
+
+void HookOpenGLLibs(HMODULE module, char *customlib)
 {
 	void *tmp;
 	char *DefOpenGLModule="OpenGL32.dll";
+	int HookMode;
 
 	if (!customlib) customlib=DefOpenGLModule;
 
-	tmp = HookAPI(module, customlib, NULL, "glViewport", extglViewport);
-	if(tmp) pglViewport = (glViewport_Type)tmp;
-	tmp = HookAPI(module, customlib, NULL, "glScissor", extglScissor);
-	if(tmp) pglScissor = (glScissor_Type)tmp;
-	tmp = HookAPI(module, customlib, NULL, "glGetIntegerv", extglGetIntegerv);
-	if(tmp) pglGetIntegerv = (glGetIntegerv_Type)tmp;
-	tmp = HookAPI(module, customlib, NULL, "glDrawBuffer", extglDrawBuffer);
-	if(tmp) pglDrawBuffer = (glDrawBuffer_Type)tmp;	
+	HookMode=0; // temporary ...
+	switch(HookMode){
+	case 0:
+		tmp = HookAPI(module, customlib, NULL, "glViewport", extglViewport);
+		if(tmp) pglViewport = (glViewport_Type)tmp;
+		tmp = HookAPI(module, customlib, NULL, "glScissor", extglScissor);
+		if(tmp) pglScissor = (glScissor_Type)tmp;
+		tmp = HookAPI(module, customlib, NULL, "glGetIntegerv", extglGetIntegerv);
+		if(tmp) pglGetIntegerv = (glGetIntegerv_Type)tmp;
+		tmp = HookAPI(module, customlib, NULL, "glDrawBuffer", extglDrawBuffer);
+		if(tmp) pglDrawBuffer = (glDrawBuffer_Type)tmp;	
+		break;
+	case 1:
+		static int DoOnce=TRUE;
+		if(DoOnce){
+			ForceHookOpenGL(module);
+			DoOnce=FALSE;
+		}
+		break;
+	}
 
 	return;
 }

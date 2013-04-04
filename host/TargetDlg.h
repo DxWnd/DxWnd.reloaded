@@ -42,6 +42,7 @@ public:
 	BOOL	m_UnNotify;
 	BOOL	m_Windowize;
 	BOOL	m_NoBanner;
+	BOOL	m_StartDebug;
 	CString	m_FilePath;
 	CString	m_Module;
 	CString	m_Title;

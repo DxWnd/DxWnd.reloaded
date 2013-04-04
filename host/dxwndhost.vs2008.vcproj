@@ -148,7 +148,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../Include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS; PSAPI_VERSION=1"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -179,6 +179,7 @@
 				OutputFile="../Debug/dxwnd.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
+				AddModuleNamesToAssembly=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/dxwnd.pdb"
 				SubSystem="2"
@@ -301,6 +302,14 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\getfname.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inject.cpp"
+				>
 			</File>
 			<File
 				RelativePath="MainFrm.cpp"

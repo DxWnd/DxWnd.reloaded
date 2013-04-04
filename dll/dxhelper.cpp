@@ -961,3 +961,24 @@ char *ExplainDDEnumerateFlags(DWORD c)
 	return "???";
  }
 
+char *ExplainWPFlags(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"SWP_");
+	if (c & SWP_NOSIZE) strcat(eb, "NOSIZE+");
+	if (c & SWP_NOMOVE) strcat(eb, "NOMOVE+");
+	if (c & SWP_NOZORDER) strcat(eb, "NOZORDER+");
+	if (c & SWP_NOREDRAW) strcat(eb, "NOREDRAW+");
+	if (c & SWP_NOACTIVATE) strcat(eb, "NOACTIVATE+");
+	if (c & SWP_FRAMECHANGED) strcat(eb, "FRAMECHANGED+");
+	if (c & SWP_SHOWWINDOW) strcat(eb, "SHOWWINDOW+");
+	if (c & SWP_HIDEWINDOW) strcat(eb, "HIDEWINDOW+");
+	if (c & SWP_NOCOPYBITS) strcat(eb, "NOCOPYBITS+");
+	if (c & SWP_NOOWNERZORDER) strcat(eb, "NOOWNERZORDER+");
+	if (c & SWP_NOSENDCHANGING) strcat(eb, "NOSENDCHANGING+");
+	l=strlen(eb);
+	if (l>strlen("SWP_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}

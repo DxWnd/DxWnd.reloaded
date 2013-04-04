@@ -1,7 +1,7 @@
 #include "gl.h"
 
 extern FARPROC Remap_gl_ProcAddress(LPCSTR, HMODULE);
-extern void HookOpenGLLibs(char *, char *);
+extern void HookOpenGLLibs(HMODULE, char *);
 
 typedef void (WINAPI *glViewport_Type)(GLint, GLint, GLsizei, GLsizei);
 typedef void (WINAPI *glScissor_Type)(GLint, GLint, GLsizei, GLsizei);

@@ -353,6 +353,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\walkmod.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\wndproc.cpp"
 				>
 			</File>

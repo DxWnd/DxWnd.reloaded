@@ -145,6 +145,8 @@
 #define IDC_TABPANEL                    1090
 #define IDC_WINDOWIZE                   1091
 #define IDC_NOBANNER                    1092
+#define IDC_NOBANNER2                   1093
+#define IDC_STARTDEBUG                  1093
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

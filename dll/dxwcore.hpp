@@ -51,6 +51,7 @@ public: // methods
 	char *GetTSCaption(void);
 	void DoSlow(int);
 	void ShowBanner(HWND);
+	POINT ScreenToClient(POINT);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;
@@ -90,12 +91,6 @@ protected:
 	BOOL FullScreen;
 	HWND hWnd;
 	DWORD PrimSurfaces[DDSQLEN+1];
-	ClientToScreen_Type pClientToScreen;
-	ClipCursor_Type pClipCursor;
-	GetClientRect_Type pGetClientRect;
-	GetCursorPos_Type pGetCursorPos;
-	InvalidateRect_Type pInvalidateRect;
-	ScreenToClient_Type pScreenToClient;
 };
 
 extern dxwCore dxw;

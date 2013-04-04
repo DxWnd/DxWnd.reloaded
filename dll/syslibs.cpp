@@ -184,6 +184,7 @@ HWND WINAPI extCreateWindowExA(
 	// v2.1.100: fixes for "The Grinch": this game creates a new main window for OpenGL
 	// rendering using CW_USEDEFAULT placement and 800x600 size while the previous
 	// main win was 640x480 only!
+	// v2.02.13: if it's a WS_CHILD window, don't reposition the x,y, placement for BIG win.
 	if	(
 			(
 				((x==0)&&(y==0)) || ((x==CW_USEDEFAULT)&&(y==CW_USEDEFAULT))
@@ -206,8 +207,10 @@ HWND WINAPI extCreateWindowExA(
 			isValidHandle = TRUE;
 		} while(FALSE);
 		if (isValidHandle){
-			x=upleft.x;
-			y=upleft.y;
+			if (!(dwStyle & WS_CHILD)){ 
+				x=upleft.x;
+				y=upleft.y;
+			}
 			nWidth=screen.right;
 			nHeight=screen.bottom;
 			OutTraceD("CreateWindowEx: fixed BIG win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
@@ -215,8 +218,10 @@ HWND WINAPI extCreateWindowExA(
 		else {
 			// invalid parent coordinates: use initial placement, but leave the size.
 			// should also fix the window style and compensate for borders here?
-			x=dxw.iPosX;
-			y=dxw.iPosY;
+			if (!(dwStyle & WS_CHILD)){ 
+				x=dxw.iPosX;
+				y=dxw.iPosY;
+			}
 			nWidth=dxw.iSizX;
 			nHeight=dxw.iSizY;
 			OutTraceD("CreateWindowEx: renewed BIG win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
@@ -422,72 +427,8 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 		res=1;
 	}
 
-	if(dxw.dwFlags2 & DIFFERENTIALMOUSE){
-		int NewX, NewY;
-		RECT client;
-		POINT corner={0,0};
-
-		// get win placement
-		(*pGetClientRect)(dxw.GethWnd(), &client);
-		(*pClientToScreen)(dxw.GethWnd(), &corner);
-		NewX = lppoint->x - PrevX + LastCurPosX;
-		NewY = lppoint->y - PrevY + LastCurPosY;
-		// handle virtual clipping
-		if(lppoint->x <= corner.x) NewX--;
-		if(lppoint->x >= corner.x+client.right-1) NewX++;
-		if(lppoint->y <= corner.y) NewY--;
-		if(lppoint->y >= corner.y+client.bottom-1) NewY++;
-
-		// swap coordinates...
-		PrevX=lppoint->x;
-		PrevY=lppoint->y;
-		lppoint->x = NewX;
-		lppoint->y = NewY;
-		OutTraceC("GetCursorPos: DIFF pos=(%d,%d) delta=(%d,%d)->(%d,%d)\n", 
-			PrevX, PrevY, LastCurPosX, LastCurPosY, NewX, NewY);
-		return TRUE;
-	}
-
-	PrevX=lppoint->x;
-	PrevY=lppoint->y;
-
-	if(dxw.dwFlags1 & MODIFYMOUSE){
-		RECT rect;
-
-		// find window metrics
-		if (!(*pGetClientRect)(dxw.GethWnd(), &rect)){
-			OutTraceE("GetClientRect(%x) ERROR %d at %d\n", dxw.GethWnd(), GetLastError(), __LINE__);
-			lppoint->x =0; lppoint->y=0;
-			return TRUE;
-		}
-
-		// convert absolute screen coordinates to frame relative
-		if (!(*pScreenToClient)(dxw.GethWnd(), lppoint)) {
-			OutTraceE("ScreenToClient(%x) ERROR %d at %d\n", dxw.GethWnd(), GetLastError(), __LINE__);
-			lppoint->x =0; lppoint->y=0;
-			return TRUE;
-		}
-
-		// divide by zero check
-		if (rect.right==0 || rect.bottom==0){
-			OutTraceC("avoiding divide by zero for (x,y)=(%d,%d) at %d\n", rect.right, rect.bottom, __LINE__);
-			lppoint->x=0; lppoint->y=0;
-			return TRUE;
-		}
-
-		// ensure you stay within borders		
-		// and avoid trusting arithmetic operations on negative integers!!!
-		if (lppoint->x < 0) lppoint->x=0;
-		if (lppoint->y < 0) lppoint->y=0;
-		if (lppoint->x > rect.right) lppoint->x=rect.right;
-		if (lppoint->y > rect.bottom) lppoint->y=rect.bottom;
-
-		lppoint->x = (lppoint->x * dxw.GetScreenWidth()) / rect.right;
-		lppoint->y = (lppoint->y * dxw.GetScreenHeight()) / rect.bottom;
-
-		OutTraceC("GetCursorPos: hwnd=%x res=%x XY=(%d,%d)->(%d,%d)\n", 
-			dxw.GethWnd(), res, PrevX, PrevY, lppoint->x, lppoint->y);
-	}
+	*lppoint=dxw.ScreenToClient(*lppoint);
+	*lppoint=dxw.FixCursorPos(*lppoint);
 	
 	return res;
 }
@@ -716,6 +657,12 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong)
 
 	if (nIndex==GWL_WNDPROC){
 		long lres;
+		// GPL fix
+		if(hwnd==0) {
+			hwnd=dxw.GethWnd();
+			OutTrace("SetWindowLong: NULL hwnd, FIXING hwnd=%x\n",hwnd);
+		}
+		// end of GPL fix
 		res=(LONG)WhndGetWindowProc(hwnd);		
 		WhndStackPush(hwnd, (WNDPROC)dwNewLong);
 		SetLastError(0);
@@ -841,10 +788,11 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	static int BorderY=-1;
 	int cx, cy;
 
-	OutTraceD("%s: GOT hwnd=%x pos=(%d,%d) dim=(%d,%d) Flags=%x\n", 
-		ApiName, hwnd, wp->x, wp->y, wp->cx, wp->cy, wp->flags);
+	OutTraceD("%s: GOT hwnd=%x pos=(%d,%d) dim=(%d,%d) Flags=%x(%s)\n", 
+		ApiName, hwnd, wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
 
-	if (wp->flags & (SWP_NOMOVE|SWP_NOSIZE)) return; //v2.02.10
+	if ((wp->flags & (SWP_NOMOVE|SWP_NOSIZE))==(SWP_NOMOVE|SWP_NOSIZE)) return; //v2.02.13
+	//if (wp->flags & (SWP_NOMOVE|SWP_NOSIZE)) return; //v2.02.10
 
 	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
 		extern void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
@@ -1352,6 +1300,7 @@ BOOL WINAPI extScreenToClient(HWND hwnd, LPPOINT lppoint)
 
 BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
 {
+	BOOL ret;
 	OutTraceD("GetClientRect: whnd=%x FullScreen=%x\n", hwnd, dxw.IsFullScreen());
 	if (lpRect && dxw.IsFullScreen() && (hwnd == dxw.GethWnd())){
 		lpRect->left=0;
@@ -1375,7 +1324,9 @@ BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
 	}
 	
 	// proxed call
-	return (*pGetClientRect)(hwnd, lpRect);
+	ret=(*pGetClientRect)(hwnd, lpRect);
+	OutTraceB("GetClientRect: rect=(%d,%d)-(%d,%d) ret=%d\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, ret);
+	return ret;
 	}
 
 BOOL WINAPI extGetWindowRect(HWND hwnd, LPRECT lpRect)
@@ -1529,16 +1480,20 @@ char *SysNames2[SYSLIBIDX_MAX]={
 	"ddraw",
 	"opengl32"
 };
-extern void HookModule(char *, int);
-extern void HookSysLibs(char *);
+extern void HookModule(HMODULE, int);
+extern void HookSysLibs(HMODULE);
 
 HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
 {
-	HMODULE ret;
+	HMODULE libhandle;
 	int idx;
 	char *lpName, *lpNext;
-	ret=(*pLoadLibraryA)(lpFileName);
-	OutTraceD("LoadLibraryA: FileName=%s hmodule=%x\n", lpFileName, ret);
+	libhandle=(*pLoadLibraryA)(lpFileName);
+	OutTraceD("LoadLibraryA: FileName=%s hmodule=%x\n", lpFileName, libhandle);
+	if(!libhandle){
+		OutTraceE("LoadLibraryExA: ERROR FileName=%s err=%d\n", lpFileName, GetLastError());
+		return libhandle;
+	}
 	lpName=(char *)lpFileName;
 	while (lpNext=strchr(lpName,'\\')) lpName=lpNext+1;
 	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
@@ -1546,27 +1501,25 @@ HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
 			(!lstrcmpi(lpName,SysNames[idx])) ||
 			(!lstrcmpi(lpName,SysNames2[idx]))
 		){
-			OutTraceD("LoadLibraryA: registered hmodule=%x->FileName=%s\n", ret, lpFileName);
-			SysLibs[idx]=ret;
+			OutTraceD("LoadLibraryA: registered hmodule=%x->FileName=%s\n", libhandle, lpFileName);
+			SysLibs[idx]=libhandle;
 			break;
 		}
 	}
 	// handle custom OpenGL library
 	if(!lstrcmpi(lpName,dxw.CustomOpenGLLib)){
 		idx=SYSLIBIDX_OPENGL;
-		SysLibs[idx]=ret;
+		SysLibs[idx]=libhandle;
 	}
-	//if(idx==SYSLIBIDX_MAX) {
-	//	OutTraceD("LoadLibraryA: hook %s\n", lpName);
-	//	HookModule((char *)lpName, 0);
-	//}
-	//HookSysLibs(NULL);
-	HookModule(NULL, 0);
-	return ret;
+
+	// don't hook target libraries, hook all the remaining ones!
+	if(idx==SYSLIBIDX_MAX) HookModule(libhandle, 0);
+	return libhandle;
 }
 
 HMODULE WINAPI extLoadLibraryW(LPCWSTR lpFileName)
 {
+#if 0
 	HMODULE ret;
 	int idx;
 	LPCWSTR lpName, lpNext;
@@ -1589,22 +1542,28 @@ HMODULE WINAPI extLoadLibraryW(LPCWSTR lpFileName)
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=ret;
 	}
-	//if(idx==SYSLIBIDX_MAX) {
-	//	OutTraceD("LoadLibraryW: hook %s\n", lpName);
-	//	HookModule((char *)lpName, 0);
-	//}
-	//HookSysLibs(NULL);
-	HookModule(NULL, 0);
+	char sName[81];
+	wcstombs(sName, lpName, 80);
+	HookModule(sName, 0);
 	return ret;
+#else
+	char sFileName[256+1];
+	wcstombs(sFileName, lpFileName, 80);
+	return extLoadLibraryA(sFileName);
+#endif
 }
 
 HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags)
 {
-	HMODULE ret;
+	HMODULE libhandle;
 	int idx;
 	char *lpName, *lpNext;
-	ret=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
-	OutTraceD("LoadLibraryExA: FileName=%s hFile=%x Flags=%x hmodule=%x\n", lpFileName, hFile, dwFlags, ret);
+	libhandle=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
+	OutTraceD("LoadLibraryExA: FileName=%s hFile=%x Flags=%x hmodule=%x\n", lpFileName, hFile, dwFlags, libhandle);
+	if(!libhandle){
+		OutTraceE("LoadLibraryExA: ERROR FileName=%s err=%d\n", lpFileName, GetLastError());
+		return libhandle;
+	}
 	lpName=(char *)lpFileName;
 	while (lpNext=strchr(lpName,'\\')) lpName=lpNext+1;
 	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
@@ -1612,27 +1571,23 @@ HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags
 			(!lstrcmpi(lpName,SysNames[idx])) ||
 			(!lstrcmpi(lpName,SysNames2[idx]))
 		){
-			OutTraceD("LoadLibraryExA: registered hmodule=%x->FileName=%s\n", ret, lpFileName);
-			SysLibs[idx]=ret;
+			OutTraceD("LoadLibraryExA: registered hmodule=%x->FileName=%s\n", libhandle, lpFileName);
+			SysLibs[idx]=libhandle;
 			break;
 		}
 	}
 	// handle custom OpenGL library
 	if(!lstrcmpi(lpName,dxw.CustomOpenGLLib)){
 		idx=SYSLIBIDX_OPENGL;
-		SysLibs[idx]=ret;
+		SysLibs[idx]=libhandle;
 	}
-	//if(idx==SYSLIBIDX_MAX) {
-	//	OutTraceD("LoadLibraryExA: hook %s\n", lpName);
-	//	HookModule((char *)lpName, 0);
-	//}
-	//HookSysLibs(NULL);
-	HookModule(NULL, 0);
-	return ret;
+	HookModule(libhandle, 0);
+	return libhandle;
 }
 
 HMODULE WINAPI extLoadLibraryExW(LPCWSTR lpFileName, HANDLE hFile, DWORD dwFlags)
 {
+#if 0
 	HMODULE ret;
 	int idx;
 	LPCWSTR lpName, lpNext;
@@ -1655,13 +1610,15 @@ HMODULE WINAPI extLoadLibraryExW(LPCWSTR lpFileName, HANDLE hFile, DWORD dwFlags
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=ret;
 	}
-	//if(idx==SYSLIBIDX_MAX) {
-	//	OutTraceD("LoadLibraryExW: hook %s\n", lpName);
-	//	HookModule((char *)lpName, 0);
-	//}
-	//HookSysLibs(NULL);
-	HookModule(NULL, 0);
+	char sName[81];
+	wcstombs(sName, lpName, 80);
+	HookModule(sName, 0);
 	return ret;
+#else
+	char sFileName[256+1];
+	wcstombs(sFileName, lpFileName, 80);
+	return extLoadLibraryExA(sFileName, hFile, dwFlags);
+#endif
 }
 
 extern DirectDrawCreate_Type pDirectDrawCreate;
@@ -2680,8 +2637,10 @@ DWORD WINAPI extSleepEx(DWORD dwMilliseconds, BOOL bAlertable)
 
 DWORD WINAPI exttimeGetTime(void)
 {
-	if (IsDebug) OutTrace("timeGetTime\n");
-	return dxw.GetTickCount();
+	DWORD ret;
+	ret = dxw.GetTickCount();
+	if (IsDebug) OutTrace("timeGetTime: time=%x\n", ret);
+	return ret;
 }
 
 void WINAPI extGetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
@@ -2695,23 +2654,23 @@ int WINAPI extShowCursor(BOOL bShow)
 	static int iFakeCounter;
 	int ret;
 
-	OutTraceD("ShowCursor: bShow=%x\n", bShow);
+	OutTraceC("ShowCursor: bShow=%x\n", bShow);
 	if (bShow){
 		if (dxw.dwFlags1 & HIDEHWCURSOR){
 			iFakeCounter++;
-			OutTraceD("ShowCursor: HIDEHWCURSOR ret=%x\n", iFakeCounter);
+			OutTraceC("ShowCursor: HIDEHWCURSOR ret=%x\n", iFakeCounter);
 			return iFakeCounter;
 		}
 	}
 	else {
 		if (dxw.dwFlags2 & SHOWHWCURSOR){
 			iFakeCounter--;
-			OutTraceD("ShowCursor: SHOWHWCURSOR ret=%x\n", iFakeCounter);
+			OutTraceC("ShowCursor: SHOWHWCURSOR ret=%x\n", iFakeCounter);
 			return iFakeCounter;
 		}
 	}
 	ret=(*pShowCursor)(bShow);
-	OutTraceD("ShowCursor: ret=%x\n", ret);
+	OutTraceC("ShowCursor: ret=%x\n", ret);
 	return ret;
 }
 
@@ -2730,10 +2689,17 @@ Windows Server 2003		5.2		5		2		GetSystemMetrics(SM_SERVERR2) == 0
 Windows XP Pro x64 Ed.	5.2		5		2		(OSVERSIONINFOEX.wProductType == VER_NT_WORKSTATION) && (SYSTEM_INFO.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64)
 Windows XP				5.1		5		1		Not applicable
 Windows 2000			5.0		5		0		Not applicable
+From http://delphi.about.com/cs/adptips2000/a/bltip1100_2.htm 
+Windows 95				4.0		4		0
+Windows 98/SE"			4.10	4		10		if osVerInfo.szCSDVersion[1] = 'A' then Windows98SE
+Windows ME				4.90	4		90
 */
 
-static struct {char bMajor; char bMinor; char *sName;} WinVersions[6]=
+static struct {char bMajor; char bMinor; char *sName;} WinVersions[9]=
 {
+	{4, 0, "Windows 95"},
+	{4,10, "Windows 98/SE"},
+	{4,90, "Windows ME"},
 	{5, 0, "Windows 2000"},
 	{5, 1, "Windows XP"},
 	{5, 2, "Windows Server 2003"},
@@ -2800,3 +2766,38 @@ DWORD WINAPI extGetVersion(void)
 	return dwVersion;
 }
 
+/* -------------------------------------------------------------------------------
+
+GlobalMemoryStatus: MSDN documents that on modern PCs that have more than DWORD
+memory values the GlobalMemoryStatus sets the fields to -1 (0xFFFFFFFF) and you 
+should use GlobalMemoryStatusEx instead. 
+But in some cases the value is less that DWORD max, but greater that DWORD>>1, that
+is the calling application may get a big value and see it as a signed negative
+value, as it happened to Nocturne on my PC. That's why it's not adviseable to write: 
+if(lpBuffer->dwTotalPhys== -1) ...
+but this way:
+if ((int)lpBuffer->dwTotalPhys < 0) ...
+and also don't set 
+BIGENOUGH 0x80000000 // possibly negative!!!
+but:
+BIGENOUGH 0x20000000 // surely positive !!!
+
+/* ---------------------------------------------------------------------------- */
+#define BIGENOUGH 0x20000000
+
+void WINAPI extGlobalMemoryStatus(LPMEMORYSTATUS lpBuffer)
+{
+	(*pGlobalMemoryStatus)(lpBuffer);
+	OutTraceD("GlobalMemoryStatus: Length=%x MemoryLoad=%x "
+		"TotalPhys=%x AvailPhys=%x TotalPageFile=%x AvailPageFile=%x TotalVirtual=%x AvailVirtual=%x\n",
+		lpBuffer->dwMemoryLoad, lpBuffer->dwTotalPhys, lpBuffer->dwAvailPhys,
+		lpBuffer->dwTotalPageFile, lpBuffer->dwAvailPageFile, lpBuffer->dwTotalVirtual, lpBuffer->dwAvailVirtual);
+	if(lpBuffer->dwLength==sizeof(MEMORYSTATUS)){
+		if ((int)lpBuffer->dwTotalPhys < 0) lpBuffer->dwTotalPhys = BIGENOUGH;
+		if ((int)lpBuffer->dwAvailPhys < 0) lpBuffer->dwAvailPhys = BIGENOUGH;
+		if ((int)lpBuffer->dwTotalPageFile < 0) lpBuffer->dwTotalPageFile = BIGENOUGH;
+		if ((int)lpBuffer->dwAvailPageFile < 0) lpBuffer->dwAvailPageFile = BIGENOUGH;
+		if ((int)lpBuffer->dwTotalVirtual < 0) lpBuffer->dwTotalVirtual = BIGENOUGH;
+		if ((int)lpBuffer->dwAvailVirtual < 0) lpBuffer->dwAvailVirtual = BIGENOUGH;
+	}
+}
