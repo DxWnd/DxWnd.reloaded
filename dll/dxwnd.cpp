@@ -22,8 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ctype.h>
 #include <stdio.h>
 #include "dxwnd.h"
+#include "dxwcore.hpp"
 
-#define VERSION "2.02.15"
+#define VERSION "2.02.16"
 
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam);
 
@@ -39,6 +40,8 @@ HANDLE hKillMutex;
 int HookStatus=DXW_IDLE;
 static int TaskIndex=-1;
 DXWNDSTATUS DxWndStatus;
+
+void InjectHook();
 
 BOOL APIENTRY DllMain( HANDLE hmodule, 
                        DWORD  dwreason, 
@@ -63,7 +66,7 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
 	if(!hTraceMutex) hTraceMutex = CreateMutex(0, FALSE, "Trace_Mutex");
 	hLockMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, "Lock_Mutex");
 	if(!hLockMutex) hLockMutex = CreateMutex(0, FALSE, "Lock_Mutex");
-
+	InjectHook();
 	return true;
 }
 
@@ -190,4 +193,22 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 		ReleaseMutex(hMutex);
 	}
 	return CallNextHookEx(hHook, ncode, wparam, lparam);
+}
+
+void InjectHook()
+{
+	char name[MAX_PATH];
+	int i;
+	GetModuleFileName(0, name, MAX_PATH);
+	for(i = 0; name[i]; i ++) name[i] = tolower(name[i]);
+	for(i = 0; pMapping[i].path[0]; i ++){
+		if(!strncmp(name, pMapping[i].path, strlen(name))){
+			if (pMapping[i].flags2 & STARTDEBUG){
+				OutTrace("InjectHook: task[%d]=\"%s\" hooked\n", i, pMapping[i].path);
+				dxw.InitTarget(&pMapping[i]);
+				HookInit(&pMapping[i],NULL);
+			}
+			break;
+		}
+	}
 }

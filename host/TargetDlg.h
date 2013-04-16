@@ -98,6 +98,7 @@ public:
 	BOOL	m_LimitResources;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
+	BOOL	m_WireFrame;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;

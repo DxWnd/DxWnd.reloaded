@@ -2819,31 +2819,18 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 	// clipping ON & OFF affects blitting on primary surface.
 	if(dxw.dwFlags1 & SUPPRESSCLIPPING) return 0;
 
-#if 1
 	if(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){
-		if (isPrim && lpDDSEmu_Prim) {
-			res=(*pSetClipper)(lpDDSEmu_Prim, lpddc);
-			if(res) OutTraceE("CreateSurface: SetClipper ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			lpDDC = lpddc;
-			// n.b. SetHWnd was not wrapped, so pSetHWnd is not usable (NULL) !!!
-			if(lpDDC) res=lpDDC->SetHWnd( 0, dxw.GethWnd()); 
-			if(res) OutTraceE("CreateSurface: SetHWnd ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		}
-		else if ((lpdds == lpDDSBack) && lpDDSEmu_Back) {
-			res=(*pSetClipper)(lpDDSEmu_Back, lpddc);
-			if(res) OutTraceE("CreateSurface: SetClipper ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			lpDDC = lpddc;
-			// n.b. SetHWnd was not wrapped, so pSetHWnd is not usable (NULL) !!!
-			if(lpDDC) res=lpDDC->SetHWnd( 0, dxw.GethWnd()); 
-			if(res) OutTraceE("CreateSurface: SetHWnd ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if ((isPrim && lpDDSEmu_Prim) || 
+			((lpdds == lpDDSBack) && lpDDSEmu_Back)){
+			OutTraceD("SetClipper: skip primary/backbuffer lpdds=%x\n", lpdds);
+			res=0;
 		}
 		else 
 			res=(*pSetClipper)(lpdds, lpddc);
 	}
 	else
-#endif
-	// just proxy ...
-	res=(*pSetClipper)(lpdds, lpddc);
+		res=(*pSetClipper)(lpdds, lpddc);
+
 	if (res)
 		OutTraceE("SetClipper: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	return res;

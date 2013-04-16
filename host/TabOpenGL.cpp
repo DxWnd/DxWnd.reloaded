@@ -27,6 +27,7 @@ void CTabOpenGL::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL);
+	DDX_Check(pDX, IDC_WIREFRAME, cTarget->m_WireFrame);
 	DDX_Text(pDX, IDC_OPENGLLIB, cTarget->m_OpenGLLib);
 }
 

@@ -26,6 +26,8 @@ static char THIS_FILE[] = __FILE__;
 extern UINT m_StartToTray;
 extern UINT m_InitialState;
 extern char m_ConfigFileName[20+1];
+extern BOOL Inject(DWORD, const char *);
+
 PRIVATEMAP *pTitles; // global ptr: get rid of it!!
 TARGETMAP *pTargets; // idem.
 
@@ -438,6 +440,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_ShowFPSOverlay = TargetMaps[i].flags2 & SHOWFPSOVERLAY ? 1 : 0;
 	dlg.m_TimeStretch = TargetMaps[i].flags2 & TIMESTRETCH ? 1 : 0;
 	dlg.m_HookOpenGL = TargetMaps[i].flags2 & HOOKOPENGL ? 1 : 0;
+	dlg.m_WireFrame = TargetMaps[i].flags2 & WIREFRAME ? 1 : 0;
 	dlg.m_FakeVersion = TargetMaps[i].flags2 & FAKEVERSION ? 1 : 0;
 	dlg.m_FullRectBlt = TargetMaps[i].flags2 & FULLRECTBLT ? 1 : 0;
 	dlg.m_NoPaletteUpdate = TargetMaps[i].flags2 & NOPALETTEUPDATE ? 1 : 0;
@@ -545,6 +548,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_ShowFPSOverlay) TargetMaps[i].flags2 |= SHOWFPSOVERLAY;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
+		if(dlg.m_WireFrame) TargetMaps[i].flags2 |= WIREFRAME;
 		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
 		if(dlg.m_FullRectBlt) TargetMaps[i].flags2 |= FULLRECTBLT;
 		if(dlg.m_NoPaletteUpdate) TargetMaps[i].flags2 |= NOPALETTEUPDATE;
@@ -845,6 +849,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_ShowFPSOverlay) TargetMaps[i].flags2 |= SHOWFPSOVERLAY;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
+		if(dlg.m_WireFrame) TargetMaps[i].flags2 |= WIREFRAME;
 		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
 		if(dlg.m_FullRectBlt) TargetMaps[i].flags2 |= FULLRECTBLT;
 		if(dlg.m_NoPaletteUpdate) TargetMaps[i].flags2 |= NOPALETTEUPDATE;
@@ -1194,18 +1199,10 @@ DWORD WINAPI StartDebug(void *p)
 				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
 				if(res!=IDYES) step=FALSE;
 			}
-			if(1){
-				// DLL injection:
-				char buf[MAX_PATH] = {0};
-				BOOL Injected;
-				extern BOOL Inject(DWORD, const char *);
-				GetFullPathName("dxinj.dll", MAX_PATH, buf, NULL);
-				Injected=Inject(pinfo.dwProcessId, buf);
-				if(!Injected){
-					sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, buf);
-					MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
-				}
-				// end of DLL injection
+			GetFullPathName("dxwnd.dll", MAX_PATH, path, NULL);
+			if(!Inject(pinfo.dwProcessId, path)){
+				sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, path);
+				MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 			}
 			break;
 		case CREATE_THREAD_DEBUG_EVENT:

@@ -90,6 +90,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_FakeVersion = FALSE;
 	m_FullRectBlt = FALSE;
 	m_NoPaletteUpdate = FALSE;
+	m_WireFrame = FALSE;
 	m_InitX = 0;
 	m_InitY = 0;
 	m_MaxX = 0;

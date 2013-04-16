@@ -9,6 +9,7 @@
 #include "dxwcore.hpp"
 #include "dxhook.h"
 #include "glhook.h"
+#include "msvfwhook.h"
 #define DXWDECLARATIONS 1
 #include "syslibs.h"
 #undef DXWDECLARATIONS
@@ -43,7 +44,7 @@ static char *Flag2Names[32]={
 	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
 	"HOOKGDI", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
 	"NOPALETTEUPDATE", "SUPPRESSIME", "NOBANNER", "WINDOWIZE",
-	"", "", "", "",
+	"LIMITRESOURCES", "STARTDEBUG", "SETCOMPATIBILITY", "",
 };
 
 static char *TFlagNames[32]={
@@ -820,6 +821,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 void HookSysLibsInit()
 {
+	static BOOL DoOnce = FALSE;
+	if(DoOnce) return;
+	DoOnce=TRUE;
+
 	pLoadLibraryA = LoadLibraryA;
 	pLoadLibraryExA = LoadLibraryExA;
 	pLoadLibraryW = LoadLibraryW;
@@ -1112,8 +1117,6 @@ void HookSysLibs(HMODULE module)
 	return;
 }
 
-
-
 static void RecoverScreenMode()
 {
 	DEVMODE InitDevMode;
@@ -1201,6 +1204,7 @@ void HookModule(HMODULE base, int dxversion)
 	HookDirect3D(base, dxversion);
 	HookOle32(base, dxversion); // unfinished business
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
+	HookMSV4WLibs(base);
 	//ForceHookOpenGL(base);
 }
 
@@ -1318,7 +1322,6 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 		res=(*pMoveWindow)(dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy, FALSE);
 		if(!res) OutTraceE("MoveWindow ERROR: dxw.hParentWnd=%x err=%d at %d\n", dxw.hParentWnd, GetLastError(), __LINE__);
 	}
-
 
 	return 0;
 }

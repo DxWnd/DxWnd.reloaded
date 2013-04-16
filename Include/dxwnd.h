@@ -75,6 +75,7 @@
 #define LIMITRESOURCES		0x10000000 // Limit resources to fit an old program's expectations 
 #define STARTDEBUG			0x20000000 // Start in DEBUG mode
 #define SETCOMPATIBILITY	0x40000000 // invoke ddraw SetAppCompatData to set aero compatibility mode
+#define WIREFRAME			0x80000000 // invoke ddraw SetAppCompatData to set aero compatibility mode
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

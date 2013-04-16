@@ -9,6 +9,10 @@ typedef void (WINAPI *glGetIntegerv_Type)(GLenum, GLint *);
 typedef void (WINAPI *glFinish_Type)(void);
 typedef void (WINAPI *glFlush_Type)(void);
 typedef void (WINAPI *glDrawBuffer_Type)(GLenum);
+typedef void (WINAPI *glPolygonMode_Type)(GLenum, GLenum);
+typedef void (WINAPI *glGetFloatv_Type)(GLenum, GLboolean *);
+typedef void (WINAPI *glClear_Type)(GLbitfield);
+typedef HGLRC (WINAPI *wglCreateContext_Type)(HDC);
 
 extern void WINAPI extglViewport(GLint,  GLint,  GLsizei,  GLsizei);
 extern void WINAPI extglScissor(GLint,  GLint,  GLsizei,  GLsizei);
@@ -16,6 +20,10 @@ extern void WINAPI extglGetIntegerv(GLenum, GLint *);
 extern void WINAPI extglFinish(void);
 extern void WINAPI extglFlush(void);
 extern void WINAPI extglDrawBuffer(GLenum);
+extern void WINAPI extglPolygonMode(GLenum, GLenum);
+extern void WINAPI extglGetFloatv(GLenum, GLboolean *);
+extern void WINAPI extglClear(GLbitfield);
+extern HGLRC WINAPI extwglCreateContext(HDC);
 
 #ifdef DXWDECLARATIONS 
 #undef DXWEXTERN
@@ -36,3 +44,7 @@ DXWEXTERN glGetIntegerv_Type pglGetIntegerv;
 //DXWEXTERN glFinish_Type pglFinish;
 //DXWEXTERN glFlush_Type pglFlush;
 DXWEXTERN glDrawBuffer_Type pglDrawBuffer;
+DXWEXTERN glPolygonMode_Type pglPolygonMode;
+DXWEXTERN glGetFloatv_Type pglGetFloatv;
+DXWEXTERN glClear_Type pglClear;
+DXWEXTERN wglCreateContext_Type pwglCreateContext;

@@ -76,3 +76,9 @@ Fixed directx SetClipper hook to properly handle backbuffer clipping and fix "Wa
 v2.02.15
 Fixed clipping handling of primary/backbuffer surfaces 
 Added option to set AERO compatibility for Vista/Win7/Win8 platforms. Need to call a undocumented ddraw API. Thanks to Vovchik that discovered it. Use at your own risk!
+
+v2.02.16
+DLL injection finally working! Quake 2 is supported.
+Added Wireframe option for OpenGL games
+Improved fix for clipper handling of primary/backbuffer surfaces 
+

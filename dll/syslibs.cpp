@@ -8,6 +8,7 @@
 #include "dxwcore.hpp"
 #include "dxhook.h"
 #include "glhook.h"
+#include "msvfwhook.h"
 #include "syslibs.h"
 #include "dxhelper.h"
 #include "hddraw.h"
@@ -1210,7 +1211,7 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, DEVMODE *lpDevMode, DWORD dwfla
 			if(dwflags==CDS_FULLSCREEN) dwflags=0; // no FULLSCREEN
 			res=(*ChangeDisplaySettings)(&TryMode, dwflags);
 			OutTraceD("%s: fixed size=(%d x %d) bpp=%d res=%x(%s)\n",
-				fname, NewMode.dmPelsHeight, NewMode.dmPelsWidth, NewMode.dmBitsPerPel, 
+				fname, NewMode.dmPelsWidth, NewMode.dmPelsHeight, NewMode.dmBitsPerPel, 
 				res, ExplainDisplaySettingsRetcode(res));
 			return res;
 		}
@@ -1465,7 +1466,8 @@ BOOL WINAPI extGetMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgF
 #define SYSLIBIDX_OLE32			3
 #define SYSLIBIDX_DIRECTDRAW	4
 #define SYSLIBIDX_OPENGL		5
-#define SYSLIBIDX_MAX			6 // array size
+#define SYSLIBIDX_MSVFW			6
+#define SYSLIBIDX_MAX			7 // array size
 HMODULE SysLibs[SYSLIBIDX_MAX];
 char *SysNames[SYSLIBIDX_MAX]={
 	"kernel32.dll",
@@ -1473,7 +1475,8 @@ char *SysNames[SYSLIBIDX_MAX]={
 	"GDI32.dll",
 	"ole32.dll",
 	"ddraw.dll",
-	"opengl32.dll"
+	"opengl32.dll",
+	"msvfw32.dll"
 };
 char *SysNames2[SYSLIBIDX_MAX]={
 	"kernel32",
@@ -1481,7 +1484,8 @@ char *SysNames2[SYSLIBIDX_MAX]={
 	"GDI32",
 	"ole32",
 	"ddraw",
-	"opengl32"
+	"opengl32",
+	"msvfw32"
 };
 extern void HookModule(HMODULE, int);
 extern void HookSysLibs(HMODULE);
@@ -1701,9 +1705,13 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			}
 			break;
 		case SYSLIBIDX_OPENGL:
-		//default:
 			if(!(dxw.dwFlags2 & HOOKOPENGL)) break; 
 			if (remap=Remap_gl_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_MSVFW:
+			if (remap=Remap_vfw_ProcAddress(proc, hModule)) return remap;
+			break;
+		//default:
 		}
 	}
 	else {
