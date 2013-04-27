@@ -63,6 +63,8 @@ public: // simple data variables
 	DWORD dwMaxDDVersion;
 	DWORD dwFlags1;
 	DWORD dwFlags2;
+	DWORD dwFlags3;
+	DWORD dwFlags4;
 	DWORD dwTFlags;
 	HWND hParentWnd;
 	HWND hChildWnd;

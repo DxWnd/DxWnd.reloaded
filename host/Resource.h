@@ -43,6 +43,8 @@
 #define IDC_DIRECTX8                    303
 #define IDC_DIRECTX9                    304
 #define IDC_NODIRECTX                   305
+#define IDC_DIRECTX10                   306
+#define IDC_DIRECTX11                   307
 #define IDC_FILE                        1000
 #define IDC_OPEN                        1001
 #define IDC_UNNOTIFY                    1007
@@ -145,6 +147,7 @@
 #define IDC_DISABLEGAMMARAMP            1095
 #define IDC_FORCEWINRESIZE              1096
 #define IDC_TIMESLIDER                  1097
+#define IDC_FORCEHOOKOPENGL             1098
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

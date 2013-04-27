@@ -44,7 +44,29 @@ static char *Flag2Names[32]={
 	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
 	"HOOKGDI", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
 	"NOPALETTEUPDATE", "SUPPRESSIME", "NOBANNER", "WINDOWIZE",
-	"LIMITRESOURCES", "STARTDEBUG", "SETCOMPATIBILITY", "",
+	"LIMITRESOURCES", "STARTDEBUG", "SETCOMPATIBILITY", "WIREFRAME",
+};
+
+static char *Flag3Names[32]={
+	"FORCEHOOKOPENGL", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+};
+
+static char *Flag4Names[32]={
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
 };
 
 static char *TFlagNames[32]={
@@ -71,6 +93,8 @@ static void OutTraceHeader(FILE *fp)
 	fprintf(fp, "*** Flags= ");
 	for(i=0, dword=dxw.dwFlags1;  i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", FlagNames[i]);
 	for(i=0, dword=dxw.dwFlags2; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag2Names[i]);
+	for(i=0, dword=dxw.dwFlags3; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag3Names[i]);
+	for(i=0, dword=dxw.dwFlags4; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag4Names[i]);
 	for(i=0, dword=dxw.dwTFlags; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", TFlagNames[i]);
 	fprintf(fp, "***\n");
 }
@@ -703,6 +727,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
+		GetHookInfo()->CursorX=(short)curr.x;
+		GetHookInfo()->CursorY=(short)curr.y;
 		break;	
 	// fall through cases:
 	case WM_MOUSEWHEEL:
@@ -724,6 +750,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
+		GetHookInfo()->CursorX=(short)curr.x;
+		GetHookInfo()->CursorY=(short)curr.y;
 		break;	
 	case WM_SETFOCUS:
 		if (dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
@@ -958,6 +986,8 @@ void HookGDILib(HMODULE module)
 void HookSysLibs(HMODULE module)
 {
 	void *tmp;
+
+	OutTraceD("HookSysLibs module=%x\n", module);
 
 	tmp = HookAPI(module, "kernel32.dll", GetProcAddress, "GetProcAddress", extGetProcAddress);
 	if(tmp) pGetProcAddress = (GetProcAddress_Type)tmp;
@@ -1205,7 +1235,6 @@ void HookModule(HMODULE base, int dxversion)
 	HookOle32(base, dxversion); // unfinished business
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
 	HookMSV4WLibs(base);
-	//ForceHookOpenGL(base);
 }
 
 void DisableIME()
@@ -1252,7 +1281,7 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	char *sModule;
 	static char *dxversions[14]={
 		"Automatic", "DirectX1~6", "", "", "", "", "", 
-		"DirectX7", "DirectX8", "DirectX9", "None\\OpenGL", "", "", ""
+		"DirectX7", "DirectX8", "DirectX9", "DirectX10", "DirectX11", "None", ""
 	};
 
 	dxw.InitTarget(target);
@@ -1291,12 +1320,13 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 
 	HookSysLibsInit(); // this just once...
 
-	if(IsDebug) OutTrace("HookInit: base hmodule=%x\n", base);
+	OutTraceB("HookInit: base hmodule=%x\n", base);
 	HookModule(base, dxw.dwTargetDDVersion);
-	if(IsDebug){
-		extern BOOL ListProcessModules(BOOL); 
-		ListProcessModules(true);
-	}
+	// ListProcessModules needs to be fixed: it hangs the exe....
+	//if(1){
+	//	extern BOOL ListProcessModules(BOOL); 
+	//	ListProcessModules(true);
+	//}
 	sModule=strtok(dxw.gsModules," ");
 	while (sModule) {
 		base=(*pLoadLibraryA)(sModule);

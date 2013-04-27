@@ -23,7 +23,6 @@ dxwCore::dxwCore()
 	lpDDSPrimHDC = NULL;
 	//IsWithinDDraw = FALSE;
 	IsGDIPalette = FALSE;
-
 	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
 }
 
@@ -35,6 +34,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 {
 	dwFlags1 = target->flags;
 	dwFlags2 = target->flags2;
+	dwFlags3 = target->flags3;
+	dwFlags4 = target->flags4;
 	dwTFlags = target->tflags;
 	gsModules = target->module;
 	MaxFPS = target->MaxFPS;
@@ -43,7 +44,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	// bounds control
 	dwTargetDDVersion = target->dxversion;
 	if(dwTargetDDVersion<0) dwTargetDDVersion=0;
-	if(dwTargetDDVersion>10) dwTargetDDVersion=10;
+	if(dwTargetDDVersion>12) dwTargetDDVersion=12;
 	TimeShift = target->InitTS;
 	if(TimeShift < -8) TimeShift = -8;
 	if(TimeShift >  8) TimeShift =  8;

@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.16"
+#define VERSION "2.02.18"
 
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam);
 
@@ -175,6 +175,7 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 					pStatus->hWnd=hwnd;
 					pStatus->dwPid=GetProcessId(GetCurrentProcess());
 					pStatus->TimeShift=pMapping[i].InitTS;
+					pStatus->CursorX = pStatus->CursorY = 0;
 					DxWndStatus = *pStatus;
 					HookInit(&pMapping[i], hwnd);
 				}

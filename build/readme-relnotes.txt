@@ -82,3 +82,18 @@ DLL injection finally working! Quake 2 is supported.
 Added Wireframe option for OpenGL games
 Improved fix for clipper handling of primary/backbuffer surfaces 
 
+v2.02.18
+Improved LoadLibrary family hook and other improvements to let DxWnd better retrieve OpenGL libs:  now Homeworld 2 is working
+Fixed a bug in backbuffer ZBUFFER attach emulation. Now Dungeon Keeper 2 crashes no more.
+Moved "Remap client rect" option from directx tab to main program tab
+Added the "Force Hook" in the OpenGL tab. Useless for now.
+Preliminary work for d3d10/d3d11 wrapping. Unfinished and not working so far.
+Added LoadLibraryEx flags explaination in log
+Added support for mouse X,Y coordinates display in status window
+OpenGL hooking: fixed bug to prevent hooking same call twice
+OpenGL hooking: added hook for wglMakeCurrent call to keep track of rendered window
+OpenGL hooking: fixed glViewport and extglScissor hook coordinates handling
+D3D hooking: Added Wireframe option for D3D games
+Added hooking of CLSID_DxDiagProvider through CoCreateInstance
+Fixed (further simplified) clipping handling of primary/backbuffer surfaces 
+ChangeDisplaySettings hook: fixed x,y coordinate inversion in log message

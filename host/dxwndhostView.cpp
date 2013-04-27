@@ -122,6 +122,12 @@ void CDxwndhostView::SaveConfigFile()
 		sprintf_s(key, sizeof(key), "flagg%i", i);
 		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags2);
 		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "flagh%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags3);
+		WritePrivateProfileString("target", key, val, InitPath);
+		sprintf_s(key, sizeof(key), "flagi%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags4);
+		WritePrivateProfileString("target", key, val, InitPath);
 		sprintf_s(key, sizeof(key), "tflag%i", i);
 		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].tflags);
 		WritePrivateProfileString("target", key, val, InitPath);
@@ -170,6 +176,10 @@ void CDxwndhostView::SaveConfigFile()
 		sprintf_s(key, sizeof(key), "flag%i", i);
 		WritePrivateProfileString("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "flagg%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "flagh%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "flagi%i", i);
 		WritePrivateProfileString("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "tflag%i", i);
 		WritePrivateProfileString("target", key, 0, InitPath);
@@ -281,6 +291,10 @@ void CDxwndhostView::OnInitialUpdate()
 		TargetMaps[i].flags = GetPrivateProfileInt("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "flagg%i", i);
 		TargetMaps[i].flags2 = GetPrivateProfileInt("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "flagh%i", i);
+		TargetMaps[i].flags3 = GetPrivateProfileInt("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "flagi%i", i);
+		TargetMaps[i].flags4 = GetPrivateProfileInt("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "tflag%i", i);
 		TargetMaps[i].tflags = GetPrivateProfileInt("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "initx%i", i);
@@ -440,6 +454,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_ShowFPSOverlay = TargetMaps[i].flags2 & SHOWFPSOVERLAY ? 1 : 0;
 	dlg.m_TimeStretch = TargetMaps[i].flags2 & TIMESTRETCH ? 1 : 0;
 	dlg.m_HookOpenGL = TargetMaps[i].flags2 & HOOKOPENGL ? 1 : 0;
+	dlg.m_ForceHookOpenGL = TargetMaps[i].flags3 & FORCEHOOKOPENGL ? 1 : 0;
 	dlg.m_WireFrame = TargetMaps[i].flags2 & WIREFRAME ? 1 : 0;
 	dlg.m_FakeVersion = TargetMaps[i].flags2 & FAKEVERSION ? 1 : 0;
 	dlg.m_FullRectBlt = TargetMaps[i].flags2 & FULLRECTBLT ? 1 : 0;
@@ -466,6 +481,8 @@ void CDxwndhostView::OnModify()
 		TargetMaps[i].dxversion = dlg.m_DXVersion;
 		TargetMaps[i].flags = 0;
 		TargetMaps[i].flags2 = 0;
+		TargetMaps[i].flags3 = 0;
+		TargetMaps[i].flags4 = 0;
 		TargetMaps[i].tflags = 0;
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
 		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
@@ -548,6 +565,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_ShowFPSOverlay) TargetMaps[i].flags2 |= SHOWFPSOVERLAY;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
+		if(dlg.m_ForceHookOpenGL) TargetMaps[i].flags3 |= FORCEHOOKOPENGL;
 		if(dlg.m_WireFrame) TargetMaps[i].flags2 |= WIREFRAME;
 		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
 		if(dlg.m_FullRectBlt) TargetMaps[i].flags2 |= FULLRECTBLT;
@@ -849,6 +867,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_ShowFPSOverlay) TargetMaps[i].flags2 |= SHOWFPSOVERLAY;
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
+		if(dlg.m_ForceHookOpenGL) TargetMaps[i].flags3 |= FORCEHOOKOPENGL;
 		if(dlg.m_WireFrame) TargetMaps[i].flags2 |= WIREFRAME;
 		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
 		if(dlg.m_FullRectBlt) TargetMaps[i].flags2 |= FULLRECTBLT;

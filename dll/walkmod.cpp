@@ -52,22 +52,6 @@ BOOL ListProcessModules(BOOL hook)
 		extern void HookSysLibs(HMODULE);
 		if(hook) HookSysLibs((HMODULE)me32.modBaseAddr);
 		
-		//	if(strcmp("kernel32.dll", me32.szModule) && ("user32.dll", me32.szModule))
-		//		HookSysLibs((HMODULE)me32.modBaseAddr);
-		//}
-		//DO NOT COMPILE THIS !!!!
-		//if(hook){
-		//	//HookModule((HMODULE)me32.modBaseAddr, dxw.dwTargetDDVersion);
-		//	if(!lstrcmpi("OpenGl32.dll", me32.szModule)){
-		//		MessageBox(0, "Got OpenGl", me32.szModule, MB_OK | MB_ICONEXCLAMATION);
-		//		//HookOpenGLLibs((HMODULE)me32.modBaseAddr, dxw.CustomOpenGLLib);
-		//	}
-		//}
-		//if(!strcmp(me32.szModule, "ref_gl.dll")) {
-		//	HookOpenGLLibs((HMODULE)me32.modBaseAddr, dxw.CustomOpenGLLib);
-		//	DumpImportTable((HMODULE)me32.modBaseAddr);
-		//}
-
 		if (IsDebug) DumpImportTable((HMODULE)me32.modBaseAddr);
 	} while( Module32Next( hModuleSnap, &me32 ) ); 
 	//  Do not forget to clean up the snapshot object. 

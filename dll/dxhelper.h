@@ -29,3 +29,4 @@ extern char *ExplainNChitTest(DWORD);
 extern char *ExplainDDEnumerateFlags(DWORD);
 extern char *ExplainsSystemMetrics(DWORD);
 extern char *ExplainWPFlags(DWORD);
+extern char *ExplainLoadLibFlags(DWORD);

@@ -7,3 +7,4 @@ extern void HookImeLib(HMODULE);
 extern void InitPosition(int, int, int, int, int, int);
 //void InitWindowPos(int, int, int, int);
 extern LPCSTR ProcToString(LPCSTR proc);
+extern HRESULT HookDxDiag(REFIID, LPVOID FAR*);

@@ -982,3 +982,20 @@ char *ExplainWPFlags(DWORD c)
 	else strcpy(eb,"NULL");
 	return(eb);
 }
+
+char *ExplainLoadLibFlags(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"");
+	if (c & DONT_RESOLVE_DLL_REFERENCES) strcat(eb, "DONT_RESOLVE_DLL_REFERENCES+");
+	if (c & LOAD_LIBRARY_AS_DATAFILE) strcat(eb, "LOAD_LIBRARY_AS_DATAFILE+");
+	if (c & LOAD_WITH_ALTERED_SEARCH_PATH) strcat(eb, "LOAD_WITH_ALTERED_SEARCH_PATH+");
+	if (c & LOAD_IGNORE_CODE_AUTHZ_LEVEL) strcat(eb, "LOAD_IGNORE_CODE_AUTHZ_LEVEL+");
+	if (c & LOAD_LIBRARY_AS_IMAGE_RESOURCE) strcat(eb, "LOAD_LIBRARY_AS_IMAGE_RESOURCE+");
+	if (c & LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE) strcat(eb, "LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE+");
+	l=strlen(eb);
+	if (l>0) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}

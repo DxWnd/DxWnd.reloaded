@@ -1,5 +1,9 @@
+//#define D3D10_IGNORE_SDK_LAYERS 1
 #include <windows.h>
 #include <d3d9.h>
+#include <D3D10_1.h>
+#include <D3D10Misc.h>
+#include <D3D11.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
@@ -12,6 +16,15 @@ typedef HRESULT (WINAPI *EnumAdapterModes9_Type)(void *, UINT, D3DFORMAT ,UINT, 
 typedef HRESULT (WINAPI *GetAdapterDisplayMode_Type)(void *, UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *GetDisplayMode_Type)(void *, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *Present_Type)(void *, CONST RECT *, CONST RECT *, HWND, CONST RGNDATA *);
+typedef HRESULT (WINAPI *SetRenderState_Type)(void *, D3DRENDERSTATETYPE, DWORD);
+typedef HRESULT (WINAPI *GetRenderState_Type)(void *, D3DRENDERSTATETYPE, DWORD );
+
+typedef HRESULT (WINAPI *D3D10CreateDevice_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
+typedef HRESULT (WINAPI *D3D10CreateDeviceAndSwapChain_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
+typedef HRESULT (WINAPI *D3D10CreateDevice1_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, D3D10_FEATURE_LEVEL1, UINT, ID3D10Device **);
+typedef HRESULT (WINAPI *D3D10CreateDeviceAndSwapChain1_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
+typedef HRESULT (WINAPI *D3D11CreateDevice_Type)(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT, const D3D_FEATURE_LEVEL *, UINT, UINT, ID3D11Device **, D3D_FEATURE_LEVEL *, ID3D11DeviceContext **);
+typedef HRESULT (WINAPI *D3D11CreateDeviceAndSwapChain_Type)(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT, const D3D_FEATURE_LEVEL *, UINT, UINT, const DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D11Device **, D3D_FEATURE_LEVEL *, ID3D11DeviceContext **);
 
 void* WINAPI extDirect3DCreate8(UINT);
 void* WINAPI extDirect3DCreate9(UINT);
@@ -22,6 +35,15 @@ HRESULT WINAPI extEnumAdapterModes9(void *, UINT, D3DFORMAT, UINT , D3DDISPLAYMO
 HRESULT WINAPI extGetAdapterDisplayMode(void *, UINT, D3DDISPLAYMODE *);
 HRESULT WINAPI extGetDisplayMode(void *, D3DDISPLAYMODE *);
 HRESULT WINAPI extPresent(void *, CONST RECT *, CONST RECT *, HWND, CONST RGNDATA *);
+HRESULT WINAPI extSetRenderState(void *, D3DRENDERSTATETYPE, DWORD);
+HRESULT WINAPI extGetRenderState(void *, D3DRENDERSTATETYPE, DWORD);
+
+HRESULT WINAPI extD3D10CreateDevice(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
+HRESULT WINAPI extD3D10CreateDeviceAndSwapChain(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
+HRESULT WINAPI extD3D10CreateDevice1(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, D3D10_FEATURE_LEVEL1, UINT, ID3D10Device **);
+HRESULT WINAPI extD3D10CreateDeviceAndSwapChain1(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
+HRESULT WINAPI extD3D11CreateDevice(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT, const D3D_FEATURE_LEVEL *, UINT, UINT, ID3D11Device **, D3D_FEATURE_LEVEL *, ID3D11DeviceContext **);
+HRESULT WINAPI extD3D11CreateDeviceAndSwapChain(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT, const D3D_FEATURE_LEVEL *, UINT, UINT, const DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D11Device **, D3D_FEATURE_LEVEL *, ID3D11DeviceContext **);
 
 extern char *ExplainDDError(DWORD);
 
@@ -34,6 +56,15 @@ EnumAdapterModes9_Type pEnumAdapterModes9;
 GetAdapterDisplayMode_Type pGetAdapterDisplayMode;
 GetDisplayMode_Type pGetDisplayMode;
 Present_Type pPresent;
+SetRenderState_Type pSetRenderState;
+GetRenderState_Type pGetRenderState;
+
+D3D10CreateDevice_Type pD3D10CreateDevice;
+D3D10CreateDeviceAndSwapChain_Type pD3D10CreateDeviceAndSwapChain;
+D3D10CreateDevice1_Type pD3D10CreateDevice1;
+D3D10CreateDeviceAndSwapChain1_Type pD3D10CreateDeviceAndSwapChain1;
+D3D11CreateDevice_Type pD3D11CreateDevice;
+D3D11CreateDeviceAndSwapChain_Type pD3D11CreateDeviceAndSwapChain;
 
 DWORD dwD3DVersion;
 
@@ -41,13 +72,33 @@ int HookDirect3D(HMODULE module, int version){
 	HINSTANCE hinst;
 	void *tmp;
 	LPDIRECT3D9 lpd3d;
+	ID3D10Device *lpd3d10;
+	ID3D11Device *lpd3d11;
+	HRESULT res;
 
 	switch(version){
 	case 0:
+		// D3D8
 		tmp = HookAPI(module, "d3d8.dll", NULL, "Direct3DCreate8", extDirect3DCreate8);
 		if(tmp) pDirect3DCreate8 = (Direct3DCreate8_Type)tmp;
+		// D3D9
 		tmp = HookAPI(module, "d3d9.dll", NULL, "Direct3DCreate9", extDirect3DCreate9);
 		if(tmp) pDirect3DCreate9 = (Direct3DCreate9_Type)tmp;
+		// D3D10
+		tmp = HookAPI(module, "d3d10.dll", NULL, "D3D10CreateDevice", extD3D10CreateDevice);
+		if(tmp) pD3D10CreateDevice = (D3D10CreateDevice_Type)tmp;
+		tmp = HookAPI(module, "d3d10.dll", NULL, "D3D10CreateDeviceAndSwapChain", extD3D10CreateDeviceAndSwapChain);
+		if(tmp) pD3D10CreateDeviceAndSwapChain = (D3D10CreateDeviceAndSwapChain_Type)tmp;
+		// D3D10.1
+		tmp = HookAPI(module, "d3d10_1.dll", NULL, "D3D10CreateDevice1", extD3D10CreateDevice);
+		if(tmp) pD3D10CreateDevice1 = (D3D10CreateDevice1_Type)tmp;
+		tmp = HookAPI(module, "d3d10_1.dll", NULL, "D3D10CreateDeviceAndSwapChain1", extD3D10CreateDeviceAndSwapChain);
+		if(tmp) pD3D10CreateDeviceAndSwapChain1 = (D3D10CreateDeviceAndSwapChain1_Type)tmp;
+		// D3D11
+		tmp = HookAPI(module, "d3d11.dll", NULL, "D3D11CreateDevice", extD3D11CreateDevice);
+		if(tmp) pD3D11CreateDevice = (D3D11CreateDevice_Type)tmp;
+		tmp = HookAPI(module, "d3d11.dll", NULL, "D3D11CreateDeviceAndSwapChain", extD3D11CreateDeviceAndSwapChain);
+		if(tmp) pD3D11CreateDeviceAndSwapChain = (D3D11CreateDeviceAndSwapChain_Type)tmp;
 		break;
 	case 8:
 		hinst = LoadLibrary("d3d8.dll");
@@ -66,7 +117,96 @@ int HookDirect3D(HMODULE module, int version){
 			lpd3d = (LPDIRECT3D9)extDirect3DCreate9(31);
 			if(lpd3d) lpd3d->Release();
 		}
+		break;
+	case 10:
+		hinst = LoadLibrary("d3d10.dll");
+		pD3D10CreateDevice =
+			(D3D10CreateDevice_Type)GetProcAddress(hinst, "D3D10CreateDevice");
+		if(pD3D10CreateDevice){
+			res = extD3D10CreateDevice(
+				NULL,
+				D3D10_DRIVER_TYPE_HARDWARE,
+				NULL,
+				0,
+				D3D10_SDK_VERSION,
+				&lpd3d10);
+			if(res==DD_OK) lpd3d10->Release();
+		}
+		hinst = LoadLibrary("d3d10_1.dll");
+		pD3D10CreateDevice1 =
+			(D3D10CreateDevice1_Type)GetProcAddress(hinst, "D3D10CreateDevice1");
+		break;
+		if(pD3D10CreateDevice1){
+			res = extD3D10CreateDevice1(
+				NULL,
+				D3D10_DRIVER_TYPE_HARDWARE,
+				NULL,
+				0,
+				D3D10_FEATURE_LEVEL_10_1,
+				D3D10_SDK_VERSION,
+				&lpd3d10);
+			if(res==DD_OK) lpd3d10->Release();
+		}
+		pD3D10CreateDeviceAndSwapChain =
+			(D3D10CreateDeviceAndSwapChain_Type)GetProcAddress(hinst, "D3D10CreateDeviceAndSwapChain");
+		if(pD3D10CreateDeviceAndSwapChain){
+			DXGI_SWAP_CHAIN_DESC swapChainDesc;
+			IDXGISwapChain *pSwapChain;
+			ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
+			 
+			//set buffer dimensions and format
+			swapChainDesc.BufferCount = 2;
+			swapChainDesc.BufferDesc.Width = dxw.GetScreenWidth();
+			swapChainDesc.BufferDesc.Height = dxw.GetScreenHeight();
+			swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+			swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;;
+			 
+			//set refresh rate
+			swapChainDesc.BufferDesc.RefreshRate.Numerator = 60;
+			swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
+			 
+			//sampling settings
+			swapChainDesc.SampleDesc.Quality = 0;
+			swapChainDesc.SampleDesc.Count = 1;
+			 
+			//output window handle
+			swapChainDesc.OutputWindow = dxw.GethWnd();
+			swapChainDesc.Windowed = true;	
+			res = extD3D10CreateDeviceAndSwapChain( 
+				NULL,
+                D3D10_DRIVER_TYPE_HARDWARE,
+                NULL,
+                0,
+                D3D10_SDK_VERSION,
+                &swapChainDesc,
+                &pSwapChain,
+                &lpd3d10);
+			if(res==DD_OK) lpd3d10->Release();
+		}
 	break;
+	case 11:
+		hinst = LoadLibrary("d3d11.dll");
+		pD3D11CreateDevice =
+			(D3D11CreateDevice_Type)GetProcAddress(hinst, "D3D11CreateDevice");
+		if(pD3D11CreateDevice){
+			D3D_FEATURE_LEVEL FeatureLevel;
+			ID3D11DeviceContext *pImmediateContext;
+			res = extD3D11CreateDevice(
+				NULL,
+				D3D_DRIVER_TYPE_HARDWARE,
+				NULL,
+				0, // flags
+				NULL, // FeatureLevels
+				0,
+				D3D11_SDK_VERSION,
+				&lpd3d11,
+				&FeatureLevel,
+				&pImmediateContext);
+			if(res==DD_OK) lpd3d11->Release();
+		}
+		pD3D11CreateDeviceAndSwapChain =
+			(D3D11CreateDeviceAndSwapChain_Type)GetProcAddress(hinst, "D3D11CreateDeviceAndSwapChain");
+		break;
 	}
 	if(pDirect3DCreate8 || pDirect3DCreate9) return 1;
 	return 0;
@@ -190,20 +330,13 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	D3DDISPLAYMODE mode;
 	int Windowed;
 
-	if(dwD3DVersion == 9){
-		memcpy(param, ppresentparam, 56);
-		OutTraceD("D3D9::CreateDevice\n");
-	}
-	else{
-		memcpy(param, ppresentparam, 52);
-		OutTraceD("D3D8::CreateDevice\n");
-	}
-
+	memcpy(param, ppresentparam, (dwD3DVersion == 9)?56:52);
 	dxw.SethWnd(hfocuswindow);
 	dxw.SetScreenSize(param[0], param[1]);
 	AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	tmp = param;
+	OutTraceD("D3D%d::CreateDevice\n", dwD3DVersion);
 	OutTraceD("  Adapter = %i\n", adapter);
 	OutTraceD("  DeviceType = %i\n", devicetype);
 	OutTraceD("  hFocusWindow = 0x%x\n", hfocuswindow);
@@ -257,6 +390,11 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		SetHook((void *)(*(DWORD *)lpd3d + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 56), extReset, (void **)&pReset, "Reset(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 60), extPresent, (void **)&pPresent, "Present(D8)");
+		if(dxw.dwFlags2 & WIREFRAME){
+			SetHook((void *)(**(DWORD **)ppd3dd + 200), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D9)");
+			SetHook((void *)(**(DWORD **)ppd3dd + 204), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D9)");
+			(*pSetRenderState)((void *)*ppd3dd, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+		}
 	}
 	else {
 		void *pReset;
@@ -264,6 +402,11 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		SetHook((void *)(*(DWORD *)lpd3d + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 68), extPresent, (void **)&pPresent, "Present(D9)");
+		if(dxw.dwFlags2 & WIREFRAME){
+			SetHook((void *)(**(DWORD **)ppd3dd + 228), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D9)");
+			SetHook((void *)(**(DWORD **)ppd3dd + 232), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D9)");
+			(*pSetRenderState)((void *)*ppd3dd, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+		}
 	}
 
 	GetHookInfo()->IsFullScreen = dxw.IsFullScreen();
@@ -275,6 +418,128 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	return 0;
 }
 
+HRESULT WINAPI extSetRenderState(void *pd3dd, D3DRENDERSTATETYPE State, DWORD Value) 
+{
+	if (State == D3DRS_FILLMODE) Value=D3DFILL_WIREFRAME;
+	return (*pSetRenderState)(pd3dd, State, Value);
+}
+
+HRESULT WINAPI extGetRenderState(void *pd3dd, D3DRENDERSTATETYPE State, DWORD Value) 
+{
+	return (*pGetRenderState)(pd3dd, State, Value);
+}
+
 // to do:
 // hook IDirect3DDevice9::CreateAdditionalSwapChain to intercept Present method on further Swap Chains
 // hook SetCursorPosition ShowCursor to handle cursor
+
+
+HRESULT WINAPI extD3D10CreateDevice(
+	IDXGIAdapter *pAdapter, 
+	D3D10_DRIVER_TYPE DriverType, 
+	HMODULE Software, 
+	UINT Flags, 
+	UINT SDKVersion, 
+	ID3D10Device **ppDevice)
+{
+	HRESULT res;
+	OutTraceD("D3D10CreateDevice\n");
+	res=(*pD3D10CreateDevice)(pAdapter, DriverType, Software, Flags, SDKVersion, ppDevice);
+	OutTraceD("D3D10CreateDevice ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extD3D10CreateDevice1(
+	IDXGIAdapter *pAdapter, 
+	D3D10_DRIVER_TYPE DriverType, 
+	HMODULE Software, 
+	UINT Flags, 
+	D3D10_FEATURE_LEVEL1 HardwareLevel,
+	UINT SDKVersion, 
+	ID3D10Device **ppDevice)
+{
+	HRESULT res;
+	OutTraceD("D3D10CreateDevice1\n");
+	res=(*pD3D10CreateDevice1)(pAdapter, DriverType, Software, Flags, HardwareLevel, SDKVersion, ppDevice);
+	OutTraceD("D3D10CreateDevice1 ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extD3D10CreateDeviceAndSwapChain(
+	IDXGIAdapter *pAdapter, 
+	D3D10_DRIVER_TYPE DriverType, 
+	HMODULE Software, 
+	UINT Flags, 
+	UINT SDKVersion, 
+	DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, 
+	IDXGISwapChain **ppSwapChain, 
+	ID3D10Device **ppDevice)
+{
+	HRESULT res;
+	OutTraceD("D3D10CreateDeviceAndSwapChain\n");
+	pSwapChainDesc->OutputWindow = dxw.GethWnd();
+	pSwapChainDesc->Windowed = true;	
+	res=(*pD3D10CreateDeviceAndSwapChain)(pAdapter, DriverType, Software, Flags, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice);
+	OutTraceD("D3D10CreateDeviceAndSwapChain ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extD3D10CreateDeviceAndSwapChain1(
+	IDXGIAdapter *pAdapter, 
+	D3D10_DRIVER_TYPE DriverType, 
+	HMODULE Software, 
+	UINT Flags, 
+	UINT SDKVersion, 
+	DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, 
+	IDXGISwapChain **ppSwapChain, 
+	ID3D10Device **ppDevice)
+{
+	HRESULT res;
+	OutTraceD("D3D10CreateDeviceAndSwapChain1\n");
+	pSwapChainDesc->OutputWindow = dxw.GethWnd();
+	pSwapChainDesc->Windowed = true;	
+	res=(*pD3D10CreateDeviceAndSwapChain1)(pAdapter, DriverType, Software, Flags, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice);
+	OutTraceD("D3D10CreateDeviceAndSwapChain1 ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extD3D11CreateDevice(
+	IDXGIAdapter *pAdapter, 
+	D3D_DRIVER_TYPE DriverType,
+	HMODULE Software,
+	UINT Flags,
+	const D3D_FEATURE_LEVEL *pFeatureLevels,
+	UINT FeatureLevels,
+	UINT SDKVersion,
+	ID3D11Device **ppDevice,
+	D3D_FEATURE_LEVEL *pFeatureLevel,
+	ID3D11DeviceContext **ppImmediateContext)
+{
+	HRESULT res;
+	OutTraceD("D3D11CreateDevice\n");
+	res=(*pD3D11CreateDevice)(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	OutTraceD("D3D11CreateDevice ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extD3D11CreateDeviceAndSwapChain(
+	IDXGIAdapter *pAdapter,
+	D3D_DRIVER_TYPE DriverType,
+	HMODULE Software,
+	UINT Flags,
+	const D3D_FEATURE_LEVEL *pFeatureLevels,
+	UINT FeatureLevels,
+	UINT SDKVersion,
+	const DXGI_SWAP_CHAIN_DESC *pSwapChainDesc,
+	IDXGISwapChain **ppSwapChain,
+	ID3D11Device **ppDevice,
+	D3D_FEATURE_LEVEL *pFeatureLevel,
+	ID3D11DeviceContext **ppImmediateContext)
+{
+	HRESULT res;
+	OutTraceD("D3D11CreateDeviceAndSwapChain\n");
+	//res=(*pD3D11CreateDeviceAndSwapChain)(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, *ppDevice, pFeatureLevel, ppImmediateContext);
+	res=DD_OK;
+	OutTraceD("D3D11CreateDeviceAndSwapChain ret=%x\n", res);
+	return res;
+}

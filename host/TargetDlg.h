@@ -92,6 +92,7 @@ public:
 	BOOL	m_ShowFPSOverlay;
 	BOOL	m_TimeStretch;
 	BOOL	m_HookOpenGL;
+	BOOL	m_ForceHookOpenGL;
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
 	BOOL	m_NoPaletteUpdate;

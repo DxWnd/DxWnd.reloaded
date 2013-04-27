@@ -432,8 +432,10 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 	prev=*lppoint;
 	*lppoint=dxw.ScreenToClient(*lppoint);
 	*lppoint=dxw.FixCursorPos(*lppoint);
+	GetHookInfo()->CursorX=(short)lppoint->x;
+	GetHookInfo()->CursorY=(short)lppoint->y;
 	OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", prev.x, prev.y, lppoint->x, lppoint->y);
-	
+
 	return res;
 }
 
@@ -1490,87 +1492,22 @@ char *SysNames2[SYSLIBIDX_MAX]={
 extern void HookModule(HMODULE, int);
 extern void HookSysLibs(HMODULE);
 
-HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
-{
-	HMODULE libhandle;
-	int idx;
-	char *lpName, *lpNext;
-	libhandle=(*pLoadLibraryA)(lpFileName);
-	OutTraceD("LoadLibraryA: FileName=%s hmodule=%x\n", lpFileName, libhandle);
-	if(!libhandle){
-		OutTraceE("LoadLibraryExA: ERROR FileName=%s err=%d\n", lpFileName, GetLastError());
-		return libhandle;
-	}
-	lpName=(char *)lpFileName;
-	while (lpNext=strchr(lpName,'\\')) lpName=lpNext+1;
-	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
-		if(
-			(!lstrcmpi(lpName,SysNames[idx])) ||
-			(!lstrcmpi(lpName,SysNames2[idx]))
-		){
-			OutTraceD("LoadLibraryA: registered hmodule=%x->FileName=%s\n", libhandle, lpFileName);
-			SysLibs[idx]=libhandle;
-			break;
-		}
-	}
-	// handle custom OpenGL library
-	if(!lstrcmpi(lpName,dxw.CustomOpenGLLib)){
-		idx=SYSLIBIDX_OPENGL;
-		SysLibs[idx]=libhandle;
-	}
-
-	// don't hook target libraries, hook all the remaining ones!
-	if(idx==SYSLIBIDX_MAX) HookModule(libhandle, 0);
-	return libhandle;
-}
-
-HMODULE WINAPI extLoadLibraryW(LPCWSTR lpFileName)
-{
-#if 0
-	HMODULE ret;
-	int idx;
-	LPCWSTR lpName, lpNext;
-	ret=(*pLoadLibraryW)(lpFileName);
-	OutTraceD("LoadLibraryW: FileName=%s hmodule=%x\n", lpFileName, ret);
-	lpName=lpFileName;
-	while (lpNext=wcschr(lpName,(WCHAR)'\\')) lpName=lpNext+1;
-	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
-		if(
-			(!lstrcmpiW(lpName,(LPCWSTR)SysNames[idx])) ||
-			(!lstrcmpiW(lpName,(LPCWSTR)SysNames2[idx]))
-		){
-			OutTraceD("LoadLibraryA: registered hmodule=%x->FileName=%s\n", ret, lpFileName);
-			SysLibs[idx]=ret;
-			break;
-		}
-	}
-	// handle custom OpenGL library
-	if(!lstrcmpiW(lpName,(LPCWSTR)dxw.CustomOpenGLLib)){
-		idx=SYSLIBIDX_OPENGL;
-		SysLibs[idx]=ret;
-	}
-	char sName[81];
-	wcstombs(sName, lpName, 80);
-	HookModule(sName, 0);
-	return ret;
-#else
-	char sFileName[256+1];
-	wcstombs(sFileName, lpFileName, 80);
-	return extLoadLibraryA(sFileName);
-#endif
-}
-
-HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags)
+HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags, char *api)
 {
 	HMODULE libhandle;
 	int idx;
 	char *lpName, *lpNext;
 	libhandle=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
-	OutTraceD("LoadLibraryExA: FileName=%s hFile=%x Flags=%x hmodule=%x\n", lpFileName, hFile, dwFlags, libhandle);
+	OutTraceD("%s: FileName=%s hFile=%x Flags=%x(%s) hmodule=%x\n", api, lpFileName, hFile, dwFlags, ExplainLoadLibFlags(dwFlags), libhandle);
 	if(!libhandle){
-		OutTraceE("LoadLibraryExA: ERROR FileName=%s err=%d\n", lpFileName, GetLastError());
+		OutTraceE("%s: ERROR FileName=%s err=%d\n", api, lpFileName, GetLastError());
 		return libhandle;
 	}
+
+	// when loaded with LOAD_LIBRARY_AS_DATAFILE or LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE flags, 
+	// there's no symbol map, then itìs no possible to hook function calls.
+	if(dwFlags & (LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE|LOAD_LIBRARY_AS_DATAFILE)) return libhandle;
+
 	lpName=(char *)lpFileName;
 	while (lpNext=strchr(lpName,'\\')) lpName=lpNext+1;
 	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
@@ -1578,7 +1515,7 @@ HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags
 			(!lstrcmpi(lpName,SysNames[idx])) ||
 			(!lstrcmpi(lpName,SysNames2[idx]))
 		){
-			OutTraceD("LoadLibraryExA: registered hmodule=%x->FileName=%s\n", libhandle, lpFileName);
+			OutTraceD("%s: registered hmodule=%x->FileName=%s\n", api, libhandle, lpFileName);
 			SysLibs[idx]=libhandle;
 			break;
 		}
@@ -1592,40 +1529,28 @@ HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags
 	return libhandle;
 }
 
-HMODULE WINAPI extLoadLibraryExW(LPCWSTR lpFileName, HANDLE hFile, DWORD dwFlags)
+HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
 {
-#if 0
-	HMODULE ret;
-	int idx;
-	LPCWSTR lpName, lpNext;
-	ret=(*pLoadLibraryExW)(lpFileName, hFile, dwFlags);
-	OutTraceD("LoadLibraryExW: FileName=%s hFile=%x Flags=%x hmodule=%x\n", lpFileName, hFile, dwFlags, ret);
-	lpName=lpFileName;
-	while (lpNext=wcschr(lpName,(WCHAR)'\\')) lpName=lpNext+1;
-	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
-		if(
-			(!lstrcmpiW(lpName,(LPCWSTR)SysNames[idx])) ||
-			(!lstrcmpiW(lpName,(LPCWSTR)SysNames2[idx]))
-		){
-			OutTraceD("LoadLibraryExW: registered hmodule=%x->FileName=%s\n", ret, lpFileName);
-			SysLibs[idx]=ret;
-			break;
-		}
-	}
-	// handle custom OpenGL library
-	if(!lstrcmpiW(lpName,(LPCWSTR)dxw.CustomOpenGLLib)){
-		idx=SYSLIBIDX_OPENGL;
-		SysLibs[idx]=ret;
-	}
-	char sName[81];
-	wcstombs(sName, lpName, 80);
-	HookModule(sName, 0);
-	return ret;
-#else
+	return LoadLibraryExWrapper(lpFileName, NULL, 0, "LoadLibraryA");
+}
+
+HMODULE WINAPI extLoadLibraryW(LPCWSTR lpFileName)
+{
 	char sFileName[256+1];
 	wcstombs(sFileName, lpFileName, 80);
-	return extLoadLibraryExA(sFileName, hFile, dwFlags);
-#endif
+	return LoadLibraryExWrapper(sFileName, NULL, 0, "LoadLibraryW");;
+}
+
+HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags)
+{
+	return LoadLibraryExWrapper(lpFileName, hFile, dwFlags, "LoadLibraryExA");
+}
+
+HMODULE WINAPI extLoadLibraryExW(LPCWSTR lpFileName, HANDLE hFile, DWORD dwFlags)
+{
+	char sFileName[256+1];
+	wcstombs(sFileName, lpFileName, 80);
+	return LoadLibraryExWrapper(sFileName, hFile, dwFlags, "LoadLibraryExW");;
 }
 
 extern DirectDrawCreate_Type pDirectDrawCreate;

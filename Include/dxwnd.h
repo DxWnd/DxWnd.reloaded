@@ -77,6 +77,9 @@
 #define SETCOMPATIBILITY	0x40000000 // invoke ddraw SetAppCompatData to set aero compatibility mode
 #define WIREFRAME			0x80000000 // invoke ddraw SetAppCompatData to set aero compatibility mode
 
+// third flags DWORD dxw.dwFlags3:
+#define FORCEHOOKOPENGL		0x00000001 // loads OpenGL32.dll and hooks it
+
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
 #define OUTDDRAWTRACE		0x00000002 // traces DxWnd directdraw screen handling
@@ -100,6 +103,8 @@ typedef struct TARGETMAP
 	int dxversion;
 	int flags;
 	int flags2;
+	int flags3;
+	int flags4;
 	int tflags;
 	short initx;
 	short inity;
@@ -129,6 +134,7 @@ typedef struct
 	BOOL isLogging;
 	DWORD FPSCount;
 	int TimeShift;
+	short CursorX, CursorY;
 } DXWNDSTATUS;
 
 extern DXWNDSTATUS DxWndStatus;

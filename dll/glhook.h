@@ -13,6 +13,8 @@ typedef void (WINAPI *glPolygonMode_Type)(GLenum, GLenum);
 typedef void (WINAPI *glGetFloatv_Type)(GLenum, GLboolean *);
 typedef void (WINAPI *glClear_Type)(GLbitfield);
 typedef HGLRC (WINAPI *wglCreateContext_Type)(HDC);
+typedef PROC (WINAPI *wglGetProcAddress_Type)(LPCSTR);
+typedef BOOL (WINAPI *wglMakeCurrent_Type)(HDC, HGLRC);
 
 extern void WINAPI extglViewport(GLint,  GLint,  GLsizei,  GLsizei);
 extern void WINAPI extglScissor(GLint,  GLint,  GLsizei,  GLsizei);
@@ -24,6 +26,8 @@ extern void WINAPI extglPolygonMode(GLenum, GLenum);
 extern void WINAPI extglGetFloatv(GLenum, GLboolean *);
 extern void WINAPI extglClear(GLbitfield);
 extern HGLRC WINAPI extwglCreateContext(HDC);
+extern PROC WINAPI extwglGetProcAddress(LPCSTR);
+extern BOOL WINAPI extwglMakeCurrent(HDC, HGLRC);
 
 #ifdef DXWDECLARATIONS 
 #undef DXWEXTERN
@@ -48,3 +52,5 @@ DXWEXTERN glPolygonMode_Type pglPolygonMode;
 DXWEXTERN glGetFloatv_Type pglGetFloatv;
 DXWEXTERN glClear_Type pglClear;
 DXWEXTERN wglCreateContext_Type pwglCreateContext;
+DXWEXTERN wglGetProcAddress_Type pwglGetProcAddress;
+DXWEXTERN wglMakeCurrent_Type pwglMakeCurrent;

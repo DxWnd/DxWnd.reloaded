@@ -1,3 +1,5 @@
+#include <dxdiag.h>
+
 typedef HRESULT (WINAPI *DirectDrawCreate_Type)(GUID *, LPDIRECTDRAW *, IUnknown *);
 typedef HRESULT (WINAPI *DirectDrawCreateEx_Type)(GUID *, LPDIRECTDRAW *, REFIID, IUnknown *);
 typedef HRESULT (WINAPI *DirectDrawEnumerate_Type)(LPDDENUMCALLBACK, LPVOID);

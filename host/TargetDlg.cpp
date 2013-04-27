@@ -87,6 +87,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_ShowFPSOverlay = FALSE;
 	m_TimeStretch = FALSE;
 	m_HookOpenGL = FALSE;
+	m_ForceHookOpenGL = FALSE;
 	m_FakeVersion = FALSE;
 	m_FullRectBlt = FALSE;
 	m_NoPaletteUpdate = FALSE;

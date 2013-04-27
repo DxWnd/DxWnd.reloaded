@@ -6,12 +6,14 @@
 #include <windows.h>
 #include <ddraw.h>
 #include "dxwnd.h"
+#include "dxhook.h"
 #include "dxwcore.hpp"
 #include "stdio.h" 
 #include "hddraw.h"
 #include "hddproxy.h"
 #include "dxhelper.h"
 #include "syslibs.h"
+
 
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -529,6 +531,8 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 			break;
 		}
 	}
+	else
+	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
 
 	return res;
 }
@@ -549,6 +553,9 @@ int HookDirectDraw(HMODULE module, int version)
 	HINSTANCE hinst;
 	void *tmp;
 	const GUID dd7 = {0x15e65ec0,0x3b9c,0x11d2,0xb9,0x2f,0x00,0x60,0x97,0x97,0xea,0x5b};
+	//static BOOL DoOnce = FALSE;
+	//if(DoOnce) return 0;
+	//DoOnce=TRUE;
 
 	if(dxw.dwFlags2 & SETCOMPATIBILITY){
 		typedef HRESULT (WINAPI *SetAppCompatData_Type)(DWORD, DWORD);
@@ -3491,7 +3498,7 @@ HRESULT WINAPI extAddAttachedSurface(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURF
 				(res==DDERR_NOEXCLUSIVEMODE))
 			OutTraceD("AddAttachedSurface: emulating BACKBUFFER attach on PRIMARY\n");
 			lpDDSBack=lpddsadd;
-			(*pAddRefS)(lpdds);
+			if (pAddRefS) (*pAddRefS)(lpdds);
 			res=DD_OK;
 		}
 		else if (lpdds == lpDDSBack) {
@@ -3501,7 +3508,7 @@ HRESULT WINAPI extAddAttachedSurface(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURF
 			if (sd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) // DDSCAPS_BACKBUFFER for double buffering ???
 			if ((dxw.dwFlags1 & EMULATESURFACE) && (res==DDERR_CANNOTATTACHSURFACE)){
 				OutTraceD("AddAttachedSurface: emulating ZBUFFER attach on BACKBUFFER\n");
-				(*pAddRefS)(lpdds);
+				if (pAddRefS) (*pAddRefS)(lpdds);
 				res=DD_OK;
 			}
 		}
