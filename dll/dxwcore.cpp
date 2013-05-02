@@ -290,12 +290,28 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 
 void dxwCore::MapRect(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 {
-		RECT client;
-		(*pGetClientRect)(hWnd, &client);
-		*nXDest= *nXDest * client.right / dwScreenWidth;
-		*nYDest= *nYDest * client.bottom / dwScreenHeight;
-		*nWDest= *nWDest * client.right / dwScreenWidth;
-		*nHDest= *nHDest * client.bottom / dwScreenHeight;
+	RECT client;
+	(*pGetClientRect)(hWnd, &client);
+	*nXDest= *nXDest * client.right / dwScreenWidth;
+	*nYDest= *nYDest * client.bottom / dwScreenHeight;
+	*nWDest= *nWDest * client.right / dwScreenWidth;
+	*nHDest= *nHDest * client.bottom / dwScreenHeight;
+}
+
+void dxwCore::MapPoint(LPPOINT lppoint)
+{
+	RECT client;
+	(*pGetClientRect)(hWnd, &client);
+	lppoint->x = (lppoint->x * client.right) / dwScreenWidth;
+	lppoint->y = (lppoint->y * client.bottom) / dwScreenHeight;
+}
+
+void dxwCore::UnmapPoint(LPPOINT lppoint)
+{
+	RECT client;
+	(*pGetClientRect)(hWnd, &client);
+	if (client.right) lppoint->x = (lppoint->x * dwScreenWidth) / client.right;
+	if (client.bottom) lppoint->y = (lppoint->y * dwScreenHeight) / client.bottom;
 }
 
 void dxwCore::ScreenRefresh(void)
@@ -324,6 +340,22 @@ void dxwCore::ScreenRefresh(void)
 	t = tn;
 }
 
+void dxwCore::DoSlow(int delay)
+{
+	MSG uMsg;
+	int t, tn;
+	t = (*pGetTickCount)();
+
+	uMsg.message=0; // initialize somehow...
+	while((tn = (*pGetTickCount)())-t < delay){
+		while (PeekMessage (&uMsg, NULL, 0, 0, PM_REMOVE) > 0){
+			if(WM_QUIT == uMsg.message) break;
+			TranslateMessage (&uMsg);
+			DispatchMessage (&uMsg);
+		}	
+		(*pSleep)(1);
+	}
+}
 
 static void CountFPS(HWND hwnd)
 {
@@ -365,12 +397,11 @@ static void LimitFrameCount(DWORD delay)
 	newtime = (*pGetTickCount)();
 	// use '<' and not '<=' to avoid the risk of sleeping forever....
 	if(newtime < oldtime+delay) {
-		//extern void do_slow(int);
 		if(IsDebug) OutTrace("FPS limit: old=%x new=%x delay=%d sleep=%d\n", 
 			oldtime, newtime, delay, (oldtime+delay-newtime));
 		(*pSleep)(oldtime+delay-newtime);
 		// no good processing messages in the meanwhile: AoE series won't work at all!
-		//do_slow(oldtime+delay-newtime); 
+		// don't use DoSlow(oldtime+delay-newtime); 
 		oldtime += delay; // same as doing "oldtime=(*pGetTickCount)();" now
 	}
 	else

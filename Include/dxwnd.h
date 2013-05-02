@@ -67,6 +67,8 @@
 #define HOOKGDI				0x00100000 // Hook GDI functions
 #define SHOWFPSOVERLAY		0x00200000 // shows FPS value to status win / log / screen overlay
 #define FAKEVERSION			0x00400000 // pretends the platvorm is a given window version / subversion
+#define FULLRECTBLT			0x00800000 // blit to primary surface using NULL source & dest rect
+#define NOPALETTEUPDATE		0x01000000 // Do not refresh primary surface on palette updates
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

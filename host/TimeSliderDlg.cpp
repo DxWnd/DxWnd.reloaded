@@ -94,9 +94,6 @@ void CTimeSliderDialog::OnOK()
 	// stop timer
 	// MessageBoxEx(0, "Stopping Time Slider dialog", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
 	KillTimer(IDTimeSiderTIMER);
-
-	DXWNDSTATUS Status;
 	GetHookInfo()->TimeShift=i_TimeSlider;
-
 	CDialog::OnOK();
 }

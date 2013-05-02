@@ -1,4 +1,4 @@
-#define _WIN32_WINNT 0x0400
+#define _WIN32_WINNT 0x0600
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
@@ -25,8 +25,6 @@ extern ReleaseDC_Type pReleaseDC;
 DEVMODE SetDevMode;
 DEVMODE *pSetDevMode=NULL;
 
-extern void do_slow(int);
-//extern LPDIRECTDRAWSURFACE GetPrimarySurface(void);
 extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX);
 extern HRESULT WINAPI sBlt(char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
 
@@ -414,7 +412,7 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 	HRESULT res;
 	static int PrevX, PrevY;
 
-	if(dxw.dwFlags1 & SLOWDOWN) do_slow(2);
+	if(dxw.dwFlags1 & SLOWDOWN) dxw.DoSlow(2);
 
 	if (pGetCursorPos) {
 		res=(*pGetCursorPos)(lppoint);
@@ -509,7 +507,7 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 		return 1;
 	}
 
-	if(dxw.dwFlags1 & SLOWDOWN) do_slow(2);
+	if(dxw.dwFlags1 & SLOWDOWN) dxw.DoSlow(2);
 
 	if(dxw.dwFlags1 & KEEPCURSORWITHIN){
 		// Intercept SetCursorPos outside screen boundaries (used as Cursor OFF in some games)
@@ -556,6 +554,7 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 
 BOOL WINAPI extTextOutA(HDC hdc, int nXStart, int nYStart, LPCTSTR lpString, int cchString)
 {
+	BOOL res;
 	OutTraceD("TextOut: hdc=%x xy=(%d,%d) str=(%d)\"%s\"\n", hdc, nXStart, nYStart, cchString, lpString);
 	if (dxw.dwFlags1 & FIXTEXTOUT) {
 		POINT anchor;
@@ -565,7 +564,8 @@ BOOL WINAPI extTextOutA(HDC hdc, int nXStart, int nYStart, LPCTSTR lpString, int
 		nXStart=anchor.x;
 		nYStart=anchor.y;
 	}
-	return (*pGDITextOutA)(hdc, nXStart, nYStart, lpString, cchString);
+	res=(*pGDITextOutA)(hdc, nXStart, nYStart, lpString, cchString);
+	return res;
 }
 
 BOOL WINAPI extRectangle(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
@@ -843,6 +843,8 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 
 	OutTraceD("%s: GOT hwnd=%x pos=(%d,%d) dim=(%d,%d) Flags=%x\n", 
 		ApiName, hwnd, wp->x, wp->y, wp->cx, wp->cy, wp->flags);
+
+	if (wp->flags & (SWP_NOMOVE|SWP_NOSIZE)) return; //v2.02.10
 
 	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
 		extern void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
@@ -1156,7 +1158,7 @@ int WINAPI extGetSystemMetrics(int nindex)
 	HRESULT res;
 
 	res=(*pGetSystemMetrics)(nindex);
-	OutTraceD("GetSystemMetrics: index=%x, res=%d\n", nindex, res);
+	OutTraceD("GetSystemMetrics: index=%x(%s), res=%d\n", nindex, ExplainsSystemMetrics(nindex), res);
 
 	// if you have a bypassed setting, use it first!
 	if(pSetDevMode){
@@ -1184,6 +1186,12 @@ int WINAPI extGetSystemMetrics(int nindex)
 	case SM_CYSCREEN:
 		res= dxw.GetScreenHeight();
 		OutTraceD("GetSystemMetrics: fix SM_CYSCREEN=%d\n", res);
+		break;
+	case SM_CMONITORS:
+		if((dxw.dwFlags2 & HIDEMULTIMONITOR) && res>1) {
+			res=1;
+			OutTraceD("GetSystemMetrics: fix SM_CMONITORS=%d\n", res);
+		}
 		break;
 	}
 
@@ -1310,29 +1318,40 @@ ATOM WINAPI extRegisterClassExA(WNDCLASSEX *lpwcx)
 
 BOOL WINAPI extClientToScreen(HWND hwnd, LPPOINT lppoint)
 {
+	// v2.02.10: fully revised to handle scaled windows
+	BOOL res;
 	OutTraceB("ClientToScreen: hwnd=%x hWnd=%x FullScreen=%x point=(%d,%d)\n", 
 		hwnd, dxw.GethWnd(), dxw.IsFullScreen(), lppoint->x, lppoint->y);
-
-	if (lppoint && dxw.IsFullScreen() && (hwnd == dxw.GethWnd()))
-		return 1;
-	else
-		return (*pClientToScreen)(hwnd, lppoint);
+	if (lppoint && dxw.IsFullScreen()){
+		dxw.MapPoint(lppoint);
+		OutTraceB("ClientToScreen: FIXED point=(%d,%d)\n", lppoint->x, lppoint->y);
+		res=TRUE;
+	}
+	else {
+		res=(*pClientToScreen)(hwnd, lppoint);
+	}
+	return res;
 }
 
 BOOL WINAPI extScreenToClient(HWND hwnd, LPPOINT lppoint)
 {
+	// v2.02.10: fully revised to handle scaled windows
+	BOOL res;
 	OutTraceB("ScreenToClient: hwnd=%x hWnd=%x FullScreen=%x point=(%d,%d)\n", 
 		hwnd, dxw.GethWnd(), dxw.IsFullScreen(), lppoint->x, lppoint->y);
-
-	if (lppoint && dxw.IsFullScreen() && (hwnd == dxw.GethWnd()))
-		return 1;
-	else
-		return (*pScreenToClient)(hwnd, lppoint);
+	if (lppoint && dxw.IsFullScreen()){
+		dxw.UnmapPoint(lppoint);
+		OutTraceB("ScreenToClient: FIXED point=(%d,%d)\n", lppoint->x, lppoint->y);
+		res=TRUE;
+	}
+	else {
+		res=(*pScreenToClient)(hwnd, lppoint);
+	}
+	return res;
 }
 
 BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
 {
-	// do (almost) nothing !!!
 	OutTraceD("GetClientRect: whnd=%x FullScreen=%x\n", hwnd, dxw.IsFullScreen());
 	if (lpRect && dxw.IsFullScreen() && (hwnd == dxw.GethWnd())){
 		lpRect->left=0;
@@ -1357,7 +1376,6 @@ BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
 	
 	// proxed call
 	return (*pGetClientRect)(hwnd, lpRect);
-
 	}
 
 BOOL WINAPI extGetWindowRect(HWND hwnd, LPRECT lpRect)
@@ -1407,7 +1425,14 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 
 	OutTraceD("MapWindowPoints: hWndFrom=%x hWndTo=%x cPoints=%d FullScreen=%x\n", 
 		hWndFrom, hWndTo, cPoints, dxw.IsFullScreen());
-	if((hWndTo==HWND_DESKTOP) && (hWndFrom==dxw.GethWnd()) && dxw.IsFullScreen()){
+	if(IsDebug){
+		UINT pi;
+		OutTrace("Points: ");
+		for(pi=0; pi<cPoints; pi++) OutTrace("(%d,%d)", lpPoints[pi].x, lpPoints[pi].y);
+		OutTrace("\n");
+	}
+
+	if(hWndTo==HWND_DESKTOP && dxw.IsFullScreen()){
 		OutTraceD("MapWindowPoints: fullscreen condition\n"); 
 		SetLastError(0);
 		return 0; // = 0,0 shift
@@ -1505,6 +1530,7 @@ char *SysNames2[SYSLIBIDX_MAX]={
 	"opengl32"
 };
 extern void HookModule(char *, int);
+extern void HookSysLibs(char *);
 
 HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
 {
@@ -1530,33 +1556,95 @@ HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=ret;
 	}
-	if(idx==SYSLIBIDX_MAX) {
-		OutTraceD("LoadLibraryA: hook %s\n", lpFileName);
-		HookModule((char *)lpFileName, 0);
-	}
+
+	HookSysLibs(NULL);
 	return ret;
 }
-						
+
+HMODULE WINAPI extLoadLibraryW(LPCWSTR lpFileName)
+{
+	HMODULE ret;
+	int idx;
+	LPCWSTR lpName, lpNext;
+	ret=(*pLoadLibraryW)(lpFileName);
+	OutTraceD("LoadLibraryW: FileName=%s hmodule=%x\n", lpFileName, ret);
+	lpName=lpFileName;
+	while (lpNext=wcschr(lpName,(WCHAR)'\\')) lpName=lpNext+1;
+	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
+		if(
+			(!lstrcmpiW(lpName,(LPCWSTR)SysNames[idx])) ||
+			(!lstrcmpiW(lpName,(LPCWSTR)SysNames2[idx]))
+		){
+			OutTraceD("LoadLibraryA: registered hmodule=%x->FileName=%s\n", ret, lpFileName);
+			SysLibs[idx]=ret;
+			break;
+		}
+	}
+	// handle custom OpenGL library
+	if(!lstrcmpiW(lpName,(LPCWSTR)dxw.CustomOpenGLLib)){
+		idx=SYSLIBIDX_OPENGL;
+		SysLibs[idx]=ret;
+	}
+
+	HookSysLibs(NULL);
+	return ret;
+}
+
 HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags)
 {
 	HMODULE ret;
 	int idx;
+	char *lpName, *lpNext;
 	ret=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
 	OutTraceD("LoadLibraryExA: FileName=%s hFile=%x Flags=%x hmodule=%x\n", lpFileName, hFile, dwFlags, ret);
+	lpName=(char *)lpFileName;
+	while (lpNext=strchr(lpName,'\\')) lpName=lpNext+1;
 	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
 		if(
-			(!lstrcmpi(lpFileName,SysNames[idx])) ||
-			(!lstrcmpi(lpFileName,SysNames2[idx]))
+			(!lstrcmpi(lpName,SysNames[idx])) ||
+			(!lstrcmpi(lpName,SysNames2[idx]))
 		){
 			OutTraceD("LoadLibraryExA: registered hmodule=%x->FileName=%s\n", ret, lpFileName);
 			SysLibs[idx]=ret;
 			break;
 		}
 	}
-	if(idx==SYSLIBIDX_MAX) {
-		OutTraceD("LoadLibraryExA: hook %s\n", lpFileName);
-		HookModule((char *)lpFileName, 0);
+	// handle custom OpenGL library
+	if(!lstrcmpi(lpName,dxw.CustomOpenGLLib)){
+		idx=SYSLIBIDX_OPENGL;
+		SysLibs[idx]=ret;
 	}
+
+	HookSysLibs(NULL);
+	return ret;
+}
+
+HMODULE WINAPI extLoadLibraryExW(LPCWSTR lpFileName, HANDLE hFile, DWORD dwFlags)
+{
+	HMODULE ret;
+	int idx;
+	LPCWSTR lpName, lpNext;
+	ret=(*pLoadLibraryExW)(lpFileName, hFile, dwFlags);
+	OutTraceD("LoadLibraryExW: FileName=%s hFile=%x Flags=%x hmodule=%x\n", lpFileName, hFile, dwFlags, ret);
+	lpName=lpFileName;
+	while (lpNext=wcschr(lpName,(WCHAR)'\\')) lpName=lpNext+1;
+	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
+		if(
+			(!lstrcmpiW(lpName,(LPCWSTR)SysNames[idx])) ||
+			(!lstrcmpiW(lpName,(LPCWSTR)SysNames2[idx]))
+		){
+			OutTraceD("LoadLibraryExW: registered hmodule=%x->FileName=%s\n", ret, lpFileName);
+			SysLibs[idx]=ret;
+			break;
+		}
+	}
+	// handle custom OpenGL library
+	if(!lstrcmpiW(lpName,(LPCWSTR)dxw.CustomOpenGLLib)){
+		idx=SYSLIBIDX_OPENGL;
+		SysLibs[idx]=ret;
+	}
+
+	HookSysLibs(NULL);
 	return ret;
 }
 
@@ -1724,6 +1812,7 @@ HDC WINAPI extGDIGetDC(HWND hwnd)
 				OutTraceE("GDI.GetDC ERROR: hwnd=%x err=%d at %d\n", hwnd, GetLastError(), __LINE__);
 		}
 	}
+
 	return ret;
 }
 
@@ -1759,6 +1848,7 @@ HDC WINAPI extGDIGetWindowDC(HWND hwnd)
 int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 {
 	int res;
+
 	OutTraceD("GDI.ReleaseDC: hwnd=%x hdc=%x\n", hwnd, hDC);
 	if (hwnd==0) hwnd=dxw.GethWnd();
 	res=(*pGDIReleaseDC)(hwnd, hDC);
@@ -2070,7 +2160,6 @@ int WINAPI extDDReleaseDC(HWND hwnd, HDC hDC)
 		res=(*pGDIReleaseDC)(hwnd, hDC);
 		if (!res) OutTraceE("GDI.ReleaseDC: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
-
 	return(res);
 }
 
@@ -2099,7 +2188,6 @@ BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHe
 	res=(*pGDIBitBlt)(NULL, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 
 	if(!res) ret=0;
-
 	return ret;
 }
 
@@ -2184,7 +2272,7 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 			OutTraceD("GDI.EndPaint: released hdc=%x\n", PrimHDC);
 		}
 	}
-
+	
 	return ret;
 }
 

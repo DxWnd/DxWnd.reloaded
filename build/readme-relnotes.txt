@@ -38,3 +38,19 @@ Fixed Trace "DirectX" flag.
 improved GetDC handling in 8BPP palette mode: AddPalette called on demand, and on any surface (including backbuffers): makes Emergency work with no "Handle DC" flag set. Beware: this may affect the "Map GDI HDC on Primary DC" flag causing surface locks.
 Fixed limit FPS timing issues: now the max possible FPS is 1000/delay.
 Fixed EndPaint bug causing HDC lock in "Map GDI HDC to Primary DC" mode.
+
+v2.02.10:
+Added "Full RECT Blit" mode: may be useful to handle problematic situations (e.g. "Urban Assault" intro movies)
+Fixed ClientToScreen and ScreenToClient hookers to properly handle scaled windows. This makes "Postal" working.
+Fixed global palette reference count (??) in DirectDraw::Release hook
+Fixed Window messages handling for SWP_NOMOVE, SWP_NOSIZE modes.
+
+v2.02.11:
+Added debug messages for GetSystemMetrics() modes, MapWindowPoints() points, DirectDrawEnumerate/Ex() devices.
+ompiled with #define _WIN32_WINNT 0x0600 -> handles Vista modes
+Added NOPALETTEUPDATE ("Palette update don't Blit" flag) to eliminate flickering when ddraw and GDI methods conflict
+Hooked all LoadLibraryA/W and LoadLibraryExA/W calls
+Hooked 
+extDirectDrawEnumerate/Ex ddraw calls to handle Hide multi-monitor option.
+Detected directshow activation through CoCreateInstance and hooked quartz.dll segment: now Urban Assault movies don't require "Full RECT Blit" option to be set.
+Updated DDSurface::Release hook 

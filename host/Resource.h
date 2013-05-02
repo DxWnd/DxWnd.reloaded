@@ -122,6 +122,9 @@
 #define IDC_SHOWFPSOVERLAY              1083
 #define IDC_FAKEVERSION                 1084
 #define IDC_COMBOTS                     1085
+#define IDC_SUPPRESSCLIPPING2           1085
+#define IDC_FULLRECTBLT                 1085
+#define IDC_NOPALETTEUPDATE             1086
 #define IDC_LIST2                       1088
 #define IDC_LISTTS                      1088
 #define IDC_LISTFAKE                    1089

@@ -16,6 +16,8 @@
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
+HRESULT WINAPI extDirectDrawEnumerate(LPDDENUMCALLBACK, LPVOID);
+HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX, LPVOID, DWORD);
 
 // DirectDraw
 HRESULT WINAPI extQueryInterfaceD(void *, REFIID, LPVOID *);
@@ -476,6 +478,18 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 	HRESULT res;
 	OutTraceD("CoCreateInstance: rclsid=%x UnkOuter=%x ClsContext=%x refiid=%x\n",
 		rclsid, pUnkOuter, dwClsContext, riid);
+
+	// CLSID e436ebb3 implies loading quartz.dll to play movies through dshow:
+	// quartz.dll must be hooked.
+	if (*(DWORD *)&rclsid==0xe436ebb3){
+		HMODULE qlib;
+		OutTraceD("CoCreateInstance: CLSID_FilterGraph RIID=%x\n", *(DWORD *)&riid);
+		qlib=(*pLoadLibraryA)("quartz.dll");
+		OutTraceD("CoCreateInstance: quartz lib handle=%x\n", qlib);
+		extern void HookSysLibs(char *);
+		HookSysLibs("quartz");
+	}
+
 	res=(*pCoCreateInstance)(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 	if(res) 
 		OutTraceE("CoCreateInstance: ERROR res=%x\n", res);
@@ -483,8 +497,8 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 		OutTraceD("CoCreateInstance: ppv=%x->%x\n", *ppv, *(DWORD *)*ppv);
 
 	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DirectDraw){
-	LPDIRECTDRAW lpOldDDraw;
-	OutTraceD("CoCreateInstance: CLSID_DirectDraw object\n");
+		LPDIRECTDRAW lpOldDDraw;
+		OutTraceD("CoCreateInstance: CLSID_DirectDraw object\n");
 		switch (*(DWORD *)&riid){
 		case 0x6C14DB80:
 			OutTraceD("DirectDrawCreate: IID_DirectDraw RIID\n");
@@ -513,6 +527,7 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 			break;
 		}
 	}
+
 	return res;
 }
 
@@ -540,9 +555,9 @@ int HookDirectDraw(char *module, int version)
 		if(tmp) pDirectDrawCreate = (DirectDrawCreate_Type)tmp;
 		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreateEx", extDirectDrawCreateEx);
 		if(tmp) pDirectDrawCreateEx = (DirectDrawCreateEx_Type)tmp;
-		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
+		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateA", extDirectDrawEnumerate);
 		if(tmp) pDirectDrawEnumerate = (DirectDrawEnumerate_Type)tmp;
-		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateExA", extDirectDrawEnumerateExProxy);
+		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateExA", extDirectDrawEnumerateEx);
 		if(tmp) pDirectDrawEnumerateEx = (DirectDrawEnumerateEx_Type)tmp;
 		break;
 	case 1:
@@ -559,7 +574,7 @@ int HookDirectDraw(char *module, int version)
 			LPDIRECTDRAW lpdd;
 			BOOL res;
 			HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
-			HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
+			HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerate);
 			res=extDirectDrawCreate(0, &lpdd, 0);
 			if (res){
 				OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
@@ -578,9 +593,9 @@ int HookDirectDraw(char *module, int version)
 		if(pDirectDrawCreate){
 			LPDIRECTDRAW lpdd;
 			BOOL res;
-			HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreateProxy);
-			HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerateProxy);
-			HookAPI(module, "ddraw.dll", pDirectDrawEnumerateEx, "DirectDrawEnumerateExA", extDirectDrawEnumerateExProxy);
+			HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
+			HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerate);
+			HookAPI(module, "ddraw.dll", pDirectDrawEnumerateEx, "DirectDrawEnumerateExA", extDirectDrawEnumerateEx);
 			res=extDirectDrawCreate(0, &lpdd, 0);
 			if (res) OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 			lpdd->Release();
@@ -664,23 +679,6 @@ int lpddHookedVersion(LPDIRECTDRAW lpdd)
 }
 
 /* ------------------------------------------------------------------ */
-
-void do_slow(int delay)
-{
-	MSG uMsg;
-	int t, tn;
-	t = (*pGetTickCount)();
-
-	uMsg.message=0; // initialize somehow...
-	while((tn = (*pGetTickCount)())-t < delay){
-		while (PeekMessage (&uMsg, NULL, 0, 0, PM_REMOVE) > 0){
-			if(WM_QUIT == uMsg.message) break;
-			TranslateMessage (&uMsg);
-			DispatchMessage (&uMsg);
-		}	
-		(*pSleep)(1);
-	}
-}
 
 static void DumpPixFmt(LPDDSURFACEDESC2 lpdd)
 {
@@ -1627,7 +1625,12 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 		if (dxw.dwFlags1 & FIXWINFRAME) FixWindowFrame(hwnd);
 	}
 	else{
-		dxw.SetFullScreen(FALSE);
+		RECT client;
+		(*pGetClientRect)(hwnd, &client);
+		// v2.02.11:
+		// Non fullscreen cooperative mode means windowed, unless the window occupies the whole desktop area
+		dxw.SetFullScreen(client.right==dxw.iSizX && client.bottom==dxw.iSizY);
+		//dxw.SetFullScreen(FALSE);
 		res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
 	}
 	if(res)
@@ -2542,6 +2545,10 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx)
 {
+	if ((dxw.dwFlags2 & FULLRECTBLT) && dxw.IsAPrimarySurface(lpdds)){
+		lpsrcrect=NULL;
+		lpdestrect=NULL;
+	}
 	return sBlt("Blt", lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx, FALSE);
 }
 
@@ -2767,9 +2774,10 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 	mySetPalette(dwstart, dwcount, lpentries);
 
 	// GHO: needed for fixed rect and variable palette animations, 
-	// e.g. dungeon keeper loading screen
-	if (dxw.dwFlags1 & EMULATESURFACE) dxw.ScreenRefresh();
-
+	// e.g. dungeon keeper loading screen, Warcraft II splash, ...
+	// GHO: but refreshing cause flickering when GDI was used without updating the primary surface
+	// e.g. Tomb Raider 2 intro titles
+	if ((dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags2 & NOPALETTEUPDATE)) dxw.ScreenRefresh();
 	return 0;
 }
 
@@ -2836,7 +2844,6 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSUR
 HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 {
 	HRESULT res;
-	RECT screen, rect;
 	BOOL IsPrim;
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
@@ -2856,56 +2863,11 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 			OutTrace("lpvoid=%x\n", lprect);
 	}
 
-	//if(dxw.dwFlags1 & SLOWDOWN) do_slow(2);
-
-	if (!IsPrim){
-		res=(*pUnlock)(lpdds, lprect);
-		if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
-		return res;
-	}
-
 	res=(*pUnlock)(lpdds, lprect);
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-
-	// unlock on primary surface .....
-	if (dxw.HandleFPS()) return DD_OK;
-
-	if (dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){
-		DDSURFACEDESC2 ddsd;
-		LPDIRECTDRAWSURFACE lpDDSSource;
-
-		ddsd.dwSize=Set_dwSize_From_Surface(lpdds);
-		if(res=lpdds->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd)) {
-			OutTraceE("Unlock: GetSurfaceDesc ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-			return res;
-		}
-
-		rect.top=0;
-		rect.left=0;
-		rect.bottom=ddsd.dwHeight;
-		rect.right=ddsd.dwWidth;
-
-		screen=dxw.MapWindowRect();
-
-		if(dxw.dwFlags1 & EMULATESURFACE){
-			(*pEmuBlt)(lpDDSEmu_Back, &rect, lpdds, &rect, DDBLT_WAIT, ddsd.lpSurface);
-			lpDDSSource=lpDDSEmu_Back;
-		}
-		else{
-			lpDDSSource=lpdds;
-		}
-
-		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
-		res=(*pBlt)(lpDDSEmu_Prim, &screen, lpDDSSource, &rect, DDBLT_WAIT, 0);
-		if (res==DDERR_NOCLIPLIST) {
-			RenewClipper(lpDD, lpDDSEmu_Prim);
-			res=(*pBlt)(lpDDSEmu_Prim, &screen, lpDDSSource, &rect, DDBLT_WAIT, 0);
-		}
-		if (res) BlitError(res,&rect,&screen,__LINE__);
-	}
-
-	return 0;
+	if (IsPrim && res==DD_OK) sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+	return res;
 }
 
 HRESULT WINAPI extUnlock4(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
@@ -3354,7 +3316,10 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 	
 	// handling of service closed surfaces 
 	IsClosed=0;
-	__try{HRESULT dw=(DWORD)(*pReleaseS);}
+	__try{
+		HRESULT dw=(DWORD)(*pReleaseS);
+		if ((dw & 0xF0000000) == 0xF0000000) IsClosed=1;
+	}
 	__except (EXCEPTION_EXECUTE_HANDLER){
 		OutTraceD("Exception at %d\n",__LINE__);
 		IsClosed=1;
@@ -3591,62 +3556,15 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 
 	if (lpdd == lpServiceDD) { // v2.1.87: fix for Dungeon Keeper II
 		OutTraceD("Release(D): service lpdd=%x version=%d\n", lpdd, dxversion);
-		if(dxversion >= 4){
-			// directdraw recent versions link the objects to the directdraw session, so that they MUST be
-			// released BEFORE the parent object
-			int ServiceObjCount;
-			ServiceObjCount=0;
-
-			if (lpDDSEmu_Prim) ServiceObjCount++;
-			if (lpDDSEmu_Back) ServiceObjCount++;
-			//if (lpDDSHDC) ServiceObjCount++;
-			if (lpDDC) ServiceObjCount++;
-			if (lpDDSBack) ServiceObjCount++;
-
-			OutTraceD("Release(D): ref=%x ServiceObjCount=%x\n", ref, ServiceObjCount);
-			// BEWARE: releasing surfaces will cause releasing references of parent obj directdraw, then
-			// lpdd->Release() would be called recursively without the strict check ref==ServiceObjectCount !!!
-			if ((int)ref==ServiceObjCount){
-				OutTraceD("Release(D): RefCount reached service object count=%d - RESET condition\n", ServiceObjCount);
-				if (lpDDSBack) {
-					OutTraceD("Release(D): released lpDDSBack=%x\n", lpDDSBack);
-					while(lpDDSBack->Release());
-					lpDDSBack=NULL;
-				}	
-				if (lpDDC) {
-					OutTraceD("Release(D): released lpDDC=%x\n", lpDDC);
-					while(lpDDC->Release()); 
-					lpDDC=NULL;
-				}			
-				if (lpDDSEmu_Prim) {
-					OutTraceD("Release(D): released lpDDSEmu_Prim=%x\n", lpDDSEmu_Prim);
-					while(lpDDSEmu_Prim->Release()); 
-					lpDDSEmu_Prim=NULL;
-				}
-				if (lpDDSEmu_Back) {
-					OutTraceD("Release(D): released lpDDSEmu_Back=%x\n", lpDDSEmu_Back);
-					while(lpDDSEmu_Back->Release());
-					lpDDSEmu_Back=NULL;
-				}
-				if (lpDDP) {
-					OutTraceD("Release(D): released lpDDP=%x\n", lpDDP);
-					while(lpDDP->Release());
-					lpDDP=NULL;
-				}
-				lpServiceDD = NULL; // v2.1.87
-				ref=0; // it should be ....
-			}
-		}
-		else {
-			// directdraw older versions automatically free all linked objects when the parent session is closed.
-			if (ref==0){
-				OutTraceD("Release(D): RefCount=0 - service object RESET condition\n");
-				lpDDSEmu_Prim=NULL;
-				lpDDSEmu_Back=NULL;
-				lpDDC=NULL;
-				lpDDSBack=NULL;
-				lpDDP=NULL;
-			}
+		if((dxversion<4) && (ref==0)){
+			// directdraw old versions automatically free all linked objects when the parent session is closed.
+			OutTraceD("Release(D): RefCount=0 - service object RESET condition\n");
+			lpDDSEmu_Prim=NULL;
+			lpDDSEmu_Back=NULL;
+			lpDDC=NULL;
+			lpDDSBack=NULL;
+			lpDDP=NULL;
+			lpServiceDD=NULL; // v2.02.11
 		}
 	}
 
@@ -3796,4 +3714,64 @@ HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 		lpDDP=NULL;
 	}
 	return ref;
+}
+
+BOOL WINAPI DDEnumerateCallbackFilter(GUID *lpGuid, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext)
+{
+	BOOL res;
+	typedef struct {LPDDENUMCALLBACK lpCallback; LPVOID lpContext;} Context_Type;
+	Context_Type *p=(Context_Type *)lpContext;
+	OutTraceD("DDEnumerateCallback: guid=%x DriverDescription=\"%s\" DriverName=\"%s\" Context=%x\n", 
+		lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
+	if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
+	if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	OutTraceD("DDEnumerateCallback: res=%x(%s)\n", res, res?"continue":"break");
+	return res;
+}
+
+BOOL WINAPI DDEnumerateCallbackExFilter(GUID *lpGuid, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext, HMONITOR hm)
+{
+	BOOL res;
+	typedef struct {LPDDENUMCALLBACKEX lpCallback; LPVOID lpContext;} Context_Type;
+	Context_Type *p=(Context_Type *)lpContext;
+	OutTrace("DDEnumerateCallbackEx: guid=%x DriverDescription=\"%s\" DriverName=\"%s\" Context=%x hm=%x\n", 
+		lpGuid, lpDriverDescription, lpDriverName, lpContext, hm);
+	res=TRUE;
+	if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext, hm);
+	if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	OutTraceD("DDEnumerateCallbackEx: res=%x(%s)\n", res, res?"continue":"break");
+	return res;
+}
+
+HRESULT WINAPI extDirectDrawEnumerate(LPDDENUMCALLBACK lpCallback, LPVOID lpContext)
+{
+	HRESULT ret;
+	OutTraceP("DirectDrawEnumerate: lpCallback=%x lpContext=%x\n", lpCallback, lpContext);
+	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG)){
+		struct {LPDDENUMCALLBACK lpCallback; LPVOID lpContext;} myContext;
+		myContext.lpCallback=lpCallback;
+		myContext.lpContext=lpContext;
+		ret=(*pDirectDrawEnumerate)(DDEnumerateCallbackFilter, (LPVOID)&myContext);
+	}
+	else
+		ret=(*pDirectDrawEnumerate)(lpCallback, lpContext);
+	if(ret) OutTraceP("DirectDrawEnumerate: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	return ret;
+}
+
+HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX lpCallback, LPVOID lpContext, DWORD dwFlags)
+{
+	HRESULT ret;
+	OutTraceP("DirectDrawEnumerateEx: lpCallback=%x lpContext=%x Flags=%x(%s)\n", 
+		lpCallback, lpContext, dxw.dwFlags1, ExplainDDEnumerateFlags(dwFlags));
+	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG)){
+		struct {LPDDENUMCALLBACKEX lpCallback; LPVOID lpContext;} myContext;
+		myContext.lpCallback=lpCallback;
+		myContext.lpContext=lpContext;
+		ret=(*pDirectDrawEnumerateEx)(DDEnumerateCallbackExFilter, (LPVOID)&myContext, dwFlags);
+	}
+	else
+		ret=(*pDirectDrawEnumerateEx)(lpCallback, lpContext, dwFlags);
+	if(ret) OutTraceP("DirectDrawEnumerateEx: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	return ret;
 }

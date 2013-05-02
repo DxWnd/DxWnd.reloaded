@@ -433,6 +433,8 @@ void CDxwndhostView::OnModify()
 	dlg.m_TimeStretch = TargetMaps[i].flags2 & TIMESTRETCH ? 1 : 0;
 	dlg.m_HookOpenGL = TargetMaps[i].flags2 & HOOKOPENGL ? 1 : 0;
 	dlg.m_FakeVersion = TargetMaps[i].flags2 & FAKEVERSION ? 1 : 0;
+	dlg.m_FullRectBlt = TargetMaps[i].flags2 & FULLRECTBLT ? 1 : 0;
+	dlg.m_NoPaletteUpdate = TargetMaps[i].flags2 & NOPALETTEUPDATE ? 1 : 0;
 	dlg.m_InitX = TargetMaps[i].initx;
 	dlg.m_InitY = TargetMaps[i].inity;
 	dlg.m_MinX = TargetMaps[i].minx;
@@ -532,6 +534,8 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
 		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
+		if(dlg.m_FullRectBlt) TargetMaps[i].flags2 |= FULLRECTBLT;
+		if(dlg.m_NoPaletteUpdate) TargetMaps[i].flags2 |= NOPALETTEUPDATE;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;
@@ -824,6 +828,8 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
 		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
+		if(dlg.m_FullRectBlt) TargetMaps[i].flags2 |= FULLRECTBLT;
+		if(dlg.m_NoPaletteUpdate) TargetMaps[i].flags2 |= NOPALETTEUPDATE;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;

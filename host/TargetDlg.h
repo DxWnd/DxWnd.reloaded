@@ -88,6 +88,8 @@ public:
 	BOOL	m_TimeStretch;
 	BOOL	m_HookOpenGL;
 	BOOL	m_FakeVersion;
+	BOOL	m_FullRectBlt;
+	BOOL	m_NoPaletteUpdate;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;

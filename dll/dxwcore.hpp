@@ -31,6 +31,8 @@ public: // methods
 	void EraseClipCursor(void);
 	RECT MapWindowRect(LPRECT lpRect);
 	RECT MapWindowRect(void);
+	void MapPoint(LPPOINT);
+	void UnmapPoint(LPPOINT);
 	void ScreenRefresh(void);
 	BOOL HandleFPS(void);
 	DWORD GetTickCount(void);
@@ -47,6 +49,7 @@ public: // methods
 	void ShowFPS(HDC);
 	char *GetTSCaption(int);
 	char *GetTSCaption(void);
+	void DoSlow(int);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;

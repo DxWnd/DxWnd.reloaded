@@ -1,4 +1,4 @@
-#define _WIN32_WINNT 0x0400
+#define _WIN32_WINNT 0x0600
 #define WIN32_LEAN_AND_MEAN
 #define _CRT_SECURE_NO_DEPRECATE 1
 
@@ -39,8 +39,8 @@ static char *Flag2Names[32]={
 	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "DIFFERENTIALMOUSE", "FIXNCHITTEST",
 	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
 	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
-	"HOOKGDI", "SHOWFPSOVERLAY", "FAKEVERSION", "",
-	"", "", "", "",
+	"HOOKGDI", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
+	"NOPALETTEUPDATE", "", "", "",
 	"", "", "", "",
 };
 
@@ -762,7 +762,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 void HookSysLibsInit()
 {
-	pLoadLibraryA = LoadLibrary;
+	pLoadLibraryA = LoadLibraryA;
+	pLoadLibraryExA = LoadLibraryExA;
+	pLoadLibraryW = LoadLibraryW;
+	pLoadLibraryExW = LoadLibraryExW;
 	pGetProcAddress = (GetProcAddress_Type)GetProcAddress;
 	pGDICreateCompatibleDC=CreateCompatibleDC;
 	pGDIDeleteDC=DeleteDC;
@@ -899,6 +902,10 @@ void HookSysLibs(char *module)
 	if(tmp) pLoadLibraryA = (LoadLibraryA_Type)tmp;
 	tmp = HookAPI(module, "kernel32.dll", LoadLibraryExA, "LoadLibraryExA", extLoadLibraryExA);
 	if(tmp) pLoadLibraryExA = (LoadLibraryExA_Type)tmp;
+	tmp = HookAPI(module, "kernel32.dll", LoadLibraryW, "LoadLibraryW", extLoadLibraryW);
+	if(tmp) pLoadLibraryW = (LoadLibraryW_Type)tmp;
+	tmp = HookAPI(module, "kernel32.dll", LoadLibraryExW, "LoadLibraryExW", extLoadLibraryExW);
+	if(tmp) pLoadLibraryExW = (LoadLibraryExW_Type)tmp;
 
 	tmp = HookAPI(module, "user32.dll", BeginPaint, "BeginPaint", extBeginPaint);
 	if(tmp) pBeginPaint = (BeginPaint_Type)tmp;

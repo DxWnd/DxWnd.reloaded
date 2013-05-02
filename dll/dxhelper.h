@@ -27,3 +27,4 @@ extern char *ExplainGUID(GUID FAR *);
 extern char *ExplainROP(DWORD);
 extern char *ExplainNChitTest(DWORD);
 extern char *ExplainDDEnumerateFlags(DWORD);
+extern char *ExplainsSystemMetrics(DWORD);

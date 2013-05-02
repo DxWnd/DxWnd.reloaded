@@ -83,6 +83,8 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_TimeStretch = FALSE;
 	m_HookOpenGL = FALSE;
 	m_FakeVersion = FALSE;
+	m_FullRectBlt = FALSE;
+	m_NoPaletteUpdate = FALSE;
 	m_InitX = 0;
 	m_InitY = 0;
 	m_MaxX = 0;
@@ -214,6 +216,8 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_TIMESTRETCH, m_TimeStretch);
 	DDX_Check(pDX, IDC_HOOKOPENGL, m_HookOpenGL);
 	DDX_Check(pDX, IDC_FAKEVERSION, m_FakeVersion);
+	DDX_Check(pDX, IDC_FULLRECTBLT, m_FullRectBlt);
+	DDX_Check(pDX, IDC_NOPALETTEUPDATE, m_NoPaletteUpdate);
 	DDX_Text(pDX, IDC_INITX, m_InitX);
 	DDX_Text(pDX, IDC_INITY, m_InitY);
 	DDX_Text(pDX, IDC_MAXX, m_MaxX);
