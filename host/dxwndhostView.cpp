@@ -98,6 +98,25 @@ CDxwndhostView::CDxwndhostView()
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &this->InitDevMode);
 }
 
+void CDxwndhostView::SaveWinPos()
+{
+	char val[32];
+	RECT rect;
+
+	// save window rect
+	//::GetWindowRect(::GetActiveWindow(), &rect);
+	this->GetActiveWindow()->GetWindowRect(&rect);
+	if((rect.top < 0) || (rect.bottom < 0) || (rect.left < 0) || (rect.right < 0)) return;
+	sprintf_s(val, sizeof(val), "%i", rect.left);
+	WritePrivateProfileString("window", "posx", val, InitPath);
+	sprintf_s(val, sizeof(val), "%i", rect.top);
+	WritePrivateProfileString("window", "posy", val, InitPath);
+	sprintf_s(val, sizeof(val), "%i", rect.right-rect.left);
+	WritePrivateProfileString("window", "sizx", val, InitPath);
+	sprintf_s(val, sizeof(val), "%i", rect.bottom-rect.top);
+	WritePrivateProfileString("window", "sizy", val, InitPath);
+}
+
 void CDxwndhostView::SaveConfigFile()
 {
 	int i;
@@ -234,6 +253,7 @@ CDxwndhostView::~CDxwndhostView()
 void CDxwndhostView::OnExit()
 {
 	// check for running apps ....
+	this->SaveWinPos();
 	if (GetHookStatus(NULL)==DXW_RUNNING){
 		if (MessageBoxEx(0, 
 			"A hooked task is still running.\n"
@@ -267,6 +287,7 @@ void CDxwndhostView::OnInitialUpdate()
 	LV_ITEM listitem;
 	int i;
 	char key[32];
+	RECT rect;
 
 	listcol.mask = LVCF_WIDTH;
 	listcol.cx = 100;
@@ -275,6 +296,17 @@ void CDxwndhostView::OnInitialUpdate()
 	GetCurrentDirectory(MAX_PATH, InitPath);
 	strcat_s(InitPath, sizeof(InitPath), "\\");
 	strcat_s(InitPath, sizeof(InitPath), m_ConfigFileName);
+
+	// restore last window pos
+	AfxGetApp()->m_pMainWnd->GetWindowRect(&rect);
+	rect.left = GetPrivateProfileInt("window", "posx", 50, InitPath);
+	rect.top = GetPrivateProfileInt("window", "posy", 50, InitPath);
+	rect.right = rect.left + GetPrivateProfileInt("window", "sizx", 320, InitPath);
+	rect.bottom = rect.top + GetPrivateProfileInt("window", "sizy", 200, InitPath);
+	AfxGetApp()->m_pMainWnd->MoveWindow(&rect, TRUE);
+	AfxGetApp()->m_pMainWnd->ShowWindow(SW_SHOW);
+	AfxGetApp()->m_pMainWnd->UpdateWindow();
+
 	for(i = 0; i < MAXTARGETS; i ++){
 		sprintf_s(key, sizeof(key), "path%i", i);
 		GetPrivateProfileString("target", key, "", TargetMaps[i].path, MAX_PATH, InitPath);
@@ -427,6 +459,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_KeepCursorFixed = TargetMaps[i].flags2 & KEEPCURSORFIXED ? 1 : 0;
 	dlg.m_UseRGB565 = TargetMaps[i].flags & USERGB565 ? 1 : 0;
 	dlg.m_SuppressDXErrors = TargetMaps[i].flags & SUPPRESSDXERRORS ? 1 : 0;
+	dlg.m_MarkBlit = TargetMaps[i].flags3 & MARKBLIT ? 1 : 0;
 	dlg.m_PreventMaximize = TargetMaps[i].flags & PREVENTMAXIMIZE ? 1 : 0;
 	dlg.m_ClientRemapping = TargetMaps[i].flags & CLIENTREMAPPING ? 1 : 0;
 	dlg.m_MapGDIToPrimary = TargetMaps[i].flags & MAPGDITOPRIMARY ? 1 : 0;
@@ -538,6 +571,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_KeepCursorFixed) TargetMaps[i].flags2 |= KEEPCURSORFIXED;
 		if(dlg.m_UseRGB565) TargetMaps[i].flags |= USERGB565;
 		if(dlg.m_SuppressDXErrors) TargetMaps[i].flags |= SUPPRESSDXERRORS;
+		if(dlg.m_MarkBlit) TargetMaps[i].flags3 |= MARKBLIT;
 		if(dlg.m_PreventMaximize) TargetMaps[i].flags |= PREVENTMAXIMIZE;
 		if(dlg.m_ClientRemapping) TargetMaps[i].flags |= CLIENTREMAPPING;
 		if(dlg.m_MapGDIToPrimary) TargetMaps[i].flags |= MAPGDITOPRIMARY;
@@ -840,6 +874,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_KeepCursorFixed) TargetMaps[i].flags2 |= KEEPCURSORFIXED;
 		if(dlg.m_UseRGB565) TargetMaps[i].flags |= USERGB565;
 		if(dlg.m_SuppressDXErrors) TargetMaps[i].flags |= SUPPRESSDXERRORS;
+		if(dlg.m_MarkBlit) TargetMaps[i].flags3 |= MARKBLIT;
 		if(dlg.m_PreventMaximize) TargetMaps[i].flags |= PREVENTMAXIMIZE;
 		if(dlg.m_ClientRemapping) TargetMaps[i].flags |= CLIENTREMAPPING;
 		if(dlg.m_MapGDIToPrimary) TargetMaps[i].flags |= MAPGDITOPRIMARY;
@@ -1093,6 +1128,7 @@ void CDxwndhostView::OnGoToTrayIcon()
 
 void CDxwndhostView::OnSaveFile() 
 {
+	this->SaveWinPos();
 	if (this->isUpdated) 
 	if (MessageBoxEx(0, 
 		"Task list has changed.\n"

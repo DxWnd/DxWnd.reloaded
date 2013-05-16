@@ -361,6 +361,10 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	param[2] = mode.Format;
 	OutTraceD("    Current Format = 0x%x\n", mode.Format);
 
+	// useless ...
+	//param[0] = 0;			//defaulting to window width
+	//param[1] = 0;			//defaulting to window height
+	//param[2] = D3DFMT_UNKNOWN;	// try
 
 	if(dwD3DVersion == 9){
 		param[7] = 0;			//hDeviceWindow

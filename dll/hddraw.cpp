@@ -671,7 +671,12 @@ int lpddsHookedVersion(LPDIRECTDRAWSURFACE lpdds)
 	char sMsg[81];
 	void * extGetCaps;
 
+	__try{
 	extGetCaps=(void *)*(DWORD *)(*(DWORD *)lpdds + 56);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER){
+	extGetCaps=NULL;
+	};	
 	if(extGetCaps==(void *)extGetCaps1S) return 1;
 	if(extGetCaps==(void *)extGetCaps2S) return 2;
 	if(extGetCaps==(void *)extGetCaps3S) return 3;
@@ -688,7 +693,12 @@ int lpddHookedVersion(LPDIRECTDRAW lpdd)
 	char sMsg[81];
 	void * extCreateSurface;
 
+	__try{
 	extCreateSurface=(void *)*(DWORD *)(*(DWORD *)lpdd + 24);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER){
+	extCreateSurface=NULL;
+	};	
 	if(extCreateSurface==(void *)extCreateSurface1) return 1;
 	if(extCreateSurface==(void *)extCreateSurface2) return 2;
 	if(extCreateSurface==(void *)extCreateSurface4) return 4;
@@ -1788,7 +1798,7 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 		// some games (Monopoly 3D) may depend on this setting - i.e. they could close
 		// the exceeding references - so this is better be replicated adding an initial
 		// reference to the zero count.
-		lpDDSBack->AddRef(); // should it be repeated BBCount times????
+		if (lpDDSBack) lpDDSBack->AddRef(); // should it be repeated BBCount times????
 
 		// rebuild emulated primary surface
 
@@ -1847,28 +1857,19 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 		OutTraceD("CreateSurface: created DDSEmu_Prim=%x DDSEmu_Back=%x DDSPrim=%x DDSBack=%x\n",
 			lpDDSEmu_Prim, lpDDSEmu_Back, lpDDSPrim, lpDDSBack);
 
-		// creation of lpDDSHDC service surfae moved to GetDC method
+		// creation of lpDDSHDC service surface moved to GetDC method
 
 		if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
 		return 0;
 	}
 
-	// not primary emulated surface ....
-	// try begin
-	//if((ddsd.dwFlags && DDSD_CAPS) && (ddsd.ddsCaps.dwCaps && DDSCAPS_ZBUFFER)){
-	//	pfmt="untouched";
-	//}
-	//else
-	//end try
 	if(((ddsd.dwFlags & DDSD_WIDTH) && !(ddsd.dwFlags & DDSD_HEIGHT)) ||
 		(ddsd.dwFlags & DDSD_ZBUFFERBITDEPTH) ||
-		//(ddsd.dwFlags & DDSD_PIXELFORMAT) ||
-		((ddsd.dwFlags & DDSD_PIXELFORMAT) && !(ddsd.dwFlags & DDSD_PITCH)) || // fix good for "Wargames"
-		//((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ||
-		((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE))){
+		((ddsd.dwFlags & DDSD_PIXELFORMAT) && !(ddsd.dwFlags & DDSD_PITCH) && !(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) || // fix good for "Wargames" 
+		((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) && !(ddsd.dwFlags & DDSD_PIXELFORMAT)) // fix good for Premier Manager 98
+		){
 		// don't alter pixel format
-		//ddsd.dwFlags &= ~DDSD_PIXELFORMAT; // Warhammer Dark Omen
-		ddsd.dwFlags &= ~DDSD_PIXELFORMAT; // Wargames ???
+		ddsd.dwFlags &= ~DDSD_PIXELFORMAT; // Wargames, Warhammer Dark Omen
 		pfmt="(none)";
 	}
 	else {
@@ -2261,6 +2262,21 @@ static void BlitError(HRESULT res, LPRECT lps, LPRECT lpd, int line)
 	return;
 }
 
+static void BlitTrace(char *label, LPRECT lps, LPRECT lpd, int line)
+{
+	OutTrace("Blt: %s", label);
+	if (lps)
+		OutTrace(" src=(%d,%d)-(%d,%d)",lps->left, lps->top, lps->right, lps->bottom);
+	else
+		OutTrace(" src=(NULL)");
+	if (lpd)
+		OutTrace(" dest=(%d,%d)-(%d,%d)",lpd->left, lpd->top, lpd->right, lpd->bottom);
+	else
+		OutTrace(" dest=(NULL)");
+	OutTrace(" at %d\n", __LINE__);
+	return;
+}
+
 HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx, BOOL isFlipping)
 {
@@ -2299,22 +2315,24 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		OutTrace("\n");
 	}
 
-#define ONEPIXELFIXFlag 1
+#ifdef ONEPIXELFIX
+	if (lpdestrect){
+		if ((lpdestrect->top == 0) && (lpdestrect->bottom == dxw.GetScreenHeight() -1)) lpdestrect->bottom = dxw.GetScreenHeight();
+		if ((lpdestrect->left == 0) && (lpdestrect->right  == dxw.GetScreenWidth()  -1)) lpdestrect->right  = dxw.GetScreenWidth();
+	}
+	if (lpsrcrect){
+		if ((lpsrcrect->top == 0) && (lpsrcrect->bottom == dxw.GetScreenHeight() -1)) lpsrcrect->bottom = dxw.GetScreenHeight();
+		if ((lpsrcrect->left == 0) && (lpsrcrect->right  == dxw.GetScreenWidth()  -1)) lpsrcrect->right  = dxw.GetScreenWidth();
+	}
+#endif
+
 #define FIXBIGGERRECT 1
-
-	if (ONEPIXELFIXFlag){
-		if (lpdestrect){
-			if (lpdestrect->bottom == dxw.GetScreenHeight() -1) lpdestrect->bottom = dxw.GetScreenHeight();
-			if (lpdestrect->right  == dxw.GetScreenWidth()  -1) lpdestrect->right  = dxw.GetScreenWidth();
-		}
+#ifdef FIXBIGGERRECT
+	if(ToPrim && lpdestrect){
+		if((DWORD)lpdestrect->bottom > dxw.GetScreenHeight()) lpdestrect->bottom = dxw.GetScreenHeight();
+		if((DWORD)lpdestrect->right > dxw.GetScreenWidth()) lpdestrect->right = dxw.GetScreenWidth();
 	}
-
-	if(FIXBIGGERRECT){
-		if(ToPrim && lpdestrect){
-			if((DWORD)lpdestrect->bottom > dxw.GetScreenHeight()) lpdestrect->bottom = dxw.GetScreenHeight();
-			if((DWORD)lpdestrect->right > dxw.GetScreenWidth()) lpdestrect->right = dxw.GetScreenWidth();
-		}
-	}
+#endif
 
 	if((dxw.dwFlags1 & EMULATESURFACE) && (dwflags==DDBLT_COLORFILL)){
 		OutTraceD("Debug: dwFillDepth=%d, EmuBPP=%d, dwFillColor=%x\n", 
@@ -2370,18 +2388,22 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 				srcrect=dxw.MapWindowRect(lpsrcrect);
 			}
 		}
+
+		if (IsDebug) BlitTrace("NOPRIM", lpsrcrect, lpdestrect, __LINE__);
 		res= (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
 		// Blitting compressed data may work to screen surfaces only. In this case, it may be worth
 		// trying blitting directly to lpDDSEmu_Prim: it makes DK2 intro movies working.
 		switch(res){
 		case DDERR_UNSUPPORTED:
 			if (dxw.dwFlags1 & EMULATESURFACE){
+				if (IsDebug) BlitTrace("UNSUPP", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
 				res=(*pBlt)(lpDDSEmu_Prim, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
 			}
 			break;
 		case DDERR_SURFACEBUSY:
 			(*pUnlockMethod(lpdds))(lpdds, NULL);
-			if (lpddssrc) (*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
+			if (lpddssrc) (*pUnlockMethod(lpddssrc))(lpddssrc, NULL);	
+			if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
 			res=(*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags|DDBLT_WAIT, lpddbltfx);
 			break;
 		default:
@@ -2402,8 +2424,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		res=0;
 		// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 		if (lpdds != lpddssrc) {
-			//OutTrace("DEBUG: lpdds=%x lpddssrc=%x destrect=(%d,%d)-(%d,%d) lpsrcrect=%x flags=%x lpddbltfx=%x\n",
-			//	lpdds, lpddssrc, destrect.left, destrect.top, destrect.right, destrect.bottom, lpsrcrect, dwflags, lpddbltfx);
+			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
 			res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 		}
 		if(res){
@@ -2411,6 +2432,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			// Try to handle HDC lock concurrency....		
 			if(res==DDERR_SURFACEBUSY){
 				(*pUnlockMethod(lpdds))(lpdds, NULL);
+				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, __LINE__);
 				res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 			}
@@ -2445,8 +2467,10 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 
 	res=0;
 	// blit only when source and dest surface are different. Should make ScreenRefresh faster.
-	if (lpdds != lpddssrc) 
+	if (lpdds != lpddssrc){
+		if (IsDebug) BlitTrace("SRC2EMU", &emurect, &destrect, __LINE__);
 		res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+	}
 
 	if (res) {
 		BlitError(res, lpsrcrect, &emurect, __LINE__);
@@ -2458,6 +2482,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		*/
 		if(res==DDERR_UNSUPPORTED){
 			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc);
+			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2466,6 +2491,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		if(res==DDERR_SURFACEBUSY){
 			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 			if(res) OutTraceE("Unlock ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2494,14 +2520,17 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	}
 
 	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
+	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
 	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 	if (res==DDERR_NOCLIPLIST){
 		RenewClipper(lpDD, lpDDSEmu_Prim);
+		if (IsDebug) BlitTrace("NOCLIP", &emurect, &destrect, __LINE__);
 		res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 	}
 
 	if (res) BlitError(res, &emurect, &destrect, __LINE__);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+	if (IsDebug) OutTrace("%s: done ret=%x at %d\n", api, res, __LINE__);
 	return res;
 }
 
@@ -2739,35 +2768,10 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 	isPrim=dxw.IsAPrimarySurface(lpdds);
 	OutTraceD("SetPalette: lpdds=%x%s lpddp=%x\n", lpdds, isPrim?"(PRIM)":"", lpddp);
 
-#if 0
-	if(!(dxw.dwFlags1 & EMULATESURFACE) || !isPrim) {
-		res=(*pSetPalette)(lpdds, lpddp);
-		if(res)OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		return res;
-	}
-
-	OutTraceD("SetPalette: DEBUG emulating palette\n");
-	lpDDP = lpddp;
-	//if (lpDDSBack) { GHOGHO
-	//	res=(*pSetPalette)(lpDDSBack, lpddp);
-	//	if(res) OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	//}
-	// add a reference to simulate what would happen in reality....
-	lpdds->AddRef();
-
-	if(lpddp){
-		lpentries = (LPPALETTEENTRY)PaletteEntries;
-		res=lpddp->GetEntries(0, 0, 256, lpentries);
-		if(res) OutTraceE("SetPalette: GetEntries ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		mySetPalette(0, 256, lpentries);
-	}
-
-	return 0;
-#else
 	res=(*pSetPalette)(lpdds, lpddp);
 	if(res)OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 
-	if((dxw.dwFlags1 & EMULATESURFACE) && (res==DD_OK)){
+	if(dxw.dwFlags1 & EMULATESURFACE){
 		OutTraceD("SetPalette: DEBUG emulating palette\n");
 		lpDDP = lpddp;
 
@@ -2778,10 +2782,10 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 			if(res2) OutTraceE("SetPalette: GetEntries ERROR res=%x(%s)\n", res2, ExplainDDError(res2));
 			mySetPalette(0, 256, lpentries);
 		}
+		res=0;
 	}
 
 	return res;
-#endif
 }
 
 HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dwstart, DWORD dwcount, LPPALETTEENTRY lpentries)

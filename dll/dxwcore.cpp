@@ -141,6 +141,17 @@ RECT dxwCore::GetScreenRect()
 	return Screen;
 }
 
+BOOL dxwCore::IsDesktop(HWND hwnd)
+{
+	return (
+		(hwnd == 0)
+		||
+		(hwnd == (*pGetDesktopWindow)())
+		||
+		(hwnd == hWnd)
+		);
+}
+
 // v2.1.93: FixCursorPos completely revised to introduce a clipping tolerance in
 // clipping regions as well as in normal operations
 
@@ -264,14 +275,6 @@ void dxwCore::EraseClipCursor()
 	(*pClipCursor)(NULL);
 }
 
-// MapWindow Rect: returns a rectangle in the real coordinate system from the virtual coordinates 
-// of an emulated fullscreen window. NULL or void returns the rectangle of the whole client area.
-
-RECT dxwCore::MapWindowRect(void)
-{
-	return MapWindowRect(NULL);
-}
-
 RECT dxwCore::MapWindowRect(LPRECT lpRect)
 {
 	POINT UpLeft={0,0};
@@ -298,7 +301,17 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	return RetRect;
 }
 
-void dxwCore::MapRect(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
+void dxwCore::MapClient(LPRECT rect)
+{
+	RECT client;
+	(*pGetClientRect)(hWnd, &client);
+	rect->left= rect->left * client.right / dwScreenWidth;
+	rect->top= rect->top * client.bottom / dwScreenHeight;
+	rect->right= rect->right * client.right / dwScreenWidth;
+	rect->bottom= rect->bottom * client.bottom / dwScreenHeight;
+}
+
+void dxwCore::MapClient(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 {
 	RECT client;
 	(*pGetClientRect)(hWnd, &client);
@@ -308,7 +321,7 @@ void dxwCore::MapRect(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 	*nHDest= *nHDest * client.bottom / dwScreenHeight;
 }
 
-void dxwCore::MapPoint(LPPOINT lppoint)
+void dxwCore::MapClient(LPPOINT lppoint)
 {
 	RECT client;
 	(*pGetClientRect)(hWnd, &client);
@@ -316,12 +329,109 @@ void dxwCore::MapPoint(LPPOINT lppoint)
 	lppoint->y = (lppoint->y * client.bottom) / dwScreenHeight;
 }
 
-void dxwCore::UnmapPoint(LPPOINT lppoint)
+void dxwCore::MapWindow(LPRECT rect)
 {
 	RECT client;
+	POINT upleft = {0,0};
 	(*pGetClientRect)(hWnd, &client);
-	if (client.right) lppoint->x = (lppoint->x * dwScreenWidth) / client.right;
-	if (client.bottom) lppoint->y = (lppoint->y * dwScreenHeight) / client.bottom;
+	(*pClientToScreen)(hWnd, &upleft);
+	rect->left= upleft.x + ((rect->left * client.right) / dwScreenWidth);
+	rect->top= upleft.y + ((rect->top * client.bottom) / dwScreenHeight);
+	rect->right= upleft.x + ((rect->right * client.right) / dwScreenWidth);
+	rect->bottom= upleft.y + ((rect->bottom * client.bottom) / dwScreenHeight);
+}
+
+void dxwCore::MapWindow(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
+{
+	RECT client;
+	POINT upleft = {0,0};
+	(*pGetClientRect)(hWnd, &client);
+	(*pClientToScreen)(hWnd, &upleft);
+	*nXDest= upleft.x + ((*nXDest * client.right) / dwScreenWidth);
+	*nYDest= upleft.y + ((*nYDest * client.bottom) / dwScreenHeight);
+	*nWDest= (*nWDest * client.right) / dwScreenWidth;
+	*nHDest= (*nHDest * client.bottom) / dwScreenHeight;
+}
+
+void dxwCore::MapWindow(LPPOINT lppoint)
+{
+	RECT client;
+	POINT upleft = {0,0};
+	(*pGetClientRect)(hWnd, &client);
+	(*pClientToScreen)(hWnd, &upleft);
+	lppoint->x = upleft.x + ((lppoint->x * client.right) / dwScreenWidth);
+	lppoint->y = upleft.y + ((lppoint->y * client.bottom) / dwScreenHeight);
+}
+
+POINT dxwCore::ClientOffset(HWND hwnd)
+{
+	RECT desktop;
+	POINT upleft, win0, desk0, ret;
+	ret.x = ret.y = 0;
+
+	(*pGetClientRect)(hWnd,&desktop);
+	if(!desktop.right || !desktop.bottom) return ret;
+
+	upleft.x = upleft.y = 0;
+	(*pClientToScreen)(hwnd, &upleft);
+	win0 = upleft;
+	upleft.x = upleft.y = 0;
+	(*pClientToScreen)(hWnd, &upleft);
+	desk0 = upleft;
+	if (desktop.right) ret.x = ((win0.x - desk0.x) * (LONG)dwScreenWidth) / desktop.right;
+	if (desktop.bottom) ret.y = ((win0.y - desk0.y) * (LONG)dwScreenHeight) / desktop.bottom;
+	OutTraceB("ClientOffset: hwnd=%x offset=(%d,%d)\n", hwnd, ret.x, ret.y);
+	return ret;
+}
+
+RECT dxwCore::GetWindowRect(RECT win)
+{
+	RECT desktop;
+	POINT desk0;
+	desk0.x = desk0.y = 0;
+
+	(*pGetClientRect)(hWnd, &desktop);
+	(*pClientToScreen)(hWnd,&desk0);
+
+	if(!desktop.right || !desktop.bottom) return win;
+
+	win.left = ((win.left - desk0.x) * (LONG)dwScreenWidth) / desktop.right;
+	win.top = ((win.top - desk0.y) * (LONG)dwScreenHeight) / desktop.bottom;
+	win.right = ((win.right - desk0.x) * (LONG)dwScreenWidth) / desktop.right;
+	win.bottom = ((win.bottom - desk0.y) * (LONG)dwScreenWidth) / desktop.right;
+
+	return win;
+}
+
+RECT dxwCore::GetClientRect(RECT win)
+{
+	RECT desktop;
+	(*pGetClientRect)(hWnd, &desktop);
+
+	if(!desktop.right || !desktop.bottom) return win;
+
+	win.left = (win.left * dwScreenWidth) / desktop.right;
+	win.top = (win.top * dwScreenHeight) / desktop.bottom;
+	win.right = (win.right * dwScreenWidth) / desktop.right;
+	win.bottom = (win.bottom * dwScreenHeight) / desktop.bottom;
+
+	return win;
+}
+
+POINT dxwCore::AddCoordinates(POINT p1, POINT p2)
+{
+	POINT ps;
+	ps.x = p1.x + p2.x;
+	ps.y = p1.y + p2.y;
+	return ps;
+}
+
+POINT dxwCore::SubCoordinates(POINT p1, POINT p2)
+{
+	POINT ps;
+	ps.x = p1.x - p2.x;
+	ps.y = p1.y - p2.y;
+	return ps;
 }
 
 void dxwCore::ScreenRefresh(void)
@@ -331,7 +441,6 @@ void dxwCore::ScreenRefresh(void)
 	#define DXWREFRESHINTERVAL 20
 
 	LPDIRECTDRAWSURFACE lpDDSPrim;
-//	extern LPDIRECTDRAWSURFACE GetPrimarySurface();
 	extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx);
 
 	static int t = -1;
@@ -376,7 +485,7 @@ static void CountFPS(HWND hwnd)
 	DWORD tmp;
 	tmp = (*pGetTickCount)();
 	if((tmp - time) > 1000) {
-		char sBuf[80+12+1]; // title + fps string + terminator
+		char sBuf[80+15+1]; // title + fps string + terminator
 		char *fpss;
 		// log fps count
 		OutTrace("FPS: Delta=%x FPSCount=%d\n", (tmp-time), FPSCount);
@@ -387,7 +496,7 @@ static void CountFPS(HWND hwnd)
 			GetWindowText(hwnd, sBuf, 80);
 			fpss=strstr(sBuf," ~ (");
 			if(fpss==NULL) fpss=&sBuf[strlen(sBuf)];
-			sprintf(fpss, " ~ (%d FPS)", FPSCount);
+			sprintf_s(fpss, 15, " ~ (%d FPS)", FPSCount);
 			SetWindowText(hwnd, sBuf);
 		}
 		// reset
@@ -396,7 +505,7 @@ static void CountFPS(HWND hwnd)
 	}
 	else {
 		FPSCount++;
-		OutTrace("FPS: Delta=%x FPSCount++=%d\n", (tmp-time), FPSCount);
+		OutTraceB("FPS: Delta=%x FPSCount++=%d\n", (tmp-time), FPSCount);
 	}
 }
 
@@ -573,7 +682,7 @@ void dxwCore::ShowFPS(HDC xdc)
 	SetTextColor(xdc,color);
 	//SetBkMode(xdc, TRANSPARENT);
 	SetBkMode(xdc, OPAQUE);
-	sprintf(sBuf, "FPS: %d", GetHookInfo()->FPSCount);
+	sprintf_s(sBuf, 80, "FPS: %d", GetHookInfo()->FPSCount);
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
 }
 
@@ -602,7 +711,7 @@ void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
 	SetTextColor(xdc,color);
 	//SetBkMode(xdc, TRANSPARENT);
 	SetBkMode(xdc, OPAQUE);
-	sprintf(sBuf, "FPS: %d", GetHookInfo()->FPSCount);
+	sprintf_s(sBuf, 80, "FPS: %d", GetHookInfo()->FPSCount);
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
 	lpdds->ReleaseDC(xdc);
 }

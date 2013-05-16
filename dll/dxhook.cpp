@@ -727,8 +727,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
-		GetHookInfo()->CursorX=(short)curr.x;
-		GetHookInfo()->CursorY=(short)curr.y;
+		GetHookInfo()->CursorX=LOWORD(lparam);
+		GetHookInfo()->CursorY=HIWORD(lparam);
 		break;	
 	// fall through cases:
 	case WM_MOUSEWHEEL:
@@ -750,8 +750,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
-		GetHookInfo()->CursorX=(short)curr.x;
-		GetHookInfo()->CursorY=(short)curr.y;
+		GetHookInfo()->CursorX=LOWORD(lparam);
+		GetHookInfo()->CursorY=HIWORD(lparam);
 		break;	
 	case WM_SETFOCUS:
 		if (dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
@@ -1279,6 +1279,7 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	WINDOWPOS wp;
 	HMODULE base;
 	char *sModule;
+	char sModuleBuf[60+1];
 	static char *dxversions[14]={
 		"Automatic", "DirectX1~6", "", "", "", "", "", 
 		"DirectX7", "DirectX8", "DirectX9", "DirectX10", "DirectX11", "None", ""
@@ -1291,8 +1292,8 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	dxw.hParentWnd=GetParent(hwnd);
 	dxw.hChildWnd=hwnd;
 
-	OutTraceD("HookInit: path=\"%s\" module=\"%s\" dxversion=%s hWnd=%x dxw.hParentWnd=%x\n", 
-		target->path, target->module, dxversions[dxw.dwTargetDDVersion], hwnd, dxw.hParentWnd);
+	OutTraceD("HookInit: path=\"%s\" module=\"%s\" dxversion=%s hWnd=%x dxw.hParentWnd=%x desktop=%x\n", 
+		target->path, target->module, dxversions[dxw.dwTargetDDVersion], hwnd, dxw.hParentWnd, GetDesktopWindow());
 	if (IsDebug){
 		DWORD dwStyle, dwExStyle;
 		dwStyle=GetWindowLong(dxw.GethWnd(), GWL_STYLE);
@@ -1327,17 +1328,19 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	//	extern BOOL ListProcessModules(BOOL); 
 	//	ListProcessModules(true);
 	//}
-	sModule=strtok(dxw.gsModules," ");
+	strncpy(sModuleBuf, dxw.gsModules, 60);
+	sModule=strtok(sModuleBuf," ;");
 	while (sModule) {
 		base=(*pLoadLibraryA)(sModule);
 		if(!base){
 			OutTraceE("HookInit: LoadLibrary ERROR module=%s err=%d\n", sModule, GetLastError());
-			continue;
 		}
-		OutTraceD("HookInit: hooking additional module=%s base=%x\n", sModule, base);
-		if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
-		HookModule(base, dxw.dwTargetDDVersion);
-		sModule=strtok(NULL," ");
+		else {
+			OutTraceD("HookInit: hooking additional module=%s base=%x\n", sModule, base);
+			if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
+			HookModule(base, dxw.dwTargetDDVersion);
+		}
+		sModule=strtok(NULL," ;");
 	}
 
 

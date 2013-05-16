@@ -20,10 +20,9 @@ public: // methods
 	void SetScreenSize(int x, int y) {if(x)dwScreenWidth=x; if(y)dwScreenHeight=y;}
 	DWORD GetScreenWidth(void) {return dwScreenWidth;}
 	DWORD GetScreenHeight(void) {return dwScreenHeight;}
-	RECT GetScreenRect(void);
-	void MapRect(int *, int *, int *, int *);
 	void SetFullScreen(BOOL fs) {FullScreen=fs;}
 	BOOL IsFullScreen() {return FullScreen;}
+	BOOL IsDesktop(HWND);
 	POINT FixCursorPos(POINT);
 	POINT FixCursorPos(HWND, POINT);
 	void FixNCHITCursorPos(LPPOINT);
@@ -31,8 +30,18 @@ public: // methods
 	void EraseClipCursor(void);
 	RECT MapWindowRect(LPRECT lpRect);
 	RECT MapWindowRect(void);
-	void MapPoint(LPPOINT);
-	void UnmapPoint(LPPOINT);
+	void MapClient(LPPOINT);
+	void MapClient(LPRECT);
+	void MapClient(int *, int *, int *, int *);
+	void MapWindow(LPPOINT);
+	void MapWindow(LPRECT);
+	void MapWindow(int *, int *, int *, int *);
+	RECT GetScreenRect(void);
+	RECT GetWindowRect(RECT);
+	RECT GetClientRect(RECT);
+	POINT AddCoordinates(POINT, POINT);
+	POINT SubCoordinates(POINT, POINT);
+	POINT ClientOffset(HWND);
 	void ScreenRefresh(void);
 	BOOL HandleFPS(void);
 	DWORD GetTickCount(void);

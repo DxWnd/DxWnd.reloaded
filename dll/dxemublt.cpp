@@ -21,6 +21,8 @@ extern int Set_dwSize_From_Surface(LPDIRECTDRAWSURFACE);
 #define SwitchdwSize(s) s.dwSize=(s.dwSize==sizeof(DDSURFACEDESC))?sizeof(DDSURFACEDESC2):sizeof(DDSURFACEDESC)
 
 #define DXWNDDIRECTBLITTING 1
+#define MARKBLITCOLOR32 0x00FFFF00
+#define MARKBLITCOLOR16 0x0FF0
 extern Blt_Type pBlt;
 EmuBlt_Type pEmuBlt;
 RevBlt_Type pRevBlt;
@@ -29,12 +31,44 @@ RevBlt_Type pRevBlt;
 // Emulated blitting procedures: fills a 32BPP surface from the content of 8BPP or 16BPP ones.
 //--------------------------------------------------------------------------------------------//
 
+static void MarkRect32(DWORD *dest, int w, int h, int destpitch)
+{
+	int x, y;
+
+	for(x = 0; x < w; x ++) *(dest ++) = MARKBLITCOLOR32;	
+	dest += destpitch;
+	for(y = 0; y < h-2; y ++){
+		*dest = MARKBLITCOLOR32;
+		dest += w-1;
+		*dest = MARKBLITCOLOR32;
+		dest += destpitch + 1;
+	}
+	for(x = 0; x < w; x ++) *(dest ++) = MARKBLITCOLOR32;	
+	return;
+}
+
+static void MarkRect16(SHORT *dest, int w, int h, int destpitch)
+{
+	int x, y;
+
+	for(x = 0; x < w; x ++) *(dest ++) = MARKBLITCOLOR16;	
+	dest += destpitch;
+	for(y = 0; y < h-2; y ++){
+		*dest = MARKBLITCOLOR16;
+		dest += w-1;
+		*dest = MARKBLITCOLOR16;
+		dest += destpitch + 1;
+	}
+	for(x = 0; x < w; x ++) *(dest ++) = MARKBLITCOLOR16;	
+	return;
+}
+
 static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
 	BYTE *src8;
-	DWORD *dest;
+	DWORD *dest, *dest0;
 	DDSURFACEDESC2 ddsd_src, ddsd_dst;
 	long srcpitch, destpitch;
 	DWORD x, y, w, h;
@@ -75,6 +109,7 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	dest += lpdestrect->top*ddsd_dst.lPitch;
 	dest += lpdestrect->left;
 	destpitch = ddsd_dst.lPitch - w;
+	dest0 = dest;
 
 	src8 = (BYTE *)lpsurface;
 	src8 += lpsrcrect->top*ddsd_src.lPitch;
@@ -90,6 +125,8 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 		src8 += srcpitch;
 	}
 
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
+
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
 	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
@@ -103,7 +140,7 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 {
 	HRESULT res;
 	WORD *src16;
-	DWORD *dest;
+	DWORD *dest, *dest0;
 	DDSURFACEDESC2 ddsd_src, ddsd_dst;
 	long srcpitch, destpitch;
 	DWORD x, y, w, h;
@@ -144,6 +181,7 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	dest += lpdestrect->top*ddsd_dst.lPitch;
 	dest += lpdestrect->left;
 	destpitch = ddsd_dst.lPitch - w;
+	dest0 = dest;
 
 	ddsd_src.lPitch >>= 1;
 	src16 = (WORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
@@ -187,6 +225,8 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		src16 += srcpitch;
 	}
 
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
+
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
 	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
@@ -199,7 +239,7 @@ static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 {
 	HRESULT res;
 	BYTE *src24;
-	DWORD *dest;
+	DWORD *dest, *dest0;
 	DDSURFACEDESC2 ddsd_src, ddsd_dst;
 	long srcpitch, destpitch;
 	DWORD x, y, w, h;
@@ -240,6 +280,7 @@ static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	dest += lpdestrect->top*ddsd_dst.lPitch;
 	dest += lpdestrect->left;
 	destpitch = ddsd_dst.lPitch - w;
+	dest0 = dest;
 
 	src24 = (BYTE *)lpsurface;
 	src24 += lpsrcrect->top*ddsd_src.lPitch;
@@ -257,6 +298,8 @@ static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		dest += destpitch;
 		src24 += srcpitch;
 	}
+
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt24_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
@@ -276,7 +319,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	long srcpitch, destpitch;
 	HRESULT res;
 	DWORD *src32;
-	DWORD *dest;
+	DWORD *dest, dest0;
 	DDSURFACEDESC2 ddsd_src, ddsd_dst;
 
 	w = lpdestrect->right - lpdestrect->left; 
@@ -315,6 +358,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	dest += lpdestrect->top*ddsd_dst.lPitch;
 	dest += lpdestrect->left;
 	destpitch = ddsd_dst.lPitch - w;
+	dest0 = dest;
 
 	ddsd_src.lPitch >>= 2;
 	src32 = (DWORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
@@ -330,6 +374,8 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		src32 += srcpitch;
 	}
 
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
+
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst,lpdestrect);
 	if (res) OutTraceE("EmuBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
 	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
@@ -343,7 +389,7 @@ static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 {
 	HRESULT res;
 	BYTE *src8;
-	SHORT *dest;
+	SHORT *dest, *dest0;
 	DDSURFACEDESC2 ddsd_src, ddsd_dst;
 	long srcpitch, destpitch;
 	DWORD x, y, w, h;
@@ -384,6 +430,7 @@ static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	dest += lpdestrect->top*ddsd_dst.lPitch;
 	dest += lpdestrect->left;
 	destpitch = ddsd_dst.lPitch - w;
+	dest0 = dest;
 
 	src8 = (BYTE *)lpsurface;
 	src8 += lpsrcrect->top*ddsd_src.lPitch;
@@ -393,14 +440,13 @@ static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	// OutTraceD("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
 	for(y = 0; y < h; y ++){
 		for(x = 0; x < w; x ++){
-			//DWORD pixel;
-			//pixel = PaletteEntries[*(src8 ++)];
-			//*(dest ++) = ((pixel&0x0000FF)>>3) | ((pixel&0x00FF00)>>7) | ((pixel&0xFF0000)>>19);
 			*(dest ++) = (SHORT)PaletteEntries[*(src8 ++)];
 		}
 		dest += destpitch;
 		src8 += srcpitch;
 	}
+
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt8_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
@@ -426,7 +472,7 @@ static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 {
 	HRESULT res;
 	BYTE *src24;
-	SHORT *dest;
+	SHORT *dest, *dest0;
 	DDSURFACEDESC2 ddsd_src, ddsd_dst;
 	long srcpitch, destpitch;
 	DWORD x, y, w, h;
@@ -467,6 +513,7 @@ static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	dest += lpdestrect->top*ddsd_dst.lPitch;
 	dest += lpdestrect->left;
 	destpitch = ddsd_dst.lPitch - w;
+	dest0 = dest;
 
 	src24 = (BYTE *)lpsurface;
 	src24 += lpsrcrect->top*ddsd_src.lPitch;
@@ -481,6 +528,8 @@ static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		dest += destpitch;
 		src24 += srcpitch;
 	}
+
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt24_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);

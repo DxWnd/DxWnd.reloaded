@@ -64,6 +64,7 @@ public:
 	BOOL	m_KeepCursorFixed;
 	BOOL	m_UseRGB565;
 	BOOL	m_SuppressDXErrors;
+	BOOL	m_MarkBlit;
 	BOOL	m_PreventMaximize;
 	BOOL	m_ClientRemapping;
 	BOOL	m_MapGDIToPrimary;

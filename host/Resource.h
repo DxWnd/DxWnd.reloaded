@@ -82,6 +82,8 @@
 #define IDC_USERGB565                   1033
 #define IDC_SUPPRESSDXERRORS            1034
 #define IDC_PREVENTMAXIMIZE             1035
+#define IDC_SUPPRESSDXERRORS2           1035
+#define IDC_MARKBLIT                    1035
 #define IDC_OUTWINMESSAGES              1036
 #define IDC_OUTDXTRACE                  1037
 #define IDC_MODEXEMULATION              1038

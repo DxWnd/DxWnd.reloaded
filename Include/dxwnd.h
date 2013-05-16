@@ -79,6 +79,7 @@
 
 // third flags DWORD dxw.dwFlags3:
 #define FORCEHOOKOPENGL		0x00000001 // loads OpenGL32.dll and hooks it
+#define MARKBLIT			0x00000002 // higlights the blit to primary surface operation by surroundig the rect in color
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

@@ -60,6 +60,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_KeepCursorFixed = FALSE;
 	m_UseRGB565 = FALSE;
 	m_SuppressDXErrors = FALSE;
+	m_MarkBlit = FALSE;
 	m_PreventMaximize = FALSE;
 	m_ClientRemapping = FALSE;
 	m_MapGDIToPrimary = FALSE;

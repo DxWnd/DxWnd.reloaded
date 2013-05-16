@@ -97,3 +97,21 @@ D3D hooking: Added Wireframe option for D3D games
 Added hooking of CLSID_DxDiagProvider through CoCreateInstance
 Fixed (further simplified) clipping handling of primary/backbuffer surfaces 
 ChangeDisplaySettings hook: fixed x,y coordinate inversion in log message
+
+v2.02.19
+Saves GUI coordinates
+Fixed "Remap client rect" option for Diablo's windows and Premier Manager 98 mouse movements
+Added "Highlight blit to primary" option to draw a yellow bounding box around blits to primary surface
+Fixed some exception conditions when closing the programs
+Fixed CreateSurface handling to allow Premier Manager 98 start in emulated mode
+Fixed ONEPIXELFIX handling
+Fixed BIG WIN handling for Diablo's windows
+Fixed FillRect hook to prevent filling outside virtual desktop
+Disabled hooking of system libraries
+Fixed a nasty bug that caused your desktop to freeze until shutdown !!!
+Fixed GetWindowRect handling for windows not created by the task: Diablo queries the explorer window size! Now the retrieved RECT can't be larger than the virtual desktop
+
+
+
+
+

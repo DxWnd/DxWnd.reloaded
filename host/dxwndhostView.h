@@ -20,6 +20,7 @@ protected: // Create from serialization only features.
 private:
 	void Resize(void);
 	void SaveConfigFile();
+	void SaveWinPos();
 	TARGETMAP TargetMaps[MAXTARGETS];
 	PRIVATEMAP TitleMaps[MAXTARGETS];
 	char InitPath[MAX_PATH];
