@@ -22,6 +22,19 @@ dxwCore::~dxwCore()
 {
 }
 
+void dxwCore::InitTarget(TARGETMAP *target)
+{
+	dwFlags1 = target->flags;
+	dwFlags2 = target->flags2;
+	dwTFlags = target->tflags;
+	gsModules = target->module;
+	MaxFPS = target->MaxFPS;
+	// bounds control
+	dwTargetDDVersion = target->dxversion;
+	if(dwTargetDDVersion<0) dwTargetDDVersion=0;
+	if(dwTargetDDVersion>10) dwTargetDDVersion=10;
+}
+
 RECT dxwCore::GetScreenRect()
 {
 	static RECT Screen;
@@ -173,6 +186,16 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	return RetRect;
 }
 
+void dxwCore::MapRect(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
+{
+		RECT client;
+		(*pGetClientRect)(hWnd, &client);
+		*nXDest= *nXDest * client.right / dwScreenWidth;
+		*nYDest= *nYDest * client.bottom / dwScreenHeight;
+		*nWDest= *nWDest * client.right / dwScreenWidth;
+		*nHDest= *nHDest * client.bottom / dwScreenHeight;
+}
+
 void dxwCore::ScreenRefresh(void)
 {
 	// optimization: don't blit too often!
@@ -197,4 +220,60 @@ void dxwCore::ScreenRefresh(void)
 
 	(*pInvalidateRect)(hWnd, NULL, FALSE);
 	t = tn;
+}
+
+
+static void ShowFPS()
+{
+	static DWORD time = 0xFFFFFFFF;
+	static DWORD FPSCount = 0;
+	DWORD tmp;
+	tmp = GetTickCount();
+	if((tmp - time) > 1000) {
+		// log fps count
+		OutTrace("FPSCount=%d\n", FPSCount);
+		// show fps count on status win
+		DxWndStatus.FPSCount = FPSCount;
+		SetHookStatus(&DxWndStatus);
+		// reset
+		FPSCount=0;
+		time = tmp;
+	}
+	else {
+		FPSCount++;
+	}
+}
+
+static void LimitFrameCount(int delay)
+{
+	static DWORD time = 0xFFFFFFFF;
+	extern void do_slow(int);
+	DWORD tmp;
+	tmp = GetTickCount();
+	if((tmp - time) > (DWORD)delay) {
+		time = tmp;
+	}
+	else
+		Sleep(tmp - time);
+		//do_sslow(tmp - time);
+}
+
+static BOOL SkipFrameCount(int delay)
+{
+	static DWORD time = 0xFFFFFFFF;
+	DWORD tmp;
+	tmp = GetTickCount();
+	if((tmp - time) > (DWORD)delay) {
+		time = tmp;
+		return FALSE;
+	}
+	return TRUE;
+}
+
+BOOL dxwCore::HandleFPS()
+{
+	if(dwFlags2 & SHOWFPS) ShowFPS();
+	if(dwFlags2 & LIMITFPS) LimitFrameCount(dxw.MaxFPS);
+	if(dwFlags2 & SKIPFPS) if(SkipFrameCount(dxw.MaxFPS)) return TRUE;
+	return FALSE;
 }

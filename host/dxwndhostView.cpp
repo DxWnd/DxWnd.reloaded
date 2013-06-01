@@ -147,6 +147,8 @@ void CDxwndhostView::SaveConfigFile()
 		WritePrivateProfileString("target", key, val, InitPath);
 		sprintf_s(key, sizeof(key), "sizy%i", i);
 		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].sizy);
+		sprintf_s(key, sizeof(key), "maxfps%i", i);
+		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].MaxFPS);
 		WritePrivateProfileString("target", key, val, InitPath);
 	}
 	for(; i < MAXTARGETS; i ++){
@@ -179,6 +181,8 @@ void CDxwndhostView::SaveConfigFile()
 		sprintf_s(key, sizeof(key), "sizx%i", i);
 		WritePrivateProfileString("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "sizy%i", i);
+		WritePrivateProfileString("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "maxfps%i", i);
 		WritePrivateProfileString("target", key, 0, InitPath);
 	}	
 
@@ -284,6 +288,8 @@ void CDxwndhostView::OnInitialUpdate()
 		TargetMaps[i].sizx = GetPrivateProfileInt("target", key, 0, InitPath);
 		sprintf_s(key, sizeof(key), "sizy%i", i);
 		TargetMaps[i].sizy = GetPrivateProfileInt("target", key, 0, InitPath);
+		sprintf_s(key, sizeof(key), "maxfps%i", i);
+		TargetMaps[i].MaxFPS = GetPrivateProfileInt("target", key, 0, InitPath);
 		listitem.mask = LVIF_TEXT;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
@@ -390,6 +396,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_ModalStyle = TargetMaps[i].flags2 & MODALSTYLE ? 1 : 0;
 	dlg.m_KeepAspectRatio = TargetMaps[i].flags2 & KEEPASPECTRATIO ? 1 : 0;
 	dlg.m_ForceWinResize = TargetMaps[i].flags2 & FORCEWINRESIZE ? 1 : 0;
+	dlg.m_HideMultiMonitor = TargetMaps[i].flags2 & HIDEMULTIMONITOR ? 1 : 0;
 	dlg.m_HookChildWin = TargetMaps[i].flags & HOOKCHILDWIN ? 1 : 0;
 	dlg.m_MessageProc = TargetMaps[i].flags & MESSAGEPROC ? 1 : 0;
 	dlg.m_FixNCHITTEST = TargetMaps[i].flags2 & FIXNCHITTEST ? 1 : 0;
@@ -399,6 +406,9 @@ void CDxwndhostView::OnModify()
 	dlg.m_Init16BPP = TargetMaps[i].flags2 & INIT16BPP ? 1 : 0;
 	dlg.m_BackBufAttach = TargetMaps[i].flags2 & BACKBUFATTACH ? 1 : 0;
 	dlg.m_HandleAltF4 = TargetMaps[i].flags & HANDLEALTF4 ? 1 : 0;
+	dlg.m_LimitFPS = TargetMaps[i].flags2 & LIMITFPS ? 1 : 0;
+	dlg.m_SkipFPS = TargetMaps[i].flags2 & SKIPFPS ? 1 : 0;
+	dlg.m_ShowFPS = TargetMaps[i].flags2 & SHOWFPS ? 1 : 0;
 	dlg.m_InitX = TargetMaps[i].initx;
 	dlg.m_InitY = TargetMaps[i].inity;
 	dlg.m_MinX = TargetMaps[i].minx;
@@ -409,6 +419,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_PosY = TargetMaps[i].posy;
 	dlg.m_SizX = TargetMaps[i].sizx;
 	dlg.m_SizY = TargetMaps[i].sizy;
+	dlg.m_MaxFPS = TargetMaps[i].MaxFPS;
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strcpy_s(TargetMaps[i].path, sizeof(TargetMaps[i].path), dlg.m_FilePath);
 		strcpy_s(TargetMaps[i].module, sizeof(TargetMaps[i].module), dlg.m_Module);
@@ -474,6 +485,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_ModalStyle) TargetMaps[i].flags2 |= MODALSTYLE;
 		if(dlg.m_KeepAspectRatio) TargetMaps[i].flags2 |= KEEPASPECTRATIO;
 		if(dlg.m_ForceWinResize) TargetMaps[i].flags2 |= FORCEWINRESIZE;
+		if(dlg.m_HideMultiMonitor) TargetMaps[i].flags2 |= HIDEMULTIMONITOR;
 		if(dlg.m_HookChildWin) TargetMaps[i].flags |= HOOKCHILDWIN;
 		if(dlg.m_MessageProc) TargetMaps[i].flags |= MESSAGEPROC;
 		if(dlg.m_FixNCHITTEST) TargetMaps[i].flags2 |= FIXNCHITTEST;
@@ -483,6 +495,9 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_Init16BPP) TargetMaps[i].flags2 |= INIT16BPP;
 		if(dlg.m_BackBufAttach) TargetMaps[i].flags2 |= BACKBUFATTACH;
 		if(dlg.m_HandleAltF4) TargetMaps[i].flags |= HANDLEALTF4;
+		if(dlg.m_LimitFPS) TargetMaps[i].flags2 |= LIMITFPS;
+		if(dlg.m_SkipFPS) TargetMaps[i].flags2 |= SKIPFPS;
+		if(dlg.m_ShowFPS) TargetMaps[i].flags2 |= SHOWFPS;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;
@@ -493,6 +508,7 @@ void CDxwndhostView::OnModify()
 		TargetMaps[i].posy = dlg.m_PosY;
 		TargetMaps[i].sizx = dlg.m_SizX;
 		TargetMaps[i].sizy = dlg.m_SizY;
+		TargetMaps[i].MaxFPS = dlg.m_MaxFPS;
 		strcpy_s(TargetMaps[i].module, sizeof(TargetMaps[i].module), dlg.m_Module);
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
 		CListCtrl& listctrl = GetListCtrl();
@@ -750,6 +766,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_ModalStyle) TargetMaps[i].flags2 |= MODALSTYLE;
 		if(dlg.m_KeepAspectRatio) TargetMaps[i].flags2 |= KEEPASPECTRATIO;
 		if(dlg.m_ForceWinResize) TargetMaps[i].flags2 |= FORCEWINRESIZE;
+		if(dlg.m_HideMultiMonitor) TargetMaps[i].flags2 |= HIDEMULTIMONITOR;
 		if(dlg.m_HookChildWin) TargetMaps[i].flags |= HOOKCHILDWIN;
 		if(dlg.m_MessageProc) TargetMaps[i].flags |= MESSAGEPROC;
 		if(dlg.m_FixNCHITTEST) TargetMaps[i].flags2 |= FIXNCHITTEST;
@@ -759,6 +776,9 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_Init16BPP) TargetMaps[i].flags2 |= INIT16BPP;
 		if(dlg.m_BackBufAttach) TargetMaps[i].flags2 |= BACKBUFATTACH;
 		if(dlg.m_HandleAltF4) TargetMaps[i].flags |= HANDLEALTF4;
+		if(dlg.m_LimitFPS) TargetMaps[i].flags2 |= LIMITFPS;
+		if(dlg.m_SkipFPS) TargetMaps[i].flags2 |= SKIPFPS;
+		if(dlg.m_ShowFPS) TargetMaps[i].flags2 |= SHOWFPS;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;
@@ -769,6 +789,7 @@ void CDxwndhostView::OnAdd()
 		TargetMaps[i].posy = dlg.m_PosY;
 		TargetMaps[i].sizx = dlg.m_SizX;
 		TargetMaps[i].sizy = dlg.m_SizY;
+		TargetMaps[i].MaxFPS = dlg.m_MaxFPS;
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT;
 		listitem.iItem = i;

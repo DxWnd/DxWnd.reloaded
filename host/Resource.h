@@ -48,6 +48,7 @@
 #define IDC_MINY                        1019
 #define IDC_MAXX                        1020
 #define IDC_MAXY                        1021
+#define IDC_MAXFPS                      1022
 #define IDC_MODULE                      1023
 #define IDC_SNOOZE                      1023
 #define IDC_KILL                        1024
@@ -104,6 +105,10 @@
 #define IDC_FORCEWINRESIZE              1072
 #define IDC_DISABLEGAMMARAMP            1073
 #define IDC_FIXNCHITTEST                1074
+#define IDC_LIMITFPS                    1075
+#define IDC_SKIPFPS                     1076
+#define IDC_SHOWFPS                     1077
+#define IDC_HIDEMULTIMONITOR            1078
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -140,7 +145,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        150
 #define _APS_NEXT_COMMAND_VALUE         32811
-#define _APS_NEXT_CONTROL_VALUE         1032
+#define _APS_NEXT_CONTROL_VALUE         1078
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

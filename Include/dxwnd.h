@@ -56,6 +56,10 @@
 #define DISABLEGAMMARAMP	0x00000200 // let the application retrieve the desktop DC (for capability queries)
 #define DIFFERENTIALMOUSE	0x00000400 // emulates the 360-degrees-free-running mouse style....
 #define FIXNCHITTEST		0x00000800 // fixes WM_NCHITTEST message X,Y coordinates 
+#define LIMITFPS			0x00001000 // delays primary blit operations to limit FPS 
+#define SKIPFPS				0x00002000 // skips primary blit operations up to limit
+#define SHOWFPS				0x00004000 // shows FPS value to status win / log
+#define HIDEMULTIMONITOR	0x00008000 // hide multimonitor configurations: GetAdapterCount returns 1.
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -89,6 +93,7 @@ typedef struct TARGETMAP
 	short posy;
 	short sizx;
 	short sizy;
+	short MaxFPS;
 }TARGETMAP;
 
 typedef struct
@@ -102,6 +107,7 @@ typedef struct
 	HWND hWnd;
 	DWORD dwPid;
 	BOOL isLogging;
+	DWORD FPSCount;
 } DXWNDSTATUS;
 
 extern DXWNDSTATUS DxWndStatus;

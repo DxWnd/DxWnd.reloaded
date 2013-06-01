@@ -48,17 +48,13 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HideHwCursor = FALSE;
 	m_EnableClipping = FALSE;
 	m_CursorClipping = FALSE;
-//	m_MouseToScreen = FALSE;
 	m_VideoToSystemMem = FALSE;
 	m_FixTextOut = FALSE;
 	m_KeepCursorWithin = FALSE;
 	m_KeepCursorFixed = FALSE;
-	//m_NullRectBlit = FALSE;
 	m_UseRGB565 = FALSE;
 	m_SuppressDXErrors = FALSE;
-//	m_EmulateModeX = FALSE;
 	m_PreventMaximize = FALSE;
-	//m_ResetPrimary = FALSE;
 	m_ClientRemapping = FALSE;
 	m_MapGDIToPrimary = FALSE;
 	m_LockWinPos = FALSE;
@@ -67,6 +63,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_ModalStyle = FALSE;
 	m_KeepAspectRatio = FALSE;
 	m_ForceWinResize = FALSE;
+	m_HideMultiMonitor = FALSE;
 	m_HookChildWin = FALSE;
 	m_MessageProc = FALSE;
 	m_FixNCHITTEST = FALSE;
@@ -76,6 +73,9 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_Init16BPP = FALSE;
 	m_BackBufAttach = FALSE;
 	m_HandleAltF4 = FALSE;
+	m_LimitFPS = FALSE;
+	m_SkipFPS = FALSE;
+	m_ShowFPS = FALSE;
 	m_InitX = 0;
 	m_InitY = 0;
 	m_MaxX = 0;
@@ -86,6 +86,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_PosY = 0;
 	m_SizX = 800;
 	m_SizY = 600;
+	m_MaxFPS = 0;
 	//}}AFX_DATA_INIT
 }
 
@@ -141,6 +142,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_MODALSTYLE, m_ModalStyle);
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_FORCEWINRESIZE, m_ForceWinResize);
+	DDX_Check(pDX, IDC_HIDEMULTIMONITOR, m_HideMultiMonitor);
 	DDX_Check(pDX, IDC_HOOKCHILDWIN, m_HookChildWin);
 	DDX_Check(pDX, IDC_MESSAGEPROC, m_MessageProc);
 	DDX_Check(pDX, IDC_FIXNCHITTEST, m_FixNCHITTEST);
@@ -150,6 +152,9 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_INIT16BPP, m_Init16BPP);
 	DDX_Check(pDX, IDC_BACKBUFATTACH, m_BackBufAttach);
 	DDX_Check(pDX, IDC_HANDLEALTF4, m_HandleAltF4);
+	DDX_Check(pDX, IDC_LIMITFPS, m_LimitFPS);
+	DDX_Check(pDX, IDC_SKIPFPS, m_SkipFPS);
+	DDX_Check(pDX, IDC_SHOWFPS, m_ShowFPS);
 	DDX_Text(pDX, IDC_INITX, m_InitX);
 	DDX_Text(pDX, IDC_INITY, m_InitY);
 	DDX_Text(pDX, IDC_MAXX, m_MaxX);
@@ -160,6 +165,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_POSY, m_PosY);
 	DDX_Text(pDX, IDC_SIZX, m_SizX);
 	DDX_Text(pDX, IDC_SIZY, m_SizY);
+	DDX_Text(pDX, IDC_MAXFPS, m_MaxFPS);
 	//}}AFX_DATA_MAP
 }
 

@@ -5,6 +5,7 @@
 
 typedef void* (WINAPI *Direct3DCreate8_Type)(UINT);
 typedef void* (WINAPI *Direct3DCreate9_Type)(UINT);
+typedef UINT (WINAPI *GetAdapterCount_Type)(void *);
 typedef HRESULT (WINAPI *CreateDevice_Type)(void *, UINT, D3DDEVTYPE, HWND, DWORD, void *, void **);
 typedef HRESULT (WINAPI *EnumAdapterModes8_Type)(void *, UINT, UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *EnumAdapterModes9_Type)(void *, UINT, D3DFORMAT ,UINT, D3DDISPLAYMODE *);
@@ -13,6 +14,7 @@ typedef HRESULT (WINAPI *GetDisplayMode_Type)(void *, D3DDISPLAYMODE *);
 
 void* WINAPI extDirect3DCreate8(UINT);
 void* WINAPI extDirect3DCreate9(UINT);
+UINT WINAPI extGetAdapterCount(void *);
 HRESULT WINAPI extCreateDevice(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, void **);
 HRESULT WINAPI extEnumAdapterModes8(void *, UINT, UINT , D3DDISPLAYMODE *);
 HRESULT WINAPI extEnumAdapterModes9(void *, UINT, D3DFORMAT, UINT , D3DDISPLAYMODE *);
@@ -23,6 +25,7 @@ extern char *ExplainDDError(DWORD);
 
 Direct3DCreate8_Type pDirect3DCreate8 = 0;
 Direct3DCreate9_Type pDirect3DCreate9 = 0;
+GetAdapterCount_Type pGetAdapterCount;
 CreateDevice_Type pCreateDevice;
 EnumAdapterModes8_Type pEnumAdapterModes8;
 EnumAdapterModes9_Type pEnumAdapterModes9;
@@ -74,6 +77,7 @@ void* WINAPI extDirect3DCreate8(UINT sdkversion)
 	if(!lpd3d) return 0;
 	//OutTrace("DEBUG: Hooking lpd3d=%x\n", lpd3d);
 	//OutTrace("DEBUG: Hooking %x -> %x as CreateDevice(D8)\n", (void *)(*(DWORD *)lpd3d + 60), extCreateDevice);
+	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount, (void **)&pGetAdapterCount, "GetAdapterCount(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes8, (void **)&pEnumAdapterModes8, "EnumAdapterModes(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode, (void **)&pGetAdapterDisplayMode, "GetAdapterDisplayMode(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 60), extCreateDevice, (void **)&pCreateDevice, "CreateDevice(D8)");
@@ -90,6 +94,7 @@ void* WINAPI extDirect3DCreate9(UINT sdkversion)
 	dwD3DVersion = 9;
 	lpd3d = (*pDirect3DCreate9)(sdkversion);
 	if(!lpd3d) return 0;
+	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount, (void **)&pGetAdapterCount, "GetAdapterCount(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes9, (void **)&pEnumAdapterModes9, "EnumAdapterModes(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode, (void **)&pGetAdapterDisplayMode, "GetAdapterDisplayMode(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice, (void **)&pCreateDevice, "CreateDevice(D9)");
@@ -98,6 +103,18 @@ void* WINAPI extDirect3DCreate9(UINT sdkversion)
 		sdkversion, pCreateDevice);
 
 	return lpd3d;
+}
+
+UINT WINAPI extGetAdapterCount(void *lpd3d)
+{
+	UINT res;
+	res=(*pGetAdapterCount)(lpd3d);
+	OutTraceD("GetAdapterCount: count=%d\n", res);
+	if(dxw.dwFlags2 & HIDEMULTIMONITOR) {
+		OutTraceD("GetAdapterCount: HIDEMULTIMONITOR count=1\n");
+		res=1;
+	}
+	return res;
 }
 
 HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresentationParameters)

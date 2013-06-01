@@ -9,6 +9,7 @@ public:
 
 // Operations
 public: // methods
+	void InitTarget(TARGETMAP *);
 	void SethWnd(HWND hwnd) {hWnd=hwnd;}
 	HWND GethWnd(void) {return hWnd;}
 	void SetScreenSize(void) {dwScreenWidth=800; dwScreenHeight=600;}
@@ -16,6 +17,7 @@ public: // methods
 	DWORD GetScreenWidth(void) {return dwScreenWidth;}
 	DWORD GetScreenHeight(void) {return dwScreenHeight;}
 	RECT GetScreenRect(void);
+	void MapRect(int *, int *, int *, int *);
 	void SetFullScreen(BOOL fs) {FullScreen=fs;}
 	BOOL IsFullScreen() {return FullScreen;}
 	POINT FixCursorPos(POINT);
@@ -26,6 +28,7 @@ public: // methods
 	RECT MapWindowRect(LPRECT lpRect);
 	RECT MapWindowRect(void);
 	void ScreenRefresh(void);
+	BOOL HandleFPS();
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;
@@ -33,6 +36,7 @@ public: // simple data variables
 	DWORD dwPrimarySurfaceCaps;
 	DWORD dwBackBufferCount;
 	DWORD dwDDVersion;
+	DWORD dwTargetDDVersion;
 	DWORD dwMaxDDVersion;
 	DWORD dwFlags1;
 	DWORD dwFlags2;
@@ -41,6 +45,8 @@ public: // simple data variables
 	HWND hChildWnd;
 	BOOL bActive;
 	BOOL bDInputAbs;
+	DWORD MaxFPS;
+	char *gsModules;
 
 // Implementation
 protected:

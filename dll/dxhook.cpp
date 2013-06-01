@@ -110,7 +110,6 @@ extern BOOL WINAPI extGetDeviceGammaRamp(HDC, LPVOID);
 extern LRESULT WINAPI extSendMessage(HWND, UINT, WPARAM, LPARAM);
 
 extern HANDLE hTraceMutex;
-char *gsModules;
 
 GetDeviceCaps_Type pGetDeviceCaps;
 GetCursorPos_Type pGetCursorPos=0;
@@ -195,8 +194,8 @@ static char *FlagNames[32]={
 static char *Flag2Names[32]={
 	"RECOVERSCREENMODE", "REFRESHONRESIZE", "BACKBUFATTACH", "MODALSTYLE",
 	"KEEPASPECTRATIO", "INIT8BPP", "FORCEWINRESIZE", "INIT16BPP",
-	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "DIFFERENTIALMOUSE", "",
-	"", "", "", "",
+	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "DIFFERENTIALMOUSE", "FIXNCHITTEST",
+	"LIMITFPS", "SKIPFPS", "SHOWFPS", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -777,7 +776,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			POINT cursor;
 			LRESULT ret;
 			ret=(*pDefWindowProc)(hwnd, message, wparam, lparam);
-			OutTrace("ret=%x\n", ret);
 			if (ret==HTCLIENT) {
 				cursor.x=LOWORD(lparam);
 				cursor.y=HIWORD(lparam);
@@ -1342,21 +1340,15 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 		"DirectX7", "DirectX8", "DirectX9", "None\\OpenGL", "", "", ""
 	};
 
-	dxw.dwFlags1 = target->flags;
-	dxw.dwFlags2 = target->flags2;
-	dxw.dwTFlags = target->tflags;
-	gsModules = target->module;
+	dxw.InitTarget(target);
 
 	// v2.1.75: is it correct to set hWnd here?
 	dxw.SethWnd(hwnd);
 	dxw.hParentWnd=GetParent(hwnd);
 	dxw.hChildWnd=hwnd;
 
-	// bounds control
-	if(target->dxversion<0) target->dxversion=0;
-	if(target->dxversion>10) target->dxversion=10;
 	OutTraceD("HookInit: path=\"%s\" module=\"%s\" dxversion=%s hWnd=%x dxw.hParentWnd=%x\n", 
-		target->path, target->module, dxversions[target->dxversion], hwnd, dxw.hParentWnd);
+		target->path, target->module, dxversions[dxw.dwTargetDDVersion], hwnd, dxw.hParentWnd);
 	if (IsDebug){
 		DWORD dwStyle, dwExStyle;
 		dwStyle=GetWindowLong(dxw.GethWnd(), GWL_STYLE);
@@ -1372,7 +1364,7 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(NULL);
 
 	if (dxw.dwTFlags & DXPROXED){
-		HookDDProxy(target->dxversion);
+		HookDDProxy(dxw.dwTargetDDVersion);
 		return 0;
 	}
 
@@ -1383,11 +1375,11 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 
 	HookSysLibsInit(); // this just once...
 
-	HookModule(NULL, target->dxversion);
-	sModule=strtok(gsModules," ");
+	HookModule(NULL, dxw.dwTargetDDVersion);
+	sModule=strtok(dxw.gsModules," ");
 	while (sModule) {
 		OutTraceD("HookInit: hooking additional module=%s\n", sModule);
-		HookModule(sModule, target->dxversion);
+		HookModule(sModule, dxw.dwTargetDDVersion);
 		sModule=strtok(NULL," ");
 	}
 

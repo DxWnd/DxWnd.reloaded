@@ -2438,6 +2438,8 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 
 	// Blit to primary surface
 
+	if(dxw.HandleFPS()) return DD_OK;
+
 	destrect=dxw.MapWindowRect(lpdestrect);
 
 	if(!(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER))){ 
@@ -2908,7 +2910,7 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 			OutTrace("lpvoid=%x\n", lprect);
 	}
 
-	if(dxw.dwFlags1 & SLOWDOWN) do_slow(2);
+	//if(dxw.dwFlags1 & SLOWDOWN) do_slow(2);
 
 	if (!IsPrim){
 		res=(*pUnlock)(lpdds, lprect);
@@ -2919,6 +2921,9 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 
 	res=(*pUnlock)(lpdds, lprect);
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
+
+	// unlock on primary surface .....
+	if (dxw.HandleFPS()) return DD_OK;
 
 	if (dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){
 		DDSURFACEDESC2 ddsd;

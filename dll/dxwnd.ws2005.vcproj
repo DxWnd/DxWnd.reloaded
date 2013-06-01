@@ -246,6 +246,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\dxwcore.cpp"
+				>
+			</File>
+			<File
 				RelativePath="dxwnd.cpp"
 				>
 				<FileConfiguration
@@ -356,6 +360,10 @@
 			</File>
 			<File
 				RelativePath="dxhook.h"
+				>
+			</File>
+			<File
+				RelativePath=".\dxwcore.hpp"
 				>
 			</File>
 			<File

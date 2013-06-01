@@ -1951,18 +1951,13 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	OutTraceD("GDI.BitBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop, ExplainROP(dwRop));
 
-#ifdef UNSTRETCH
-	res=(*pBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-#else
+	if (dxw.HandleFPS()) return TRUE;
+
 	if (dxw.IsFullScreen()){
-		RECT client;
 		int nWDest, nHDest;
-		(*pGetClientRect)(dxw.GethWnd(), &client);
-		nXDest= nXDest * client.right / dxw.GetScreenWidth();
-		nYDest= nYDest * client.bottom / dxw.GetScreenHeight();
-		nWDest= nWidth * client.right / dxw.GetScreenWidth();
-		nHDest= nHeight * client.bottom / dxw.GetScreenHeight();
+		nWDest= nWidth;
+		nHDest= nHeight;
+		dxw.MapRect(&nXDest, &nYDest, &nWDest, &nHDest);
 		res=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
 	}
 	else {
@@ -1970,7 +1965,6 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	}
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
-#endif
 	return res;
 }
 
@@ -1981,18 +1975,11 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	OutTraceD("GDI.PatBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop, ExplainROP(dwRop));
 
-#ifdef UNSTRETCH
-	res=(*pPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
-	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-#else
+	if (dxw.HandleFPS()) return TRUE;
+
 	if (dxw.IsFullScreen()){
-		RECT client;
 		int nWDest, nHDest;
-		(*pGetClientRect)(dxw.GethWnd(), &client);
-		nXDest= nXDest * client.right / dxw.GetScreenWidth();
-		nYDest= nYDest * client.bottom / dxw.GetScreenHeight();
-		nWDest= nWidth * client.right / dxw.GetScreenWidth();
-		nHDest= nHeight * client.bottom / dxw.GetScreenHeight();
+		dxw.MapRect(&nXDest, &nYDest, &nWDest, &nHDest);
 		res=(*pPatBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, dwRop);
 	}
 	else {
@@ -2000,7 +1987,6 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	}
 	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
-#endif
 	return res;
 }
 
@@ -2011,6 +1997,8 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 
 	OutTraceD("GDI.StretchBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d nWSrc=%d nHSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop, ExplainROP(dwRop));
+
+	if (dxw.HandleFPS()) return TRUE;
 
 	res=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);

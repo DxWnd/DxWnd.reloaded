@@ -66,6 +66,7 @@ public:
 	BOOL	m_ModalStyle;
 	BOOL	m_KeepAspectRatio;
 	BOOL	m_ForceWinResize;
+	BOOL	m_HideMultiMonitor;
 	BOOL	m_HookChildWin;
 	BOOL	m_MessageProc;
 	BOOL	m_FixNCHITTEST;
@@ -76,6 +77,9 @@ public:
 	BOOL	m_BackBufAttach;
 	BOOL	m_HandleAltF4;
 	BOOL	m_HandleExceptions;
+	BOOL	m_SkipFPS;
+	BOOL	m_LimitFPS;
+	BOOL	m_ShowFPS;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;
@@ -86,6 +90,7 @@ public:
 	int		m_PosY;
 	int		m_SizX;
 	int		m_SizY;
+	int		m_MaxFPS;
 	//}}AFX_DATA
 
 

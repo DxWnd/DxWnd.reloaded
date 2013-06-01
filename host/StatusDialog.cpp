@@ -58,12 +58,14 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 			"DxWnd %s\nHook status: %s\n"
 			"Running \"%s\"\nScreen = (%dx%d) %dBPP\n"
 			"FullScreen = %s\nDX version = %d\n"
-			"Logging = %s",
+			"Logging = %s\n"
+			"FPS = %d",
 		DllVersion, Status,
 		pTitles[DxWndStatus.TaskIdx].title,
 		DxWndStatus.Width, DxWndStatus.Height, DxWndStatus.ColorDepth, 
 		DxWndStatus.IsFullScreen ? "Yes":"No", DxWndStatus.DXVersion,
-		DxWndStatus.isLogging?"ON":"OFF");   
+		DxWndStatus.isLogging?"ON":"OFF",
+		DxWndStatus.FPSCount);   
 	}
 	else
 		sprintf_s(sMsg, 1024, "DxWnd %s\nHook status: %s", DllVersion, Status);

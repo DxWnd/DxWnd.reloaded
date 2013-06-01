@@ -1,8 +1,8 @@
-del dll\dxwnd.vcproj.*.user
-del dll\dxwnd.ncb
+del dll\dxwnd.*.user
+del dll\dxwnd.*.ncb
 
-del host\dxwndhost.vcproj.*.user
-del host\dxwndhost.ncb
+del host\dxwndhost.*.user
+del host\dxwndhost.*.ncb
 
 copy Release\dxwnd.exe build
 copy Release\dxwnd.dll build
