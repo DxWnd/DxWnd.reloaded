@@ -20,7 +20,6 @@ protected: // Create from serialization only features.
 private:
 	void Resize(void);
 	void SaveConfigFile();
-	void SaveWinPos();
 	TARGETMAP TargetMaps[MAXTARGETS];
 	PRIVATEMAP TitleMaps[MAXTARGETS];
 	char InitPath[MAX_PATH];
@@ -28,6 +27,7 @@ private:
 	DEVMODE InitDevMode;
 	CSystemTray SystemTray;
 	int LastX, LastY, LastCX, LastCY;
+	CImageList m_cImageListNormal, m_cImageListSmall;
 
 // Attributes
 public:
@@ -44,9 +44,6 @@ public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	protected:
 	virtual void OnInitialUpdate(); // Called once after the initial construction.
-	virtual void OnMove(int, int);
-	virtual void OnSize(UINT, int, int);
-	virtual void OnDestroy();
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -65,9 +62,13 @@ protected:
 	afx_msg void OnDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnAdd();
 	afx_msg void OnModify();
+	afx_msg void OnExport();
+	afx_msg void OnImport();
 	afx_msg void OnDelete();
 	afx_msg void OnExplore();
 	afx_msg void OnKill();
+	afx_msg void OnPause();
+	afx_msg void OnResume();
 	afx_msg void OnSort();
 	afx_msg void OnViewLog();
 	afx_msg void OnDeleteLog();

@@ -30,3 +30,4 @@ extern char *ExplainDDEnumerateFlags(DWORD);
 extern char *ExplainsSystemMetrics(DWORD);
 extern char *ExplainWPFlags(DWORD);
 extern char *ExplainLoadLibFlags(DWORD);
+extern char *ExplainDevModeFields(DWORD);

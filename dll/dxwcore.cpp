@@ -49,6 +49,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	if(TimeShift < -8) TimeShift = -8;
 	if(TimeShift >  8) TimeShift =  8;
 	FakeVersionId = target->FakeVersionId;
+	Coordinates = target->coordinates;
 }
 
 /* ------------------------------------------------------------------ */
@@ -540,7 +541,7 @@ static BOOL SkipFrameCount(DWORD delay)
 
 BOOL dxwCore::HandleFPS()
 {
-	if(dwFlags2 & (SHOWFPS|SHOWFPSOVERLAY)) CountFPS(hWnd);
+	if(dwFlags2 & (SHOWFPS|SHOWFPSOVERLAY)) CountFPS(hWndFPS);
 	if(dwFlags2 & LIMITFPS) LimitFrameCount(dxw.MaxFPS);
 	if(dwFlags2 & SKIPFPS) if(SkipFrameCount(dxw.MaxFPS)) return TRUE;
 	return FALSE;
@@ -786,6 +787,7 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 		"kernel32",
 		"USER32",
 		"GDI32",
+		"imelib",
 		"ADVAPI32",
 		"ole32",
 		"ddraw",
@@ -810,6 +812,7 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 		"ws2_32",
 		"tapi32",
 		"netapi32",
+		"wintrust",
 		NULL
 	};	
 	

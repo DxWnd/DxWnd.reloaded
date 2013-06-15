@@ -13,7 +13,8 @@ public:
 // Operations
 public: // methods
 	void InitTarget(TARGETMAP *);
-	void SethWnd(HWND hwnd) {hWnd=hwnd;}
+	void SethWnd(HWND hwnd) {hWnd=hwnd; hWndFPS=hwnd;}
+	void SethWnd(HWND hwnd, HWND hwndfps) {hWnd=hwnd; hWndFPS=hwndfps;}
 	void InitWindowPos(int, int, int, int);
 	HWND GethWnd(void) {return hWnd;}
 	void SetScreenSize(void) {dwScreenWidth=800; dwScreenHeight=600;}
@@ -96,13 +97,14 @@ public: // simple data variables
     WORD palNumEntries;
     PALETTEENTRY palPalEntry[256];
 	short FakeVersionId;
+	int Coordinates;
 
 // Implementation
 protected:
 	DWORD dwScreenWidth;
 	DWORD dwScreenHeight;
 	BOOL FullScreen;
-	HWND hWnd;
+	HWND hWnd, hWndFPS;
 	DWORD PrimSurfaces[DDSQLEN+1];
 };
 
@@ -112,6 +114,7 @@ typedef enum {
 	SYSLIBIDX_KERNEL32 = 0,
 	SYSLIBIDX_USER32,
 	SYSLIBIDX_GDI32,
+	SYSLIBIDX_IMELIB,
 	SYSLIBIDX_ADVAPI32,
 	SYSLIBIDX_OLE32,
 	SYSLIBIDX_DIRECTDRAW,
@@ -127,6 +130,7 @@ typedef enum {
 	SYSLIBIDX_DPLAYX,
 	SYSLIBIDX_DSOUND,
 	SYSLIBIDX_WINMM,
+	SYSLIBIDX_IMM32,
 	SYSLIBIDX_WSOCK,
 	SYSLIBIDX_DINPUT,
 	SYSLIBIDX_DINPUT8,
@@ -135,4 +139,6 @@ typedef enum {
 	SYSLIBIDX_WS2_32,
 	SYSLIBIDX_TAPI32,
 	SYSLIBIDX_NETAPI32,
-	SYSLIBIDX_MAX } enum_syslibraries;
+	SYSLIBIDX_WINTRUST,
+	SYSLIBIDX_MAX } 
+enum_syslibraries;

@@ -24,6 +24,7 @@ public:
 	CDXTabCtrl	m_tabdxTabCtrl;
 	CEdit	m_File;
 	int		m_DXVersion;
+	int		m_Coordinates;
 	BOOL	m_EmulateSurface;
 	BOOL	m_NoEmulateSurface;
 	BOOL	m_EmulateBuffer;
@@ -44,6 +45,7 @@ public:
 	BOOL	m_HookDLLs;
 	BOOL	m_NoBanner;
 	BOOL	m_StartDebug;
+	BOOL	m_HookEnabled;
 	CString	m_FilePath;
 	CString	m_Module;
 	CString	m_Title;
@@ -78,6 +80,7 @@ public:
 	BOOL	m_HookGDI;
 	BOOL	m_HideMultiMonitor;
 	BOOL	m_WallpaperMode;
+	BOOL	m_FixD3DFrame;
 	BOOL	m_HookChildWin;
 	BOOL	m_MessageProc;
 	BOOL	m_FixNCHITTEST;

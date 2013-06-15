@@ -999,3 +999,44 @@ char *ExplainLoadLibFlags(DWORD c)
 	else strcpy(eb,"NULL");
 	return(eb);
 }
+
+char *ExplainDevModeFields(DWORD c)
+{
+	static char eb[512];
+	unsigned int l;
+	strcpy(eb,"DM_");
+	if (c & DM_ORIENTATION) strcat(eb, "ORIENTATION+");
+	if (c & DM_PAPERSIZE) strcat(eb, "PAPERSIZE+");
+	if (c & DM_PAPERLENGTH) strcat(eb, "PAPERLENGTH+");
+	if (c & DM_PAPERWIDTH) strcat(eb, "PAPERWIDTH+");
+	if (c & DM_SCALE) strcat(eb, "SCALE+");
+	if (c & DM_COPIES) strcat(eb, "COPIES+");
+	if (c & DM_DEFAULTSOURCE) strcat(eb, "DEFAULTSOURCE+");
+	if (c & DM_PRINTQUALITY) strcat(eb, "PRINTQUALITY+");
+	if (c & DM_POSITION) strcat(eb, "POSITION+");
+	if (c & DM_DISPLAYORIENTATION) strcat(eb, "DISPLAYORIENTATION+");
+	if (c & DM_DISPLAYFIXEDOUTPUT) strcat(eb, "DISPLAYFIXEDOUTPUT+");
+	if (c & DM_COLOR) strcat(eb, "COLOR+");
+	if (c & DM_DUPLEX) strcat(eb, "DUPLEX+");
+	if (c & DM_YRESOLUTION) strcat(eb, "YRESOLUTION+");
+	if (c & DM_TTOPTION) strcat(eb, "TTOPTION+");
+	if (c & DM_COLLATE) strcat(eb, "COLLATE+");
+	if (c & DM_FORMNAME) strcat(eb, "FORMNAME+");
+	if (c & DM_LOGPIXELS) strcat(eb, "LOGPIXELS+");
+	if (c & DM_BITSPERPEL) strcat(eb, "BITSPERPEL+");
+	if (c & DM_PELSWIDTH) strcat(eb, "PELSWIDTH+");
+	if (c & DM_PELSHEIGHT) strcat(eb, "PELSHEIGHT+");
+	if (c & DM_DISPLAYFLAGS) strcat(eb, "DISPLAYFLAGS+");
+	if (c & DM_NUP) strcat(eb, "NUP+");
+	if (c & DM_DISPLAYFREQUENCY) strcat(eb, "DISPLAYFREQUENCY+");
+	if (c & DM_ICMMETHOD) strcat(eb, "ICMMETHOD+");
+	if (c & DM_ICMINTENT) strcat(eb, "ICMINTENT+");
+	if (c & DM_MEDIATYPE) strcat(eb, "MEDIATYPE+");
+	if (c & DM_DITHERTYPE) strcat(eb, "DITHERTYPE+");
+	if (c & DM_PANNINGWIDTH) strcat(eb, "PANNINGWIDTH+");
+	if (c & DM_PANNINGHEIGHT) strcat(eb, "PANNINGHEIGHT+");
+	l=strlen(eb);
+	if (l>strlen("DM_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}

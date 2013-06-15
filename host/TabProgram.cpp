@@ -26,6 +26,7 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
+	DDX_Radio(pDX, IDC_COORDINATES, cTarget->m_Coordinates);
 	DDX_Control(pDX, IDC_FILE, cTarget->m_File);
 	DDX_Text(pDX, IDC_FILE, cTarget->m_FilePath);
 	DDX_Text(pDX, IDC_MODULE, cTarget->m_Module);
@@ -33,6 +34,7 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_UNNOTIFY, cTarget->m_UnNotify);
 	DDX_Check(pDX, IDC_WINDOWIZE, cTarget->m_Windowize);
 	DDX_Check(pDX, IDC_HOOKDLLS, cTarget->m_HookDLLs);
+	DDX_Check(pDX, IDC_HOOKENABLED, cTarget->m_HookEnabled);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);
 	DDX_Check(pDX, IDC_STARTDEBUG, cTarget->m_StartDebug);
 	DDX_Check(pDX, IDC_CLIENTREMAPPING, cTarget->m_ClientRemapping);
@@ -50,6 +52,9 @@ BEGIN_MESSAGE_MAP(CTabProgram, CDialog)
 		// NOTE: the ClassWizard will add message map macros here
 	ON_BN_CLICKED(IDC_OPEN, OnOpen)
 	//}}AFX_MSG_MAP
+	//ON_BN_CLICKED(IDC_COORDINATES, &CTabProgram::OnBnClickedCoordinates)
+	//ON_BN_CLICKED(IDC_DESKTOPWORKAREA, &CTabProgram::OnBnClickedDesktopworkarea)
+	//ON_BN_CLICKED(IDC_DESKTOPCENTER, &CTabProgram::OnBnClickedDesktopcenter)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -64,4 +69,20 @@ void CTabProgram::OnOpen()
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
     if( dlg.DoModal() == IDOK) cTarget->m_File.SetWindowText(dlg.GetPathName());
+}
+void CTabProgram::OnBnClickedCoordinates()
+{
+	// TODO: Add your control notification handler code here
+	//CWnd *cTarget = ((CTargetDlg *)(this->GetParent());
+	//(CEdBoxEditor *)(cTarget->GetDlgItem(IDC_POSX))
+}
+
+void CTabProgram::OnBnClickedDesktopworkarea()
+{
+	// TODO: Add your control notification handler code here
+}
+
+void CTabProgram::OnBnClickedDesktopcenter()
+{
+	// TODO: Add your control notification handler code here
 }

@@ -120,3 +120,12 @@ Some code rearrangement
 v2.02.21
 it's a w.i.p. release, wait 'till finished....
 
+v2.02.22
+Major code rearrangement in API hooking. Expect some troubles...
+Added desktop workarea and centered coordinate settings
+Fixed imelib hooking
+Added HOOKENABLED flag
+Fixed ChangeDisplaySettings 
+GUI: added ListView icons
+GUI: added pause command
+GUI: updated commands layout

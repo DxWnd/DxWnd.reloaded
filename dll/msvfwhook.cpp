@@ -8,32 +8,23 @@
 #include "msvfwhook.h"
 #undef DXWDECLARATIONS
 
+static HookEntry_Type Hooks[]={
+	{"ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
+	{"ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
+	{0, NULL, 0, 0} // terminator
+};
+
 FARPROC Remap_vfw_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
-	if (!strcmp(proc,"ICSendMessage")){
-		pICSendMessage=(ICSendMessage_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pICSendMessage);
-		return (FARPROC)extICSendMessage;
-	}
-	if (!strcmp(proc,"ICOpen")){
-		pICOpen=(ICOpen_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pICOpen);
-		return (FARPROC)extICOpen;
-	}
-
+	FARPROC addr;
+	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
 }
 
 void HookMSV4WLibs(HMODULE module)
 {
-	void *tmp;
-	tmp = HookAPI(module, "MSVFW32.dll", NULL, "ICSendMessage", extICSendMessage);
-	if(tmp) pICSendMessage = (ICSendMessage_Type)tmp;
-	tmp = HookAPI(module, "MSVFW32.dll", NULL, "ICOpen", extICOpen);
-	if(tmp) pICOpen = (ICOpen_Type)tmp;
-
-	return;
+	HookLibrary(module, Hooks, "MSVFW32.dll");
 }
 
 LRESULT WINAPI extICSendMessage(HIC hic, UINT wMsg, DWORD_PTR dw1, DWORD_PTR dw2)

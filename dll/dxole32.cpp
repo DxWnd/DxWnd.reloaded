@@ -5,16 +5,24 @@
 #include "dxhook.h"
 #include "dxhelper.h"
 
+static HookEntry_Type Hooks[]={
+	{"CoCreateInstance", NULL, (FARPROC *)&pCoCreateInstance, (FARPROC)extCoCreateInstance},
+	// {"CoCreateInstanceEx", NULL, (FARPROC *)&pCoCreateInstanceEx, (FARPROC)extCoCreateInstanceEx}, remote object creation....
+	{0, NULL, 0, 0} // terminator
+};
+
 extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 extern HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
 
+void HookOle32(HMODULE module)
+{
+	HookLibrary(module, Hooks, "ole32.dll");
+}
+
 FARPROC Remap_ole32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
-	if (!strcmp(proc,"CoCreateInstance")){
-		pCoCreateInstance=(CoCreateInstance_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pCoCreateInstance);
-		return (FARPROC)extCoCreateInstance;
-	}
+	FARPROC addr;
+	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
 
@@ -24,7 +32,6 @@ FARPROC Remap_ole32_ProcAddress(LPCSTR proc, HMODULE hModule)
 // -------------------------------------------------------------------------------------
 
 static void HookDDSession(LPDIRECTDRAW *, int);
-//CoCreateInstance_Type pCoCreateInstance=NULL;
 
 HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID FAR* ppv)
 {
@@ -39,8 +46,9 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 		OutTraceD("CoCreateInstance: CLSID_FilterGraph RIID=%x\n", *(DWORD *)&riid);
 		qlib=(*pLoadLibraryA)("quartz.dll");
 		OutTraceD("CoCreateInstance: quartz lib handle=%x\n", qlib);
-		extern void HookSysLibs(HMODULE);
-		HookSysLibs(qlib);
+		HookKernel32(qlib);
+		HookUser32(qlib);
+		HookWinMM(qlib);
 	}
 
 	res=(*pCoCreateInstance)(rclsid, pUnkOuter, dwClsContext, riid, ppv);
@@ -86,15 +94,4 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
 
 	return res;
-}
-
-int HookOle32(HMODULE module, int version)
-{
-	// used by Axis & Allies ....
-	void *tmp;
-	//return 0;
-	OutTraceD("HookOle32 version=%d\n", version); //GHO
-	tmp = HookAPI(module, "ole32.dll", NULL, "CoCreateInstance", extCoCreateInstance);
-	if(tmp) pCoCreateInstance = (CoCreateInstance_Type)tmp;
-	return 0;
 }

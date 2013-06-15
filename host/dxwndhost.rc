@@ -82,13 +82,19 @@ BEGIN
     BEGIN
         MENUITEM "Save",                        ID_FILE_SAVE
         MENUITEM "&Sort programs list",         ID_FILE_SORTPROGRAMSLIST
+        MENUITEM "&Import ...",                 ID_FILE_IMPORT
         MENUITEM "&Clear all logs",             ID_FILE_CLEARALLLOGS
         POPUP "Hook"
         BEGIN
             MENUITEM "Start",                       ID_HOOK_START
             MENUITEM "Stop",                        ID_HOOK_STOP
         END
-        MENUITEM "&Kill",                       ID_TASK_KILL
+        POPUP "&Process"
+        BEGIN
+            MENUITEM "&Pause",                      ID_TASK_PAUSE
+            MENUITEM "&Resume",                     ID_TASK_RESUME
+            MENUITEM "&Kill",                       ID_TASK_KILL
+        END
         MENUITEM "Move to Tray",                ID_FILE_GOTOTRAYICON
         MENUITEM "e&Xit",                       ID_DXAPP_EXIT
     END
@@ -130,7 +136,7 @@ BEGIN
             MENUITEM "&View",                       ID_PLOG_VIEW
             MENUITEM "&Delete",                     ID_PLOG_DELETE
         END
-        MENUITEM "&Kill ",                      ID_TASK_KILL
+        MENUITEM "e&Xport ...",                 ID_PEXPORT
     END
 END
 
@@ -252,16 +258,20 @@ BEGIN
     EDITTEXT        IDC_POSY,55,210,19,14,ES_AUTOHSCROLL | ES_NUMBER,WS_EX_RIGHT
     EDITTEXT        IDC_SIZX,85,210,19,14,ES_AUTOHSCROLL,WS_EX_RIGHT
     EDITTEXT        IDC_SIZY,113,210,19,14,ES_AUTOHSCROLL,WS_EX_RIGHT
-    CONTROL         "Do not notify on task switch",IDC_UNNOTIFY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,112,124,12
-    CONTROL         "Optimize CPU  (DirectX1 - 7)",IDC_SAVELOAD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,122,123,12
-    CONTROL         "Intercept Alt-F4 key",IDC_HANDLEALTF4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,132,109,12
-    CONTROL         "Run in Window",IDC_WINDOWIZE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,142,124,12
+    CONTROL         "Do not notify on task switch",IDC_UNNOTIFY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,122,124,10
+    CONTROL         "Optimize CPU  (DirectX1 - 7)",IDC_SAVELOAD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,152,109,10
+    CONTROL         "Intercept Alt-F4 key",IDC_HANDLEALTF4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,132,109,10
+    CONTROL         "Run in Window",IDC_WINDOWIZE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,142,124,10
     GROUPBOX        "Generic",IDC_STATIC,7,103,286,88
-    CONTROL         "No banner",IDC_NOBANNER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,122,108,12
-    CONTROL         "use DLL Injection",IDC_STARTDEBUG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,132,100,12
-    CONTROL         "3D Wireframe",IDC_WIREFRAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,142,115,12
+    CONTROL         "No banner",IDC_NOBANNER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,122,108,10
+    CONTROL         "use DLL Injection",IDC_STARTDEBUG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,132,100,10
+    CONTROL         "3D Wireframe",IDC_WIREFRAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,142,96,10
     CONTROL         "Remap Client Rect",IDC_CLIENTREMAPPING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,112,115,10
-    CONTROL         "Hook all DLLs",IDC_HOOKDLLS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,152,124,12
+    CONTROL         "Hook all DLLs",IDC_HOOKDLLS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,152,124,10
+    CONTROL         "Hook enabled",IDC_HOOKENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,112,124,10
+    CONTROL         "X,Y coordinates",IDC_COORDINATES,"Button",BS_AUTORADIOBUTTON | WS_GROUP,170,198,95,10
+    CONTROL         "Desktop work area",IDC_DESKTOPWORKAREA,"Button",BS_AUTORADIOBUTTON,170,208,95,10
+    CONTROL         "Desktop center",IDC_DESKTOPCENTER,"Button",BS_AUTORADIOBUTTON,170,218,95,10
 END
 
 IDD_TAB_LOG DIALOGEX 0, 0, 300, 240
@@ -370,7 +380,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Fix Window Frame Style",IDC_FIXWINFRAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,16,120,10
     CONTROL         "Prevent Win Maximize",IDC_PREVENTMAXIMIZE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,28,115,10
-    GROUPBOX        "Windows handling",IDC_STATIC,6,4,140,193
+    GROUPBOX        "Windows handling",IDC_STATIC,6,4,140,229
     CONTROL         "Lock win coordinates",IDC_LOCKWINPOS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,39,115,10
     CONTROL         "Hook CHILD windows",IDC_HOOKCHILDWIN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,62,115,10
     CONTROL         "Recover screen mode",IDC_RECOVERSCREENMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,74,115,10
@@ -384,6 +394,7 @@ BEGIN
     CONTROL         "Force win resize",IDC_FORCEWINRESIZE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,154,115,10
     CONTROL         "Hide multi-monitor config.",IDC_HIDEMULTIMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,166,115,10
     CONTROL         "Wallpaper mode",IDC_WALLPAPERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,178,115,10
+    CONTROL         "Fix Windows Frame in D3D",IDC_FIXD3DFRAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,188,115,10
 END
 
 IDD_TAB_EMPTY DIALOGEX 0, 0, 300, 240
@@ -588,6 +599,14 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BIGICONS            BITMAP                  "res\\bigicons.bmp"
+IDB_SMALLICONS          BITMAP                  "res\\smallicons.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //

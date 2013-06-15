@@ -7,6 +7,7 @@
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "dxhook.h"
+#include "syslibs.h"
 
 #define HOOKD3D10ANDLATER 1
 
@@ -15,6 +16,7 @@ typedef HRESULT (WINAPI *QueryInterface_Type)(void *, REFIID riid, void** ppvObj
 typedef void* (WINAPI *Direct3DCreate8_Type)(UINT);
 typedef void* (WINAPI *Direct3DCreate9_Type)(UINT);
 typedef HRESULT (WINAPI *Direct3DCreate9Ex_Type)(UINT, IDirect3D9Ex **);
+typedef HRESULT (WINAPI *CheckFullScreen_Type)(void);
 
 typedef UINT (WINAPI *GetAdapterCount_Type)(void *);
 typedef HRESULT (WINAPI *GetAdapterIdentifier_Type)(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
@@ -49,6 +51,8 @@ HRESULT WINAPI extGetDirect3D(void *, IDirect3D9 **);
 void* WINAPI extDirect3DCreate8(UINT);
 void* WINAPI extDirect3DCreate9(UINT);
 HRESULT WINAPI extDirect3DCreate9Ex(UINT, IDirect3D9Ex **);
+HRESULT WINAPI extCheckFullScreen(void);
+
 UINT WINAPI extGetAdapterCount(void *);
 HRESULT WINAPI extGetAdapterIdentifier(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
 HRESULT WINAPI extCreateDevice(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, void **);
@@ -74,37 +78,39 @@ void WINAPI extRSSetViewports(ID3D11DeviceContext *, UINT, D3D11_VIEWPORT *);
 
 extern char *ExplainDDError(DWORD);
 
-QueryInterface_Type pQueryInterfaceD3D8;
-QueryInterface_Type pQueryInterfaceDev8;
-QueryInterface_Type pQueryInterfaceD3D9;
-QueryInterface_Type pQueryInterfaceDev9;
+QueryInterface_Type pQueryInterfaceD3D8 = 0;
+QueryInterface_Type pQueryInterfaceDev8 = 0;
+QueryInterface_Type pQueryInterfaceD3D9 = 0;
+QueryInterface_Type pQueryInterfaceDev9 = 0;
 
-GetDirect3D_Type pGetDirect3D;
+GetDirect3D_Type pGetDirect3D = 0;
 Direct3DCreate8_Type pDirect3DCreate8 = 0;
 Direct3DCreate9_Type pDirect3DCreate9 = 0;
 Direct3DCreate9Ex_Type pDirect3DCreate9Ex = 0;
-GetAdapterCount_Type pGetAdapterCount;
-GetAdapterIdentifier_Type pGetAdapterIdentifier;
-CreateDevice_Type pCreateDevice;
-CreateDeviceEx_Type pCreateDeviceEx;
-EnumAdapterModes8_Type pEnumAdapterModes8;
-EnumAdapterModes9_Type pEnumAdapterModes9;
-GetAdapterDisplayMode_Type pGetAdapterDisplayMode;
-GetDisplayMode_Type pGetDisplayMode;
-Present_Type pPresent = 0;
-SetRenderState_Type pSetRenderState;
-GetRenderState_Type pGetRenderState;
-CreateAdditionalSwapChain_Type pCreateAdditionalSwapChain;
-GetViewport_Type pGetViewport;
-SetViewport_Type pSetViewport;
+CheckFullScreen_Type pCheckFullScreen = 0;
 
-D3D10CreateDevice_Type pD3D10CreateDevice;
-D3D10CreateDeviceAndSwapChain_Type pD3D10CreateDeviceAndSwapChain;
-D3D10CreateDevice1_Type pD3D10CreateDevice1;
-D3D10CreateDeviceAndSwapChain1_Type pD3D10CreateDeviceAndSwapChain1;
-D3D11CreateDevice_Type pD3D11CreateDevice;
-D3D11CreateDeviceAndSwapChain_Type pD3D11CreateDeviceAndSwapChain;
-RSSetViewports_Type pRSSetViewports;
+GetAdapterCount_Type pGetAdapterCount = 0;
+GetAdapterIdentifier_Type pGetAdapterIdentifier = 0;
+CreateDevice_Type pCreateDevice = 0;
+CreateDeviceEx_Type pCreateDeviceEx = 0;
+EnumAdapterModes8_Type pEnumAdapterModes8 = 0;
+EnumAdapterModes9_Type pEnumAdapterModes9 = 0;
+GetAdapterDisplayMode_Type pGetAdapterDisplayMode = 0;
+GetDisplayMode_Type pGetDisplayMode = 0;
+Present_Type pPresent = 0;
+SetRenderState_Type pSetRenderState = 0;
+GetRenderState_Type pGetRenderState = 0;
+CreateAdditionalSwapChain_Type pCreateAdditionalSwapChain = 0;
+GetViewport_Type pGetViewport = 0;
+SetViewport_Type pSetViewport = 0;
+
+D3D10CreateDevice_Type pD3D10CreateDevice = 0;
+D3D10CreateDeviceAndSwapChain_Type pD3D10CreateDeviceAndSwapChain = 0;
+D3D10CreateDevice1_Type pD3D10CreateDevice1 = 0;
+D3D10CreateDeviceAndSwapChain1_Type pD3D10CreateDeviceAndSwapChain1 = 0;
+D3D11CreateDevice_Type pD3D11CreateDevice = 0;
+D3D11CreateDeviceAndSwapChain_Type pD3D11CreateDeviceAndSwapChain = 0;
+RSSetViewports_Type pRSSetViewports = 0;
 
 DWORD dwD3DVersion;
 
@@ -149,6 +155,11 @@ FARPROC Remap_d3d9_ProcAddress(LPCSTR proc, HMODULE hModule)
 		pDirect3DCreate9Ex=(Direct3DCreate9Ex_Type)(*pGetProcAddress)(hModule, proc);
 		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirect3DCreate9Ex);
 		return (FARPROC)extDirect3DCreate9Ex;
+	}
+	if (!strcmp(proc,"CheckFullScreen") && !pCheckFullScreen){
+		pCheckFullScreen=(CheckFullScreen_Type)(*pGetProcAddress)(hModule, proc);
+		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pCheckFullScreen);
+		return (FARPROC)extCheckFullScreen;
 	}
 
 	if (!(dxw.dwFlags3 & SUPPRESSD3DEXT)) return NULL;
@@ -237,6 +248,8 @@ int HookDirect3D(HMODULE module, int version){
 		if(tmp) pDirect3DCreate9 = (Direct3DCreate9_Type)tmp;
 		tmp = HookAPI(module, "d3d9.dll", NULL, "Direct3DCreate9Ex", extDirect3DCreate9Ex);
 		if(tmp) pDirect3DCreate9Ex = (Direct3DCreate9Ex_Type)tmp;
+		tmp = HookAPI(module, "d3d9.dll", NULL, "CheckFullScreen", extCheckFullScreen);
+		if(tmp) pCheckFullScreen = (CheckFullScreen_Type)tmp;
 #ifdef HOOKD3D10ANDLATER
 		// D3D10
 		tmp = HookAPI(module, "d3d10.dll", NULL, "D3D10CreateDevice", extD3D10CreateDevice);
@@ -268,6 +281,10 @@ int HookDirect3D(HMODULE module, int version){
 		hinst = LoadLibrary("d3d9.dll");
 		pDirect3DCreate9 =
 			(Direct3DCreate9_Type)GetProcAddress(hinst, "Direct3DCreate9");
+		pDirect3DCreate9Ex =
+			(Direct3DCreate9Ex_Type)GetProcAddress(hinst, "Direct3DCreate9Ex");
+		pCheckFullScreen = 
+			(CheckFullScreen_Type)GetProcAddress(hinst, "CheckFullScreen");
 		if(pDirect3DCreate9){
 			lpd3d = (LPDIRECT3D9)extDirect3DCreate9(31);
 			if(lpd3d) lpd3d->Release();
@@ -535,6 +552,11 @@ HRESULT WINAPI extGetAdapterDisplayMode(void *lpd3d, UINT Adapter, D3DDISPLAYMOD
 //	OutTrace("GetDeviceCaps hooked\n");
 //	return (*pGetDeviceCapsD3D)(lpd3dd, pCaps);
 //}
+HRESULT WINAPI extProbe(void *lpd3dd)
+{
+	OutTrace("Probe: %x\n", lpd3dd);
+	return 0;
+}
 
 HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	HWND hfocuswindow, DWORD behaviorflags, D3DPRESENT_PARAMETERS *ppresentparam, void **ppd3dd)
@@ -548,6 +570,23 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	dxw.SethWnd(hfocuswindow);
 	dxw.SetScreenSize(param[0], param[1]);
 	AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
+
+	if(dxw.dwFlags3 & FIXD3DFRAME){
+		char ClassName[81];
+		GetClassName(dxw.GethWnd(), ClassName, 80);
+		hfocuswindow=(*pCreateWindowExA)(
+			0, ClassName, "child", 
+			WS_CHILD|WS_VISIBLE, 
+			//GetSystemMetrics(SM_CXSIZEFRAME), GetSystemMetrics(SM_CYSIZEFRAME)+GetSystemMetrics(SM_CYCAPTION), 
+			0, 0,
+			dxw.GetScreenWidth(), dxw.GetScreenHeight(), dxw.GethWnd(), 
+			NULL, NULL, NULL);
+		if (hfocuswindow) 
+			OutTraceD("CreateDevice: updated hfocuswindow=%x\n", hfocuswindow, GetLastError());
+		else
+			OutTraceD("CreateDevice: CreateWindowEx ERROR err=%d\n", GetLastError());
+		dxw.SethWnd(hfocuswindow, dxw.GethWnd());
+	}
 
 	tmp = param;
 	OutTraceD("D3D%d::CreateDevice\n", dwD3DVersion);
@@ -575,10 +614,13 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	param[2] = mode.Format;
 	OutTraceD("    Current Format = 0x%x\n", mode.Format);
 
+	//param[0]=param[1]=0;
+
 	if(dwD3DVersion == 9){
 		param[7] = 0;			//hDeviceWindow
 		dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
 		param[8] = 1;			//Windowed
+		//param[11] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
 		param[12] = 0;			//FullScreen_RefreshRateInHz;
 		param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 	}
@@ -586,6 +628,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		param[6] = 0;			//hDeviceWindow
 		dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
 		param[7] = 1;			//Windowed
+		//param[10] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
 		param[11] = 0;			//FullScreen_RefreshRateInHz;
 		param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 	}
@@ -595,7 +638,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		OutTraceD("FAILED! %x\n", res);
 		return res;
 	}
-	OutTraceD("SUCCESS!\n");
+	OutTraceD("SUCCESS! device=%x\n", *ppd3dd);
 
 	if(dwD3DVersion == 8){
 		void *pReset;
@@ -628,8 +671,12 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 			SetHook((void *)(**(DWORD **)ppd3dd + 232), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D9)");
 			(*pSetRenderState)((void *)*ppd3dd, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		}
+		// experiments ....
 		//SetHook((void *)(**(DWORD **)ppd3dd +280), extValidateDevice, (void **)&pValidateDevice, "ValidateDevice(D9)");
 		//SetHook((void *)(**(DWORD **)ppd3dd + 28), extGetDeviceCapsD3D, (void **)&pGetDeviceCapsD3D, "GetDeviceCaps(D9)");
+		//void *pNull=0;
+		//SetHook((void *)(**(DWORD **)ppd3dd + 344), extProbe, &pNull, "Probe-CreateVertexDeclaration(D9)");
+		//SetHook((void *)(**(DWORD **)ppd3dd + 28), extProbe, &pNull, "Probe-GetDeviceCaps(D9)");
 	}
 
 	GetHookInfo()->IsFullScreen = dxw.IsFullScreen();
@@ -741,7 +788,7 @@ HRESULT WINAPI extSetViewport(void *pd3dd, D3DVIEWPORT9 *pViewport)
 	(*pGetClientRect)(dxw.GethWnd(), &client);
 	OutTraceD("SetViewport: declared pos=(%d,%d) size=(%d,%d) depth=(%f;%f)\n", 
 		pViewport->X, pViewport->Y, pViewport->Width, pViewport->Height, pViewport->MinZ, pViewport->MaxZ);
-	if(IsDebug) OutTrace("glViewport: DEBUG win=(%d,%d) screen=(%d,%d)\n",
+	if(IsDebug) OutTrace("SetViewport: DEBUG win=(%d,%d) screen=(%d,%d)\n",
 		client.right, client.bottom, dxw.GetScreenWidth(), dxw.GetScreenHeight());
 	pViewport->X = (pViewport->X * (int)client.right) / (int)dxw.GetScreenWidth();
 	pViewport->Y = (pViewport->Y * (int)client.bottom) / (int)dxw.GetScreenHeight();
@@ -982,6 +1029,8 @@ HRESULT WINAPI extQueryInterfaceD3D9(void *obj, REFIID riid, void** ppvObj)
 HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
 {
 	HRESULT res;
+	void *pReset;
+
 	OutTraceD("Device::QueryInterface(9): lpd3dd=%x refiid=%x\n", obj, riid);
 	res=pQueryInterfaceDev9(obj, riid, ppvObj);
 	if(res){
@@ -990,19 +1039,23 @@ HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
 	}
 	OutTraceD("Device::QueryInterface(9): ppvObj=%x\n", *ppvObj);
 
-	void *pReset;
-	pReset=NULL; // to avoid assert condition
-	SetHook((void *)(**(DWORD **)ppvObj +  0), extQueryInterfaceDev9, (void **)&pQueryInterfaceDev9, "QueryInterface(D9)");
-	SetHook((void *)(**(DWORD **)ppvObj + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D9)");
-	SetHook((void *)(**(DWORD **)ppvObj + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
-	SetHook((void *)(**(DWORD **)ppvObj + 64), extReset, (void **)&pReset, "Reset(D9)");
-	SetHook((void *)(**(DWORD **)ppvObj + 68), extPresent, (void **)&pPresent, "Present(D9)");
-	SetHook((void *)(**(DWORD **)ppvObj +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
-	SetHook((void *)(**(DWORD **)ppvObj +192), extGetViewport, (void **)&pGetViewport, "GetViewport(D9)");
-	if(dxw.dwFlags2 & WIREFRAME){
-		SetHook((void *)(**(DWORD **)ppvObj + 228), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D9)");
-		SetHook((void *)(**(DWORD **)ppvObj + 232), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D9)");
-		(*pSetRenderState)((void *)*ppvObj, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+	switch(*(DWORD *)&riid){
+	case 0xD0223B96: // IID_IDirect3DDevice9
+		OutTraceD("Device hook for IID_IDirect3DDevice9 interface\n");
+		pReset=NULL; // to avoid assert condition
+		SetHook((void *)(**(DWORD **)ppvObj +  0), extQueryInterfaceDev9, (void **)&pQueryInterfaceDev9, "QueryInterface(D9)");
+		SetHook((void *)(**(DWORD **)ppvObj + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D9)");
+		SetHook((void *)(**(DWORD **)ppvObj + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
+		SetHook((void *)(**(DWORD **)ppvObj + 64), extReset, (void **)&pReset, "Reset(D9)");
+		SetHook((void *)(**(DWORD **)ppvObj + 68), extPresent, (void **)&pPresent, "Present(D9)");
+		//SetHook((void *)(**(DWORD **)ppvObj +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
+		//SetHook((void *)(**(DWORD **)ppvObj +192), extGetViewport, (void **)&pGetViewport, "GetViewport(D9)");
+		if(dxw.dwFlags2 & WIREFRAME){
+			SetHook((void *)(**(DWORD **)ppvObj + 228), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D9)");
+			SetHook((void *)(**(DWORD **)ppvObj + 232), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D9)");
+			(*pSetRenderState)((void *)*ppvObj, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+		}
+		break;
 	}
 
 	return res;
@@ -1012,4 +1065,10 @@ HRESULT WINAPI extGetDirect3D(void *lpdd3dd, IDirect3D9 **ppD3D9)
 {
 	OutTraceD("Device::GetDirect3D\n");
 	return (*pGetDirect3D)(lpdd3dd, ppD3D9);
+}
+
+HRESULT WINAPI extCheckFullScreen(void)
+{
+	OutTraceD("CheckFullScreen\n");
+	return 0;
 }

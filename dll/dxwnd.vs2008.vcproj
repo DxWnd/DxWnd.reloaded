@@ -377,7 +377,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\walkmod.cpp"
+				RelativePath=".\winmm.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\wintrust.cpp"
 				>
 			</File>
 			<File

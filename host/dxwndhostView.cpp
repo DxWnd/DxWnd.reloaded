@@ -5,6 +5,7 @@
 
 #include "stdafx.h"
 #include "shlwapi.h"
+#include "TlHelp32.h"
 
 #include "dxwndhost.h"
 
@@ -43,8 +44,12 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_LOG_VIEW, OnViewLog)
 	ON_COMMAND(ID_LOG_DELETE, OnDeleteLog)
 	ON_COMMAND(ID_TASK_KILL, OnKill)
+	ON_COMMAND(ID_TASK_PAUSE, OnPause)
+	ON_COMMAND(ID_TASK_RESUME, OnResume)
 	ON_COMMAND(ID_ADD, OnAdd)
 	ON_COMMAND(ID_MODIFY, OnModify)
+	ON_COMMAND(ID_PEXPORT, OnExport)
+	ON_COMMAND(ID_FILE_IMPORT, OnImport)
 	ON_COMMAND(ID_DELETE, OnDelete)
 	ON_COMMAND(ID_FILE_SORTPROGRAMSLIST, OnSort)
 	ON_COMMAND(ID_FILE_CLEARALLLOGS, OnClearAllLogs)
@@ -54,10 +59,6 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_HOOK_STOP, OnHookStop)
 	ON_COMMAND(ID_DXAPP_EXIT, OnExit)
 	ON_WM_RBUTTONDOWN()
-	ON_WM_DESTROY()
-	ON_WM_MOVE()
-	ON_WM_SIZE()
-	ON_WM_DESTROY()
 	ON_COMMAND(ID_RUN, OnRun)
 	ON_COMMAND(ID_TRAY_RESTORE, OnTrayRestore)
 	ON_COMMAND(ID_VIEW_STATUS, OnViewStatus)
@@ -92,170 +93,201 @@ static void RevertScreenChanges(DEVMODE *InitDevMode)
 	}
 }
 
+static void SaveConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPath)
+{
+	char key[32], val[32];
+	sprintf_s(key, sizeof(key), "title%i", i);
+	WritePrivateProfileString("target", key, Title, InitPath);
+	sprintf_s(key, sizeof(key), "path%i", i);
+	WritePrivateProfileString("target", key, TargetMap->path, InitPath);
+	sprintf_s(key, sizeof(key), "module%i", i);
+	WritePrivateProfileString("target", key, TargetMap->module, InitPath);
+	sprintf_s(key, sizeof(key), "opengllib%i", i);
+	WritePrivateProfileString("target", key, TargetMap->OpenGLLib, InitPath);
+	sprintf_s(key, sizeof(key), "ver%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->dxversion);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "coord%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->coordinates);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flag%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagg%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags2);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagh%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags3);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagi%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags4);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "tflag%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "initx%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->initx);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "inity%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->inity);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "minx%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->minx);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "miny%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->miny);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "maxx%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->maxx);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "maxy%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->maxy);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "posx%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->posx);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "posy%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->posy);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "sizx%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->sizx);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "sizy%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->sizy);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "maxfps%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->MaxFPS);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "initts%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->InitTS);
+	WritePrivateProfileString("target", key, val, InitPath);
+}
+
+static void ClearTarget(int i, char *InitPath)
+{
+	char key[32];
+	sprintf_s(key, sizeof(key), "path%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "ver%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "coord%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flag%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagg%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagh%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagi%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "tflag%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "initx%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "inity%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "minx%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "miny%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxx%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxy%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "posx%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "posy%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "sizx%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "sizy%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxfps%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "initts%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+}
+
+static int LoadConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPath)
+{
+	char key[32];
+	sprintf_s(key, sizeof(key), "path%i", i);
+	GetPrivateProfileString("target", key, "", TargetMap->path, MAX_PATH, InitPath);
+	if(!TargetMap->path[0]) return FALSE;
+	sprintf_s(key, sizeof(key), "title%i", i);
+	GetPrivateProfileString("target", key, "", Title, sizeof(PRIVATEMAP)-1, InitPath);
+	sprintf_s(key, sizeof(key), "module%i", i);
+	GetPrivateProfileString("target", key, "", TargetMap->module, sizeof(TargetMap->module)-1, InitPath);
+	sprintf_s(key, sizeof(key), "opengllib%i", i);
+	GetPrivateProfileString("target", key, "", TargetMap->OpenGLLib, sizeof(TargetMap->OpenGLLib)-1, InitPath);
+	sprintf_s(key, sizeof(key), "ver%i", i);
+	TargetMap->dxversion = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "coord%i", i);
+	TargetMap->coordinates = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flag%i", i);
+	TargetMap->flags = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagg%i", i);
+	TargetMap->flags2 = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagh%i", i);
+	TargetMap->flags3 = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagi%i", i);
+	TargetMap->flags4 = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "tflag%i", i);
+	TargetMap->tflags = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "initx%i", i);
+	TargetMap->initx = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "inity%i", i);
+	TargetMap->inity = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "minx%i", i);
+	TargetMap->minx = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "miny%i", i);
+	TargetMap->miny = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxx%i", i);
+	TargetMap->maxx = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxy%i", i);
+	TargetMap->maxy = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "posx%i", i);
+	TargetMap->posx = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "posy%i", i);
+	TargetMap->posy = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "sizx%i", i);
+	TargetMap->sizx = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "sizy%i", i);
+	TargetMap->sizy = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxfps%i", i);
+	TargetMap->MaxFPS = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "initts%i", i);
+	TargetMap->InitTS = GetPrivateProfileInt("target", key, 0, InitPath);
+	return TRUE;
+}
+
+static int SetTargetIcon(TARGETMAP tm)
+{
+	FILE *target;
+	target = fopen(tm.path, "r");
+	if (target==NULL) return 3;
+	fclose(target);
+	if (tm.flags3 & HOOKENABLED) return (tm.flags2 & STARTDEBUG) ? 2 : 1;
+	return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CDxwndhostView class constructor / destructor
 
 CDxwndhostView::CDxwndhostView()
 {
-//	EnumDisplaySettings(NULL, ENUM_REGISTRY_SETTINGS, &this->InitDevMode);
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &this->InitDevMode);
-}
-
-void CDxwndhostView::OnMove(int x, int y)
-{
-    CWnd::OnMove(x, y);
-	this->LastX=x;
-	this->LastY=y;
-}
-
-void CDxwndhostView::OnSize(UINT nSize, int cx, int cy)
-{
-	this->LastCX=cx;
-	this->LastCY=cy;
-	// save x,y pos since OnMove is not working .... why?
-	RECT rect;
-	this->GetActiveWindow()->GetWindowRect(&rect);
-	this->LastX=rect.left;
-	this->LastY=rect.top;
-}
-
-void CDxwndhostView::SaveWinPos()
-{
-	char val[32];
-	//RECT rect;
-
-	// save window rect
-	//this->GetActiveWindow()->GetWindowRect(&rect);
-	//if((rect.top < 0) || (rect.bottom < 0) || (rect.left < 0) || (rect.right < 0)) return;
-	//sprintf_s(val, sizeof(val), "%i", rect.left);
-	//WritePrivateProfileString("window", "posx", val, InitPath);
-	//sprintf_s(val, sizeof(val), "%i", rect.top);
-	//WritePrivateProfileString("window", "posy", val, InitPath);
-	//sprintf_s(val, sizeof(val), "%i", rect.right-rect.left);
-	//WritePrivateProfileString("window", "sizx", val, InitPath);
-	//sprintf_s(val, sizeof(val), "%i", rect.bottom-rect.top);
-	//WritePrivateProfileString("window", "sizy", val, InitPath);
-	sprintf_s(val, sizeof(val), "%i", this->LastX);
-	WritePrivateProfileString("window", "posx", val, InitPath);
-	sprintf_s(val, sizeof(val), "%i", this->LastY);
-	WritePrivateProfileString("window", "posy", val, InitPath);
-	sprintf_s(val, sizeof(val), "%i", this->LastCX);
-	WritePrivateProfileString("window", "sizx", val, InitPath);
-	sprintf_s(val, sizeof(val), "%i", this->LastCY);
-	WritePrivateProfileString("window", "sizy", val, InitPath);
 }
 
 void CDxwndhostView::SaveConfigFile()
 {
 	int i;
-	char key[32], val[32];
 
 	for(i = 0; i < MAXTARGETS; i ++){
 		if(!TargetMaps[i].path[0]) break;
-		sprintf_s(key, sizeof(key), "title%i", i);
-		WritePrivateProfileString("target", key, TitleMaps[i].title, InitPath);
-		sprintf_s(key, sizeof(key), "path%i", i);
-		WritePrivateProfileString("target", key, TargetMaps[i].path, InitPath);
-		sprintf_s(key, sizeof(key), "module%i", i);
-		WritePrivateProfileString("target", key, TargetMaps[i].module, InitPath);
-		sprintf_s(key, sizeof(key), "opengllib%i", i);
-		WritePrivateProfileString("target", key, TargetMaps[i].OpenGLLib, InitPath);
-		sprintf_s(key, sizeof(key), "ver%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].dxversion);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "flag%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "flagg%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags2);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "flagh%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags3);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "flagi%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].flags4);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "tflag%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].tflags);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "initx%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].initx);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "inity%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].inity);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "minx%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].minx);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "miny%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].miny);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "maxx%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].maxx);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "maxy%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].maxy);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "posx%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].posx);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "posy%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].posy);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "sizx%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].sizx);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "sizy%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].sizy);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "maxfps%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].MaxFPS);
-		WritePrivateProfileString("target", key, val, InitPath);
-		sprintf_s(key, sizeof(key), "initts%i", i);
-		sprintf_s(val, sizeof(val), "%i", TargetMaps[i].InitTS);
-		WritePrivateProfileString("target", key, val, InitPath);
+		SaveConfigItem(&TargetMaps[i], TitleMaps[i].title, i, InitPath);
 	}
-	for(; i < MAXTARGETS; i ++){
-		sprintf_s(key, sizeof(key), "path%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "ver%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "flag%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "flagg%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "flagh%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "flagi%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "tflag%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "initx%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "inity%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "minx%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "miny%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "maxx%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "maxy%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "posx%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "posy%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "sizx%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "sizy%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "maxfps%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "initts%i", i);
-		WritePrivateProfileString("target", key, 0, InitPath);
-	}	
-
+	for(; i < MAXTARGETS; i ++) ClearTarget(i, InitPath);
 	this->isUpdated=FALSE;
 }
 
@@ -278,16 +310,9 @@ CDxwndhostView::~CDxwndhostView()
 	}
 }
 
-void CDxwndhostView::OnDestroy()
-{
-	this->OnExit();
-	exit(0);
-}
-
 void CDxwndhostView::OnExit()
 {
 	// check for running apps ....
-	this->SaveWinPos();
 	if (GetHookStatus(NULL)==DXW_RUNNING){
 		if (MessageBoxEx(0, 
 			"A hooked task is still running.\n"
@@ -320,7 +345,27 @@ void CDxwndhostView::OnInitialUpdate()
 	LV_COLUMN listcol;
 	LV_ITEM listitem;
 	int i;
-	char key[32];
+
+	// Create 256 color image lists
+	HIMAGELIST hList = ImageList_Create(32,32, ILC_COLOR8 |ILC_MASK , 4, 1);
+	m_cImageListNormal.Attach(hList);
+
+	hList = ImageList_Create(16, 16, ILC_COLOR8 | ILC_MASK, 4, 1);
+	m_cImageListSmall.Attach(hList);
+
+	// Load the large icons
+	CBitmap cBmp;
+	cBmp.LoadBitmap(IDB_BIGICONS);
+	m_cImageListNormal.Add(&cBmp, RGB(255,0, 255));
+	cBmp.DeleteObject();
+
+	// Load the small icons
+	cBmp.LoadBitmap(IDB_SMALLICONS);
+	m_cImageListSmall.Add(&cBmp, RGB(255,0, 255));
+
+	// Attach them
+	listctrl.SetImageList(&m_cImageListNormal, LVSIL_NORMAL);
+	listctrl.SetImageList(&m_cImageListSmall, LVSIL_SMALL);
 
 	listcol.mask = LVCF_WIDTH;
 	listcol.cx = 100;
@@ -329,57 +374,16 @@ void CDxwndhostView::OnInitialUpdate()
 	GetCurrentDirectory(MAX_PATH, InitPath);
 	strcat_s(InitPath, sizeof(InitPath), "\\");
 	strcat_s(InitPath, sizeof(InitPath), m_ConfigFileName);
+	listctrl.InsertColumn(0, &listcol);
 
 	for(i = 0; i < MAXTARGETS; i ++){
-		sprintf_s(key, sizeof(key), "path%i", i);
-		GetPrivateProfileString("target", key, "", TargetMaps[i].path, MAX_PATH, InitPath);
-		if(!TargetMaps[i].path[0]) break;
-		sprintf_s(key, sizeof(key), "title%i", i);
-		GetPrivateProfileString("target", key, "", TitleMaps[i].title, sizeof(TitleMaps[i].title)-1, InitPath);
-		sprintf_s(key, sizeof(key), "module%i", i);
-		GetPrivateProfileString("target", key, "", TargetMaps[i].module, sizeof(TargetMaps[i].module)-1, InitPath);
-		sprintf_s(key, sizeof(key), "opengllib%i", i);
-		GetPrivateProfileString("target", key, "", TargetMaps[i].OpenGLLib, sizeof(TargetMaps[i].OpenGLLib)-1, InitPath);
-		sprintf_s(key, sizeof(key), "ver%i", i);
-		TargetMaps[i].dxversion = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "flag%i", i);
-		TargetMaps[i].flags = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "flagg%i", i);
-		TargetMaps[i].flags2 = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "flagh%i", i);
-		TargetMaps[i].flags3 = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "flagi%i", i);
-		TargetMaps[i].flags4 = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "tflag%i", i);
-		TargetMaps[i].tflags = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "initx%i", i);
-		TargetMaps[i].initx = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "inity%i", i);
-		TargetMaps[i].inity = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "minx%i", i);
-		TargetMaps[i].minx = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "miny%i", i);
-		TargetMaps[i].miny = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "maxx%i", i);
-		TargetMaps[i].maxx = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "maxy%i", i);
-		TargetMaps[i].maxy = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "posx%i", i);
-		TargetMaps[i].posx = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "posy%i", i);
-		TargetMaps[i].posy = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "sizx%i", i);
-		TargetMaps[i].sizx = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "sizy%i", i);
-		TargetMaps[i].sizy = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "maxfps%i", i);
-		TargetMaps[i].MaxFPS = GetPrivateProfileInt("target", key, 0, InitPath);
-		sprintf_s(key, sizeof(key), "initts%i", i);
-		TargetMaps[i].InitTS = GetPrivateProfileInt("target", key, 0, InitPath);
-		listitem.mask = LVIF_TEXT;
+		FILE *target;
+		if (!LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, i, InitPath)) break;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
 		listitem.pszText = TitleMaps[i].title;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
 		listctrl.InsertItem(&listitem);
 	}
 	for(; i < MAXTARGETS; i ++) TargetMaps[i].path[0] = 0;
@@ -424,9 +428,62 @@ void CDxwndhostView::OnDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
+void CDxwndhostView::OnExport()
+{
+	int i;
+    char path[MAX_PATH];
+	CListCtrl& listctrl = GetListCtrl();
+	POSITION pos;
+	if(!listctrl.GetSelectedCount()) return;
+	pos = listctrl.GetFirstSelectedItemPosition();
+	i = listctrl.GetNextSelectedItem(pos);
+	//path[0]=0;
+	strcpy_s(path, MAX_PATH, TitleMaps[i].title);
+	CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+        "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
+	if( dlg.DoModal() == IDOK) 
+		SaveConfigItem(&TargetMaps[i], TitleMaps[i].title, 0, dlg.GetPathName().GetBuffer());
+}
+
+void CDxwndhostView::OnImport()
+{
+	int i;
+    char path[MAX_PATH];
+	for (i=0; strlen(TargetMaps[i].path) && i<MAXTARGETS; i++)
+		;
+	if (i==MAXTARGETS) return;
+	path[0]=0;
+	CFileDialog dlg( TRUE, "*.dxw", path, OFN_FILEMUSTEXIST,
+        "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
+	if( dlg.DoModal() == IDOK){
+		LV_ITEM listitem;
+		CListCtrl& listctrl = GetListCtrl();
+		
+		LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, 0, dlg.GetPathName().GetBuffer());
+
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+		listitem.iItem = i;
+		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
+		if (strlen(TitleMaps[i].title)==0){
+			int len;
+			CString	FilePath;
+			FilePath=TargetMaps[i].path;
+			len=FilePath.ReverseFind('\\');	
+			FilePath=FilePath.Right(FilePath.GetLength()-len-1);
+			strncpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), FilePath.GetString(), sizeof(TitleMaps[i].title)-1);
+		}
+
+		listitem.pszText = TitleMaps[i].title;
+		listctrl.InsertItem(&listitem);
+		Resize();
+		SetTarget(TargetMaps);	
+		this->isUpdated=TRUE;
+	}
+}
+
 void CDxwndhostView::OnModify() 
 {
-	// TODO: Please add a command handler code here.
 	int i;
 	CTargetDlg dlg;
 	POSITION pos;
@@ -438,6 +495,7 @@ void CDxwndhostView::OnModify()
 	i = listctrl.GetNextSelectedItem(pos);
 	dlg.m_DXVersion = TargetMaps[i].dxversion;
 	if(dlg.m_DXVersion > 6) dlg.m_DXVersion -= 5;
+	dlg.m_Coordinates = TargetMaps[i].coordinates;
 	dlg.m_FilePath = TargetMaps[i].path;
 	dlg.m_Module = TargetMaps[i].module;
 	dlg.m_OpenGLLib = TargetMaps[i].OpenGLLib;
@@ -445,6 +503,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_UnNotify = TargetMaps[i].flags & UNNOTIFY ? 1 : 0;
 	dlg.m_Windowize = TargetMaps[i].flags2 & WINDOWIZE ? 1 : 0;
 	dlg.m_HookDLLs = TargetMaps[i].flags3 & HOOKDLLS ? 1 : 0;
+	dlg.m_HookEnabled = TargetMaps[i].flags3 & HOOKENABLED ? 1 : 0;
 	dlg.m_NoBanner = TargetMaps[i].flags2 & NOBANNER ? 1 : 0;
 	dlg.m_StartDebug = TargetMaps[i].flags2 & STARTDEBUG ? 1 : 0;
 	dlg.m_EmulateSurface = TargetMaps[i].flags & EMULATESURFACE ? 1 : 0;
@@ -497,6 +556,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_HookGDI = TargetMaps[i].flags2 & HOOKGDI ? 1 : 0;
 	dlg.m_HideMultiMonitor = TargetMaps[i].flags2 & HIDEMULTIMONITOR ? 1 : 0;
 	dlg.m_WallpaperMode = TargetMaps[i].flags2 & WALLPAPERMODE ? 1 : 0;
+	dlg.m_FixD3DFrame = TargetMaps[i].flags3 & FIXD3DFRAME ? 1 : 0;
 	dlg.m_HookChildWin = TargetMaps[i].flags & HOOKCHILDWIN ? 1 : 0;
 	dlg.m_MessageProc = TargetMaps[i].flags & MESSAGEPROC ? 1 : 0;
 	dlg.m_FixNCHITTEST = TargetMaps[i].flags2 & FIXNCHITTEST ? 1 : 0;
@@ -537,6 +597,7 @@ void CDxwndhostView::OnModify()
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
 		if(dlg.m_DXVersion > 1) dlg.m_DXVersion += 5;
 		TargetMaps[i].dxversion = dlg.m_DXVersion;
+		TargetMaps[i].coordinates = dlg.m_Coordinates;
 		TargetMaps[i].flags = 0;
 		TargetMaps[i].flags2 = 0;
 		TargetMaps[i].flags3 = 0;
@@ -545,6 +606,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
 		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
 		if(dlg.m_HookDLLs) TargetMaps[i].flags3 |= HOOKDLLS;
+		if(dlg.m_HookEnabled) TargetMaps[i].flags3 |= HOOKENABLED;
 		if(dlg.m_NoBanner) TargetMaps[i].flags2 |= NOBANNER;
 		if(dlg.m_StartDebug) TargetMaps[i].flags2 |= STARTDEBUG;
 		if(dlg.m_NoEmulateSurface) {
@@ -611,6 +673,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_HookGDI) TargetMaps[i].flags2 |= HOOKGDI;
 		if(dlg.m_HideMultiMonitor) TargetMaps[i].flags2 |= HIDEMULTIMONITOR;
 		if(dlg.m_WallpaperMode) TargetMaps[i].flags2 |= WALLPAPERMODE;
+		if(dlg.m_FixD3DFrame) TargetMaps[i].flags3 |= FIXD3DFRAME;
 		if(dlg.m_HookChildWin) TargetMaps[i].flags |= HOOKCHILDWIN;
 		if(dlg.m_MessageProc) TargetMaps[i].flags |= MESSAGEPROC;
 		if(dlg.m_FixNCHITTEST) TargetMaps[i].flags2 |= FIXNCHITTEST;
@@ -648,9 +711,10 @@ void CDxwndhostView::OnModify()
 		strcpy_s(TargetMaps[i].OpenGLLib, sizeof(TargetMaps[i].OpenGLLib), dlg.m_OpenGLLib);
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
 		CListCtrl& listctrl = GetListCtrl();
-		listitem.mask = LVIF_TEXT;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
 		listitem.pszText = TitleMaps[i].title;
 		listctrl.SetItem(&listitem);
 		Resize();
@@ -776,9 +840,10 @@ void CDxwndhostView::OnSort()
 	listctrl.DeleteAllItems();
 	for(i=0; i<itemcount; i++) {
 		LV_ITEM listitem;
-		listitem.mask = LVIF_TEXT;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
 		listitem.pszText = TitleMaps[i].title;
 		listctrl.SetItem(&listitem);
 		listctrl.InsertItem(&listitem);
@@ -786,6 +851,84 @@ void CDxwndhostView::OnSort()
 
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
+}
+
+BOOL PauseResumeThreadList(DWORD dwOwnerPID, bool bResumeThread) 
+{ 
+    HANDLE        hThreadSnap = NULL; 
+    BOOL          bRet        = FALSE; 
+    THREADENTRY32 te32        = {0}; 
+ 
+    // Take a snapshot of all threads currently in the system. 
+
+    hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0); 
+    if (hThreadSnap == INVALID_HANDLE_VALUE) 
+        return (FALSE); 
+ 
+    // Fill in the size of the structure before using it. 
+
+    te32.dwSize = sizeof(THREADENTRY32); 
+ 
+    // Walk the thread snapshot to find all threads of the process. 
+    // If the thread belongs to the process, add its information 
+    // to the display list.
+ 
+    if (Thread32First(hThreadSnap, &te32)){ 
+        do{ 
+            if (te32.th32OwnerProcessID == dwOwnerPID){
+				HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, te32.th32ThreadID);
+				if (bResumeThread)
+					ResumeThread(hThread);
+				else
+					SuspendThread(hThread);
+				CloseHandle(hThread);
+            } 
+        }
+        while (Thread32Next(hThreadSnap, &te32)); 
+        bRet = TRUE; 
+    } 
+    else 
+        bRet = FALSE;          // could not walk the list of threads 
+ 
+    // Do not forget to clean up the snapshot object. 
+    CloseHandle (hThreadSnap); 
+ 
+    return (bRet); 
+} 
+
+void CDxwndhostView::OnPause() 
+{
+	CTargetDlg dlg;
+	HRESULT res;
+	char sMsg[128+1];
+	DXWNDSTATUS DxWndStatus;
+	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
+		MessageBoxEx(0, "No active task to pause.", "Info", MB_ICONEXCLAMATION, NULL);
+	}
+	else {
+		sprintf_s(sMsg, 128, "Do you want to pause \nthe \"%s\" task?", TitleMaps[DxWndStatus.TaskIdx].title);
+		res=MessageBoxEx(0, sMsg, "Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+		if(res!=IDYES) return;
+		PauseResumeThreadList(DxWndStatus.dwPid, FALSE);
+	}
+}
+
+void CDxwndhostView::OnResume() 
+{
+	CTargetDlg dlg;
+	HRESULT res;
+	HANDLE TargetHandle;
+	char sMsg[128+1];
+	DXWNDSTATUS DxWndStatus;
+	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
+		MessageBoxEx(0, "No active task to resume.", "Info", MB_ICONEXCLAMATION, NULL);
+	}
+	else {
+		sprintf_s(sMsg, 128, "Do you want to resume \nthe \"%s\" task?", TitleMaps[DxWndStatus.TaskIdx].title);
+		res=MessageBoxEx(0, sMsg, "Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+		if(res!=IDYES) return;
+		PauseResumeThreadList(DxWndStatus.dwPid, TRUE);
+	}
 }
 
 void CDxwndhostView::OnKill() 
@@ -830,6 +973,7 @@ void CDxwndhostView::OnAdd()
 	LV_ITEM listitem;
 
 	dlg.m_DXVersion = 0;
+	dlg.m_Coordinates = 0;
 	dlg.m_MaxX = 0; //639;
 	dlg.m_MaxY = 0; //479;
 	for(i = 0; i < MAXTARGETS; i ++) if(!TargetMaps[i].path[0]) break;
@@ -844,12 +988,14 @@ void CDxwndhostView::OnAdd()
 		strcpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), dlg.m_Title);
 		if(dlg.m_DXVersion > 1) dlg.m_DXVersion += 5;
 		TargetMaps[i].dxversion = dlg.m_DXVersion;
+		TargetMaps[i].coordinates = dlg.m_Coordinates;
 		TargetMaps[i].flags = 0;
 		TargetMaps[i].flags2 = 0;
 		TargetMaps[i].tflags = 0;
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
 		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
 		if(dlg.m_HookDLLs) TargetMaps[i].flags3 |= HOOKDLLS;
+		if(dlg.m_HookEnabled) TargetMaps[i].flags3 |= HOOKENABLED;
 		if(dlg.m_NoBanner) TargetMaps[i].flags2 |= NOBANNER;
 		if(dlg.m_StartDebug) TargetMaps[i].flags2 |= STARTDEBUG;
 		if(dlg.m_NoEmulateSurface) {
@@ -916,6 +1062,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_HookGDI) TargetMaps[i].flags2 |= HOOKGDI;
 		if(dlg.m_HideMultiMonitor) TargetMaps[i].flags2 |= HIDEMULTIMONITOR;
 		if(dlg.m_WallpaperMode) TargetMaps[i].flags2 |= WALLPAPERMODE;
+		if(dlg.m_FixD3DFrame) TargetMaps[i].flags3 |= FIXD3DFRAME;
 		if(dlg.m_HookChildWin) TargetMaps[i].flags |= HOOKCHILDWIN;
 		if(dlg.m_MessageProc) TargetMaps[i].flags |= MESSAGEPROC;
 		if(dlg.m_FixNCHITTEST) TargetMaps[i].flags2 |= FIXNCHITTEST;
@@ -953,9 +1100,10 @@ void CDxwndhostView::OnAdd()
 		else
 			MessageBoxEx(0, "Bad InitTS", "Warning", MB_OK, NULL);
 		CListCtrl& listctrl = GetListCtrl();
-		listitem.mask = LVIF_TEXT;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
 		if (strlen(TitleMaps[i].title)==0){
 			int len;
 			CString	FilePath;
@@ -1234,6 +1382,18 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	case ID_TASK_KILL:
 		OnKill();
 		break;
+	case ID_TASK_PAUSE:
+		OnPause();
+		break;
+	case ID_TASK_RESUME:
+		OnResume();
+		break;
+	case ID_PEXPORT:
+		OnExport();
+		break;
+	case ID_FILE_IMPORT:
+		OnImport();
+		break;
 	}
 	CListView::OnRButtonDown(nFlags, point);
 }
@@ -1307,6 +1467,10 @@ DWORD WINAPI StartDebug(void *p)
 					li->hFile, GetFileNameFromHandle(li->hFile));
 				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
 				if(res!=IDYES) step=FALSE;
+				if(!Inject(pinfo.dwProcessId, path)){
+					sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, path);
+					MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
+				}
 			}
 			break;
 		case UNLOAD_DLL_DEBUG_EVENT:

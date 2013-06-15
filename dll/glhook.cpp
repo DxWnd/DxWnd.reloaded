@@ -7,96 +7,59 @@
 #include "glhook.h"
 #undef DXWDECLARATIONS
 
+static HookEntry_Type Hooks[]={
+	{"glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
+	{"glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
+	{"glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
+	{"glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
+	{"glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
+	{"glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
+	{"glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
+	{"wglCreateContext", NULL, (FARPROC *)&pwglCreateContext, (FARPROC)extwglCreateContext},
+	{"wglMakeCurrent", NULL, (FARPROC *)&pwglMakeCurrent, (FARPROC)extwglMakeCurrent},
+	{"wglGetProcAddress", NULL, (FARPROC *)&pwglGetProcAddress, (FARPROC)extwglGetProcAddress},
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type wglHooks[]={
+	{"glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
+	{"glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
+	{"glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
+	{"glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
+	{"glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
+	{"glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
+	{"glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
+	{0, NULL, 0, 0} // terminator
+};
+
 FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
+	FARPROC addr;
 	if(!(dxw.dwFlags2 & HOOKOPENGL)) return NULL; 
-
-	if (!strcmp(proc,"glViewport") && !pglViewport){
-		pglViewport=(glViewport_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglViewport);
-		return (FARPROC)extglViewport;
-	}
-	if (!strcmp(proc,"glScissor") && !pglScissor){
-		pglScissor=(glScissor_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglScissor);
-		return (FARPROC)extglScissor;
-	}
-	if (!strcmp(proc,"glGetIntegerv") && !pglGetIntegerv){
-		pglGetIntegerv=(glGetIntegerv_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglGetIntegerv);
-		return (FARPROC)extglGetIntegerv;
-	}
-	if (!strcmp(proc,"glDrawBuffer") && !pglDrawBuffer){
-		pglDrawBuffer=(glDrawBuffer_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglDrawBuffer);
-		return (FARPROC)extglDrawBuffer;
-	}
-	if (!strcmp(proc,"glPolygonMode") && !pglPolygonMode){
-		pglPolygonMode=(glPolygonMode_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglPolygonMode);
-		return (FARPROC)extglPolygonMode;
-	}
-	if (!strcmp(proc,"glGetFloatv") && !pglGetFloatv){
-		pglGetFloatv=(glGetFloatv_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglGetFloatv);
-		return (FARPROC)extglGetFloatv;
-	}
-	if (!strcmp(proc,"glClear") && !pglClear){
-		pglClear=(glClear_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglClear);
-		return (FARPROC)extglClear;
-	}
-	if (!strcmp(proc,"wglCreateContext") && !pwglCreateContext){
-		pwglCreateContext=(wglCreateContext_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pwglCreateContext);
-		return (FARPROC)extwglCreateContext;
-	}
-	if (!strcmp(proc,"wglMakeCurrent") && !pwglMakeCurrent){
-		pwglMakeCurrent=(wglMakeCurrent_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pwglMakeCurrent);
-		return (FARPROC)extwglMakeCurrent;
-	}
+	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
 	// NULL -> keep the original call address
+	return NULL;
+}
+
+static FARPROC wglRemapLibrary(LPCSTR proc, HookEntry_Type *Hooks)
+{
+	int i;
+	HookEntry_Type *Hook;
+	for(i=0; Hooks[i].APIName; i++){
+		Hook=&Hooks[i];
+		if (!strcmp(proc,Hook->APIName)){
+			if (Hook->StoreAddress) *(Hook->StoreAddress)=(*pwglGetProcAddress)(proc);
+			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), (Hook->StoreAddress) ? *(Hook->StoreAddress) : 0);
+			return Hook->HookerAddress;
+		}
+	}
 	return NULL;
 }
 
 PROC Remap_wgl_ProcAddress(LPCSTR proc)
 {
-	if (!strcmp(proc,"glViewport")){
-		pglViewport=(glViewport_Type)(*pwglGetProcAddress)(proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglViewport);
-		return (FARPROC)extglViewport;
-	}
-	if (!strcmp(proc,"glScissor")){
-		pglScissor=(glScissor_Type)(*pwglGetProcAddress)(proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglScissor);
-		return (FARPROC)extglScissor;
-	}
-	if (!strcmp(proc,"glGetIntegerv")){
-		pglGetIntegerv=(glGetIntegerv_Type)(*pwglGetProcAddress)(proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglGetIntegerv);
-		return (FARPROC)extglGetIntegerv;
-	}
-	if (!strcmp(proc,"glDrawBuffer")){
-		pglDrawBuffer=(glDrawBuffer_Type)(*pwglGetProcAddress)(proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglDrawBuffer);
-		return (FARPROC)extglDrawBuffer;
-	}
-	if (!strcmp(proc,"glPolygonMode")){
-		pglPolygonMode=(glPolygonMode_Type)(*pwglGetProcAddress)(proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglPolygonMode);
-		return (FARPROC)extglPolygonMode;
-	}
-	if (!strcmp(proc,"glGetFloatv")){
-		pglGetFloatv=(glGetFloatv_Type)(*pwglGetProcAddress)(proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglGetFloatv);
-		return (FARPROC)extglGetFloatv;
-	}
-	if (!strcmp(proc,"glClear")){
-		pglClear=(glClear_Type)(*pwglGetProcAddress)(proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pglClear);
-		return (FARPROC)extglClear;
-	}
+	FARPROC addr;
+	if(addr=wglRemapLibrary(proc, wglHooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
 }

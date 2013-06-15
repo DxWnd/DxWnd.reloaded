@@ -9,6 +9,30 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 
+static HookEntry_Type Hooks[]={
+	{"ImmNotifyIME", NULL, (FARPROC *)&pImmNotifyIME, (FARPROC)extImmNotifyIME},
+	{"ImmCreateContext", NULL, (FARPROC *)&pImmCreateContext, (FARPROC)extImmCreateContext},
+	{"ImmDestroyContext", NULL, (FARPROC *)&pImmDestroyContext, (FARPROC)extImmDestroyContext},
+	{"ImmSetOpenStatus", NULL, (FARPROC *)&pImmSetOpenStatus, (FARPROC)extImmSetOpenStatus},
+	{"ImmAssociateContext", NULL, (FARPROC *)&pImmAssociateContext, (FARPROC)extImmAssociateContext},
+	{"ImmSetCompositionWindow", NULL, (FARPROC *)&pImmSetCompositionWindow, (FARPROC)extImmSetCompositionWindow},
+	{"ImmSetCompositionStringA", NULL, (FARPROC *)&pImmSetCompositionString, (FARPROC)extImmSetCompositionString},
+	{"ImmGetOpenStatus", NULL, (FARPROC *)&pImmGetOpenStatus, (FARPROC)extImmGetOpenStatus},
+	{0, NULL, 0, 0} // terminator
+};
+
+void HookImeLib(HMODULE module)
+{
+	HookLibrary(module, Hooks, "IMM32.dll");
+}
+
+FARPROC Remap_ImeLib_ProcAddress(LPCSTR proc, HMODULE hModule)
+{
+	FARPROC addr;
+	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	return NULL;
+}
+
 BOOL WINAPI extImmNotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD dwValue)
 {
 	OutTraceD("ImmNotifyIME: hIMC=%x dwAction=%x dwIndex=%x dwValue=%x\n", hIMC, dwAction, dwIndex, dwValue);
@@ -56,26 +80,4 @@ BOOL WINAPI extImmGetOpenStatus(HIMC hIMC)
 {
 	OutTraceD("ImmGetOpenStatus: hIMC=%x\n", hIMC);
 	return(*pImmGetOpenStatus)(hIMC);
-}
-
-void HookImeLib(HMODULE module)
-{
-	void *tmp;
-
-	tmp = HookAPI(module, "IMM32.dll", NULL, "ImmNotifyIME", extImmNotifyIME);
-	if(tmp) pImmNotifyIME = (ImmNotifyIME_Type)tmp;
-	tmp = HookAPI(module, "IMM32.dll", NULL, "ImmCreateContext", extImmCreateContext);
-	if(tmp) pImmCreateContext = (ImmCreateContext_Type)tmp;
-	tmp = HookAPI(module, "IMM32.dll", NULL, "ImmDestroyContext", extImmDestroyContext);
-	if(tmp) pImmDestroyContext = (ImmDestroyContext_Type)tmp;
-	tmp = HookAPI(module, "IMM32.dll", NULL, "ImmSetOpenStatus", extImmSetOpenStatus);
-	if(tmp) pImmSetOpenStatus = (ImmSetOpenStatus_Type)tmp;
-	tmp = HookAPI(module, "IMM32.dll", NULL, "ImmAssociateContext", extImmAssociateContext);
-	if(tmp) pImmAssociateContext = (ImmAssociateContext_Type)tmp;
-	tmp = HookAPI(module, "IMM32.dll", NULL, "ImmSetCompositionWindow", extImmSetCompositionWindow);
-	if(tmp) pImmSetCompositionWindow = (ImmSetCompositionWindow_Type)tmp;
-	tmp = HookAPI(module, "IMM32.dll", NULL, "ImmSetCompositionStringA", extImmSetCompositionString);
-	if(tmp) pImmSetCompositionString = (ImmSetCompositionString_Type)tmp;
-	tmp = HookAPI(module, "IMM32.dll", NULL, "ImmGetOpenStatus", extImmGetOpenStatus);
-	if(tmp) pImmGetOpenStatus = (ImmGetOpenStatus_Type)tmp;
 }

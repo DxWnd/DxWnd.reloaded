@@ -280,6 +280,7 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	static DWORD MinHook=0xFFFFFFFF;
 	static DWORD MaxHook=0;
 	
+	OutTraceB("SetHook: DEBUG target=%x, proc=%x name=%s\n", target, hookproc, hookname);
 	// keep track of hooked call range to avoid re-hooking of hooked addresses !!!
 	if ((DWORD)hookproc < MinHook) MinHook=(DWORD)hookproc;
 	if ((DWORD)hookproc > MaxHook) MaxHook=(DWORD)hookproc;
@@ -315,6 +316,9 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 	PIMAGE_IMPORT_BY_NAME piname;
 	DWORD oldprotect;
 	void *org;
+
+	OutTraceB("HookAPI: module=%x dll=%s apiproc=%x apiname=%s hookproc=%x\n", 
+		module, dll, apiproc, apiname, hookproc);
 
 	if(!*apiname) { // check
 		char *sMsg="HookAPI: NULL api name\n";
@@ -401,19 +405,55 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 
 void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 {
-	RECT rect;
+	RECT rect, desktop, workarea;
 	DWORD dwStyle;
 	int MaxX, MaxY;
 	HMENU hMenu;
 
-	rect.left =  dxw.iPosX;
-	rect.top = dxw.iPosY; //v2.02.09
-	MaxX = dxw.iSizX;
-	MaxY = dxw.iSizY;
-	if (!MaxX) MaxX = width;
-	if (!MaxY) MaxY = height;
-	rect.right = dxw.iPosX+MaxX;
-	rect.bottom = dxw.iPosY+MaxY; //v2.02.09
+	switch(dxw.Coordinates){
+	case DXW_DESKTOP_CENTER:
+		MaxX = dxw.iSizX;
+		MaxY = dxw.iSizY;
+		if (!MaxX) MaxX = width;
+		if (!MaxY) MaxY = height;
+		//GetClientRect(0, &desktop);
+		(*pGetClientRect)(GetDesktopWindow(), &desktop);
+		rect.left =  (desktop.right - MaxX) / 2;
+		rect.top = (desktop.bottom - MaxY) / 2;
+		rect.right = rect.left + MaxX;
+		rect.bottom = rect.top + MaxY; //v2.02.09
+		break;
+	case DXW_DESKTOP_WORKAREA:
+		SystemParametersInfo(SPI_GETWORKAREA, NULL, &workarea, 0);
+		rect = workarea;
+		if (dxw.dwFlags2 & KEEPASPECTRATIO) {
+			int w, h, b; // width, height and border
+			w = workarea.right - workarea.left;
+			h = workarea.bottom - workarea.top;
+			if ((w * 600) > (h * 800)){
+				b = (w - (h * 800 / 600))/2;
+				rect.left = workarea.left + b;
+				rect.right = workarea.right - b;
+			}
+			else {
+				b = (h - (w * 600 / 800))/2;
+				rect.top = workarea.top + b;
+				rect.bottom = workarea.bottom - b;
+			}
+		}
+		break;
+	case DXW_SET_COORDINATES:
+	default:
+		rect.left =  dxw.iPosX;
+		rect.top = dxw.iPosY; //v2.02.09
+		MaxX = dxw.iSizX;
+		MaxY = dxw.iSizY;
+		if (!MaxX) MaxX = width;
+		if (!MaxY) MaxY = height;
+		rect.right = dxw.iPosX + MaxX;
+		rect.bottom = dxw.iPosY + MaxY; //v2.02.09
+		break;
+	}
 
 	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 	hMenu = GetMenu(hwnd);	
@@ -455,16 +495,18 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 
 	HRESULT res=0;
 	WNDPROC pWindowProc;
+	LONG style;
 
-	OutTraceD("AdjustWindowFrame hwnd=%x, size=(%d,%d)\n", hwnd, width, height); 
+	OutTraceD("AdjustWindowFrame hwnd=%x, size=(%d,%d) coord=%d\n", hwnd, width, height, dxw.Coordinates); 
 
 	dxw.SetScreenSize(width, height);
 	if (hwnd==NULL) return;
 
-	(*pSetWindowLong)(hwnd, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
+	style = ((dxw.dwFlags2 & MODALSTYLE) || (dxw.Coordinates == DXW_DESKTOP_WORKAREA)) ? 0 : WS_OVERLAPPEDWINDOW;
+	(*pSetWindowLong)(hwnd, GWL_STYLE, style);
 	(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0); 
 	(*pShowWindow)(hwnd, SW_SHOWNORMAL);
-	OutTraceD("AdjustWindowFrame hwnd=%x, set style=%s extstyle=0\n", hwnd, (dxw.dwFlags2 & MODALSTYLE) ? "0" : "WS_OVERLAPPEDWINDOW"); 
+	OutTraceD("AdjustWindowFrame hwnd=%x, set style=%s extstyle=0\n", hwnd, (style == 0) ? "0" : "WS_OVERLAPPEDWINDOW"); 
 	AdjustWindowPos(hwnd, width, height);
 
 	// fixing windows message handling procedure
@@ -1053,138 +1095,6 @@ void HookGDILib(HMODULE module)
 	}
 }
 
-void HookSysLibs(HMODULE module)
-{
-	void *tmp;
-
-	OutTraceD("HookSysLibs module=%x\n", module);
-
-	tmp = HookAPI(module, "kernel32.dll", GetProcAddress, "GetProcAddress", extGetProcAddress);
-	if(tmp) pGetProcAddress = (GetProcAddress_Type)tmp;
-	tmp = HookAPI(module, "kernel32.dll", LoadLibraryA, "LoadLibraryA", extLoadLibraryA);
-	if(tmp) pLoadLibraryA = (LoadLibraryA_Type)tmp;
-	tmp = HookAPI(module, "kernel32.dll", LoadLibraryExA, "LoadLibraryExA", extLoadLibraryExA);
-	if(tmp) pLoadLibraryExA = (LoadLibraryExA_Type)tmp;
-	tmp = HookAPI(module, "kernel32.dll", LoadLibraryW, "LoadLibraryW", extLoadLibraryW);
-	if(tmp) pLoadLibraryW = (LoadLibraryW_Type)tmp;
-	tmp = HookAPI(module, "kernel32.dll", LoadLibraryExW, "LoadLibraryExW", extLoadLibraryExW);
-	if(tmp) pLoadLibraryExW = (LoadLibraryExW_Type)tmp;
-
-	tmp = HookAPI(module, "user32.dll", BeginPaint, "BeginPaint", extBeginPaint);
-	if(tmp) pBeginPaint = (BeginPaint_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", EndPaint, "EndPaint", extEndPaint);
-	if(tmp) pEndPaint = (EndPaint_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", ShowCursor, "ShowCursor", extShowCursor);
-	if(tmp) pShowCursor = (ShowCursor_Type)tmp;
-	if(dxw.dwFlags1 & MAPGDITOPRIMARY){
-		tmp = HookAPI(module, "user32.dll", GetDC, "GetDC", extDDGetDC);
-		if(tmp) pGDIGetDC = (GDIGetDC_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", GetWindowDC, "GetWindowDC", extDDGetWindowDC);
-		if(tmp) pGDIGetWindowDC = (GDIGetDC_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", ReleaseDC, "ReleaseDC", extDDReleaseDC);
-		if(tmp) pGDIReleaseDC = (GDIReleaseDC_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", InvalidateRect, "InvalidateRect", extDDInvalidateRect);
-		if(tmp) pInvalidateRect = (InvalidateRect_Type)tmp;
-	}
-	else{
-		tmp = HookAPI(module, "user32.dll", GetDC, "GetDC", extGDIGetDC);
-		if(tmp) pGDIGetDC = (GDIGetDC_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", GetWindowDC, "GetWindowDC", extGDIGetWindowDC);
-		if(tmp) pGDIGetWindowDC = (GDIGetDC_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", ReleaseDC, "ReleaseDC", extGDIReleaseDC);
-		if(tmp) pGDIReleaseDC = (GDIReleaseDC_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", InvalidateRect, "InvalidateRect", extInvalidateRect);
-		if(tmp) pInvalidateRect = (InvalidateRect_Type)tmp;
-	}
-
-	if (dxw.dwFlags1 & CLIENTREMAPPING){
-		tmp = HookAPI(module, "user32.dll", ScreenToClient, "ScreenToClient", extScreenToClient);
-		if(tmp) pScreenToClient = (ScreenToClient_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", ClientToScreen, "ClientToScreen", extClientToScreen);
-		if(tmp) pClientToScreen = (ClientToScreen_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", GetClientRect, "GetClientRect", extGetClientRect);
-		if(tmp) pGetClientRect = (GetClientRect_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", GetWindowRect, "GetWindowRect", extGetWindowRect);
-		if(tmp) pGetWindowRect = (GetWindowRect_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", MapWindowPoints, "MapWindowPoints", extMapWindowPoints);
-		if(tmp) pMapWindowPoints = (MapWindowPoints_Type)tmp;
-	}
-
-	// get / change display settings
-	tmp = HookAPI(module, "user32.dll", ChangeDisplaySettingsA, "ChangeDisplaySettingsA", extChangeDisplaySettings);
-	if(tmp) pChangeDisplaySettings = (ChangeDisplaySettings_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", ChangeDisplaySettingsExA, "ChangeDisplaySettingsExA", extChangeDisplaySettingsEx);
-	if(tmp) pChangeDisplaySettingsEx = (ChangeDisplaySettingsEx_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", EnumDisplaySettingsA, "EnumDisplaySettingsA", extEnumDisplaySettings);
-	if(tmp) pEnumDisplaySettings = (EnumDisplaySettings_Type)tmp;
-
-	// handle cursor clipping
-	tmp = HookAPI(module, "user32.dll", GetClipCursor, "GetClipCursor", extGetClipCursor);
-	if(tmp) pGetClipCursor = (GetClipCursor_Type)tmp;
-
-	tmp = HookAPI(module, "user32.dll", ClipCursor, "ClipCursor", extClipCursor);
-	if(tmp) pClipCursor = (ClipCursor_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", FillRect, "FillRect", extFillRect);
-	if(tmp) pFillRect = (FillRect_Type)tmp;
-	if (dxw.dwFlags1 & MESSAGEPROC) {
-		tmp = HookAPI(module, "user32.dll", PeekMessageA, "PeekMessageA", extPeekMessage); // added for GPL 
-		if(tmp) pPeekMessage = (PeekMessage_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", GetMessageA, "GetMessageA", extGetMessage); // added for GPL 
-		if(tmp) pGetMessage = (GetMessage_Type)tmp;
-	}
-	tmp = HookAPI(module, "user32.dll", DefWindowProcA, "DefWindowProcA", extDefWindowProc); // added for WarWind background erase 
-	if(tmp) pDefWindowProc = (DefWindowProc_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", CreateWindowExA, "CreateWindowExA", extCreateWindowExA);
-	if(tmp) pCreateWindowExA = (CreateWindowExA_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", RegisterClassExA, "RegisterClassExA", extRegisterClassExA);
-	if(tmp) pRegisterClassExA = (RegisterClassExA_Type)tmp;
-	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)){
-		tmp = HookAPI(module, "user32.dll", ShowWindow, "ShowWindow", extShowWindow);
-		if(tmp) pShowWindow = (ShowWindow_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", SetWindowLongA, "SetWindowLongA", extSetWindowLong);
-		if(tmp) pSetWindowLong = (SetWindowLong_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", GetWindowLongA, "GetWindowLongA", extGetWindowLong);
-		if(tmp) pGetWindowLong = (GetWindowLong_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", SetWindowPos, "SetWindowPos", extSetWindowPos);
-		if(tmp) pSetWindowPos = (SetWindowPos_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", DeferWindowPos, "DeferWindowPos", extDeferWindowPos);
-		if(tmp) pGDIDeferWindowPos = (DeferWindowPos_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", CallWindowProcA, "CallWindowProcA", extCallWindowProc);
-		if(tmp) pCallWindowProc = (CallWindowProc_Type)tmp;
-	}
-	tmp = HookAPI(module, "user32.dll", GetSystemMetrics, "GetSystemMetrics", extGetSystemMetrics);
-	if(tmp) pGetSystemMetrics = (GetSystemMetrics_Type)tmp;
-
-	tmp = HookAPI(module, "user32.dll", GetDesktopWindow, "GetDesktopWindow", extGetDesktopWindow);
-	if(tmp) pGetDesktopWindow = (GetDesktopWindow_Type)tmp;
-
-	if(dxw.dwFlags1 & MODIFYMOUSE){
-		tmp = HookAPI(module, "user32.dll", GetCursorPos, "GetCursorPos", extGetCursorPos);
-		if(tmp) pGetCursorPos = (GetCursorPos_Type)tmp;
-		//tmp = HookAPI(module, "user32.dll", GetPhysicalCursorPos, "", extGetCursorPos);
-		tmp = HookAPI(module, "user32.dll", SetCursor, "SetCursor", extSetCursor);
-		if(tmp) pSetCursor = (SetCursor_Type)tmp;
-		//tmp = HookAPI(module, "user32.dll", SetPhysicalCursorPos, "", extSetCursorPos);
-		tmp = HookAPI(module, "user32.dll", SendMessageA, "SendMessageA", extSendMessage);
-		if(tmp) pSendMessage = (SendMessage_Type)tmp;
-	}
-
-	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)){ 
-		tmp = HookAPI(module, "user32.dll", SetCursorPos, "SetCursorPos", extSetCursorPos);
-		if(tmp) pSetCursorPos = (SetCursorPos_Type)tmp;
-	}
-
-	tmp = HookAPI(module, "user32.dll", CreateDialogIndirectParamA, "CreateDialogIndirectParamA", extCreateDialogIndirectParam);
-	if(tmp) pCreateDialogIndirectParam = (CreateDialogIndirectParam_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", CreateDialogParamA, "CreateDialogParamA", extCreateDialogParam);
-	if(tmp) pCreateDialogParam = (CreateDialogParam_Type)tmp;
-	tmp = HookAPI(module, "user32.dll", MoveWindow, "MoveWindow", extMoveWindow);
-	if(tmp) pMoveWindow = (MoveWindow_Type)tmp;
-
-	HookKernel32(module);
-	return;
-}
-
 static void RecoverScreenMode()
 {
 	DEVMODE InitDevMode;
@@ -1281,13 +1191,15 @@ void HookExceptionHandler(void)
 
 void HookModule(HMODULE base, int dxversion)
 {
-	HookSysLibs(base);
+	HookKernel32(base);
+	HookUser32(base);
+	HookWinMM(base);
 	//if(dxw.dwFlags2 & SUPPRESSIME) HookImeLib(module);
 	if(dxw.dwFlags2 & HOOKGDI) HookGDILib(base);
 	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base, dxversion);
 	HookDirectDraw(base, dxversion);
 	HookDirect3D(base, dxversion);
-	HookOle32(base, dxversion); // unfinished business
+	HookOle32(base);
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
 	HookMSV4WLibs(base);
 }
@@ -1439,4 +1351,31 @@ LPCSTR ProcToString(LPCSTR proc)
 	}
 	else
 		return proc;
+}
+
+FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
+{
+	int i;
+	HookEntry_Type *Hook;
+	for(i=0; Hooks[i].APIName; i++){
+		Hook=&Hooks[i];
+		if (!strcmp(proc,Hook->APIName)){
+			if (Hook->StoreAddress) *(Hook->StoreAddress)=(*pGetProcAddress)(hModule, proc);
+			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), (Hook->StoreAddress) ? *(Hook->StoreAddress) : 0);
+			return Hook->HookerAddress;
+		}
+	}
+	return NULL;
+}
+
+void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
+{
+	int i;
+	void *tmp;
+	HookEntry_Type *Hook;
+	for(i=0; Hooks[i].APIName; i++){
+		Hook=&Hooks[i];
+		tmp = HookAPI(hModule, DLLName, Hook->OriginalAddress, Hook->APIName, Hook->HookerAddress);
+		if(tmp) *(Hook->StoreAddress) = (FARPROC)tmp;
+	}
 }

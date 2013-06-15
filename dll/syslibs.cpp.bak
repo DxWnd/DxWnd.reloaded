@@ -1190,16 +1190,11 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, DEVMODE *lpDevMode, DWORD dwfla
 		else{
 			DEVMODE NewMode, TryMode;
 			int i;
-			HDC DesktopDC;
 
 			// set the proper mode
 			NewMode = *lpDevMode;
 			NewMode.dmPelsHeight = (*GetSystemMetrics)(SM_CYSCREEN);
 			NewMode.dmPelsWidth = (*GetSystemMetrics)(SM_CXSCREEN);
-			if (!(NewMode.dmFields & DM_BITSPERPEL)) {
-				DesktopDC = GetDC(GetDesktopWindow());
-				NewMode.dmBitsPerPel = GetDeviceCaps(DesktopDC, BITSPIXEL) * GetDeviceCaps(DesktopDC, PLANES);
-			}
 			TryMode.dmSize = sizeof(TryMode);
 			 OutTraceD("ChangeDisplaySettings: DEBUG looking for size=(%d x %d) bpp=%d\n",
 				NewMode.dmPelsWidth, NewMode.dmPelsHeight, NewMode.dmBitsPerPel);
@@ -1217,11 +1212,6 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, DEVMODE *lpDevMode, DWORD dwfla
 				if((NewMode.dmBitsPerPel==TryMode.dmBitsPerPel) &&
 					(NewMode.dmPelsHeight==TryMode.dmPelsHeight) &&
 					(NewMode.dmPelsWidth==TryMode.dmPelsWidth)) break;
-
-				//if ((NewMode.dmFields & DM_BITSPERPEL) && (NewMode.dmBitsPerPel!=TryMode.dmBitsPerPel)) continue;
-				//if (NewMode.dmPelsHeight!=TryMode.dmPelsHeight) continue;
-				//if (NewMode.dmPelsWidth!=TryMode.dmPelsWidth) continue;
-				break;
 			}
 			if(dwflags==CDS_FULLSCREEN) dwflags=0; // no FULLSCREEN
 			res=(*ChangeDisplaySettings)(&TryMode, dwflags);
@@ -1239,8 +1229,7 @@ LONG WINAPI extChangeDisplaySettings(DEVMODE *lpDevMode, DWORD dwflags)
 {
 	if(IsTraceD){
 		OutTrace("ChangeDisplaySettings: lpDevMode=%x flags=%x", lpDevMode, dwflags);
-		if (lpDevMode) OutTrace(" fields=%x(%s) size=(%d x %d) bpp=%x", 
-			lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
+		if (lpDevMode) OutTrace(" size=(%d x %d) bpp=%x", 
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
 		OutTrace("\n");
 	}
@@ -1476,6 +1465,7 @@ BOOL WINAPI extGetMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgF
 
 
 extern void HookModule(HMODULE, int);
+extern void HookSysLibs(HMODULE);
 
 HMODULE SysLibs[SYSLIBIDX_MAX];
 
@@ -1503,6 +1493,11 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 	if(!lstrcmpi(lpFileName,dxw.CustomOpenGLLib)){
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=libhandle;
+	}
+	//if (idx == SYSLIBIDX_MAX) HookModule(libhandle, 0);
+	if (idx == SYSLIBIDX_DIRECT3D9) {
+		HookSysLibs(libhandle); // trap D3D9 GetProcAddress calls
+		HookDirect3D(libhandle, 9);
 	}
 	if (idx == -1) HookModule(libhandle, 0);
 	return libhandle;
@@ -1569,12 +1564,6 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			break;
 		case SYSLIBIDX_KERNEL32:
 			if (remap=Remap_kernel32_ProcAddress(proc, hModule)) return remap;
-			break;
-		case SYSLIBIDX_IMELIB:
-			if (remap=Remap_ImeLib_ProcAddress(proc, hModule)) return remap;
-			break;
-		case SYSLIBIDX_WINMM:
-			if (remap=Remap_WinMM_ProcAddress(proc, hModule)) return remap;
 			break;
 		case SYSLIBIDX_OLE32: 
 			if (remap=Remap_ole32_ProcAddress(proc, hModule)) return remap;
@@ -2466,6 +2455,14 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	}
 	ret=(*pSendMessage)(hwnd, Msg, wParam, lParam);
 	OutTraceW("SendMessage: lresult=%x\n", ret); 
+	return ret;
+}
+
+DWORD WINAPI exttimeGetTime(void)
+{
+	DWORD ret;
+	ret = dxw.GetTickCount();
+	if (IsDebug) OutTrace("timeGetTime: time=%x\n", ret);
 	return ret;
 }
 

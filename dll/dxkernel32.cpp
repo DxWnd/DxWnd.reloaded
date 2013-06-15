@@ -3,111 +3,66 @@
 #include "syslibs.h"
 #include "dxhook.h"
 
+static HookEntry_Type Hooks[]={
+	{"IsDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extIsDebuggerPresent},
+	{"GlobalMemoryStatus", (FARPROC)GlobalMemoryStatus, (FARPROC *)&pGlobalMemoryStatus, (FARPROC)extGlobalMemoryStatus},
+	{"GetProcAddress", (FARPROC)GetProcAddress, (FARPROC *)&pGetProcAddress, (FARPROC)extGetProcAddress},
+	{"LoadLibraryA", (FARPROC)LoadLibraryA, (FARPROC *)&pLoadLibraryA, (FARPROC)extLoadLibraryA},
+	{"LoadLibraryExA", (FARPROC)LoadLibraryExA, (FARPROC *)&pLoadLibraryExA, (FARPROC)extLoadLibraryExA},
+	{"LoadLibraryW", (FARPROC)LoadLibraryW, (FARPROC *)&pLoadLibraryW, (FARPROC)extLoadLibraryW},
+	{"LoadLibraryExW", (FARPROC)LoadLibraryExW, (FARPROC *)&pLoadLibraryExW, (FARPROC)extLoadLibraryExW},
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type LimitHooks[]={
+	{"GetDiskFreeSpaceA", (FARPROC)GetDiskFreeSpaceA, (FARPROC *)&pGetDiskFreeSpaceA, (FARPROC)extGetDiskFreeSpaceA},
+	{"GlobalMemoryStatus", (FARPROC)GlobalMemoryStatus, (FARPROC *)&pGlobalMemoryStatus, (FARPROC)extGlobalMemoryStatus},
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type TimeHooks[]={
+	{"GetTickCount", (FARPROC)GetTickCount, (FARPROC *)&pGetTickCount, (FARPROC)extGetTickCount},
+	{"GetLocalTime", (FARPROC)GetLocalTime, (FARPROC *)&pGetLocalTime, (FARPROC)extGetLocalTime},
+	{"GetSystemTime", (FARPROC)GetSystemTime, (FARPROC *)&pGetSystemTime, (FARPROC)extGetSystemTime},
+	{"GetSystemTimeAsFileTime", (FARPROC)GetSystemTimeAsFileTime, (FARPROC *)&pGetSystemTimeAsFileTime, (FARPROC)extGetSystemTimeAsFileTime},
+	{"Sleep", (FARPROC)Sleep, (FARPROC *)&pSleep, (FARPROC)extSleep},
+	{"SleepEx", (FARPROC)SleepEx, (FARPROC *)&pSleepEx, (FARPROC)extSleepEx},
+	{"SetTimer", (FARPROC)SetTimer, (FARPROC *)&pSetTimer, (FARPROC)extSetTimer},
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type VersionHooks[]={
+	{"GetVersion", (FARPROC)GetVersion, (FARPROC *)&pGetVersion, (FARPROC)extGetVersion},
+	{"GetVersionEx", (FARPROC)GetVersionEx, (FARPROC *)&pGetVersionEx, (FARPROC)extGetVersionEx},
+	{0, NULL, 0, 0} // terminator
+};
+
 void HookKernel32(HMODULE module)
 {
-	void *tmp;
+	HookLibrary(module, Hooks, "kernel32.dll");
 
-	if(dxw.dwFlags2 & LIMITRESOURCES){
-		tmp = HookAPI(module, "kernel32.dll", GetDiskFreeSpaceA, "GetDiskFreeSpaceA", extGetDiskFreeSpaceA);
-		if(tmp) pGetDiskFreeSpaceA = (GetDiskFreeSpaceA_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GlobalMemoryStatus, "GlobalMemoryStatus", extGlobalMemoryStatus);
-		if(tmp) pGlobalMemoryStatus = (GlobalMemoryStatus_Type)tmp;
-	}
+	if(dxw.dwFlags2 & LIMITRESOURCES) HookLibrary(module, LimitHooks, "kernel32.dll");
+	
+	if(dxw.dwFlags2 & LIMITRESOURCES) HookLibrary(module, TimeHooks, "kernel32.dll");
 
-	if(dxw.dwFlags2 & TIMESTRETCH){
-		tmp = HookAPI(module, "kernel32.dll", GetTickCount, "GetTickCount", extGetTickCount);
-		if(tmp) pGetTickCount = (GetTickCount_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GetLocalTime, "GetLocalTime", extGetLocalTime);
-		if(tmp) pGetLocalTime = (GetLocalTime_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GetSystemTime, "GetSystemTime", extGetSystemTime);
-		if(tmp) pGetSystemTime = (GetSystemTime_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GetSystemTimeAsFileTime, "GetSystemTimeAsFileTime", extGetSystemTimeAsFileTime);
-		if(tmp) pGetSystemTimeAsFileTime = (GetSystemTimeAsFileTime_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", Sleep, "Sleep", extSleep);
-		if(tmp) pSleep = (Sleep_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", SleepEx, "SleepEx", extSleepEx);
-		if(tmp) pSleepEx = (SleepEx_Type)tmp;
-		tmp = HookAPI(module, "user32.dll", SetTimer, "SetTimer", extSetTimer);
-		if(tmp) pSetTimer = (SetTimer_Type)tmp;
-		tmp = HookAPI(module, "winmm.dll", NULL, "timeGetTime", exttimeGetTime);
-		if(tmp) ptimeGetTime = (timeGetTime_Type)tmp;
-	}
-
-	if(dxw.dwFlags2 & FAKEVERSION){
-		tmp = HookAPI(module, "kernel32.dll", GetVersion, "GetVersion", extGetVersion);
-		if(tmp) pGetVersion = (GetVersion_Type)tmp;
-		tmp = HookAPI(module, "kernel32.dll", GetVersionEx, "GetVersionEx", extGetVersionEx);
-		if(tmp) pGetVersionEx = (GetVersionEx_Type)tmp;
-	}
+	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, "kernel32.dll");
 }
 
 FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
-	if (!strcmp(proc,"IsDebuggerPresent")){
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extIsDebuggerPresent);
-		return (FARPROC)extIsDebuggerPresent;
-	}
-	if(dxw.dwFlags2 & LIMITRESOURCES){
-		if (!strcmp(proc,"GetDiskFreeSpaceA")){
-			pGetDiskFreeSpaceA=(GetDiskFreeSpaceA_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extGetDiskFreeSpaceA);
-			return (FARPROC)extGetDiskFreeSpaceA;
-		}
-		if (!strcmp(proc,"GlobalMemoryStatus")){
-			pGlobalMemoryStatus=(GlobalMemoryStatus_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extGlobalMemoryStatus);
-			return (FARPROC)extGlobalMemoryStatus;
-		}
-	}
-	if(dxw.dwFlags2 & TIMESTRETCH){
-		if (!strcmp(proc,"GetTickCount")){
-			pGetTickCount=(GetTickCount_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extGetTickCount);
-			return (FARPROC)extGetTickCount;
-		}
-		if (!strcmp(proc,"GetLocalTime")){
-			pGetLocalTime=(GetLocalTime_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extGetLocalTime);
-			return (FARPROC)extGetLocalTime;
-		}
-		if (!strcmp(proc,"GetSystemTime")){
-			pGetSystemTime=(GetSystemTime_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extGetSystemTime);
-			return (FARPROC)extGetSystemTime;
-		}
-		if (!strcmp(proc,"GetSystemTimeAsFileTime")){
-			pGetSystemTimeAsFileTime=(GetSystemTimeAsFileTime_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extGetSystemTimeAsFileTime);
-			return (FARPROC)extGetSystemTimeAsFileTime;
-		}
-		if (!strcmp(proc,"Sleep")){
-			pSleep=(Sleep_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extSleep);
-			return (FARPROC)extSleep;
-		}
-		if (!strcmp(proc,"SleepEx")){
-			pSleepEx=(SleepEx_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extSleepEx);
-			return (FARPROC)extSleepEx;
-		}
-		if (!strcmp(proc,"SetTimer")){
-			pSetTimer=(SetTimer_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extSetTimer);
-			return (FARPROC)extSetTimer;
-		}
-	}
-	if(dxw.dwFlags2 & FAKEVERSION){
-		if (!strcmp(proc,"GetVersion")){
-			pGetVersion=(GetVersion_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extGetVersion);
-			return (FARPROC)extGetVersion;
-		}
-		if (!strcmp(proc,"GetVersionEx")){
-			pGetVersionEx=(GetVersionEx_Type)(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extGetVersionEx);
-			return (FARPROC)extGetVersionEx;
-		}
-	}
+	FARPROC addr;
+
+	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+
+	if(dxw.dwFlags2 & LIMITRESOURCES)
+		if (addr=RemapLibrary(proc, hModule, LimitHooks)) return addr;
+
+	if(dxw.dwFlags2 & TIMESTRETCH)
+		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
+
+	if(dxw.dwFlags2 & FAKEVERSION)
+		if (addr=RemapLibrary(proc, hModule, VersionHooks)) return addr;
+
 	return NULL;
 }
 

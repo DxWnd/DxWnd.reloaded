@@ -509,8 +509,10 @@ int HookDirectDraw(HMODULE module, int version)
 
 		hinst=LoadLibrary("ddraw.dll");
 		pSetAppCompatData=(SetAppCompatData_Type)(*pGetProcAddress)(hinst, "SetAppCompatData");
-		if(pSetAppCompatData) res=(*pSetAppCompatData)(2, 0);
-		OutTraceD("HookDirectDraw: SetAppCompatData(2,0) ret=%x(%s)\n", res, ExplainDDError(res));
+		if(pSetAppCompatData) {
+			res=(*pSetAppCompatData)(2, 0);
+			OutTraceD("HookDirectDraw: SetAppCompatData(2,0) ret=%x(%s)\n", res, ExplainDDError(res));
+		}
 		FreeLibrary(hinst);
 	}
 

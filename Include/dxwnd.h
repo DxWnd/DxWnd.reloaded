@@ -82,6 +82,8 @@
 #define MARKBLIT			0x00000002 // higlights the blit to primary surface operation by surroundig the rect in color
 #define HOOKDLLS			0x00000004 // Hook all DLLs referenced in PE
 #define SUPPRESSD3DEXT		0x00000008 // Disables extended d3d APIs for Vista/Win7/Win8 platforms
+#define HOOKENABLED			0x00000010 // Enables task hooking
+#define FIXD3DFRAME			0x00000020 // Preserve windows frame in D3D9 programs
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -104,6 +106,7 @@ typedef struct TARGETMAP
 	char module[60+1];
 	char OpenGLLib[20+1];
 	int dxversion;
+	int coordinates;
 	int flags;
 	int flags2;
 	int flags3;
@@ -180,4 +183,8 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 extern void WhndStackPush(HWND, WNDPROC);
 extern WNDPROC WhndGetWindowProc(HWND );
 
-
+typedef enum {
+	DXW_SET_COORDINATES = 0,
+	DXW_DESKTOP_WORKAREA,
+	DXW_DESKTOP_CENTER
+} Coordinates_Types;

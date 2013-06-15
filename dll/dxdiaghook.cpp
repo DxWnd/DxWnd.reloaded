@@ -43,9 +43,7 @@ HRESULT HookDxDiag(REFIID riid, LPVOID FAR* ppv)
 	OutTraceD("CoCreateInstance: CLSID_DxDiagProvider object\n");
 	dxdlib=(*pLoadLibraryA)("dxdiagn.dll");
 	OutTraceD("CoCreateInstance: dxdiagn lib handle=%x\n", dxdlib);
-	extern void HookSysLibs(HMODULE);
 	extern void HookModule(HMODULE, int);
-	//HookSysLibs(dxdlib);
 	HookModule(dxdlib, 0);
 
 	switch (*(DWORD *)&riid){
