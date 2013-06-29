@@ -2,6 +2,7 @@
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
+#include "dxhelper.h"
 #include "resource.h"
 
 /* ------------------------------------------------------------------ */
@@ -832,4 +833,47 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 	}
 	if (!SysNames[idx]) return -1;
 	return idx;
+}
+
+void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
+{
+	LPSTYLESTRUCT lpSS;
+	lpSS = (LPSTYLESTRUCT) lParam;
+
+	switch (wParam) {
+	case GWL_STYLE:
+		OutTraceD("%s: new Style=%x(%s)\n", 
+			ApiName, lpSS->styleNew, ExplainStyle(lpSS->styleNew));
+		if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
+			lpSS->styleNew= WS_OVERLAPPEDWINDOW;
+		}
+		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
+			lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_STYLE);
+		}
+		if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
+			if (lpSS->styleNew & WS_MAXIMIZE){
+				OutTraceD("%s: prevent maximize style\n", ApiName);
+				lpSS->styleNew &= ~WS_MAXIMIZE;
+			}
+		}
+		break;
+	case GWL_EXSTYLE:
+		OutTraceD("%s: new ExStyle=%x(%s)\n", 
+			ApiName, lpSS->styleNew, ExplainExStyle(lpSS->styleNew));
+		if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
+			lpSS->styleNew= 0;
+		}
+		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
+				lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_EXSTYLE);
+		}
+		if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
+			if (lpSS->styleNew & WS_EX_TOPMOST){
+				OutTraceD("%s: prevent EXSTYLE topmost style\n", ApiName);
+				lpSS->styleNew &= ~WS_EX_TOPMOST;
+			}
+		}
+		break;
+	default:
+		break;
+	}
 }

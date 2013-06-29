@@ -203,18 +203,13 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 				Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x3E0)<<6 | (pi & 0x7C00)<<9; // RGB555
 			}
 		}
-#ifdef RGB655
-		//default: GetPixelFormat: Flags=40(DDPF_RGB) FourCC=0 BitCount=16 RGBA=(7c00,3e0,1f,0)
-		//DK2: GetPixelFormat: Flags=40(DDPF_RGB) FourCC=0 BitCount=16 RGBA=(f800,7e0,1f,0)
-		for (pi=0; pi<0x10000; pi++) {
-			Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x3E0)<<6 | (pi & 0xFC00)<<8; // RGB655
+		if (dxw.dwFlags3 & BLACKWHITE){
+			for (pi=0; pi<0x10000; pi++) {
+				DWORD grey;
+				grey=((pi & 0xFF) + ((pi & 0xFF00)>>8) + ((pi & 0xFF0000)>>16)) / 3; 
+				Palette16BPP[pi] = grey + (grey<<8) + (grey<<16);
+			}
 		}
-#endif
-#ifdef RGB444
-		for (pi=0; pi<0x10000; pi++) {
-			Palette16BPP[pi]=(pi & 0x0F)<<4 | (pi & 0xF0)<<8 | (pi & 0xF00)<<12; // RGB444
-		}
-#endif
 	}
 	for(y = 0; y < h; y ++){
 		for(x = 0; x < w; x ++){

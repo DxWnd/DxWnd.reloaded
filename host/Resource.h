@@ -35,6 +35,7 @@
 #define IDD_TAB_OPENGL                  159
 #define IDD_TAB_COMPAT                  160
 #define IDD_TAB_GDI                     161
+#define IDD_TAB_COLOR                   162
 #define IDC_AUTO                        300
 #define IDC_DIRECTX1                    301
 #define IDC_DIRECTX7                    302
@@ -137,7 +138,7 @@
 #define IDC_WIREFRAME                   1094
 #define IDC_DISABLEGAMMARAMP            1095
 #define IDC_FORCEWINRESIZE              1096
-#define IDC_TIMESLIDER                  1097
+#define IDC_FORCE16BPP                  1097
 #define IDC_FORCEHOOKOPENGL             1098
 #define IDC_DESKTOPCENTER               1099
 #define IDC_COORDINATES                 1100
@@ -148,6 +149,9 @@
 #define IDC_HOOKENABLED                 1105
 #define IDC_DESKTOPWORKAREA             1106
 #define IDC_FIXD3DFRAME                 1107
+#define IDC_TIMESLIDER                  1108
+#define IDC_BLACKWHITE                  1109
+#define IDC_SAVECAPS                    1110
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

@@ -1443,7 +1443,7 @@ HRESULT WINAPI extGetPixelFormatProxy(LPDIRECTDRAWSURFACE lpdds, LPDDPIXELFORMAT
 		OutTraceP("GetPixelFormat(S): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	else
 		OutTraceP("GetPixelFormat(S): Flags=%x(%s) FourCC=%x BitCount=%d RGBA=(%x,%x,%x,%x)\n", 
-			p->dwFlags, ExplainPixelFlags(p->dwFlags), p->dwFourCC, p->dwRGBBitCount, 
+			p->dwFlags, ExplainPixelFormatFlags(p->dwFlags), p->dwFourCC, p->dwRGBBitCount, 
 			p->dwRBitMask, p->dwGBitMask, p->dwBBitMask, p->dwRGBAlphaBitMask );
 	return res;
 }

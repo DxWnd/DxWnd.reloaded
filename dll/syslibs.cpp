@@ -899,49 +899,6 @@ void dxwFixMinMaxInfo(char *ApiName, HWND hwnd, LPARAM lParam)
 	}
 }
 
-void dxwFixStyle(char *ApiName, HWND hwnd, LPARAM lParam)
-{
-	LPSTYLESTRUCT lpSS;
-	lpSS = (LPSTYLESTRUCT) lParam;
-
-	OutTraceD("%s: new Style=%x(%s)\n", 
-		ApiName, lpSS->styleNew, ExplainStyle(lpSS->styleNew));
-
-	if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
-		lpSS->styleNew= WS_OVERLAPPEDWINDOW;
-	}
-	if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
-		lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_STYLE);
-	}
-	if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
-		if (lpSS->styleNew & WS_MAXIMIZE){
-			OutTraceD("%s: prevent maximize style\n", ApiName);
-			lpSS->styleNew &= ~WS_MAXIMIZE;
-		}
-	}
-}
-
-void dxwFixExStyle(char *ApiName, HWND hwnd, LPARAM lParam)
-{
-	LPSTYLESTRUCT lpSS;
-	lpSS = (LPSTYLESTRUCT) lParam;
-
-	OutTraceD("%s: new ExStyle=%x(%s)\n", 
-		ApiName, lpSS->styleNew, ExplainExStyle(lpSS->styleNew));
-
-	if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
-		lpSS->styleNew= 0;
-	}
-	if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
-			lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_EXSTYLE);
-	}
-	if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
-		if (lpSS->styleNew & WS_EX_TOPMOST){
-			OutTraceD("%s: prevent EXSTYLE topmost style\n", ApiName);
-			lpSS->styleNew &= ~WS_EX_TOPMOST;
-		}
-	}
-}
 
 static LRESULT WINAPI FixWindowProc(char *ApiName, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM *lpParam)
 {
@@ -970,10 +927,7 @@ static LRESULT WINAPI FixWindowProc(char *ApiName, HWND hwnd, UINT Msg, WPARAM w
 		break;
 	case WM_STYLECHANGING:
 	case WM_STYLECHANGED:
-		if (wParam==GWL_STYLE) 
-			dxwFixStyle(ApiName, hwnd, lParam);
-		else
-			dxwFixExStyle(ApiName, hwnd, lParam);
+		dxw.FixStyle(ApiName, hwnd, wParam, lParam);
 		break;
 	case WM_DISPLAYCHANGE:
 		// too late? to be deleted....
@@ -1173,66 +1127,32 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, DEVMODE *lpDevMode, DWORD dwfla
 	HRESULT res;
 
 	// save desired settings first v.2.1.89
-	// v2.1.95 protect when lpDevMode is null (closing game... Jedi Outcast 
-	if(lpDevMode)
+	// v2.1.95 protect when lpDevMode is null (closing game... Jedi Outcast)
+	// v2.2.23 consider new width/height only when dmFields flags are set.
+	if(lpDevMode && (lpDevMode->dmFields & (DM_PELSWIDTH | DM_PELSHEIGHT)))
 		dxw.SetScreenSize(lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight);
 
 	if ((dwflags==0 || dwflags==CDS_FULLSCREEN) && lpDevMode){
-
-		// v2.2.21: save desired mode to possible use in EnumDisplaySettings wrapper v2.2.21
-		SetDevMode=*lpDevMode;
-		pSetDevMode=&SetDevMode;
-
-		if (dxw.dwFlags1 & EMULATESURFACE){
+		if (dxw.dwFlags1 & EMULATESURFACE || !(lpDevMode->dmFields & DM_BITSPERPEL)){
 			OutTraceD("%s: BYPASS res=DISP_CHANGE_SUCCESSFUL\n", fname);
 			return DISP_CHANGE_SUCCESSFUL;
 		}
 		else{
-			DEVMODE NewMode, TryMode;
-			int i;
-			HDC DesktopDC;
-
-			// set the proper mode
-			NewMode = *lpDevMode;
-			NewMode.dmPelsHeight = (*GetSystemMetrics)(SM_CYSCREEN);
-			NewMode.dmPelsWidth = (*GetSystemMetrics)(SM_CXSCREEN);
-			if (!(NewMode.dmFields & DM_BITSPERPEL)) {
-				DesktopDC = GetDC(GetDesktopWindow());
-				NewMode.dmBitsPerPel = GetDeviceCaps(DesktopDC, BITSPIXEL) * GetDeviceCaps(DesktopDC, PLANES);
-			}
-			TryMode.dmSize = sizeof(TryMode);
-			 OutTraceD("ChangeDisplaySettings: DEBUG looking for size=(%d x %d) bpp=%d\n",
-				NewMode.dmPelsWidth, NewMode.dmPelsHeight, NewMode.dmBitsPerPel);
-			for(i=0; ;i++){
-				if (pEnumDisplaySettings)
-					res=(*pEnumDisplaySettings)(NULL, i, &TryMode);
-				else
-					res=EnumDisplaySettings(NULL, i, &TryMode);
-				if(res==0) {
-					OutTraceE("%s: ERROR unable to find a matching video mode among %d ones\n", fname, i);
-					return DISP_CHANGE_FAILED;
-				}
-				//OutTraceD("ChangeDisplaySettings: DEBUG index=%d size=(%d x %d) bpp=%x\n",
-				//	i, TryMode.dmPelsWidth, TryMode.dmPelsHeight, TryMode.dmBitsPerPel);
-				if((NewMode.dmBitsPerPel==TryMode.dmBitsPerPel) &&
-					(NewMode.dmPelsHeight==TryMode.dmPelsHeight) &&
-					(NewMode.dmPelsWidth==TryMode.dmPelsWidth)) break;
-
-				//if ((NewMode.dmFields & DM_BITSPERPEL) && (NewMode.dmBitsPerPel!=TryMode.dmBitsPerPel)) continue;
-				//if (NewMode.dmPelsHeight!=TryMode.dmPelsHeight) continue;
-				//if (NewMode.dmPelsWidth!=TryMode.dmPelsWidth) continue;
-				break;
-			}
+			DEVMODE NewMode;
 			if(dwflags==CDS_FULLSCREEN) dwflags=0; // no FULLSCREEN
-			res=(*ChangeDisplaySettings)(&TryMode, dwflags);
-			OutTraceD("%s: fixed size=(%d x %d) bpp=%d res=%x(%s)\n",
-				fname, NewMode.dmPelsWidth, NewMode.dmPelsHeight, NewMode.dmBitsPerPel, 
-				res, ExplainDisplaySettingsRetcode(res));
+			EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &NewMode);
+			OutTraceD("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> %d\n", 
+				NewMode.dmPelsWidth, NewMode.dmPelsHeight, NewMode.dmBitsPerPel, 
+				lpDevMode->dmBitsPerPel);
+			NewMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+			NewMode.dmBitsPerPel = lpDevMode->dmBitsPerPel;
+			res=(*pChangeDisplaySettings)(&NewMode, 0);
+			if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 			return res;
 		}
 	}
 	else
-		return (*ChangeDisplaySettings)(lpDevMode, dwflags);
+		return (*pChangeDisplaySettings)(lpDevMode, dwflags);
 }
 
 LONG WINAPI extChangeDisplaySettings(DEVMODE *lpDevMode, DWORD dwflags)

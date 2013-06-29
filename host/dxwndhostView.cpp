@@ -377,7 +377,6 @@ void CDxwndhostView::OnInitialUpdate()
 	listctrl.InsertColumn(0, &listcol);
 
 	for(i = 0; i < MAXTARGETS; i ++){
-		FILE *target;
 		if (!LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, i, InitPath)) break;
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
@@ -525,6 +524,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_SuppressIME = TargetMaps[i].flags2 & SUPPRESSIME ? 1 : 0;
 	dlg.m_SuppressD3DExt = TargetMaps[i].flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg.m_SetCompatibility = TargetMaps[i].flags2 & SETCOMPATIBILITY ? 1 : 0;
+	dlg.m_SaveCaps = TargetMaps[i].flags3 & SAVECAPS ? 1 : 0;
 	dlg.m_LimitResources = TargetMaps[i].flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg.m_SaveLoad = TargetMaps[i].flags & SAVELOAD ? 1 : 0;
 	dlg.m_SlowDown = TargetMaps[i].flags & SLOWDOWN ? 1 : 0;
@@ -557,6 +557,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_HideMultiMonitor = TargetMaps[i].flags2 & HIDEMULTIMONITOR ? 1 : 0;
 	dlg.m_WallpaperMode = TargetMaps[i].flags2 & WALLPAPERMODE ? 1 : 0;
 	dlg.m_FixD3DFrame = TargetMaps[i].flags3 & FIXD3DFRAME ? 1 : 0;
+	dlg.m_Force16BPP = TargetMaps[i].flags3 & FORCE16BPP ? 1 : 0;
 	dlg.m_HookChildWin = TargetMaps[i].flags & HOOKCHILDWIN ? 1 : 0;
 	dlg.m_MessageProc = TargetMaps[i].flags & MESSAGEPROC ? 1 : 0;
 	dlg.m_FixNCHITTEST = TargetMaps[i].flags2 & FIXNCHITTEST ? 1 : 0;
@@ -574,6 +575,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_HookOpenGL = TargetMaps[i].flags2 & HOOKOPENGL ? 1 : 0;
 	dlg.m_ForceHookOpenGL = TargetMaps[i].flags3 & FORCEHOOKOPENGL ? 1 : 0;
 	dlg.m_WireFrame = TargetMaps[i].flags2 & WIREFRAME ? 1 : 0;
+	dlg.m_BlackWhite = TargetMaps[i].flags3 & BLACKWHITE ? 1 : 0;
 	dlg.m_FakeVersion = TargetMaps[i].flags2 & FAKEVERSION ? 1 : 0;
 	dlg.m_FullRectBlt = TargetMaps[i].flags2 & FULLRECTBLT ? 1 : 0;
 	dlg.m_NoPaletteUpdate = TargetMaps[i].flags2 & NOPALETTEUPDATE ? 1 : 0;
@@ -643,6 +645,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_SuppressIME) TargetMaps[i].flags2 |= SUPPRESSIME;
 		if(dlg.m_SuppressD3DExt) TargetMaps[i].flags3 |= SUPPRESSD3DEXT;
 		if(dlg.m_SetCompatibility) TargetMaps[i].flags2 |= SETCOMPATIBILITY;
+		if(dlg.m_SaveCaps) TargetMaps[i].flags3 |= SAVECAPS;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;
 		if(dlg.m_BlitFromBackBuffer) TargetMaps[i].flags |= BLITFROMBACKBUFFER;
@@ -674,6 +677,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_HideMultiMonitor) TargetMaps[i].flags2 |= HIDEMULTIMONITOR;
 		if(dlg.m_WallpaperMode) TargetMaps[i].flags2 |= WALLPAPERMODE;
 		if(dlg.m_FixD3DFrame) TargetMaps[i].flags3 |= FIXD3DFRAME;
+		if(dlg.m_Force16BPP) TargetMaps[i].flags3 |= FORCE16BPP;
 		if(dlg.m_HookChildWin) TargetMaps[i].flags |= HOOKCHILDWIN;
 		if(dlg.m_MessageProc) TargetMaps[i].flags |= MESSAGEPROC;
 		if(dlg.m_FixNCHITTEST) TargetMaps[i].flags2 |= FIXNCHITTEST;
@@ -691,6 +695,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
 		if(dlg.m_ForceHookOpenGL) TargetMaps[i].flags3 |= FORCEHOOKOPENGL;
 		if(dlg.m_WireFrame) TargetMaps[i].flags2 |= WIREFRAME;
+		if(dlg.m_BlackWhite) TargetMaps[i].flags3 |= BLACKWHITE;
 		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
 		if(dlg.m_FullRectBlt) TargetMaps[i].flags2 |= FULLRECTBLT;
 		if(dlg.m_NoPaletteUpdate) TargetMaps[i].flags2 |= NOPALETTEUPDATE;
@@ -1031,6 +1036,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_SuppressIME) TargetMaps[i].flags2 |= SUPPRESSIME;
 		if(dlg.m_SuppressD3DExt) TargetMaps[i].flags3 |= SUPPRESSD3DEXT;
 		if(dlg.m_SetCompatibility) TargetMaps[i].flags2 |= SETCOMPATIBILITY;
+		if(dlg.m_SaveCaps) TargetMaps[i].flags3 |= SAVECAPS;
 		if(dlg.m_LimitResources) TargetMaps[i].flags2 |= LIMITRESOURCES;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;
@@ -1063,6 +1069,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_HideMultiMonitor) TargetMaps[i].flags2 |= HIDEMULTIMONITOR;
 		if(dlg.m_WallpaperMode) TargetMaps[i].flags2 |= WALLPAPERMODE;
 		if(dlg.m_FixD3DFrame) TargetMaps[i].flags3 |= FIXD3DFRAME;
+		if(dlg.m_Force16BPP) TargetMaps[i].flags3 |= FORCE16BPP;
 		if(dlg.m_HookChildWin) TargetMaps[i].flags |= HOOKCHILDWIN;
 		if(dlg.m_MessageProc) TargetMaps[i].flags |= MESSAGEPROC;
 		if(dlg.m_FixNCHITTEST) TargetMaps[i].flags2 |= FIXNCHITTEST;
@@ -1080,6 +1087,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_HookOpenGL) TargetMaps[i].flags2 |= HOOKOPENGL;
 		if(dlg.m_ForceHookOpenGL) TargetMaps[i].flags3 |= FORCEHOOKOPENGL;
 		if(dlg.m_WireFrame) TargetMaps[i].flags2 |= WIREFRAME;
+		if(dlg.m_BlackWhite) TargetMaps[i].flags3 |= BLACKWHITE;
 		if(dlg.m_FakeVersion) TargetMaps[i].flags2 |= FAKEVERSION;
 		if(dlg.m_FullRectBlt) TargetMaps[i].flags2 |= FULLRECTBLT;
 		if(dlg.m_NoPaletteUpdate) TargetMaps[i].flags2 |= NOPALETTEUPDATE;

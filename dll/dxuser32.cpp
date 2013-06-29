@@ -17,7 +17,7 @@ static HookEntry_Type Hooks[]={
 	{"EnumDisplaySettingsA", NULL, (FARPROC *)&pEnumDisplaySettings, (FARPROC)extEnumDisplaySettings},
 	{"GetClipCursor", NULL, (FARPROC *)&pGetClipCursor, (FARPROC)extGetClipCursor},
 	{"ClipCursor", NULL, (FARPROC *)&pClipCursor, (FARPROC)extClipCursor},
-	{"FillRect", NULL, (FARPROC *)&pClipCursor, (FARPROC)extFillRect},
+	{"FillRect", NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
 	{"DefWindowProcA", NULL, (FARPROC *)&pDefWindowProc, (FARPROC)extDefWindowProc},
 	{"CreateWindowExA", NULL, (FARPROC *)&pCreateWindowExA, (FARPROC)extCreateWindowExA},
 	{"RegisterClassExA", NULL, (FARPROC *)&pRegisterClassExA, (FARPROC)extRegisterClassExA},

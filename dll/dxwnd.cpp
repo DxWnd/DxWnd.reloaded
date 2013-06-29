@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.22"
+#define VERSION "2.02.24.f1"
 
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam);
 
@@ -56,6 +56,8 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
     if(dwreason != DLL_PROCESS_ATTACH) return TRUE;
 
 	hInst = (HINSTANCE)hmodule;
+	// optimization: disables DLL_THREAD_ATTACH and DLL_THREAD_DETACH notifications for the specified DLL
+	DisableThreadLibraryCalls((HMODULE)hmodule);
 	hMapping = CreateFileMapping((HANDLE)0xffffffff, NULL, PAGE_READWRITE,
 		0, sizeof(DxWndStatus)+sizeof(TARGETMAP)*MAXTARGETS, "UniWind_TargetList");
 	pStatus = (DXWNDSTATUS *)MapViewOfFile(hMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(DXWNDSTATUS)+sizeof(TARGETMAP)*MAXTARGETS);

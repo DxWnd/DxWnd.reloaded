@@ -29,6 +29,7 @@
 #include "TabWindow.h"
 #include "TabOpenGL.h"
 #include "TabCompat.h"
+#include "TabColor.h"
 #include "TabGDI.h"
 
 #ifdef _DEBUG
@@ -42,17 +43,19 @@ static char THIS_FILE[] = __FILE__;
 
 CDXTabCtrl::CDXTabCtrl()
 {
-	m_tabPages[0]=new CTabProgram;
-	m_tabPages[1]=new CTabWindow;
-	m_tabPages[2]=new CTabMouse;
-	m_tabPages[3]=new CTabTiming;
-	m_tabPages[4]=new CTabLogs;
-	m_tabPages[5]=new CTabDirectX;
-	m_tabPages[6]=new CTabOpenGL;
-	m_tabPages[7]=new CTabGDI;
-	m_tabPages[8]=new CTabCompat;
+	int i=0;
+	m_tabPages[i++]=new CTabProgram;
+	m_tabPages[i++]=new CTabWindow;
+	m_tabPages[i++]=new CTabColor;
+	m_tabPages[i++]=new CTabMouse;
+	m_tabPages[i++]=new CTabTiming;
+	m_tabPages[i++]=new CTabLogs;
+	m_tabPages[i++]=new CTabDirectX;
+	m_tabPages[i++]=new CTabOpenGL;
+	m_tabPages[i++]=new CTabGDI;
+	m_tabPages[i++]=new CTabCompat;
 
-	m_nNumberOfPages=9;
+	m_nNumberOfPages=i;
 }
 
 CDXTabCtrl::~CDXTabCtrl()
@@ -64,17 +67,19 @@ CDXTabCtrl::~CDXTabCtrl()
 
 void CDXTabCtrl::Init()
 {
+	int i = 0;
 	m_tabCurrent=0;
 
-	m_tabPages[0]->Create(IDD_TAB_PROGRAM, this);
-	m_tabPages[1]->Create(IDD_TAB_WINDOW, this);
-	m_tabPages[2]->Create(IDD_TAB_MOUSE, this);
-	m_tabPages[3]->Create(IDD_TAB_TIMING, this);
-	m_tabPages[4]->Create(IDD_TAB_LOG, this);
-	m_tabPages[5]->Create(IDD_TAB_DIRECTX, this);
-	m_tabPages[6]->Create(IDD_TAB_OPENGL, this);
-	m_tabPages[7]->Create(IDD_TAB_GDI, this);
-	m_tabPages[8]->Create(IDD_TAB_COMPAT, this);
+	m_tabPages[i++]->Create(IDD_TAB_PROGRAM, this);
+	m_tabPages[i++]->Create(IDD_TAB_WINDOW, this);
+	m_tabPages[i++]->Create(IDD_TAB_COLOR, this);
+	m_tabPages[i++]->Create(IDD_TAB_MOUSE, this);
+	m_tabPages[i++]->Create(IDD_TAB_TIMING, this);
+	m_tabPages[i++]->Create(IDD_TAB_LOG, this);
+	m_tabPages[i++]->Create(IDD_TAB_DIRECTX, this);
+	m_tabPages[i++]->Create(IDD_TAB_OPENGL, this);
+	m_tabPages[i++]->Create(IDD_TAB_GDI, this);
+	m_tabPages[i++]->Create(IDD_TAB_COMPAT, this);
 
 	for(int nCount=0; nCount < m_nNumberOfPages; nCount++){
 		m_tabPages[nCount]->ShowWindow(nCount ? SW_HIDE:SW_SHOW);

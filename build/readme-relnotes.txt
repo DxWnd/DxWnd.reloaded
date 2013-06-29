@@ -129,3 +129,15 @@ Fixed ChangeDisplaySettings
 GUI: added ListView icons
 GUI: added pause command
 GUI: updated commands layout
+
+v2.02.23/24
+Fixed "disable setting gamma ramp" flag to intercept both GDI and D3D calls
+Fixed client workarea setting to occupy the whole client area even when preserving aspect ratio (it draws black rectangles to the left/right or top/bottom side)
+Added DisableThreadLibraryCalls optimization
+Added B&W screen simulation (for primary emulation only)
+Improved the primary emulation capacity to handle 3D games
+Added the "preserve surface capabilities" flag
+Fixed an hooking bug for user32.dll
+
+v2.02.23/24.fix1
+Fixed a few things to make Grand Prix World playable in emulation mode - sorry, no movies!

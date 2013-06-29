@@ -26,9 +26,9 @@ void CTabGDI::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
-	DDX_Check(pDX, IDC_DISABLEGAMMARAMP, cTarget->m_DisableGammaRamp);
 	DDX_Check(pDX, IDC_FIXTEXTOUT, cTarget->m_FixTextOut);
 	DDX_Check(pDX, IDC_HOOKGDI, cTarget->m_HookGDI);
+	DDX_Check(pDX, IDC_MAPGDITOPRIMARY, cTarget->m_MapGDIToPrimary);
 }
 
 BEGIN_MESSAGE_MAP(CTabGDI, CDialog)

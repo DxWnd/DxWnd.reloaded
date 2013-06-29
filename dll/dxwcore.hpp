@@ -64,6 +64,7 @@ public: // methods
 	void ShowBanner(HWND);
 	POINT ScreenToClient(POINT);
 	int GetDLLIndex(char *);
+	void FixStyle(char *, HWND, WPARAM, LPARAM);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;

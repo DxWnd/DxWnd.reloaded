@@ -36,14 +36,13 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_BLITFROMBACKBUFFER, cTarget->m_BlitFromBackBuffer);
 	DDX_Check(pDX, IDC_AUTOREFRESH, cTarget->m_AutoRefresh);
 	DDX_Check(pDX, IDC_VIDEOTOSYSTEMMEM, cTarget->m_VideoToSystemMem);
-	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
 	DDX_Check(pDX, IDC_SUPPRESSDXERRORS, cTarget->m_SuppressDXErrors);
 	DDX_Check(pDX, IDC_MARKBLIT, cTarget->m_MarkBlit);
-	DDX_Check(pDX, IDC_MAPGDITOPRIMARY, cTarget->m_MapGDIToPrimary);
 	DDX_Check(pDX, IDC_BACKBUFATTACH, cTarget->m_BackBufAttach);
 	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
 	DDX_Check(pDX, IDC_NOPALETTEUPDATE, cTarget->m_NoPaletteUpdate);
 	DDX_Check(pDX, IDC_SETCOMPATIBILITY, cTarget->m_SetCompatibility);
+	DDX_Check(pDX, IDC_SAVECAPS, cTarget->m_SaveCaps);
 	// DirectInput
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);
 	DDX_Text(pDX, IDC_INITX, cTarget->m_InitX);

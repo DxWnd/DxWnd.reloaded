@@ -38,6 +38,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SuppressIME = FALSE;
 	m_SuppressD3DExt = FALSE;
 	m_SetCompatibility = FALSE;
+	m_SaveCaps = FALSE;
 	m_LimitResources = FALSE;
 	m_UnNotify = FALSE;
 	m_Windowize = TRUE; // default true !!
@@ -78,6 +79,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HideMultiMonitor = FALSE;
 	m_WallpaperMode = FALSE;
 	m_FixD3DFrame = FALSE;
+	m_Force16BPP = FALSE;
 	m_HookChildWin = FALSE;
 	m_MessageProc = FALSE;
 	m_FixNCHITTEST = FALSE;
@@ -98,6 +100,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_FullRectBlt = FALSE;
 	m_NoPaletteUpdate = FALSE;
 	m_WireFrame = FALSE;
+	m_BlackWhite = FALSE;
 	m_InitX = 0;
 	m_InitY = 0;
 	m_MaxX = 0;
@@ -116,17 +119,19 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 
 BOOL CTargetDlg::OnInitDialog()
 {
+	int i=0;
 	AfxEnableControlContainer();
 	CDialog::OnInitDialog();
-	m_tabdxTabCtrl.InsertItem(0, _T("Main"));
-	m_tabdxTabCtrl.InsertItem(1, _T("Window"));
-	m_tabdxTabCtrl.InsertItem(2, _T("Mouse"));
-	m_tabdxTabCtrl.InsertItem(3, _T("Timing"));
-	m_tabdxTabCtrl.InsertItem(4, _T("Log"));
-	m_tabdxTabCtrl.InsertItem(5, _T("DirectX"));
-	m_tabdxTabCtrl.InsertItem(6, _T("OpenGL"));
-	m_tabdxTabCtrl.InsertItem(7, _T("GDI"));
-	m_tabdxTabCtrl.InsertItem(8, _T("Compat"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Main"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Window"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Color"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Mouse"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Timing"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Log"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("DirectX"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("OpenGL"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("GDI"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Compat"));
 	m_tabdxTabCtrl.Init();
 	return TRUE;
 }

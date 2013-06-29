@@ -16,7 +16,7 @@ class CDXTabCtrl : public CTabCtrl
 // Construction
 public:
 	CDXTabCtrl();
-	CDialog *m_tabPages[9];
+	CDialog *m_tabPages[10];
 	int m_tabCurrent;
 	int m_nNumberOfPages;
 	enum { IDD = IDC_TABPANEL };

@@ -286,6 +286,75 @@ static void DumpSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 	LogSurfaceAttributes(lpddsd, label, line);
 }
 
+#define CAPSHASHSIZE 100
+
+typedef struct {
+	LPDIRECTDRAWSURFACE lpdds;
+	DWORD Flags;
+	DWORD Caps;
+	DDPIXELFORMAT PixelFormat;
+} CapsHash_Type;
+static CapsHash_Type CapsHash[CAPSHASHSIZE];
+	
+static void PushCaps(LPDDSURFACEDESC2 lpddsd, LPDIRECTDRAWSURFACE lpdds)
+{
+	static BOOL DoFirst = TRUE;
+	int i;
+	if (DoFirst) { // initialize
+		memset(CapsHash, 0, sizeof(CapsHash));
+		DoFirst = FALSE;
+	}
+	if(IsDebug){
+		OutTrace("PushCaps: lpdds=%x dwFlags=%x dwCaps=%x", lpdds, lpddsd->dwFlags, lpddsd->ddsCaps.dwCaps); 
+		if (lpddsd->dwFlags & DDSD_PIXELFORMAT) OutTrace(" PF.dwFlags=%x PF.dwFourCC=%x PF.dwRGBBitCount=%x RGBA=(%x,%x,%x,%x)", 
+			lpddsd->ddpfPixelFormat.dwFlags, lpddsd->ddpfPixelFormat.dwFourCC, lpddsd->ddpfPixelFormat.dwRGBBitCount,
+			lpddsd->ddpfPixelFormat.dwRBitMask, lpddsd->ddpfPixelFormat.dwGBitMask, lpddsd->ddpfPixelFormat.dwBBitMask, lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask);
+		OutTrace("\n");
+	}
+	i = (DWORD)lpdds % CAPSHASHSIZE;
+	if(CapsHash[i].lpdds && (CapsHash[i].lpdds != lpdds)) {
+		char sMsg[80];
+		sprintf(sMsg, "PushCaps CONFLICT %x:%x\n", lpdds, CapsHash[i].lpdds); 
+		OutTraceE(sMsg); 
+		if (IsAssertEnabled) MessageBox(0, sMsg, "PushCaps", MB_OK | MB_ICONEXCLAMATION);
+		return;
+	}
+	CapsHash[i].lpdds = lpdds;
+	CapsHash[i].Flags = lpddsd->dwFlags;
+	CapsHash[i].Caps  = lpddsd->ddsCaps.dwCaps;
+	memcpy((void *)&CapsHash[i].PixelFormat, &lpddsd->ddpfPixelFormat, sizeof(DDPIXELFORMAT));
+	//CapsHash[i].PixelFormat.dwFlags = lpddsd->ddpfPixelFormat.dwFlags;
+}
+
+static int PopCaps(LPDDSURFACEDESC2 lpddsd, LPDIRECTDRAWSURFACE lpdds)
+{
+	int i;
+	//DWORD Flags;
+	i = (DWORD)lpdds % 100;
+	if(lpdds != CapsHash[i].lpdds){
+		char sMsg[80];
+		sprintf(sMsg, "PopCaps MISMATCH %x:%x\n", lpdds, CapsHash[i].lpdds); 
+		OutTraceE(sMsg); 
+		if (IsAssertEnabled) MessageBox(0, sMsg, "PopCaps", MB_OK | MB_ICONEXCLAMATION);
+		return FALSE;
+	}
+	//Flags = lpddsd->ddpfPixelFormat.dwFlags;
+	if (lpddsd->dwSize > (DWORD)&((LPDDSURFACEDESC2)NULL)->dwFlags) lpddsd->dwFlags = CapsHash[i].Flags;
+	if (lpddsd->dwSize > (DWORD)&((LPDDSURFACEDESC2)NULL)->ddsCaps.dwCaps) lpddsd->ddsCaps.dwCaps = CapsHash[i].Caps;
+	if ((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->dwSize > (DWORD)&((LPDDSURFACEDESC2)NULL)->ddpfPixelFormat))
+		memcpy(&(lpddsd->ddpfPixelFormat), (void *)&CapsHash[i].PixelFormat, sizeof(DDPIXELFORMAT));
+	//lpddsd->ddpfPixelFormat.dwFlags = Flags;
+	
+	if(IsDebug){
+		OutTrace("PopCaps: lpdds=%x dwFlags=%x dwCaps=%x", lpdds, lpddsd->dwFlags, lpddsd->ddsCaps.dwCaps); 
+		if (lpddsd->dwFlags & DDSD_PIXELFORMAT) OutTrace(" PF.dwFlags=%x PF.dwFourCC=%x PF.dwRGBBitCount=%x RGBA=(%x,%x,%x,%x)", 
+			lpddsd->ddpfPixelFormat.dwFlags, lpddsd->ddpfPixelFormat.dwFourCC, lpddsd->ddpfPixelFormat.dwRGBBitCount,
+			lpddsd->ddpfPixelFormat.dwRBitMask, lpddsd->ddpfPixelFormat.dwGBitMask, lpddsd->ddpfPixelFormat.dwBBitMask, lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask);
+		OutTrace("\n");
+	}
+	return TRUE;
+}
+
 /* ------------------------------------------------------------------------------ */
 // auxiliary (static) functions for HDC service surfaces stack
 /* ------------------------------------------------------------------------------ */
@@ -342,6 +411,14 @@ void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries)
 			lpentries[dwstart+idx].peGreen,
 			lpentries[dwstart+idx].peBlue  );
 		OutTraceD("\n");
+	}
+
+	if (dxw.dwFlags3 & BLACKWHITE){
+		for(i = 0; i < dwcount; i ++){
+			DWORD grayscale;
+			grayscale = ((DWORD)lpentries[i].peRed + (DWORD)lpentries[i].peGreen + (DWORD)lpentries[i].peBlue) / 3;
+			lpentries[i].peRed = lpentries[i].peGreen = lpentries[i].peBlue = (BYTE)grayscale;
+		}
 	}
 
 	switch (dxw.ActualPixelFormat.dwRGBBitCount){
@@ -660,9 +737,9 @@ int lpddHookedVersion(LPDIRECTDRAW lpdd)
 
 static void DumpPixFmt(LPDDSURFACEDESC2 lpdd)
 {
-	OutTraceD("PixFmt: Size=%x Flags=%x FourCC=%x RGBBitCount=%d RGBA BitMask=(%x,%x,%x,%x)\n", 
+	OutTraceD("PixFmt: Size=%x Flags=%x(%s) FourCC=%x RGBBitCount=%d RGBA BitMask=(%x,%x,%x,%x)\n", 
 	lpdd->ddpfPixelFormat.dwSize,
-	lpdd->ddpfPixelFormat.dwFlags,
+	lpdd->ddpfPixelFormat.dwFlags, ExplainPixelFormatFlags(lpdd->ddpfPixelFormat.dwFlags),
 	lpdd->ddpfPixelFormat.dwFourCC,
 	lpdd->ddpfPixelFormat.dwRGBBitCount,
 	lpdd->ddpfPixelFormat.dwRBitMask,
@@ -1451,6 +1528,10 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 		break;
 	}
 
+	if (dxw.dwFlags3 & SAVECAPS) {
+		DDSURFACEDESC2 ddsd;
+		if (PopCaps(&ddsd, (LPDIRECTDRAWSURFACE)lpdds)) PushCaps(&ddsd, (LPDIRECTDRAWSURFACE)*obp);	
+	}
 	return 0;
 }
 
@@ -1634,6 +1715,49 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 	return res;
 }
 
+static char *FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd)
+{	
+	// experimental part:
+	switch (lpddsd->dwFlags){
+	case DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PITCH:
+		switch (lpddsd->ddsCaps.dwCaps){
+		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
+			OutTrace("FixSurfaceCaps: null action (Airline Tycoon Evolution)\n");
+			return "null";
+			break;
+		default:
+			break;
+		}
+	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT:
+	default:
+		break;
+	}
+
+	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) == (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) && 
+		(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)){
+			OutTraceB("FixSurfaceCaps: Experimental pixelformat for ZBUFFER case\n");
+		lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY; // Evany
+		lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+		return "ZBUFFER";
+	}
+	if(((lpddsd->dwFlags & DDSD_WIDTH) && !(lpddsd->dwFlags & DDSD_HEIGHT)) ||
+		(lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH) ||
+		((lpddsd->dwFlags & DDSD_PIXELFORMAT) && !(lpddsd->dwFlags & DDSD_PITCH) && !(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) || // fix good for "Wargames" 
+		((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) && !(lpddsd->dwFlags & DDSD_PIXELFORMAT)) // fix good for Premier Manager 98
+		){
+			OutTraceB("FixSurfaceCaps: suppress DDSD_PIXELFORMAT case\n");
+		// don't alter pixel format
+		lpddsd->dwFlags &= ~DDSD_PIXELFORMAT; // Wargames, Warhammer Dark Omen
+		return "(none)";
+	}
+	// adjust pixel format
+	OutTraceB("FixSurfaceCaps: suppress DDSCAPS_VIDEOMEMORY case\n");
+	lpddsd->dwFlags |= DDSD_CAPS | DDSD_PIXELFORMAT; 
+	lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+	lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
+	return SetPixFmt(lpddsd);
+}
+
 HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurface, LPDIRECTDRAW lpdd, DDSURFACEDESC2 *lpddsd,
 	LPDIRECTDRAWSURFACE *lplpdds, void *pu)
 {
@@ -1716,6 +1840,7 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 		OutTraceD("CreateSurface: created PRIMARY DDSPrim=%x\n", lpDDSPrim);
 		dxw.MarkPrimarySurface(*lplpdds);
 		HookDDSurfacePrim(lplpdds, dxversion);
+		//if (dxw.dwFlags3 & SAVECAPS) PushCaps(&ddsd, lpDDSPrim); handled outside ....
 
 		if (BBCount){
 			// create BackBuffer surface
@@ -1734,7 +1859,7 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 				if(res==DDERR_INVALIDPIXELFORMAT) DumpPixFmt(&ddsd);
 				return res;
 			}
-			//ddsd.ddsCaps.dwCaps &= ~DDSCAPS_BACKBUFFER;
+			if (dxw.dwFlags3 & SAVECAPS) PushCaps(&ddsd, lpDDSBack);
 			OutTraceD("CreateSurface: created BACK DDSBack=%x\n", lpDDSBack);
 			dxw.UnmarkPrimarySurface(lpDDSBack);
 			HookDDSurfaceGeneric(&lpDDSBack, dxversion); // added !!!
@@ -1810,25 +1935,10 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 		return 0;
 	}
 
-	if(((ddsd.dwFlags & DDSD_WIDTH) && !(ddsd.dwFlags & DDSD_HEIGHT)) ||
-		(ddsd.dwFlags & DDSD_ZBUFFERBITDEPTH) ||
-		((ddsd.dwFlags & DDSD_PIXELFORMAT) && !(ddsd.dwFlags & DDSD_PITCH) && !(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) || // fix good for "Wargames" 
-		((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) && !(ddsd.dwFlags & DDSD_PIXELFORMAT)) // fix good for Premier Manager 98
-		){
-		// don't alter pixel format
-		ddsd.dwFlags &= ~DDSD_PIXELFORMAT; // Wargames, Warhammer Dark Omen
-		pfmt="(none)";
-	}
-	else {
-		// adjust pixel format
-		pfmt="(none)";
-		ddsd.dwFlags |= DDSD_CAPS | DDSD_PIXELFORMAT; 
-		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
-		pfmt=SetPixFmt(&ddsd);
-	}
+	pfmt=FixSurfaceCaps(&ddsd);
 
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]" , __LINE__);
+	DumpPixFmt(&ddsd); 
 	//OutTrace("pCreateSurface=%x lpdd=%x &ddsd=%x lplpdds=%x pu=%x\n",pCreateSurface, lpdd, &ddsd, lplpdds, pu);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
 	if(res){
@@ -1847,7 +1957,8 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 	}
 	if (res) {
 		OutTraceE("CreateSurface: CreateSurface ERROR res=%x(%s) pfmt=%s at %d\n", res, ExplainDDError(res), pfmt, __LINE__);
-		if(res==DDERR_INVALIDPIXELFORMAT) DumpPixFmt(&ddsd);
+		//if((res==DDERR_INVALIDPIXELFORMAT) || (res && (ddsd.dwFlags & DDSD_PIXELFORMAT))) DumpPixFmt(&ddsd);
+		DumpPixFmt(&ddsd); // why Pandemonium2 fails ???
 		return res;
 	}
 
@@ -2080,6 +2191,7 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 	LPDIRECTDRAWSURFACE *lplpdds, void *pu)
 {	
 	HRESULT res;
+	DDSURFACEDESC2 ddsd;
 
 	if(IsTraceD){
 		// beware: incomplete trace lines - must be line terminated below!
@@ -2094,6 +2206,7 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 		if (lpddsd->dwFlags & DDSD_CKSRCBLT ) OutTrace(" CKSrcBlt=(%x,%x)", lpddsd->ddckCKSrcBlt.dwColorSpaceLowValue, lpddsd->ddckCKSrcBlt.dwColorSpaceHighValue);
 		if (lpddsd->dwFlags & DDSD_CKSRCOVERLAY ) OutTrace(" CKSrcOverlay=(%x,%x)", lpddsd->ddckCKSrcOverlay.dwColorSpaceLowValue, lpddsd->ddckCKSrcOverlay.dwColorSpaceHighValue);
 		OutTrace("\n");
+		if (lpddsd->dwFlags & DDSD_PIXELFORMAT) DumpPixFmt(lpddsd);
 	}
 
 	//GHO workaround (needed for WarWind, Rogue Spear):
@@ -2104,11 +2217,14 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 	}
 
 	lpDD = lpdd;
+	if (dxw.dwFlags3 & SAVECAPS) ddsd=*lpddsd;
 
 	if (dxw.dwFlags1 & EMULATESURFACE)
 		res= extCreateSurfaceEmu(dxversion, pCreateSurface, lpdd, lpddsd, lplpdds, pu);
 	else
 		res= extCreateSurfaceDir(dxversion, pCreateSurface, lpdd, lpddsd, lplpdds, pu);
+
+	if (dxw.dwFlags3 & SAVECAPS) PushCaps(&ddsd, *lplpdds);
 
 	return res;
 }
@@ -3264,7 +3380,7 @@ HRESULT WINAPI extGetPixelFormat(LPDIRECTDRAWSURFACE lpdds, LPDDPIXELFORMAT p)
 	}
 	else{
 		OutTraceD("GetPixelFormat: Flags=%x(%s) FourCC=%x BitCount=%d RGBA=(%x,%x,%x,%x)\n", 
-			p->dwFlags, ExplainPixelFlags(p->dwFlags), p->dwFourCC, p->dwRGBBitCount, 
+			p->dwFlags, ExplainPixelFormatFlags(p->dwFlags), p->dwFourCC, p->dwRGBBitCount, 
 			p->dwRBitMask, p->dwGBitMask, p->dwBBitMask, p->dwRGBAlphaBitMask );
 	}
 
@@ -3322,10 +3438,10 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 		// if primary, clean primay surface list
 		if(IsPrim) dxw.UnmarkPrimarySurface(lpdds);
 		// service surfaces cleanup
-		if(lpdds==lpDDSBack) {
-			OutTraceD("Release(S): Clearing lpDDSBack pointer\n");
-			lpDDSBack=NULL;
-		}
+		//if(lpdds==lpDDSBack) { // v2.02.24fixed: to be investigated
+		//	OutTraceD("Release(S): Clearing lpDDSBack pointer\n");
+		//	lpDDSBack=NULL;
+		//}
 		if (dxw.dwFlags1 & EMULATESURFACE) {
 			if(lpdds==lpDDSEmu_Prim) {
 				OutTraceD("Release(S): Clearing lpDDSEmu_Prim pointer\n");
@@ -3620,8 +3736,9 @@ HRESULT WINAPI extReleaseC(LPDIRECTDRAWCLIPPER lpddClip)
 HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
 {
 	HRESULT res;
-	BOOL IsPrim;
+	BOOL IsPrim, IsFixed;
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsFixed=FALSE;
 
 	if (!pGetSurfaceDesc) {
 		OutTraceE("GetSurfaceDesc: ERROR no hooked function\n");
@@ -3639,6 +3756,7 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 	LogSurfaceAttributes(lpddsd, "GetSurfaceDesc", __LINE__);
 
 	if (IsPrim) {
+		IsFixed=TRUE;
 		// expose original caps 
 		if (dxw.dwFlags1 & EMULATESURFACE) {
 			lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
@@ -3650,16 +3768,25 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 		lpddsd->dwBackBufferCount=dxw.dwBackBufferCount;
 		lpddsd->dwHeight=dxw.GetScreenHeight();
 		lpddsd->dwWidth=dxw.GetScreenWidth();
-
-		//OutTraceD("GetSurfaceDesc: DEBUG restoring original caps=%x(%s) size=(%dx%d) BackBufferCount=%d\n",
-		//	lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps), 
-		//	lpddsd->dwWidth=dxw.GetScreenWidth(), lpddsd->dwHeight=dxw.GetScreenHeight(),
-		//	lpddsd->dwBackBufferCount);
-
-		DumpSurfaceAttributes(lpddsd, "GetSurfaceDesc FIXED", __LINE__);
 	}
 
-	return res;
+	if((dxw.dwFlags1 & EMULATESURFACE) && 
+		(dxw.dwFlags1 & SWITCHVIDEOMEMORY) && 
+		(lpddsd->ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)){
+		IsFixed=TRUE;
+		lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+		lpddsd->ddsCaps.dwCaps |= DDSCAPS_VIDEOMEMORY;
+	}
+
+	if (dxw.dwFlags3 & SAVECAPS) {
+		if (PopCaps((LPDDSURFACEDESC2)lpddsd, lpdds)) IsFixed=TRUE;
+		if (lpddsd->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
+	}
+
+	lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+
+	if(IsFixed) DumpSurfaceAttributes(lpddsd, "GetSurfaceDesc [FIXED]", __LINE__);
+	return DD_OK;
 }
 
 // Beware: despite the surface version, some game (The Sims!!!) intentionally uses a different dwSize, so that

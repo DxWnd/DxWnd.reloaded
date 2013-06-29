@@ -104,8 +104,11 @@ public:
 	BOOL	m_LimitResources;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
+	BOOL	m_SaveCaps;
 	BOOL	m_WireFrame;
+	BOOL	m_BlackWhite;
 	BOOL	m_SuppressD3DExt;
+	BOOL	m_Force16BPP;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;

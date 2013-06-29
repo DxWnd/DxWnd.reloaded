@@ -41,8 +41,6 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HOOKCHILDWIN, cTarget->m_HookChildWin);
 	DDX_Check(pDX, IDC_RECOVERSCREENMODE, cTarget->m_RecoverScreenMode);
 	DDX_Check(pDX, IDC_REFRESHONRESIZE, cTarget->m_RefreshOnResize);
-	DDX_Check(pDX, IDC_INIT8BPP, cTarget->m_Init8BPP);
-	DDX_Check(pDX, IDC_INIT16BPP, cTarget->m_Init16BPP);
 	DDX_Check(pDX, IDC_FIXD3DFRAME, cTarget->m_FixD3DFrame);
 }
 

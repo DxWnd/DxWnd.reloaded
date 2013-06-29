@@ -16,7 +16,6 @@ extern char *ExplainExStyle(DWORD);
 extern char *ExplainShowCmd(int);
 extern char *ExplainBltStatus(DWORD);
 extern char *ExplainDDError(DWORD);
-extern char *ExplainPixelFlags(DWORD);
 extern char *ExplainWinMessage(DWORD);
 extern char *ExplainResizing(DWORD);
 extern char *ExplainDeviceCaps(DWORD);

@@ -366,6 +366,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TabColor.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\TabCompat.cpp"
 				>
 			</File>
@@ -464,6 +468,10 @@
 			</File>
 			<File
 				RelativePath="StdAfx.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabColor.h"
 				>
 			</File>
 			<File

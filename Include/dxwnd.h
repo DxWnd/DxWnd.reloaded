@@ -84,6 +84,9 @@
 #define SUPPRESSD3DEXT		0x00000008 // Disables extended d3d APIs for Vista/Win7/Win8 platforms
 #define HOOKENABLED			0x00000010 // Enables task hooking
 #define FIXD3DFRAME			0x00000020 // Preserve windows frame in D3D9 programs
+#define FORCE16BPP			0x00000040 // Forces 16BPP desktop color depth
+#define BLACKWHITE			0x00000080 // Simulate a B&W screen monitor mapping colors to grayscales
+#define SAVECAPS			0x00000100 // Saves and restores original surface flags & capabilities
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

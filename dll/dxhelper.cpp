@@ -381,23 +381,6 @@ char *ExplainShowCmd(int c)
 	return(eb);
 }
 
-char *ExplainPixelFlags(DWORD c)
-{
-	static char eb[256];
-	unsigned int l;
-	strcpy(eb,"DDPF_");
-	if (c & DDPF_ALPHA) strcat(eb, "ALPHA+");
-	if (c & DDPF_ALPHAPIXELS) strcat(eb, "ALPHAPIXELS+");
-	if (c & DDPF_ALPHAPREMULT) strcat(eb, "ALPHAPREMULT+");
-	if (c & DDPF_FOURCC) strcat(eb, "FOURCC+");
-	//if (c & DDPF_PALETTEINDEXED) strcat(eb, "PALETTEINDEXED+"); //unsupported
-	if (c & DDPF_RGB) strcat(eb, "RGB+");
-	l=strlen(eb);
-	if (l>strlen("DDPF_")) eb[l-1]=0; // delete last '+' if any
-	else eb[0]=0;; // when zero ...
-	return(eb);
-}
-
 char *ExplainBltStatus(DWORD c)
 {
 	static char *eb;

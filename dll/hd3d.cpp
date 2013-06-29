@@ -33,6 +33,7 @@ typedef HRESULT (WINAPI *CreateAdditionalSwapChain_Type)(void *, D3DPRESENT_PARA
 typedef HRESULT (WINAPI *GetDirect3D_Type)(void *, IDirect3D9 **);
 typedef HRESULT (WINAPI *GetViewport_Type)(void *, D3DVIEWPORT9 *);
 typedef HRESULT (WINAPI *SetViewport_Type)(void *, D3DVIEWPORT9 *);
+typedef void	(WINAPI *SetGammaRamp_Type)(UINT, DWORD, D3DGAMMARAMP *);
 
 typedef HRESULT (WINAPI *D3D10CreateDevice_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
 typedef HRESULT (WINAPI *D3D10CreateDeviceAndSwapChain_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
@@ -67,6 +68,7 @@ HRESULT WINAPI extGetRenderState(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extCreateAdditionalSwapChain(void *, D3DPRESENT_PARAMETERS *, IDirect3DSwapChain9 **);
 HRESULT WINAPI extGetViewport(void *, D3DVIEWPORT9 *);
 HRESULT WINAPI extSetViewport(void *, D3DVIEWPORT9 *);
+void	WINAPI extSetGammaRamp(UINT, DWORD, D3DGAMMARAMP *);
 
 HRESULT WINAPI extD3D10CreateDevice(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
 HRESULT WINAPI extD3D10CreateDeviceAndSwapChain(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
@@ -103,6 +105,7 @@ GetRenderState_Type pGetRenderState = 0;
 CreateAdditionalSwapChain_Type pCreateAdditionalSwapChain = 0;
 GetViewport_Type pGetViewport = 0;
 SetViewport_Type pSetViewport = 0;
+SetGammaRamp_Type pSetGammaRamp = 0;
 
 D3D10CreateDevice_Type pD3D10CreateDevice = 0;
 D3D10CreateDeviceAndSwapChain_Type pD3D10CreateDeviceAndSwapChain = 0;
@@ -573,16 +576,33 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 
 	if(dxw.dwFlags3 & FIXD3DFRAME){
 		char ClassName[81];
+		RECT workarea;
 		GetClassName(dxw.GethWnd(), ClassName, 80);
+		(*pGetClientRect)(dxw.GethWnd(), &workarea);
+		if ((dxw.dwFlags2 & KEEPASPECTRATIO) && (dxw.Coordinates == DXW_DESKTOP_WORKAREA)) {
+			int w, h, b; // width, height and border
+			w = workarea.right - workarea.left;
+			h = workarea.bottom - workarea.top;
+			if ((w * 600) > (h * 800)){
+				b = (w - (h * 800 / 600))/2;
+				workarea.left += b;
+				workarea.right -= b;
+			}
+			else {
+				b = (h - (w * 600 / 800))/2;
+				workarea.top += b;
+				workarea.bottom -= b;
+			}
+		}
 		hfocuswindow=(*pCreateWindowExA)(
 			0, ClassName, "child", 
 			WS_CHILD|WS_VISIBLE, 
 			//GetSystemMetrics(SM_CXSIZEFRAME), GetSystemMetrics(SM_CYSIZEFRAME)+GetSystemMetrics(SM_CYCAPTION), 
-			0, 0,
-			dxw.GetScreenWidth(), dxw.GetScreenHeight(), dxw.GethWnd(), 
-			NULL, NULL, NULL);
+			workarea.left, workarea.top, workarea.right-workarea.left, workarea.bottom-workarea.top, 
+			dxw.GethWnd(), NULL, NULL, NULL);
 		if (hfocuswindow) 
-			OutTraceD("CreateDevice: updated hfocuswindow=%x\n", hfocuswindow, GetLastError());
+			OutTraceD("CreateDevice: updated hfocuswindow=%x pos=(%d,%d) size=(%d,%d)\n", 
+				hfocuswindow, workarea.left, workarea.top, workarea.right-workarea.left, workarea.bottom-workarea.top);
 		else
 			OutTraceD("CreateDevice: CreateWindowEx ERROR err=%d\n", GetLastError());
 		dxw.SethWnd(hfocuswindow, dxw.GethWnd());
@@ -640,7 +660,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	}
 	OutTraceD("SUCCESS! device=%x\n", *ppd3dd);
 
-	if(dwD3DVersion == 8){
+	if(dwD3DVersion == 8){ 
 		void *pReset;
 		pReset=NULL; // to avoid assert condition
 		SetHook((void *)(**(DWORD **)ppd3dd +  0), extQueryInterfaceDev8, (void **)&pQueryInterfaceDev8, "QueryInterface(D8)");
@@ -649,9 +669,10 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 56), extReset, (void **)&pReset, "Reset(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 60), extPresent, (void **)&pPresent, "Present(D8)");
+		SetHook((void *)(**(DWORD **)ppd3dd + 72), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D8)");
 		if(dxw.dwFlags2 & WIREFRAME){
-			SetHook((void *)(**(DWORD **)ppd3dd + 200), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D9)");
-			SetHook((void *)(**(DWORD **)ppd3dd + 204), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D9)");
+			SetHook((void *)(**(DWORD **)ppd3dd + 200), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D8)");
+			SetHook((void *)(**(DWORD **)ppd3dd + 204), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D8)");
 			(*pSetRenderState)((void *)*ppd3dd, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		}
 	}
@@ -664,6 +685,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 68), extPresent, (void **)&pPresent, "Present(D9)");
+		SetHook((void *)(**(DWORD **)ppd3dd + 84), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D9)");
 		//SetHook((void *)(**(DWORD **)ppd3dd +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
 		//SetHook((void *)(**(DWORD **)ppd3dd +192), extGetViewport, (void **)&pGetViewport, "GetViewport(D9)");
 		if(dxw.dwFlags2 & WIREFRAME){
@@ -748,6 +770,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
 	SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
 	SetHook((void *)(**(DWORD **)ppd3dd + 68), extPresent, (void **)&pPresent, "Present(D9)");
+	SetHook((void *)(**(DWORD **)ppd3dd + 84), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D9)");
 	//SetHook((void *)(**(DWORD **)ppd3dd +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
 	//SetHook((void *)(**(DWORD **)ppd3dd +192), extGetViewport, (void **)&pGetViewport, "GetViewport(D9)");
 	if(dxw.dwFlags2 & WIREFRAME){
@@ -1071,4 +1094,11 @@ HRESULT WINAPI extCheckFullScreen(void)
 {
 	OutTraceD("CheckFullScreen\n");
 	return 0;
+}
+
+void WINAPI extSetGammaRamp(UINT iSwapChain, DWORD Flags, D3DGAMMARAMP *pRamp)
+{
+	OutTraceD("SetGammaRamp: SwapChain=%d flags=%x\n", iSwapChain, Flags);
+	if (dxw.dwFlags2 & DISABLEGAMMARAMP) return;
+	(*pSetGammaRamp)(iSwapChain, Flags, pRamp);
 }

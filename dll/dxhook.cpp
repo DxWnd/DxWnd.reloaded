@@ -52,8 +52,8 @@ static char *Flag2Names[32]={
 
 static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
-	"", "", "", "",
-	"", "", "", "",
+	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
+	"SAVECAPS", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -426,7 +426,7 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	case DXW_DESKTOP_WORKAREA:
 		SystemParametersInfo(SPI_GETWORKAREA, NULL, &workarea, 0);
 		rect = workarea;
-		if (dxw.dwFlags2 & KEEPASPECTRATIO) {
+		if ((dxw.dwFlags2 & KEEPASPECTRATIO) && !(dxw.dwFlags3 & FIXD3DFRAME)) {
 			int w, h, b; // width, height and border
 			w = workarea.right - workarea.left;
 			h = workarea.bottom - workarea.top;
@@ -874,6 +874,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;
 	case WM_CLOSE:
 		OutTraceD("WindowProc: WM_CLOSE - terminating process\n");
+		if(dxw.dwFlags3 & FORCE16BPP) RecoverScreenMode();
 		TerminateProcess(GetCurrentProcess(),0);
 		break;
 	case WM_SYSKEYDOWN:
@@ -925,6 +926,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	if (dxw.dwFlags1 & AUTOREFRESH) dxw.ScreenRefresh();
 
 	pWindowProc=WhndGetWindowProc(hwnd);
+	//OutTraceB("WindowProc: pWindowProc=%x extWindowProc=%x message=%x(%s) wparam=%x lparam=%x\n", 
+	//	(*pWindowProc), extWindowProc, message, ExplainWinMessage(message), wparam, lparam);
 	if(pWindowProc) {
 		LRESULT ret;
 		ret=(*pWindowProc)(hwnd, message, wparam, lparam);
@@ -1102,6 +1105,20 @@ static void RecoverScreenMode()
 	EnumDisplaySettings(NULL, ENUM_REGISTRY_SETTINGS, &InitDevMode);
 	OutTraceD("ChangeDisplaySettings: RECOVER wxh=(%dx%d) BitsPerPel=%d\n", 
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
+	InitDevMode.dmFields |= DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+	res=(*pChangeDisplaySettings)(&InitDevMode, 0);
+	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+}
+
+static void SwitchTo16BPP()
+{
+	DEVMODE InitDevMode;
+	BOOL res;
+	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &InitDevMode);
+	OutTraceD("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> 16\n", 
+		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
+	InitDevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+	InitDevMode.dmBitsPerPel = 16;
 	res=(*pChangeDisplaySettings)(&InitDevMode, 0);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
@@ -1309,8 +1326,8 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 		sModule=strtok(NULL," ;");
 	}
 
-
 	if(dxw.dwFlags2 & RECOVERSCREENMODE) RecoverScreenMode();
+	if(dxw.dwFlags3 & FORCE16BPP) SwitchTo16BPP();
 
 	InitScreenParameters();
 
