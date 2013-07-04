@@ -35,6 +35,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HandleDC = FALSE;
 	m_HandleExceptions = FALSE;
 	m_SuppressIME = FALSE;
+	m_SetCompatibility = FALSE;
 	m_LimitResources = FALSE;
 	m_UnNotify = FALSE;
 	m_Windowize = TRUE;

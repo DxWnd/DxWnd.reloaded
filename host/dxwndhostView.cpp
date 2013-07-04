@@ -392,6 +392,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_HandleDC = TargetMaps[i].flags & HANDLEDC ? 1 : 0;
 	dlg.m_HandleExceptions = TargetMaps[i].flags & HANDLEEXCEPTIONS ? 1 : 0;
 	dlg.m_SuppressIME = TargetMaps[i].flags2 & SUPPRESSIME ? 1 : 0;
+	dlg.m_SetCompatibility = TargetMaps[i].flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg.m_LimitResources = TargetMaps[i].flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg.m_SaveLoad = TargetMaps[i].flags & SAVELOAD ? 1 : 0;
 	dlg.m_SlowDown = TargetMaps[i].flags & SLOWDOWN ? 1 : 0;
@@ -499,6 +500,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_HandleExceptions) TargetMaps[i].flags |= HANDLEEXCEPTIONS;
 		if(dlg.m_LimitResources) TargetMaps[i].flags2 |= LIMITRESOURCES;
 		if(dlg.m_SuppressIME) TargetMaps[i].flags2 |= SUPPRESSIME;
+		if(dlg.m_SetCompatibility) TargetMaps[i].flags2 |= SETCOMPATIBILITY;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;
 		if(dlg.m_BlitFromBackBuffer) TargetMaps[i].flags |= BLITFROMBACKBUFFER;
@@ -797,6 +799,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_HandleDC) TargetMaps[i].flags |= HANDLEDC;
 		if(dlg.m_HandleExceptions) TargetMaps[i].flags |= HANDLEEXCEPTIONS;
 		if(dlg.m_SuppressIME) TargetMaps[i].flags2 |= SUPPRESSIME;
+		if(dlg.m_SetCompatibility) TargetMaps[i].flags2 |= SETCOMPATIBILITY;
 		if(dlg.m_LimitResources) TargetMaps[i].flags2 |= LIMITRESOURCES;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;

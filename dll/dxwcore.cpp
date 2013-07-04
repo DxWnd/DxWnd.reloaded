@@ -25,14 +25,6 @@ dxwCore::dxwCore()
 	IsGDIPalette = FALSE;
 
 	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
-
-	//// preserved syslibs pointers
-	//pClientToScreen=ClientToScreen;
-	//pClipCursor=ClipCursor;
-	//pGetClientRect=GetClientRect;
-	//pGetCursorPos=GetCursorPos;
-	//pInvalidateRect=InvalidateRect;
-	//pScreenToClient=ScreenToClient;
 }
 
 dxwCore::~dxwCore()
@@ -174,6 +166,11 @@ POINT dxwCore::FixCursorPos(HWND hwnd, POINT prev)
 			curr.x = curr.y = 0;
 		}
 
+		if (curr.x < 0) curr.x = 0;
+		if (curr.y < 0) curr.y = 0;
+		if (curr.x > rect.right) curr.x = rect.right;
+		if (curr.y > rect.bottom) curr.y = rect.bottom;
+
 		if (rect.right)  curr.x = (curr.x * dxw.GetScreenWidth()) / rect.right;
 		if (rect.bottom) curr.y = (curr.y * dxw.GetScreenHeight()) / rect.bottom;
 	}
@@ -208,6 +205,7 @@ POINT dxwCore::ScreenToClient(POINT point)
 		OutTraceE("ScreenToClient(%x) ERROR %d at %d\n", hWnd, GetLastError(), __LINE__);
 		point.x =0; point.y=0;
 	}
+
 	return point;
 }
 

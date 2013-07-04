@@ -97,6 +97,7 @@ public:
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
 	BOOL	m_SuppressIME;
+	BOOL	m_SetCompatibility;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;

@@ -549,7 +549,19 @@ int HookDirectDraw(HMODULE module, int version)
 	HINSTANCE hinst;
 	void *tmp;
 	const GUID dd7 = {0x15e65ec0,0x3b9c,0x11d2,0xb9,0x2f,0x00,0x60,0x97,0x97,0xea,0x5b};
-	
+
+	if(dxw.dwFlags2 & SETCOMPATIBILITY){
+		typedef HRESULT (WINAPI *SetAppCompatData_Type)(DWORD, DWORD);
+		SetAppCompatData_Type pSetAppCompatData;
+		HRESULT res;
+
+		hinst=LoadLibrary("ddraw.dll");
+		pSetAppCompatData=(SetAppCompatData_Type)(*pGetProcAddress)(hinst, "SetAppCompatData");
+		if(pSetAppCompatData) res=(*pSetAppCompatData)(2, 0);
+		OutTraceD("HookDirectDraw: SetAppCompatData(2,0) ret=%x(%s)\n", res, ExplainDDError(res));
+		FreeLibrary(hinst);
+	}
+
 	OutTraceD("HookDirectDraw version=%d\n", version); //GHO
 	switch(version){
 	case 0: // automatic
@@ -1835,6 +1847,12 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 	}
 
 	// not primary emulated surface ....
+	// try begin
+	//if((ddsd.dwFlags && DDSD_CAPS) && (ddsd.ddsCaps.dwCaps && DDSCAPS_ZBUFFER)){
+	//	pfmt="untouched";
+	//}
+	//else
+	//end try
 	if(((ddsd.dwFlags & DDSD_WIDTH) && !(ddsd.dwFlags & DDSD_HEIGHT)) ||
 		(ddsd.dwFlags & DDSD_ZBUFFERBITDEPTH) ||
 		//(ddsd.dwFlags & DDSD_PIXELFORMAT) ||
@@ -2801,6 +2819,7 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 	// clipping ON & OFF affects blitting on primary surface.
 	if(dxw.dwFlags1 & SUPPRESSCLIPPING) return 0;
 
+#if 1
 	if(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){
 		if (isPrim && lpDDSEmu_Prim) {
 			res=(*pSetClipper)(lpDDSEmu_Prim, lpddc);
@@ -2822,8 +2841,9 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 			res=(*pSetClipper)(lpdds, lpddc);
 	}
 	else
-		// just proxy ...
-		res=(*pSetClipper)(lpdds, lpddc);
+#endif
+	// just proxy ...
+	res=(*pSetClipper)(lpdds, lpddc);
 	if (res)
 		OutTraceE("SetClipper: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	return res;

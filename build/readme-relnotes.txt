@@ -72,3 +72,7 @@ V2.02.14
 Started dll injection to handle startup code
 Fixed directx CreateSurface hook to fix "Wargames" error in emulated mode
 Fixed directx SetClipper hook to properly handle backbuffer clipping and fix "Wargames" clipping problems
+
+v2.02.15
+Fixed clipping handling of primary/backbuffer surfaces 
+Added option to set AERO compatibility for Vista/Win7/Win8 platforms. Need to call a undocumented ddraw API. Thanks to Vovchik that discovered it. Use at your own risk!

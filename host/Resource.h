@@ -122,6 +122,7 @@
 #define IDC_LIMITRESOURCES2             1072
 #define IDC_SUPPRESSIME                 1072
 #define IDC_DISABLEGAMMARAMP            1073
+#define IDC_SETCOMPATIBILITY            1073
 #define IDC_FIXNCHITTEST                1074
 #define IDC_LIMITFPS                    1075
 #define IDC_SKIPFPS                     1076

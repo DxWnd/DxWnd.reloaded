@@ -416,6 +416,7 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 {
 	HRESULT res;
 	static int PrevX, PrevY;
+	POINT prev;
 
 	if(dxw.dwFlags1 & SLOWDOWN) dxw.DoSlow(2);
 
@@ -427,8 +428,10 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 		res=1;
 	}
 
+	prev=*lppoint;
 	*lppoint=dxw.ScreenToClient(*lppoint);
 	*lppoint=dxw.FixCursorPos(*lppoint);
+	OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", prev.x, prev.y, lppoint->x, lppoint->y);
 	
 	return res;
 }
