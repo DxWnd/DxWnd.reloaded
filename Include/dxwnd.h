@@ -95,6 +95,10 @@
 #define DISABLEHAL			0x00002000 // Disable HAL support (IID_IDirect3DHALDevice)
 #define LOCKSYSCOLORS		0x00004000 // Lock Sys Colors changes by SetSysColors() call
 #define EMULATEDC			0x00008000 // ........
+#define FULLSCREENONLY		0x00010000 // assume that the program is always in fullscreen mode
+#define FONTBYPASS			0x00020000 // bypass font unsupported API
+#define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
+#define RGB2YUV				0x00080000 // Simulate RGB to YUV color conversion
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

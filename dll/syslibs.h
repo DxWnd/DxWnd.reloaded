@@ -108,6 +108,10 @@ typedef LPTOP_LEVEL_EXCEPTION_FILTER
 				(WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
 typedef void	(WINAPI *Sleep_Type)(DWORD);
 typedef DWORD	(WINAPI *SleepEx_Type)(DWORD, BOOL);
+typedef BOOL	(WINAPI *CreateScalableFontResourceA_Type)(DWORD, LPCTSTR, LPCTSTR, LPCTSTR);
+typedef int		(WINAPI *AddFontResourceA_Type)(LPCTSTR);
+typedef BOOL	(WINAPI *CreateScalableFontResourceW_Type)(DWORD, LPCWSTR, LPCWSTR, LPCWSTR);
+typedef int		(WINAPI *AddFontResourceW_Type)(LPCWSTR);
 
 // ole32.dll:
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
@@ -159,6 +163,10 @@ typedef BOOL	(WINAPI *DestroyWindow_Type)(HWND);
 typedef BOOL	(WINAPI *CloseWindow_Type)(HWND);
 typedef BOOL	(WINAPI *SetSysColors_Type)(int, const INT *, const COLORREF *);
 typedef HDC		(WINAPI *GetDCEx_Type)(HWND, HRGN, DWORD);
+typedef BOOL	(WINAPI *UpdateWindow_Type)(HWND);
+typedef BOOL	(WINAPI *GetWindowPlacement_Type)(HWND, WINDOWPLACEMENT *);
+typedef BOOL	(WINAPI *SetWindowPlacement_Type)(HWND, WINDOWPLACEMENT *);
+typedef HWND	(WINAPI *SetCapture_Type)(HWND);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -253,6 +261,10 @@ DXWEXTERN GetViewportOrgEx_Type pGetViewportOrgEx DXWINITIALIZED;
 DXWEXTERN GetWindowOrgEx_Type pGetWindowOrgEx DXWINITIALIZED;
 DXWEXTERN SetWindowOrgEx_Type pSetWindowOrgEx DXWINITIALIZED;
 DXWEXTERN GetCurrentPositionEx_Type pGetCurrentPositionEx DXWINITIALIZED;
+DXWEXTERN CreateScalableFontResourceA_Type pCreateScalableFontResourceA DXWINITIALIZED;
+DXWEXTERN AddFontResourceA_Type pAddFontResourceA DXWINITIALIZED;
+DXWEXTERN CreateScalableFontResourceW_Type pCreateScalableFontResourceW DXWINITIALIZED;
+DXWEXTERN AddFontResourceW_Type pAddFontResourceW DXWINITIALIZED;
 
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
@@ -325,6 +337,10 @@ DXWEXTERN DestroyWindow_Type pDestroyWindow DXWINITIALIZED;
 DXWEXTERN CloseWindow_Type pCloseWindow DXWINITIALIZED;
 DXWEXTERN SetSysColors_Type pSetSysColors DXWINITIALIZED;
 DXWEXTERN GetDCEx_Type pGDIGetDCEx DXWINITIALIZED;
+DXWEXTERN UpdateWindow_Type pUpdateWindow DXWINITIALIZED;
+DXWEXTERN GetWindowPlacement_Type pGetWindowPlacement DXWINITIALIZED;
+DXWEXTERN SetWindowPlacement_Type pSetWindowPlacement DXWINITIALIZED;
+DXWEXTERN SetCapture_Type pSetCapture DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
@@ -412,6 +428,10 @@ extern BOOL WINAPI extGetViewportOrgEx(HDC, LPPOINT);
 extern BOOL WINAPI extGetWindowOrgEx(HDC, LPPOINT);
 extern BOOL WINAPI extSetWindowOrgEx(HDC, int, int, LPPOINT);
 extern BOOL WINAPI extGetCurrentPositionEx(HDC, LPPOINT);
+extern BOOL WINAPI extCreateScalableFontResourceA(DWORD, LPCTSTR, LPCTSTR, LPCTSTR);
+extern int WINAPI extAddFontResourceA(LPCTSTR);
+extern BOOL WINAPI extCreateScalableFontResourceW(DWORD, LPCWSTR, LPCWSTR, LPCWSTR);
+extern int WINAPI extAddFontResourceW(LPCWSTR);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -488,7 +508,10 @@ extern BOOL WINAPI extDestroyWindow(HWND);
 extern BOOL WINAPI extCloseWindow(HWND);
 extern BOOL WINAPI extSetSysColors(int, const INT *, const COLORREF *);
 extern HDC WINAPI extGDIGetDCEx(HWND, HRGN, DWORD);
-
+extern BOOL WINAPI extUpdateWindow(HWND);
+extern BOOL WINAPI extGetWindowPlacement(HWND, WINDOWPLACEMENT *);
+extern BOOL WINAPI extSetWindowPlacement(HWND, WINDOWPLACEMENT *);
+extern HWND WINAPI extSetCapture(HWND);
 
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);

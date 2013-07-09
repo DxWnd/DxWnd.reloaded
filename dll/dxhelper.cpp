@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_DEPRECATE 1
 #include <windows.h>
+#include <stdio.h>
 #include <ddraw.h>
 #include "dxwnd.h"
 
@@ -80,6 +81,248 @@ char *ExplainDDSCaps(DWORD c)
 	if (c & DDSCAPS_OPTIMIZED) strcat(eb, "OPTIMIZED+");
 	l=strlen(eb);
 	if (l>strlen("DDSCAPS_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
+char *ExplainDDSCaps2(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"DDSCAPS2_");
+	if (c & DDSCAPS2_RESERVED4) strcat(eb, "RESERVED4+");
+	if (c & DDSCAPS2_HINTDYNAMIC) strcat(eb, "HINTDYNAMIC+");
+	if (c & DDSCAPS2_HINTSTATIC) strcat(eb, "HINTSTATIC+");
+	if (c & DDSCAPS2_TEXTUREMANAGE) strcat(eb, "TEXTUREMANAGE+");
+	if (c & DDSCAPS2_RESERVED1) strcat(eb, "RESERVED1+");
+	if (c & DDSCAPS2_RESERVED2) strcat(eb, "RESERVED2+");
+	if (c & DDSCAPS2_OPAQUE) strcat(eb, "OPAQUE+");
+	if (c & DDSCAPS2_HINTANTIALIASING) strcat(eb, "HINTANTIALIASING+");
+	if (c & DDSCAPS2_CUBEMAP) strcat(eb, "CUBEMAP+");
+	if (c & DDSCAPS2_CUBEMAP_POSITIVEX) strcat(eb, "CUBEMAP_POSITIVEX+");
+	if (c & DDSCAPS2_CUBEMAP_NEGATIVEX) strcat(eb, "CUBEMAP_NEGATIVEX+");
+	if (c & DDSCAPS2_CUBEMAP_POSITIVEY) strcat(eb, "CUBEMAP_POSITIVEY+");
+	if (c & DDSCAPS2_CUBEMAP_NEGATIVEY) strcat(eb, "CUBEMAP_NEGATIVEY+");
+	if (c & DDSCAPS2_CUBEMAP_POSITIVEZ) strcat(eb, "CUBEMAP_POSITIVEZ+");
+	if (c & DDSCAPS2_CUBEMAP_NEGATIVEZ) strcat(eb, "CUBEMAP_NEGATIVEZ+");
+	if (c & DDSCAPS2_MIPMAPSUBLEVEL) strcat(eb, "MIPMAPSUBLEVEL+");
+	if (c & DDSCAPS2_D3DTEXTUREMANAGE) strcat(eb, "D3DTEXTUREMANAGE+");
+	if (c & DDSCAPS2_DONOTPERSIST) strcat(eb, "DONOTPERSIST+");
+	if (c & DDSCAPS2_STEREOSURFACELEFT) strcat(eb, "STEREOSURFACELEFT+");
+	if (c & DDSCAPS2_VOLUME) strcat(eb, "VOLUME+");
+	if (c & DDSCAPS2_NOTUSERLOCKABLE) strcat(eb, "NOTUSERLOCKABLE+");
+	if (c & DDSCAPS2_POINTS) strcat(eb, "POINTS+");
+	if (c & DDSCAPS2_RTPATCHES) strcat(eb, "RTPATCHES+");
+	if (c & DDSCAPS2_NPATCHES) strcat(eb, "NPATCHES+");
+	if (c & DDSCAPS2_RESERVED3) strcat(eb, "RESERVED3+");
+	if (c & DDSCAPS2_DISCARDBACKBUFFER) strcat(eb, "DISCARDBACKBUFFER+");
+	if (c & DDSCAPS2_ENABLEALPHACHANNEL) strcat(eb, "ENABLEALPHACHANNEL+");
+	if (c & DDSCAPS2_EXTENDEDFORMATPRIMARY) strcat(eb, "EXTENDEDFORMATPRIMARY+");
+	if (c & DDSCAPS2_ADDITIONALPRIMARY) strcat(eb, "ADDITIONALPRIMARY+");
+	l=strlen(eb);
+	if (l>strlen("DDCAPS2_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
+char *ExplainDDSCaps3(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"DDSCAPS3_");
+	if (c & DDSCAPS3_MULTISAMPLE_MASK) strcat(eb, "DDSCAPS3_MULTISAMPLE_MASK+");
+	if (c & DDSCAPS3_RESERVED1) strcat(eb, "DDSCAPS3_RESERVED1+");
+	if (c & DDSCAPS3_RESERVED2) strcat(eb, "DDSCAPS3_RESERVED2+");
+	if (c & DDSCAPS3_LIGHTWEIGHTMIPMAP) strcat(eb, "DDSCAPS3_LIGHTWEIGHTMIPMAP+");
+	if (c & DDSCAPS3_AUTOGENMIPMAP) strcat(eb, "DDSCAPS3_AUTOGENMIPMAP+");
+	if (c & DDSCAPS3_DMAP) strcat(eb, "DDSCAPS3_DMAP+");
+	if (c & DDSCAPS3_MULTISAMPLE_QUALITY_MASK) {
+		DWORD dwQuality;
+		char sQuality[20];
+		dwQuality = (c & DDSCAPS3_MULTISAMPLE_QUALITY_MASK) >> DDSCAPS3_MULTISAMPLE_QUALITY_SHIFT;
+		sprintf(sQuality, "QUALITY(%d)+", dwQuality);
+		strcat(eb, sQuality);
+	}
+	l=strlen(eb);
+	if (l>strlen("DDCAPS3_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
+char *ExplainDDDCaps(DWORD c)
+{
+	static char eb[512];
+	unsigned int l;
+	strcpy(eb,"DDCAPS_");
+	if (c & DDCAPS_3D) strcat(eb, "3D+");
+	if (c & DDCAPS_ALIGNBOUNDARYDEST) strcat(eb, "ALIGNBOUNDARYDEST+");
+	if (c & DDCAPS_ALIGNSIZEDEST) strcat(eb, "ALIGNSIZEDEST+");
+	if (c & DDCAPS_ALIGNBOUNDARYSRC) strcat(eb, "ALIGNBOUNDARYSRC+");
+	if (c & DDCAPS_ALIGNSIZESRC) strcat(eb, "ALIGNSIZESRC+");
+	if (c & DDCAPS_ALIGNSTRIDE) strcat(eb, "ALIGNSTRIDE+");
+	if (c & DDCAPS_BLT) strcat(eb, "BLT+");
+	if (c & DDCAPS_BLTQUEUE) strcat(eb, "BLTQUEUE+");
+	if (c & DDCAPS_BLTFOURCC) strcat(eb, "BLTFOURCC+");
+	if (c & DDCAPS_BLTSTRETCH) strcat(eb, "BLTSTRETCH+");
+	if (c & DDCAPS_GDI) strcat(eb, "GDI+");
+	if (c & DDCAPS_OVERLAY) strcat(eb, "OVERLAY+");
+	if (c & DDCAPS_OVERLAYCANTCLIP) strcat(eb, "OVERLAYCANTCLIP+");
+	if (c & DDCAPS_OVERLAYFOURCC) strcat(eb, "OVERLAYFOURCC+");
+	if (c & DDCAPS_OVERLAYSTRETCH) strcat(eb, "OVERLAYSTRETCH+");
+	if (c & DDCAPS_PALETTE) strcat(eb, "PALETTE+");
+	if (c & DDCAPS_PALETTEVSYNC) strcat(eb, "PALETTEVSYNC+");
+	if (c & DDCAPS_READSCANLINE) strcat(eb, "READSCANLINE+");
+	if (c & DDCAPS_RESERVED1) strcat(eb, "RESERVED1+");
+	if (c & DDCAPS_VBI) strcat(eb, "VBI+");
+	if (c & DDCAPS_ZBLTS) strcat(eb, "ZBLTS+");
+	if (c & DDCAPS_ZOVERLAYS) strcat(eb, "ZOVERLAYS+");
+	if (c & DDCAPS_COLORKEY) strcat(eb, "COLORKEY+");
+	if (c & DDCAPS_ALPHA) strcat(eb, "ALPHA+");
+	if (c & DDCAPS_COLORKEYHWASSIST) strcat(eb, "COLORKEYHWASSIST+");
+	if (c & DDCAPS_NOHARDWARE) strcat(eb, "NOHARDWARE+");
+	if (c & DDCAPS_BLTCOLORFILL) strcat(eb, "BLTCOLORFILL+");
+	if (c & DDCAPS_BANKSWITCHED) strcat(eb, "BANKSWITCHED+");
+	if (c & DDCAPS_BLTDEPTHFILL) strcat(eb, "BLTDEPTHFILL+");
+	if (c & DDCAPS_CANCLIP) strcat(eb, "CANCLIP+");
+	if (c & DDCAPS_CANCLIPSTRETCHED) strcat(eb, "CANCLIPSTRETCHED+");
+	if (c & DDCAPS_CANBLTSYSMEM) strcat(eb, "CANBLTSYSMEM+");
+	l=strlen(eb);
+	if (l>strlen("DDCAPS_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
+char *ExplainDDDCaps2(DWORD c)
+{
+	static char eb[512];
+	unsigned int l;
+	strcpy(eb,"DDCAPS2_");
+	if (c & DDCAPS2_CERTIFIED) strcat(eb, "CERTIFIED+");
+	if (c & DDCAPS2_NO2DDURING3DSCENE) strcat(eb, "NO2DDURING3DSCENE+");
+	if (c & DDCAPS2_VIDEOPORT) strcat(eb, "VIDEOPORT+");
+	if (c & DDCAPS2_AUTOFLIPOVERLAY) strcat(eb, "AUTOFLIPOVERLAY+");
+	if (c & DDCAPS2_CANBOBINTERLEAVED) strcat(eb, "CANBOBINTERLEAVED+");
+	if (c & DDCAPS2_CANBOBNONINTERLEAVED) strcat(eb, "CANBOBNONINTERLEAVED+");
+	if (c & DDCAPS2_COLORCONTROLOVERLAY) strcat(eb, "COLORCONTROLOVERLAY+");
+	if (c & DDCAPS2_COLORCONTROLPRIMARY) strcat(eb, "COLORCONTROLPRIMARY+");
+	if (c & DDCAPS2_CANDROPZ16BIT) strcat(eb, "CANDROPZ16BIT+");
+	if (c & DDCAPS2_NONLOCALVIDMEM) strcat(eb, "NONLOCALVIDMEM+");
+	if (c & DDCAPS2_NONLOCALVIDMEMCAPS) strcat(eb, "NONLOCALVIDMEMCAPS+");
+	if (c & DDCAPS2_NOPAGELOCKREQUIRED) strcat(eb, "NOPAGELOCKREQUIRED+");
+	if (c & DDCAPS2_WIDESURFACES) strcat(eb, "WIDESURFACES+");
+	if (c & DDCAPS2_CANFLIPODDEVEN) strcat(eb, "CANFLIPODDEVEN+");
+	if (c & DDCAPS2_CANBOBHARDWARE) strcat(eb, "CANBOBHARDWARE+");
+	if (c & DDCAPS2_COPYFOURCC) strcat(eb, "COPYFOURCC+");
+	if (c & DDCAPS2_PRIMARYGAMMA) strcat(eb, "PRIMARYGAMMA+");
+	if (c & DDCAPS2_CANRENDERWINDOWED) strcat(eb, "CANRENDERWINDOWED+");
+	if (c & DDCAPS2_CANCALIBRATEGAMMA) strcat(eb, "CANCALIBRATEGAMMA+");
+	if (c & DDCAPS2_FLIPINTERVAL) strcat(eb, "FLIPINTERVAL+");
+	if (c & DDCAPS2_FLIPNOVSYNC) strcat(eb, "FLIPNOVSYNC+");
+	if (c & DDCAPS2_CANMANAGETEXTURE) strcat(eb, "CANMANAGETEXTURE+");
+	if (c & DDCAPS2_TEXMANINNONLOCALVIDMEM) strcat(eb, "TEXMANINNONLOCALVIDMEM+");
+	if (c & DDCAPS2_STEREO) strcat(eb, "STEREO+");
+	if (c & DDCAPS2_SYSTONONLOCAL_AS_SYSTOLOCAL) strcat(eb, "SYSTONONLOCAL_AS_SYSTOLOCAL+");
+	if (c & DDCAPS2_RESERVED1) strcat(eb, "RESERVED1/PUREHAL+");
+	if (c & DDCAPS2_CANMANAGERESOURCE) strcat(eb, "CANMANAGERESOURCE+");
+	if (c & DDCAPS2_DYNAMICTEXTURES) strcat(eb, "DYNAMICTEXTURES+");
+	if (c & DDCAPS2_CANAUTOGENMIPMAP) strcat(eb, "CANAUTOGENMIPMAP+");
+	l=strlen(eb);
+	if (l>strlen("DDCAPS2_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
+char *ExplainDDFXALPHACaps(DWORD c)
+{
+	static char eb[512];
+	unsigned int l;
+	strcpy(eb,"DDFXALPHACAPS_");
+	if (c & DDFXALPHACAPS_BLTALPHAEDGEBLEND) strcat(eb, "BLTALPHAEDGEBLEND+");
+	if (c & DDFXALPHACAPS_BLTALPHAPIXELS) strcat(eb, "BLTALPHAPIXELS+");
+	if (c & DDFXALPHACAPS_BLTALPHAPIXELSNEG) strcat(eb, "BLTALPHAPIXELSNEG+");
+	if (c & DDFXALPHACAPS_BLTALPHASURFACES) strcat(eb, "BLTALPHASURFACES+");
+	if (c & DDFXALPHACAPS_BLTALPHASURFACESNEG) strcat(eb, "BLTALPHASURFACESNEG+");
+	if (c & DDFXALPHACAPS_OVERLAYALPHAEDGEBLEND) strcat(eb, "OVERLAYALPHAEDGEBLEND+");
+	if (c & DDFXALPHACAPS_OVERLAYALPHAPIXELS) strcat(eb, "OVERLAYALPHAPIXELS+");
+	if (c & DDFXALPHACAPS_OVERLAYALPHAPIXELSNEG) strcat(eb, "OVERLAYALPHAPIXELSNEG+");
+	if (c & DDFXALPHACAPS_OVERLAYALPHASURFACES) strcat(eb, "OVERLAYALPHASURFACES+");
+	if (c & DDFXALPHACAPS_OVERLAYALPHASURFACESNEG) strcat(eb, "OVERLAYALPHASURFACESNEG+");
+	l=strlen(eb);
+	if (l>strlen("DDFXALPHACAPS_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
+char *ExplainDDFXCaps(DWORD c)
+{
+	static char eb[512];
+	unsigned int l;
+	strcpy(eb,"DDFXCAPS_");
+	if (c & DDFXCAPS_BLTARITHSTRETCHY) strcat(eb, "BLTARITHSTRETCHY+");
+	if (c & DDFXCAPS_BLTARITHSTRETCHYN) strcat(eb, "BLTARITHSTRETCHYN+");
+	if (c & DDFXCAPS_BLTMIRRORLEFTRIGHT) strcat(eb, "BLTMIRRORLEFTRIGHT+");
+	if (c & DDFXCAPS_BLTMIRRORUPDOWN) strcat(eb, "BLTMIRRORUPDOWN+");
+	if (c & DDFXCAPS_BLTROTATION) strcat(eb, "BLTROTATION+");
+	if (c & DDFXCAPS_BLTROTATION90) strcat(eb, "BLTROTATION90+");
+	if (c & DDFXCAPS_BLTSHRINKX) strcat(eb, "BLTSHRINKX+");
+	if (c & DDFXCAPS_BLTSHRINKXN) strcat(eb, "BLTSHRINKXN+");
+	if (c & DDFXCAPS_BLTSHRINKY) strcat(eb, "BLTSHRINKY+");
+	if (c & DDFXCAPS_BLTSHRINKYN) strcat(eb, "BLTSHRINKYN+");
+	if (c & DDFXCAPS_BLTSTRETCHX) strcat(eb, "BLTSTRETCHX+");
+	if (c & DDFXCAPS_BLTSTRETCHXN) strcat(eb, "BLTSTRETCHXN+");
+	if (c & DDFXCAPS_BLTSTRETCHY) strcat(eb, "BLTSTRETCHY+");
+	if (c & DDFXCAPS_BLTSTRETCHYN) strcat(eb, "BLTSTRETCHYN+");
+	if (c & DDFXCAPS_OVERLAYARITHSTRETCHY) strcat(eb, "OVERLAYARITHSTRETCHY+");
+	if (c & DDFXCAPS_OVERLAYARITHSTRETCHYN) strcat(eb, "OVERLAYARITHSTRETCHYN+");
+	if (c & DDFXCAPS_OVERLAYSHRINKX) strcat(eb, "OVERLAYSHRINKX+");
+	if (c & DDFXCAPS_OVERLAYSHRINKXN) strcat(eb, "OVERLAYSHRINKXN+");
+	if (c & DDFXCAPS_OVERLAYSHRINKY) strcat(eb, "OVERLAYSHRINKY+");
+	if (c & DDFXCAPS_OVERLAYSHRINKYN) strcat(eb, "OVERLAYSHRINKYN+");
+	if (c & DDFXCAPS_OVERLAYSTRETCHX) strcat(eb, "OVERLAYSTRETCHX+");
+	if (c & DDFXCAPS_OVERLAYSTRETCHXN) strcat(eb, "OVERLAYSTRETCHXN+");
+	if (c & DDFXCAPS_OVERLAYSTRETCHY) strcat(eb, "OVERLAYSTRETCHY+");
+	if (c & DDFXCAPS_OVERLAYSTRETCHYN) strcat(eb, "OVERLAYSTRETCHYN+");
+	if (c & DDFXCAPS_OVERLAYMIRRORLEFTRIGHT) strcat(eb, "OVERLAYMIRRORLEFTRIGHT+");
+	if (c & DDFXCAPS_OVERLAYMIRRORUPDOWN) strcat(eb, "OVERLAYMIRRORUPDOWN+");
+	if (c & DDFXCAPS_OVERLAYDEINTERLACE) strcat(eb, "OVERLAYDEINTERLACE+");
+	if (c & DDFXCAPS_BLTALPHA) strcat(eb, "BLTALPHA+");
+	if (c & DDFXCAPS_BLTFILTER) strcat(eb, "BLTFILTER+");
+	if (c & DDFXCAPS_OVERLAYALPHA) strcat(eb, "OVERLAYALPHA+");
+	if (c & DDFXCAPS_BLTARITHSTRETCHY) strcat(eb, "BLTARITHSTRETCHY+");
+	if (c & DDFXCAPS_OVERLAYFILTER) strcat(eb, "OVERLAYFILTER+");
+	if (c & DDFXCAPS_OVERLAYARITHSTRETCHY) strcat(eb, "OVERLAYARITHSTRETCHY+");
+	l=strlen(eb);
+	if (l>strlen("DDFXCAPS_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
+char *ExplainDDCKeyCaps(DWORD c)
+{
+	static char eb[512];
+	unsigned int l;
+	strcpy(eb,"DDCKEYCAPS_");
+	if (c & DDCKEYCAPS_DESTBLT) strcat(eb, "DDCKEYCAPS_DESTBLT+");
+	if (c & DDCKEYCAPS_DESTBLTCLRSPACE) strcat(eb, "DDCKEYCAPS_DESTBLTCLRSPACE+");
+	if (c & DDCKEYCAPS_DESTBLTCLRSPACEYUV) strcat(eb, "DDCKEYCAPS_DESTBLTCLRSPACEYUV+");
+	if (c & DDCKEYCAPS_DESTBLTYUV) strcat(eb, "DDCKEYCAPS_DESTBLTYUV+");
+	if (c & DDCKEYCAPS_DESTOVERLAY) strcat(eb, "DDCKEYCAPS_DESTOVERLAY+");
+	if (c & DDCKEYCAPS_DESTOVERLAYCLRSPACE) strcat(eb, "DDCKEYCAPS_DESTOVERLAYCLRSPACE+");
+	if (c & DDCKEYCAPS_DESTOVERLAYCLRSPACEYUV) strcat(eb, "DDCKEYCAPS_DESTOVERLAYCLRSPACEYUV+");
+	if (c & DDCKEYCAPS_DESTOVERLAYONEACTIVE) strcat(eb, "DDCKEYCAPS_DESTOVERLAYONEACTIVE+");
+	if (c & DDCKEYCAPS_DESTOVERLAYYUV) strcat(eb, "DDCKEYCAPS_DESTOVERLAYYUV+");
+	if (c & DDCKEYCAPS_SRCBLT) strcat(eb, "DDCKEYCAPS_SRCBLT+");
+	if (c & DDCKEYCAPS_SRCBLTCLRSPACE) strcat(eb, "DDCKEYCAPS_SRCBLTCLRSPACE+");
+	if (c & DDCKEYCAPS_SRCBLTCLRSPACEYUV) strcat(eb, "DDCKEYCAPS_SRCBLTCLRSPACEYUV+");
+	if (c & DDCKEYCAPS_SRCBLTYUV) strcat(eb, "DDCKEYCAPS_SRCBLTYUV+");
+	if (c & DDCKEYCAPS_SRCOVERLAY) strcat(eb, "DDCKEYCAPS_SRCOVERLAY+");
+	if (c & DDCKEYCAPS_SRCOVERLAYCLRSPACE) strcat(eb, "DDCKEYCAPS_SRCOVERLAYCLRSPACE+");
+	if (c & DDCKEYCAPS_SRCOVERLAYCLRSPACEYUV) strcat(eb, "DDCKEYCAPS_SRCOVERLAYCLRSPACEYUV+");
+	if (c & DDCKEYCAPS_SRCOVERLAYONEACTIVE) strcat(eb, "DDCKEYCAPS_SRCOVERLAYONEACTIVE+");
+	if (c & DDCKEYCAPS_SRCOVERLAYYUV) strcat(eb, "DDCKEYCAPS_SRCOVERLAYYUV+");
+	if (c & DDCKEYCAPS_NOCOSTOVERLAY) strcat(eb, "DDCKEYCAPS_NOCOSTOVERLAY+");
+	l=strlen(eb);
+	if (l>strlen("DDCKEYCAPS_")) eb[l-1]=0; // delete last '+' if any
 	else eb[0]=0;
 	return(eb);
 }
@@ -656,6 +899,9 @@ char *ExplainWinMessage(DWORD c)
 		case WM_RBUTTONDBLCLK: 		 	eb="WM_RBUTTONDBLCLK"; break;
 		case WM_MBUTTONDOWN: 		 	eb="WM_MBUTTONDOWN"; break;
 		case WM_MBUTTONUP: 		 		eb="WM_MBUTTONUP"; break;
+		case WM_MBUTTONDBLCLK: 		 	eb="WM_MBUTTONDBLCLK"; break;
+		case WM_MOUSEWHEEL: 		 	eb="WM_MOUSEWHEEL"; break;
+		case WM_MOUSEHWHEEL: 		 	eb="WM_MOUSEHWHEEL"; break;
 		case WM_PARENTNOTIFY: 		 	eb="WM_PARENTNOTIFY"; break;
 		case WM_ENTERMENULOOP: 		 	eb="WM_ENTERMENULOOP"; break;
 		case WM_EXITMENULOOP: 		 	eb="WM_EXITMENULOOP"; break;

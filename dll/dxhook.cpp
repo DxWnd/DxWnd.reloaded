@@ -58,7 +58,7 @@ static char *Flag3Names[32]={
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
 	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
 	"NOWINDOWMOVE", "DISABLEHAL", "LOCKSYSCOLORS", "EMULATEDC",
-	"Flags3:17", "Flags3:18", "Flags3:19", "Flags3:20",
+	"FULLSCREENONLY", "FONTBYPASS", "YUV2RGB", "RGB2YUV",
 	"Flags3:21", "Flags3:22", "Flags3:23", "Flags3:24",
 	"Flags3:25", "Flags3:26", "Flags3:27", "Flags3:28",
 	"Flags3:29", "Flags3:30", "Flags3:31", "Flags3:32",
@@ -458,7 +458,7 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 	DWORD oldprotect;
 	void *org;
 
-	OutTraceB("HookAPI: module=%x dll=%s apiproc=%x apiname=%s hookproc=%x\n", 
+	if(dxw.dwTFlags & OUTIMPORTTABLE) OutTrace("HookAPI: module=%x dll=%s apiproc=%x apiname=%s hookproc=%x\n", 
 		module, dll, apiproc, apiname, hookproc);
 
 	if(!*apiname) { // check
@@ -744,8 +744,14 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 			// scale mouse coordinates
 			prev.x = LOWORD(lparam);
 			prev.y = HIWORD(lparam);
+			curr = prev;
+			if(message == WM_MOUSEWHEEL){ // v2.02.33 mousewheel fix
+				POINT upleft={0,0};
+				(*pClientToScreen)(dxw.GethWnd(), &upleft);
+				curr = dxw.SubCoordinates(curr, upleft);
+			}
 			//OutTraceC("ChildWindowProc: hwnd=%x pos XY prev=(%d,%d)\n", hwnd, prev.x, prev.y);
-			curr=dxw.FixCursorPos(prev); // Warn! the correction must refer to the main window hWnd, not the current hwnd one !!!
+			curr=dxw.FixCursorPos(curr); // Warn! the correction must refer to the main window hWnd, not the current hwnd one !!!
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("ChildWindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
@@ -1009,7 +1015,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			// scale mouse coordinates
 			prev.x = LOWORD(lparam);
 			prev.y = HIWORD(lparam);
-			curr=dxw.FixCursorPos(prev); //v2.02.30
+			curr = prev;
+			if(message == WM_MOUSEWHEEL){ // v2.02.33 mousewheel fix
+				POINT upleft={0,0};
+				(*pClientToScreen)(dxw.GethWnd(), &upleft);
+				curr = dxw.SubCoordinates(curr, upleft);
+			}
+			curr=dxw.FixCursorPos(curr); //v2.02.30
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
@@ -1126,12 +1138,15 @@ void HookSysLibsInit()
 
 static void RecoverScreenMode()
 {
-	DEVMODE InitDevMode;
+	DEVMODE InitDevMode, CurrentDevMode;
 	BOOL res;
+	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
 	EnumDisplaySettings(NULL, ENUM_REGISTRY_SETTINGS, &InitDevMode);
-	OutTraceD("ChangeDisplaySettings: RECOVER WxH=(%dx%d) BitsPerPel=%d\n", 
+	OutTraceD("ChangeDisplaySettings: recover CURRENT WxH=(%dx%d) BitsPerPel=%d TARGET WxH=(%dx%d) BitsPerPel=%d\n", 
+		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel,
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
-	InitDevMode.dmFields |= DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+	//InitDevMode.dmFields |= (DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT);
+	InitDevMode.dmFields = (DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT);
 	res=(*pChangeDisplaySettings)(&InitDevMode, 0);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
@@ -1430,7 +1445,7 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 	void *tmp;
 	for(; Hooks->APIName; Hooks++){
 		tmp = HookAPI(hModule, DLLName, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
-		if(tmp) *(Hooks->StoreAddress) = (FARPROC)tmp;
+		if(tmp && Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)tmp;
 	}
 }
 

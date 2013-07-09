@@ -113,6 +113,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookEnabled) t->flags3 |= HOOKENABLED;
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
+	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
 
 	t->flags &= ~EMULATEFLAGS;
 	switch(dlg->m_DxEmulationMode){
@@ -146,11 +147,14 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HandleExceptions) t->flags |= HANDLEEXCEPTIONS;
 	if(dlg->m_LimitResources) t->flags2 |= LIMITRESOURCES;
 	if(dlg->m_CDROMDriveType) t->flags3 |= CDROMDRIVETYPE;
+	if(dlg->m_FontBypass) t->flags3 |= FONTBYPASS;
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_DisableHAL) t->flags3 |= DISABLEHAL;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
+	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
+	if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
 	if(dlg->m_SaveCaps) t->flags3 |= SAVECAPS;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
@@ -237,6 +241,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookEnabled = t->flags3 & HOOKENABLED ? 1 : 0;
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
+	dlg->m_FullScreenOnly = t->flags3 & FULLSCREENONLY ? 1 : 0;
 
 	dlg->m_DxEmulationMode = 0;
 	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;
@@ -267,10 +272,13 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_DisableHAL = t->flags3 & DISABLEHAL ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
+	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
+	dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
 	dlg->m_SaveCaps = t->flags3 & SAVECAPS ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg->m_CDROMDriveType = t->flags3 & CDROMDRIVETYPE ? 1 : 0;
+	dlg->m_FontBypass = t->flags3 & FONTBYPASS ? 1 : 0;
 	dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
@@ -1046,7 +1054,7 @@ void CDxwndhostView::OnAdd()
 	dlg.m_Coordinates = 0;
 	dlg.m_MaxX = 0; //639;
 	dlg.m_MaxY = 0; //479;
-	dlg.m_DxEmulationMode = 0;
+	dlg.m_DxEmulationMode = 3; // defaulting to EMULATIONMODE
 	for(i = 0; i < MAXTARGETS; i ++) if(!TargetMaps[i].path[0]) break;
 	if(i>=MAXTARGETS){
 		MessageBoxEx(0, "Maximum entries number reached.\nDelete some entry to add a new one.", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);

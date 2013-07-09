@@ -163,6 +163,10 @@
 #define IDC_GDISCALED                   1120
 #define IDC_EMULATEDC                   1121
 #define IDC_MAPGDITOPRIMARY             1122
+#define IDC_FULLSCREENONLY              1123
+#define IDC_FONTBYPASS                  1124
+#define IDC_YUV2RGB                     1125
+#define IDC_RGB2YUV                     1126
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

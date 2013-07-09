@@ -3,6 +3,13 @@
 extern void DumpRect(char *, LPRECT, int);
 extern char *ExplainFlags(DWORD);
 extern char *ExplainDDSCaps(DWORD);
+extern char *ExplainDDSCaps2(DWORD);
+extern char *ExplainDDSCaps3(DWORD);
+extern char *ExplainDDDCaps(DWORD);
+extern char *ExplainDDDCaps2(DWORD);
+extern char *ExplainDDFXALPHACaps(DWORD);
+extern char *ExplainDDFXCaps(DWORD);
+extern char *ExplainDDCKeyCaps(DWORD);
 extern char *ExplainCoopFlags(DWORD);
 extern char *ExplainPixelFormatFlags(DWORD);
 extern char *ExplainFlipFlags(DWORD);

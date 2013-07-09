@@ -55,13 +55,16 @@ void* WINAPI extDirect3DCreate9(UINT);
 HRESULT WINAPI extDirect3DCreate9Ex(UINT, IDirect3D9Ex **);
 HRESULT WINAPI extCheckFullScreen(void);
 
-UINT WINAPI extGetAdapterCount(void *);
-HRESULT WINAPI extGetAdapterIdentifier(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
+UINT WINAPI extGetAdapterCount8(void *);
+UINT WINAPI extGetAdapterCount9(void *);
+HRESULT WINAPI extGetAdapterIdentifier8(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
+HRESULT WINAPI extGetAdapterIdentifier9(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
 HRESULT WINAPI extCreateDevice(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, void **);
 HRESULT WINAPI extCreateDeviceEx(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, D3DDISPLAYMODEEX *, void **);
 HRESULT WINAPI extEnumAdapterModes8(void *, UINT, UINT , D3DDISPLAYMODE *);
 HRESULT WINAPI extEnumAdapterModes9(void *, UINT, D3DFORMAT, UINT , D3DDISPLAYMODE *);
-HRESULT WINAPI extGetAdapterDisplayMode(void *, UINT, D3DDISPLAYMODE *);
+HRESULT WINAPI extGetAdapterDisplayMode8(void *, UINT, D3DDISPLAYMODE *);
+HRESULT WINAPI extGetAdapterDisplayMode9(void *, UINT, D3DDISPLAYMODE *);
 HRESULT WINAPI extGetDisplayMode(void *, D3DDISPLAYMODE *);
 HRESULT WINAPI extPresent(void *, CONST RECT *, CONST RECT *, HWND, CONST RGNDATA *);
 HRESULT WINAPI extSetRenderState(void *, D3DRENDERSTATETYPE, DWORD);
@@ -93,13 +96,17 @@ Direct3DCreate9_Type pDirect3DCreate9 = 0;
 Direct3DCreate9Ex_Type pDirect3DCreate9Ex = 0;
 CheckFullScreen_Type pCheckFullScreen = 0;
 
-GetAdapterCount_Type pGetAdapterCount = 0;
-GetAdapterIdentifier_Type pGetAdapterIdentifier = 0;
-CreateDevice_Type pCreateDevice = 0;
+GetAdapterCount_Type pGetAdapterCount8 = 0;
+GetAdapterCount_Type pGetAdapterCount9 = 0;
+GetAdapterIdentifier_Type pGetAdapterIdentifier8 = 0;
+GetAdapterIdentifier_Type pGetAdapterIdentifier9 = 0;
+CreateDevice_Type pCreateDevice8 = 0;
+CreateDevice_Type pCreateDevice9 = 0;
 CreateDeviceEx_Type pCreateDeviceEx = 0;
 EnumAdapterModes8_Type pEnumAdapterModes8 = 0;
 EnumAdapterModes9_Type pEnumAdapterModes9 = 0;
-GetAdapterDisplayMode_Type pGetAdapterDisplayMode = 0;
+GetAdapterDisplayMode_Type pGetAdapterDisplayMode8 = 0;
+GetAdapterDisplayMode_Type pGetAdapterDisplayMode9 = 0;
 GetDisplayMode_Type pGetDisplayMode = 0;
 Present_Type pPresent = 0;
 SetRenderState_Type pSetRenderState = 0;
@@ -400,14 +407,14 @@ void* WINAPI extDirect3DCreate8(UINT sdkversion)
 	lpd3d = (*pDirect3DCreate8)(sdkversion);
 	if(!lpd3d) return 0;
 	SetHook((void *)(*(DWORD *)lpd3d +  0), extQueryInterfaceD3D8, (void **)&pQueryInterfaceD3D8, "QueryInterface(D8)");
-	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount, (void **)&pGetAdapterCount, "GetAdapterCount(D8)");
-	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier, (void **)&pGetAdapterIdentifier, "GetAdapterIdentifier(D8)");
+	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount8, (void **)&pGetAdapterCount8, "GetAdapterCount(D8)");
+	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier8, (void **)&pGetAdapterIdentifier8, "GetAdapterIdentifier(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes8, (void **)&pEnumAdapterModes8, "EnumAdapterModes(D8)");
-	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode, (void **)&pGetAdapterDisplayMode, "GetAdapterDisplayMode(D8)");
-	SetHook((void *)(*(DWORD *)lpd3d + 60), extCreateDevice, (void **)&pCreateDevice, "CreateDevice(D8)");
+	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode8, (void **)&pGetAdapterDisplayMode8, "GetAdapterDisplayMode(D8)");
+	SetHook((void *)(*(DWORD *)lpd3d + 60), extCreateDevice, (void **)&pCreateDevice8, "CreateDevice(D8)");
 
 	OutTraceD("Direct3DCreate8: SDKVERSION=%x pCreateDevice=%x\n",
-		sdkversion, pCreateDevice);
+		sdkversion, pCreateDevice8);
 	return lpd3d;
 }
 
@@ -419,14 +426,14 @@ void* WINAPI extDirect3DCreate9(UINT sdkversion)
 	lpd3d = (*pDirect3DCreate9)(sdkversion);
 	if(!lpd3d) return 0;
 	SetHook((void *)(*(DWORD *)lpd3d +  0), extQueryInterfaceD3D9, (void **)&pQueryInterfaceD3D9, "QueryInterface(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount, (void **)&pGetAdapterCount, "GetAdapterCount(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier, (void **)&pGetAdapterIdentifier, "GetAdapterIdentifier(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount9, (void **)&pGetAdapterCount9, "GetAdapterCount(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier9, (void **)&pGetAdapterIdentifier9, "GetAdapterIdentifier(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes9, (void **)&pEnumAdapterModes9, "EnumAdapterModes(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode, (void **)&pGetAdapterDisplayMode, "GetAdapterDisplayMode(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice, (void **)&pCreateDevice, "CreateDevice(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode9, (void **)&pGetAdapterDisplayMode9, "GetAdapterDisplayMode(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice, (void **)&pCreateDevice9, "CreateDevice(D9)");
 
 	OutTraceD("Direct3DCreate9: SDKVERSION=%x pCreateDevice=%x\n",
-		sdkversion, pCreateDevice);
+		sdkversion, pCreateDevice9);
 
 	return lpd3d;
 }
@@ -444,11 +451,11 @@ HRESULT WINAPI extDirect3DCreate9Ex(UINT sdkversion, IDirect3D9Ex **ppD3D)
 	}
 	lpd3d = *ppD3D;
 	SetHook((void *)(*(DWORD *)lpd3d +  0), extQueryInterfaceD3D9, (void **)&pQueryInterfaceD3D9, "QueryInterface(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount, (void **)&pGetAdapterCount, "GetAdapterCount(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier, (void **)&pGetAdapterIdentifier, "GetAdapterIdentifier(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount9, (void **)&pGetAdapterCount9, "GetAdapterCount(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier9, (void **)&pGetAdapterIdentifier9, "GetAdapterIdentifier(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes9, (void **)&pEnumAdapterModes9, "EnumAdapterModes(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode, (void **)&pGetAdapterDisplayMode, "GetAdapterDisplayMode(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice, (void **)&pCreateDevice, "CreateDevice(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode9, (void **)&pGetAdapterDisplayMode9, "GetAdapterDisplayMode(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice, (void **)&pCreateDevice9, "CreateDevice(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 80), extCreateDeviceEx, (void **)&pCreateDeviceEx, "CreateDeviceEx(D9)");
 
 	OutTraceD("Direct3DCreate9Ex: SDKVERSION=%x pCreateDeviceEx=%x\n",
@@ -457,11 +464,11 @@ HRESULT WINAPI extDirect3DCreate9Ex(UINT sdkversion, IDirect3D9Ex **ppD3D)
 	return res;
 }
 
-UINT WINAPI extGetAdapterCount(void *lpd3d)
+UINT WINAPI extGetAdapterCount8(void *lpd3d)
 {
 	UINT res;
-	res=(*pGetAdapterCount)(lpd3d);
-	OutTraceD("GetAdapterCount: count=%d\n", res);
+	res=(*pGetAdapterCount8)(lpd3d);
+	OutTraceD("GetAdapterCount(8): count=%d\n", res);
 	if(dxw.dwFlags2 & HIDEMULTIMONITOR) {
 		OutTraceD("GetAdapterCount: HIDEMULTIMONITOR count=1\n");
 		res=1;
@@ -469,12 +476,33 @@ UINT WINAPI extGetAdapterCount(void *lpd3d)
 	return res;
 }
 
-HRESULT WINAPI extGetAdapterIdentifier(void *pd3dd, UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9 *pIdentifier)
+UINT WINAPI extGetAdapterCount9(void *lpd3d)
+{
+	UINT res;
+	res=(*pGetAdapterCount9)(lpd3d);
+	OutTraceD("GetAdapterCount(9): count=%d\n", res);
+	if(dxw.dwFlags2 & HIDEMULTIMONITOR) {
+		OutTraceD("GetAdapterCount: HIDEMULTIMONITOR count=1\n");
+		res=1;
+	}
+	return res;
+}
+
+HRESULT WINAPI extGetAdapterIdentifier8(void *pd3dd, UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9 *pIdentifier)
 {
 	HRESULT res;
-	OutTraceD("GetAdapterIdentifier: Adapter=%d flags=%x\n", Adapter, Flags);
-	res=pGetAdapterIdentifier(pd3dd, Adapter, Flags, pIdentifier);
-	OutTraceD("GetAdapterIdentifier: ret=%x\n", res);
+	OutTraceD("GetAdapterIdentifier(8): Adapter=%d flags=%x\n", Adapter, Flags);
+	res=pGetAdapterIdentifier8(pd3dd, Adapter, Flags, pIdentifier);
+	OutTraceD("GetAdapterIdentifier(8): ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extGetAdapterIdentifier9(void *pd3dd, UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9 *pIdentifier)
+{
+	HRESULT res;
+	OutTraceD("GetAdapterIdentifier(9): Adapter=%d flags=%x\n", Adapter, Flags);
+	res=pGetAdapterIdentifier9(pd3dd, Adapter, Flags, pIdentifier);
+	OutTraceD("GetAdapterIdentifier(9): ret=%x\n", res);
 	return res;
 }
 
@@ -528,16 +556,30 @@ HRESULT WINAPI extEnumAdapterModes9(void *lpd3d, UINT Adapter, D3DFORMAT Format,
 	return res;
 }
 
-HRESULT WINAPI extGetAdapterDisplayMode(void *lpd3d, UINT Adapter, D3DDISPLAYMODE *pMode)
+HRESULT WINAPI extGetAdapterDisplayMode8(void *lpd3d, UINT Adapter, D3DDISPLAYMODE *pMode)
 {
 	HRESULT res;
-	res=(*pGetAdapterDisplayMode)(lpd3d, Adapter, pMode);
-	OutTraceD("DEBUG: GetAdapterDisplayMode: size=(%dx%d) RefreshRate=%d Format=%d\n",
+	res=(*pGetAdapterDisplayMode8)(lpd3d, Adapter, pMode);
+	OutTraceD("DEBUG: GetAdapterDisplayMode(8): size=(%dx%d) RefreshRate=%d Format=%d\n",
 		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
 	if(dxw.dwFlags2 & KEEPASPECTRATIO){
 		pMode->Width=dxw.iSizX;
 		pMode->Height=dxw.iSizY;
-		OutTraceD("DEBUG: GetDisplayMode: fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+		OutTraceD("DEBUG: GetAdapterDisplayMode(8): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+	}
+	return res;
+}
+
+HRESULT WINAPI extGetAdapterDisplayMode9(void *lpd3d, UINT Adapter, D3DDISPLAYMODE *pMode)
+{
+	HRESULT res;
+	res=(*pGetAdapterDisplayMode9)(lpd3d, Adapter, pMode);
+	OutTraceD("DEBUG: GetAdapterDisplayMode(9): size=(%dx%d) RefreshRate=%d Format=%d\n",
+		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
+	if(dxw.dwFlags2 & KEEPASPECTRATIO){
+		pMode->Width=dxw.iSizX;
+		pMode->Height=dxw.iSizY;
+		OutTraceD("DEBUG: GetAdapterDisplayMode(9): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
 	}
 	return res;
 }
@@ -636,7 +678,10 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	OutTraceD("    PresentationInterval = 0x%x\n", *(tmp ++));
 
 	//((LPDIRECT3D9)lpd3d)->GetAdapterDisplayMode(0, &mode);
-	(*pGetAdapterDisplayMode)(lpd3d, 0, &mode);
+	if(dwD3DVersion == 9)
+		(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
+	else
+		(*pGetAdapterDisplayMode8)(lpd3d, 0, &mode);
 	param[2] = mode.Format;
 	OutTraceD("    Current Format = 0x%x\n", mode.Format);
 
@@ -649,6 +694,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		//param[11] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
 		param[12] = 0;			//FullScreen_RefreshRateInHz;
 		param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 	}
 	else{
 		param[6] = 0;			//hDeviceWindow
@@ -657,9 +703,9 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		//param[10] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
 		param[11] = 0;			//FullScreen_RefreshRateInHz;
 		param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 	}
 
-	res = (*pCreateDevice)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 	if(res){
 		OutTraceD("FAILED! %x\n", res);
 		return res;
@@ -757,7 +803,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	OutTraceD("    PresentationInterval = 0x%x\n", *(tmp ++));
 
 	//((LPDIRECT3D9)lpd3d)->GetAdapterDisplayMode(0, &mode);
-	(*pGetAdapterDisplayMode)(lpd3d, 0, &mode);
+	(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
 	param[2] = mode.Format;
 	OutTraceD("    Current Format = 0x%x\n", mode.Format);
 
@@ -866,7 +912,10 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3d, D3DPRESENT_PARAMETERS *
 	OutTraceD("    PresentationInterval = 0x%x\n", *(tmp ++));
 
 	//((LPDIRECT3D9)lpd3d)->GetAdapterDisplayMode(0, &mode);
-	(*pGetAdapterDisplayMode)(lpd3d, 0, &mode);
+	if (dwD3DVersion == 9)
+		(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
+	else
+		(*pGetAdapterDisplayMode8)(lpd3d, 0, &mode);
 	param[2] = mode.Format;
 	OutTraceD("    Current Format = 0x%x\n", mode.Format);
 

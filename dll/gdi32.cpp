@@ -102,6 +102,14 @@ static HookEntry_Type GammaHooks[]={
 	{0, NULL, 0, 0} // terminator
 };
 
+static HookEntry_Type FontHooks[]={
+	{"CreateScalableFontResourceA", (FARPROC)NULL, (FARPROC *)&pCreateScalableFontResourceA, (FARPROC)extCreateScalableFontResourceA},
+	{"CreateScalableFontResourceW", (FARPROC)NULL, (FARPROC *)&pCreateScalableFontResourceW, (FARPROC)extCreateScalableFontResourceW},
+	{"AddFontResourceA", (FARPROC)NULL, (FARPROC *)&pAddFontResourceA, (FARPROC)extAddFontResourceA},
+	{"AddFontResourceW", (FARPROC)NULL, (FARPROC *)&pAddFontResourceW, (FARPROC)extAddFontResourceW},
+	{0, NULL, 0, 0} // terminator
+};
+
 extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 extern HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
 
@@ -145,6 +153,9 @@ void HookGDI32(HMODULE module)
 
 	if(dxw.dwFlags2 & DISABLEGAMMARAMP)
 		HookLibrary(module, GammaHooks, libname);
+
+	if(dxw.dwFlags3 & FONTBYPASS) // v2.02.33 - for "Stratego" compatibility option
+		HookLibrary(module, FontHooks, libname);
 }
 
 FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -179,6 +190,9 @@ FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 
 	if(dxw.dwFlags2 & DISABLEGAMMARAMP)
 		if(addr=RemapLibrary(proc, hModule, GammaHooks)) return addr;
+
+	if(1) // v2.02.33 - for "Stratego" compatibility option
+		if(addr=RemapLibrary(proc, hModule, FontHooks)) return addr;
 
 	return NULL;
 }
@@ -345,6 +359,9 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 			OutTraceD("GetDeviceCaps: fix(2) BITSPIXEL/COLORRES cap=%d\n",res);
 		}
 		break;
+	//case NUMCOLORS: // numcolors windows bug fix....
+	//	if(res == -1) res=1;
+	//	return res;
 	}
 
 	if(dxw.dwFlags1 & EMULATESURFACE){
@@ -1553,6 +1570,44 @@ BOOL WINAPI extGetCurrentPositionEx(HDC hdc, LPPOINT lpPoint)
 	}
 	if(!ret) OutTraceE("GetCurrentPositionEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
+}
+
+BOOL WINAPI extCreateScalableFontResourceA(DWORD fdwHidden, LPCTSTR lpszFontRes, LPCTSTR lpszFontFile, LPCTSTR lpszCurrentPath)
+{
+	BOOL res;
+	OutTraceD("CreateScalableFontResource: hidden=%d FontRes=\"%s\" FontFile=\"%s\" CurrentPath=\"%s\"\n",
+		fdwHidden, lpszFontRes, lpszFontFile, lpszCurrentPath);
+	if (1) return TRUE;
+	res=(*pCreateScalableFontResourceA)(fdwHidden, lpszFontRes, lpszFontFile, lpszCurrentPath);
+	if(!res) OutTraceE("CreateScalableFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+}
+
+BOOL WINAPI extCreateScalableFontResourceW(DWORD fdwHidden, LPCWSTR lpszFontRes, LPCWSTR lpszFontFile, LPCWSTR lpszCurrentPath)
+{
+	BOOL res;
+	OutTraceD("CreateScalableFontResource: hidden=%d FontRes=\"%ls\" FontFile=\"%ls\" CurrentPath=\"%ls\"\n",
+		fdwHidden, lpszFontRes, lpszFontFile, lpszCurrentPath);
+	if (1) return TRUE;
+	res=(*pCreateScalableFontResourceW)(fdwHidden, lpszFontRes, lpszFontFile, lpszCurrentPath);
+	if(!res) OutTraceE("CreateScalableFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+}
+
+int WINAPI extAddFontResourceA(LPCTSTR lpszFontFile)
+{
+	BOOL res;
+	OutTraceD("AddFontResource: FontFile=\"%s\"\n", lpszFontFile);
+	if(1) return TRUE;
+	res=(*pAddFontResourceA)(lpszFontFile);
+	if(!res) OutTraceE("AddFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+}
+
+int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
+{
+	BOOL res;
+	OutTraceD("AddFontResource: FontFile=\"%ls\"\n", lpszFontFile);
+	if(1) return TRUE;
+	res=(*pAddFontResourceW)(lpszFontFile);
+	if(!res) OutTraceE("AddFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 }
 
 #if 0

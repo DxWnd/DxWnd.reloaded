@@ -194,16 +194,20 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 		unsigned int pi;
 		Palette16BPP = (DWORD *)malloc(0x10000 * sizeof(DWORD));
 		if (dxw.dwFlags3 & BLACKWHITE){
+			// actually, it should be like this: R/G/B = (red * 0.30) + (green * 0.59) + (blue * 0.11) 
+			// (http://www.codeproject.com/Articles/66253/Converting-Colors-to-Gray-Shades)
 			DWORD grey;
 			if (dxw.dwFlags1 & USERGB565){
 				for (pi=0; pi<0x10000; pi++) {
-					grey = ((((pi & 0x1F)<<3) + ((pi & 0x7E0)>>3) + ((pi & 0xF800)>>8)) / 3) & 0xFF;
+					//grey = ((((pi & 0x1F)<<3) + ((pi & 0x7E0)>>3) + ((pi & 0xF800)>>8)) / 3) & 0xFF;
+					grey = (((((pi & 0x1F)<<3) * 30) + (((pi & 0x7E0)>>3) * 59) + (((pi & 0xF800)>>8) * 11)) / 100) & 0xFF;
 					Palette16BPP[pi] = (grey) + (grey<<8) + (grey<<16);				
 				}
 			}
 			else {
 				for (pi=0; pi<0x10000; pi++) {
-					grey = ((((pi & 0x1F)<<3) + ((pi & 0x3E0)>>2) + ((pi & 0x7C00)>>7)) / 3) & 0xFF;
+					//grey = ((((pi & 0x1F)<<3) + ((pi & 0x3E0)>>2) + ((pi & 0x7C00)>>7)) / 3) & 0xFF;
+					grey = (((((pi & 0x1F)<<3) * 30) + (((pi & 0x3E0)>>2) * 59) + (((pi & 0x7C00)>>7) * 11)) / 100) & 0xFF;
 					Palette16BPP[pi] = grey + (grey<<8) + (grey<<16);
 				}
 			}

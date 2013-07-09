@@ -217,6 +217,7 @@ SetEntries_Type pSetEntries;
 
 LPDIRECTDRAWSURFACE lpDDSEmu_Prim=NULL, lpDDSEmu_Back=NULL;
 LPDIRECTDRAWSURFACE lpDDSBack=NULL;
+LPDIRECTDRAWSURFACE lpDDZBuffer=NULL;
 // v2.1.87: lpPrimaryDD is the DIRECTDRAW object to which the primary surface and all 
 // the service objects (emulated backbuffer, emulater primary, ....) are attached.
 LPDIRECTDRAW lpPrimaryDD=NULL;
@@ -262,6 +263,20 @@ FARPROC Remap_ddraw_ProcAddress(LPCSTR proc, HMODULE hModule)
 // auxiliary (static) functions
 /* ------------------------------------------------------------------------------ */
 
+static char *sFourCC(DWORD fcc)
+{
+	static char sRet[5];
+	char c;
+	int i;
+	char *t=&sRet[0];
+	for(i=0; i<4; i++){
+		c = fcc & (0xFF);
+		*t++ = isprint(c) ? c : '.';
+		c = c >> 8;
+	}
+	*t = 0;
+	return sRet;
+}
 static void LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 {
 	OutTraceD("SurfaceDesc: %s Flags=%x(%s)",
@@ -270,17 +285,29 @@ static void LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 	if (lpddsd->dwFlags & DDSD_BACKBUFFERCOUNT) OutTraceD(" BackBufferCount=%d", lpddsd->dwBackBufferCount);
 	if (lpddsd->dwFlags & DDSD_WIDTH) OutTraceD(" Width=%d", lpddsd->dwWidth);
 	if (lpddsd->dwFlags & DDSD_HEIGHT) OutTraceD(" Height=%d", lpddsd->dwHeight);
-	if (lpddsd->dwFlags & DDSD_CAPS) OutTraceD(" Caps=%x(%s)", lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
+	if (lpddsd->dwFlags & DDSD_CAPS) {
+		OutTraceD(" Caps=%x(%s)", lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
+		if(lpddsd->dwSize==sizeof(DDSURFACEDESC2)){
+			LPDDSURFACEDESC2 lpddsd2=(LPDDSURFACEDESC2)lpddsd;
+			OutTraceD(" Caps2=%x(%s)", lpddsd2->ddsCaps.dwCaps2, ExplainDDSCaps2(lpddsd2->ddsCaps.dwCaps2));
+			OutTraceD(" Caps3=%x(%s)", lpddsd2->ddsCaps.dwCaps3, ExplainDDSCaps3(lpddsd2->ddsCaps.dwCaps3));
+		}
+	}
 	if (lpddsd->dwFlags & DDSD_CKDESTBLT ) OutTraceD(" CKDestBlt=(%x,%x)", lpddsd->ddckCKDestBlt.dwColorSpaceLowValue, lpddsd->ddckCKDestBlt.dwColorSpaceHighValue);
 	if (lpddsd->dwFlags & DDSD_CKDESTOVERLAY ) OutTraceD(" CKDestOverlay=(%x,%x)", lpddsd->ddckCKDestOverlay.dwColorSpaceLowValue, lpddsd->ddckCKDestOverlay.dwColorSpaceHighValue);
 	if (lpddsd->dwFlags & DDSD_CKSRCBLT ) OutTraceD(" CKSrcBlt=(%x,%x)", lpddsd->ddckCKSrcBlt.dwColorSpaceLowValue, lpddsd->ddckCKSrcBlt.dwColorSpaceHighValue);
 	if (lpddsd->dwFlags & DDSD_CKSRCOVERLAY ) OutTraceD(" CKSrcOverlay=(%x,%x)", lpddsd->ddckCKSrcOverlay.dwColorSpaceLowValue, lpddsd->ddckCKSrcOverlay.dwColorSpaceHighValue);
-	if (lpddsd->dwFlags & DDSD_PIXELFORMAT ) OutTraceD(" PixelFormat BPP=%d RGBA=(%x,%x,%x,%x)", 
-		lpddsd->ddpfPixelFormat.dwRGBBitCount, 
-		lpddsd->ddpfPixelFormat.dwRBitMask,
-		lpddsd->ddpfPixelFormat.dwGBitMask,
-		lpddsd->ddpfPixelFormat.dwBBitMask,
-		lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask);
+	if (lpddsd->dwFlags & DDSD_PIXELFORMAT ){
+		DWORD flags=lpddsd->ddpfPixelFormat.dwFlags;
+		OutTraceD(" PixelFormat flags=%x(%s)", flags, ExplainPixelFormatFlags(flags));
+		if (flags & DDPF_RGB) OutTraceD(" BPP=%d RGBA=(%x,%x,%x,%x)", 
+			lpddsd->ddpfPixelFormat.dwRGBBitCount, 
+			lpddsd->ddpfPixelFormat.dwRBitMask,
+			lpddsd->ddpfPixelFormat.dwGBitMask,
+			lpddsd->ddpfPixelFormat.dwBBitMask,
+			lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask);
+		if (flags & DDPF_FOURCC) OutTraceD(" FourCC=%x(%s)", lpddsd->ddpfPixelFormat.dwFourCC, sFourCC(lpddsd->ddpfPixelFormat.dwFourCC));
+	}
 	if (lpddsd->dwFlags & DDSD_LPSURFACE) OutTraceD(" Surface=%x", lpddsd->lpSurface);
 	OutTraceD("\n");
 }
@@ -416,10 +443,55 @@ void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries)
 		OutTraceD("\n");
 	}
 
+	if (dxw.dwFlags3 & RGB2YUV){
+		int idx;
+		for(idx=0; idx<dwcount; idx++){
+			long Y, U, V, R, G, B;
+			R=lpentries[dwstart+idx].peRed;
+			G=lpentries[dwstart+idx].peGreen;
+			B=lpentries[dwstart+idx].peBlue;
+			Y = ((299 * R) + (587 * G) + (114 * B)) / 1000;
+			U = ((-169 * R) + (-331 * G) + (500 * B)) / 1000 + 128;
+			V = ((500 * R) + (-419 * G) + (-813 * B)) / 1000 + 128;
+			//Y = ((299 * R) + (587 * G) + (114 * B)) / 1000;
+			//U = ((-147 * R) + (-289 * G) + (436 * B)) / 1000 + 128;
+			//V = ((615 * R) + (-515 * G) + (-100 * B)) / 1000 + 128;
+			if (Y<0) Y=0; if(Y>255) Y=255;
+			if (U<0) U=0; if(U>255) U=255;
+			if (V<0) V=0; if(V>255) V=255;
+			lpentries[dwstart+idx].peRed = (BYTE)Y;
+			lpentries[dwstart+idx].peGreen = (BYTE)U;
+			lpentries[dwstart+idx].peBlue = (BYTE)V;
+		}
+	}
+
+	if (dxw.dwFlags3 & YUV2RGB){
+		int idx;
+		for(idx=0; idx<dwcount; idx++){
+			long Y, U, V, R, G, B;
+			R=lpentries[dwstart+idx].peRed;
+			G=lpentries[dwstart+idx].peGreen;
+			B=lpentries[dwstart+idx].peBlue;
+			Y = ((1000 * R) + (0 * G) + (1140 * B)) / 1000;
+			U = ((1000 * R) + (-395 * G) + (-580 * B)) / 1000;
+			V = ((1000 * R) + (-32 * G) + (0 * B)) / 1000;
+			if (Y<0) Y=0; if(Y>255) Y=255;
+			if (U<0) U=0; if(U>255) U=255;
+			if (V<0) V=0; if(V>255) V=255;
+			lpentries[dwstart+idx].peRed = (BYTE)Y;
+			lpentries[dwstart+idx].peGreen = (BYTE)U;
+			lpentries[dwstart+idx].peBlue = (BYTE)V;
+		}
+	}
+
+	// actually, it should be like this: R/G/B = (red * 0.30) + (green * 0.59) + (blue * 0.11) 
+	// (http://www.codeproject.com/Articles/66253/Converting-Colors-to-Gray-Shades)
+
 	if (dxw.dwFlags3 & BLACKWHITE){
 		for(i = 0; i < dwcount; i ++){
 			DWORD grayscale;
-			grayscale = ((DWORD)lpentries[i].peRed + (DWORD)lpentries[i].peGreen + (DWORD)lpentries[i].peBlue) / 3;
+			//grayscale = ((DWORD)lpentries[i].peRed + (DWORD)lpentries[i].peGreen + (DWORD)lpentries[i].peBlue) / 3;
+			grayscale = (((DWORD)lpentries[i].peRed * 30) + ((DWORD)lpentries[i].peGreen * 59) + ((DWORD)lpentries[i].peBlue) * 11) / 100;
 			lpentries[i].peRed = lpentries[i].peGreen = lpentries[i].peBlue = (BYTE)grayscale;
 		}
 	}
@@ -543,6 +615,7 @@ void FixPixelFormat(int ColorDepth, DDPIXELFORMAT *pf)
 		pf->dwRGBAlphaBitMask = 0x0000;
 		break;
 	case 16:
+		pf->dwFlags |= DDPF_ALPHAPIXELS; // v2.02.33	
 		pf->dwRGBBitCount = 16;
 		if (dxw.dwFlags1 & USERGB565){
 			pf->dwRBitMask = 0xf800; 
@@ -564,6 +637,7 @@ void FixPixelFormat(int ColorDepth, DDPIXELFORMAT *pf)
 		pf->dwRGBAlphaBitMask = 0x00000000;
 		break;
 	case 32:
+		pf->dwFlags |= DDPF_ALPHAPIXELS; // v2.02.33	
 		pf->dwRGBBitCount = 32;
 		pf->dwRBitMask = 0x00FF0000;
 		pf->dwGBitMask = 0x0000FF00;
@@ -1192,6 +1266,25 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 	// IDirectDrawSurface::ReleaseDC
 	SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC, (void **)&pReleaseDC, "ReleaseDC(S)");
 
+	if (dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){
+		// IDirectDrawSurface::Lock
+		SetHook((void *)(**(DWORD **)lplpdds + 100), extLock, (void **)&pLock, "Lock(S)");
+		// IDirectDrawSurface::Unlock
+		if (dxversion < 4)
+			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlock1, (void **)&pUnlock1, "Unlock(S1)");
+		else
+			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlock4, (void **)&pUnlock4, "Unlock(S4)");
+	}
+	else {
+		// IDirectDrawSurface::Lock
+		SetHook((void *)(**(DWORD **)lplpdds + 100), extLockDir, (void **)&pLock, "Lock(S)");
+		// IDirectDrawSurface::Unlock
+		if (dxversion < 4)
+			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlockDir1, (void **)&pUnlock1, "Unlock(S1)");
+		else
+			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlockDir4, (void **)&pUnlock4, "Unlock(S4)");
+	}
+
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 
 	// just proxed ....
@@ -1285,10 +1378,18 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 	if(res) 
 		OutTraceE("GetCaps(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	else {
-		OutTraceD("GetCaps(D): ");
-		if (c1) OutTraceD("hwcaps=%x(%s) ", c1->ddsCaps.dwCaps, ExplainDDSCaps(c1->ddsCaps.dwCaps));
-		if (c2) OutTraceD("swcaps=%x(%s) ", c2->ddsCaps.dwCaps, ExplainDDSCaps(c2->ddsCaps.dwCaps));
-		OutTraceD("\n");
+		if (c1) OutTraceD("GetCaps(D-HW): caps=%x(%s) caps2=%x(%s)fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+			c1->dwCaps, ExplainDDDCaps(c1->dwCaps),
+			c1->dwCaps2, ExplainDDDCaps2(c1->dwCaps2),
+			c1->dwFXCaps, ExplainDDFXCaps(c1->dwFXCaps),
+			c1->dwFXAlphaCaps, ExplainDDFXALPHACaps(c1->dwFXAlphaCaps),
+			c1->dwCKeyCaps, ExplainDDCKeyCaps(c1->dwCKeyCaps));
+		if (c2) OutTraceD("GetCaps(D-SW): caps=%x(%s) caps2=%x(%s)fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+			c2->dwCaps, ExplainDDDCaps(c2->dwCaps),
+			c2->dwCaps2, ExplainDDDCaps2(c2->dwCaps2),
+			c2->dwFXCaps, ExplainDDFXCaps(c2->dwFXCaps),
+			c2->dwFXAlphaCaps, ExplainDDFXALPHACaps(c2->dwFXAlphaCaps),
+			c2->dwCKeyCaps, ExplainDDCKeyCaps(c2->dwCKeyCaps));
 	}
 
 	return res;
@@ -1342,6 +1443,15 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 
 	HookDDSession(lplpdd, dxw.dwDDVersion);
 
+	if(IsDebug && (dxw.dwTFlags & OUTPROXYTRACE)){
+		DDCAPS DriverCaps, EmulCaps;
+		memset(&DriverCaps, 0, sizeof(DriverCaps));
+		DriverCaps.dwSize=sizeof(DriverCaps);
+		memset(&EmulCaps, 0, sizeof(EmulCaps));
+		EmulCaps.dwSize=sizeof(EmulCaps);
+		(LPDIRECTDRAW)(*lplpdd)->GetCaps(&DriverCaps, &EmulCaps);
+		//OutTrace("DirectDrawCreate: drivercaps=%x(%s) emulcaps=%x(%s)\n", DriverCaps.ddsCaps, "???", EmulCaps.ddsCaps, "???");
+	}
 	return 0;
 }
 
@@ -1780,9 +1890,16 @@ static char *FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd)
 		break;
 	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT:
 		switch (lpddsd->ddsCaps.dwCaps){
+		case DDSCAPS_OFFSCREENPLAIN:
+			// Submarine titans (8BPP)
+			OutTrace("FixSurfaceCaps: SystemMemory OffScreen PixelFormat (1)\n");
+			//lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
+			return SetPixFmt(lpddsd);
+			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
 			// Duckman
-			OutTrace("FixSurfaceCaps: SystemMemory OffScreen PixelFormat\n");
+			OutTrace("FixSurfaceCaps: SystemMemory OffScreen PixelFormat (2)\n");
 			//lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
 			//lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
 			return SetPixFmt(lpddsd);
@@ -2403,6 +2520,13 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	if ((lpdds == lpDDSBack) && (dxw.dwBackBufferCount > 1)){ 
 		*lplpddas = lpDDSBack;
 		OutTraceD("GetAttachedSurface(%d): DOUBLEBUFFER attached=%x\n", dxversion, *lplpddas); 
+		return 0;
+	}
+
+	// this is yet to be proven utility.....
+	if ((lpdds == lpDDSBack) && (lpddsc->dwCaps & DDSCAPS_ZBUFFER) && lpDDZBuffer){ 
+		*lplpddas = lpDDZBuffer;
+		OutTraceD("GetAttachedSurface(%d): emulating ZBUFFER attach on BACKBUFFER lpddsadd=%x\n", dxversion, *lplpddas); 
 		return 0;
 	}
 
@@ -3779,7 +3903,8 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 	// v2.1.83: add FLIP capability (Funtraks a.k.a. Ignition)
 	// v2.2.26: add VIDEOMEMORY|LOCALVIDMEM capability (Alien Cabal 95 - partial fix)
 	if(dxw.dwFlags1 & EMULATESURFACE) {
-		if ((lpdds == lpDDSBack) || (caps->dwCaps & DDSCAPS_ZBUFFER)) {
+		//if ((lpdds == lpDDSBack) || (caps->dwCaps & DDSCAPS_ZBUFFER)) {
+		if (lpdds == lpDDSBack) { //v2.02.32: fix - a ZBUFFER can be in SYSTEMMEMORY !!
 			caps->dwCaps |= DDSCAPS_FLIP|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM;
 			caps->dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 		}

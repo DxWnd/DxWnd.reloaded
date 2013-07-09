@@ -15,6 +15,7 @@ dxwCore::dxwCore()
 {
 	// initialization stuff ....
 	FullScreen=FALSE;
+	if(dxw.dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
 	SethWnd(NULL);
 	SetScreenSize();
 	dwMaxDDVersion=7;
@@ -42,13 +43,13 @@ void dxwCore::SetFullScreen(BOOL fs, int line)
 
 void dxwCore::SetFullScreen(BOOL fs) 
 {
+	if(dxw.dwFlags3 & FULLSCREENONLY) fs=TRUE;
 	OutTraceD("SetFullScreen: %s\n", fs?"FULLSCREEN":"WINDOWED");
 	FullScreen=fs;
 }
 
 BOOL dxwCore::IsFullScreen()
 {
-	// if(dxw.dwFlagsX && ALWAYSFULLSCREEN) return TRUE;
 	return FullScreen;
 }
 
@@ -290,24 +291,24 @@ void dxwCore::FixNCHITCursorPos(LPPOINT lppoint)
 void dxwCore::SetClipCursor()
 {
 	RECT Rect;
-	POINT UpLeftCorner;
+	POINT UpLeftCorner={0,0};
 
 	OutTraceD("SetClipCursor:\n");
 	if (hWnd==NULL) {
 		OutTraceD("SetClipCursor: ASSERT hWnd==NULL\n");
 		return;
 	}
-	(*pGetClientRect)(hWnd, &Rect);
-	UpLeftCorner.x=UpLeftCorner.y=0;
-	(*pClientToScreen)(hWnd, &UpLeftCorner);
+	if(!(*pGetClientRect)(hWnd, &Rect))
+		OutTraceE("GetClientRect: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	if(!(*pClientToScreen)(hWnd, &UpLeftCorner))
+		OutTraceE("ClientToScreen: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	Rect.left+=UpLeftCorner.x;
 	Rect.right+=UpLeftCorner.x;
 	Rect.top+=UpLeftCorner.y;
 	Rect.bottom+=UpLeftCorner.y;
 	(*pClipCursor)(NULL);
-	if(!(*pClipCursor)(&Rect)){
+	if(!(*pClipCursor)(&Rect))
 		OutTraceE("ClipCursor: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	}
 	OutTraceD("SetClipCursor: rect=(%d,%d)-(%d,%d)\n",
 		Rect.left, Rect.top, Rect.right, Rect.bottom);
 }
@@ -1006,6 +1007,14 @@ HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
 	HDC wdc;
 	if(!(wdc=(*pGDIGetDC)(hwnd)))
 	OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return AcquireEmulatedDC(wdc);
+}
+
+HDC dxwCore::AcquireEmulatedDC(HDC wdc)
+{
+	//HDC wdc;
+	//if(!(wdc=(*pGDIGetDC)(hwnd)))
+	//OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	if(!VirtualHDC){ // or resolution changed and you must rebuild a new one .... !!!!!
 		if(!(VirtualHDC=CreateCompatibleDC(wdc)))
 			OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);

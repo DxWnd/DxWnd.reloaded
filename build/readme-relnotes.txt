@@ -223,3 +223,26 @@ fixed banner handling in case of device context remmapped coordinates
 fixed memory leakage in SetDIBitsToDevice hooker
 GUI
 added radiobutton group to set the preferred GDI emulation mode
+
+v2.02.33
+CORE:
+experimental attempt to emulate the ZBUFFER attach to the BACKBUFFER surface
+improved log to detail all ddraw object properties
+experimental emulation of RGB to YUV conversion to investigate "duckman" problems on Win7
+improved grayscale algorythm
+fixed missing DDPF_ALPHAPIXELS property causing several blit incompabilities
+fixed surface handling for "Submarine Titans"
+fixed mousewheel handling
+fixed hooking bug causing several problems (i.e. Age of Empires III)
+Added FULLSCREENONLY option: fixes "Submarine Titans" intro movies
+Added "Bypass font unsupported api" compatibility flag: makes "Stratego" working
+fixed several d3d8/9 hooking problems
+GUI
+added controls for new core features
+defaulted ddraw emulation mode to surface emulation
+
+
+
+
+
+

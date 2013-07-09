@@ -44,6 +44,7 @@ public:
 	BOOL	m_Windowize;
 	BOOL	m_HookDLLs;
 	BOOL	m_EmulateRegistry;
+	BOOL	m_FullScreenOnly;
 	BOOL	m_NoBanner;
 	BOOL	m_StartDebug;
 	BOOL	m_HookEnabled;
@@ -103,6 +104,7 @@ public:
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
 	BOOL	m_CDROMDriveType;
+	BOOL	m_FontBypass;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_DisableHAL;
@@ -113,6 +115,8 @@ public:
 	BOOL	m_BlackWhite;
 	BOOL	m_SuppressD3DExt;
 	BOOL	m_Force16BPP;
+	BOOL	m_ForceYUVtoRGB;
+	BOOL	m_ForceRGBtoYUV;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;

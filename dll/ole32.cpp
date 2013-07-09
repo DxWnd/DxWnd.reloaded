@@ -5,6 +5,8 @@
 #include "dxhook.h"
 #include "dxhelper.h"
 
+extern void HookModule(HMODULE, int);
+
 static HookEntry_Type Hooks[]={
 	{"CoCreateInstance", NULL, (FARPROC *)&pCoCreateInstance, (FARPROC)extCoCreateInstance},
 	{"CoCreateInstanceEx", NULL, (FARPROC *)&pCoCreateInstanceEx, (FARPROC)extCoCreateInstanceEx}, 
@@ -46,9 +48,7 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 		OutTraceD("CoCreateInstance: CLSID_FilterGraph RIID=%x\n", *(DWORD *)&riid);
 		qlib=(*pLoadLibraryA)("quartz.dll");
 		OutTraceD("CoCreateInstance: quartz lib handle=%x\n", qlib);
-		HookKernel32(qlib);
-		HookUser32(qlib);
-		HookWinMM(qlib);
+		HookModule(qlib, 0);
 	}
 
 	res=(*pCoCreateInstance)(rclsid, pUnkOuter, dwClsContext, riid, ppv);
@@ -126,9 +126,7 @@ HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID rclsid, IUnknown *punkOute
 			OutTraceD("CoCreateInstanceEx: CLSID_FilterGraph RIID=%x\n", *(DWORD *)&riid);
 			qlib=(*pLoadLibraryA)("quartz.dll");
 			OutTraceD("CoCreateInstanceEx: quartz lib handle=%x\n", qlib);
-			HookKernel32(qlib);
-			HookUser32(qlib);
-			HookWinMM(qlib);
+			HookModule(qlib, 0);
 		}
 
 		if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DirectDraw){

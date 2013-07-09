@@ -11,6 +11,8 @@
 #include "dxhelper.h"
 
 static HookEntry_Type Hooks[]={
+	{"UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
+	{"GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
 	{"ChangeDisplaySettingsA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettings, (FARPROC)extChangeDisplaySettings},
 	{"ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettingsEx, (FARPROC)extChangeDisplaySettingsEx},
 	{"BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
@@ -34,6 +36,7 @@ static HookEntry_Type Hooks[]={
 	{"CloseWindow", (FARPROC)NULL, (FARPROC *)&pCloseWindow, (FARPROC)extCloseWindow},
 	{"DestroyWindow", (FARPROC)NULL, (FARPROC *)&pDestroyWindow, (FARPROC)extDestroyWindow},
 	{"SetSysColors", (FARPROC)NULL, (FARPROC *)&pSetSysColors, (FARPROC)extSetSysColors},
+	{"SetCapture", (FARPROC)NULL, (FARPROC *)&pSetCapture, (FARPROC)extSetCapture},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -654,6 +657,11 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 			(*pGetClientRect)(dxw.GethWnd(), &rect);
 			curr.x = (prev.x * rect.right) / dxw.GetScreenWidth();
 			curr.y = (prev.y * rect.bottom) / dxw.GetScreenHeight();
+			if (Msg == WM_MOUSEWHEEL){ // v2.02.33 mousewheel fix
+				POINT upleft={0,0};
+				(*pClientToScreen)(dxw.GethWnd(), &upleft);
+				curr = dxw.AddCoordinates(curr, upleft);
+			}
 			lParam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("SendMessage: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 			break;
@@ -1809,5 +1817,87 @@ BOOL WINAPI extSetSysColors(int cElements, const INT *lpaElements, const COLORRE
 
 	ret=(*pSetSysColors)(cElements, lpaElements, lpaRgbValues);
 	if(!ret) OutTraceE("SetSysColors: ERROR er=%d\n", GetLastError());
+	return ret;
+}
+
+BOOL WINAPI extUpdateWindow(HWND hwnd)
+{
+	BOOL ret;
+	OutTraceD("UpdateWindow: hwnd=%x\n", hwnd);
+
+	if(dxw.IsRealDesktop(hwnd)){
+		OutTraceD("UpdateWindow: remapping hwnd=%x->%x\n", hwnd, dxw.GethWnd());
+		hwnd=dxw.GethWnd();
+	}
+
+	ret=(*pUpdateWindow)(hwnd);
+	if(!ret) OutTraceE("UpdateWindow: ERROR er=%d\n", GetLastError());
+	return ret;
+}
+
+BOOL WINAPI extGetWindowPlacement(HWND hwnd, WINDOWPLACEMENT *lpwndpl)
+{
+	BOOL ret;
+	OutTraceD("GetWindowPlacement: hwnd=%x\n", hwnd);
+
+	if(dxw.IsRealDesktop(hwnd)){
+		OutTraceD("GetWindowPlacement: remapping hwnd=%x->%x\n", hwnd, dxw.GethWnd());
+		hwnd=dxw.GethWnd();
+	}
+
+	ret=(*pGetWindowPlacement)(hwnd, lpwndpl);
+	OutTraceD("GetWindowPlacement: flags=%x showCmd=%x MinPosition=(%d,%d) MaxPosition=(%d,%d) NormalPosition=(%d,%d)-(%d,%d)\n",
+		lpwndpl->flags, lpwndpl->showCmd, 
+		lpwndpl->ptMinPosition.x, lpwndpl->ptMinPosition.y,
+		lpwndpl->ptMaxPosition.x, lpwndpl->ptMaxPosition.y,
+		lpwndpl->rcNormalPosition.left, lpwndpl->rcNormalPosition.top, lpwndpl->rcNormalPosition.right, lpwndpl->rcNormalPosition.bottom);
+
+	switch (lpwndpl->showCmd){
+	case SW_SHOW:
+		if (dxw.IsFullScreen()){
+			lpwndpl->showCmd = SW_MAXIMIZE;
+			OutTraceD("GetWindowPlacement: forcing SW_MAXIMIZE state\n");
+		}
+		break;
+	}
+	if(!ret) OutTraceE("GetWindowPlacement: ERROR er=%d\n", GetLastError());
+	return ret;
+}
+
+BOOL WINAPI extSetWindowPlacement(HWND hwnd, WINDOWPLACEMENT *lpwndpl)
+{
+	BOOL ret;
+	OutTraceD("SetWindowPlacement: hwnd=%x\n", hwnd);
+
+	if(dxw.IsRealDesktop(hwnd)){
+		OutTraceD("SetWindowPlacement: remapping hwnd=%x->%x\n", hwnd, dxw.GethWnd());
+		hwnd=dxw.GethWnd();
+	}
+
+	OutTraceD("SetWindowPlacement: flags=%x showCmd=%x MinPosition=(%d,%d) MaxPosition=(%d,%d) NormalPosition=(%d,%d)-(%d,%d)\n",
+		lpwndpl->flags, lpwndpl->showCmd, 
+		lpwndpl->ptMinPosition.x, lpwndpl->ptMinPosition.y,
+		lpwndpl->ptMaxPosition.x, lpwndpl->ptMaxPosition.y,
+		lpwndpl->rcNormalPosition.left, lpwndpl->rcNormalPosition.top, lpwndpl->rcNormalPosition.right, lpwndpl->rcNormalPosition.bottom);
+
+	switch (lpwndpl->showCmd){
+	case SW_SHOW:
+		if (dxw.IsFullScreen()){
+			lpwndpl->showCmd = SW_MAXIMIZE;
+			OutTraceD("SetWindowPlacement: forcing SW_MAXIMIZE state\n");
+		}
+		break;
+	}
+	ret=(*pSetWindowPlacement)(hwnd, lpwndpl);
+	if(!ret) OutTraceE("SetWindowPlacement: ERROR er=%d\n", GetLastError());
+	return ret;
+}
+
+HWND WINAPI extSetCapture(HWND hwnd)
+{
+	HWND ret;
+	OutTraceD("SetCapture: hwnd=%x\n", hwnd);
+	ret=(*pSetCapture)(hwnd);
+	OutTraceD("SetCapture: ret=%x\n", ret);
 	return ret;
 }

@@ -70,6 +70,7 @@ public: // methods
 	int GetDLLIndex(char *);
 	void FixStyle(char *, HWND, WPARAM, LPARAM);
 	HDC AcquireEmulatedDC(HWND);
+	HDC AcquireEmulatedDC(HDC);
 	BOOL ReleaseEmulatedDC(HWND);
 	BOOL IsVirtual(HDC);
 	void ResetEmulatedDC();
