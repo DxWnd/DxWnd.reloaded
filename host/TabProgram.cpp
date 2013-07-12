@@ -33,7 +33,6 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_UNNOTIFY, cTarget->m_UnNotify);
 	DDX_Check(pDX, IDC_WINDOWIZE, cTarget->m_Windowize);
 	DDX_Check(pDX, IDC_HOOKDLLS, cTarget->m_HookDLLs);
-	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
 	DDX_Check(pDX, IDC_FULLSCREENONLY, cTarget->m_FullScreenOnly);
 	DDX_Check(pDX, IDC_FILTERMESSAGES, cTarget->m_FilterMessages);
 	DDX_Check(pDX, IDC_PEEKALLMESSAGES, cTarget->m_PeekAllMessages);
@@ -45,6 +44,7 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SAVELOAD, cTarget->m_SaveLoad);
 	DDX_Check(pDX, IDC_HANDLEALTF4, cTarget->m_HandleAltF4);
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
+	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL); // duplicated
 	DDX_Text(pDX, IDC_POSX, cTarget->m_PosX);
 	DDX_Text(pDX, IDC_POSY, cTarget->m_PosY);
 	DDX_Text(pDX, IDC_SIZX, cTarget->m_SizX);

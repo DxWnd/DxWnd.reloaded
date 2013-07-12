@@ -1,3 +1,4 @@
 Ancient Evil: working both in emulated / direct mode, but in emulated mode the cursor is not visible.
 window handling for ddraw8 games - see WildFire with keep aspect ratio & client area
 "devastation" intro movie - bad cooordinates
+Praetorians: bad splash screen & crash

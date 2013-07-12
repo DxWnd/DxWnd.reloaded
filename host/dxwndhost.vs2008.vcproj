@@ -378,10 +378,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabColor.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\TabCompat.cpp"
 				>
 			</File>
@@ -394,10 +390,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabGDI.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\TabLogs.cpp"
 				>
 			</File>
@@ -406,11 +398,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabOpenGL.cpp"
+				RelativePath=".\TabProgram.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\TabProgram.cpp"
+				RelativePath=".\TabSysLibs.cpp"
 				>
 			</File>
 			<File
@@ -495,10 +487,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabColor.h"
-				>
-			</File>
-			<File
 				RelativePath=".\TabCompat.h"
 				>
 			</File>
@@ -511,10 +499,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabGDI.h"
-				>
-			</File>
-			<File
 				RelativePath=".\TabLogs.h"
 				>
 			</File>
@@ -523,11 +507,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabOpenGL.h"
+				RelativePath=".\TabProgram.h"
 				>
 			</File>
 			<File
-				RelativePath=".\TabProgram.h"
+				RelativePath=".\TabSysLibs.h"
 				>
 			</File>
 			<File

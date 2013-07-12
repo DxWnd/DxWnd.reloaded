@@ -312,3 +312,11 @@ A small fix for ddraw 7 games that makes Praetorians playable, though with some 
 
 v2.02.46
 Fixed handling of user32 CreateDialogIndirectParam call to avoid processing in non fullscreen mode - fix necessary to start "Crimson Skies".
+
+v2.02.47
+GUI:
+Configuration tabs reorganization: now some tabs have merged making it easier to reach all options
+core:
+improved d3d wrapping and sdded ZBUFFER cleanup flags to fix some d3d games. In particular:
+Clean ZBUFFER @1.0 fix: to fix "Star Wars Episode I Racer"
+Clean ZBUFFER @0.0 fix: to fix "Crimson Skies" black blocks bug on ATI cards

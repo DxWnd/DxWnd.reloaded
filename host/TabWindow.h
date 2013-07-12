@@ -20,7 +20,7 @@ public:
 
 // Dialog Data
 	//{{AFX_DATA(CTabWindow)
-	enum { IDD = IDD_TAB_WINDOW };
+	enum { IDD = IDD_TAB_OUTPUT };
 		// NOTE: the ClassWizard will add data members here
 	//}}AFX_DATA
 

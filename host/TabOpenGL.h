@@ -20,7 +20,7 @@ public:
 
 // Dialog Data
 	//{{AFX_DATA(CTabOpenGL)
-	enum { IDD = IDD_TAB_OPENGL };
+	enum { IDD = IDD_TAB_SYSLIBS };
 		// NOTE: the ClassWizard will add data members here
 	//}}AFX_DATA
 

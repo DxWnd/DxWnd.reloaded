@@ -11,15 +11,15 @@
 /////////////////////////////////////////////////////////////////////////////
 // CTabLogs dialog
 
-class CTabGDI : public CDialog
+class CTabSysLibs : public CDialog
 {
 // Construction
 public:
-	CTabGDI(CWnd* pParent = NULL);   // standard constructor
+	CTabSysLibs(CWnd* pParent = NULL);   // standard constructor
 
 // Dialog Data
 	//{{AFX_DATA(CTabLogs)
-	enum { IDD = IDD_TAB_GDI };
+	enum { IDD = IDD_TAB_SYSLIBS };
 		// NOTE: the ClassWizard will add data members here
 	//}}AFX_DATA
 

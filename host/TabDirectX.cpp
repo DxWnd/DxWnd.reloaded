@@ -44,14 +44,6 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOALPHACHANNEL, cTarget->m_NoAlphaChannel);
 	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
 	//DDX_Check(pDX, IDC_SAVECAPS, cTarget->m_SaveCaps);
-	// DirectInput
-	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);
-	DDX_Text(pDX, IDC_INITX, cTarget->m_InitX);
-	DDX_Text(pDX, IDC_INITY, cTarget->m_InitY);
-	DDX_Text(pDX, IDC_MAXX, cTarget->m_MaxX);
-	DDX_Text(pDX, IDC_MAXY, cTarget->m_MaxY);
-	DDX_Text(pDX, IDC_MINX, cTarget->m_MinX);
-	DDX_Text(pDX, IDC_MINY, cTarget->m_MinY);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirectX, CDialog)

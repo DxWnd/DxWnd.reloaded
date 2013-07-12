@@ -30,7 +30,7 @@
 #include "TabOpenGL.h"
 #include "TabCompat.h"
 #include "TabColor.h"
-#include "TabGDI.h"
+#include "TabSysLibs.h"
 #include "TabDebug.h"
 
 #ifdef _DEBUG
@@ -49,13 +49,11 @@ CDXTabCtrl::CDXTabCtrl()
 	int i=0;
 	m_tabPages[i++]=new CTabProgram;
 	m_tabPages[i++]=new CTabWindow;
-	m_tabPages[i++]=new CTabColor;
-	m_tabPages[i++]=new CTabMouse;
+	m_tabPages[i++]=new CTabInput;
+	m_tabPages[i++]=new CTabDirectX;
 	m_tabPages[i++]=new CTabTiming;
 	m_tabPages[i++]=new CTabLogs;
-	m_tabPages[i++]=new CTabDirectX;
-	m_tabPages[i++]=new CTabOpenGL;
-	m_tabPages[i++]=new CTabGDI;
+	m_tabPages[i++]=new CTabSysLibs;
 	m_tabPages[i++]=new CTabCompat;
 	if (gbDebug) m_tabPages[i++]=new CTabDebug;
 
@@ -75,14 +73,12 @@ void CDXTabCtrl::Init()
 	m_tabCurrent=0;
 
 	m_tabPages[i++]->Create(IDD_TAB_PROGRAM, this);
-	m_tabPages[i++]->Create(IDD_TAB_WINDOW, this);
-	m_tabPages[i++]->Create(IDD_TAB_COLOR, this);
-	m_tabPages[i++]->Create(IDD_TAB_MOUSE, this);
+	m_tabPages[i++]->Create(IDD_TAB_OUTPUT, this);
+	m_tabPages[i++]->Create(IDD_TAB_INPUT, this);
+	m_tabPages[i++]->Create(IDD_TAB_DIRECTX, this);
 	m_tabPages[i++]->Create(IDD_TAB_TIMING, this);
 	m_tabPages[i++]->Create(IDD_TAB_LOG, this);
-	m_tabPages[i++]->Create(IDD_TAB_DIRECTX, this);
-	m_tabPages[i++]->Create(IDD_TAB_OPENGL, this);
-	m_tabPages[i++]->Create(IDD_TAB_GDI, this);
+	m_tabPages[i++]->Create(IDD_TAB_SYSLIBS, this);
 	m_tabPages[i++]->Create(IDD_TAB_COMPAT, this);
 	if (gbDebug) m_tabPages[i++]->Create(IDD_TAB_DEBUG, this);
 

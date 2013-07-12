@@ -116,6 +116,9 @@ public:
 	BOOL	m_CDROMDriveType;
 	BOOL	m_FontBypass;
 	BOOL	m_BufferedIOFix;
+	BOOL	m_ZBufferClean;
+	BOOL	m_ZBuffer0Clean;
+	BOOL	m_ZBufferAlways;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_DisableHAL;

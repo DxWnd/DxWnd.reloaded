@@ -12,16 +12,16 @@
 /////////////////////////////////////////////////////////////////////////////
 // CTabDirectX dialog
 
-//class CTabMouse : public CTargetDlg
-class CTabMouse : public CDialog
+//class CTabInput : public CTargetDlg
+class CTabInput : public CDialog
 {
 // Construction
 public:
-	CTabMouse(CWnd* pParent = NULL);   // standard constructor
+	CTabInput(CWnd* pParent = NULL);   // standard constructor
 
 // Dialog Data
 	//{{AFX_DATA(CTabDirectX)
-	enum { IDD = IDD_TAB_MOUSE };
+	enum { IDD = IDD_TAB_INPUT };
 		// NOTE: the ClassWizard will add data members here
 	//}}AFX_DATA
 

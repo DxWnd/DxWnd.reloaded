@@ -10,7 +10,7 @@
 static void Stopper(char *s, int line)
 {
 	char sMsg[81];
-	sprintf(sMsg,"break: \"%s\"", s);
+	sprintf_s(sMsg, 80, "break: \"%s\"", s);
 	MessageBox(0, sMsg, "break", MB_OK | MB_ICONEXCLAMATION);
 }
 

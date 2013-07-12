@@ -39,6 +39,8 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NODDRAWBLT, cTarget->m_NoDDRAWBlt);
 	DDX_Check(pDX, IDC_NODDRAWFLIP, cTarget->m_NoDDRAWFlip);
 	DDX_Check(pDX, IDC_NOGDIBLT, cTarget->m_NoGDIBlt);
+	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
+	DDX_Check(pDX, IDC_ZBUFFERALWAYS, cTarget->m_ZBufferAlways);
 }
 
 BEGIN_MESSAGE_MAP(CTabDebug, CDialog)

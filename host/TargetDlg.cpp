@@ -53,6 +53,9 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_CDROMDriveType = FALSE;
 	m_FontBypass = FALSE;
 	m_BufferedIOFix = FALSE;
+	m_ZBufferClean = FALSE;
+	m_ZBuffer0Clean = FALSE;
+	m_ZBufferAlways = FALSE;
 	m_UnNotify = FALSE;
 	m_Windowize = TRUE; // default true !!
 	m_HookDLLs = TRUE; // default true !!
@@ -146,14 +149,12 @@ BOOL CTargetDlg::OnInitDialog()
 	AfxEnableControlContainer();
 	CDialog::OnInitDialog();
 	m_tabdxTabCtrl.InsertItem(i++, _T("Main"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Window"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Color"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Mouse"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Video"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Input"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("DirectX"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Timing"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Log"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("DirectX"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("OpenGL"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("GDI"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Libs"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Compat"));
 	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T("Debug"));
 	m_tabdxTabCtrl.Init();

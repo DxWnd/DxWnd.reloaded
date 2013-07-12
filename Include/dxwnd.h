@@ -117,6 +117,9 @@
 #define SUPPRESSCHILD		0x00000002 // suppress child process generation (CreateProcessA, ...?)
 #define FIXREFCOUNTER		0x00000004 // fixes the reference counter for the main directdraw session (the one connected to primary surfaces)
 #define SHOWTIMESTRETCH		0x00000008 // Shows time stretching multiplier on screen overlay
+#define ZBUFFERCLEAN		0x00000010 // Clean ZBUFFER upon (fix for "Star Wars  Ep. I - Racer")
+#define ZBUFFER0CLEAN		0x00000020 // Clean ZBUFFER upon (fix for "Star Wars  Ep. I - Racer")
+#define ZBUFFERALWAYS		0x00000040 // Forces ZBUFFER D3DCMP_ALWAYS condition to show all planes....
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

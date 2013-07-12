@@ -12,18 +12,18 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
-// CTabMouse dialog
+// CTabInput dialog
 
-CTabMouse::CTabMouse(CWnd* pParent /*=NULL*/)
+CTabInput::CTabInput(CWnd* pParent /*=NULL*/)
 //	: CTargetDlg(pParent)
-	: CDialog(CTabMouse::IDD, pParent)
+	: CDialog(CTabInput::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CTabMouse)
+	//{{AFX_DATA_INIT(CTabInput)
 		// NOTE: the ClassWizard will add member initialization here
 	//}}AFX_DATA_INIT
 }
 
-void CTabMouse::DoDataExchange(CDataExchange* pDX)
+void CTabInput::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
@@ -37,13 +37,21 @@ void CTabMouse::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_MESSAGEPROC, cTarget->m_MessageProc);
 	DDX_Check(pDX, IDC_FIXNCHITTEST, cTarget->m_FixNCHITTEST);
 	DDX_Check(pDX, IDC_SLOW, cTarget->m_SlowDown);
+	// DirectInput
+	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);
+	DDX_Text(pDX, IDC_INITX, cTarget->m_InitX);
+	DDX_Text(pDX, IDC_INITY, cTarget->m_InitY);
+	DDX_Text(pDX, IDC_MAXX, cTarget->m_MaxX);
+	DDX_Text(pDX, IDC_MAXY, cTarget->m_MaxY);
+	DDX_Text(pDX, IDC_MINX, cTarget->m_MinX);
+	DDX_Text(pDX, IDC_MINY, cTarget->m_MinY);
 }
 
-BEGIN_MESSAGE_MAP(CTabMouse, CDialog)
-	//{{AFX_MSG_MAP(CTabMouse)
+BEGIN_MESSAGE_MAP(CTabInput, CDialog)
+	//{{AFX_MSG_MAP(CTabInput)
 		// NOTE: the ClassWizard will add message map macros here
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
-// CTabMouse message handlers
+// CTabInput message handlers
