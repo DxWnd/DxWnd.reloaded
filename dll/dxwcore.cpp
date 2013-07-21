@@ -293,6 +293,21 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	}
 	else {
 		RetRect=ClientRect;
+		if ((dxw.Coordinates == DXW_DESKTOP_WORKAREA) && (dwFlags2 & KEEPASPECTRATIO)){
+			int w, h, b; // width, height and border
+			w = RetRect.right - RetRect.left;
+			h = RetRect.bottom - RetRect.top;
+			if ((w * 600) > (h * 800)){
+				b = (w - (h * 800 / 600))/2;
+				RetRect.left = ClientRect.left + b;
+				RetRect.right = ClientRect.right - b;
+			}
+			else {
+				b = (h - (w * 600 / 800))/2;
+				RetRect.top = ClientRect.top + b;
+				RetRect.bottom = ClientRect.bottom - b;
+			}
+		}
 	}
 	if(!(*pClientToScreen)(hWnd, &UpLeft)){
 		OutTraceE("ClientToScreen ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
@@ -748,13 +763,12 @@ void dxwCore::ShowBanner(HWND hwnd)
 	HBITMAP g_hbmBall;
 	RECT client;
 
-	JustOnce=TRUE;
-
 	hClientDC=GetDC(hwnd);
 	(*pGetClientRect)(hwnd, &client);
 	BitBlt(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
 
 	if(JustOnce || (dwFlags2 & NOBANNER)) return;
+	JustOnce=TRUE;
 
     g_hbmBall = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BANNER));
     HDC hdcMem = CreateCompatibleDC(hClientDC);

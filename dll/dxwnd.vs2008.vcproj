@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="dxwnd"
 	ProjectGUID="{579E7FE7-2745-4100-A802-23511711FCDE}"
 	RootNamespace="dxwnd"
@@ -217,6 +217,46 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\ddraw.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\dinput.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\dxdiaghook.cpp"
 				>
 			</File>
@@ -247,18 +287,6 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\dxkernel32.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dxole32.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dxuser32.cpp"
-				>
 			</File>
 			<File
 				RelativePath=".\dxwcore.cpp"
@@ -293,7 +321,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\glhook.cpp"
+				RelativePath=".\gdi32.cpp"
 				>
 			</File>
 			<File
@@ -321,51 +349,23 @@
 				>
 			</File>
 			<File
-				RelativePath="hddraw.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="hdinput.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\imelib.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\msvfwhook.cpp"
+				RelativePath=".\kernel32.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\msvfw.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ole32.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\opengl.cpp"
 				>
 			</File>
 			<File
@@ -373,7 +373,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\syslibs.cpp"
+				RelativePath=".\user32.cpp"
 				>
 			</File>
 			<File

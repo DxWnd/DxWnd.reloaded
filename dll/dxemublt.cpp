@@ -193,21 +193,31 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	if (!Palette16BPP) { // first time through .....
 		unsigned int pi;
 		Palette16BPP = (DWORD *)malloc(0x10000 * sizeof(DWORD));
-		if (dxw.dwFlags1 & USERGB565){
-			for (pi=0; pi<0x10000; pi++) {
-				Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x7E0)<<5 | (pi & 0xF800)<<8; // RGB565
+		if (dxw.dwFlags3 & BLACKWHITE){
+			DWORD grey;
+			if (dxw.dwFlags1 & USERGB565){
+				for (pi=0; pi<0x10000; pi++) {
+					grey = ((((pi & 0x1F)<<3) + ((pi & 0x7E0)>>3) + ((pi & 0xF800)>>8)) / 3) & 0xFF;
+					Palette16BPP[pi] = (grey) + (grey<<8) + (grey<<16);				
+				}
+			}
+			else {
+				for (pi=0; pi<0x10000; pi++) {
+					grey = ((((pi & 0x1F)<<3) + ((pi & 0x3E0)>>2) + ((pi & 0x7C00)>>7)) / 3) & 0xFF;
+					Palette16BPP[pi] = grey + (grey<<8) + (grey<<16);
+				}
 			}
 		}
 		else {
-			for (pi=0; pi<0x10000; pi++) {
-				Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x3E0)<<6 | (pi & 0x7C00)<<9; // RGB555
+			if (dxw.dwFlags1 & USERGB565){
+				for (pi=0; pi<0x10000; pi++) {
+					Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x7E0)<<5 | (pi & 0xF800)<<8; // RGB565
+				}
 			}
-		}
-		if (dxw.dwFlags3 & BLACKWHITE){
-			for (pi=0; pi<0x10000; pi++) {
-				DWORD grey;
-				grey=((pi & 0xFF) + ((pi & 0xFF00)>>8) + ((pi & 0xFF0000)>>16)) / 3; 
-				Palette16BPP[pi] = grey + (grey<<8) + (grey<<16);
+			else {
+				for (pi=0; pi<0x10000; pi++) {
+					Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x3E0)<<6 | (pi & 0x7C00)<<9; // RGB555
+				}
 			}
 		}
 	}

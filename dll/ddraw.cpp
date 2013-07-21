@@ -1859,7 +1859,10 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 				if(res==DDERR_INVALIDPIXELFORMAT) DumpPixFmt(&ddsd);
 				return res;
 			}
-			if (dxw.dwFlags3 & SAVECAPS) PushCaps(&ddsd, lpDDSBack);
+			if (dxw.dwFlags3 & SAVECAPS) {
+				ddsd.ddsCaps.dwCaps=DDSCAPS_VIDEOMEMORY;
+				PushCaps(&ddsd, lpDDSBack);
+			}
 			OutTraceD("CreateSurface: created BACK DDSBack=%x\n", lpDDSBack);
 			dxw.UnmarkPrimarySurface(lpDDSBack);
 			HookDDSurfaceGeneric(&lpDDSBack, dxversion); // added !!!
@@ -2995,7 +2998,7 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	OutTraceD("GetDC: lpdss=%x%s\n",lpdds, IsPrim?"(PRIM)":"");
-	res=(*pGetDC)(lpdds,pHDC);
+	res=(*pGetDC)(lpdds, pHDC);
 
 	if (res==DDERR_CANTCREATEDC && 
 		(dxw.dwFlags1 & EMULATESURFACE) && 
@@ -3017,167 +3020,24 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 			return res;
 		}
 		// retry ....
-		res=(*pGetDC)(lpdds,pHDC);
-	}
-
-	if(res){
-		// take care: actually, many games (AoE, Beasts & Bumpkins) get an error code here,
-		// but pretending nothing happened seems the best way to get tha game working somehow.
-		// Should the surface have a RGB color setting to allow for DC creation?
-
-		// log an error just when not intercepted by EMULATESURFACE|HANDLEDC handling below
-		 if ((dxw.dwFlags1 & (EMULATESURFACE|HANDLEDC))!=(EMULATESURFACE|HANDLEDC)) 
-			OutTraceE("GetDC ERROR: lpdss=%x%s, hdc=%x, res=%x(%s) at %d\n", 
-			lpdds, IsPrim?"(PRIM)":"", *pHDC, res, ExplainDDError(res), __LINE__);
-
-		if(res==DDERR_DCALREADYCREATED){ 
-			OutTraceD("GetDC: HDC DDERR_DCALREADYCREATED\n");
-		}
-	}
-
-	// when getting DC from primary surface, save hdc and lpdds 
-	// for later possible use in GDI BitBlt wrapper function
-	if (IsPrim){
-		dxw.lpDDSPrimHDC=lpdds;
-	}
-
-	// tricky part to allog GDI to operate on top of a directdraw surface's HDI.
-	// needed for Age of Empires I & II and some other oldies.
-	// To Do: check that lpdds hdc doesn't stay locked!
-	if (res && (dxw.dwFlags1 & EMULATESURFACE)){
-		if (dxw.dwFlags1 & HANDLEDC) {
-			DDSURFACEDESC2 sd, hdcsd;
-			LPDIRECTDRAWSURFACE lpddshdc;
-
-			if (res==DDERR_CANTCREATEDC) (*pReleaseDC)(lpdds,*pHDC);
-
-			sd.dwSize=Set_dwSize_From_Surface(lpdds);
-			res=lpdds->GetSurfaceDesc((DDSURFACEDESC *)&sd);
-			if (res) OutTraceE("GetDC ERROR: GetSurfaceDesc res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-			client.left=0;
-			client.right=sd.dwWidth;
-			client.top=0;
-			client.bottom=sd.dwHeight;
-
-			// v2.1.90 fix: Warlords III can't handle very big service surfaces. Better skip.
-			if(sd.dwWidth>dxw.GetScreenWidth() || sd.dwHeight>dxw.GetScreenHeight()) return DDERR_CANTCREATEDC;
-
-			// create a service lpDDSHDC surface of the needed size....
-
-			memset(&hdcsd, 0, sizeof(hdcsd)); // Clean all
-			hdcsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-			hdcsd.dwSize = sd.dwSize;
-			hdcsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-			hdcsd.dwWidth = sd.dwWidth;
-			hdcsd.dwHeight = sd.dwHeight;
-
-			(*pCreateSurfaceMethod(lpdds))(lpDD, &hdcsd, &lpddshdc, 0);
-			if(res){
-				OutTraceE("GetDC: CreateSurface ERROR on DDSHDC: res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-				if(res==DDERR_INVALIDPIXELFORMAT) DumpPixFmt(&hdcsd);
-				return res;
-			}
-
-			OutTraceD("GetDC: created DDSHDC=%x\n", lpddshdc);
-
-			// initialize the auxiliary surface 
-
-			res=(*pEmuBlt)(lpddshdc, &client, lpdds, &client, DDBLT_WAIT, 0);
-			if (res) OutTraceE("GetDC ERROR: EmuBlt res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-
-			// return a valid device context handle, even though not a 8BPP one!
-			res=(*pGetDC)(lpddshdc,pHDC);
-			if(res) OutTraceE("GetDC ERROR: GetDC err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-
-			OutTraceD("GetDC: PushDC(%x,%x)\n", lpddshdc, *pHDC);
-			PushDC(lpddshdc,*pHDC);
-		}
-		else {
-			*pHDC=(*pGDIGetDC)(dxw.GethWnd());
-			if(!*pHDC) {
-				OutTraceE("GDI.GetDC ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-				res=DDERR_CANTCREATEDC;
-			}
-			else {
-				res=DD_OK;
-			}
-		}
+		res=(*pGetDC)(lpdds, pHDC);
 	}
 
 	OutTraceD("GetDC: res=%x hdc=%x\n",res, *pHDC);
 	return res;
-
 }
 
 HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc)
 {
 	HRESULT res;
 	BOOL IsPrim;
-	POINT p = {0, 0};
-	RECT client;
-
-	// this must cope with the action policy of GetDC.
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	OutTraceD("ReleaseDC: lpdss=%x%s hdc=%x\n",lpdds, IsPrim?"(PRIM)":"", hdc);	
-
 	res=(*pReleaseDC)(lpdds,hdc);
-	if (res==DD_OK) return res;
-
-	do { // fake loop to break out ...
-		if (dxw.dwFlags1 & EMULATESURFACE){
-			if (dxw.dwFlags1 & HANDLEDC){
-				DDSURFACEDESC2 sd;
-				LPDIRECTDRAWSURFACE lpddshdc;
-
-				// release the HDC 
-				lpddshdc=PopDC(hdc);
-				OutTraceD("ReleaseDC: %x=PopDC(%x)\n", lpddshdc, hdc);
-
-				if(lpddshdc==NULL) break;
-			
-				res=(*pReleaseDC)(lpddshdc, hdc);
-				if (res) {
-					OutTraceE("ReleaseDC: ReleaseDC ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-					break;
-				}
-
-				sd.dwSize=Set_dwSize_From_Surface(lpdds);
-				res=lpdds->GetSurfaceDesc((DDSURFACEDESC *)&sd);
-				if (res) {
-					OutTraceE("GetDC: GetSurfaceDesc ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-					break;
-				}
-				client.left=0;
-				client.right=sd.dwWidth; 
-				client.top=0;
-				client.bottom=sd.dwHeight; 
-				// OutTraceD("DEBUG: reverting to lpdds=%x rect=(%d,%d)-(%d,%d)\n", lpdds, client.left, client.top, client.right, client.bottom);
-				// revert the surface moddified by GDI functions to the original target surface
-				// works pretty well with Darklords III
-				res=(*pRevBlt)(lpddshdc, &client, lpdds, &client);
-				if (res) {
-					OutTraceE("ReleaseDC: RevBlt ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-					break;
-				}
-				if(dxw.IsAPrimarySurface(lpdds)){
-					res=sBlt("ReleaseDC", lpdds, NULL, lpdds, NULL, 0, NULL, FALSE);
-					if (res) OutTraceE("ReleaseDC: Blt ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-				}
-
-				(*pReleaseS)(lpddshdc);
-			}
-			else {
-				if((*pGDIReleaseDC)(dxw.GethWnd(),hdc)) res=DD_OK;
-				else {
-					OutTraceE("ReleaseDC: ReleaseDC ERROR err=%x at %d\n", GetLastError(), __LINE__);
-					res=DDERR_INVALIDPARAMS; // maybe there's a better value....
-				}
-			}
-		}
-	} while(0);
-	
+	if((IsPrim) && (dxw.dwFlags1 & EMULATESURFACE)) sBlt("ReleaseDC", lpdds, NULL, lpdds, NULL, 0, NULL, FALSE);
 	if (res) OutTraceE("ReleaseDC: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+
 	return res;
 }
 
@@ -3630,7 +3490,13 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 
 	if(IsPrim) caps->dwCaps = dxw.dwPrimarySurfaceCaps;
 	// v2.1.83: add FLIP capability (Funtraks a.k.a. Ignition)
-	if((dxw.dwFlags1 & EMULATESURFACE) && (lpdds == lpDDSBack)) caps->dwCaps |= DDSCAPS_FLIP;
+	// v2.2.26: add VIDEOMEMORY|LOCALVIDMEM capability (Alien Cabal 95 - partial fix)
+	if(dxw.dwFlags1 & EMULATESURFACE) {
+		if ((lpdds == lpDDSBack) || (caps->dwCaps & DDSCAPS_ZBUFFER)) {
+			caps->dwCaps |= DDSCAPS_FLIP|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM;
+			caps->dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+		}
+	}
 
 	OutTraceD("GetCaps(S%d): lpdds=%x FIXED caps=%x(%s)\n", dxInterface, lpdds, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 	return res;
@@ -3786,7 +3652,8 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 		if (lpddsd->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
 	}
 	
-	if(dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+	//if(dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+	if(dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM;
 	
 	if(IsFixed) DumpSurfaceAttributes(lpddsd, "GetSurfaceDesc [FIXED]", __LINE__);
 	return DD_OK;

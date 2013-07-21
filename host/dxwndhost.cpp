@@ -35,6 +35,7 @@ END_MESSAGE_MAP()
 // too do: eliminate nasty global variables....
 UINT m_StartToTray = FALSE;
 UINT m_InitialState = DXW_ACTIVE;
+BOOL gbDebug = FALSE;
 extern char m_ConfigFileName[20+1] = "dxwnd.ini";
 
 class CNewCommandLineInfo : public CCommandLineInfo
@@ -56,6 +57,10 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 		}
 		if (sParam.MakeLower() == "i"){
 			m_InitialState=DXW_IDLE;
+			return;
+		}
+		if (sParam.MakeLower() == "debug"){
+			gbDebug = TRUE;
 			return;
 		}
 		if (sParam.Left(2).MakeLower() == "c:"){

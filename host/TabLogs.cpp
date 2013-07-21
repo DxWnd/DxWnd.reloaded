@@ -22,19 +22,31 @@ CTabLogs::CTabLogs(CWnd* pParent /*=NULL*/)
 	//}}AFX_DATA_INIT
 }
 
+BOOL CTabLogs::OnInitDialog()
+{
+	extern BOOL gbDebug;
+	CDialog::OnInitDialog();
+	(CButton *)(this->GetDlgItem(IDC_DXPROXED))->EnableWindow(gbDebug ? TRUE : FALSE);
+	(CButton *)(this->GetDlgItem(IDC_ASSERT))->EnableWindow(gbDebug ? TRUE : FALSE);
+	return TRUE;
+}
+
 void CTabLogs::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
+	extern BOOL gbDebug;
 	DDX_Check(pDX, IDC_OUTTRACE, cTarget->m_OutTrace);
 	DDX_Check(pDX, IDC_OUTDEBUG, cTarget->m_OutDebug);
 	DDX_Check(pDX, IDC_CURSORTRACE, cTarget->m_CursorTrace);
 	DDX_Check(pDX, IDC_LOGENABLED, cTarget->m_LogEnabled);
 	DDX_Check(pDX, IDC_OUTWINMESSAGES, cTarget->m_OutWinMessages);
 	DDX_Check(pDX, IDC_OUTDXTRACE, cTarget->m_OutDXTrace);
-	DDX_Check(pDX, IDC_DXPROXED, cTarget->m_DXProxed);
-	DDX_Check(pDX, IDC_ASSERT, cTarget->m_AssertDialog);
 	DDX_Check(pDX, IDC_IMPORTTABLE, cTarget->m_ImportTable);
+	if(gbDebug){
+		DDX_Check(pDX, IDC_DXPROXED, cTarget->m_DXProxed);
+		DDX_Check(pDX, IDC_ASSERT, cTarget->m_AssertDialog);
+	}
 }
 
 BEGIN_MESSAGE_MAP(CTabLogs, CDialog)

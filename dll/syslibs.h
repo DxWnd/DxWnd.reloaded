@@ -45,6 +45,7 @@ typedef COLORREF (WINAPI *SetBkColor_Type)(HDC, COLORREF);
 typedef BOOL	(WINAPI *SetDeviceGammaRamp_Type)(HDC, LPVOID);
 typedef COLORREF(WINAPI *SetTextColor_Type)(HDC, COLORREF);
 typedef BOOL	(WINAPI *StretchBlt_Type)(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
+typedef LONG	(WINAPI *TabbedTextOutA_Type)(HDC, int, int, LPCTSTR, int, int, const LPINT, int);
 typedef BOOL	(WINAPI *TextOut_Type)(HDC, int, int, LPCTSTR, int);
 
 // Kernel32.dll:
@@ -159,6 +160,7 @@ DXWEXTERN SetBkColor_Type pGDISetBkColor DXWINITIALIZED;
 DXWEXTERN SetDeviceGammaRamp_Type pGDISetDeviceGammaRamp DXWINITIALIZED;
 DXWEXTERN SetTextColor_Type pGDISetTextColor DXWINITIALIZED;
 DXWEXTERN StretchBlt_Type pGDIStretchBlt DXWINITIALIZED;
+DXWEXTERN TabbedTextOutA_Type pTabbedTextOutA DXWINITIALIZED;
 DXWEXTERN TextOut_Type pGDITextOutA DXWINITIALIZED;
 
 // Kernel32.dll:
@@ -266,6 +268,7 @@ extern BOOL WINAPI extSetDeviceGammaRamp(HDC, LPVOID);
 extern COLORREF WINAPI extSetTextColor(HDC, COLORREF);
 extern BOOL WINAPI extGDIStretchBlt(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
 extern BOOL WINAPI extDDStretchBlt(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
+extern LONG WINAPI extTabbedTextOutA(HDC, int, int, LPCTSTR, int, int, const LPINT, int);
 extern BOOL WINAPI extTextOutA(HDC, int, int, LPCTSTR, int);
 
 // Kernel32.dll:
@@ -336,5 +339,11 @@ extern BOOL WINAPI extShowWindow(HWND, int);
 
 // Winmm.dll:
 extern DWORD WINAPI exttimeGetTime(void);
+
+// extern function declaration
+
+extern void	HookKernel32Init();
+extern void	HookUser32Init();
+extern void	HookGDI32Init();
 
 /* eof */

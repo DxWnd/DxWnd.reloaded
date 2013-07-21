@@ -15,7 +15,7 @@ typedef struct {
 	WNDPROC wndproc;
 } wndstack_entry;
 
-#define MAXWNDHSTACK 80
+#define MAXWNDHSTACK 256
 
 wndstack_entry WhndStack[MAXWNDHSTACK];
 static int WhndTOS = 0;
@@ -37,7 +37,12 @@ void WhndStackPush(HWND hwnd, WNDPROC wndproc)
 			return;
 		}
 	// push if not already there.
-	if(WhndTOS>=MAXWNDHSTACK) return;
+		if(WhndTOS>=MAXWNDHSTACK) {
+			char sMsg[80];
+			sprintf(sMsg, "Table overflow: %d entries used", MAXWNDHSTACK);
+			MessageBox(0, sMsg, "WhndStackPush", MB_OK | MB_ICONEXCLAMATION);
+			return;
+		}
 	WhndStack[WhndTOS].hwnd=hwnd;
 	WhndStack[WhndTOS].wndproc=wndproc;
 	WhndTOS++;

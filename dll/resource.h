@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by dxwnd.rc
 //
-#define IDB_BITMAP1                     101
 #define IDB_BANNER                      101
 
 // Next default values for new objects

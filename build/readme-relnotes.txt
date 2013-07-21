@@ -151,3 +151,20 @@ Added Kill process by name functionality (right click menu on program's list)
 Fixed GUI initial position: now checks for desktop size to fit GUI within visible borders
 Added single cpu process affinity checkbox in compatibility tab
 
+v2.02.26
+CORE:
+Fixed Black&White mode for 16BPP color depth
+Revised hooking code, now more compact and clear....
+Fixed DxWnd splash screen, for those who love it
+Increased child win table - now 688 hunter killer works perfectly 
+GUI:
+Added /debug flag to enable debugging options
+Revised hooking code, now more compact and clear....
+Restored Hook child win option
+
+v2.02.27
+CORE:
+fixed GetDC/ReleaseDC ddraw implementation to refresh GDI operation on primary surface. Warlords 3 text is now visible.
+preliminary implementation of MapWindowPoints - to be tested
+GUI:
+Fixed log flags wrong initialization
