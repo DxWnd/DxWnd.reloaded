@@ -16,6 +16,7 @@
 #include "dxhelper.h"
 #include "Ime.h"
 #include "Winnls32.h"
+#include "Mmsystem.h"
 
 dxwCore dxw;
 
@@ -1242,7 +1243,7 @@ void HookModule(HMODULE base, int dxversion)
 	HookDirectDraw(base, dxversion);
 	HookDirect3D(base, dxversion);
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
-	HookMSV4WLibs(base);
+	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 }
 
 void DisableIME()

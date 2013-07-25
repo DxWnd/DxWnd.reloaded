@@ -33,7 +33,8 @@ typedef HRESULT (WINAPI *CreateAdditionalSwapChain_Type)(void *, D3DPRESENT_PARA
 typedef HRESULT (WINAPI *GetDirect3D_Type)(void *, IDirect3D9 **);
 typedef HRESULT (WINAPI *GetViewport_Type)(void *, D3DVIEWPORT9 *);
 typedef HRESULT (WINAPI *SetViewport_Type)(void *, D3DVIEWPORT9 *);
-typedef void	(WINAPI *SetGammaRamp_Type)(UINT, DWORD, D3DGAMMARAMP *);
+typedef void	(WINAPI *SetGammaRamp_Type)(void *, UINT, DWORD, D3DGAMMARAMP *);
+typedef void	(WINAPI *GetGammaRamp_Type)(void *, UINT, D3DGAMMARAMP *);
 
 typedef HRESULT (WINAPI *D3D10CreateDevice_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
 typedef HRESULT (WINAPI *D3D10CreateDeviceAndSwapChain_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
@@ -68,7 +69,8 @@ HRESULT WINAPI extGetRenderState(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extCreateAdditionalSwapChain(void *, D3DPRESENT_PARAMETERS *, IDirect3DSwapChain9 **);
 HRESULT WINAPI extGetViewport(void *, D3DVIEWPORT9 *);
 HRESULT WINAPI extSetViewport(void *, D3DVIEWPORT9 *);
-void	WINAPI extSetGammaRamp(UINT, DWORD, D3DGAMMARAMP *);
+void	WINAPI extSetGammaRamp(void *, UINT, DWORD, D3DGAMMARAMP *);
+void	WINAPI extGetGammaRamp(void *, UINT, D3DGAMMARAMP *);
 
 HRESULT WINAPI extD3D10CreateDevice(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
 HRESULT WINAPI extD3D10CreateDeviceAndSwapChain(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
@@ -106,6 +108,7 @@ CreateAdditionalSwapChain_Type pCreateAdditionalSwapChain = 0;
 GetViewport_Type pGetViewport = 0;
 SetViewport_Type pSetViewport = 0;
 SetGammaRamp_Type pSetGammaRamp = 0;
+GetGammaRamp_Type pGetGammaRamp = 0;
 
 D3D10CreateDevice_Type pD3D10CreateDevice = 0;
 D3D10CreateDeviceAndSwapChain_Type pD3D10CreateDeviceAndSwapChain = 0;
@@ -669,7 +672,10 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 56), extReset, (void **)&pReset, "Reset(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 60), extPresent, (void **)&pPresent, "Present(D8)");
-		SetHook((void *)(**(DWORD **)ppd3dd + 72), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D8)");
+		if(dxw.dwFlags2 & DISABLEGAMMARAMP){
+			SetHook((void *)(**(DWORD **)ppd3dd + 72), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D8)");
+			SetHook((void *)(**(DWORD **)ppd3dd + 76), extGetGammaRamp, (void **)&pGetGammaRamp, "GetGammaRamp(D8)");
+		}
 		if(dxw.dwFlags2 & WIREFRAME){
 			SetHook((void *)(**(DWORD **)ppd3dd + 200), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D8)");
 			SetHook((void *)(**(DWORD **)ppd3dd + 204), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D8)");
@@ -685,7 +691,10 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 68), extPresent, (void **)&pPresent, "Present(D9)");
-		SetHook((void *)(**(DWORD **)ppd3dd + 84), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D9)");
+		if(dxw.dwFlags2 & DISABLEGAMMARAMP){
+			SetHook((void *)(**(DWORD **)ppd3dd + 84), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D9)");
+			SetHook((void *)(**(DWORD **)ppd3dd + 88), extGetGammaRamp, (void **)&pGetGammaRamp, "GetGammaRamp(D9)");
+		}
 		//SetHook((void *)(**(DWORD **)ppd3dd +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
 		//SetHook((void *)(**(DWORD **)ppd3dd +192), extGetViewport, (void **)&pGetViewport, "GetViewport(D9)");
 		if(dxw.dwFlags2 & WIREFRAME){
@@ -761,7 +770,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 		OutTraceD("FAILED! %x\n", res);
 		return res;
 	}
-	OutTraceD("SUCCESS!\n");
+	OutTraceD("SUCCESS!\n"); 
 
 	void *pReset;
 	pReset=NULL; // to avoid assert condition
@@ -770,7 +779,10 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
 	SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
 	SetHook((void *)(**(DWORD **)ppd3dd + 68), extPresent, (void **)&pPresent, "Present(D9)");
-	SetHook((void *)(**(DWORD **)ppd3dd + 84), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D9)");
+	if(dxw.dwFlags2 & DISABLEGAMMARAMP){
+		SetHook((void *)(**(DWORD **)ppd3dd + 84), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D9)");
+		SetHook((void *)(**(DWORD **)ppd3dd + 88), extGetGammaRamp, (void **)&pGetGammaRamp, "GetGammaRamp(D9)");
+	}
 	//SetHook((void *)(**(DWORD **)ppd3dd +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
 	//SetHook((void *)(**(DWORD **)ppd3dd +192), extGetViewport, (void **)&pGetViewport, "GetViewport(D9)");
 	if(dxw.dwFlags2 & WIREFRAME){
@@ -1096,9 +1108,15 @@ HRESULT WINAPI extCheckFullScreen(void)
 	return 0;
 }
 
-void WINAPI extSetGammaRamp(UINT iSwapChain, DWORD Flags, D3DGAMMARAMP *pRamp)
+void WINAPI extSetGammaRamp(void *lpdd3dd, UINT iSwapChain, DWORD Flags, D3DGAMMARAMP *pRamp)
 {
-	OutTraceD("SetGammaRamp: SwapChain=%d flags=%x\n", iSwapChain, Flags);
+	OutTraceD("SetGammaRamp: dd3dd=%x SwapChain=%d flags=%x\n", lpdd3dd, iSwapChain, Flags);
 	if (dxw.dwFlags2 & DISABLEGAMMARAMP) return;
-	(*pSetGammaRamp)(iSwapChain, Flags, pRamp);
+	(*pSetGammaRamp)(lpdd3dd, iSwapChain, Flags, pRamp);
+}
+
+void WINAPI extGetGammaRamp(void *lpdd3dd, UINT iSwapChain, D3DGAMMARAMP *pRamp)
+{
+	OutTraceD("GetGammaRamp: dd3dd=%x SwapChain=%d\n", lpdd3dd, iSwapChain);
+	(*pGetGammaRamp)(lpdd3dd, iSwapChain, pRamp);
 }

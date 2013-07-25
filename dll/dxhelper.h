@@ -30,3 +30,5 @@ extern char *ExplainsSystemMetrics(DWORD);
 extern char *ExplainWPFlags(DWORD);
 extern char *ExplainLoadLibFlags(DWORD);
 extern char *ExplainDevModeFields(DWORD);
+extern char *ExplainMCICommands(DWORD);
+extern char *ExplainMCIFlags(DWORD, DWORD);

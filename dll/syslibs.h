@@ -9,6 +9,8 @@ user32.dll.dll
 
 ====================================================================*/
 
+#include "Mmsystem.h"
+
 /* ===================================================================
 type definitions
 ====================================================================*/
@@ -110,6 +112,7 @@ typedef int		(WINAPI *ShowCursor_Type)(BOOL);
 typedef BOOL	(WINAPI *ShowWindow_Type)(HWND, int);
 
 // Winmm.dll:
+typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
 typedef DWORD	(WINAPI *timeGetTime_Type)(void);
 
 /* ===================================================================
@@ -225,6 +228,7 @@ DXWEXTERN ShowCursor_Type pShowCursor DXWINITIALIZED;
 DXWEXTERN ShowWindow_Type pShowWindow DXWINITIALIZED;
 
 // Winmm.dll:
+DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
 DXWEXTERN timeGetTime_Type ptimeGetTime DXWINITIALIZED;
 
 /* ===================================================================
@@ -338,6 +342,7 @@ extern int WINAPI extShowCursor(BOOL);
 extern BOOL WINAPI extShowWindow(HWND, int);
 
 // Winmm.dll:
+extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
 extern DWORD WINAPI exttimeGetTime(void);
 
 // extern function declaration

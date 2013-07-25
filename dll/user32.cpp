@@ -912,10 +912,12 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 {
 	UINT pi;
 	int ret;
-	// a rarely used API, but responsible for a painful headache: needs hooking for "Commandos 2".
+	// a rarely used API, but responsible for a painful headache: needs hooking for "Commandos 2", "Alien Nations".
 
-	OutTraceD("MapWindowPoints: hWndFrom=%x hWndTo=%x cPoints=%d FullScreen=%x\n", 
-		hWndFrom, hWndTo, cPoints, dxw.IsFullScreen());
+	OutTraceD("MapWindowPoints: hWndFrom=%x%s hWndTo=%x%s cPoints=%d FullScreen=%x\n", 
+		hWndFrom, dxw.IsDesktop(hWndFrom)?"(DESKTOP)":"",
+		hWndTo, dxw.IsDesktop(hWndTo)?"(DESKTOP)":"",
+		cPoints, dxw.IsFullScreen());
 	if(IsDebug){
 		OutTrace("Points: ");
 		for(pi=0; pi<cPoints; pi++) OutTrace("(%d,%d)", lpPoints[pi].x, lpPoints[pi].y);
@@ -923,21 +925,14 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 	}
 
 	if(dxw.IsFullScreen()){
-		RECT desktop;
-		(*pGetClientRect)(dxw.GethWnd(), &desktop);
 		if(dxw.IsDesktop(hWndTo)) hWndTo=dxw.GethWnd();
 		if(dxw.IsDesktop(hWndFrom)) hWndFrom=dxw.GethWnd();
-		ret=(*pMapWindowPoints)(hWndFrom, hWndTo, lpPoints, cPoints);
-		if (desktop.right && desktop.bottom) for(pi=0; pi<cPoints; pi++) {
-			lpPoints[pi].x = (lpPoints[pi].x * dxw.GetScreenWidth()) / desktop.right;
-			lpPoints[pi].y = (lpPoints[pi].y * dxw.GetScreenHeight()) / desktop.bottom;
-		}
-		return ret; // scale this as well...
 	}
-	else{
-		// just proxy it
-		return (*pMapWindowPoints)(hWndFrom, hWndTo, lpPoints, cPoints);
-	}
+	
+	// should scale the retcode ???
+	ret=(*pMapWindowPoints)(hWndFrom, hWndTo, lpPoints, cPoints);
+	OutTraceD("MapWindowPoints: ret=%x (%d,%d)\n", ret, (ret&0xFFFF0000)>>16, ret&0x0000FFFF);
+	return ret;
 }
 
 HWND WINAPI extGetDesktopWindow(void)
@@ -1385,7 +1380,7 @@ HDC WINAPI extGDIGetWindowDC(HWND hwnd)
 	HWND lochwnd;
 	OutTraceD("GDI.GetWindowDC: hwnd=%x\n", hwnd);
 	lochwnd=hwnd;
-	if ((hwnd==0) || (hwnd==(*pGetDesktopWindow)())) {
+	if (dxw.IsDesktop(hwnd)) {
 		OutTraceD("GDI.GetWindowDC: desktop remapping hwnd=%x->%x\n", hwnd, dxw.GethWnd());
 		lochwnd=dxw.GethWnd();
 	}
@@ -1541,26 +1536,18 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL bRepaint)
 {
 	BOOL ret;
-	OutTraceD("MoveWindow: hwnd=%x xy=(%d,%d) size=(%d,%d) repaint=%x indialog=%x\n",
-		hwnd, X, Y, nWidth, nHeight, bRepaint, isWithinDialog);
+	OutTraceD("MoveWindow: hwnd=%x xy=(%d,%d) size=(%d,%d) repaint=%x indialog=%x fullscreen=%x\n",
+		hwnd, X, Y, nWidth, nHeight, bRepaint, isWithinDialog, dxw.IsFullScreen());
 
-	if((hwnd==dxw.GethWnd()) || (hwnd==dxw.hParentWnd)){
-		OutTraceD("MoveWindow: prevent moving main win\n");
-		if (nHeight && nWidth){
-			OutTraceD("MoveWindow: setting screen size=(%d,%d)\n", nHeight, nWidth);
-			dxw.SetScreenSize(nWidth, nHeight);
-		}
+	if(dxw.IsDesktop(hwnd)){
+		// v2.1.93: happens in "Emergency Fighters for Life" ...
+		// what is the meaning of this? is it related to video stretching?
+		OutTraceD("MoveWindow: prevent moving desktop win\n");
 		return TRUE;
 	}
 
-	if((hwnd==0) || (hwnd==(*pGetDesktopWindow)())){
-		// v2.1.93: happens in "Emergency Fighters for Life" ...
-		OutTraceD("MoveWindow: prevent moving desktop win\n");
-		// v2.1.93: moving the desktop seems a way to change its resolution?
-		if (nHeight && nWidth){
-			OutTraceD("MoveWindow: setting screen size=(%d,%d)\n", nHeight, nWidth);
-			dxw.SetScreenSize(nWidth, nHeight);
-		}
+	if((hwnd==dxw.GethWnd()) || (hwnd==dxw.hParentWnd)){
+		OutTraceD("MoveWindow: prevent moving main win\n");
 		return TRUE;
 	}
 

@@ -1023,3 +1023,181 @@ char *ExplainDevModeFields(DWORD c)
 	else strcpy(eb,"NULL");
 	return(eb);
 }
+
+char *ExplainMCICommands(DWORD c)
+{
+	switch(c){
+		case MCI_OPEN: return "MCI_OPEN";
+		case MCI_CLOSE: return "MCI_CLOSE";
+		case MCI_ESCAPE: return "MCI_ESCAPE";
+		case MCI_PLAY: return "MCI_PLAY";
+		case MCI_SEEK: return "MCI_SEEK";
+		case MCI_STOP: return "MCI_STOP";
+		case MCI_PAUSE: return "MCI_PAUSE";
+		case MCI_INFO: return "MCI_INFO";
+		case MCI_GETDEVCAPS: return "MCI_GETDEVCAPS";
+		case MCI_SPIN: return "MCI_SPIN";
+		case MCI_SET: return "MCI_SET";
+		case MCI_STEP: return "MCI_STEP";
+		case MCI_RECORD: return "MCI_RECORD";
+		case MCI_SYSINFO: return "MCI_SYSINFO";
+		case MCI_BREAK: return "MCI_BREAK";
+		case MCI_SAVE: return "MCI_SAVE";
+		case MCI_STATUS: return "MCI_STATUS";
+		case MCI_CUE: return "MCI_CUE";
+		case MCI_REALIZE: return "MCI_REALIZE";
+		case MCI_WINDOW: return "MCI_WINDOW";
+		case MCI_PUT: return "MCI_PUT";
+		case MCI_WHERE: return "MCI_WHERE";
+		case MCI_FREEZE: return "MCI_FREEZE";
+		case MCI_UNFREEZE: return "MCI_UNFREEZE";
+		case MCI_LOAD: return "MCI_LOAD";
+		case MCI_CUT: return "MCI_CUT";
+		case MCI_COPY: return "MCI_COPY";
+		case MCI_PASTE: return "MCI_PASTE";
+		case MCI_UPDATE: return "MCI_UPDATE";
+		case MCI_RESUME: return "MCI_RESUME";
+		case MCI_DELETE: return "MCI_DELETE";
+		}
+	return "???";
+}
+
+char *ExplainMCIFlags(DWORD cmd, DWORD c)
+{
+	static char eb[512];
+	unsigned int l;
+	strcpy(eb,"MCI_");
+	// common flags
+	if (c & MCI_NOTIFY) strcat(eb, "NOTIFY+");
+	if (c & MCI_WAIT) strcat(eb, "WAIT+");
+	if (c & MCI_FROM) strcat(eb, "FROM+");
+	if (c & MCI_TO) strcat(eb, "TO+");
+	if (c & MCI_TRACK) strcat(eb, "TRACK+");
+	switch(cmd){
+	case MCI_OPEN:
+		if (c & MCI_OPEN_SHAREABLE) strcat(eb, "OPEN_SHAREABLE+");
+		if (c & MCI_OPEN_ELEMENT) strcat(eb, "OPEN_ELEMENT+");
+		if (c & MCI_OPEN_ALIAS) strcat(eb, "OPEN_ALIAS+");
+		if (c & MCI_OPEN_ELEMENT_ID) strcat(eb, "OPEN_ELEMENT_ID+");
+		if (c & MCI_OPEN_TYPE_ID) strcat(eb, "OPEN_TYPE_ID+");
+		if (c & MCI_OPEN_TYPE) strcat(eb, "OPEN_TYPE+");
+		if (c & MCI_WAVE_OPEN_BUFFER) strcat(eb, "WAVE_OPEN_BUFFER+");
+		break;
+	case MCI_SEEK:
+		if (c & MCI_SEEK_TO_START) strcat(eb, "SEEK_TO_START+");
+		if (c & MCI_STATUS_START) strcat(eb, "STATUS_START+");
+		if (c & MCI_VD_SEEK_REVERSE) strcat(eb, "VD_SEEK_REVERSE+");
+		break;
+	case MCI_STATUS:
+		if (c & MCI_STATUS_ITEM) strcat(eb, "STATUS_ITEM+");
+		if (c & MCI_STATUS_START) strcat(eb, "STATUS_START+");
+		break;
+	case MCI_INFO:
+		if (c & MCI_INFO_PRODUCT) strcat(eb, "INFO_PRODUCT+");
+		if (c & MCI_INFO_FILE) strcat(eb, "INFO_FILE+");
+		if (c & MCI_INFO_MEDIA_UPC) strcat(eb, "INFO_MEDIA_UPC+");
+		if (c & MCI_INFO_MEDIA_IDENTITY) strcat(eb, "INFO_MEDIA_IDENTITY+");
+		if (c & MCI_INFO_NAME) strcat(eb, "INFO_NAME+");
+		if (c & MCI_INFO_COPYRIGHT) strcat(eb, "INFO_COPYRIGHT+");
+		break;
+	case MCI_GETDEVCAPS:
+		if (c & MCI_VD_GETDEVCAPS_CLV) strcat(eb, "VD_GETDEVCAPS_CLV+");
+		if (c & MCI_VD_GETDEVCAPS_CAV) strcat(eb, "VD_GETDEVCAPS_CAV+");
+		if (c & MCI_GETDEVCAPS_ITEM) strcat(eb, "GETDEVCAPS_ITEM+");
+		break;
+	case MCI_SYSINFO:
+		if (c & MCI_SYSINFO_QUANTITY) strcat(eb, "SYSINFO_QUANTITY+");
+		if (c & MCI_SYSINFO_OPEN) strcat(eb, "SYSINFO_OPEN+");
+		if (c & MCI_SYSINFO_NAME) strcat(eb, "SYSINFO_NAME+");
+		if (c & MCI_SYSINFO_INSTALLNAME) strcat(eb, "SYSINFO_INSTALLNAME+");
+		break;
+	case MCI_SET:
+		if (c & MCI_SET_DOOR_OPEN) strcat(eb, "SET_DOOR_OPEN+");
+		if (c & MCI_SET_DOOR_CLOSED) strcat(eb, "SET_DOOR_CLOSED+");
+		if (c & MCI_SET_TIME_FORMAT) strcat(eb, "SET_TIME_FORMAT+");
+		if (c & MCI_SET_AUDIO) strcat(eb, "SET_AUDIO+");
+		if (c & MCI_SET_VIDEO) strcat(eb, "SET_VIDEO+");
+		if (c & MCI_SET_ON) strcat(eb, "SET_ON+");
+		if (c & MCI_SET_OFF) strcat(eb, "SET_OFF+");
+		if (c & MCI_SEQ_SET_TEMPO) strcat(eb, "SEQ_SET_TEMPO+");
+		if (c & MCI_SEQ_SET_PORT) strcat(eb, "SEQ_SET_PORT+");
+		if (c & MCI_SEQ_SET_SLAVE) strcat(eb, "SEQ_SET_SLAVE+");
+		if (c & MCI_SEQ_SET_MASTER) strcat(eb, "SEQ_SET_MASTER+");
+		if (c & MCI_SEQ_SET_OFFSET) strcat(eb, "SEQ_SET_OFFSET+");
+		break;
+	case MCI_BREAK:
+		if (c & MCI_BREAK_KEY) strcat(eb, "BREAK_KEY+");
+		if (c & MCI_BREAK_HWND) strcat(eb, "BREAK_HWND+");
+		if (c & MCI_BREAK_OFF) strcat(eb, "BREAK_OFF+");
+		break;
+	case MCI_RECORD:
+		if (c & MCI_RECORD_INSERT) strcat(eb, "RECORD_INSERT+");
+		if (c & MCI_RECORD_OVERWRITE) strcat(eb, "RECORD_OVERWRITE+");
+		break;
+	case MCI_SAVE:
+		if (c & MCI_SAVE_FILE) strcat(eb, "SAVE_FILE+");
+		break;
+	case MCI_LOAD:
+		if (c & MCI_LOAD_FILE) strcat(eb, "SAVE_FILE+");
+		break;
+	case MCI_PLAY:
+		if (c & MCI_VD_PLAY_REVERSE) strcat(eb, "VD_PLAY_REVERSE+");
+		if (c & MCI_VD_PLAY_FAST) strcat(eb, "VD_PLAY_FAST+");
+		if (c & MCI_VD_PLAY_SPEED) strcat(eb, "VD_PLAY_SPEED+");
+		if (c & MCI_VD_PLAY_SCAN) strcat(eb, "VD_PLAY_SCAN+");
+		if (c & MCI_VD_PLAY_SLOW) strcat(eb, "VD_PLAY_SLOW+");
+		break;
+	case MCI_STEP:
+		if (c & MCI_VD_STEP_FRAMES) strcat(eb, "VD_STEP_FRAMES+");
+		if (c & MCI_VD_STEP_REVERSE) strcat(eb, "VD_STEP_REVERSE+");
+		break;
+	case MCI_WINDOW:
+		if (c & MCI_ANIM_WINDOW_HWND) strcat(eb, "ANIM_WINDOW_HWND+");
+		if (c & MCI_ANIM_WINDOW_STATE) strcat(eb, "ANIM_WINDOW_STATE+");
+		if (c & MCI_ANIM_WINDOW_TEXT) strcat(eb, "ANIM_WINDOW_TEXT+");
+		if (c & MCI_ANIM_WINDOW_ENABLE_STRETCH) strcat(eb, "ANIM_WINDOW_ENABLE_STRETCH+");
+		if (c & MCI_ANIM_WINDOW_DISABLE_STRETCH) strcat(eb, "ANIM_WINDOW_DISABLE_STRETCH+");
+		break;
+	case MCI_PUT:
+		if (c & MCI_ANIM_RECT) strcat(eb, "ANIM_RECT+");
+		if (c & MCI_ANIM_PUT_SOURCE) strcat(eb, "ANIM_PUT_SOURCE+");
+		if (c & MCI_ANIM_PUT_DESTINATION) strcat(eb, "ANIM_PUT_DESTINATION+");
+		break;
+	case MCI_WHERE:
+		if (c & MCI_ANIM_WHERE_SOURCE) strcat(eb, "ANIM_WHERE_SOURCE+");
+		if (c & MCI_ANIM_WHERE_DESTINATION) strcat(eb, "ANIM_WHERE_DESTINATION+");
+		break;
+	case MCI_UPDATE:
+		if (c & MCI_ANIM_UPDATE_HDC) strcat(eb, "ANIM_UPDATE_HDC+");
+		break;
+	}
+	/*
+	if (c & MCI_OVLY_OPEN_WS) strcat(eb, "OVLY_OPEN_WS+");
+	if (c & MCI_OVLY_OPEN_PARENT) strcat(eb, "OVLY_OPEN_PARENT+");
+	if (c & MCI_OVLY_STATUS_HWND) strcat(eb, "OVLY_STATUS_HWND+");
+	if (c & MCI_OVLY_STATUS_STRETCH) strcat(eb, "OVLY_STATUS_STRETCH+");
+	if (c & MCI_OVLY_INFO_TEXT) strcat(eb, "OVLY_INFO_TEXT+");
+	if (c & MCI_OVLY_WINDOW_HWND) strcat(eb, "OVLY_WINDOW_HWND+");
+	if (c & MCI_OVLY_WINDOW_STATE) strcat(eb, "OVLY_WINDOW_STATE+");
+	if (c & MCI_OVLY_WINDOW_TEXT) strcat(eb, "OVLY_WINDOW_TEXT+");
+	if (c & MCI_OVLY_WINDOW_ENABLE_STRETCH) strcat(eb, "OVLY_WINDOW_ENABLE_STRETCH+");
+	if (c & MCI_OVLY_WINDOW_DISABLE_STRETCH) strcat(eb, "OVLY_WINDOW_DISABLE_STRETCH+");
+	if (c & MCI_OVLY_WINDOW_DEFAULT) strcat(eb, "OVLY_WINDOW_DEFAULT+");
+	if (c & MCI_OVLY_RECT) strcat(eb, "OVLY_RECT+");
+	if (c & MCI_OVLY_PUT_SOURCE) strcat(eb, "OVLY_PUT_SOURCE+");
+	if (c & MCI_OVLY_PUT_DESTINATION) strcat(eb, "OVLY_PUT_DESTINATION+");
+	if (c & MCI_OVLY_PUT_FRAME) strcat(eb, "OVLY_PUT_FRAME+");
+	if (c & MCI_OVLY_PUT_VIDEO) strcat(eb, "OVLY_PUT_VIDEO+");
+	if (c & MCI_OVLY_WHERE_SOURCE) strcat(eb, "OVLY_WHERE_SOURCE+");
+	if (c & MCI_OVLY_WHERE_DESTINATION) strcat(eb, "OVLY_WHERE_DESTINATION+");
+	if (c & MCI_OVLY_WHERE_FRAME) strcat(eb, "OVLY_WHERE_FRAME+");
+	if (c & MCI_OVLY_WHERE_VIDEO) strcat(eb, "OVLY_WHERE_VIDEO+");
+	*/
+	l=strlen(eb);
+	if (l>strlen("MCI_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}
+
+
+

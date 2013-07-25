@@ -2994,7 +2994,6 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 {
 	HRESULT res;
 	BOOL IsPrim;
-	RECT client;
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	OutTraceD("GetDC: lpdss=%x%s\n",lpdds, IsPrim?"(PRIM)":"");

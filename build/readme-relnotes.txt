@@ -168,3 +168,13 @@ fixed GetDC/ReleaseDC ddraw implementation to refresh GDI operation on primary s
 preliminary implementation of MapWindowPoints - to be tested
 GUI:
 Fixed log flags wrong initialization
+
+v2.02.28
+CORE:
+eliminated experimental ICSendMessage and ICOpen hooks, preventing some games (Alien Nations) to work
+added mciSendCommand hook to fix video playback
+fixed MoveWindow bug - still, it's unknown the reason why some programs (Emergency) tries to MoveWindow upon the hWnd=0 desktop!
+fixed MapWindowPoints hook (Alien Nations)
+fixed desktop detections in some places, now correctly using dxw.IsDesktop() method
+Now "Alien Nations" and "Emergency" working (almost) perfectly.
+fixed d3d8/9 hook to Get/SetGammaRamp. This should make a great number of recent games playable again.
