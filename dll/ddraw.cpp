@@ -77,12 +77,15 @@ HRESULT WINAPI extGetSurfaceDesc1(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpd
 HRESULT WINAPI extGetSurfaceDesc2(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd);
 //    STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, LPDDSURFACEDESC2) PURE;
 HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, DWORD, HANDLE);
+HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, DWORD, HANDLE);
 HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE, HDC);
 HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE, LPDIRECTDRAWCLIPPER);
 HRESULT WINAPI extSetColorKey(LPDIRECTDRAWSURFACE, DWORD, LPDDCOLORKEY);
 HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE, LPDIRECTDRAWPALETTE);
 HRESULT WINAPI extUnlock4(LPDIRECTDRAWSURFACE, LPRECT);
 HRESULT WINAPI extUnlock1(LPDIRECTDRAWSURFACE, LPVOID);
+HRESULT WINAPI extUnlockDir4(LPDIRECTDRAWSURFACE, LPRECT);
+HRESULT WINAPI extUnlockDir1(LPDIRECTDRAWSURFACE, LPVOID);
 
 HRESULT WINAPI extCreateSurface(int, CreateSurface_Type, LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 
@@ -667,6 +670,8 @@ Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE lpdds)
 	extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
 	if(extUnlock==(void *)extUnlock1) return (Unlock4_Type)pUnlock1;
 	if(extUnlock==(void *)extUnlock4) return (Unlock4_Type)pUnlock4;
+	if(extUnlock==(void *)extUnlockDir1) return (Unlock4_Type)pUnlock1;
+	if(extUnlock==(void *)extUnlockDir4) return (Unlock4_Type)pUnlock4;
 	sprintf_s(sMsg, 80, "pUnlockMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
 	OutTraceD(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "pUnlockMethod", MB_OK | MB_ICONEXCLAMATION);
@@ -681,11 +686,28 @@ CreateSurface2_Type pCreateSurfaceMethod(LPDIRECTDRAWSURFACE lpdds)
 	extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
 	if(extUnlock==(void *)extUnlock1) return (CreateSurface2_Type)pCreateSurface1;
 	if(extUnlock==(void *)extUnlock4) return (CreateSurface2_Type)pCreateSurface4;
+	if(extUnlock==(void *)extUnlockDir1) return (CreateSurface2_Type)pCreateSurface1;
+	if(extUnlock==(void *)extUnlockDir4) return (CreateSurface2_Type)pCreateSurface4;
 	sprintf_s(sMsg, 80, "pCreateSurfaceMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
 	OutTraceD(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "pCreateSurfaceMethod", MB_OK | MB_ICONEXCLAMATION);
 	if (pCreateSurface4) return pCreateSurface4;
 	return (CreateSurface2_Type)pCreateSurface1;
+}
+
+int SurfaceDescrSize(LPDIRECTDRAWSURFACE lpdds)
+{
+	char sMsg[81];
+	void * extUnlock;
+	extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
+	if(extUnlock==(void *)extUnlock1) return sizeof(DDSURFACEDESC);
+	if(extUnlock==(void *)extUnlock4) return sizeof(DDSURFACEDESC2);
+	if(extUnlock==(void *)extUnlockDir1) return sizeof(DDSURFACEDESC);
+	if(extUnlock==(void *)extUnlockDir4) return sizeof(DDSURFACEDESC2);
+	sprintf_s(sMsg, 80, "pCreateSurfaceMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
+	OutTraceD(sMsg);
+	if (IsAssertEnabled) MessageBox(0, sMsg, "SurfaceDescrSize", MB_OK | MB_ICONEXCLAMATION);
+	return sizeof(DDSURFACEDESC);
 }
 
 int lpddsHookedVersion(LPDIRECTDRAWSURFACE lpdds)
@@ -1063,6 +1085,15 @@ static void HookDDSurfacePrim(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 		else
 			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlock4, (void **)&pUnlock4, "Unlock(S4)");
 	}
+	else {
+		// IDirectDrawSurface::Lock
+		SetHook((void *)(**(DWORD **)lplpdds + 100), extLockDir, (void **)&pLock, "Lock(S)");
+		// IDirectDrawSurface::Unlock
+		if (dxversion < 4)
+			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlockDir1, (void **)&pUnlock1, "Unlock(S1)");
+		else
+			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlockDir4, (void **)&pUnlock4, "Unlock(S4)");
+	}
 
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 
@@ -1140,6 +1171,8 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps7S, (void **)&pGetCaps7S, "GetCaps(S7)");
 		break;
 	}
+	// IDirectDrawSurface::GetDC
+	SetHook((void *)(**(DWORD **)lplpdds + 68), extGetDC, (void **)&pGetDC, "GetDC(S)");	// IDirectDrawSurface::GetSurfaceDesc
 	// IDirectDrawSurface::GetSurfaceDesc
 	if (dxversion < 4) {
 		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc1, (void **)&pGetSurfaceDesc1, "GetSurfaceDesc(S1)");
@@ -1722,13 +1755,36 @@ static char *FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd)
 	case DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PITCH:
 		switch (lpddsd->ddsCaps.dwCaps){
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
-			OutTrace("FixSurfaceCaps: null action (Airline Tycoon Evolution)\n");
+			// Airline Tycoon Evolution
+			OutTrace("FixSurfaceCaps: no PixelFormat\n");
 			return "null";
 			break;
+		//case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE:
+		//	OutTrace("FixSurfaceCaps: ??? (Dungeon Keeper D3D)\n");
+		//	//return SetPixFmt(lpddsd);
+		//	return "null";
+		//	break;
 		default:
 			break;
 		}
 	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT:
+		// Duckman
+		OutTrace("FixSurfaceCaps: SystemMemory OffScreen PixelFormat\n");
+		lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+		lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
+		return SetPixFmt(lpddsd);
+	case DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH:
+		switch (lpddsd->ddsCaps.dwCaps){
+		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY:
+			// Alien Nations
+			OutTrace("FixSurfaceCaps: Alien Nations (1)\n");
+			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
+			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+			return SetPixFmt(lpddsd);
+			break;
+		default:
+			break;
+		}
 	default:
 		break;
 	}
@@ -2328,7 +2384,7 @@ static void BlitError(HRESULT res, LPRECT lps, LPRECT lpd, int line)
 	return;
 }
 
-static void BlitTrace(char *label, LPRECT lps, LPRECT lpd, int line)
+static void BlitTrace(char *label, LPRECT lps, LPRECT lpd, DWORD flags, int line)
 {
 	OutTrace("Blt: %s", label);
 	if (lps)
@@ -2339,7 +2395,7 @@ static void BlitTrace(char *label, LPRECT lps, LPRECT lpd, int line)
 		OutTrace(" dest=(%d,%d)-(%d,%d)",lpd->left, lpd->top, lpd->right, lpd->bottom);
 	else
 		OutTrace(" dest=(NULL)");
-	OutTrace(" at %d\n", __LINE__);
+	OutTrace(" flags=%x(%s) at %d\n", flags, ExplainBltFlags(flags), line);
 	return;
 }
 
@@ -2455,21 +2511,21 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			}
 		}
 
-		if (IsDebug) BlitTrace("NOPRIM", lpsrcrect, lpdestrect, __LINE__);
+		if (IsDebug) BlitTrace("NOPRIM", lpsrcrect, lpdestrect, dwflags, __LINE__);
 		res= (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
 		// Blitting compressed data may work to screen surfaces only. In this case, it may be worth
 		// trying blitting directly to lpDDSEmu_Prim: it makes DK2 intro movies working.
 		switch(res){
 		case DDERR_UNSUPPORTED:
 			if (dxw.dwFlags1 & EMULATESURFACE){
-				if (IsDebug) BlitTrace("UNSUPP", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
+				if (IsDebug) BlitTrace("UNSUPP", lpsrcrect ? &srcrect : NULL, lpdestrect, dwflags, __LINE__);
 				res=(*pBlt)(lpDDSEmu_Prim, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
 			}
 			break;
 		case DDERR_SURFACEBUSY:
 			(*pUnlockMethod(lpdds))(lpdds, NULL);
 			if (lpddssrc) (*pUnlockMethod(lpddssrc))(lpddssrc, NULL);	
-			if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
+			if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, dwflags, __LINE__);
 			res=(*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags|DDBLT_WAIT, lpddbltfx);
 			break;
 		default:
@@ -2491,7 +2547,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 		if (lpdds != lpddssrc) {
 			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc); 
-			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
+			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, dwflags, __LINE__);
 			res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 		}
 		if(res){
@@ -2499,7 +2555,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			// Try to handle HDC lock concurrency....		
 			if(res==DDERR_SURFACEBUSY){
 				(*pUnlockMethod(lpdds))(lpdds, NULL);
-				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, __LINE__);
+				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, dwflags, __LINE__);
 				res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 			}
@@ -2535,7 +2591,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	res=0;
 	// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 	if (lpdds != lpddssrc){
-		if (IsDebug) BlitTrace("SRC2EMU", &emurect, &destrect, __LINE__);
+		if (IsDebug) BlitTrace("SRC2EMU", &emurect, &destrect, dwflags, __LINE__);
 		res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 	}
 
@@ -2549,7 +2605,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		*/
 		if(res==DDERR_UNSUPPORTED){
 			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc);
-			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
+			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, dwflags, __LINE__);
 			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2558,7 +2614,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		if(res==DDERR_SURFACEBUSY){
 			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 			if(res) OutTraceE("Unlock ERROR: err=%x(%s)\n", res, ExplainDDError(res));
-			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, __LINE__);
+			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, dwflags, __LINE__);
 			res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2587,11 +2643,11 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	}
 
 	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
-	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
+	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, dwflags, __LINE__);
 	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 	if (res==DDERR_NOCLIPLIST){
 		RenewClipper(lpDD, lpDDSEmu_Prim);
-		if (IsDebug) BlitTrace("NOCLIP", &emurect, &destrect, __LINE__);
+		if (IsDebug) BlitTrace("NOCLIP", &emurect, &destrect, dwflags, __LINE__);
 		res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 	}
 
@@ -2945,6 +3001,79 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSUR
 	return res;
 }
 
+LPDIRECTDRAWSURFACE2 lpDDSBuffer = NULL;
+
+HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSURFACE lpdds2, DWORD flags, HANDLE hEvent)
+{
+	HRESULT res;
+	static RECT client;
+	POINT upleft={0,0};
+	LPDIRECTDRAWSURFACE lpDDSPrim;
+
+	// this hooker operates on 
+	// Beware!!! for strange reason, the function gets hooked to ANY surface, also non primary ones!!!
+	// to find out whether it is the primary or not, using lpdds==lpDD->GetGDISurface(&lpDDSPrim);
+
+	if(IsTraceD){
+		OutTrace("Lock: lpdds=%x flags=%x(%s) lpdds2=%x", 
+			lpdds, flags, ExplainLockFlags(flags), lpdds2);
+		if (lprect) 
+			OutTrace(" rect=(%d,%d)-(%d,%d)\n", lprect->left, lprect->top, lprect->right, lprect->bottom);
+		else
+			OutTrace(" rect=(NULL)\n");
+	}
+
+	(*pGetGDISurface)(lpDD, &lpDDSPrim);
+	if(lpdds==lpDDSPrim){
+		if(dxw.dwFlags1 & LOCKEDSURFACE){
+			DDSURFACEDESC2 ddsd;
+			DDBLTFX fx;
+			memset(&ddsd, 0, sizeof(ddsd));
+			//ddsd.dwSize=SurfaceDescrSize(lpdds);
+			ddsd.dwSize=sizeof(DDSURFACEDESC);
+			ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
+			ddsd.dwWidth = dxw.GetScreenWidth();
+			ddsd.dwHeight = dxw.GetScreenHeight();
+			ddsd.ddsCaps.dwCaps = 0;
+			//if (SurfaceDescrSize(lpdds)==sizeof(DDSURFACEDESC2)) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+			DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Dir FixBuf]" , __LINE__);
+			//res=(*pCreateSurfaceMethod(lpdds))(lpDD, &ddsd, (LPDIRECTDRAWSURFACE *)&lpDDSBuffer, 0);
+			res=(*pCreateSurface1)(lpDD, (DDSURFACEDESC *)&ddsd, (LPDIRECTDRAWSURFACE *)&lpDDSBuffer, 0);
+			if(res){
+				OutTraceE("CreateSurface: ERROR on DDSBuffer res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
+				return res;
+			}
+			memset(&fx, 0, sizeof(fx));
+			fx.dwSize=sizeof(DDBLTFX);
+			fx.dwFillColor=0;
+			res=(*pBlt)((LPDIRECTDRAWSURFACE)lpDDSBuffer, NULL, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
+			if(res){
+				OutTraceE("Blt: ERROR on DDSBuffer res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
+			}
+			lpdds=(LPDIRECTDRAWSURFACE)lpDDSBuffer;
+		}
+		else{
+			// since it can't scale, at least the updated rect is centered into the window.
+			(*pGetClientRect)(dxw.GethWnd(), &client);
+			(*pClientToScreen)(dxw.GethWnd(), &upleft);
+			if (!lprect) lprect=&client;
+			OffsetRect(lprect, 
+				upleft.x+(client.right-dxw.GetScreenWidth())/2, 
+				upleft.y+(client.bottom-dxw.GetScreenHeight())/2);
+			OutTraceD("Lock: NULL rect remapped to (%d,%d)-(%d,%d)\n", 
+				lprect->left, lprect->top, lprect->right, lprect->bottom);
+		}
+	}
+
+	res=(*pLock)(lpdds, lprect, lpdds2, flags, hEvent);
+
+	if(res) OutTraceE("Lock ERROR: ret=%x(%s)\n", res, ExplainDDError(res));
+	DumpSurfaceAttributes((LPDDSURFACEDESC)lpdds2, "[Locked]" , __LINE__);
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
+
+	return res;
+}
+
 HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 {
 	HRESULT res;
@@ -2983,6 +3112,62 @@ HRESULT WINAPI extUnlock4(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 HRESULT WINAPI extUnlock1(LPDIRECTDRAWSURFACE lpdds, LPVOID lpvoid)
 {
 	return extUnlock(1, (Unlock4_Type)pUnlock1, lpdds, (LPRECT)lpvoid);
+}
+
+HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
+{
+	HRESULT res;
+	//RECT screen, rect;
+	BOOL IsPrim;
+	LPDIRECTDRAWSURFACE lpDDSPrim;
+
+	IsPrim=dxw.IsAPrimarySurface(lpdds);
+
+	if ((dxversion == 4) && lprect) CleanRect(&lprect,__LINE__);
+
+	if(IsTraceD){
+		OutTrace("Unlock: lpdds=%x%s ", lpdds, (IsPrim ? "(PRIM)":""));
+		if (dxversion == 4){
+			if (lprect){
+				OutTrace("rect=(%d,%d)-(%d,%d)\n", lprect->left, lprect->top, lprect->right, lprect->bottom);
+			}
+			else
+				OutTrace("rect=(NULL)\n");
+		}
+		else
+			OutTrace("lpvoid=%x\n", lprect);
+	}
+
+	(*pGetGDISurface)(lpDD, &lpDDSPrim);
+	if((lpdds==lpDDSPrim) && (dxw.dwFlags1 & LOCKEDSURFACE)){
+		RECT client;
+		POINT upleft={0,0};
+		(*pGetClientRect)(dxw.GethWnd(), &client);
+		(*pClientToScreen)(dxw.GethWnd(), &upleft);
+		if (!lprect) lprect=&client;
+		OffsetRect(lprect, upleft.x, upleft.y);
+		res=(*pUnlock)((LPDIRECTDRAWSURFACE)lpDDSBuffer, lprect);
+		(*pBlt)(lpdds, lprect, (LPDIRECTDRAWSURFACE)lpDDSBuffer, NULL, DDBLT_WAIT, 0);
+		if(lpDDSBuffer) (*pReleaseS)((LPDIRECTDRAWSURFACE)lpDDSBuffer);
+		lpDDSBuffer = NULL;
+	}
+	else{
+		res=(*pUnlock)(lpdds, lprect);
+	}
+	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
+	if (IsPrim && res==DD_OK) sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+	return res;
+}
+
+HRESULT WINAPI extUnlockDir4(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
+{
+	return extUnlockDir(4, pUnlock4, lpdds, lprect);
+}
+
+HRESULT WINAPI extUnlockDir1(LPDIRECTDRAWSURFACE lpdds, LPVOID lpvoid)
+{
+	return extUnlockDir(1, (Unlock4_Type)pUnlock1, lpdds, (LPRECT)lpvoid);
 }
 
 /* to do: instead of calling GDI GetDC, try to map GetDC with Lock and

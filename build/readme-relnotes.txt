@@ -178,3 +178,12 @@ fixed MapWindowPoints hook (Alien Nations)
 fixed desktop detections in some places, now correctly using dxw.IsDesktop() method
 Now "Alien Nations" and "Emergency" working (almost) perfectly.
 fixed d3d8/9 hook to Get/SetGammaRamp. This should make a great number of recent games playable again.
+
+v2.02.29
+CORE:
+hooked DirectDrawSurface::Lock method to center primary surface memory updates centered into the window (in no emulated mode)
+added "Locked surface" emulation type to enable scaled blitting to primary surface to stretch to the correct area.
+Fixed BltFast handling to fix "Duckman" rendering problems.
+GUI:
+added support for "Locked surface" emulation type
+

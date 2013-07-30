@@ -473,7 +473,7 @@ HRESULT WINAPI extGetAdapterIdentifier(void *pd3dd, UINT Adapter, DWORD Flags, D
 {
 	HRESULT res;
 	OutTraceD("GetAdapterIdentifier: Adapter=%d flags=%x\n", Adapter, Flags);
-	res=pGetAdapterIdentifier(pd3dd, Adapter, Flags, pIdentifier);
+	res=(*pGetAdapterIdentifier)(pd3dd, Adapter, Flags, pIdentifier);
 	OutTraceD("GetAdapterIdentifier: ret=%x\n", res);
 	return res;
 }

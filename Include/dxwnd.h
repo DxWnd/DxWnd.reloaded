@@ -8,6 +8,7 @@
 #define MAXTARGETS			256
 
 #define DXWACTIVATESINGLETASK 1 // comment to allow multiple task activations
+#define ONEPIXELFIX 1 
 
 // first flags DWORD dwFlags1:
 #define UNNOTIFY			0x00000001
@@ -34,7 +35,7 @@
 #define USERGB565			0x00200000
 #define SUPPRESSDXERRORS	0x00400000 // suppresses some common dx errors (BUSY)
 #define PREVENTMAXIMIZE		0x00800000 // struggle to avoid window maximize
-#define ONEPIXELFIX			0x01000000 // don't scale while blitting surfaces just 1 pixel different in size!
+#define LOCKEDSURFACE		0x01000000 // emulates the buffer of the primary surface when locked and written directly
 #define FIXPARENTWIN		0x02000000 // fixes parent window size & position
 #define SWITCHVIDEOMEMORY 	0x04000000 // when VIDEO memory is over, switches to SYSTEM memory
 #define CLIENTREMAPPING		0x08000000 // hooks CLientToRect, RectToClient, GetClientRect, GetWinRect
@@ -100,7 +101,7 @@
 #define OUTIMPORTTABLE		0x00000080 // dump import table contents
 #define OUTDEBUG			0x00000100 // detailed debugging indormation
 
-#define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE)
+#define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE | LOCKEDSURFACE)
 #define HANDLEFPS			(SHOWFPS | SHOWFPSOVERLAY | LIMITFPS | SKIPFPS)
 
 // DxWnd host app data to be passed to the hook callback

@@ -27,10 +27,7 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	DDX_Radio(pDX, IDC_AUTO, cTarget->m_DXVersion);
-	DDX_Check(pDX, IDC_EMULATESURFACE, cTarget->m_EmulateSurface);
-	DDX_Check(pDX, IDC_NOEMULATESURFACE, cTarget->m_NoEmulateSurface);
-	DDX_Check(pDX, IDC_EMULATEBUFFER, cTarget->m_EmulateBuffer);
-
+	DDX_Radio(pDX, IDC_NOEMULATESURFACE, cTarget->m_DxEmulationMode);
 	DDX_Check(pDX, IDC_HANDLEDC, cTarget->m_HandleDC);
 	DDX_Check(pDX, IDC_SUPPRESSCLIPPING, cTarget->m_SuppressClipping);
 	DDX_Check(pDX, IDC_BLITFROMBACKBUFFER, cTarget->m_BlitFromBackBuffer);

@@ -22,9 +22,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	//{{AFX_DATA_INIT(CTargetDlg)
 	m_DXVersion = -1;
 	m_Coordinates = 0;
-	m_EmulateSurface = FALSE;
-	m_NoEmulateSurface = TRUE; // current default
-	m_EmulateBuffer = FALSE;
+	m_DxEmulationMode = 0; // default: no emulation
 	m_HookDI = FALSE;
 	m_ModifyMouse = FALSE;
 	m_OutTrace = FALSE;

@@ -25,9 +25,7 @@ public:
 	CEdit	m_File;
 	int		m_DXVersion;
 	int		m_Coordinates;
-	BOOL	m_EmulateSurface;
-	BOOL	m_NoEmulateSurface;
-	BOOL	m_EmulateBuffer;
+	int		m_DxEmulationMode;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
 	BOOL	m_OutTrace;

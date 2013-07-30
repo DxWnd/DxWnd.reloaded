@@ -114,22 +114,13 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookEnabled) t->flags3 |= HOOKENABLED;
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
-	if(dlg->m_NoEmulateSurface) {
-		dlg->m_EmulateSurface = FALSE;
-		dlg->m_EmulateBuffer = FALSE;
-		t->flags &= ~EMULATEFLAGS;
-	}
-	if(dlg->m_EmulateSurface) {
-		dlg->m_NoEmulateSurface = FALSE;
-		dlg->m_EmulateBuffer = FALSE;
-		t->flags &= ~EMULATEFLAGS;
-		t->flags |= EMULATESURFACE;
-	}
-	if(dlg->m_EmulateBuffer) {
-		dlg->m_NoEmulateSurface = FALSE;
-		dlg->m_EmulateSurface = FALSE;
-		t->flags &= ~EMULATEFLAGS;
-		t->flags |= EMULATEBUFFER;
+
+	t->flags &= ~EMULATEFLAGS;
+	switch(dlg->m_DxEmulationMode){
+		case 0: break;
+		case 1: t->flags |= EMULATEBUFFER; break;
+		case 2: t->flags |= LOCKEDSURFACE; break;
+		case 3: t->flags |= EMULATESURFACE; break;
 	}
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
@@ -234,9 +225,12 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookEnabled = t->flags3 & HOOKENABLED ? 1 : 0;
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
-	dlg->m_EmulateSurface = t->flags & EMULATESURFACE ? 1 : 0;
-	dlg->m_NoEmulateSurface = t->flags & EMULATEFLAGS ? 0 : 1;
-	dlg->m_EmulateBuffer = t->flags & EMULATEBUFFER ? 1 : 0; 
+
+	dlg->m_DxEmulationMode = 0;
+	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;
+	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 2;
+	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 3;
+
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_OutTrace = t->tflags & OUTDDRAWTRACE ? 1 : 0;
@@ -442,6 +436,7 @@ static void ClearTarget(int i, char *InitPath)
 static int LoadConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPath)
 {
 	char key[32];
+	DWORD flags;
 	sprintf_s(key, sizeof(key), "path%i", i);
 	GetPrivateProfileString("target", key, "", TargetMap->path, MAX_PATH, InitPath);
 	if(!TargetMap->path[0]) return FALSE;
@@ -455,8 +450,18 @@ static int LoadConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPa
 	TargetMap->dxversion = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "coord%i", i);
 	TargetMap->coordinates = GetPrivateProfileInt("target", key, 0, InitPath);
+
+	// be sure just one of the emulation flags is set
 	sprintf_s(key, sizeof(key), "flag%i", i);
 	TargetMap->flags = GetPrivateProfileInt("target", key, 0, InitPath);
+	flags = TargetMap->flags;
+	TargetMap->flags &= ~EMULATEFLAGS;
+	do{
+		if(flags & EMULATESURFACE) {TargetMap->flags |= EMULATESURFACE; break;}
+		if(flags & EMULATEBUFFER) {TargetMap->flags |= EMULATEBUFFER; break;}
+		if(flags & LOCKEDSURFACE) {TargetMap->flags |= LOCKEDSURFACE; break;}
+	} while (0);
+
 	sprintf_s(key, sizeof(key), "flagg%i", i);
 	TargetMap->flags2 = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "flagh%i", i);
@@ -1021,6 +1026,7 @@ void CDxwndhostView::OnAdd()
 	dlg.m_Coordinates = 0;
 	dlg.m_MaxX = 0; //639;
 	dlg.m_MaxY = 0; //479;
+	dlg.m_DxEmulationMode = 0;
 	for(i = 0; i < MAXTARGETS; i ++) if(!TargetMaps[i].path[0]) break;
 	if(i>=MAXTARGETS){
 		MessageBoxEx(0, "Maximum entries number reached.\nDelete some entry to add a new one.", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);

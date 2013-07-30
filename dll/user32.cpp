@@ -400,6 +400,8 @@ BOOL WINAPI extDDInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		OutTraceD("InvalidateRect: hwnd=%x rect=NULL erase=%x\n",
 		hwnd, bErase);
 
+	if(dxw.IsFullScreen() && dxw.IsDesktop(hwnd)) hwnd=dxw.GethWnd();
+
 	return (*pInvalidateRect)(hwnd, NULL, bErase);
 }
 
@@ -411,6 +413,8 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 	else
 		OutTraceD("InvalidateRect: hwnd=%x rect=NULL erase=%x\n",
 		hwnd, bErase);
+
+	if(dxw.IsFullScreen() && dxw.IsDesktop(hwnd)) hwnd=dxw.GethWnd();
 
 	return (*pInvalidateRect)(hwnd, NULL, bErase);
 }
