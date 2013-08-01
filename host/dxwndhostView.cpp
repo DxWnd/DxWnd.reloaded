@@ -409,6 +409,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_LimitFPS = TargetMaps[i].flags2 & LIMITFPS ? 1 : 0;
 	dlg.m_SkipFPS = TargetMaps[i].flags2 & SKIPFPS ? 1 : 0;
 	dlg.m_ShowFPS = TargetMaps[i].flags2 & SHOWFPS ? 1 : 0;
+	dlg.m_TimeStretch = TargetMaps[i].flags2 & TIMESTRETCH ? 1 : 0;
 	dlg.m_InitX = TargetMaps[i].initx;
 	dlg.m_InitY = TargetMaps[i].inity;
 	dlg.m_MinX = TargetMaps[i].minx;
@@ -498,6 +499,7 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_LimitFPS) TargetMaps[i].flags2 |= LIMITFPS;
 		if(dlg.m_SkipFPS) TargetMaps[i].flags2 |= SKIPFPS;
 		if(dlg.m_ShowFPS) TargetMaps[i].flags2 |= SHOWFPS;
+		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;
@@ -779,6 +781,7 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_LimitFPS) TargetMaps[i].flags2 |= LIMITFPS;
 		if(dlg.m_SkipFPS) TargetMaps[i].flags2 |= SKIPFPS;
 		if(dlg.m_ShowFPS) TargetMaps[i].flags2 |= SHOWFPS;
+		if(dlg.m_TimeStretch) TargetMaps[i].flags2 |= TIMESTRETCH;
 		TargetMaps[i].initx = dlg.m_InitX;
 		TargetMaps[i].inity = dlg.m_InitY;
 		TargetMaps[i].minx = dlg.m_MinX;

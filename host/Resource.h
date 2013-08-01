@@ -109,6 +109,7 @@
 #define IDC_SKIPFPS                     1076
 #define IDC_SHOWFPS                     1077
 #define IDC_HIDEMULTIMONITOR            1078
+#define IDC_TIMESTRETCH                 1079
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

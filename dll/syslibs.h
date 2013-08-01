@@ -88,6 +88,7 @@ typedef BOOL (WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD,
 typedef BOOL (WINAPI *SetDeviceGammaRamp_Type)(HDC, LPVOID);
 typedef BOOL (WINAPI *GetDeviceGammaRamp_Type)(HDC, LPVOID);
 typedef LRESULT (WINAPI *SendMessage_Type)(HWND, UINT, WPARAM, LPARAM);
+typedef DWORD (WINAPI *GetTickCount_Type)(void);
 
 extern GetCursorPos_Type pGetCursorPos;
 extern SetCursorPos_Type pSetCursorPos;
@@ -161,4 +162,5 @@ extern GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA;
 extern SetDeviceGammaRamp_Type pSetDeviceGammaRamp;
 extern GetDeviceGammaRamp_Type pGetDeviceGammaRamp;
 extern SendMessage_Type pSendMessage;
+extern GetTickCount_Type pGetTickCount;
 

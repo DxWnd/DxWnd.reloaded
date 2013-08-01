@@ -76,6 +76,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_LimitFPS = FALSE;
 	m_SkipFPS = FALSE;
 	m_ShowFPS = FALSE;
+	m_TimeStretch = FALSE;
 	m_InitX = 0;
 	m_InitY = 0;
 	m_MaxX = 0;
@@ -155,6 +156,7 @@ void CTargetDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_LIMITFPS, m_LimitFPS);
 	DDX_Check(pDX, IDC_SKIPFPS, m_SkipFPS);
 	DDX_Check(pDX, IDC_SHOWFPS, m_ShowFPS);
+	DDX_Check(pDX, IDC_TIMESTRETCH, m_TimeStretch);
 	DDX_Text(pDX, IDC_INITX, m_InitX);
 	DDX_Text(pDX, IDC_INITY, m_InitY);
 	DDX_Text(pDX, IDC_MAXX, m_MaxX);

@@ -1953,7 +1953,11 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 
 	if (dxw.HandleFPS()) return TRUE;
 
-	if (dxw.IsFullScreen()){
+	// beware: HDC could refer to screen DC that are written directly on screen, or memory DC that will be scaled to
+	// the screen surface later on, on ReleaseDC or ddraw Blit / Flip operation. Scaling of rect coordinates is 
+	// needed only in the first case, and must be avoided on the second, otherwise the image would be scaled twice!
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
 		int nWDest, nHDest;
 		nWDest= nWidth;
 		nHDest= nHeight;
@@ -1977,7 +1981,7 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 
 	if (dxw.HandleFPS()) return TRUE;
 
-	if (dxw.IsFullScreen()){
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
 		int nWDest, nHDest;
 		dxw.MapRect(&nXDest, &nYDest, &nWDest, &nHDest);
 		res=(*pPatBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, dwRop);
@@ -1999,6 +2003,8 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop, ExplainROP(dwRop));
 
 	if (dxw.HandleFPS()) return TRUE;
+
+	// to do: what happend if StretchBlt is applied on screen DC ?
 
 	res=(*pStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -2706,4 +2712,9 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	ret=(*pSendMessage)(hwnd, Msg, wParam, lParam);
 	OutTraceW("SendMessage: lresult=%x\n", ret); 
 	return ret;
+}
+
+DWORD WINAPI extGetTickCount(void)
+{
+	return dxw.GetTickCount();
 }

@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "syslibs.h"
 
 class dxwCore
 {
@@ -29,6 +30,7 @@ public: // methods
 	RECT MapWindowRect(void);
 	void ScreenRefresh(void);
 	BOOL HandleFPS();
+	DWORD GetTickCount(void);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;
@@ -47,6 +49,7 @@ public: // simple data variables
 	BOOL bDInputAbs;
 	DWORD MaxFPS;
 	char *gsModules;
+	int TimeShift;
 
 // Implementation
 protected:
@@ -54,6 +57,12 @@ protected:
 	DWORD dwScreenHeight;
 	BOOL FullScreen;
 	HWND hWnd;
+	ClientToScreen_Type pClientToScreen;
+	ClipCursor_Type pClipCursor;
+	GetClientRect_Type pGetClientRect;
+	GetCursorPos_Type pGetCursorPos;
+	InvalidateRect_Type pInvalidateRect;
+	ScreenToClient_Type pScreenToClient;
 };
 
 extern dxwCore dxw;

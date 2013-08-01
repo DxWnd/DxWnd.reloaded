@@ -108,6 +108,7 @@ extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWO
 extern BOOL WINAPI extSetDeviceGammaRamp(HDC, LPVOID);
 extern BOOL WINAPI extGetDeviceGammaRamp(HDC, LPVOID);
 extern LRESULT WINAPI extSendMessage(HWND, UINT, WPARAM, LPARAM);
+extern DWORD WINAPI extGetTickCount(void);
 
 extern HANDLE hTraceMutex;
 
@@ -154,6 +155,7 @@ BitBlt_Type pBitBlt;
 PatBlt_Type pPatBlt;
 StretchBlt_Type pStretchtBlt;
 extern InvalidateRgn_Type pInvalidateRgn;
+GetTickCount_Type pGetTickCount;
 
 LoadLibraryA_Type pLoadLibraryA;
 LoadLibraryExA_Type pLoadLibraryExA;
@@ -913,6 +915,26 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 				TerminateProcess(GetCurrentProcess(),0);
 			}
 			break;
+		case VK_F5:
+		//case '+':
+			if ((dxw.dwFlags2 & TIMESTRETCH) && (dxw.TimeShift < 4)) {
+				dxw.TimeShift++;
+				if(dxw.TimeShift > 0) 
+					OutTrace("Time Stretch: speed %dx slow\n", 1 << dxw.TimeShift);
+				else
+					OutTrace("Time Stretch: speed %dx quick\n", 1 << (-dxw.TimeShift));
+			}
+			break;
+		case VK_F6:
+		//case '-':
+			if ((dxw.dwFlags2 & TIMESTRETCH) && (dxw.TimeShift > -4)) {
+				dxw.TimeShift--;
+				if(dxw.TimeShift > 0) 
+					OutTrace("Time Stretch: speed %dx slow\n", 1 << dxw.TimeShift);
+				else
+					OutTrace("Time Stretch: speed %dx quick\n", 1 << (-dxw.TimeShift));
+			}
+			break;
 		default:
 			break;
 		}
@@ -1028,6 +1050,7 @@ void HookSysLibsInit()
 	pCreateDialogParam=CreateDialogParamA;
 	pMoveWindow=MoveWindow;
 	pGetDesktopWindow=GetDesktopWindow;
+	pGetTickCount=GetTickCount;
 }
 
 void HookSysLibs(char *module)
@@ -1240,6 +1263,10 @@ void HookSysLibs(char *module)
 		if(tmp) pGetDiskFreeSpaceA = (GetDiskFreeSpaceA_Type)tmp;
 	}
 
+	if(dxw.dwFlags2 & TIMESTRETCH){
+		tmp = HookAPI("kernel32.dll", GetTickCount, "GetTickCount", extGetTickCount);
+		if(tmp) pGetTickCount = (GetTickCount_Type)tmp;
+	}
 	return;
 }
 

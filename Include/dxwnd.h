@@ -60,6 +60,7 @@
 #define SKIPFPS				0x00002000 // skips primary blit operations up to limit
 #define SHOWFPS				0x00004000 // shows FPS value to status win / log
 #define HIDEMULTIMONITOR	0x00008000 // hide multimonitor configurations: GetAdapterCount returns 1.
+#define TIMESTRETCH			0x00010000 // make system time stretchable 
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

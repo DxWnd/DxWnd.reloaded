@@ -80,6 +80,7 @@ public:
 	BOOL	m_SkipFPS;
 	BOOL	m_LimitFPS;
 	BOOL	m_ShowFPS;
+	BOOL	m_TimeStretch;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;

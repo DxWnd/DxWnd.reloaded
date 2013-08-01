@@ -16,6 +16,15 @@ dxwCore::dxwCore()
 	hChildWnd = 0;
 	bActive = TRUE;
 	bDInputAbs = 0;
+	TimeShift = 0;
+
+	// preserved syslibs pointers
+	pClientToScreen=ClientToScreen;
+	pClipCursor=ClipCursor;
+	pGetClientRect=GetClientRect;
+	pGetCursorPos=GetCursorPos;
+	pInvalidateRect=InvalidateRect;
+	pScreenToClient=ScreenToClient;
 }
 
 dxwCore::~dxwCore()
@@ -276,4 +285,20 @@ BOOL dxwCore::HandleFPS()
 	if(dwFlags2 & LIMITFPS) LimitFrameCount(dxw.MaxFPS);
 	if(dwFlags2 & SKIPFPS) if(SkipFrameCount(dxw.MaxFPS)) return TRUE;
 	return FALSE;
+}
+
+DWORD dxwCore::GetTickCount(void)
+{
+	DWORD dwTick;
+	static DWORD dwLastRealTick=0;
+	static DWORD dwLastFakeTick=0;
+	DWORD dwNextRealTick;
+
+	dwNextRealTick=(*pGetTickCount)();
+	dwTick=(dwNextRealTick-dwLastRealTick);
+	if (TimeShift > 0) dwTick >>= TimeShift;
+	if (TimeShift < 0) dwTick <<= -TimeShift;
+	dwLastFakeTick += dwTick;
+	dwLastRealTick = dwNextRealTick;
+	return dwLastFakeTick;
 }
