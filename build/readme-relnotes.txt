@@ -320,3 +320,7 @@ core:
 improved d3d wrapping and sdded ZBUFFER cleanup flags to fix some d3d games. In particular:
 Clean ZBUFFER @1.0 fix: to fix "Star Wars Episode I Racer"
 Clean ZBUFFER @0.0 fix: to fix "Crimson Skies" black blocks bug on ATI cards
+
+v2.02.48
+New options: "Disable fogging", "Textures not power of 2 fix"
+A few fix to prevent game crashes

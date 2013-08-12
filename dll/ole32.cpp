@@ -46,14 +46,14 @@ struct {
 static void HookAdditionalModules()
 {
 	for(int i=0; i<ADDITIONAL_MODULE_COUNT; i++){
-		if(!AddedModules[i].Hooked){
+		if(!AddedModules[i].Hooked){ // if the module is not hooked yet...
 			HMODULE hModule;
 			hModule=GetModuleHandle(AddedModules[i].ModuleName);
-			if(hModule){ // if not hooked yet...
-				HookModule(hModule, 0); // hook it and ..
+			if(hModule){ // --- and now it exists ...
+				HookModule(hModule, 0); // ... then hook it and ..
 				AddedModules[i].Hooked=TRUE; // .. mark it as already hooked
 				OutTraceD("CoCreateInstance: hooked module=%s hmodule=%x\n", AddedModules[i].ModuleName, hModule);
-				CloseHandle(hModule);
+				//CloseHandle(hModule); // do NOT close this handle
 			}
 		}
 	}

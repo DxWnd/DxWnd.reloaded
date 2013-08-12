@@ -90,6 +90,7 @@
 #define IDC_POSY                        1047
 #define IDC_SIZX                        1048
 #define IDC_SIZY                        1049
+#define IDC_DISABLEFOGGING              1049
 #define IDC_HOOKCHILDWIN                1050
 #define IDC_MESSAGEPROC                 1051
 #define IDC_RECOVERSCREENMODE           1053
@@ -188,7 +189,8 @@
 #define IDC_FIXREFCOUNTER               1145
 #define IDC_SHOWTIMESTRETCH             1146
 #define IDC_ZBUFFERALWAYS               1147
-#define IDC_ZBUFFER0CLEAN              1148
+#define IDC_ZBUFFER0CLEAN               1148
+#define IDC_NOPOWER2FIX                 1149
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

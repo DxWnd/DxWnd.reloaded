@@ -28,6 +28,7 @@ dxwCore::dxwCore()
 	//IsGDIPalette = FALSE;
 	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
 	ResetEmulatedDC();
+	MustShowOverlay=FALSE;
 }
 
 dxwCore::~dxwCore()
@@ -73,6 +74,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	if(TimeShift >  8) TimeShift =  8;
 	FakeVersionId = target->FakeVersionId;
 	Coordinates = target->coordinates;
+	MustShowOverlay=((dwFlags2 & SHOWFPSOVERLAY) || (dwFlags4 & SHOWTIMESTRETCH));
 }
 
 /* ------------------------------------------------------------------ */
@@ -919,35 +921,39 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 
 void dxwCore::ShowOverlay()
 {
-	this->ShowOverlay(GetDC(hWnd));
+	if (MustShowOverlay) this->ShowOverlay(GetDC(hWnd));
 }
 
 void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
 {
 	HDC hdc; // the working dc
-	if (FAILED(lpdds->GetDC(&hdc))) return;
-	this->ShowOverlay(hdc);
-	lpdds->ReleaseDC(hdc);
+	if (MustShowOverlay) {
+		if(!lpdds) return;
+		if (FAILED(lpdds->GetDC(&hdc))) return;
+		this->ShowOverlay(hdc);
+		lpdds->ReleaseDC(hdc);
+	}
 }
 
 void dxwCore::ShowOverlay(HDC hdc)
 {
+	if(!hdc) return;
 	if (dwFlags2 & SHOWFPSOVERLAY) ShowFPS(hdc);
 	if (dwFlags4 & SHOWTIMESTRETCH) ShowTimeStretching(hdc);
 }
 
-void dxwCore::ShowFPS()
-{
-	this->ShowFPS(GetDC(hWnd));
-}
-
-void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
-{
-	HDC hdc; // the working dc
-	if (FAILED(lpdds->GetDC(&hdc))) return;
-	this->ShowFPS(hdc);
-	lpdds->ReleaseDC(hdc);
-}
+//void dxwCore::ShowFPS()
+//{
+//	this->ShowFPS(GetDC(hWnd));
+//}
+//
+//void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
+//{
+//	HDC hdc; // the working dc
+//	if (FAILED(lpdds->GetDC(&hdc))) return;
+//	this->ShowFPS(hdc);
+//	lpdds->ReleaseDC(hdc);
+//}
 
 void dxwCore::ShowFPS(HDC xdc)
 {
@@ -978,25 +984,25 @@ void dxwCore::ShowFPS(HDC xdc)
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
 }
 
-void dxwCore::ShowTimeStretching()
-{
-	HDC hdc;
-	hdc=GetDC(hWnd);
-	if(hdc)this->ShowTimeStretching(hdc);
-}
-
-void dxwCore::ShowTimeStretching(LPDIRECTDRAWSURFACE lpdds)
-{
-	HDC hdc; // the working dc
-	__try {
-		if (FAILED(lpdds->GetDC(&hdc))) return;
-	}
-	__except(EXCEPTION_EXECUTE_HANDLER){
-		return;
-	}
-	if(hdc)this->ShowTimeStretching(hdc);
-	lpdds->ReleaseDC(hdc);
-}
+//void dxwCore::ShowTimeStretching()
+//{
+//	HDC hdc;
+//	hdc=GetDC(hWnd);
+//	if(hdc)this->ShowTimeStretching(hdc);
+//}
+//
+//void dxwCore::ShowTimeStretching(LPDIRECTDRAWSURFACE lpdds)
+//{
+//	HDC hdc; // the working dc
+//	__try {
+//		if (FAILED(lpdds->GetDC(&hdc))) return;
+//	}
+//	__except(EXCEPTION_EXECUTE_HANDLER){
+//		return;
+//	}
+//	if(hdc)this->ShowTimeStretching(hdc);
+//	lpdds->ReleaseDC(hdc);
+//}
 
 void dxwCore::ShowTimeStretching(HDC xdc)
 {

@@ -65,12 +65,6 @@ public: // methods
 	void GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime);
 	DWORD StretchTime(DWORD);
 	DWORD StretchCounter(DWORD);
-	void ShowFPS(LPDIRECTDRAWSURFACE);
-	void ShowTimeStretching(LPDIRECTDRAWSURFACE);
-	void ShowFPS(void);
-	void ShowTimeStretching(void);
-	void ShowFPS(HDC);
-	void ShowTimeStretching(HDC);
 	void ShowOverlay();
 	void ShowOverlay(HDC);
 	void ShowOverlay(LPDIRECTDRAWSURFACE);
@@ -112,8 +106,6 @@ public: // simple data variables
 	short iPosY;
 	short iSizX;
 	short iSizY;
-	//BOOL IsWithinDDraw; // flag to avoid double intervention at ddraw & GDI level
-	//BOOL IsGDIPalette;
 	char *CustomOpenGLLib;
     WORD palVersion;
     WORD palNumEntries;
@@ -135,7 +127,9 @@ protected:
 private:
 	void UnmarkPrimarySurface(LPDIRECTDRAWSURFACE);
 	void UnmarkBackBufferSurface(LPDIRECTDRAWSURFACE);
-
+	BOOL MustShowOverlay;
+	void ShowFPS(HDC);
+	void ShowTimeStretching(HDC);
 };
 
 extern dxwCore dxw;

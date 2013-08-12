@@ -120,6 +120,8 @@
 #define ZBUFFERCLEAN		0x00000010 // Clean ZBUFFER upon (fix for "Star Wars  Ep. I - Racer")
 #define ZBUFFER0CLEAN		0x00000020 // Clean ZBUFFER upon (fix for "Star Wars  Ep. I - Racer")
 #define ZBUFFERALWAYS		0x00000040 // Forces ZBUFFER D3DCMP_ALWAYS condition to show all planes....
+#define DISABLEFOGGING		0x00000080 // Disable D3D fogging
+#define NOPOWER2FIX			0x00000100 // Handle textures whose size is not a power of 2 (32, 64, 128 ...)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

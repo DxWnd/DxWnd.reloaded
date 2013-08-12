@@ -119,6 +119,8 @@ public:
 	BOOL	m_ZBufferClean;
 	BOOL	m_ZBuffer0Clean;
 	BOOL	m_ZBufferAlways;
+	BOOL	m_NoPower2Fix;
+	BOOL	m_DisableFogging;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_DisableHAL;

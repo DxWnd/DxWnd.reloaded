@@ -42,6 +42,7 @@ typedef HRESULT (WINAPI *D3DGetCaps_Type)(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDE
 
 typedef HRESULT (WINAPI *SetRenderState3_Type)(void *, D3DRENDERSTATETYPE, DWORD);
 typedef HRESULT (WINAPI *Scene3_Type)(void *);
+typedef HRESULT (WINAPI *GetCaps3_Type)(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
 
 
 Initialize_Type pInitialize = NULL;
@@ -66,6 +67,8 @@ Scene3_Type pBeginScene3 = NULL;
 Scene3_Type pEndScene1 = NULL;
 Scene3_Type pEndScene2 = NULL;
 Scene3_Type pEndScene3 = NULL;
+
+GetCaps3_Type pGetCaps3 = NULL;
 
 D3DInitialize_Type pD3DInitialize = NULL;
 D3DGetCaps_Type pD3DGetCaps = NULL;
@@ -95,6 +98,7 @@ HRESULT WINAPI extEndScene2(void *);
 HRESULT WINAPI extSetRenderState3(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extBeginScene3(void *);
 HRESULT WINAPI extEndScene3(void *);
+HRESULT WINAPI extGetCaps3(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
 
 extern char *ExplainDDError(DWORD);
 
@@ -215,23 +219,28 @@ void HookDirect3DDevice(void **lpd3ddev, int dxversion)
 
 	switch(dxversion){
 	case 1:
+		//SetHook((void *)(**(DWORD **)lpd3ddev +  16), extGetCaps1, (void **)&pGetCaps1, "GetCaps(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  76), extBeginScene1, (void **)&pBeginScene1, "BeginScene(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extEndScene1, (void **)&pEndScene1, "EndScene(1)");
 		break;
 	case 2:
+		//SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps2, (void **)&pGetCaps2, "GetCaps(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extBeginScene2, (void **)&pBeginScene2, "BeginScene(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  44), extEndScene2, (void **)&pEndScene2, "EndScene(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  92), extSetRenderState2, (void **)&pSetRenderState2, "SetRenderState(2)");
-		if(dxw.dwFlags2 & WIREFRAME){
-			(*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 
+		if(pSetRenderState2){
+			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
+			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
 		}		
 		break;
 	case 3:
+		SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps3, (void **)&pGetCaps3, "GetCaps(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extBeginScene3, (void **)&pBeginScene3, "BeginScene(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extEndScene3, (void **)&pEndScene3, "EndScene(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  88), extSetRenderState3, (void **)&pSetRenderState3, "SetRenderState(3)");
-		if(dxw.dwFlags2 & WIREFRAME){
-			(*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 
+		if(pSetRenderState3){
+			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
+			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
 		}		
 		break;
 	}
@@ -347,7 +356,19 @@ HRESULT WINAPI extDeviceProxy(GUID FAR *lpGuid, LPSTR lpDeviceDescription, LPSTR
 	OutTraceD("EnumDevices: CALLBACK GUID=%x(%s) DeviceDescription=\"%s\", DeviceName=\"%s\", arg=%x\n", lpGuid->Data1, ExplainGUID(lpGuid), lpDeviceDescription, lpDeviceName, ((CallbackArg *)arg)->arg);
 	DumpD3DDevideDesc(lpd3ddd1, "HWDEV");
 	DumpD3DDevideDesc(lpd3ddd2, "SWDEV");
-	res = (*(((CallbackArg *)arg)->cb))(lpGuid, lpDeviceDescription, lpDeviceName, lpd3ddd1, lpd3ddd2, ((CallbackArg *)arg)->arg);
+	if(dxw.dwFlags4 & NOPOWER2FIX){ 
+		D3DDEVICEDESC lpd3ddd1fix, lpd3ddd2fix;
+		if(lpd3ddd1) memcpy(&lpd3ddd1fix, lpd3ddd1, sizeof(D3DDEVICEDESC));
+		if(lpd3ddd2) memcpy(&lpd3ddd2fix, lpd3ddd2, sizeof(D3DDEVICEDESC));
+		lpd3ddd1fix.dpcLineCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+		lpd3ddd1fix.dpcTriCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+		lpd3ddd2fix.dpcLineCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+		lpd3ddd2fix.dpcTriCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+		res = (*(((CallbackArg *)arg)->cb))(lpGuid, lpDeviceDescription, lpDeviceName, lpd3ddd1?&lpd3ddd1fix:NULL, lpd3ddd2?&lpd3ddd2fix:NULL, ((CallbackArg *)arg)->arg);
+	}
+	else {
+		res = (*(((CallbackArg *)arg)->cb))(lpGuid, lpDeviceDescription, lpDeviceName, lpd3ddd1, lpd3ddd2, ((CallbackArg *)arg)->arg);
+	}
 	OutTraceD("EnumDevices: CALLBACK ret=%x\n", res);
 	return res;
 }
@@ -595,6 +616,10 @@ HRESULT WINAPI extSetRenderState3(void *d3dd, D3DRENDERSTATETYPE State, DWORD Va
 		Value = D3DFILL_WIREFRAME;
 		OutTraceD("SetRenderState: FIXED State=FILLMODE Value=D3DFILL_WIREFRAME\n");
 	}
+	if((dxw.dwFlags4 & DISABLEFOGGING) && (State == D3DRENDERSTATE_FOGENABLE)){
+		OutTraceD("SetRenderState: FIXED State=FOGENABLE Value=FALSE\n");
+		Value = FALSE;
+	}
 	res=(*pSetRenderState3)(d3dd, State, Value);
 	if(res) OutTraceE("SetRenderState(3): res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
@@ -614,18 +639,21 @@ HRESULT WINAPI extBeginScene2(void *d3dd)
 	HRESULT res;
 	OutTraceD("BeginScene(2): d3dd=%x\n", d3dd);
 	if(dxw.dwFlags4 & ZBUFFERCLEAN){
+		HRESULT res2;
 		LPDIRECT3DVIEWPORT2 vp;
 		D3DVIEWPORT vpd;
-		((LPDIRECT3DDEVICE2)d3dd)->GetCurrentViewport(&vp);
-		D3DRECT d3dRect;
-		vpd.dwSize=sizeof(D3DVIEWPORT);
-		vp->GetViewport(&vpd);
-		d3dRect.x1 = vpd.dwX; 
-		d3dRect.y1 = vpd.dwY;
-		d3dRect.x2 = vpd.dwX + vpd.dwWidth;
-		d3dRect.y2 = vpd.dwY + vpd.dwHeight;
-		OutTraceD("d3dRect=(%d,%d)-(%d,%d)\n", d3dRect.x1, d3dRect.y1, d3dRect.x2, d3dRect.y2);
-		vp->Clear(1, &d3dRect, D3DCLEAR_ZBUFFER);	
+		res2=((LPDIRECT3DDEVICE2)d3dd)->GetCurrentViewport(&vp);
+		if(!res2){
+			D3DRECT d3dRect;
+			vpd.dwSize=sizeof(D3DVIEWPORT);
+			vp->GetViewport(&vpd);
+			d3dRect.x1 = vpd.dwX; 
+			d3dRect.y1 = vpd.dwY;
+			d3dRect.x2 = vpd.dwX + vpd.dwWidth;
+			d3dRect.y2 = vpd.dwY + vpd.dwHeight;
+			OutTraceD("d3dRect=(%d,%d)-(%d,%d)\n", d3dRect.x1, d3dRect.y1, d3dRect.x2, d3dRect.y2);
+			vp->Clear(1, &d3dRect, D3DCLEAR_ZBUFFER);	
+		}
 	}
 	res=(*pBeginScene2)(d3dd);
 	if(res) OutTraceE("BeginScene(2): res=%x(%s)\n", res, ExplainDDError(res));
@@ -637,19 +665,22 @@ HRESULT WINAPI extBeginScene3(void *d3dd)
 	HRESULT res;
 	OutTraceD("BeginScene(3): d3dd=%x\n", d3dd);
 	if(dxw.dwFlags4 & (ZBUFFERCLEAN|ZBUFFER0CLEAN)){
+		HRESULT res2;
 		LPDIRECT3DVIEWPORT3 vp;
 		D3DVIEWPORT vpd;
-		((LPDIRECT3DDEVICE3)d3dd)->GetCurrentViewport(&vp);
-		D3DRECT d3dRect;
-		vpd.dwSize=sizeof(D3DVIEWPORT);
-		vp->GetViewport(&vpd);
-		d3dRect.x1 = vpd.dwX; 
-		d3dRect.y1 = vpd.dwY;
-		d3dRect.x2 = vpd.dwX + vpd.dwWidth;
-		d3dRect.y2 = vpd.dwY + vpd.dwHeight;
-		OutTraceD("d3dRect=(%d,%d)-(%d,%d)\n", d3dRect.x1, d3dRect.y1, d3dRect.x2, d3dRect.y2);
-		if(dxw.dwFlags4 & ZBUFFERCLEAN )vp->Clear2(1, &d3dRect, D3DCLEAR_ZBUFFER, 0, 1.0, 0);	
-		if(dxw.dwFlags4 & ZBUFFER0CLEAN)vp->Clear2(1, &d3dRect, D3DCLEAR_ZBUFFER, 0, 0.0, 0);	
+		res2=((LPDIRECT3DDEVICE3)d3dd)->GetCurrentViewport(&vp);
+		if(!res2){
+			D3DRECT d3dRect;
+			vpd.dwSize=sizeof(D3DVIEWPORT);
+			vp->GetViewport(&vpd);
+			d3dRect.x1 = vpd.dwX; 
+			d3dRect.y1 = vpd.dwY;
+			d3dRect.x2 = vpd.dwX + vpd.dwWidth;
+			d3dRect.y2 = vpd.dwY + vpd.dwHeight;
+			OutTraceD("d3dRect=(%d,%d)-(%d,%d)\n", d3dRect.x1, d3dRect.y1, d3dRect.x2, d3dRect.y2);
+			if(dxw.dwFlags4 & ZBUFFERCLEAN )vp->Clear2(1, &d3dRect, D3DCLEAR_ZBUFFER, 0, 1.0, 0);	
+			if(dxw.dwFlags4 & ZBUFFER0CLEAN)vp->Clear2(1, &d3dRect, D3DCLEAR_ZBUFFER, 0, 0.0, 0);	
+		}
 	}
 	res=(*pBeginScene3)(d3dd);
 	if(res) OutTraceE("BeginScene(3): res=%x(%s)\n", res, ExplainDDError(res));
@@ -683,5 +714,27 @@ HRESULT WINAPI extEndScene3(void *d3dd)
 	res=(*pEndScene3)(d3dd);
 	//dxw.ShowOverlay();
 	if(res) OutTraceE("EndScene(3): res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extGetCaps3(void *d3dd, LPD3DDEVICEDESC hd, LPD3DDEVICEDESC sd)
+{
+	HRESULT res;
+	OutTraceD("GetCaps(3): d3dd=%x hd=%x sd=%x\n", d3dd, hd, sd);
+	res=(*pGetCaps3)(d3dd, hd, sd);
+	if(res) {
+		OutTraceE("GetCaps(3): res=%x(%s)\n", res, ExplainDDError(res));
+		return res;
+	}
+	if(dxw.dwFlags4 & NOPOWER2FIX){
+		if(hd) {
+            hd->dpcLineCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+            hd->dpcTriCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+        }
+        if(sd) {
+            sd->dpcLineCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+            sd->dpcTriCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+        }
+    }
 	return res;
 }

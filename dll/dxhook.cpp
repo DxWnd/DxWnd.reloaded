@@ -66,8 +66,8 @@ static char *Flag3Names[32]={
 
 static char *Flag4Names[32]={
 	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
-	"", "", "", "",
-	"", "", "", "",
+	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
+	"NOPOWER2FIX", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
