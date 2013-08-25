@@ -8,7 +8,6 @@
 static HookEntry_Type Hooks[]={
 	{"GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
 	{"TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
-	{"TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
 	{"ScaleWindowExtEx", (FARPROC)ScaleWindowExtEx, (FARPROC *)&pGDIScaleWindowExtEx, (FARPROC)extScaleWindowExtEx},
 	{"Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
 	{"SaveDC", (FARPROC)SaveDC, (FARPROC *)&pGDISaveDC, (FARPROC)extGDISaveDC},
@@ -17,6 +16,29 @@ static HookEntry_Type Hooks[]={
 	{"SelectPalette", (FARPROC)SelectPalette, (FARPROC *)&pGDISelectPalette, (FARPROC)extSelectPalette},
 	{"RealizePalette", (FARPROC)RealizePalette, (FARPROC *)&pGDIRealizePalette, (FARPROC)extRealizePalette},
 	{"GetSystemPaletteEntries", (FARPROC)GetSystemPaletteEntries, (FARPROC *)&pGDIGetSystemPaletteEntries, (FARPROC)extGetSystemPaletteEntries},
+	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
+	{"Polyline", (FARPROC)NULL, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
+	{"PolyBezierTo", (FARPROC)NULL, (FARPROC *)&pPolyBezierTo, (FARPROC)extPolyBezierTo},
+	{"PolylineTo", (FARPROC)NULL, (FARPROC *)&pPolylineTo, (FARPROC)extPolylineTo},
+	{"PolyDraw", (FARPROC)NULL, (FARPROC *)&pPolyDraw, (FARPROC)extPolyDraw},
+	{"MoveToEx", (FARPROC)NULL, (FARPROC *)&pMoveToEx, (FARPROC)extMoveToEx},
+	{"ArcTo", (FARPROC)NULL, (FARPROC *)&pArcTo, (FARPROC)extArcTo},
+	{"LineTo", (FARPROC)NULL, (FARPROC *)&pLineTo, (FARPROC)extLineTo},
+	{"StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits},
+	{"SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
+	//{"CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
+	{"SetPixel", (FARPROC)NULL, (FARPROC *)&pSetPixel, (FARPROC)extSetPixel},
+	{"Ellipse", (FARPROC)NULL, (FARPROC *)&pEllipse, (FARPROC)extEllipse},
+	{"Polygon", (FARPROC)NULL, (FARPROC *)&pPolygon, (FARPROC)extPolygon},
+	{"Arc", (FARPROC)NULL, (FARPROC *)&pArc, (FARPROC)extArc},
+	{"CreateEllipticRgn", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgn, (FARPROC)extCreateEllipticRgn},
+	{"CreateEllipticRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgnIndirect, (FARPROC)extCreateEllipticRgnIndirect},
+	{"CreateRectRgn", (FARPROC)NULL, (FARPROC *)&pCreateRectRgn, (FARPROC)extCreateRectRgn},
+	{"CreateRectRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateRectRgnIndirect, (FARPROC)extCreateRectRgnIndirect},
+	{"CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
+	{"DrawTextA", (FARPROC)NULL, (FARPROC *)&pDrawText, (FARPROC)extDrawText},
+	{"DrawTextExA", (FARPROC)NULL, (FARPROC *)&pDrawTextEx, (FARPROC)extDrawTextEx},
+	{"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -41,9 +63,9 @@ static HookEntry_Type GDIHooks[]={
 };
 
 static HookEntry_Type EmuHooks[]={
-	{"SetTextColor", (FARPROC)SetTextColor, (FARPROC *)&pGDISetTextColor, (FARPROC)extSetTextColor},
-	{"SetBkColor", (FARPROC)SetBkColor, (FARPROC *)&pGDISetBkColor, (FARPROC)extSetBkColor},
-	{"CreateFont", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
+	//{"SetTextColor", (FARPROC)SetTextColor, (FARPROC *)&pGDISetTextColor, (FARPROC)extSetTextColor},
+	//{"SetBkColor", (FARPROC)SetBkColor, (FARPROC *)&pGDISetBkColor, (FARPROC)extSetBkColor},
+	{"CreateFontA", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
 	{"CreateFontIndirectA", (FARPROC)CreateFontIndirectA, (FARPROC *)&pGDICreateFontIndirect, (FARPROC)extCreateFontIndirect},
 	{0, NULL, 0, 0} // terminator
 };
@@ -277,35 +299,17 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 
 BOOL WINAPI extTextOutA(HDC hdc, int nXStart, int nYStart, LPCTSTR lpString, int cchString)
 {
-	BOOL res;
+	BOOL ret;
 	OutTraceD("TextOut: hdc=%x xy=(%d,%d) str=(%d)\"%s\"\n", hdc, nXStart, nYStart, cchString, lpString);
-	if (dxw.dwFlags1 & FIXTEXTOUT) {
-		POINT anchor;
-		anchor.x=nXStart;
-		anchor.y=nYStart;
-		(*pClientToScreen)(dxw.GethWnd(), &anchor);
-		nXStart=anchor.x;
-		nYStart=anchor.y;
-	}
-	res=(*pGDITextOutA)(hdc, nXStart, nYStart, lpString, cchString);
-	return res;
-}
 
-LONG WINAPI extTabbedTextOutA(HDC hDC, int X, int Y, LPCTSTR lpString, int nCount, int nTabPositions, const LPINT lpnTabStopPositions, int nTabOrigin)
-{
-	BOOL res;
-	OutTraceD("TabbedTextOut: hdc=%x xy=(%d,%d) nCount=%d nTP=%d nTOS=%d str=(%d)\"%s\"\n", 
-		hDC, X, Y, nCount, nTabPositions, nTabOrigin, lpString);
-	if (dxw.dwFlags1 & FIXTEXTOUT) {
-		POINT anchor;
-		anchor.x=X;
-		anchor.y=Y;
-		(*pClientToScreen)(dxw.GethWnd(), &anchor);
-		X=anchor.x;
-		Y=anchor.y;
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&nXStart, &nYStart);
+		OutTraceD("TextOut: fixed dest=(%d,%d)\n", nXStart, nYStart);
 	}
-	res=(*pTabbedTextOutA)(hDC, X, Y, lpString, nCount, nTabPositions, lpnTabStopPositions, nTabOrigin);
-	return res;
+
+	ret=(*pGDITextOutA)(hdc, nXStart, nYStart, lpString, cchString);
+	if(!ret) OutTraceE("TextOut: ERROR ret=%x\n", ret); 
+	return ret;
 }
 
 BOOL WINAPI extScaleWindowExtEx(HDC hdc, int Xnum, int Xdenom, int Ynum, int Ydenom, LPSIZE lpSize)
@@ -320,21 +324,18 @@ BOOL WINAPI extScaleWindowExtEx(HDC hdc, int Xnum, int Xdenom, int Ynum, int Yde
 
 BOOL WINAPI extRectangle(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
 {
+	int ret;
+
 	OutTraceD("Rectangle: hdc=%x xy=(%d,%d)-(%d,%d)\n", hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
-	if (dxw.dwFlags1 & FIXTEXTOUT) {
-		POINT anchor;
-		anchor.x=nLeftRect;
-		anchor.y=nTopRect;
-		(*pClientToScreen)(dxw.GethWnd(), &anchor);
-		nLeftRect=anchor.x;
-		nTopRect=anchor.y;
-		anchor.x=nRightRect;
-		anchor.y=nBottomRect;
-		(*pClientToScreen)(dxw.GethWnd(), &anchor);
-		nRightRect=anchor.x;
-		nBottomRect=anchor.y;
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&nLeftRect, &nTopRect, &nRightRect, &nBottomRect);
+		OutTraceD("Rectangle: fixed dest=(%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
 	}
-	return (*pGDIRectangle)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
+
+	ret=(*pGDIRectangle)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
+	if(!ret) OutTraceE("Rectangle: ERROR ret=%x\n", ret); 
+	return ret;
 }
 
 int WINAPI extGDISaveDC(HDC hdc)
@@ -492,7 +493,7 @@ static HDC WINAPI winDDGetDC(HWND hwnd, char *api)
 	dxw.ResetPrimarySurface();
 	dxw.SetPrimarySurface();
 
-	if(dxw.IsDesktop(hwnd)) hwnd=dxw.GethWnd();
+	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 
 	if(dxw.lpDDSPrimHDC){ 
 		if (PrimHDC){
@@ -702,6 +703,8 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	// the screen surface later on, on ReleaseDC or ddraw Blit / Flip operation. Scaling of rect coordinates is 
 	// needed only in the first case, and must be avoided on the second, otherwise the image would be scaled twice!
 
+
+
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
 		int nWDest, nHDest;
 		nWDest= nWidth;
@@ -709,6 +712,15 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 		dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
 		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
 		res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+	}
+	else if(WindowFromDC(hdcDest)==NULL){
+		// V2.02.31: See StretchBlt.
+		int nWDest, nHDest;
+		nWDest= nWidth;
+		nHDest= nHeight;
+		dxw.MapWindow(&nXDest, &nYDest, &nWDest, &nHDest);
+		res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);
 	}
 	else {
 		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
@@ -727,11 +739,18 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 
 	if (dxw.HandleFPS()) return TRUE;
 
+	OutTraceB("GDI.StretchBlt: DEBUG FullScreen=%x target hdctype=%x(%s) hwnd=%x\n", 
+		dxw.IsFullScreen(), GetObjectType(hdcDest), ExplainDCType(GetObjectType(hdcDest)), WindowFromDC(hdcDest));
+
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
-		int nWDest, nHDest;
-		dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+		dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
 		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
-		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, dwRop);
+		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
+	}
+	else if(WindowFromDC(hdcDest)==NULL){
+		// V2.02.31: See StretchBlt.
+		dxw.MapWindow(&nXDest, &nYDest, &nWidth, &nHeight);
+		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
 	}
 	else {
 		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
@@ -751,9 +770,21 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 
 	if (dxw.HandleFPS()) return TRUE;
 
-	// to do: what happend if StretchBlt is applied on screen DC ?
+	OutTraceB("GDI.StretchBlt: DEBUG FullScreen=%x target hdctype=%x(%s) hwnd=%x\n", 
+		dxw.IsFullScreen(), GetObjectType(hdcDest), ExplainDCType(GetObjectType(hdcDest)), WindowFromDC(hdcDest));
 
-	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
+			dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
+			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);
+	}
+	else if(WindowFromDC(hdcDest)==NULL){
+		// V2.02.31: In "Silent Hunter II" intro movie, QuickTime 5 renders the vidoe on the PrimarySurface->GetDC device context,
+		// that is a memory device type associated to NULL (desktop) window, through GDI StretchBlt api. So, you shoud compensate
+		// by scaling and offsetting to main window.
+		dxw.MapWindow(&nXDest, &nYDest, &nWidth, &nHeight);
+		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);
+	}
+
 	res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
@@ -798,6 +829,14 @@ HFONT WINAPI extCreateFont(int nHeight, int nWidth, int nEscapement, int nOrient
 				 DWORD fdwPitchAndFamily, LPCTSTR lpszFace)
 {
 	OutTraceD("CreateFont: h=%d w=%d face=\"%s\"\n", nHeight, nWidth, lpszFace);
+	if(dxw.dwFlags1 & FIXTEXTOUT) {
+		if(nHeight > 0) dxw.MapClient(&nWidth, &nHeight);
+		else {
+			nHeight= -nHeight;
+			dxw.MapClient(&nWidth, &nHeight);
+			nHeight= -nHeight;
+		}
+	}
 	return (*pGDICreateFont)(nHeight, nWidth, nEscapement, nOrientation, fnWeight,
 				 fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharSet,
 				 fdwOutputPrecision, fdwClipPrecision, NONANTIALIASED_QUALITY,
@@ -813,6 +852,14 @@ HFONT WINAPI extCreateFontIndirect(const LOGFONT* lplf)
 	OutTraceD("CreateFontIndirect: h=%d w=%d face=\"%s\"\n", lplf->lfHeight, lplf->lfWidth, lplf->lfFaceName);
 	memcpy((char *)&lf, (char *)lplf, sizeof(LOGFONT));
 	lf.lfQuality=NONANTIALIASED_QUALITY;
+	if(dxw.dwFlags1 & FIXTEXTOUT) {
+		if(lf.lfHeight > 0) dxw.MapClient((int *)&lf.lfWidth, (int *)&lf.lfHeight);
+		else {
+			lf.lfHeight= -lf.lfHeight;
+			dxw.MapClient((int *)&lf.lfWidth, (int *)&lf.lfHeight);
+			lf.lfHeight= -lf.lfHeight;
+		}
+	}
 	retHFont=((*pGDICreateFontIndirect)(&lf));
 	if(retHFont)
 		OutTraceD("CreateFontIndirect: hfont=%x\n", retHFont);
@@ -843,3 +890,452 @@ BOOL WINAPI extGetDeviceGammaRamp(HDC hDC, LPVOID lpRamp)
 	return ret;
 }
 
+int WINAPI extGetClipBox(HDC hdc, LPRECT lprc)
+{
+	// v2.02.31: needed in "Imperialism II" to avoid blit clipping
+	int ret;
+	char *sRetCodes[4]={"ERROR", "NULLREGION", "SIMPLEREGION", "COMPLEXREGION"};
+	OutTraceD("GetClipBox: hdc=%x\n", hdc);
+	ret=(*pGDIGetClipBox)(hdc, lprc);
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && (ret!=ERROR)){
+		OutTraceD("GetClipBox: scaling main win coordinates (%d,%d)-(%d,%d)\n",
+			lprc->left, lprc->top, lprc->right, lprc->bottom);
+		*lprc=dxw.GetScreenRect();
+	}
+	OutTraceD("GetClipBox: ret=%x(%s)\n", ret, sRetCodes[ret]);
+	return ret;
+}
+
+BOOL WINAPI extPolyline(HDC hdc, const POINT *lppt, int cPoints)
+{
+	BOOL ret;
+	if(IsTraceD){
+		int i;
+		OutTrace("Polyline: hdc=%x cPoints=%d pt=", hdc, cPoints); 
+		for(i=0; i<cPoints; i++) OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+		OutTrace("\n");
+	}
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		int i;
+		OutTrace("Polyline: fixed cPoints=%d pt=", cPoints); 
+		for(i=0; i<cPoints; i++) {
+			dxw.MapClient((LPPOINT)&lppt[i]);
+			OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+		}
+		OutTrace("\n");
+	}
+	ret=(*pPolyline)(hdc, lppt, cPoints);
+	if(!ret)OutTraceE("Polyline: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+BOOL WINAPI extLineTo(HDC hdc, int nXEnd, int nYEnd)
+{
+	BOOL ret;
+	OutTraceD("LineTo: hdc=%x pt=(%d,%d)\n", hdc, nXEnd, nYEnd);
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&nXEnd, &nYEnd);
+		OutTraceD("LineTo: fixed pt=(%d,%d)\n", nXEnd, nYEnd);
+	}
+	ret=(*pLineTo)(hdc, nXEnd, nYEnd);
+	if(!ret)OutTraceE("LineTo: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+BOOL WINAPI extArcTo(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nXRadial1, int nYRadial1, int nXRadial2, int nYRadial2)
+{
+	BOOL ret;
+	OutTraceD("ArcTo: hdc=%x rect=(%d,%d)(%d,%d) radial=(%d,%d)(%d,%d)\n", 
+		hdc, nLeftRect, nTopRect, nRightRect, nBottomRect, nXRadial1, nYRadial1, nXRadial2, nYRadial2);
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&nLeftRect, &nTopRect, &nRightRect, &nBottomRect);
+		dxw.MapClient(&nXRadial1, &nYRadial1, &nXRadial2, &nYRadial2);
+		OutTraceD("ArcTo: fixed rect=(%d,%d)(%d,%d) radial=(%d,%d)(%d,%d)\n", 
+			nLeftRect, nTopRect, nRightRect, nBottomRect, nXRadial1, nYRadial1, nXRadial2, nYRadial2);
+	}
+	ret=(*pArcTo)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect, nXRadial1, nYRadial1, nXRadial2, nYRadial2);
+	if(!ret)OutTraceE("ArcTo: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+BOOL WINAPI extMoveToEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
+{
+	BOOL ret;
+	OutTraceD("MoveToEx: hdc=%x pt=(%d,%d)\n", hdc, X, Y);
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&X, &Y);
+		OutTraceD("MoveToEx: fixed pt=(%d,%d)\n", X, Y);
+	}
+	ret=(*pMoveToEx)(hdc, X, Y, lpPoint);
+	if(!ret)OutTraceE("MoveToEx: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+BOOL WINAPI extPolyDraw(HDC hdc, const POINT *lppt, const BYTE *lpbTypes, int cCount)
+{
+	BOOL ret;
+	if(IsTraceD){
+		int i;
+		OutTrace("PolyDraw: hdc=%x cCount=%d pt=", hdc, cCount); 
+		for(i=0; i<cCount; i++) OutTrace("(%x:%d,%d) ", lpbTypes[i], lppt[i].x, lppt[i].y);
+		OutTrace("\n");
+	}
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		int i;
+		OutTrace("PolyDraw: fixed cCount=%d pt=", cCount); 
+		for(i=0; i<cCount; i++) {
+			dxw.MapClient((LPPOINT)&lppt[i]);
+			OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+		}
+		OutTrace("\n");
+	}
+	ret=(*pPolyDraw)(hdc, lppt, lpbTypes, cCount);
+	if(!ret)OutTraceE("PolyDraw: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+BOOL WINAPI extPolylineTo(HDC hdc, const POINT *lppt, DWORD cCount)
+{
+	BOOL ret;
+	if(IsTraceD){
+		DWORD i;
+		OutTrace("PolylineTo: hdc=%x cCount=%d pt=", hdc, cCount); 
+		for(i=0; i<cCount; i++) OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+		OutTrace("\n");
+	}
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		DWORD i;
+		OutTrace("PolylineTo: fixed cCount=%d pt=", cCount); 
+		for(i=0; i<cCount; i++) {
+			dxw.MapClient((LPPOINT)&lppt[i]);
+			OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+		}
+		OutTrace("\n");
+	}
+	ret=(*pPolylineTo)(hdc, lppt, cCount);
+	if(!ret)OutTraceE("PolylineTo: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+BOOL WINAPI extPolyBezierTo(HDC hdc, const POINT *lppt, DWORD cCount)
+{
+	BOOL ret;
+	if(IsTraceD){
+		DWORD i;
+		OutTrace("PolyBezierTo: hdc=%x cCount=%d pt=", hdc, cCount); 
+		for(i=0; i<cCount; i++) OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+		OutTrace("\n");
+	}
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		DWORD i;
+		OutTrace("PolyBezierTo: fixed cCount=%d pt=", cCount); 
+		for(i=0; i<cCount; i++) {
+			dxw.MapClient((LPPOINT)&lppt[i]);
+			OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+		}
+		OutTrace("\n");
+	}
+	ret=(*pPolyBezierTo)(hdc, lppt, cCount);
+	if(!ret)OutTraceE("PolyBezierTo: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+int WINAPI extStretchDIBits(HDC hdc, int XDest, int YDest, int nDestWidth, int nDestHeight, int XSrc, int YSrc, int nSrcWidth, int nSrcHeight, 
+				  const VOID *lpBits, const BITMAPINFO *lpBitsInfo, UINT iUsage, DWORD dwRop)
+{
+	int ret;
+	OutTraceD("StretchDIBits: hdc=%x dest=(%d,%d)-(%d,%d) src=(%d,%d)-(%d,%d) rop=%x(%s)\n", 
+		hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, dwRop, ExplainROP(dwRop));
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&XDest, &YDest, &nDestWidth, &nDestHeight);
+		OutTraceD("StretchDIBits: fixed dest=(%d,%d)-(%d,%d)\n", XDest, YDest, nDestWidth, nDestHeight);
+	}
+
+	ret=(*pStretchDIBits)(hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, lpBits, lpBitsInfo, iUsage, dwRop);
+	if(!ret || (ret==GDI_ERROR)) OutTraceE("StretchDIBits: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DWORD dwHeight, int XSrc, int YSrc, UINT uStartScan, UINT cScanLines, 
+					const VOID *lpvBits, const BITMAPINFO *lpbmi, UINT fuColorUse)
+{
+	int ret;
+	BITMAPINFOHEADER *bmi;
+	OutTraceD("SetDIBitsToDevice: hdc=%x dest=(%d,%d)-(%dx%d) src=(%d,%d)-(%dx%d)\n", 
+		hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines);
+	bmi=(BITMAPINFOHEADER *)&(lpbmi->bmiHeader);
+	OutTraceD("SetDIBitsToDevice: BitmapInfo dim=(%dx%d) Planes=%d BPP=%d Compression=%x SizeImage=%x\n",
+		bmi->biWidth, bmi->biHeight, bmi->biPlanes, bmi->biBitCount, bmi->biCompression, bmi->biSizeImage);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		DWORD OrigWidth, OrigHeight;
+		int OrigXDest, OrigYDest;
+		OrigWidth=dwWidth;
+		OrigHeight=dwHeight;
+		OrigXDest=XDest;
+		OrigYDest=YDest;
+		dxw.MapClient(&XDest, &YDest, (int *)&dwWidth, (int *)&dwHeight);
+		OutTraceD("SetDIBitsToDevice: fixed dest=(%d,%d)-(%d,%d)\n", XDest, YDest, dwWidth, dwHeight);
+		HDC hTempDc;
+		HBITMAP hbmPic;
+		if(!(hTempDc=CreateCompatibleDC(hdc)))
+			OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		// tricky part: CreateCompatibleBitmap is needed to set the dc size, but it has to be performed
+		// against hdc to set for color depth, then selected (through SelectObject) against the temporary
+		// dc to assign the needed size and color space to the temporary dc.
+		if(!(hbmPic=CreateCompatibleBitmap(hdc, OrigWidth, OrigHeight)))
+			OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		if(!SelectObject(hTempDc, hbmPic))
+			OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		if(!(*pSetDIBitsToDevice)(hTempDc, 0, 0, OrigWidth, OrigHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse))
+			OutTraceE("SetDIBitsToDevice: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		if(!(ret=(*pGDIStretchBlt)(hdc, XDest, YDest, dwWidth, dwHeight, hTempDc, 0, 0, OrigWidth, OrigHeight, SRCCOPY)))
+			OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		DeleteDC(hTempDc);
+	}
+	else{
+		ret=(*pSetDIBitsToDevice)(hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
+	}
+	if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+//HBITMAP WINAPI extCreateCompatibleBitmap(HDC hdc, int nWidth, int nHeight)
+//{
+//	HBITMAP ret;
+//	OutTraceD("CreateCompatibleBitmap: hdc=%x size=(%d,%d)\n", 
+//		hdc, nWidth, nHeight);
+//
+//	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+//		dxw.MapClient(&nWidth, &nHeight);
+//		OutTraceD("CreateCompatibleBitmap: fixed size=(%d,%d)\n", nWidth, nHeight);
+//	}
+//
+//	ret=(*pCreateCompatibleBitmap)(hdc, nWidth, nHeight);
+//	if(!ret) OutTraceE("CreateCompatibleBitmap: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+//	return ret;
+//}
+
+COLORREF WINAPI extSetPixel(HDC hdc, int X, int Y, COLORREF crColor)
+{
+	COLORREF ret;
+	OutTraceD("SetPixel: hdc=%x color=%x point=(%d,%d)\n", hdc, crColor, X, Y);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&X, &Y);
+		OutTraceD("SetPixel: fixed pos=(%d,%d)\n", X, Y);
+	}
+
+	ret=(*pSetPixel)(hdc, X, Y, crColor);
+	// both 0x00000000 and 0xFFFFFFFF are legitimate colors and therefore valid return codes...
+	//if(ret==GDI_ERROR) OutTraceE("SetPixel: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extEllipse(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
+{
+	int ret;
+	OutTraceD("Ellipse: hdc=%x rect=(%d,%d)-(%d,%d)\n", hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&nLeftRect, &nTopRect, &nRightRect, &nBottomRect);
+		OutTraceD("Ellipse: fixed dest=(%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
+	}
+
+	ret=(*pEllipse)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
+	if(!ret) OutTraceE("Ellipse: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extPolygon(HDC hdc, const POINT *lpPoints, int cCount)
+{
+	BOOL ret;
+	if(IsTraceD){
+		int i;
+		OutTrace("Polygon: hdc=%x cCount=%d pt=", hdc, cCount); 
+		for(i=0; i<cCount; i++) OutTrace("(%d,%d) ", lpPoints[i].x, lpPoints[i].y);
+		OutTrace("\n");
+	}
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		int i;
+		OutTrace("Polygon: fixed cCount=%d pt=", cCount); 
+		for(i=0; i<cCount; i++) {
+			dxw.MapClient((LPPOINT)&lpPoints[i]);
+			OutTrace("(%d,%d) ", lpPoints[i].x, lpPoints[i].y);
+		}
+		OutTrace("\n");
+	}
+	ret=(*pPolygon)(hdc, lpPoints, cCount);
+	if(!ret)OutTraceE("Polygon: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+BOOL WINAPI extArc(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nXStartArc, int nYStartArc, int nXEndArc, int nYEndArc)
+{
+	int ret;
+	OutTraceD("Arc: hdc=%x rect=(%d,%d)-(%d,%d) start=(%d,%d) end=(%d,%d)\n", 
+		hdc, nLeftRect, nTopRect, nRightRect, nBottomRect, nXStartArc, nYStartArc, nXEndArc, nYEndArc);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&nLeftRect, &nTopRect, &nRightRect, &nBottomRect);
+		dxw.MapClient(&nXStartArc, &nYStartArc, &nXEndArc, &nYEndArc);
+		OutTraceD("Arc: fixed rect=(%d,%d)-(%d,%d) start=(%d,%d) end=(%d,%d)\n", 
+			nLeftRect, nTopRect, nRightRect, nBottomRect, nXStartArc, nYStartArc, nXEndArc, nYEndArc);
+	}
+
+	ret=(*pArc)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect, nXStartArc, nYStartArc, nXEndArc, nYEndArc);
+	if(!ret) OutTraceE("Arc: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+HRGN WINAPI extCreateEllipticRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
+{
+	HRGN ret;
+	OutTraceD("CreateEllipticRgn: rect=(%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
+
+	if (dxw.IsFullScreen()){
+		dxw.MapClient(&nLeftRect, &nTopRect, &nRightRect, &nBottomRect);
+		OutTraceD("CreateEllipticRgn: fixed rect=(%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
+	}
+
+	ret=(*pCreateEllipticRgn)(nLeftRect, nTopRect, nRightRect, nBottomRect);
+	if(!ret) OutTraceE("CreateEllipticRgn: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+HRGN WINAPI extCreateEllipticRgnIndirect(const RECT *lprc)
+{
+	HRGN ret;
+	OutTraceD("CreateEllipticRgnIndirect: rect=(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
+
+	if (dxw.IsFullScreen()){
+		dxw.MapClient((RECT *)lprc);
+		OutTraceD("CreateEllipticRgnIndirect: fixed rect=(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
+	}
+
+	ret=(*pCreateEllipticRgnIndirect)(lprc);
+	if(!ret) OutTraceE("CreateEllipticRgnIndirect: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+HRGN WINAPI extCreateRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
+{
+	HRGN ret;
+	OutTraceD("CreateRectRgn: rect=(%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
+
+	if (dxw.IsFullScreen()){
+		dxw.MapClient(&nLeftRect, &nTopRect, &nRightRect, &nBottomRect);
+		OutTraceD("CreateRectRgn: fixed rect=(%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
+	}
+
+	ret=(*pCreateRectRgn)(nLeftRect, nTopRect, nRightRect, nBottomRect);
+	if(!ret) OutTraceE("CreateRectRgn: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+HRGN WINAPI extCreateRectRgnIndirect(const RECT *lprc)
+{
+	HRGN ret;
+	OutTraceD("CreateRectRgnIndirect: rect=(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
+
+	if (dxw.IsFullScreen()){
+		dxw.MapClient((RECT *)lprc);
+		OutTraceD("CreateRectRgnIndirect: fixed rect=(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
+	}
+
+	ret=(*pCreateRectRgnIndirect)(lprc);
+	if(!ret) OutTraceE("CreateRectRgnIndirect: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+HRGN WINAPI extCreatePolygonRgn(const POINT *lpPoints, int cPoints, int fnPolyFillMode)
+{
+	HRGN ret;
+	if(IsTraceD){
+		int i;
+		OutTrace("CreatePolygonRgn: PolyFillMode=%x cCount=%d pt=", fnPolyFillMode, cPoints); 
+		for(i=0; i<cPoints; i++) OutTrace("(%d,%d) ", lpPoints[i].x, lpPoints[i].y);
+		OutTrace("\n");
+	}
+	if (dxw.IsFullScreen()){
+		int i;
+		OutTrace("CreatePolygonRgn: fixed cCount=%d pt=", cPoints); 
+		for(i=0; i<cPoints; i++) {
+			dxw.MapClient((LPPOINT)&lpPoints[i]);
+			OutTrace("(%d,%d) ", lpPoints[i].x, lpPoints[i].y);
+		}
+		OutTrace("\n");
+	}
+	ret=(*pCreatePolygonRgn)(lpPoints, cPoints, fnPolyFillMode);
+	if(!ret)OutTraceE("CreatePolygonRgn: ERROR ret=%x\n", ret); 
+	return ret;
+}
+
+int WINAPI extDrawText(HDC hdc, LPCTSTR lpchText, int nCount, LPRECT lpRect, UINT uFormat)
+{
+	int ret;
+	OutTraceD("DrawText: hdc=%x rect=(%d,%d)-(%d,%d) Format=%x Text=(%d)\"%s\"\n", 
+		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, uFormat, nCount, lpchText);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient((RECT *)lpRect);
+		OutTraceD("DrawText: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+	}
+
+	ret=(*pDrawText)(hdc, lpchText, nCount, lpRect, uFormat);
+	if(!ret) OutTraceE("DrawText: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+int WINAPI extDrawTextEx(HDC hdc, LPTSTR lpchText, int nCount, LPRECT lpRect, UINT dwDTFormat, LPDRAWTEXTPARAMS lpDTParams)
+{
+	int ret;
+	OutTraceD("DrawTextEx: hdc=%x rect=(%d,%d)-(%d,%d) DTFormat=%x Text=(%d)\"%s\"\n", 
+		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, dwDTFormat, nCount, lpchText);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient((RECT *)lpRect);
+		OutTraceD("DrawTextEx: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+	}
+
+	ret=(*pDrawTextEx)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
+	if(!ret) OutTraceE("DrawTextEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extMaskBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc,
+					 int nXSrc, int nYSrc, HBITMAP hbmMask, int xMask, int yMask, DWORD dwRop)
+{
+	BOOL ret;
+	OutTraceD("MaskBlt: hdcDest=%x pos=(%d,%d) size=(%dx%d) hdcSrc=%x pos=(%d,%d) hbmMask=%x Mask=(%d,%d) dwRop=%x\n",
+		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, hbmMask, xMask, yMask, dwRop);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
+		dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
+		OutTraceD("MaskBlt: fixed pos=(%d,%d) size=(%dx%d)\n", nXDest, nYDest, nWidth, nHeight);
+	}
+
+	ret=(*pMaskBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, hbmMask, xMask, yMask, dwRop);
+	if(!ret) OutTraceE("MaskBlt: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+#if 0
+// to map:
+// GetCurrentPositionEx
+// GetViewportExtEx
+// DPtoLP
+// GetWindowOrgEx
+// LPtoDP
+// OffsetViewportOrgEx
+// OffsetWindowOrgEx
+// TransparentBlt
+// to do: eliminate FIXTEXTOUT handling
+
+BOOL SetTextJustification(
+  _In_  HDC hdc,
+  _In_  int nBreakExtra, <----
+  _In_  int nBreakCount
+);
+#endif

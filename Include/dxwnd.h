@@ -92,6 +92,7 @@
 #define EMULATEREGISTRY		0x00000400 // Emulate registry api to read extra keys
 #define CDROMDRIVETYPE		0x00000800 // Pretends that GetDriveType() always returns DRIVE_CDROM
 #define NOWINDOWMOVE		0x00001000 // Do not try to update window position & size on D3D rendering
+#define DISABLEHAL			0x00002000 // Disable HAL support (IID_IDirect3DHALDevice)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -160,7 +161,7 @@ int EndHook(void);
 void GetDllVersion(char *);
 int GetHookStatus(DXWNDSTATUS *);
 DXWNDSTATUS *GetHookInfo();
-int HookInit(TARGETMAP *, HWND);
+void HookInit(TARGETMAP *, HWND);
 
 void *SetHook(void *, void *);
 void SetHook(void *, void *, void **, char *);
@@ -189,7 +190,7 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define IsTraceE (TRUE)
 #define IsDebug  (dxw.dwTFlags & OUTDEBUG)
 #define IsAssertEnabled (dxw.dwTFlags & ASSERTDIALOG)
-#define STEP OutTrace("STEP at %s:%d\n", __MODULE__, __LINE__)
+#define STEP OutTrace("STEP at %s:%d\n", __FILE__, __LINE__)
 
 extern void WhndStackPush(HWND, WNDPROC);
 extern WNDPROC WhndGetWindowProc(HWND );

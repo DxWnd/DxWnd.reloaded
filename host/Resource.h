@@ -159,6 +159,7 @@
 #define IDC_CDROMDRIVETYPE              1114
 #define IDC_OUTREGISTRY                 1115
 #define IDC_NOWINDOWMOVE                1116
+#define IDC_DISABLEHAL                  1117
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

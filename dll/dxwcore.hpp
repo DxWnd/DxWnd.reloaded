@@ -13,7 +13,7 @@ public:
 // Operations
 public: // methods
 	void InitTarget(TARGETMAP *);
-	void SethWnd(HWND hwnd) {hWnd=hwnd; hWndFPS=hwnd;}
+	void SethWnd(HWND hwnd);
 	void SethWnd(HWND hwnd, HWND hwndfps) {hWnd=hwnd; hWndFPS=hwndfps;}
 	void InitWindowPos(int, int, int, int);
 	HWND GethWnd(void) {return hWnd;}
@@ -21,9 +21,11 @@ public: // methods
 	void SetScreenSize(int x, int y) {if(x)dwScreenWidth=x; if(y)dwScreenHeight=y;}
 	DWORD GetScreenWidth(void) {return dwScreenWidth;}
 	DWORD GetScreenHeight(void) {return dwScreenHeight;}
-	void SetFullScreen(BOOL fs) {FullScreen=fs;}
-	BOOL IsFullScreen() {return FullScreen;}
+	void SetFullScreen(BOOL);
+	void SetFullScreen(BOOL, int);
+	BOOL IsFullScreen();
 	BOOL IsDesktop(HWND);
+	BOOL IsRealDesktop(HWND);
 	POINT FixCursorPos(POINT);
 	void FixNCHITCursorPos(LPPOINT);
 	void SetClipCursor(void);
@@ -33,6 +35,7 @@ public: // methods
 	void MapClient(LPPOINT);
 	void MapClient(LPRECT);
 	void MapClient(int *, int *, int *, int *);
+	void MapClient(int *, int *);
 	void MapWindow(LPPOINT);
 	void MapWindow(LPRECT);
 	void MapWindow(int *, int *, int *, int *);

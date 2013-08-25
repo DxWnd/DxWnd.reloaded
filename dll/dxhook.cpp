@@ -57,7 +57,7 @@ static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
 	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
-	"Flag3:13", "Flag3:14", "Flag3:15", "Flag3:16",
+	"NOWINDOWMOVE", "Flag3:14", "Flag3:15", "Flag3:16",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -924,8 +924,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_ERASEBKGND:
-		OutTraceD("WindowProc: WM_ERASEBKGND(%x,%x) - suppressed\n", wparam, lparam);
-		return 1; // 1 == OK, erased
+		if(dxw.IsRealDesktop(hwnd)){
+			OutTraceD("WindowProc: WM_ERASEBKGND(%x,%x) - suppressed\n", wparam, lparam);
+			return 1; // 1 == OK, erased
+		}
 		break;
 	case WM_DISPLAYCHANGE:
 		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
@@ -1126,7 +1128,7 @@ static void RecoverScreenMode()
 	DEVMODE InitDevMode;
 	BOOL res;
 	EnumDisplaySettings(NULL, ENUM_REGISTRY_SETTINGS, &InitDevMode);
-	OutTraceD("ChangeDisplaySettings: RECOVER wxh=(%dx%d) BitsPerPel=%d\n", 
+	OutTraceD("ChangeDisplaySettings: RECOVER WxH=(%dx%d) BitsPerPel=%d\n", 
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
 	InitDevMode.dmFields |= DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 	res=(*pChangeDisplaySettings)(&InitDevMode, 0);
@@ -1306,10 +1308,8 @@ void SetSingleProcessAffinity(void)
 		OutTraceE("SetProcessAffinityMask: ERROR err=%d\n", GetLastError());
 }
 
-int HookInit(TARGETMAP *target, HWND hwnd)
+void HookInit(TARGETMAP *target, HWND hwnd)
 {
-	BOOL res;
-	WINDOWPOS wp;
 	HMODULE base;
 	char *sModule;
 	char sModuleBuf[60+1];
@@ -1320,16 +1320,24 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 
 	dxw.InitTarget(target);
 
-	// v2.1.75: is it correct to set hWnd here?
-	dxw.SethWnd(hwnd);
-	dxw.hParentWnd=GetParent(hwnd);
-	dxw.hChildWnd=hwnd;
+	if(hwnd){ // v2/02.32: skip this when in code injection mode.
+		// v2.1.75: is it correct to set hWnd here?
+		//dxw.SethWnd(hwnd);
+		dxw.hParentWnd=GetParent(hwnd);
+		dxw.hChildWnd=hwnd;
+		// v2.02.31: set main win either this one or the parent!
+		dxw.SethWnd((dxw.dwFlags1 & FIXPARENTWIN) ? GetParent(hwnd) : hwnd);
+	}
 
-	OutTraceD("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d) hWnd=%x dxw.hParentWnd=%x desktop=%x\n", 
-		target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
-		target->posx, target->posy, target->sizx, target->sizy,
-		hwnd, dxw.hParentWnd, GetDesktopWindow());
-	if (IsDebug){
+	if(IsTraceD){
+		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)", 
+			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
+			target->posx, target->posy, target->sizx, target->sizy);
+		if(hwnd) OutTrace(" hWnd=%x dxw.hParentWnd=%x desktop=%x\n", hwnd, dxw.hParentWnd, GetDesktopWindow());
+		else OutTrace("\n");
+	}
+
+	if (hwnd && IsDebug){
 		DWORD dwStyle, dwExStyle;
 		dwStyle=GetWindowLong(dxw.GethWnd(), GWL_STYLE);
 		dwExStyle=GetWindowLong(dxw.GethWnd(), GWL_EXSTYLE);
@@ -1349,7 +1357,8 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 
 	if (dxw.dwTFlags & DXPROXED){
 		HookDDProxy(base, dxw.dwTargetDDVersion);
-		return 0;
+		//return 0;
+		return;
 	}
 
 	// make InitPosition used for both DInput and DDraw
@@ -1382,14 +1391,14 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	InitScreenParameters();
 
 	if (IsDebug) OutTraceD("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY); //v2.02.09
-	if(dxw.dwFlags1 & FIXPARENTWIN){
-		CalculateWindowPos(hwnd, dxw.iSizX, dxw.iSizY, &wp);
-		if (IsDebug) OutTraceD("MoveWindow: dxw.hParentWnd=%x pos=(%d,%d) size=(%d,%d)\n", dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy);
-		res=(*pMoveWindow)(dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy, FALSE);
-		if(!res) OutTraceE("MoveWindow ERROR: dxw.hParentWnd=%x err=%d at %d\n", dxw.hParentWnd, GetLastError(), __LINE__);
-	}
+	//if(dxw.dwFlags1 & FIXPARENTWIN){
+	//	CalculateWindowPos(hwnd, dxw.iSizX, dxw.iSizY, &wp);
+	//	if (IsDebug) OutTraceD("MoveWindow: dxw.hParentWnd=%x pos=(%d,%d) size=(%d,%d)\n", dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy);
+	//	res=(*pMoveWindow)(dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy, FALSE);
+	//	if(!res) OutTraceE("MoveWindow ERROR: dxw.hParentWnd=%x err=%d at %d\n", dxw.hParentWnd, GetLastError(), __LINE__);
+	//}
 
-	return 0;
+	//return 0;
 }
 
 LPCSTR ProcToString(LPCSTR proc)

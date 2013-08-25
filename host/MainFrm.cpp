@@ -20,8 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // MainFrm.cpp : CMainFrame defines the class behavior.
 //
 
-#define _CRT_SECURE_NO_DEPRECATE 1
-
 #include "stdafx.h"
 #include "dxwndhost.h"
 

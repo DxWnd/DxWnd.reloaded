@@ -3,6 +3,8 @@
 //            Write the project specific include files.
 //
 
+#define _CRT_SECURE_NO_DEPRECATE
+
 #if !defined(AFX_STDAFX_H__9139BF92_2E61_4CBC_AB58_646DE772409F__INCLUDED_)
 #define AFX_STDAFX_H__9139BF92_2E61_4CBC_AB58_646DE772409F__INCLUDED_
 

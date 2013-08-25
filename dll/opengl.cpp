@@ -247,15 +247,22 @@ void WINAPI extglClear(GLbitfield mask)
 HGLRC WINAPI extwglCreateContext(HDC hdc)
 {
 	HGLRC ret;
+	OutTraceD("wglCreateContext: hdc=%x\n", hdc);
+	// v2.02.31: don't let it use desktop hdc
+	if(dxw.IsDesktop(WindowFromDC(hdc))){
+		HDC oldhdc = hdc;
+		hdc=(*pGDIGetDC)(dxw.GethWnd());
+		OutTraceD("wglCreateContext: remapped desktop hdc=%x->%x\n", oldhdc, hdc);
+	}
 	ret=(*pwglCreateContext)(hdc);
-	if(ret!=NULL){
+	if(ret){
 		HWND hwnd;
 		hwnd=WindowFromDC(hdc);
 		dxw.SethWnd(hwnd);
-		OutTraceD("wglCreateContext: hdc=%x hwnd=%x\n", hdc, hwnd);
+		OutTraceD("wglCreateContext: SET hwnd=%x\n", hwnd);
 	}
 	else {
-		OutTraceD("wglCreateContext: ERROR hdc=%x err=%x\n", hdc, GetLastError());
+		OutTraceD("wglCreateContext: ERROR err=%x\n", GetLastError());
 	}
 	return ret;
 }
@@ -281,6 +288,12 @@ BOOL WINAPI extwglMakeCurrent(HDC hdc, HGLRC hglrc)
 	BOOL ret;
 
 	OutTraceD("wglMakeCurrent: hdc=%x hglrc=%x\n", hdc, hglrc);
+	// v2.02.31: don't let it use desktop hdc
+	if(dxw.IsDesktop(WindowFromDC(hdc))){
+		HDC oldhdc = hdc;
+		hdc=(*pGDIGetDC)(dxw.GethWnd());
+		OutTraceD("wglMakeCurrent: remapped desktop hdc=%x->%x\n", oldhdc, hdc);
+	}
 	ret=(*pwglMakeCurrent)(hdc, hglrc);
 	if(ret){
 		HWND hWnd;

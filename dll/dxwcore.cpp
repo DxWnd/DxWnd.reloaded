@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdio.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
@@ -29,6 +31,24 @@ dxwCore::dxwCore()
 
 dxwCore::~dxwCore()
 {
+}
+
+void dxwCore::SetFullScreen(BOOL fs, int line) 
+{
+	OutTraceD("SetFullScreen: %s at %d\n", fs?"FULLSCREEN":"WINDOWED", line);
+	FullScreen=fs;
+}
+
+void dxwCore::SetFullScreen(BOOL fs) 
+{
+	OutTraceD("SetFullScreen: %s\n", fs?"FULLSCREEN":"WINDOWED");
+	FullScreen=fs;
+}
+
+BOOL dxwCore::IsFullScreen()
+{
+	// if(dxw.dwFlagsX && ALWAYSFULLSCREEN) return TRUE;
+	return FullScreen;
 }
 
 void dxwCore::InitTarget(TARGETMAP *target)
@@ -151,6 +171,15 @@ BOOL dxwCore::IsDesktop(HWND hwnd)
 		(hwnd == (*pGetDesktopWindow)())
 		||
 		(hwnd == hWnd)
+		);
+}
+
+BOOL dxwCore::IsRealDesktop(HWND hwnd)
+{
+	return (
+		(hwnd == 0)
+		||
+		(hwnd == (*pGetDesktopWindow)())
 		);
 }
 
@@ -288,6 +317,13 @@ void dxwCore::EraseClipCursor()
 	(*pClipCursor)(NULL);
 }
 
+void dxwCore::SethWnd(HWND hwnd) 
+{
+	OutTraceD("SethWnd: setting main win=%x\n", hwnd);
+	hWnd=hwnd; 
+	hWndFPS=hwnd;
+}
+
 RECT dxwCore::MapWindowRect(LPRECT lpRect)
 {
 	POINT UpLeft={0,0};
@@ -296,6 +332,10 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	int w, h, bx, by; // width, height and x,y borders
 	if (!(*pGetClientRect)(hWnd, &ClientRect)){
 		OutTraceE("GetClientRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
+		// v2.02.31: try....
+		ClientRect.top=ClientRect.left=0;
+		ClientRect.right=dxw.iSizX;
+		ClientRect.bottom=dxw.iSizY;
 	}
 	RetRect=ClientRect;
 	bx = by = 0;
@@ -308,7 +348,7 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 		else {
 			by = (h - (w * 600 / 800))/2;
 		}
-		OutTraceD("bx=%d by=%d\n", bx, by);
+		OutTraceB("bx=%d by=%d\n", bx, by);
 	}
 
 	if(lpRect){
@@ -336,29 +376,49 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 void dxwCore::MapClient(LPRECT rect)
 {
 	RECT client;
+	int w, h;
 	(*pGetClientRect)(hWnd, &client);
-	rect->left= rect->left * client.right / dwScreenWidth;
-	rect->top= rect->top * client.bottom / dwScreenHeight;
-	rect->right= rect->right * client.right / dwScreenWidth;
-	rect->bottom= rect->bottom * client.bottom / dwScreenHeight;
+	w = client.right ? client.right : iSizX;
+	h = client.bottom ? client.bottom : iSizY;
+	rect->left= rect->left * w / (int)dwScreenWidth;
+	rect->top= rect->top * h / (int)dwScreenHeight;
+	rect->right= rect->right * w / (int)dwScreenWidth;
+	rect->bottom= rect->bottom * h / (int)dwScreenHeight;
 }
 
 void dxwCore::MapClient(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 {
 	RECT client;
+	int w, h;
 	(*pGetClientRect)(hWnd, &client);
-	*nXDest= *nXDest * client.right / dwScreenWidth;
-	*nYDest= *nYDest * client.bottom / dwScreenHeight;
-	*nWDest= *nWDest * client.right / dwScreenWidth;
-	*nHDest= *nHDest * client.bottom / dwScreenHeight;
+	w = client.right ? client.right : iSizX;
+	h = client.bottom ? client.bottom : iSizY;
+	*nXDest= *nXDest * w / (int)dwScreenWidth;
+	*nYDest= *nYDest * h / (int)dwScreenHeight;
+	*nWDest= *nWDest * w / (int)dwScreenWidth;
+	*nHDest= *nHDest * h / (int)dwScreenHeight;
 }
 
 void dxwCore::MapClient(LPPOINT lppoint)
 {
 	RECT client;
+	int w, h;
 	(*pGetClientRect)(hWnd, &client);
-	lppoint->x = (lppoint->x * client.right) / dwScreenWidth;
-	lppoint->y = (lppoint->y * client.bottom) / dwScreenHeight;
+	w = client.right ? client.right : iSizX;
+	h = client.bottom ? client.bottom : iSizY;
+	lppoint->x = (lppoint->x * w) / (int)dwScreenWidth;
+	lppoint->y = (lppoint->y * h) / (int)dwScreenHeight;
+}
+
+void dxwCore::MapClient(int *nXDest, int *nYDest)
+{
+	RECT client;
+	int w, h;
+	(*pGetClientRect)(hWnd, &client);
+	w = client.right ? client.right : iSizX;
+	h = client.bottom ? client.bottom : iSizY;
+	*nXDest= *nXDest * w / (int)dwScreenWidth;
+	*nYDest= *nYDest * h / (int)dwScreenHeight;
 }
 
 void dxwCore::MapWindow(LPRECT rect)
@@ -367,10 +427,10 @@ void dxwCore::MapWindow(LPRECT rect)
 	POINT upleft = {0,0};
 	(*pGetClientRect)(hWnd, &client);
 	(*pClientToScreen)(hWnd, &upleft);
-	rect->left= upleft.x + ((rect->left * client.right) / dwScreenWidth);
-	rect->top= upleft.y + ((rect->top * client.bottom) / dwScreenHeight);
-	rect->right= upleft.x + ((rect->right * client.right) / dwScreenWidth);
-	rect->bottom= upleft.y + ((rect->bottom * client.bottom) / dwScreenHeight);
+	rect->left= upleft.x + ((rect->left * client.right) / (int)dwScreenWidth);
+	rect->top= upleft.y + ((rect->top * client.bottom) / (int)dwScreenHeight);
+	rect->right= upleft.x + ((rect->right * client.right) / (int)dwScreenWidth);
+	rect->bottom= upleft.y + ((rect->bottom * client.bottom) / (int)dwScreenHeight);
 }
 
 void dxwCore::MapWindow(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
@@ -379,10 +439,10 @@ void dxwCore::MapWindow(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 	POINT upleft = {0,0};
 	(*pGetClientRect)(hWnd, &client);
 	(*pClientToScreen)(hWnd, &upleft);
-	*nXDest= upleft.x + ((*nXDest * client.right) / dwScreenWidth);
-	*nYDest= upleft.y + ((*nYDest * client.bottom) / dwScreenHeight);
-	*nWDest= (*nWDest * client.right) / dwScreenWidth;
-	*nHDest= (*nHDest * client.bottom) / dwScreenHeight;
+	*nXDest= upleft.x + ((*nXDest * client.right) / (int)dwScreenWidth);
+	*nYDest= upleft.y + ((*nYDest * client.bottom) / (int)dwScreenHeight);
+	*nWDest= (*nWDest * client.right) / (int)dwScreenWidth;
+	*nHDest= (*nHDest * client.bottom) / (int)dwScreenHeight;
 }
 
 void dxwCore::MapWindow(LPPOINT lppoint)

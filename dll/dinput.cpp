@@ -1,3 +1,5 @@
+#define DIRECTINPUT_VERSION 0x800
+
 #include <windows.h>
 #include <dinput.h>
 #include "dxwnd.h"

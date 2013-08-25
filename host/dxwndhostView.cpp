@@ -1,5 +1,3 @@
-#define _CRT_SECURE_NO_DEPRECATE 1
-
 // dxwndhostView.cpp : CDxwndhostView Define the behavior of the class.
 //
 
@@ -142,6 +140,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
+	if(dlg->m_DisableHAL) t->flags3 |= DISABLEHAL;
 	if(dlg->m_SaveCaps) t->flags3 |= SAVECAPS;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
@@ -253,6 +252,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
+	dlg->m_DisableHAL = t->flags3 & DISABLEHAL ? 1 : 0;
 	dlg->m_SaveCaps = t->flags3 & SAVECAPS ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;

@@ -1,8 +1,6 @@
 // TargetDlg.cpp : Implementation
 //
 
-#define _CRT_SECURE_NO_DEPRECATE 1
-
 #include "stdafx.h"
 #include "dxwndhost.h"
 #include "TargetDlg.h"
@@ -36,6 +34,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SuppressIME = FALSE;
 	m_SuppressD3DExt = FALSE;
 	m_SetCompatibility = FALSE;
+	m_DisableHAL = FALSE;
 	m_SaveCaps = FALSE;
 	m_SingleProcAffinity = FALSE;
 	m_LimitResources = FALSE;

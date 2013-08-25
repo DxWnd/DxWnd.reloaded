@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdio.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
@@ -9,6 +11,7 @@ static HookEntry_Type Hooks[]={
 	{"RegOpenKeyExA", NULL, (FARPROC *)&pRegOpenKeyEx, (FARPROC)extRegOpenKeyEx},
 	{"RegCloseKey", NULL, (FARPROC *)&pRegCloseKey, (FARPROC)extRegCloseKey},
 	{"RegQueryValueExA", NULL, (FARPROC *)&pRegQueryValueEx, (FARPROC)extRegQueryValueEx},
+	{"RegCreateKeyA", NULL, (FARPROC *)&pRegCreateKey, (FARPROC)extRegCreateKey},
 	{"RegCreateKeyExA", NULL, (FARPROC *)&pRegCreateKeyEx, (FARPROC)extRegCreateKeyEx},
 	{"RegSetValueExA", NULL, (FARPROC *)&pRegSetValueEx, (FARPROC)extRegSetValueEx},
 	{0, NULL, 0, 0} // terminator
@@ -65,7 +68,7 @@ LONG WINAPI extRegOpenKeyEx(
 
 	if((res==ERROR_SUCCESS) || !(dxw.dwFlags3 & EMULATEREGISTRY)) return res;
 	
-	*phkResult=HKEY_FAKE;
+	if(phkResult) *phkResult=HKEY_FAKE;
 	FILE *regf;
 	char sKey[256+1];
 	sprintf(sKey,"%s\\%s", hKey2String(hKey), lpSubKey);
@@ -75,8 +78,8 @@ LONG WINAPI extRegOpenKeyEx(
 	fgets(RegBuf, 256, regf);
 	while (!feof(regf)){
 		if(RegBuf[0]=='['){
-			if(!strncmp(&RegBuf[1],sKey,strlen(sKey)) && RegBuf[strlen(sKey)+1]==']'){
-				OutTraceD("RegOpenKeyEx: found fake Key=\"%s\" hkResult=%x\n", sKey, *phkResult);
+			if((!strncmp(&RegBuf[1],sKey,strlen(sKey))) && (RegBuf[strlen(sKey)+1]==']')){
+				OutTrace("RegOpenKeyEx: found fake Key=\"%s\" hkResult=%x\n", sKey, *phkResult);
 				fclose(regf);
 				return ERROR_SUCCESS;
 			}
@@ -110,11 +113,11 @@ LONG WINAPI extRegQueryValueEx(
 					case REG_DWORD: OutTrace("Data=0x%x\n", *(DWORD *)lpData); break;
 					case REG_BINARY:
 						{
-							int i; 
+							DWORD i; 
 							unsigned char *p;
 							p = lpData;
-							OutTrace("Data=");
-							for(i=0; i<*lpcbData; i++) OutTrace("%02.2X,", *p++);
+							OutTrace("Data=%02.2X", p++);
+							for(i=1; i<*lpcbData; i++) OutTrace(",%02.2X", *p++);
 							OutTrace("\n");
 						}
 						break;
@@ -129,7 +132,6 @@ LONG WINAPI extRegQueryValueEx(
 		return res;
 	}
 
-	// going through here means we're in EMULATEREGISTRY mode
 	//if(!(dxw.dwFlags3 & EMULATEREGISTRY)) return res;
 
 	// try emulated registry
@@ -221,10 +223,17 @@ LONG WINAPI extRegCloseKey(HKEY hKey)
 LONG WINAPI extRegSetValueEx(HKEY hKey, LPCTSTR lpValueName, DWORD Reserved, DWORD dwType, const BYTE *lpData, DWORD cbData)
 {
 	if (IsTraceR){
-		OutTrace("RegSetValueEx: hKey=%x Type=%x(%s) cbData=%d\n", hKey, lpValueName, dwType, ExplainRegType(dwType), cbData);
+		OutTrace("RegSetValueEx: hKey=%x ValueName=\"%s\" Type=%x(%s) cbData=%d ", hKey, lpValueName, dwType, ExplainRegType(dwType), cbData);
 		switch(dwType){
 			case REG_DWORD: OutTrace("Data=%x\n", *(DWORD *)lpData); break;
-			case REG_NONE: OutTrace("ValueName=\"%s\"\n", lpData); break;
+			case REG_NONE: OutTrace("Data=\"%s\"\n", lpData); break;
+			case REG_BINARY: {
+				DWORD i;
+				OutTrace("Data=%02.2X,", *lpData);
+				for(i=1; i<cbData; i++) OutTrace("%02.2X", lpData[i]);
+				OutTrace("\n");
+				};
+				break;
 			default: OutTrace("\n");
 		}
 	}
@@ -236,7 +245,7 @@ LONG WINAPI extRegCreateKeyEx(HKEY hKey, LPCTSTR lpSubKey, DWORD Reserved, LPTST
 				LPSECURITY_ATTRIBUTES lpSecurityAttributes, PHKEY phkResult, LPDWORD lpdwDisposition)
 {
 	OutTraceR("RegCreateKeyEx: hKey=%x(%s) SubKey=\"%s\" Class=%x\n", hKey, hKey2String(hKey), lpSubKey, lpClass);
-	if (dxw.dwFlags3 && EMULATEREGISTRY){
+	if (dxw.dwFlags3 & EMULATEREGISTRY){
 		*phkResult = HKEY_FAKE;
 		if(lpdwDisposition) *lpdwDisposition=REG_OPENED_EXISTING_KEY;
 		return ERROR_SUCCESS;
@@ -246,3 +255,13 @@ LONG WINAPI extRegCreateKeyEx(HKEY hKey, LPCTSTR lpSubKey, DWORD Reserved, LPTST
 				lpSecurityAttributes, phkResult, lpdwDisposition);
 }
 
+LONG WINAPI extRegCreateKey(HKEY hKey, LPCTSTR lpSubKey, PHKEY phkResult)
+{
+	OutTraceR("RegCreateKey: hKey=%x(%s) SubKey=\"%s\"\n", hKey, hKey2String(hKey), lpSubKey);
+	if (dxw.dwFlags3 & EMULATEREGISTRY){
+		*phkResult = HKEY_FAKE;
+		return ERROR_SUCCESS;
+	}
+	else
+		return (*pRegCreateKey)(hKey, lpSubKey, phkResult);
+}

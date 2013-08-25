@@ -18,6 +18,7 @@ type definitions
 // advapi32.dll
 
 typedef LONG	(WINAPI *RegCloseKey_Type)(HKEY);
+typedef LONG	(WINAPI *RegCreateKey_Type)(HKEY, LPCTSTR, PHKEY);
 typedef LONG	(WINAPI *RegCreateKeyEx_Type)(HKEY, LPCTSTR, DWORD, LPTSTR, DWORD, REGSAM, LPSECURITY_ATTRIBUTES, PHKEY, LPDWORD);
 typedef LONG	(WINAPI *RegOpenKeyEx_Type)(HKEY, LPCTSTR, DWORD, REGSAM, PHKEY);
 typedef LONG	(WINAPI *RegQueryValueEx_Type)(HKEY, LPCTSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
@@ -43,10 +44,12 @@ typedef HFONT	(WINAPI *CreateFontIndirect_Type)(const LOGFONT*);
 typedef HPALETTE(WINAPI *GDICreatePalette_Type)(CONST LOGPALETTE *);
 typedef HDWP	(WINAPI *DeferWindowPos_Type)(HDWP, HWND, HWND, int, int, int, int, UINT);
 typedef BOOL	(WINAPI *DeleteDC_Type)(HDC);
+typedef int		(WINAPI *GetClipBox_Type)(HDC, LPRECT);
 typedef int		(WINAPI *GetDeviceCaps_Type)(HDC, int);
 typedef BOOL	(WINAPI *GetDeviceGammaRamp_Type)(HDC, LPVOID);
 typedef BOOL	(WINAPI *GetSystemPaletteEntries_Type)(HDC, UINT, UINT, LPPALETTEENTRY);
 typedef BOOL	(WINAPI *PatBlt_Type)(HDC, int, int, int, int, DWORD);
+typedef BOOL	(WINAPI *Polyline_Type)(HDC, const POINT *, int);
 typedef UINT	(WINAPI *RealizePalette_Type)(HDC);
 typedef BOOL	(WINAPI *Rectangle_Type)(HDC, int, int, int, int);
 typedef BOOL	(WINAPI *RestoreDC_Type)(HDC, int);
@@ -57,8 +60,28 @@ typedef COLORREF (WINAPI *SetBkColor_Type)(HDC, COLORREF);
 typedef BOOL	(WINAPI *SetDeviceGammaRamp_Type)(HDC, LPVOID);
 typedef COLORREF(WINAPI *SetTextColor_Type)(HDC, COLORREF);
 typedef BOOL	(WINAPI *StretchBlt_Type)(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
-typedef LONG	(WINAPI *TabbedTextOutA_Type)(HDC, int, int, LPCTSTR, int, int, const LPINT, int);
+typedef int		(WINAPI *StretchDIBits_Type)(HDC, int, int, int, int, int, int, int, int, const VOID *, const BITMAPINFO *, UINT, DWORD);
 typedef BOOL	(WINAPI *TextOut_Type)(HDC, int, int, LPCTSTR, int);
+typedef BOOL	(WINAPI *PolyBezierTo_Type)(HDC, const POINT *, DWORD);
+typedef BOOL	(WINAPI *PolylineTo_Type)(HDC, const POINT *, DWORD);
+typedef BOOL	(WINAPI *PolyDraw_Type)(HDC, const POINT *, const BYTE *, int);
+typedef BOOL	(WINAPI *MoveToEx_Type)(HDC, int, int, LPPOINT);
+typedef BOOL	(WINAPI *ArcTo_Type)(HDC, int, int, int, int, int, int, int, int);
+typedef BOOL	(WINAPI *LineTo_Type)(HDC, int, int);
+typedef int		(WINAPI *SetDIBitsToDevice_Type)(HDC, int, int, DWORD, DWORD, int, int, UINT, UINT, const VOID *, const BITMAPINFO *, UINT);
+typedef HBITMAP (WINAPI *CreateCompatibleBitmap_Type)(HDC, int, int);
+typedef COLORREF(WINAPI *SetPixel_Type)(HDC, int, int, COLORREF);
+typedef BOOL	(WINAPI *Ellipse_Type)(HDC, int, int, int, int);
+typedef BOOL	(WINAPI *Polygon_Type)(HDC, const POINT *, int);
+typedef BOOL	(WINAPI *Arc_Type)(HDC, int, int, int, int, int, int, int, int);
+typedef HRGN	(WINAPI *CreateEllipticRgn_Type)(int, int, int, int);
+typedef HRGN	(WINAPI *CreateEllipticRgnIndirect_Type)(const RECT *);
+typedef HRGN	(WINAPI *CreateRectRgn_Type)(int, int, int, int);
+typedef HRGN	(WINAPI *CreateRectRgnIndirect_Type)(const RECT *);
+typedef HRGN	(WINAPI *CreatePolygonRgn_Type)(const POINT *, int, int);
+typedef int		(WINAPI *DrawText_Type)(HDC, LPCTSTR, int, LPRECT, UINT);
+typedef int		(WINAPI *DrawTextEx_Type)(HDC, LPTSTR, int, LPRECT, UINT, LPDRAWTEXTPARAMS);
+typedef BOOL	(WINAPI *MaskBlt_Type)(HDC, int, int, int, int, HDC, int, int, HBITMAP, int, int, DWORD);
 
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -99,6 +122,7 @@ typedef LRESULT (WINAPI *DefWindowProc_Type)(HWND, UINT, WPARAM, LPARAM);
 typedef BOOL	(WINAPI *EndPaint_Type)(HWND, const PAINTSTRUCT *);
 typedef LONG	(WINAPI *EnumDisplaySettings_Type)(LPCTSTR, DWORD, LPDEVMODEA);
 typedef int		(WINAPI *FillRect_Type)(HDC, const RECT *, HBRUSH);
+typedef int		(WINAPI *FrameRect_Type)(HDC, const RECT *, HBRUSH);
 typedef BOOL	(WINAPI *GetClientRect_Type)(HWND, LPRECT);
 typedef BOOL	(WINAPI *GetClipCursor_Type)(LPRECT);
 typedef BOOL	(WINAPI *GetCursorPos_Type)(LPPOINT);
@@ -124,6 +148,9 @@ typedef LONG	(WINAPI *SetWindowLong_Type)(HWND, int, LONG);
 typedef BOOL	(WINAPI *SetWindowPos_Type)(HWND, HWND, int, int, int, int, UINT);
 typedef int		(WINAPI *ShowCursor_Type)(BOOL);
 typedef BOOL	(WINAPI *ShowWindow_Type)(HWND, int);
+typedef LONG	(WINAPI *TabbedTextOutA_Type)(HDC, int, int, LPCTSTR, int, int, const LPINT, int);
+typedef BOOL	(WINAPI *DestroyWindow_Type)(HWND);
+typedef BOOL	(WINAPI *CloseWindow_Type)(HWND);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -148,6 +175,7 @@ hooked APIs real pointers
 // advapi32.dll
 
 DXWEXTERN RegCloseKey_Type pRegCloseKey DXWINITIALIZED;
+DXWEXTERN RegCreateKey_Type pRegCreateKey DXWINITIALIZED;
 DXWEXTERN RegCreateKeyEx_Type pRegCreateKeyEx DXWINITIALIZED;
 DXWEXTERN RegOpenKeyEx_Type pRegOpenKeyEx DXWINITIALIZED;
 DXWEXTERN RegQueryValueEx_Type pRegQueryValueEx DXWINITIALIZED;
@@ -173,10 +201,12 @@ DXWEXTERN CreateFontIndirect_Type pGDICreateFontIndirect DXWINITIALIZED;
 DXWEXTERN GDICreatePalette_Type pGDICreatePalette DXWINITIALIZED;
 DXWEXTERN DeferWindowPos_Type pGDIDeferWindowPos DXWINITIALIZED;
 DXWEXTERN DeleteDC_Type pGDIDeleteDC DXWINITIALIZED;
+DXWEXTERN GetClipBox_Type pGDIGetClipBox DXWINITIALIZED;
 DXWEXTERN GetDeviceCaps_Type pGDIGetDeviceCaps DXWINITIALIZED;
 DXWEXTERN GetDeviceGammaRamp_Type pGDIGetDeviceGammaRamp DXWINITIALIZED;
 DXWEXTERN GetSystemPaletteEntries_Type pGDIGetSystemPaletteEntries DXWINITIALIZED;
 DXWEXTERN PatBlt_Type pGDIPatBlt DXWINITIALIZED;
+DXWEXTERN Polyline_Type pPolyline DXWINITIALIZED;
 DXWEXTERN RealizePalette_Type pGDIRealizePalette DXWINITIALIZED;
 DXWEXTERN Rectangle_Type pGDIRectangle DXWINITIALIZED;
 DXWEXTERN RestoreDC_Type pGDIRestoreDC DXWINITIALIZED;
@@ -187,8 +217,28 @@ DXWEXTERN SetBkColor_Type pGDISetBkColor DXWINITIALIZED;
 DXWEXTERN SetDeviceGammaRamp_Type pGDISetDeviceGammaRamp DXWINITIALIZED;
 DXWEXTERN SetTextColor_Type pGDISetTextColor DXWINITIALIZED;
 DXWEXTERN StretchBlt_Type pGDIStretchBlt DXWINITIALIZED;
-DXWEXTERN TabbedTextOutA_Type pTabbedTextOutA DXWINITIALIZED;
+DXWEXTERN StretchDIBits_Type pStretchDIBits DXWINITIALIZED;
 DXWEXTERN TextOut_Type pGDITextOutA DXWINITIALIZED;
+DXWEXTERN LineTo_Type pLineTo DXWINITIALIZED;
+DXWEXTERN ArcTo_Type pArcTo DXWINITIALIZED;
+DXWEXTERN MoveToEx_Type pMoveToEx DXWINITIALIZED;
+DXWEXTERN PolyDraw_Type pPolyDraw DXWINITIALIZED;
+DXWEXTERN PolylineTo_Type pPolylineTo DXWINITIALIZED;
+DXWEXTERN PolyBezierTo_Type pPolyBezierTo DXWINITIALIZED;
+DXWEXTERN SetDIBitsToDevice_Type pSetDIBitsToDevice DXWINITIALIZED;
+DXWEXTERN CreateCompatibleBitmap_Type pCreateCompatibleBitmap DXWINITIALIZED;
+DXWEXTERN SetPixel_Type pSetPixel DXWINITIALIZED;
+DXWEXTERN Ellipse_Type pEllipse DXWINITIALIZED;
+DXWEXTERN Polygon_Type pPolygon DXWINITIALIZED;
+DXWEXTERN Arc_Type pArc DXWINITIALIZED;
+DXWEXTERN CreateEllipticRgn_Type pCreateEllipticRgn DXWINITIALIZED;
+DXWEXTERN CreateEllipticRgnIndirect_Type pCreateEllipticRgnIndirect DXWINITIALIZED;
+DXWEXTERN CreateRectRgn_Type pCreateRectRgn DXWINITIALIZED;
+DXWEXTERN CreateRectRgnIndirect_Type pCreateRectRgnIndirect DXWINITIALIZED;
+DXWEXTERN CreatePolygonRgn_Type pCreatePolygonRgn DXWINITIALIZED;
+DXWEXTERN DrawText_Type pDrawText DXWINITIALIZED;
+DXWEXTERN DrawTextEx_Type pDrawTextEx DXWINITIALIZED;
+DXWEXTERN MaskBlt_Type pMaskBlt DXWINITIALIZED;
 
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
@@ -228,6 +278,7 @@ DXWEXTERN DefWindowProc_Type pDefWindowProc DXWINITIALIZED;
 DXWEXTERN EndPaint_Type pEndPaint DXWINITIALIZED;
 DXWEXTERN EnumDisplaySettings_Type pEnumDisplaySettings DXWINITIALIZED;
 DXWEXTERN FillRect_Type pFillRect DXWINITIALIZED;
+DXWEXTERN FrameRect_Type pFrameRect DXWINITIALIZED;
 DXWEXTERN GetClientRect_Type pGetClientRect DXWINITIALIZED;
 DXWEXTERN GetClipCursor_Type pGetClipCursor DXWINITIALIZED;
 DXWEXTERN GetCursorPos_Type pGetCursorPos DXWINITIALIZED;
@@ -246,7 +297,8 @@ DXWEXTERN PeekMessage_Type pPeekMessage DXWINITIALIZED;
 DXWEXTERN RegisterClassExA_Type pRegisterClassExA DXWINITIALIZED;
 DXWEXTERN GDIReleaseDC_Type pGDIReleaseDC DXWINITIALIZED;
 DXWEXTERN ScreenToClient_Type pScreenToClient DXWINITIALIZED;
-DXWEXTERN SendMessage_Type pSendMessage DXWINITIALIZED;
+DXWEXTERN SendMessage_Type pSendMessageA DXWINITIALIZED;
+DXWEXTERN SendMessage_Type pSendMessageW DXWINITIALIZED;
 DXWEXTERN SetCursor_Type pSetCursor DXWINITIALIZED;
 DXWEXTERN SetCursorPos_Type pSetCursorPos DXWINITIALIZED;
 DXWEXTERN SetTimer_Type pSetTimer DXWINITIALIZED;
@@ -254,6 +306,9 @@ DXWEXTERN SetWindowLong_Type pSetWindowLong DXWINITIALIZED;
 DXWEXTERN SetWindowPos_Type pSetWindowPos DXWINITIALIZED;
 DXWEXTERN ShowCursor_Type pShowCursor DXWINITIALIZED;
 DXWEXTERN ShowWindow_Type pShowWindow DXWINITIALIZED;
+DXWEXTERN TabbedTextOutA_Type pTabbedTextOutA DXWINITIALIZED;
+DXWEXTERN DestroyWindow_Type pDestroyWindow DXWINITIALIZED;
+DXWEXTERN CloseWindow_Type pCloseWindow DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
@@ -266,6 +321,7 @@ hook procedures (possibly more tnan one per each API...)
 // advapi32.dll
 
 extern LONG	WINAPI extRegCloseKey(HKEY);
+extern LONG	WINAPI extRegCreateKey(HKEY, LPCTSTR, PHKEY);
 extern LONG	WINAPI extRegCreateKeyEx(HKEY, LPCTSTR, DWORD, LPTSTR, DWORD, REGSAM, LPSECURITY_ATTRIBUTES, PHKEY, LPDWORD);
 extern LONG	WINAPI extRegOpenKeyEx(HKEY, LPCTSTR, DWORD, REGSAM, PHKEY);
 extern LONG	WINAPI extRegQueryValueEx(HKEY, LPCTSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
@@ -294,10 +350,12 @@ extern HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *);
 extern HDWP WINAPI extDeferWindowPos(HDWP, HWND, HWND, int, int, int, int, UINT);
 extern BOOL WINAPI extGDIDeleteDC(HDC);
 extern BOOL WINAPI extDDDeleteDC(HDC);
+extern int WINAPI extGetClipBox(HDC, LPRECT);
 extern int WINAPI extGetDeviceCaps(HDC, int);
 extern BOOL WINAPI extGetDeviceGammaRamp(HDC, LPVOID);
 extern UINT WINAPI extGetSystemPaletteEntries(HDC, UINT, UINT, LPPALETTEENTRY);
 extern BOOL WINAPI extGDIPatBlt(HDC, int, int, int, int, DWORD);
+extern BOOL WINAPI extPolyline(HDC, const POINT *, int);
 extern BOOL WINAPI extDDBitBlt(HDC, int, int, int, int, HDC, int, int, DWORD);
 extern UINT WINAPI extRealizePalette(HDC);
 extern BOOL WINAPI extRectangle(HDC, int, int, int, int);
@@ -309,9 +367,29 @@ extern COLORREF WINAPI extSetBkColor(HDC, COLORREF);
 extern BOOL WINAPI extSetDeviceGammaRamp(HDC, LPVOID);
 extern COLORREF WINAPI extSetTextColor(HDC, COLORREF);
 extern BOOL WINAPI extGDIStretchBlt(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
+extern int WINAPI extStretchDIBits(HDC, int, int, int, int, int, int, int, int, const VOID *, const BITMAPINFO *, UINT, DWORD);
 extern BOOL WINAPI extDDStretchBlt(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
-extern LONG WINAPI extTabbedTextOutA(HDC, int, int, LPCTSTR, int, int, const LPINT, int);
 extern BOOL WINAPI extTextOutA(HDC, int, int, LPCTSTR, int);
+extern BOOL WINAPI extPolyBezierTo(HDC, const POINT *, DWORD);
+extern BOOL WINAPI extPolylineTo(HDC, const POINT *, DWORD);
+extern BOOL WINAPI extPolyDraw(HDC, const POINT *, const BYTE *, int);
+extern BOOL WINAPI extMoveToEx(HDC, int, int, LPPOINT);
+extern BOOL WINAPI extArcTo(HDC, int, int, int, int, int, int, int, int);
+extern BOOL WINAPI extLineTo(HDC, int, int);
+extern int WINAPI extSetDIBitsToDevice(HDC, int, int, DWORD, DWORD, int, int, UINT, UINT, const VOID *, const BITMAPINFO *, UINT);
+extern HBITMAP WINAPI extCreateCompatibleBitmap(HDC, int, int);
+extern COLORREF WINAPI extSetPixel(HDC, int, int, COLORREF);
+extern BOOL WINAPI extEllipse(HDC, int, int, int, int);
+extern BOOL WINAPI extPolygon(HDC, const POINT *, int);
+extern BOOL WINAPI extArc(HDC, int, int, int, int, int, int, int, int);
+extern HRGN WINAPI extCreateEllipticRgn(int, int, int, int);
+extern HRGN WINAPI extCreateEllipticRgnIndirect(const RECT *);
+extern HRGN WINAPI extCreateRectRgn(int, int, int, int);
+extern HRGN WINAPI extCreateRectRgnIndirect(const RECT *);
+extern HRGN WINAPI extCreatePolygonRgn(const POINT *, int, int);
+extern int WINAPI extDrawText(HDC, LPCTSTR, int, LPRECT, UINT);
+extern int WINAPI extDrawTextEx(HDC, LPTSTR, int, LPRECT, UINT, LPDRAWTEXTPARAMS);
+extern BOOL WINAPI extMaskBlt(HDC, int, int, int, int, HDC, int, int, HBITMAP, int, int, DWORD);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -352,6 +430,7 @@ extern LRESULT WINAPI extDefWindowProc(HWND, UINT, WPARAM, LPARAM);
 extern BOOL WINAPI extEndPaint(HWND, const PAINTSTRUCT *);
 extern LONG WINAPI extEnumDisplaySettings(LPCTSTR, DWORD, DEVMODE *);
 extern int WINAPI extFillRect(HDC, const RECT *, HBRUSH);
+extern int WINAPI extFrameRect(HDC, const RECT *, HBRUSH);
 extern BOOL WINAPI extGetClientRect(HWND, LPRECT);
 extern BOOL WINAPI extGetClipCursor(LPRECT);
 extern BOOL WINAPI extGetCursorPos(LPPOINT);
@@ -382,6 +461,10 @@ extern LONG WINAPI extSetWindowLong(HWND, int, LONG);
 extern BOOL WINAPI extSetWindowPos(HWND, HWND, int, int, int, int, UINT);
 extern int WINAPI extShowCursor(BOOL);
 extern BOOL WINAPI extShowWindow(HWND, int);
+extern LONG WINAPI extTabbedTextOutA(HDC, int, int, LPCTSTR, int, int, const LPINT, int);
+extern BOOL WINAPI extDestroyWindow(HWND);
+extern BOOL WINAPI extCloseWindow(HWND);
+
 
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);

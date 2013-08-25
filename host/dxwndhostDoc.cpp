@@ -1,8 +1,6 @@
 // dxwndhostDoc.cpp : CDxwndhostDoc Define the behavior of the class.
 //
 
-#define _CRT_SECURE_NO_DEPRECATE 1
-
 #include "stdafx.h"
 #include "dxwndhost.h"
 

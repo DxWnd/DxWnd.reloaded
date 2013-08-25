@@ -602,7 +602,7 @@ HRESULT WINAPI extQueryInterfaceDProxy(void *lpdd, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 	unsigned int dxVersion;
-	OutTraceP("QueryInterface(D): PROXED lpdd=%x REFIID=%x(%s)\n", lpdd, riid.Data1, ExplainGUID((GUID *)&riid.Data1));
+	OutTraceP("QueryInterface(D): PROXED lpdd=%x REFIID=%x(%s) obp=%x\n", lpdd, riid.Data1, ExplainGUID((GUID *)&riid.Data1), *obp);
 	res = (*pQueryInterfaceD)(lpdd, riid, obp);
 	if(res) {
 		OutTraceP("QueryInterface(D): ret=%x(%s)\n", res, ExplainDDError(res));
@@ -1748,7 +1748,6 @@ static void HookDDSessionProxy(LPDIRECTDRAW *lplpdd, int dxVersion)
 HRESULT WINAPI extDirectDrawCreateProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, IUnknown FAR *pu)
 {
 	HRESULT res;
-	int DDVersion;
 
 	OutTraceP("DirectDrawCreate: PROXED guid=%x(%s)\n", 
 		lpguid, ExplainGUID(lpguid));
@@ -1759,19 +1758,26 @@ HRESULT WINAPI extDirectDrawCreateProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplp
 		return res;
 	}
 
-	DDVersion=1;
-	if (lpguid) switch (*(DWORD *)lpguid){
-		case 0x6C14DB80: DDVersion=1; break;
-		case 0xB3A6F3E0: DDVersion=2; break;
-		case 0x9c59509a: DDVersion=4; break;
-		case 0x15e65ec0: DDVersion=7; break;
+	dxw.dwDDVersion=1;
+	char *mode;
+	switch ((DWORD)lpguid){
+		case 0: mode="NULL"; break;
+		case DDCREATE_HARDWAREONLY: mode="DDCREATE_HARDWAREONLY"; break;
+		case DDCREATE_EMULATIONONLY: mode="DDCREATE_EMULATIONONLY"; break;
+		default:
+			switch (*(DWORD *)lpguid){
+				case 0x6C14DB80: dxw.dwDDVersion=1; mode="IID_IDirectDraw"; break;
+				case 0xB3A6F3E0: dxw.dwDDVersion=2; mode="IID_IDirectDraw2"; break;
+				case 0x9c59509a: dxw.dwDDVersion=4; mode="IID_IDirectDraw4"; break;
+				case 0x15e65ec0: dxw.dwDDVersion=7; mode="IID_IDirectDraw7"; break;
+				default: mode="unknown"; break;
+			}
+			break;
 	}
-
-	OutTraceP("DirectDrawCreate: lpdd=%x guid=%x DDVersion=%d\n", 
-		*lplpdd, (lpguid ? *(DWORD *)lpguid:0), DDVersion);
+	OutTraceP("DirectDrawCreateEx: lpdd=%x guid=%s DDVersion=%d\n", *lplpdd, mode, dxw.dwDDVersion);
 
 #ifdef HOOKDDRAW
-	HookDDSessionProxy(lplpdd, DDVersion);
+	HookDDSessionProxy(lplpdd, dxw.dwDDVersion);
 #endif
 	return 0;
 }
@@ -1779,31 +1785,38 @@ HRESULT WINAPI extDirectDrawCreateProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplp
 HRESULT WINAPI extDirectDrawCreateExProxy(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, REFIID RefIid, IUnknown FAR *pu)
 {
 	HRESULT res;
-	int DDVersion;
 
 	OutTraceP("DirectDrawCreateEx: PROXED guid=%x(%s) refiid=%x\n", 
 		lpguid, ExplainGUID(lpguid), RefIid);
 
-	res = (*pDirectDrawCreate)(lpguid, lplpdd, pu);
+	res = (*pDirectDrawCreateEx)(lpguid, lplpdd, RefIid, pu);
 	if(res) {
 		OutTraceP("DirectDrawCreateEx: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
 
-	DDVersion=1;
-	if (lpguid) switch (*(DWORD *)lpguid){
-		case 0x6C14DB80: DDVersion=1; break;
-		case 0xB3A6F3E0: DDVersion=2; break;
-		case 0x9c59509a: DDVersion=4; break;
-		case 0x15e65ec0: DDVersion=7; break;
+	dxw.dwDDVersion=7;
+	char *mode;
+	switch ((DWORD)lpguid){
+		case 0: mode="NULL"; break;
+		case DDCREATE_HARDWAREONLY: mode="DDCREATE_HARDWAREONLY"; break;
+		case DDCREATE_EMULATIONONLY: mode="DDCREATE_EMULATIONONLY"; break;
+		default:
+			switch (*(DWORD *)lpguid){
+				case 0x6C14DB80: dxw.dwDDVersion=1; mode="IID_IDirectDraw"; break;
+				case 0xB3A6F3E0: dxw.dwDDVersion=2; mode="IID_IDirectDraw2"; break;
+				case 0x9c59509a: dxw.dwDDVersion=4; mode="IID_IDirectDraw4"; break;
+				case 0x15e65ec0: dxw.dwDDVersion=7; mode="IID_IDirectDraw7"; break;
+				default: mode="unknown"; break;
+			}
+			break;
 	}
-
-	OutTraceP("DirectDrawCreateEx: lpdd=%x guid=%x DDVersion=%d\n", 
-		*lplpdd, (lpguid ? *(DWORD *)lpguid:0), DDVersion);
+	OutTraceP("DirectDrawCreateEx: lpdd=%x guid=%s DDVersion=%d\n", *lplpdd, mode, dxw.dwDDVersion);
 
 #ifdef HOOKDDRAW
-	HookDDSessionProxy(lplpdd, DDVersion);
+	HookDDSessionProxy(lplpdd, dxw.dwDDVersion);
 #endif
+
 	return 0;
 }
 

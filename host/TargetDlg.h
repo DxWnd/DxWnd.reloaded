@@ -106,6 +106,7 @@ public:
 	BOOL	m_CDROMDriveType;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
+	BOOL	m_DisableHAL;
 	BOOL	m_SaveCaps;
 	BOOL	m_SingleProcAffinity;
 	BOOL	m_WireFrame;

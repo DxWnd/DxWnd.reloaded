@@ -195,3 +195,21 @@ added CoCreateInstanceEx hook - "Final Fighter" seems to be using it, but who kn
 added "Don't move D3D Rendering Window" window option to make "Fable Lost Chapters" working  
 GUI:
 updated default values on new entry creation to map most-likely-to-work parameters
+
+v2.02.31
+CORE:
+disabled annoying compilation security warnings
+improved advapi32.dll hooking and logging
+handling of complex primary surfaces with backbuffer surface inherited from one directdraw session to the following and with different interfaces
+fixed SetCooperativeLevel handling in case of WINDOWED mode against desktop hwnd==NULL
+fixed GetGDISurface in EMULATED mode 
+hooked gdi32 API set for Imperialism I & II and 688 Hunter Killer:GetClipBox, Polyline, PolyBezierTo, PolylineTo, PolyDraw, MoveToEx, ArcTo, LineTo, StretchDIBits, SetDIBitsToDevice, SetPixel, Ellipse, Polygon, Arc, CreateEllipticRgn, CreateEllipticRgnIndirect, CreateRectRgn, CreateRectRgnIndirect, CreatePolygonRgn, DrawTextA, DrawTextExA.
+fixed gdi32.dll hooking for TextOutA, TabbedTextOutA, Rectangle, BitBlt, PatBlt, StretchBlt, CreateFont, CreateFontIndirect
+improved ddraw proxy logging
+added / fixed user32.dll API FrameRect, TabbedTextOutA, CloseWindow, DestroyWindow, SendMessageW
+opengl: fixed glCreateContext, wglMakeCurrent to make Descent III playable in opengl video mode.
+fixed DeferWindowPos hook to make Imperialism II working
+fixed SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN properties
+fixed window class logging causing program crash
+GUI:
+added "GDI/Scale font parameters" & "DirectX/Disable HAL support" options

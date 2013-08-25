@@ -1211,3 +1211,14 @@ char *ExplainRegType(DWORD c)
 	return "???";
 }
 
+char *ExplainDCType(DWORD c)
+{
+	char *Captions[GDI_OBJ_LAST+1]={
+		"NULL", "OBJ_PEN", "OBJ_BRUSH", "OBJ_DC", 
+		"OBJ_METADC", "OBJ_PAL", "OBJ_FONT", "OBJ_BITMAP", 
+		"OBJ_REGION", "OBJ_METAFILE", "OBJ_MEMDC", "OBJ_EXTPEN",
+		"OBJ_ENHMETADC", "OBJ_ENHMETAFILE", "OBJ_COLORSPACE"};
+
+	if (c>=0 && c<=GDI_OBJ_LAST) return Captions[c];
+	return "???";
+}

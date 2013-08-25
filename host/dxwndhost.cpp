@@ -1,8 +1,6 @@
 // dxwndhost.cpp : Application and class definitions
 //
 
-#define _CRT_SECURE_NO_DEPRECATE 1
-
 #include "stdafx.h"
 #include "dxwndhost.h"
 
