@@ -33,6 +33,7 @@ void CTabColor::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_WIREFRAME, cTarget->m_WireFrame);
 	DDX_Check(pDX, IDC_BLACKWHITE, cTarget->m_BlackWhite);
 	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
+	DDX_Check(pDX, IDC_LOCKSYSCOLORS, cTarget->m_LockSysColors);
 }
 
 BEGIN_MESSAGE_MAP(CTabColor, CDialog)

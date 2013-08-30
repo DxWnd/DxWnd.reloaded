@@ -213,3 +213,13 @@ fixed SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN properties
 fixed window class logging causing program crash
 GUI:
 added "GDI/Scale font parameters" & "DirectX/Disable HAL support" options
+
+v2.02.32
+CORE: 
+added new GDI handling mode, "Emulated devce context". Currently tested successfully on "G-Nome" only.
+fixed "Prevent maximize" windows handling avoiding to disable topmost style for child windows
+fixed handling of DDSCAPS_3DDEVICE surfaces in emulated mode: "Nightmare Ned" is working ok, "The Sims" works better (still crashing..)
+fixed banner handling in case of device context remmapped coordinates
+fixed memory leakage in SetDIBitsToDevice hooker
+GUI
+added radiobutton group to set the preferred GDI emulation mode

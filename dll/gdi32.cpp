@@ -5,17 +5,43 @@
 #include "dxhook.h"
 #include "dxhelper.h"
 
+/*
+	dlg->m_DCEmulationMode = 0;
+	if(t->flags2 & HOOKGDI) dlg->m_DCEmulationMode = 1;
+	if(t->flags3 & EMULATEDC) dlg->m_DCEmulationMode = 2;
+	if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
+*/
+
 static HookEntry_Type Hooks[]={
 	{"GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
-	{"TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
 	{"ScaleWindowExtEx", (FARPROC)ScaleWindowExtEx, (FARPROC *)&pGDIScaleWindowExtEx, (FARPROC)extScaleWindowExtEx},
-	{"Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
 	{"SaveDC", (FARPROC)SaveDC, (FARPROC *)&pGDISaveDC, (FARPROC)extGDISaveDC},
 	{"RestoreDC", (FARPROC)RestoreDC, (FARPROC *)&pGDIRestoreDC, (FARPROC)extGDIRestoreDC},
 	{"CreatePalette", (FARPROC)CreatePalette, (FARPROC *)&pGDICreatePalette, (FARPROC)extGDICreatePalette},
 	{"SelectPalette", (FARPROC)SelectPalette, (FARPROC *)&pGDISelectPalette, (FARPROC)extSelectPalette},
 	{"RealizePalette", (FARPROC)RealizePalette, (FARPROC *)&pGDIRealizePalette, (FARPROC)extRealizePalette},
 	{"GetSystemPaletteEntries", (FARPROC)GetSystemPaletteEntries, (FARPROC *)&pGDIGetSystemPaletteEntries, (FARPROC)extGetSystemPaletteEntries},
+	{"StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits},
+	//{"SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
+	//{"CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type RemapHooks[]={
+	{"SetViewportOrgEx", (FARPROC)SetViewportOrgEx, (FARPROC *)&pSetViewportOrgEx, (FARPROC)extSetViewportOrgEx}, // needed in ShowBanner
+	{"SetViewportExtEx", (FARPROC)NULL, (FARPROC *)&pSetViewportExtEx, (FARPROC)extSetViewportExtEx},
+	{"GetViewportOrgEx", (FARPROC)NULL, (FARPROC *)&pGetViewportOrgEx, (FARPROC)extGetViewportOrgEx},
+	{"GetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pGetWindowOrgEx, (FARPROC)extGetWindowOrgEx},
+	{"SetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pSetWindowOrgEx, (FARPROC)extSetWindowOrgEx},
+	{"GetCurrentPositionEx", (FARPROC)NULL, (FARPROC *)&pGetCurrentPositionEx, (FARPROC)extGetCurrentPositionEx},
+	{"StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits}, // unuseful
+	{"SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice}, // does the stretching
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type ScaledHooks[]={
+	{"Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
+	{"TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
 	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
 	{"Polyline", (FARPROC)NULL, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
 	{"PolyBezierTo", (FARPROC)NULL, (FARPROC *)&pPolyBezierTo, (FARPROC)extPolyBezierTo},
@@ -24,9 +50,6 @@ static HookEntry_Type Hooks[]={
 	{"MoveToEx", (FARPROC)NULL, (FARPROC *)&pMoveToEx, (FARPROC)extMoveToEx},
 	{"ArcTo", (FARPROC)NULL, (FARPROC *)&pArcTo, (FARPROC)extArcTo},
 	{"LineTo", (FARPROC)NULL, (FARPROC *)&pLineTo, (FARPROC)extLineTo},
-	{"StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits},
-	{"SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
-	//{"CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
 	{"SetPixel", (FARPROC)NULL, (FARPROC *)&pSetPixel, (FARPROC)extSetPixel},
 	{"Ellipse", (FARPROC)NULL, (FARPROC *)&pEllipse, (FARPROC)extEllipse},
 	{"Polygon", (FARPROC)NULL, (FARPROC *)&pPolygon, (FARPROC)extPolygon},
@@ -38,7 +61,10 @@ static HookEntry_Type Hooks[]={
 	{"CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
 	{"DrawTextA", (FARPROC)NULL, (FARPROC *)&pDrawText, (FARPROC)extDrawText},
 	{"DrawTextExA", (FARPROC)NULL, (FARPROC *)&pDrawTextEx, (FARPROC)extDrawTextEx},
-	{"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type EmulateHooks[]={
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -49,6 +75,7 @@ static HookEntry_Type DDHooks[]={
 	{"BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extDDBitBlt},
 	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extDDStretchBlt},
 	// {"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extDDPatBlt}, // missing one ...
+	// {"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -59,12 +86,11 @@ static HookEntry_Type GDIHooks[]={
 	{"BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extGDIBitBlt},
 	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extGDIStretchBlt},
 	{"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extGDIPatBlt},
+	{"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
 	{0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type EmuHooks[]={
-	//{"SetTextColor", (FARPROC)SetTextColor, (FARPROC *)&pGDISetTextColor, (FARPROC)extSetTextColor},
-	//{"SetBkColor", (FARPROC)SetBkColor, (FARPROC *)&pGDISetBkColor, (FARPROC)extSetBkColor},
 	{"CreateFontA", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
 	{"CreateFontIndirectA", (FARPROC)CreateFontIndirectA, (FARPROC *)&pGDICreateFontIndirect, (FARPROC)extCreateFontIndirect},
 	{0, NULL, 0, 0} // terminator
@@ -81,39 +107,79 @@ extern HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFI
 
 static char *libname = "gdi32.dll";
 
-void HookGDI32(HMODULE module)
-{
-	HookLibrary(module, Hooks, libname);
-	if(dxw.dwFlags1 & MAPGDITOPRIMARY)
-		HookLibrary(module, DDHooks, libname);
-	else
-		HookLibrary(module, GDIHooks, libname);
-	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC))
-		HookLibrary(module, EmuHooks, libname);
-	if(dxw.dwFlags2 & DISABLEGAMMARAMP)
-		HookLibrary(module, GammaHooks, libname);
-}
-
 void HookGDI32Init()
 {
 	HookLibInit(Hooks);
+	HookLibInit(RemapHooks);
 	HookLibInit(DDHooks);
 	HookLibInit(EmuHooks);
 	HookLibInit(GammaHooks);
 }
 
+void HookGDI32(HMODULE module)
+{
+	HookLibrary(module, Hooks, libname);
+
+	if(dxw.dwFlags1 & CLIENTREMAPPING)
+		HookLibrary(module, RemapHooks, libname);
+
+	if(dxw.dwFlags3 & EMULATEDC)
+		HookLibrary(module, EmulateHooks, libname);
+		HookLibrary(module, ScaledHooks, libname);
+		HookLibrary(module, GDIHooks, libname);
+
+	if(dxw.dwFlags2 & HOOKGDI){
+		HookLibrary(module, EmulateHooks, libname);
+		HookLibrary(module, ScaledHooks, libname);
+		HookLibrary(module, GDIHooks, libname);
+	}
+
+	if(dxw.dwFlags1 & MAPGDITOPRIMARY){
+		HookLibrary(module, EmulateHooks, libname);
+		HookLibrary(module, ScaledHooks, libname);
+		HookLibrary(module, DDHooks, libname);
+	}
+
+	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC))
+		HookLibrary(module, EmuHooks, libname);
+
+	if(dxw.dwFlags2 & DISABLEGAMMARAMP)
+		HookLibrary(module, GammaHooks, libname);
+}
+
 FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
-	if(dxw.dwFlags1 & MAPGDITOPRIMARY)
-		if(addr=RemapLibrary(proc, hModule, DDHooks)) return addr;
-	else
-		if(addr=RemapLibrary(proc, hModule, GDIHooks)) return addr;
+
+	if(addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+
+	if(dxw.dwFlags1 & CLIENTREMAPPING)
+		if(addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
+
+	if(dxw.dwFlags3 & EMULATEDC){
+		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr;
+		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;
+		if (addr=RemapLibrary(proc, hModule, GDIHooks)) return addr;
+	}
+
+	if(dxw.dwFlags2 & HOOKGDI){
+		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr;
+		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;
+		if (addr=RemapLibrary(proc, hModule, GDIHooks)) return addr;
+	}
+
+	if(dxw.dwFlags1 & MAPGDITOPRIMARY){
+		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr;
+		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;
+		if (addr=RemapLibrary(proc, hModule, DDHooks)) return addr;
+	}
+
 	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC))
 		if(addr=RemapLibrary(proc, hModule, EmuHooks)) return addr;
+
 	if(dxw.dwFlags2 & DISABLEGAMMARAMP)
 		if(addr=RemapLibrary(proc, hModule, GammaHooks)) return addr;
+
 	return NULL;
 }
 
@@ -221,21 +287,35 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 	OutTraceD("GetDeviceCaps: hdc=%x index=%x(%s) res=%x\n",
 		hdc, nindex, ExplainDeviceCaps(nindex), res);
 
+#ifdef GDIEMULATIONONLY
+	switch(nindex){
+	case VERTRES:
+		res= dxw.GetScreenHeight();
+		OutTraceD("GetDeviceCaps: fix(0) VERTRES cap=%d\n", res);
+		break;
+	case HORZRES:
+		res= dxw.GetScreenWidth();
+		OutTraceD("GetDeviceCaps: fix(0) HORZRES cap=%d\n", res);
+		break;
+	}
+	return res;
+#endif
+
 	// if you have a bypassed setting, use it first!
 	if(pSetDevMode){
 		switch(nindex){
 		case BITSPIXEL:
 		case COLORRES:
 			res = pSetDevMode->dmBitsPerPel;
-			OutTraceD("GetDeviceCaps: fix BITSPIXEL/COLORRES cap=%x\n",res);
+			OutTraceD("GetDeviceCaps: fix(1) BITSPIXEL/COLORRES cap=%x\n",res);
 			return res;
 		case HORZRES:
 			res = pSetDevMode->dmPelsWidth;
-			OutTraceD("GetDeviceCaps: fix HORZRES cap=%d\n", res);
+			OutTraceD("GetDeviceCaps: fix(1) HORZRES cap=%d\n", res);
 			return res;
 		case VERTRES:
 			res = pSetDevMode->dmPelsHeight;
-			OutTraceD("GetDeviceCaps: fix VERTRES cap=%d\n", res);
+			OutTraceD("GetDeviceCaps: fix(1) VERTRES cap=%d\n", res);
 			return res;
 		}
 	}
@@ -243,26 +323,26 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 	switch(nindex){
 	case VERTRES:
 		res= dxw.GetScreenHeight();
-		OutTraceD("GetDeviceCaps: fix VERTRES cap=%d\n", res);
+		OutTraceD("GetDeviceCaps: fix(2) VERTRES cap=%d\n", res);
 		break;
 	case HORZRES:
 		res= dxw.GetScreenWidth();
-		OutTraceD("GetDeviceCaps: fix HORZRES cap=%d\n", res);
+		OutTraceD("GetDeviceCaps: fix(2) HORZRES cap=%d\n", res);
 		break;
 	// WARNING: in no-emu mode, the INIT8BPP and INIT16BPP flags expose capabilities that
 	// are NOT implemented and may cause later troubles!
 	case RASTERCAPS:
 		if(dxw.dwFlags2 & INIT8BPP) {
 			res |= RC_PALETTE; // v2.02.12
-			OutTraceD("GetDeviceCaps: fix RASTERCAPS setting RC_PALETTE cap=%x\n",res);
+			OutTraceD("GetDeviceCaps: fix(2) RASTERCAPS setting RC_PALETTE cap=%x\n",res);
 		}
 		break;
 	case BITSPIXEL:
 	case COLORRES:
-		if(dxw.dwFlags2 & INIT8BPP|INIT16BPP){
+		if(dxw.dwFlags2 & (INIT8BPP|INIT16BPP)){ // v2.02.32 fix
 			if(dxw.dwFlags2 & INIT8BPP) res = 8;
 			if(dxw.dwFlags2 & INIT16BPP) res = 16;
-			OutTraceD("GetDeviceCaps: fix BITSPIXEL/COLORRES cap=%d\n",res);
+			OutTraceD("GetDeviceCaps: fix(2) BITSPIXEL/COLORRES cap=%d\n",res);
 		}
 		break;
 	}
@@ -272,7 +352,7 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 		case RASTERCAPS:
 			if((dxw.VirtualPixelFormat.dwRGBBitCount==8) || (dxw.dwFlags2 & INIT8BPP)){
 				res = RC_PALETTE;
-				OutTraceD("GetDeviceCaps: fix RASTERCAPS setting RC_PALETTE cap=%x\n",res);
+				OutTraceD("GetDeviceCaps: fix(3) RASTERCAPS setting RC_PALETTE cap=%x\n",res);
 			}
 			break;
 		case BITSPIXEL:
@@ -282,15 +362,15 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 			if(dxw.VirtualPixelFormat.dwRGBBitCount!=0) res = dxw.VirtualPixelFormat.dwRGBBitCount;
 			if(dxw.dwFlags2 & INIT8BPP) res = 8;
 			if(dxw.dwFlags2 & INIT16BPP) res = 16;
-			if(PrevRes != res) OutTraceD("GetDeviceCaps: fix BITSPIXEL/COLORRES cap=%d\n",res);
+			if(PrevRes != res) OutTraceD("GetDeviceCaps: fix(3) BITSPIXEL/COLORRES cap=%d\n",res);
 			break;
 		case SIZEPALETTE:
 			res = 256;
-			OutTraceD("GetDeviceCaps: fix SIZEPALETTE cap=%x\n",res);
+			OutTraceD("GetDeviceCaps: fix(3) SIZEPALETTE cap=%x\n",res);
 			break;
 		case NUMRESERVED:
 			res = 0;
-			OutTraceD("GetDeviceCaps: fix NUMRESERVED cap=%x\n",res);
+			OutTraceD("GetDeviceCaps: fix(3) NUMRESERVED cap=%x\n",res);
 			break;
 		}
 	}
@@ -317,7 +397,7 @@ BOOL WINAPI extScaleWindowExtEx(HDC hdc, int Xnum, int Xdenom, int Ynum, int Yde
 	OutTraceD("ScaleWindowExtEx: hdc=%x num=(%d,%d) denom=(%d,%d) lpSize=%d\n",
 		hdc, Xnum, Ynum, Xdenom, Ydenom, lpSize);
 
-	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()) return 1;
+	MessageBox(0, "ScaleWindowExtEx", "to fix", MB_OK | MB_ICONEXCLAMATION);
 
 	return (*pGDIScaleWindowExtEx)(hdc, Xnum, Xdenom, Ynum, Ydenom, lpSize);
 }
@@ -703,8 +783,6 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	// the screen surface later on, on ReleaseDC or ddraw Blit / Flip operation. Scaling of rect coordinates is 
 	// needed only in the first case, and must be avoided on the second, otherwise the image would be scaled twice!
 
-
-
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
 		int nWDest, nHDest;
 		nWDest= nWidth;
@@ -900,6 +978,8 @@ int WINAPI extGetClipBox(HDC hdc, LPRECT lprc)
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && (ret!=ERROR)){
 		OutTraceD("GetClipBox: scaling main win coordinates (%d,%d)-(%d,%d)\n",
 			lprc->left, lprc->top, lprc->right, lprc->bottom);
+		// current implementation is NOT accurate, since it always returns the whole
+		// virtual desktop area as the current clipbox...!!!
 		*lprc=dxw.GetScreenRect();
 	}
 	OutTraceD("GetClipBox: ret=%x(%s)\n", ret, sRetCodes[ret]);
@@ -1047,9 +1127,16 @@ int WINAPI extStretchDIBits(HDC hdc, int XDest, int YDest, int nDestWidth, int n
 	OutTraceD("StretchDIBits: hdc=%x dest=(%d,%d)-(%d,%d) src=(%d,%d)-(%d,%d) rop=%x(%s)\n", 
 		hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, dwRop, ExplainROP(dwRop));
 
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
-		dxw.MapClient(&XDest, &YDest, &nDestWidth, &nDestHeight);
-		OutTraceD("StretchDIBits: fixed dest=(%d,%d)-(%d,%d)\n", XDest, YDest, nDestWidth, nDestHeight);
+	if (dxw.IsFullScreen()){
+		if(dxw.IsVirtual(hdc)){
+			XDest+=dxw.VirtualOffsetX;
+			YDest+=dxw.VirtualOffsetY;
+			OutTraceD("StretchDIBits: fixed dest=(%d,%d)-(%d,%d)\n", XDest, YDest, nDestWidth, nDestHeight);
+		}
+		else if (OBJ_DC == GetObjectType(hdc)){
+			dxw.MapClient(&XDest, &YDest, &nDestWidth, &nDestHeight);
+			OutTraceD("StretchDIBits: fixed dest=(%d,%d)-(%d,%d)\n", XDest, YDest, nDestWidth, nDestHeight);
+		}
 	}
 
 	ret=(*pStretchDIBits)(hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, lpBits, lpBitsInfo, iUsage, dwRop);
@@ -1068,6 +1155,17 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 	OutTraceD("SetDIBitsToDevice: BitmapInfo dim=(%dx%d) Planes=%d BPP=%d Compression=%x SizeImage=%x\n",
 		bmi->biWidth, bmi->biHeight, bmi->biPlanes, bmi->biBitCount, bmi->biCompression, bmi->biSizeImage);
 
+	if (dxw.IsFullScreen() && dxw.IsVirtual(hdc)){
+		int X, Y;
+		X=XDest+dxw.VirtualOffsetX;
+		Y=YDest+dxw.VirtualOffsetY;
+		OutTraceD("SetDIBitsToDevice: virtual pos=(%d,%d)+(%d+%d)=(%d,%d)\n",
+			XDest, YDest, dxw.VirtualOffsetX, dxw.VirtualOffsetY, X, Y);
+		ret=(*pSetDIBitsToDevice)(hdc, X, Y, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
+		if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+		return ret;
+	}
+	//else
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
 		DWORD OrigWidth, OrigHeight;
 		int OrigXDest, OrigYDest;
@@ -1092,7 +1190,10 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 			OutTraceE("SetDIBitsToDevice: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 		if(!(ret=(*pGDIStretchBlt)(hdc, XDest, YDest, dwWidth, dwHeight, hTempDc, 0, 0, OrigWidth, OrigHeight, SRCCOPY)))
 			OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-		DeleteDC(hTempDc);
+		if(!(DeleteObject(hbmPic))) // v2.02.32 - avoid resource leakage
+			OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		if(!(DeleteDC(hTempDc)))
+			OutTraceE("DeleteDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	}
 	else{
 		ret=(*pSetDIBitsToDevice)(hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
@@ -1321,6 +1422,139 @@ BOOL WINAPI extMaskBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHei
 	return ret;
 }
 
+BOOL WINAPI extSetViewportOrgEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
+{
+	BOOL ret;
+	OutTraceD("SetViewportOrgEx: hdc=%x pos=(%d,%d)\n", hdc, X, Y);
+
+	if(dxw.IsVirtual(hdc)) {
+		OutTraceD("SetViewportOrgEx: virtual hdc\n");
+		dxw.VirtualOffsetX = X;
+		dxw.VirtualOffsetY = Y;
+		return TRUE;
+	}
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&X, &Y);
+		OutTraceD("SetViewportOrgEx: fixed pos=(%d,%d)\n", X, Y);
+	}
+
+	ret=(*pSetViewportOrgEx)(hdc, X, Y, lpPoint);
+	if(ret && lpPoint) {
+		OutTraceD("SetViewportOrgEx: previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+			dxw.UnmapClient(lpPoint);
+			OutTraceD("SetViewportOrgEx: fixed previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		}
+	}
+	if(!ret) OutTraceE("SetViewportOrgEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extSetViewportExtEx(HDC hdc, int nXExtent, int nYExtent, LPSIZE lpSize)
+{
+	BOOL ret;
+	OutTraceD("SetViewportExtEx: hdc=%x ext=(%d,%d)\n", hdc, nXExtent, nYExtent);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&nXExtent, &nYExtent);
+		OutTraceD("SetViewportExtEx: fixed ext=(%d,%d)\n", nXExtent, nYExtent);
+	}
+
+	ret=(*pSetViewportExtEx)(hdc, nXExtent, nYExtent, lpSize);
+	if(ret && lpSize) {
+		OutTraceD("SetViewportExtEx: previous ext=(%d,%d)\n", lpSize->cx, lpSize->cy);
+		if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+			dxw.UnmapClient((LPPOINT)lpSize);
+			OutTraceD("SetViewportExtEx: fixed previous ext=(%d,%d)\n", lpSize->cx, lpSize->cy);
+		}
+	}
+
+	if(!ret) OutTraceE("SetViewportExtEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extGetViewportOrgEx(HDC hdc, LPPOINT lpPoint)
+{
+	BOOL ret;
+	OutTraceD("GetViewportOrgEx: hdc=%x\n", hdc);
+
+	if(dxw.IsVirtual(hdc)) {
+		lpPoint->x = dxw.VirtualOffsetX;
+		lpPoint->y = dxw.VirtualOffsetY;
+		return TRUE;
+	}
+
+	ret=(*pGetViewportOrgEx)(hdc, lpPoint);
+	if(ret) {
+		OutTraceD("GetViewportOrgEx: ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+			dxw.UnmapClient(lpPoint);
+			OutTraceD("GetViewportOrgEx: fixed ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		}
+	}
+
+	if(!ret) OutTraceE("GetViewportOrgEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extGetWindowOrgEx(HDC hdc, LPPOINT lpPoint)
+{
+	BOOL ret;
+	OutTraceD("GetWindowOrgEx: hdc=%x\n", hdc);
+
+	ret=(*pGetWindowOrgEx)(hdc, lpPoint);
+	if(ret) {
+		OutTraceD("GetWindowOrgEx: ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+			dxw.UnmapClient(lpPoint);
+			OutTraceD("GetWindowOrgEx: fixed ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		}
+	}
+
+	if(!ret) OutTraceE("GetWindowOrgEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extSetWindowOrgEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
+{
+	BOOL ret;
+	OutTraceD("SetWindowOrgEx: hdc=%x pos=(%d,%d)\n", hdc, X, Y);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&X, &Y);
+		OutTraceD("SetWindowOrgEx: fixed pos=(%d,%d)\n", X, Y);
+	}
+
+	ret=(*pSetWindowOrgEx)(hdc, X, Y, lpPoint);
+	if(ret && lpPoint) {
+		OutTraceD("SetWindowOrgEx: previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+			dxw.UnmapClient(lpPoint);
+			OutTraceD("SetWindowOrgEx: fixed previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		}
+	}
+	if(!ret) OutTraceE("SetWindowOrgEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extGetCurrentPositionEx(HDC hdc, LPPOINT lpPoint)
+{
+	BOOL ret;
+	OutTraceD("GetCurrentPositionEx: hdc=%x\n", hdc);
+
+	ret=(*pGetCurrentPositionEx)(hdc, lpPoint);
+	if(ret) {
+		OutTraceD("GetCurrentPositionEx: pos=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+			dxw.UnmapClient(lpPoint);
+			OutTraceD("GetCurrentPositionEx: fixed pos=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		}
+	}
+	if(!ret) OutTraceE("GetCurrentPositionEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
 #if 0
 // to map:
 // GetCurrentPositionEx
@@ -1332,6 +1566,7 @@ BOOL WINAPI extMaskBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHei
 // OffsetWindowOrgEx
 // TransparentBlt
 // to do: eliminate FIXTEXTOUT handling
+// GetDCEx
 
 BOOL SetTextJustification(
   _In_  HDC hdc,

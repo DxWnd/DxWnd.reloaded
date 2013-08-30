@@ -27,6 +27,7 @@ dxwCore::dxwCore()
 	//IsWithinDDraw = FALSE;
 	IsGDIPalette = FALSE;
 	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
+	ResetEmulatedDC();
 }
 
 dxwCore::~dxwCore()
@@ -419,6 +420,28 @@ void dxwCore::MapClient(int *nXDest, int *nYDest)
 	h = client.bottom ? client.bottom : iSizY;
 	*nXDest= *nXDest * w / (int)dwScreenWidth;
 	*nYDest= *nYDest * h / (int)dwScreenHeight;
+}
+
+void dxwCore::UnmapClient(LPPOINT lppoint)
+{
+	RECT client;
+	int w, h;
+	(*pGetClientRect)(hWnd, &client);
+	w = client.right ? client.right : iSizX;
+	h = client.bottom ? client.bottom : iSizY;
+	lppoint->x = (lppoint->x * (int)dwScreenWidth) / w;
+	lppoint->y = (lppoint->y * (int)dwScreenHeight) / h;
+}
+
+void dxwCore::UnmapClient(int *nXDest, int *nYDest)
+{
+	RECT client;
+	int w, h;
+	(*pGetClientRect)(hWnd, &client);
+	w = client.right ? client.right : iSizX;
+	h = client.bottom ? client.bottom : iSizY;
+	*nXDest= *nXDest * (int)dwScreenWidth / w;
+	*nYDest= *nYDest * (int)dwScreenHeight / h;
 }
 
 void dxwCore::MapWindow(LPRECT rect)
@@ -837,10 +860,12 @@ void dxwCore::ShowBanner(HWND hwnd)
 	HDC hClientDC;
 	HBITMAP g_hbmBall;
 	RECT client;
+	RECT win;
+	POINT PrevViewPort;
 
-	hClientDC=GetDC(hwnd);
+	hClientDC=(*pGDIGetDC)(hwnd);
 	(*pGetClientRect)(hwnd, &client);
-	BitBlt(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
+	(*pGDIBitBlt)(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
 
 	if(JustOnce || (dwFlags2 & NOBANNER)) return;
 	JustOnce=TRUE;
@@ -849,21 +874,29 @@ void dxwCore::ShowBanner(HWND hwnd)
     HDC hdcMem = CreateCompatibleDC(hClientDC);
     HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, g_hbmBall);
     GetObject(g_hbmBall, sizeof(bm), &bm);
+
+	(*pGetWindowRect)(hwnd, &win);
+	OutTraceD("ShowBanner: hdc=%x win=(%d,%d)-(%d,%d) banner size=(%dx%d)\n", 
+		hwnd, win.left, win.top, win.right, win.bottom, bm.bmWidth, bm.bmHeight);
+
+	//if(!pSetViewportOrgEx) pSetViewportOrgEx=SetViewportOrgEx;
+	(*pSetViewportOrgEx)(hClientDC, 0, 0, &PrevViewPort);
 	for (int i=1; i<=16; i++){
 		int w, h;
 		w=(bm.bmWidth*i)/8;
 		h=(bm.bmHeight*i)/8;
-		StretchBlt(hClientDC, (client.right-w)/2, (client.bottom-h)/2, w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
+		(*pGDIStretchBlt)(hClientDC, (client.right-w)/2, (client.bottom-h)/2, w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
 		Sleep(40);
 	}
 	for (int i=16; i>=8; i--){
 		int w, h;
 		w=(bm.bmWidth*i)/8;
 		h=(bm.bmHeight*i)/8;
-		BitBlt(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
-		StretchBlt(hClientDC, (client.right-w)/2, (client.bottom-h)/2, w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
+		(*pGDIBitBlt)(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
+		(*pGDIStretchBlt)(hClientDC, (client.right-w)/2, (client.bottom-h)/2, w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
 		Sleep(40);
 	}
+	(*pSetViewportOrgEx)(hClientDC, PrevViewPort.x, PrevViewPort.y, NULL);
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
 	Sleep(200);
@@ -956,7 +989,7 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
 				lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 		}
-		if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
+		if ((dxw.dwFlags1 & PREVENTMAXIMIZE) && (hwnd==hWnd)){ // disable maximize settings
 			if (lpSS->styleNew & WS_EX_TOPMOST){
 				OutTraceD("%s: prevent EXSTYLE topmost style\n", ApiName);
 				lpSS->styleNew &= ~WS_EX_TOPMOST;
@@ -966,4 +999,56 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 	default:
 		break;
 	}
+}
+
+HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
+{
+	HDC wdc;
+	if(!(wdc=(*pGDIGetDC)(hwnd)))
+	OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	if(!VirtualHDC){ // or resolution changed and you must rebuild a new one .... !!!!!
+		if(!(VirtualHDC=CreateCompatibleDC(wdc)))
+			OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		if(!VirtualPic){
+			if(!(VirtualPic=CreateCompatibleBitmap(wdc, dxw.GetScreenWidth(), dxw.GetScreenHeight())))
+				OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		}
+		if(!SelectObject(VirtualHDC, VirtualPic)){
+			if(!DeleteObject(VirtualPic))
+				OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+			if(!(VirtualPic=CreateCompatibleBitmap(wdc, dxw.GetScreenWidth(), dxw.GetScreenHeight())))
+				OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+			if(!SelectObject(VirtualHDC, VirtualPic))
+				OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		}
+	}
+	return VirtualHDC;
+}
+
+BOOL dxwCore::ReleaseEmulatedDC(HWND hwnd)
+{
+	BOOL ret;
+	HDC wdc;
+	RECT client;
+	(*pGetClientRect)(hwnd, &client);
+	if(!(wdc=(*pGDIGetDC)(hwnd)))
+		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	if(!(*pGDIStretchBlt)(wdc, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), SRCCOPY))
+		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	(*pInvalidateRect)(hwnd, NULL, 0);
+	ret=TRUE;
+	return ret;
+}
+
+void dxwCore::ResetEmulatedDC()
+{
+	VirtualHDC=NULL;
+	VirtualPic=NULL;
+	VirtualOffsetX=0;
+	VirtualOffsetY=0;
+}
+
+BOOL dxwCore::IsVirtual(HDC hdc)
+{
+	return (hdc==VirtualHDC) && (dwFlags3 & EMULATEDC);
 }

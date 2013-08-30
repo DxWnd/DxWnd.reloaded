@@ -36,6 +36,8 @@ public: // methods
 	void MapClient(LPRECT);
 	void MapClient(int *, int *, int *, int *);
 	void MapClient(int *, int *);
+	void UnmapClient(LPPOINT);
+	void UnmapClient(int *, int *);
 	void MapWindow(LPPOINT);
 	void MapWindow(LPRECT);
 	void MapWindow(int *, int *, int *, int *);
@@ -67,6 +69,11 @@ public: // methods
 	POINT ScreenToClient(POINT);
 	int GetDLLIndex(char *);
 	void FixStyle(char *, HWND, WPARAM, LPARAM);
+	HDC AcquireEmulatedDC(HWND);
+	BOOL ReleaseEmulatedDC(HWND);
+	BOOL IsVirtual(HDC);
+	void ResetEmulatedDC();
+	int VirtualOffsetX, VirtualOffsetY;
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;
@@ -109,6 +116,8 @@ protected:
 	BOOL FullScreen;
 	HWND hWnd, hWndFPS;
 	DWORD PrimSurfaces[DDSQLEN+1];
+	HDC VirtualHDC;
+	HBITMAP VirtualPic;
 };
 
 extern dxwCore dxw;

@@ -82,6 +82,12 @@ typedef HRGN	(WINAPI *CreatePolygonRgn_Type)(const POINT *, int, int);
 typedef int		(WINAPI *DrawText_Type)(HDC, LPCTSTR, int, LPRECT, UINT);
 typedef int		(WINAPI *DrawTextEx_Type)(HDC, LPTSTR, int, LPRECT, UINT, LPDRAWTEXTPARAMS);
 typedef BOOL	(WINAPI *MaskBlt_Type)(HDC, int, int, int, int, HDC, int, int, HBITMAP, int, int, DWORD);
+typedef BOOL	(WINAPI *SetViewportOrgEx_Type)(HDC, int, int, LPPOINT);
+typedef BOOL	(WINAPI *SetViewportExtEx_Type)(HDC, int, int, LPSIZE);
+typedef BOOL	(WINAPI *GetViewportOrgEx_Type)(HDC, LPPOINT);
+typedef BOOL	(WINAPI *GetWindowOrgEx_Type)(HDC, LPPOINT);
+typedef BOOL	(WINAPI *SetWindowOrgEx_Type)(HDC, int, int, LPPOINT);
+typedef BOOL	(WINAPI *GetCurrentPositionEx_Type)(HDC, LPPOINT);
 
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -151,6 +157,8 @@ typedef BOOL	(WINAPI *ShowWindow_Type)(HWND, int);
 typedef LONG	(WINAPI *TabbedTextOutA_Type)(HDC, int, int, LPCTSTR, int, int, const LPINT, int);
 typedef BOOL	(WINAPI *DestroyWindow_Type)(HWND);
 typedef BOOL	(WINAPI *CloseWindow_Type)(HWND);
+typedef BOOL	(WINAPI *SetSysColors_Type)(int, const INT *, const COLORREF *);
+typedef HDC		(WINAPI *GetDCEx_Type)(HWND, HRGN, DWORD);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -239,6 +247,12 @@ DXWEXTERN CreatePolygonRgn_Type pCreatePolygonRgn DXWINITIALIZED;
 DXWEXTERN DrawText_Type pDrawText DXWINITIALIZED;
 DXWEXTERN DrawTextEx_Type pDrawTextEx DXWINITIALIZED;
 DXWEXTERN MaskBlt_Type pMaskBlt DXWINITIALIZED;
+DXWEXTERN SetViewportOrgEx_Type pSetViewportOrgEx DXWINITIALIZED;
+DXWEXTERN SetViewportExtEx_Type pSetViewportExtEx DXWINITIALIZED;
+DXWEXTERN GetViewportOrgEx_Type pGetViewportOrgEx DXWINITIALIZED;
+DXWEXTERN GetWindowOrgEx_Type pGetWindowOrgEx DXWINITIALIZED;
+DXWEXTERN SetWindowOrgEx_Type pSetWindowOrgEx DXWINITIALIZED;
+DXWEXTERN GetCurrentPositionEx_Type pGetCurrentPositionEx DXWINITIALIZED;
 
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
@@ -309,6 +323,8 @@ DXWEXTERN ShowWindow_Type pShowWindow DXWINITIALIZED;
 DXWEXTERN TabbedTextOutA_Type pTabbedTextOutA DXWINITIALIZED;
 DXWEXTERN DestroyWindow_Type pDestroyWindow DXWINITIALIZED;
 DXWEXTERN CloseWindow_Type pCloseWindow DXWINITIALIZED;
+DXWEXTERN SetSysColors_Type pSetSysColors DXWINITIALIZED;
+DXWEXTERN GetDCEx_Type pGDIGetDCEx DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
@@ -390,6 +406,12 @@ extern HRGN WINAPI extCreatePolygonRgn(const POINT *, int, int);
 extern int WINAPI extDrawText(HDC, LPCTSTR, int, LPRECT, UINT);
 extern int WINAPI extDrawTextEx(HDC, LPTSTR, int, LPRECT, UINT, LPDRAWTEXTPARAMS);
 extern BOOL WINAPI extMaskBlt(HDC, int, int, int, int, HDC, int, int, HBITMAP, int, int, DWORD);
+extern BOOL WINAPI extSetViewportOrgEx(HDC, int, int, LPPOINT);
+extern BOOL WINAPI extSetViewportExtEx(HDC, int, int, LPSIZE);
+extern BOOL WINAPI extGetViewportOrgEx(HDC, LPPOINT);
+extern BOOL WINAPI extGetWindowOrgEx(HDC, LPPOINT);
+extern BOOL WINAPI extSetWindowOrgEx(HDC, int, int, LPPOINT);
+extern BOOL WINAPI extGetCurrentPositionEx(HDC, LPPOINT);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -464,6 +486,8 @@ extern BOOL WINAPI extShowWindow(HWND, int);
 extern LONG WINAPI extTabbedTextOutA(HDC, int, int, LPCTSTR, int, int, const LPINT, int);
 extern BOOL WINAPI extDestroyWindow(HWND);
 extern BOOL WINAPI extCloseWindow(HWND);
+extern BOOL WINAPI extSetSysColors(int, const INT *, const COLORREF *);
+extern HDC WINAPI extGDIGetDCEx(HWND, HRGN, DWORD);
 
 
 // Winmm.dll:

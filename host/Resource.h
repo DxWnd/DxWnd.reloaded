@@ -93,7 +93,6 @@
 #define IDC_SIZY                        1049
 #define IDC_HOOKCHILDWIN                1050
 #define IDC_MESSAGEPROC                 1051
-#define IDC_MAPGDITOPRIMARY             1052
 #define IDC_RECOVERSCREENMODE           1053
 #define IDC_REFRESHONRESIZE             1054
 #define IDC_BACKBUFATTACH               1055
@@ -107,7 +106,6 @@
 #define IDC_CURSORTRACE                 1063
 #define IDC_IMPORTTABLE                 1064
 #define IDC_HANDLEEXCEPTIONS            1065
-#define IDC_IMPORTTABLE2                1065
 #define IDC_BLITFROMBACKBUFFER          1066
 #define IDC_OUTDEBUG                    1067
 #define IDC_SUPPRESSCLIPPING            1068
@@ -160,6 +158,11 @@
 #define IDC_OUTREGISTRY                 1115
 #define IDC_NOWINDOWMOVE                1116
 #define IDC_DISABLEHAL                  1117
+#define IDC_LOCKSYSCOLORS               1118
+#define IDC_GDINONE                     1119
+#define IDC_GDISCALED                   1120
+#define IDC_EMULATEDC                   1121
+#define IDC_MAPGDITOPRIMARY             1122
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -209,7 +212,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        156
 #define _APS_NEXT_COMMAND_VALUE         32825
-#define _APS_NEXT_CONTROL_VALUE         1091
+#define _APS_NEXT_CONTROL_VALUE         1092
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

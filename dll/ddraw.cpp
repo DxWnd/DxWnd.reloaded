@@ -763,23 +763,24 @@ int lpddHookedVersion(LPDIRECTDRAW lpdd)
 
 /* ------------------------------------------------------------------ */
 
-static void DumpPixFmt(LPDDSURFACEDESC2 lpdd)
+static void DumpPixFmt(LPDDSURFACEDESC2 lpdds)
 {
 	OutTraceD("PixFmt: Size=%x Flags=%x(%s) FourCC=%x RGBBitCount=%d RGBA BitMask=(%x,%x,%x,%x)\n", 
-	lpdd->ddpfPixelFormat.dwSize,
-	lpdd->ddpfPixelFormat.dwFlags, ExplainPixelFormatFlags(lpdd->ddpfPixelFormat.dwFlags),
-	lpdd->ddpfPixelFormat.dwFourCC,
-	lpdd->ddpfPixelFormat.dwRGBBitCount,
-	lpdd->ddpfPixelFormat.dwRBitMask,
-	lpdd->ddpfPixelFormat.dwGBitMask,
-	lpdd->ddpfPixelFormat.dwBBitMask,
-	lpdd->ddpfPixelFormat.dwRGBAlphaBitMask);
+	lpdds->ddpfPixelFormat.dwSize,
+	lpdds->ddpfPixelFormat.dwFlags, ExplainPixelFormatFlags(lpdds->ddpfPixelFormat.dwFlags),
+	lpdds->ddpfPixelFormat.dwFourCC,
+	lpdds->ddpfPixelFormat.dwRGBBitCount,
+	lpdds->ddpfPixelFormat.dwRBitMask,
+	lpdds->ddpfPixelFormat.dwGBitMask,
+	lpdds->ddpfPixelFormat.dwBBitMask,
+	lpdds->ddpfPixelFormat.dwRGBAlphaBitMask);
 }
 
 static char *SetPixFmt(LPDDSURFACEDESC2 lpdd)
 {
 	char *pfstr;
 	OutTraceD("SetPixFmt: BPP=%d Use565=%d\n", dxw.VirtualPixelFormat.dwRGBBitCount, dxw.dwFlags1 & USERGB565 ? 1:0);
+
 	memset(&lpdd->ddpfPixelFormat,0,sizeof(DDPIXELFORMAT));
 	lpdd->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	lpdd->ddpfPixelFormat.dwRGBBitCount = dxw.ActualPixelFormat.dwRGBBitCount;
@@ -1652,7 +1653,7 @@ HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 	lpddsd->dwHeight = dxw.GetScreenHeight();
 
 	// v2.1.96: fake screen color depth
-	if(dxw.dwFlags2 & INIT8BPP|INIT16BPP){
+	if(dxw.dwFlags2 & (INIT8BPP|INIT16BPP)){ // v2.02.32 fix
 		if(dxw.dwFlags2 & INIT8BPP) FixPixelFormat(8, &lpddsd->ddpfPixelFormat);
 		if(dxw.dwFlags2 & INIT16BPP) FixPixelFormat(16, &lpddsd->ddpfPixelFormat);
 		OutTraceD("GetDisplayMode: fix RGBBitCount=%d\n", lpddsd->ddpfPixelFormat.dwRGBBitCount);
@@ -1815,6 +1816,20 @@ static char *FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd)
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY:
 			// Alien Nations
 			OutTrace("FixSurfaceCaps: Alien Nations (1)\n");
+			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
+			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+			return SetPixFmt(lpddsd);
+			break;
+		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE:
+			// Nightmare Ned
+			OutTrace("FixSurfaceCaps: Nightmare Ned\n");
+			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
+			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+			return SetPixFmt(lpddsd);
+			break;
+		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_SYSTEMMEMORY:
+			// Nightmare Ned
+			OutTrace("FixSurfaceCaps: The Sims\n");
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
 			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
 			return SetPixFmt(lpddsd);
@@ -1999,7 +2014,9 @@ HRESULT WINAPI extCreateSurfaceEmu(int dxversion, CreateSurface_Type pCreateSurf
 			res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
 			if(res==DDERR_PRIMARYSURFACEALREADYEXISTS){
 				OutTraceD("CreateSurface: ASSERT DDSEmu_Prim already exists\n");
-				res=(*pGetGDISurface)(lpdd, &lpDDSEmu_Prim);
+				res=(*pGetGDISurface)(lpdd, &lpDDSEmu_Prim); // ok only if the oprevious surface has the good properties!!!
+				//while((*pReleaseS)(lpDDSEmu_Prim));
+				//res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
 			}
 			if(res){
 				OutTraceE("CreateSurface: CreateSurface ERROR on DDSEmu_Prim res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);

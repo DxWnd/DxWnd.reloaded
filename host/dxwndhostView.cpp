@@ -121,6 +121,15 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags |= LOCKEDSURFACE; break;
 		case 3: t->flags |= EMULATESURFACE; break;
 	}
+	t->flags2 &= ~HOOKGDI;
+	t->flags &= ~MAPGDITOPRIMARY;
+	t->flags3 &= ~EMULATEDC;
+	switch(dlg->m_DCEmulationMode){
+		case 0: break;
+		case 1: t->flags2 |= HOOKGDI; break;
+		case 2: t->flags3 |= EMULATEDC; break;
+		case 3: t->flags |= MAPGDITOPRIMARY; break;
+	}
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_OutTrace) t->tflags |= OUTDDRAWTRACE;
@@ -141,6 +150,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_DisableHAL) t->flags3 |= DISABLEHAL;
+	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
 	if(dlg->m_SaveCaps) t->flags3 |= SAVECAPS;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
@@ -163,14 +173,12 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_MarkBlit) t->flags3 |= MARKBLIT;
 	if(dlg->m_PreventMaximize) t->flags |= PREVENTMAXIMIZE;
 	if(dlg->m_ClientRemapping) t->flags |= CLIENTREMAPPING;
-	if(dlg->m_MapGDIToPrimary) t->flags |= MAPGDITOPRIMARY;
 	if(dlg->m_LockWinPos) t->flags |= LOCKWINPOS;
 	if(dlg->m_LockWinStyle) t->flags |= LOCKWINSTYLE;
 	if(dlg->m_FixParentWin) t->flags |= FIXPARENTWIN;
 	if(dlg->m_ModalStyle) t->flags2 |= MODALSTYLE;
 	if(dlg->m_KeepAspectRatio) t->flags2 |= KEEPASPECTRATIO;
 	if(dlg->m_ForceWinResize) t->flags2 |= FORCEWINRESIZE;
-	if(dlg->m_HookGDI) t->flags2 |= HOOKGDI;
 	if(dlg->m_HideMultiMonitor) t->flags2 |= HIDEMULTIMONITOR;
 	if(dlg->m_WallpaperMode) t->flags2 |= WALLPAPERMODE;
 	if(dlg->m_FixD3DFrame) t->flags3 |= FIXD3DFRAME;
@@ -235,6 +243,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 2;
 	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 3;
 
+	dlg->m_DCEmulationMode = 0;
+	if(t->flags2 & HOOKGDI) dlg->m_DCEmulationMode = 1;
+	if(t->flags3 & EMULATEDC) dlg->m_DCEmulationMode = 2;
+	if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
+
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_OutTrace = t->tflags & OUTDDRAWTRACE ? 1 : 0;
@@ -253,6 +266,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_DisableHAL = t->flags3 & DISABLEHAL ? 1 : 0;
+	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
 	dlg->m_SaveCaps = t->flags3 & SAVECAPS ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
@@ -277,14 +291,12 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_MarkBlit = t->flags3 & MARKBLIT ? 1 : 0;
 	dlg->m_PreventMaximize = t->flags & PREVENTMAXIMIZE ? 1 : 0;
 	dlg->m_ClientRemapping = t->flags & CLIENTREMAPPING ? 1 : 0;
-	dlg->m_MapGDIToPrimary = t->flags & MAPGDITOPRIMARY ? 1 : 0;
 	dlg->m_LockWinPos = t->flags & LOCKWINPOS ? 1 : 0;
 	dlg->m_LockWinStyle = t->flags & LOCKWINSTYLE ? 1 : 0;
 	dlg->m_FixParentWin = t->flags & FIXPARENTWIN ? 1 : 0;
 	dlg->m_ModalStyle = t->flags2 & MODALSTYLE ? 1 : 0;
 	dlg->m_KeepAspectRatio = t->flags2 & KEEPASPECTRATIO ? 1 : 0;
 	dlg->m_ForceWinResize = t->flags2 & FORCEWINRESIZE ? 1 : 0;
-	dlg->m_HookGDI = t->flags2 & HOOKGDI ? 1 : 0;
 	dlg->m_HideMultiMonitor = t->flags2 & HIDEMULTIMONITOR ? 1 : 0;
 	dlg->m_WallpaperMode = t->flags2 & WALLPAPERMODE ? 1 : 0;
 	dlg->m_FixD3DFrame = t->flags3 & FIXD3DFRAME ? 1 : 0;

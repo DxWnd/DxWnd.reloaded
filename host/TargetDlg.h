@@ -26,6 +26,7 @@ public:
 	int		m_DXVersion;
 	int		m_Coordinates;
 	int		m_DxEmulationMode;
+	int		m_DCEmulationMode;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
 	BOOL	m_OutTrace;
@@ -70,14 +71,12 @@ public:
 	BOOL	m_MarkBlit;
 	BOOL	m_PreventMaximize;
 	BOOL	m_ClientRemapping;
-	BOOL	m_MapGDIToPrimary;
 	BOOL	m_LockWinPos;
 	BOOL	m_LockWinStyle;
 	BOOL	m_FixParentWin;
 	BOOL	m_ModalStyle;
 	BOOL	m_KeepAspectRatio;
 	BOOL	m_ForceWinResize;
-	BOOL	m_HookGDI;
 	BOOL	m_HideMultiMonitor;
 	BOOL	m_WallpaperMode;
 	BOOL	m_FixD3DFrame;
@@ -107,6 +106,7 @@ public:
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_DisableHAL;
+	BOOL	m_LockSysColors;
 	BOOL	m_SaveCaps;
 	BOOL	m_SingleProcAffinity;
 	BOOL	m_WireFrame;

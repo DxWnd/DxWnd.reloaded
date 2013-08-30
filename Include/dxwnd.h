@@ -93,6 +93,8 @@
 #define CDROMDRIVETYPE		0x00000800 // Pretends that GetDriveType() always returns DRIVE_CDROM
 #define NOWINDOWMOVE		0x00001000 // Do not try to update window position & size on D3D rendering
 #define DISABLEHAL			0x00002000 // Disable HAL support (IID_IDirect3DHALDevice)
+#define LOCKSYSCOLORS		0x00004000 // Lock Sys Colors changes by SetSysColors() call
+#define EMULATEDC			0x00008000 // ........
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

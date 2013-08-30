@@ -57,11 +57,11 @@ static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
 	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
-	"NOWINDOWMOVE", "Flag3:14", "Flag3:15", "Flag3:16",
-	"", "", "", "",
-	"", "", "", "",
-	"", "", "", "",
-	"", "", "", "",
+	"NOWINDOWMOVE", "DISABLEHAL", "LOCKSYSCOLORS", "EMULATEDC",
+	"Flags3:17", "Flags3:18", "Flags3:19", "Flags3:20",
+	"Flags3:21", "Flags3:22", "Flags3:23", "Flags3:24",
+	"Flags3:25", "Flags3:26", "Flags3:27", "Flags3:28",
+	"Flags3:29", "Flags3:30", "Flags3:31", "Flags3:32",
 };
 
 static char *Flag4Names[32]={
@@ -937,10 +937,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_WINDOWPOSCHANGING:
-		dxwFixWindowPos("WindowProc", hwnd, lparam);
-		break;
 	case WM_WINDOWPOSCHANGED:
+		LPWINDOWPOS wp;
+		wp = (LPWINDOWPOS)lparam;
 		dxwFixWindowPos("WindowProc", hwnd, lparam);
+		OutTraceD("WindowProc: WM_WINDOWPOSCHANGING fixed size=(%d,%d)\n", wp->cx, wp->cy);
 		break;
 	case WM_ENTERSIZEMOVE:
 		while((*pShowCursor)(1) < 0);
@@ -1245,7 +1246,7 @@ void HookModule(HMODULE base, int dxversion)
 	HookOle32(base);
 	HookWinMM(base);
 	//if(dxw.dwFlags2 & SUPPRESSIME) HookImeLib(module);
-	if(dxw.dwFlags2 & HOOKGDI) HookGDI32(base);
+	HookGDI32(base);
 	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base, dxversion);
 	HookDirectDraw(base, dxversion);
 	HookDirect3D(base, dxversion);
