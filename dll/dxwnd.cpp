@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.33"
+#define VERSION "2.02.34"
 
 #define DDTHREADLOCK 1
 
@@ -32,6 +32,7 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam);
 
 HINSTANCE hInst;
 HHOOK hHook;
+HHOOK hMouseHook;
 HANDLE hMapping;
 TARGETMAP *pMapping;
 DXWNDSTATUS *pStatus;
@@ -111,6 +112,7 @@ int StartHook(void)
 int EndHook(void)
 {
 	UnhookWindowsHookEx(hHook);
+	UnhookWindowsHookEx(hMouseHook);
 	HookStatus=DXW_IDLE;
 	return 0;
 }

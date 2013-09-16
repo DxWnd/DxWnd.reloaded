@@ -105,6 +105,7 @@ public:
 	BOOL	m_LimitResources;
 	BOOL	m_CDROMDriveType;
 	BOOL	m_FontBypass;
+	BOOL	m_BufferedIOFix;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_DisableHAL;

@@ -627,21 +627,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		RECT workarea;
 		GetClassName(dxw.GethWnd(), ClassName, 80);
 		(*pGetClientRect)(dxw.GethWnd(), &workarea);
-		if ((dxw.dwFlags2 & KEEPASPECTRATIO) && (dxw.Coordinates == DXW_DESKTOP_WORKAREA)) {
-			int w, h, b; // width, height and border
-			w = workarea.right - workarea.left;
-			h = workarea.bottom - workarea.top;
-			if ((w * 600) > (h * 800)){
-				b = (w - (h * 800 / 600))/2;
-				workarea.left += b;
-				workarea.right -= b;
-			}
-			else {
-				b = (h - (w * 600 / 800))/2;
-				workarea.top += b;
-				workarea.bottom -= b;
-			}
-		}
+		if (dxw.dwFlags2 & KEEPASPECTRATIO) dxw.FixWorkarea(&workarea);
 		hfocuswindow=(*pCreateWindowExA)(
 			0, ClassName, "child", 
 			WS_CHILD|WS_VISIBLE, 

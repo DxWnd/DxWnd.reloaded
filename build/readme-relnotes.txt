@@ -241,6 +241,19 @@ GUI
 added controls for new core features
 defaulted ddraw emulation mode to surface emulation
 
+v2.02.34
+CORE:
+Much better surface description in log
+Completely revised CreateSurface hook: emulated and direct code are merged as much as possible, and reference counter are kept accurate. Now most games can work both in emulated and direct mode.
+Fixed surface capabilities for "Vangers", "The Sims" (now working in emulated mode again)
+Updated "Fixed aspect ratio" option: now uses the x,y size declared in the configuration instead of the fixed 800 x 600 standard one.
+Added virtual fullscreen "Desktop" mode.
+Completely revised the Peek/GetMessage handling: now it uses the standard SetWindowHook API instead of the address redirection, making the handling more reliable and accurate: now "Age of Empires III" works at last!
+GUI:
+Added virtual fullscreen "Desktop" mode.
+Added "Fix buffered IO after Win98" flag: this is meant to fix an incompatibility in the ReadFile kernel32 API that must read from block boundaries, where a block was smaller up to Win98 and bigger after it.
+As a result, games like "Dylan Dog Horror Luna Park" show IO errors while reading data from the CD. Unfortunately, this is not the only problem of this game, so Dylan Dog fans will have to wait further.
+Maybe some other programs suffer of this problem, and I will strongly appreciate if anyone finds some.
 
 
 

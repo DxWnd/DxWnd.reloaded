@@ -99,6 +99,7 @@
 #define FONTBYPASS			0x00020000 // bypass font unsupported API
 #define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
 #define RGB2YUV				0x00080000 // Simulate RGB to YUV color conversion
+#define BUFFEREDIOFIX		0x00100000 // fix buffered IO incompatibilities between pre-Win98 and post-WinNT
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -203,6 +204,7 @@ extern WNDPROC WhndGetWindowProc(HWND );
 
 typedef enum {
 	DXW_SET_COORDINATES = 0,
+	DXW_DESKTOP_CENTER,
 	DXW_DESKTOP_WORKAREA,
-	DXW_DESKTOP_CENTER
+	DXW_DESKTOP_FULL
 } Coordinates_Types;

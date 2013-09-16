@@ -74,8 +74,14 @@ static HookEntry_Type RemapHooks[]={
 };
 
 static HookEntry_Type MessageHooks[]={
-	{"PeekMessageA", (FARPROC)PeekMessageA, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
-	{"GetMessageA", (FARPROC)GetMessageA, (FARPROC *)&pGetMessage, (FARPROC)extGetMessage},
+	//{"PeekMessageA", (FARPROC)PeekMessageA, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
+	//{"GetMessageA", (FARPROC)GetMessageA, (FARPROC *)&pGetMessage, (FARPROC)extGetMessage},
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type PeekAllHooks[]={
+	{"PeekMessageA", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekAnyMessage},
+	{"PeekMessageW", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekAnyMessage},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -112,14 +118,17 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if (addr=RemapLibrary(proc, hModule, (dxw.dwFlags1 & MAPGDITOPRIMARY) ? DDHooks : GDIHooks)) return addr;
 	if (dxw.dwFlags1 & CLIENTREMAPPING) 
 		if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
-	if (dxw.dwFlags1 & MESSAGEPROC) 
-		if (addr=RemapLibrary(proc, hModule, MessageHooks)) return addr;
+	// commented out since message processing was given to SetWindowHook callback
+	// if (dxw.dwFlags1 & MESSAGEPROC) 
+	//	if (addr=RemapLibrary(proc, hModule, MessageHooks)) return addr;
 	if(dxw.dwFlags1 & MODIFYMOUSE)
 		if (addr=RemapLibrary(proc, hModule, MouseHooks)) return addr;
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))
 		if (addr=RemapLibrary(proc, hModule, WinHooks)) return addr;
 	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED))
 		if (addr=RemapLibrary(proc, hModule, MouseHooks2)) return addr;
+	if(FALSE)
+		if (addr=RemapLibrary(proc, hModule, PeekAllHooks)) return addr;
 	return NULL;
 }
 
@@ -132,10 +141,11 @@ void HookUser32(HMODULE hModule)
 		HookLibrary(hModule, EmulateHooks, libname);
 	HookLibrary(hModule, (dxw.dwFlags1 & MAPGDITOPRIMARY) ? DDHooks : GDIHooks, libname);
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibrary(hModule, RemapHooks, libname);
-	if (dxw.dwFlags1 & MESSAGEPROC) HookLibrary(hModule, MessageHooks, libname);
+	//if (dxw.dwFlags1 & MESSAGEPROC) HookLibrary(hModule, MessageHooks, libname);
 	if(dxw.dwFlags1 & MODIFYMOUSE)HookLibrary(hModule, MouseHooks, libname);
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))HookLibrary(hModule, WinHooks, libname);
 	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibrary(hModule, MouseHooks2, libname);
+	if(FALSE) HookLibrary(hModule, PeekAllHooks, libname);
 	return;
 }
 
@@ -770,6 +780,28 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 	return res;
 }
 
+BOOL WINAPI extPeekAnyMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+{
+	BOOL res;
+
+	if(wMsgFilterMin || wMsgFilterMax){
+		while (TRUE){
+			res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, wRemoveMsg);
+			if((lpMsg->message >= wMsgFilterMin) && (lpMsg->message <= wMsgFilterMax)) break;
+			if(!wRemoveMsg)(*pPeekMessage)(lpMsg, hwnd, 0, 0, TRUE);
+		}
+	}
+	else
+		res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, wRemoveMsg);
+
+	OutTraceW("PeekMessage: lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, 
+		lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
+		lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
+
+	return res;
+}
+
 BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 {
 	BOOL res;
@@ -791,7 +823,7 @@ BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsg
 
 	// fix to avoid crash in Warhammer Final Liberation, that evidently intercepts mouse position by 
 	// peeking & removing messages from window queue and considering the lParam parameter.
-	// v2.1.100 - never alter the mlMsg, otherwise the message is duplicated in the queue! Work on a copy of it.
+	// v2.1.100 - never alter the lpMsg, otherwise the message is duplicated in the queue! Work on a copy of it.
 	if(wRemoveMsg){
 		static MSG MsgCopy;
 		MsgCopy=*lpMsg;
@@ -1127,8 +1159,18 @@ static HWND WINAPI extCreateWindowCommon(
 			y=0;
 			nWidth=workarea.right;
 			nHeight=workarea.bottom;
-			dwStyle=(dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW;
+			dwStyle=0;
 			OutTraceD("%s: WORKAREA win pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
+		}
+		else if(dxw.Coordinates==DXW_DESKTOP_FULL){
+			RECT workarea;
+			(*pGetClientRect)((*pGetDesktopWindow)(), &workarea);
+			x=0;
+			y=0;
+			nWidth=workarea.right;
+			nHeight=workarea.bottom;
+			dwStyle=0;
+			OutTraceD("%s: FULLDESKTOP win pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
 		}
 	}
 

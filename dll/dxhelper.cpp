@@ -120,7 +120,7 @@ char *ExplainDDSCaps2(DWORD c)
 	if (c & DDSCAPS2_EXTENDEDFORMATPRIMARY) strcat(eb, "EXTENDEDFORMATPRIMARY+");
 	if (c & DDSCAPS2_ADDITIONALPRIMARY) strcat(eb, "ADDITIONALPRIMARY+");
 	l=strlen(eb);
-	if (l>strlen("DDCAPS2_")) eb[l-1]=0; // delete last '+' if any
+	if (l>strlen("DDSCAPS2_")) eb[l-1]=0; // delete last '+' if any
 	else eb[0]=0;
 	return(eb);
 }
@@ -144,7 +144,7 @@ char *ExplainDDSCaps3(DWORD c)
 		strcat(eb, sQuality);
 	}
 	l=strlen(eb);
-	if (l>strlen("DDCAPS3_")) eb[l-1]=0; // delete last '+' if any
+	if (l>strlen("DDSCAPS3_")) eb[l-1]=0; // delete last '+' if any
 	else eb[0]=0;
 	return(eb);
 }

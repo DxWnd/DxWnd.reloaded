@@ -147,7 +147,7 @@
 #define IDC_HOOKDLLS                    1104
 #define IDC_HOOKENABLED                 1105
 #define IDC_DESKTOPWORKAREA             1106
-#define IDC_FIXD3DFRAME                 1107
+#define IDC_DESKTOPFULL                 1107
 #define IDC_TIMESLIDER                  1108
 #define IDC_BLACKWHITE                  1109
 #define IDC_SAVECAPS                    1110
@@ -167,6 +167,8 @@
 #define IDC_FONTBYPASS                  1124
 #define IDC_YUV2RGB                     1125
 #define IDC_RGB2YUV                     1126
+#define IDC_FIXD3DFRAME                 1127
+#define IDC_BUFFEREDIOFIX               1128
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

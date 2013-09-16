@@ -59,7 +59,7 @@ static char *Flag3Names[32]={
 	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
 	"NOWINDOWMOVE", "DISABLEHAL", "LOCKSYSCOLORS", "EMULATEDC",
 	"FULLSCREENONLY", "FONTBYPASS", "YUV2RGB", "RGB2YUV",
-	"Flags3:21", "Flags3:22", "Flags3:23", "Flags3:24",
+	"BUFFEREDIOFIX", "Flags3:22", "Flags3:23", "Flags3:24",
 	"Flags3:25", "Flags3:26", "Flags3:27", "Flags3:28",
 	"Flags3:29", "Flags3:30", "Flags3:31", "Flags3:32",
 };
@@ -569,21 +569,10 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	case DXW_DESKTOP_WORKAREA:
 		SystemParametersInfo(SPI_GETWORKAREA, NULL, &workarea, 0);
 		rect = workarea;
-		if ((dxw.dwFlags2 & KEEPASPECTRATIO) && !(dxw.dwFlags3 & FIXD3DFRAME)) {
-			int w, h, b; // width, height and border
-			w = workarea.right - workarea.left;
-			h = workarea.bottom - workarea.top;
-			if ((w * 600) > (h * 800)){
-				b = (w - (h * 800 / 600))/2;
-				rect.left = workarea.left + b;
-				rect.right = workarea.right - b;
-			}
-			else {
-				b = (h - (w * 600 / 800))/2;
-				rect.top = workarea.top + b;
-				rect.bottom = workarea.bottom - b;
-			}
-		}
+		break;
+	case DXW_DESKTOP_FULL:
+		(*pGetClientRect)((*pGetDesktopWindow)(), &workarea);
+		rect = workarea;
 		break;
 	case DXW_SET_COORDINATES:
 	default:
@@ -648,7 +637,17 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 	dxw.SetScreenSize(width, height);
 	if (hwnd==NULL) return;
 
-	style = ((dxw.dwFlags2 & MODALSTYLE) || (dxw.Coordinates == DXW_DESKTOP_WORKAREA)) ? 0 : WS_OVERLAPPEDWINDOW;
+	switch(dxw.Coordinates){
+		case DXW_SET_COORDINATES:
+		case DXW_DESKTOP_CENTER:
+			style = (dxw.dwFlags2 & MODALSTYLE) ?  0 : WS_OVERLAPPEDWINDOW;
+			break;
+		case DXW_DESKTOP_WORKAREA:
+		case DXW_DESKTOP_FULL:
+			style = 0;
+			break;
+	}
+
 	(*pSetWindowLong)(hwnd, GWL_STYLE, style);
 	(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0); 
 	(*pShowWindow)(hwnd, SW_SHOWNORMAL);
@@ -1324,6 +1323,27 @@ void SetSingleProcessAffinity(void)
 		OutTraceE("SetProcessAffinityMask: ERROR err=%d\n", GetLastError());
 }
 
+extern HHOOK hMouseHook;
+
+LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
+{
+	if(code == HC_ACTION){
+		if(dxw.IsFullScreen()){
+			MSG *msg;
+			msg = (MSG *)lParam;
+			OutTraceC("MessageHook: message=%d(%s) remove=%d pt=(%d,%d)\n", 
+				msg->message, ExplainWinMessage(msg->message), msg->wParam, msg->pt.x, msg->pt.y);
+			msg->pt=dxw.FixMessagePt(dxw.GethWnd(), msg->pt);
+			// beware: needs fix for mousewheel?
+			if((msg->message <= WM_MOUSELAST) && (msg->message >= WM_MOUSEFIRST)) msg->lParam = MAKELPARAM(msg->pt.x, msg->pt.y); 
+			OutTraceC("MessageHook: fixed lparam/pt=(%d,%d)\n", msg->pt.x, msg->pt.y);
+			GetHookInfo()->CursorX=(short)msg->pt.x;
+			GetHookInfo()->CursorY=(short)msg->pt.y;
+		}
+	}
+	return CallNextHookEx(hMouseHook, code, wParam, lParam);
+}
+
 void HookInit(TARGETMAP *target, HWND hwnd)
 {
 	HMODULE base;
@@ -1404,17 +1424,15 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	if(dxw.dwFlags2 & RECOVERSCREENMODE) RecoverScreenMode();
 	if(dxw.dwFlags3 & FORCE16BPP) SwitchTo16BPP();
 
+	if (dxw.dwFlags1 & MESSAGEPROC){
+		extern HINSTANCE hInst;
+		hMouseHook=SetWindowsHookEx(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
+		if(hMouseHook==NULL) OutTraceE("SetWindowsHookEx WH_GETMESSAGE failed: error=%d\n", GetLastError());
+	}
+
 	InitScreenParameters();
 
 	if (IsDebug) OutTraceD("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY); //v2.02.09
-	//if(dxw.dwFlags1 & FIXPARENTWIN){
-	//	CalculateWindowPos(hwnd, dxw.iSizX, dxw.iSizY, &wp);
-	//	if (IsDebug) OutTraceD("MoveWindow: dxw.hParentWnd=%x pos=(%d,%d) size=(%d,%d)\n", dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy);
-	//	res=(*pMoveWindow)(dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy, FALSE);
-	//	if(!res) OutTraceE("MoveWindow ERROR: dxw.hParentWnd=%x err=%d at %d\n", dxw.hParentWnd, GetLastError(), __LINE__);
-	//}
-
-	//return 0;
 }
 
 LPCSTR ProcToString(LPCSTR proc)

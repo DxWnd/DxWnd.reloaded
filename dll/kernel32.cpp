@@ -17,6 +17,14 @@ static HookEntry_Type Hooks[]={
 	{0, NULL, 0, 0} // terminator
 };
 
+static HookEntry_Type FixIOHooks[]={
+	{"ReadFile", (FARPROC)NULL, (FARPROC *)&pReadFile, (FARPROC)extReadFile},
+	{"CreateFileA", (FARPROC)NULL, (FARPROC *)&pCreateFile, (FARPROC)extCreateFile},
+	{"SetFilePointer", (FARPROC)NULL, (FARPROC *)&pSetFilePointer, (FARPROC)extSetFilePointer},
+	{"CloseHandle", (FARPROC)NULL, (FARPROC *)&pCloseHandle, (FARPROC)extCloseHandle},
+	{0, NULL, 0, 0} // terminator
+};
+
 static HookEntry_Type LimitHooks[]={
 	{"GetDiskFreeSpaceA", (FARPROC)GetDiskFreeSpaceA, (FARPROC *)&pGetDiskFreeSpaceA, (FARPROC)extGetDiskFreeSpaceA},
 	{"GlobalMemoryStatus", (FARPROC)GlobalMemoryStatus, (FARPROC *)&pGlobalMemoryStatus, (FARPROC)extGlobalMemoryStatus},
@@ -45,6 +53,7 @@ static char *libname = "kernel32.dll";
 void HookKernel32(HMODULE module)
 {
 	HookLibrary(module, Hooks, libname);
+	if(dxw.dwFlags3 & BUFFEREDIOFIX) HookLibrary(module, FixIOHooks, libname);
 	if(dxw.dwFlags2 & LIMITRESOURCES) HookLibrary(module, LimitHooks, libname);
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
@@ -63,6 +72,9 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	FARPROC addr;
 
 	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+
+	if(dxw.dwFlags3 & BUFFEREDIOFIX)
+		if (addr=RemapLibrary(proc, hModule, FixIOHooks)) return addr;
 
 	if(dxw.dwFlags2 & LIMITRESOURCES)
 		if (addr=RemapLibrary(proc, hModule, LimitHooks)) return addr;
@@ -494,4 +506,135 @@ UINT WINAPI extGetDriveType(LPCTSTR lpRootPathName)
 	OutTraceD("GetDriveType: path=\"%s\"\n", lpRootPathName);
 	if (dxw.dwFlags3 & CDROMDRIVETYPE) return DRIVE_CDROM;
 	return (*pGetDriveType)(lpRootPathName);
+}
+
+static HANDLE LastFile=NULL;
+static int Where=0;
+static DWORD FileLength;
+static DWORD IOHeapSize;
+static HANDLE IOHeap;
+
+BOOL WINAPI extReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped)
+{
+	BOOL ret;
+	static char *IOBuffer=NULL;
+	DWORD BytesRead;
+	DWORD Cursor;
+	OutTrace("ReadFile: hFile=%x Buffer=%x BytesToRead=%d\n", hFile, lpBuffer, nNumberOfBytesToRead);
+
+#define SECTOR_SIZE 4096
+
+	if(!IOBuffer) { // initial allocation
+		IOHeap=HeapCreate(0, 0, 0);
+		IOHeapSize = SECTOR_SIZE*200;
+		if(IOHeap==NULL) OutTraceE("HeapCreate ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		IOBuffer=(char *)HeapAlloc(IOHeap, 0, IOHeapSize);
+		if(IOBuffer==0) OutTraceE("HeapAlloc ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		OutTrace("ReadFile: Heap=%x Buffer=%x\n", IOHeap, IOBuffer);
+	}
+
+	// if reading current cached file ....
+	if(hFile==LastFile){
+		OutTrace("ReadFile: BUFFERED BEFORE BytesRequested=%d FileSize=%d where=%d\n", 
+			nNumberOfBytesToRead, FileLength, Where);
+		if((Where+nNumberOfBytesToRead)<=FileLength)
+		*lpNumberOfBytesRead=nNumberOfBytesToRead;
+		else
+			*lpNumberOfBytesRead=FileLength-Where;
+		if (*lpNumberOfBytesRead < 0) *lpNumberOfBytesRead=0;
+		memcpy(lpBuffer, IOBuffer+Where, nNumberOfBytesToRead);
+		OutTrace("ReadFile: BUFFERED READ BytesRequested=%d BytesRead=%d where=%d\n", 
+			nNumberOfBytesToRead, *lpNumberOfBytesRead, Where);
+		Where += (*lpNumberOfBytesRead);
+		return TRUE;
+	}
+	
+	LastFile=hFile;
+	Where=Cursor=0;
+	// get the whole file
+	Where=(*pSetFilePointer)(hFile, 0, 0, FILE_CURRENT);
+	if(Where==INVALID_SET_FILE_POINTER){
+		OutTraceE("SetFilePointer ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		return FALSE;
+	}
+	if((*pSetFilePointer)(hFile, 0, 0, FILE_BEGIN)==INVALID_SET_FILE_POINTER){
+		OutTraceE("SetFilePointer ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		return FALSE;
+	}
+	do {// try to read it all
+		// when space is not enough, let's grow!
+		if((DWORD)(IOBuffer+Cursor+SECTOR_SIZE) > (DWORD)IOHeapSize){
+			IOHeapSize += 200*SECTOR_SIZE;
+			IOBuffer=(char *)HeapReAlloc(IOHeap, 0, IOBuffer, IOHeapSize);
+			if(IOBuffer==0) OutTraceE("HeapReAlloc ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		}
+		ret=(*pReadFile)(hFile, IOBuffer+Cursor, SECTOR_SIZE, &BytesRead, lpOverlapped); // read one block
+		Cursor+=BytesRead;
+		if (ret &&  BytesRead == 0) ret=FALSE; // eof
+	} while(ret);
+	OutTrace("ReadFIle: BUFFERED FileSize=%d\n", Cursor);
+	FileLength=Cursor;
+
+	// recurse ...
+	return extReadFile(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
+}
+
+HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
+							LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
+							DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+{
+	HANDLE ret;
+	OutTrace("CreateFile: FileName=%s DesiredAccess=%x SharedMode=%x Disposition=%x Flags=%x\n", 
+		lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes);
+
+	ret=(*pCreateFile)(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	if(ret && (ret != (HANDLE)INVALID_SET_FILE_POINTER)) 
+		OutTrace("CreateFile: ret=%x\n", ret);
+	else
+		OutTraceE("CreateFile ERROR: err=%d\n", GetLastError());
+	return ret;
+}
+
+BOOL WINAPI extCloseHandle(HANDLE hObject)
+{
+	if (hObject==LastFile) LastFile=0; // invalidate cache
+
+	return (*pCloseHandle)(hObject);
+}
+
+DWORD WINAPI extSetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)
+{
+	DWORD ret;
+	OutTrace("SetFilePointer: hFile=%x DistanceToMove=%ld DistanceToMoveHigh=%x MoveMethod=%x\n", 
+		hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
+
+	// if cached file ...
+	if(LastFile==hFile){
+		if(!lpDistanceToMoveHigh){
+			OutTrace("SetFilePointer: buffered move\n");
+			switch(dwMoveMethod){
+				case FILE_BEGIN: Where=lDistanceToMove; break;
+				case FILE_CURRENT: Where+=lDistanceToMove; break;
+				case FILE_END: Where=FileLength-lDistanceToMove; break;
+			}
+			OutTrace("SetFilePointer: ret=%x\n", Where);
+			return Where;
+		}
+	}
+
+	// proxy
+	ret=(*pSetFilePointer)(hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
+	if(lpDistanceToMoveHigh){
+		if(ret)
+			OutTrace("SetFilePointer: DistanceToMoveHigh=%x\n", *lpDistanceToMoveHigh);
+		else
+			OutTraceE("SetFilePointer ERROR: err=%d\n", GetLastError());
+	}
+	else{
+		if(ret==INVALID_SET_FILE_POINTER)
+			OutTraceE("SetFilePointer ERROR: err=%d\n", GetLastError());
+		else
+			OutTrace("SetFilePointer: ret=%x\n", ret);
+	}
+	return ret;
 }

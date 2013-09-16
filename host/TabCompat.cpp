@@ -36,6 +36,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 	DDX_Check(pDX, IDC_CDROMDRIVETYPE, cTarget->m_CDROMDriveType);
 	DDX_Check(pDX, IDC_FONTBYPASS, cTarget->m_FontBypass);
+	DDX_Check(pDX, IDC_BUFFEREDIOFIX, cTarget->m_BufferedIOFix);
 }
 
 BEGIN_MESSAGE_MAP(CTabCompat, CDialog)

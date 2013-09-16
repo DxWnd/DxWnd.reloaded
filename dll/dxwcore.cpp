@@ -209,14 +209,14 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		w = rect.right - rect.left;
 		h = rect.bottom - rect.top;
 
-		if ((dxw.Coordinates == DXW_DESKTOP_WORKAREA) && (dxw.dwFlags2 & KEEPASPECTRATIO)) {
-			if ((w * 600) > (h * 800)){
-				b = (w - (h * 800 / 600))/2;
+		if (dxw.dwFlags2 & KEEPASPECTRATIO) {
+			if ((w * iSizY) > (h * iSizX)){
+				b = (w - (h * iSizX / iSizY))/2;
 				curr.x -= b;
 				w -= 2*b;
 			}
 			else {
-				b = (h - (w * 600 / 800))/2;
+				b = (h - (w * iSizY / iSizX))/2;
 				curr.y -= b;
 				h -= 2*b;
 			}
@@ -326,6 +326,23 @@ void dxwCore::SethWnd(HWND hwnd)
 	hWndFPS=hwnd;
 }
 
+void dxwCore::FixWorkarea(LPRECT workarea)
+{
+	int w, h, b; // width, height and border
+	w = workarea->right - workarea->left;
+	h = workarea->bottom - workarea->top;
+	if ((w * iSizY) > (h * iSizX)){
+		b = (w - (h * iSizX / iSizY))/2;
+		workarea->left += b;
+		workarea->right -= b;
+	}
+	else {
+		b = (h - (w * iSizY / iSizX))/2;
+		workarea->top += b;
+		workarea->bottom -= b;
+	}
+}
+
 RECT dxwCore::MapWindowRect(LPRECT lpRect)
 {
 	POINT UpLeft={0,0};
@@ -341,14 +358,14 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	}
 	RetRect=ClientRect;
 	bx = by = 0;
-	if ((dxw.Coordinates == DXW_DESKTOP_WORKAREA) && (dwFlags2 & KEEPASPECTRATIO)){
+	if (dwFlags2 & KEEPASPECTRATIO){
 		w = RetRect.right - RetRect.left;
 		h = RetRect.bottom - RetRect.top;
-		if ((w * 600) > (h * 800)){
-			bx = (w - (h * 800 / 600))/2;
+		if ((w * iSizY) > (h * iSizX)){
+			bx = (w - (h * iSizX / iSizY))/2;
 		}
 		else {
-			by = (h - (w * 600 / 800))/2;
+			by = (h - (w * iSizY / iSizX))/2;
 		}
 		OutTraceB("bx=%d by=%d\n", bx, by);
 	}
@@ -373,6 +390,37 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 		OutTraceE("OffsetRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
 	}
 	return RetRect;
+}
+
+POINT dxwCore::FixMessagePt(HWND hwnd, POINT point)
+{
+	RECT rect;
+	static POINT curr;
+	curr=point;
+
+	if(!(*pScreenToClient)(hwnd, &curr)){
+		OutTraceE("ScreenToClient ERROR=%d hwnd=%x at %d\n", GetLastError(), hwnd, __LINE__);
+		curr.x = curr.y = 0;
+	}
+
+	if (!(*pGetClientRect)(hwnd, &rect)) {
+		OutTraceE("GetClientRect ERROR=%d hwnd=%x at %d\n", GetLastError(), hwnd, __LINE__);
+		curr.x = curr.y = 0;
+	}
+
+#ifdef ISDEBUG
+	if(IsDebug) OutTrace("FixMessagePt point=(%d,%d) hwnd=%x win pos=(%d,%d) size=(%d,%d)\n",
+		point.x, point.y, hwnd, point.x-curr.x, point.y-curr.y, rect.right, rect.bottom);
+#endif
+
+	if (curr.x < 0) curr.x=0;
+	if (curr.y < 0) curr.y=0;
+	if (curr.x > rect.right) curr.x=rect.right;
+	if (curr.y > rect.bottom) curr.y=rect.bottom;
+	if (rect.right)  curr.x = (curr.x * dxw.GetScreenWidth()) / rect.right;
+	if (rect.bottom) curr.y = (curr.y * dxw.GetScreenHeight()) / rect.bottom;
+
+	return curr;
 }
 
 void dxwCore::MapClient(LPRECT rect)

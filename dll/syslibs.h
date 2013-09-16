@@ -104,6 +104,7 @@ typedef HMODULE (WINAPI *LoadLibraryA_Type)(LPCTSTR);
 typedef HMODULE (WINAPI *LoadLibraryExA_Type)(LPCTSTR, HANDLE, DWORD);
 typedef HMODULE (WINAPI *LoadLibraryW_Type)(LPCWSTR);
 typedef HMODULE (WINAPI *LoadLibraryExW_Type)(LPCWSTR, HANDLE, DWORD);
+typedef BOOL	(WINAPI *ReadFile_Type)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER 
 				(WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
 typedef void	(WINAPI *Sleep_Type)(DWORD);
@@ -112,6 +113,9 @@ typedef BOOL	(WINAPI *CreateScalableFontResourceA_Type)(DWORD, LPCTSTR, LPCTSTR,
 typedef int		(WINAPI *AddFontResourceA_Type)(LPCTSTR);
 typedef BOOL	(WINAPI *CreateScalableFontResourceW_Type)(DWORD, LPCWSTR, LPCWSTR, LPCWSTR);
 typedef int		(WINAPI *AddFontResourceW_Type)(LPCWSTR);
+typedef HANDLE  (WINAPI *CreateFile_Type)(LPCTSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+typedef DWORD	(WINAPI *SetFilePointer_Type)(HANDLE, LONG, PLONG, DWORD);
+typedef BOOL	(WINAPI *CloseHandle_Type)(HANDLE);
 
 // ole32.dll:
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
@@ -281,9 +285,13 @@ DXWEXTERN LoadLibraryA_Type pLoadLibraryA DXWINITIALIZED;
 DXWEXTERN LoadLibraryExA_Type pLoadLibraryExA DXWINITIALIZED;
 DXWEXTERN LoadLibraryW_Type pLoadLibraryW DXWINITIALIZED;
 DXWEXTERN LoadLibraryExW_Type pLoadLibraryExW DXWINITIALIZED;
+DXWEXTERN ReadFile_Type pReadFile DXWINITIALIZED;
 DXWEXTERN SetUnhandledExceptionFilter_Type pSetUnhandledExceptionFilter DXWINITIALIZED;
 DXWEXTERN Sleep_Type pSleep DXWINITIALIZED;
 DXWEXTERN SleepEx_Type pSleepEx DXWINITIALIZED;
+DXWEXTERN CreateFile_Type pCreateFile DXWINITIALIZED;
+DXWEXTERN SetFilePointer_Type pSetFilePointer DXWINITIALIZED;
+DXWEXTERN CloseHandle_Type pCloseHandle DXWINITIALIZED;
 
 // ole32.dll:
 DXWEXTERN CoCreateInstance_Type pCoCreateInstance DXWINITIALIZED;
@@ -449,9 +457,13 @@ extern HMODULE WINAPI extLoadLibraryA(LPCTSTR);
 extern HMODULE WINAPI extLoadLibraryExA(LPCTSTR, HANDLE, DWORD);
 extern HMODULE WINAPI extLoadLibraryW(LPCWSTR);
 extern HMODULE WINAPI extLoadLibraryExW(LPCWSTR, HANDLE, DWORD);
+extern BOOL WINAPI extReadFile(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 extern LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
 extern void WINAPI extSleep(DWORD);
 extern DWORD WINAPI extSleepEx(DWORD, BOOL);
+extern HANDLE WINAPI extCreateFile(LPCTSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+extern DWORD WINAPI extSetFilePointer(HANDLE, LONG, PLONG, DWORD);
+extern BOOL WINAPI extCloseHandle(HANDLE);
 
 // ole32.dll:
 extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
@@ -491,6 +503,7 @@ extern BOOL WINAPI extDDInvalidateRect(HWND, RECT *, BOOL);
 extern int WINAPI extMapWindowPoints(HWND, HWND, LPPOINT, UINT);
 extern BOOL WINAPI extMoveWindow(HWND, int, int, int, int, BOOL);
 extern BOOL WINAPI extPeekMessage(LPMSG, HWND, UINT, UINT, UINT);
+extern BOOL WINAPI extPeekAnyMessage(LPMSG, HWND, UINT, UINT, UINT);
 extern ATOM WINAPI extRegisterClassExA(WNDCLASSEXA *);
 extern int WINAPI extDDReleaseDC(HWND, HDC);
 extern int WINAPI extGDIReleaseDC(HWND, HDC);
