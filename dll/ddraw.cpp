@@ -372,7 +372,7 @@ static void DescribeSurface(LPDIRECTDRAWSURFACE lpdds, int dxversion, char *labe
 			res=lpdds->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
 	}
 	if(res)return;
-	OutTrace("Surface %s: ddsd=%x dxversion=%d ", lpdds, dxversion);
+	OutTrace("Surface %s: ddsd=%x dxversion=%d ", label, lpdds, dxversion);
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, label, line);
 }
 
@@ -2225,9 +2225,12 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	HRESULT res;
 
 	// create BackBuffer surface
-	ClearSurfaceDesc((void *)&ddsd, dxversion);
-	ddsd.dwFlags = DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH;
-	ddsd.ddsCaps.dwCaps=DDSCAPS_SYSTEMMEMORY;
+	// ClearSurfaceDesc((void *)&ddsd, dxversion);
+	memcpy(&ddsd, lpddsd, lpddsd->dwSize);
+	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE|DDSD_PIXELFORMAT);
+	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH);
+	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX);
+	//ddsd.ddsCaps.dwCaps|=DDSCAPS_SYSTEMMEMORY;
 	if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
@@ -2235,6 +2238,8 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 		LPDIRECTDRAWSURFACE lpPrim;
 		DDSURFACEDESC2 prim;
 		(*pGetGDISurface)(lpPrimaryDD, &lpPrim);
+		memset(&prim, 0, sizeof(DDSURFACEDESC2));
+		prim.dwSize = (dxversion >= 4) ? sizeof(DDSURFACEDESC2) : sizeof(DDSURFACEDESC);
 		res=lpPrim->GetSurfaceDesc((DDSURFACEDESC *)&prim);
 		(*pReleaseS)(lpPrim);
 		ddsd.dwWidth = prim.dwWidth;
@@ -2244,9 +2249,16 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Backbuf]" , __LINE__);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res) {
-		OutTraceE("CreateSurface ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		if(res==DDERR_INVALIDPIXELFORMAT) DumpPixFmt(&ddsd);
-		return res;
+		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res==DDERR_OUTOFVIDEOMEMORY)){
+			OutTraceD("CreateSurface: CreateSurface DDERR_OUTOFVIDEOMEMORY ERROR at %d, retry in SYSTEMMEMORY\n", __LINE__);
+			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY; // try ...
+			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; // try ...
+			res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
+		}
+		if(res){
+			OutTraceE("CreateSurface ERROR: res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
 	}
 	if (dxw.dwFlags3 & SAVECAPS) {
 		ddsd.ddsCaps.dwCaps=DDSCAPS_VIDEOMEMORY;

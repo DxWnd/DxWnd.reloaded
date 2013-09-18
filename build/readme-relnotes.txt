@@ -255,6 +255,11 @@ Added "Fix buffered IO after Win98" flag: this is meant to fix an incompatibilit
 As a result, games like "Dylan Dog Horror Luna Park" show IO errors while reading data from the CD. Unfortunately, this is not the only problem of this game, so Dylan Dog fans will have to wait further.
 Maybe some other programs suffer of this problem, and I will strongly appreciate if anyone finds some.
 
+v2.02.35
+fixed BACKBUFFER surface attributes in direct (not emulated) mode: Rayman 2 playable again
+added FILTERMESSAGES flag ("filter offending messages") to eliminate some problems to games not developed to work windowized (Rayman 2, Mirror's Edge ...)
+fixed bug crashing the program when "keep aspect ratio" is selected with window size set to 0
+
 
 
 

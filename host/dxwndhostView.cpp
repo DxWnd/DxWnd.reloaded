@@ -114,6 +114,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
 	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
+	if(dlg->m_FilterMessages) t->flags3 |= FILTERMESSAGES;
 
 	t->flags &= ~EMULATEFLAGS;
 	switch(dlg->m_DxEmulationMode){
@@ -243,6 +244,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
 	dlg->m_FullScreenOnly = t->flags3 & FULLSCREENONLY ? 1 : 0;
+	dlg->m_FilterMessages = t->flags3 & FILTERMESSAGES ? 1 : 0;
 
 	dlg->m_DxEmulationMode = 0;
 	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;

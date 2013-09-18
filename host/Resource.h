@@ -169,6 +169,7 @@
 #define IDC_RGB2YUV                     1126
 #define IDC_FIXD3DFRAME                 1127
 #define IDC_BUFFEREDIOFIX               1128
+#define IDC_FILTERMESSAGES              1129
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

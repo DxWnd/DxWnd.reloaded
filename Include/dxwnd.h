@@ -100,6 +100,7 @@
 #define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
 #define RGB2YUV				0x00080000 // Simulate RGB to YUV color conversion
 #define BUFFEREDIOFIX		0x00100000 // fix buffered IO incompatibilities between pre-Win98 and post-WinNT
+#define FILTERMESSAGES		0x00200000 // eliminates window-related messages that might be offending for a fullscreen program
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

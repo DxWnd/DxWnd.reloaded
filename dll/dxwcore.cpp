@@ -202,6 +202,12 @@ POINT dxwCore::FixCursorPos(POINT prev)
 	// remember: rect from GetClientRect always start at 0,0!
 	if(dxw.dwFlags1 & MODIFYMOUSE){
 		int w, h, b; // width, height and border
+		int iRatioX, iRatioY;
+
+		// ratio is the configured one, unless the values are 0. Then, it's the standard 4:3 ratio.
+		iRatioX = iSizX ? iSizX : 4;
+		iRatioY = iSizY ? iSizY : 3;
+
 		if (!(*pGetClientRect)(hWnd, &rect)) { // v2.02.30: always use desktop win
 			OutTraceD("GetClientRect ERROR %d at %d\n", GetLastError(),__LINE__);
 			curr.x = curr.y = 0;
@@ -210,13 +216,13 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		h = rect.bottom - rect.top;
 
 		if (dxw.dwFlags2 & KEEPASPECTRATIO) {
-			if ((w * iSizY) > (h * iSizX)){
-				b = (w - (h * iSizX / iSizY))/2;
+			if ((w * iRatioY) > (h * iRatioX)){
+				b = (w - (h * iRatioX / iRatioY))/2;
 				curr.x -= b;
 				w -= 2*b;
 			}
 			else {
-				b = (h - (w * iSizY / iSizX))/2;
+				b = (h - (w * iRatioY / iRatioX))/2;
 				curr.y -= b;
 				h -= 2*b;
 			}
@@ -329,15 +335,21 @@ void dxwCore::SethWnd(HWND hwnd)
 void dxwCore::FixWorkarea(LPRECT workarea)
 {
 	int w, h, b; // width, height and border
+	int iRatioX, iRatioY;
+
+	// ratio is the configured one, unless the values are 0. Then, it's the standard 4:3 ratio.
+	iRatioX = iSizX ? iSizX : 4;
+	iRatioY = iSizY ? iSizY : 3;
+
 	w = workarea->right - workarea->left;
 	h = workarea->bottom - workarea->top;
-	if ((w * iSizY) > (h * iSizX)){
-		b = (w - (h * iSizX / iSizY))/2;
+	if ((w * iRatioY) > (h * iRatioX)){
+		b = (w - (h * iRatioX / iRatioY))/2;
 		workarea->left += b;
 		workarea->right -= b;
 	}
 	else {
-		b = (h - (w * iSizY / iSizX))/2;
+		b = (h - (w * iRatioY / iRatioX))/2;
 		workarea->top += b;
 		workarea->bottom -= b;
 	}
@@ -349,23 +361,29 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	RECT RetRect;
 	RECT ClientRect;
 	int w, h, bx, by; // width, height and x,y borders
+	int iRatioX, iRatioY;
+
+	// ratio is the configured one, unless the values are 0. Then, it's the standard 4:3 ratio.
+	iRatioX = iSizX ? iSizX : 4;
+	iRatioY = iSizY ? iSizY : 3;
+
 	if (!(*pGetClientRect)(hWnd, &ClientRect)){
 		OutTraceE("GetClientRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
 		// v2.02.31: try....
 		ClientRect.top=ClientRect.left=0;
-		ClientRect.right=dxw.iSizX;
-		ClientRect.bottom=dxw.iSizY;
+		ClientRect.right=iRatioX;
+		ClientRect.bottom=iRatioY;
 	}
 	RetRect=ClientRect;
 	bx = by = 0;
 	if (dwFlags2 & KEEPASPECTRATIO){
 		w = RetRect.right - RetRect.left;
 		h = RetRect.bottom - RetRect.top;
-		if ((w * iSizY) > (h * iSizX)){
-			bx = (w - (h * iSizX / iSizY))/2;
+		if ((w * iRatioY) > (h * iRatioX)){
+			bx = (w - (h * iRatioX / iRatioY))/2;
 		}
 		else {
-			by = (h - (w * iSizY / iSizX))/2;
+			by = (h - (w * iRatioY / iRatioX))/2;
 		}
 		OutTraceB("bx=%d by=%d\n", bx, by);
 	}
@@ -478,8 +496,8 @@ void dxwCore::UnmapClient(LPPOINT lppoint)
 	(*pGetClientRect)(hWnd, &client);
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
-	lppoint->x = (lppoint->x * (int)dwScreenWidth) / w;
-	lppoint->y = (lppoint->y * (int)dwScreenHeight) / h;
+	if(w) lppoint->x = (lppoint->x * (int)dwScreenWidth) / w;
+	if(h) lppoint->y = (lppoint->y * (int)dwScreenHeight) / h;
 }
 
 void dxwCore::UnmapClient(int *nXDest, int *nYDest)
@@ -489,8 +507,8 @@ void dxwCore::UnmapClient(int *nXDest, int *nYDest)
 	(*pGetClientRect)(hWnd, &client);
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
-	*nXDest= *nXDest * (int)dwScreenWidth / w;
-	*nYDest= *nYDest * (int)dwScreenHeight / h;
+	if(w) *nXDest= *nXDest * (int)dwScreenWidth / w;
+	if(h) *nYDest= *nYDest * (int)dwScreenHeight / h;
 }
 
 void dxwCore::MapWindow(LPRECT rect)

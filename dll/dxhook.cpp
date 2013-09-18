@@ -59,7 +59,7 @@ static char *Flag3Names[32]={
 	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
 	"NOWINDOWMOVE", "DISABLEHAL", "LOCKSYSCOLORS", "EMULATEDC",
 	"FULLSCREENONLY", "FONTBYPASS", "YUV2RGB", "RGB2YUV",
-	"BUFFEREDIOFIX", "Flags3:22", "Flags3:23", "Flags3:24",
+	"BUFFEREDIOFIX", "FILTERMESSAGES", "Flags3:23", "Flags3:24",
 	"Flags3:25", "Flags3:26", "Flags3:27", "Flags3:28",
 	"Flags3:29", "Flags3:30", "Flags3:31", "Flags3:32",
 };
@@ -843,6 +843,28 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	}
 #endif
 
+	if(dxw.dwFlags3 & FILTERMESSAGES){
+		LRESULT ret;
+		switch(message){
+		case WM_NCCALCSIZE:
+		case WM_NCMOUSEMOVE:
+		case WM_NCLBUTTONDOWN:
+		case WM_NCLBUTTONUP:
+		case WM_NCLBUTTONDBLCLK:
+		case WM_NCRBUTTONDOWN:
+		case WM_NCRBUTTONUP:
+		case WM_NCRBUTTONDBLCLK:
+		case WM_NCMBUTTONDOWN:
+		case WM_NCMBUTTONUP:
+		case WM_NCMBUTTONDBLCLK:
+		//case WM_WINDOWPOSCHANGING:
+		//case WM_WINDOWPOSCHANGED:
+			OutTraceW("WindowProc[%x]: WinMsg=%x filtered message=%x(%s)\n", hwnd, message, ExplainWinMessage(message));
+			ret=0;
+			return ret;
+		}
+	}
+
 	switch(message){
 	// v2.02.13: added WM_GETMINMAXINFO/WM_NCCALCSIZE interception - (see Actua Soccer 3 problems...)
 	//case WM_NCDESTROY:
@@ -1028,9 +1050,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		GetHookInfo()->CursorY=HIWORD(lparam);
 		break;	
 	case WM_SETFOCUS:
+		OutTraceD("WindowProc: hwnd=%x GOT FOCUS\n", hwnd);
 		if (dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		break;
 	case WM_KILLFOCUS:
+		OutTraceD("WindowProc: hwnd=%x LOST FOCUS\n", hwnd);
 		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
