@@ -127,7 +127,7 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 		if (addr=RemapLibrary(proc, hModule, WinHooks)) return addr;
 	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED))
 		if (addr=RemapLibrary(proc, hModule, MouseHooks2)) return addr;
-	if(FALSE)
+	if(dxw.dwFlags3 & PEEKALLMESSAGES)
 		if (addr=RemapLibrary(proc, hModule, PeekAllHooks)) return addr;
 	return NULL;
 }
@@ -145,7 +145,7 @@ void HookUser32(HMODULE hModule)
 	if(dxw.dwFlags1 & MODIFYMOUSE)HookLibrary(hModule, MouseHooks, libname);
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))HookLibrary(hModule, WinHooks, libname);
 	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibrary(hModule, MouseHooks2, libname);
-	if(FALSE) HookLibrary(hModule, PeekAllHooks, libname);
+	if(dxw.dwFlags3 & PEEKALLMESSAGES) HookLibrary(hModule, PeekAllHooks, libname);
 	return;
 }
 
@@ -784,17 +784,9 @@ BOOL WINAPI extPeekAnyMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT w
 {
 	BOOL res;
 
-	if(wMsgFilterMin || wMsgFilterMax){
-		while (TRUE){
-			res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, wRemoveMsg);
-			if((lpMsg->message >= wMsgFilterMin) && (lpMsg->message <= wMsgFilterMax)) break;
-			if(!wRemoveMsg)(*pPeekMessage)(lpMsg, hwnd, 0, 0, TRUE);
-		}
-	}
-	else
-		res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, wRemoveMsg);
+	res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, (wRemoveMsg & 0x000F));
 
-	OutTraceW("PeekMessage: lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+	OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
 		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, 
 		lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
 		lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
@@ -805,8 +797,12 @@ BOOL WINAPI extPeekAnyMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT w
 BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 {
 	BOOL res;
+	UINT iRemoveMsg;
 
-	res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
+	iRemoveMsg = wRemoveMsg;
+	if(1) iRemoveMsg &= 0x000F; // Peek all messages
+
+	res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, iRemoveMsg);
 	
 	OutTraceW("PeekMessage: lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
 		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, 
@@ -1427,10 +1423,10 @@ BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 		ret=(*pGetClipCursor)(lpRect);
 		if(IsTraceD){
 			if (lpRect)
-				OutTrace("ClipCursor: PROXED rect=(%d,%d)-(%d,%d) ret=%d\n", 
+				OutTrace("GetClipCursor: PROXED rect=(%d,%d)-(%d,%d) ret=%d\n", 
 					lpRect->left,lpRect->top,lpRect->right,lpRect->bottom, ret);
 			else 
-				OutTrace("ClipCursor: PROXED rect=(NULL) ret=%d\n", ret);
+				OutTrace("GetClipCursor: PROXED rect=(NULL) ret=%d\n", ret);
 		}		
 		return ret;
 	}
@@ -1443,7 +1439,7 @@ BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 			lpRect->right = dxw.GetScreenWidth();
 			lpRect->bottom = dxw.GetScreenHeight();
 		}
-		OutTraceD("ClipCursor: rect=(%d,%d)-(%d,%d) ret=%d\n", 
+		OutTraceD("GetClipCursor: rect=(%d,%d)-(%d,%d) ret=%d\n", 
 			lpRect->left,lpRect->top,lpRect->right,lpRect->bottom, TRUE);
 	}
 

@@ -39,6 +39,7 @@ public:
 	BOOL	m_AssertDialog;
 	BOOL	m_ImportTable;
 	BOOL	m_RegistryOp;
+	BOOL	m_TraceHooks;
 	BOOL	m_HandleDC;
 	BOOL	m_UnNotify;
 	BOOL	m_Windowize;
@@ -46,6 +47,7 @@ public:
 	BOOL	m_EmulateRegistry;
 	BOOL	m_FullScreenOnly;
 	BOOL	m_FilterMessages;
+	BOOL	m_PeekAllMessages;
 	BOOL	m_NoBanner;
 	BOOL	m_StartDebug;
 	BOOL	m_HookEnabled;

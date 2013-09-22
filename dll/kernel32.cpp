@@ -520,9 +520,13 @@ BOOL WINAPI extReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRea
 	static char *IOBuffer=NULL;
 	DWORD BytesRead;
 	DWORD Cursor;
+	//HANDLE hFileRead;
+
 	OutTrace("ReadFile: hFile=%x Buffer=%x BytesToRead=%d\n", hFile, lpBuffer, nNumberOfBytesToRead);
 
 #define SECTOR_SIZE 4096
+//#define LEGACY_SIZE 1024
+#define LEGACY_SIZE 1024
 
 	if(!IOBuffer) { // initial allocation
 		IOHeap=HeapCreate(0, 0, 0);
@@ -538,14 +542,18 @@ BOOL WINAPI extReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRea
 		OutTrace("ReadFile: BUFFERED BEFORE BytesRequested=%d FileSize=%d where=%d\n", 
 			nNumberOfBytesToRead, FileLength, Where);
 		if((Where+nNumberOfBytesToRead)<=FileLength)
-		*lpNumberOfBytesRead=nNumberOfBytesToRead;
+			*lpNumberOfBytesRead=nNumberOfBytesToRead;
 		else
 			*lpNumberOfBytesRead=FileLength-Where;
 		if (*lpNumberOfBytesRead < 0) *lpNumberOfBytesRead=0;
-		memcpy(lpBuffer, IOBuffer+Where, nNumberOfBytesToRead);
+		memcpy((char *)lpBuffer, IOBuffer+Where, *lpNumberOfBytesRead);
+		OutTrace("ReadFile: ");
+		for(unsigned int i=0; i<*lpNumberOfBytesRead; i++) OutTrace("%02X,", *((unsigned char *)lpBuffer+i));
+		OutTrace("\n");
 		OutTrace("ReadFile: BUFFERED READ BytesRequested=%d BytesRead=%d where=%d\n", 
 			nNumberOfBytesToRead, *lpNumberOfBytesRead, Where);
 		Where += (*lpNumberOfBytesRead);
+		//Where = ((Where+(LEGACY_SIZE-1)) / LEGACY_SIZE) * LEGACY_SIZE;
 		return TRUE;
 	}
 	
@@ -561,17 +569,25 @@ BOOL WINAPI extReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRea
 		OutTraceE("SetFilePointer ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 		return FALSE;
 	}
+	OutTrace("SetFilePointer: current pos=%d\n", Where);
+	//hFileRead=ReOpenFile(hFile, 0, 0, 0);	
 	do {// try to read it all
 		// when space is not enough, let's grow!
-		if((DWORD)(IOBuffer+Cursor+SECTOR_SIZE) > (DWORD)IOHeapSize){
-			IOHeapSize += 200*SECTOR_SIZE;
+		if((DWORD)(Cursor+SECTOR_SIZE) > (DWORD)IOHeapSize){
+			OutTrace("HeapReAlloc: about to add another chunk... current size=%d\n", IOHeapSize);
+			IOHeapSize += (200*SECTOR_SIZE);
 			IOBuffer=(char *)HeapReAlloc(IOHeap, 0, IOBuffer, IOHeapSize);
 			if(IOBuffer==0) OutTraceE("HeapReAlloc ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 		}
-		ret=(*pReadFile)(hFile, IOBuffer+Cursor, SECTOR_SIZE, &BytesRead, lpOverlapped); // read one block
+		ret=(*pReadFile)(hFile, IOBuffer+Cursor, SECTOR_SIZE, &BytesRead, NULL); // read one block
+		if(!ret) 
+			OutTrace("ReadFIle ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		else
+			OutTrace("ReadFIle: BytesRead=%d\n", BytesRead);
 		Cursor+=BytesRead;
 		if (ret &&  BytesRead == 0) ret=FALSE; // eof
 	} while(ret);
+	//CloseHandle(hFileRead);
 	OutTrace("ReadFIle: BUFFERED FileSize=%d\n", Cursor);
 	FileLength=Cursor;
 
@@ -587,17 +603,22 @@ HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwS
 	OutTrace("CreateFile: FileName=%s DesiredAccess=%x SharedMode=%x Disposition=%x Flags=%x\n", 
 		lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes);
 
+	//dwFlagsAndAttributes &= ~FILE_FLAG_NO_BUFFERING;
+
 	ret=(*pCreateFile)(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 	if(ret && (ret != (HANDLE)INVALID_SET_FILE_POINTER)) 
 		OutTrace("CreateFile: ret=%x\n", ret);
 	else
 		OutTraceE("CreateFile ERROR: err=%d\n", GetLastError());
 	return ret;
-}
+} 
 
 BOOL WINAPI extCloseHandle(HANDLE hObject)
 {
-	if (hObject==LastFile) LastFile=0; // invalidate cache
+	if (hObject==LastFile) {
+		LastFile=0; // invalidate cache
+		OutTrace("CloseHandle: INVALIDATE CACHE hFile=%x\n", hObject);
+	}
 
 	return (*pCloseHandle)(hObject);
 }
@@ -610,6 +631,7 @@ DWORD WINAPI extSetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDista
 
 	// if cached file ...
 	if(LastFile==hFile){
+		int LastPos=Where;
 		if(!lpDistanceToMoveHigh){
 			OutTrace("SetFilePointer: buffered move\n");
 			switch(dwMoveMethod){
@@ -617,7 +639,18 @@ DWORD WINAPI extSetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDista
 				case FILE_CURRENT: Where+=lDistanceToMove; break;
 				case FILE_END: Where=FileLength-lDistanceToMove; break;
 			}
-			OutTrace("SetFilePointer: ret=%x\n", Where);
+			//if(Where % LEGACY_SIZE){
+			//	Where=LastPos;
+			//	SetLastError(ERROR_INVALID_PARAMETER);
+			//	OutTrace("SetFilePointer: ret=INVALID_SET_FILE_POINTER pos=%d\n", Where);
+			//	return INVALID_SET_FILE_POINTER;
+			//}
+			
+			// Where = ((Where + LEGACY_SIZE-1) / LEGACY_SIZE) * LEGACY_SIZE;
+			
+			Where = (Where / LEGACY_SIZE) * LEGACY_SIZE;
+
+			OutTrace("SetFilePointer: ret=0x%x(#%d)\n", Where, Where);
 			return Where;
 		}
 	}

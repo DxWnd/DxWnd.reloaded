@@ -115,6 +115,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
 	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
 	if(dlg->m_FilterMessages) t->flags3 |= FILTERMESSAGES;
+	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
 
 	t->flags &= ~EMULATEFLAGS;
 	switch(dlg->m_DxEmulationMode){
@@ -144,6 +145,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_AssertDialog) t->tflags |= ASSERTDIALOG;
 	if(dlg->m_ImportTable) t->tflags |= OUTIMPORTTABLE;
 	if(dlg->m_RegistryOp) t->tflags |= OUTREGISTRY;
+	if(dlg->m_TraceHooks) t->tflags |= TRACEHOOKS;
 	if(dlg->m_HandleDC) t->flags |= HANDLEDC;
 	if(dlg->m_HandleExceptions) t->flags |= HANDLEEXCEPTIONS;
 	if(dlg->m_LimitResources) t->flags2 |= LIMITRESOURCES;
@@ -245,6 +247,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
 	dlg->m_FullScreenOnly = t->flags3 & FULLSCREENONLY ? 1 : 0;
 	dlg->m_FilterMessages = t->flags3 & FILTERMESSAGES ? 1 : 0;
+	dlg->m_PeekAllMessages = t->flags3 & PEEKALLMESSAGES ? 1 : 0;
 
 	dlg->m_DxEmulationMode = 0;
 	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;
@@ -268,6 +271,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_AssertDialog = t->tflags & ASSERTDIALOG ? 1 : 0;
 	dlg->m_ImportTable = t->tflags & OUTIMPORTTABLE ? 1 : 0;
 	dlg->m_RegistryOp = t->tflags & OUTREGISTRY ? 1 : 0;
+	dlg->m_TraceHooks = t->tflags & TRACEHOOKS ? 1 : 0;
 	dlg->m_HandleDC = t->flags & HANDLEDC ? 1 : 0;
 	dlg->m_HandleExceptions = t->flags & HANDLEEXCEPTIONS ? 1 : 0;
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;

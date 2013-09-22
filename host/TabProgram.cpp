@@ -37,6 +37,7 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
 	DDX_Check(pDX, IDC_FULLSCREENONLY, cTarget->m_FullScreenOnly);
 	DDX_Check(pDX, IDC_FILTERMESSAGES, cTarget->m_FilterMessages);
+	DDX_Check(pDX, IDC_PEEKALLMESSAGES, cTarget->m_PeekAllMessages);
 	DDX_Check(pDX, IDC_HOOKCHILDWIN, cTarget->m_HookChildWin);
 	DDX_Check(pDX, IDC_HOOKENABLED, cTarget->m_HookEnabled);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);

@@ -260,7 +260,11 @@ fixed BACKBUFFER surface attributes in direct (not emulated) mode: Rayman 2 play
 added FILTERMESSAGES flag ("filter offending messages") to eliminate some problems to games not developed to work windowized (Rayman 2, Mirror's Edge ...)
 fixed bug crashing the program when "keep aspect ratio" is selected with window size set to 0
 
-
-
+v2.02.36
+hooked GetAttachedSurface to non-PRIMARY surface to track ZBUFFER attach to BACKBUFFER. Useless, so far...
+revised capability handling in CreateSurface 
+hook trace is now activated from a separate log flag to reduce debug log size
+added "Peek all messages in queue" to avoid queue saturation and automatic task kill in Win7 (thank to P K help)
+fixed message handling in the case messages are passed to a routine handle
 
 

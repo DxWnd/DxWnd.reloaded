@@ -52,6 +52,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_EmulateRegistry = FALSE; // default true !!
 	m_FullScreenOnly = FALSE; 
 	m_FilterMessages = FALSE; 
+	m_PeekAllMessages = FALSE; 
 	m_NoBanner = FALSE;
 	m_StartDebug = FALSE;
 	m_FilePath = _T("");

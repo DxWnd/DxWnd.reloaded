@@ -100,19 +100,21 @@
 #define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
 #define RGB2YUV				0x00080000 // Simulate RGB to YUV color conversion
 #define BUFFEREDIOFIX		0x00100000 // fix buffered IO incompatibilities between pre-Win98 and post-WinNT
-#define FILTERMESSAGES		0x00200000 // eliminates window-related messages that might be offending for a fullscreen program
+#define FILTERMESSAGES		0x00200000 // ignore offending messages that are typical of a window and are hot handled by a fullscreeen app
+#define PEEKALLMESSAGES		0x00400000 // force Peek-ing all sort of messages to avoid Win7 message queue saturation that leads to program halt 
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
 #define OUTDDRAWTRACE		0x00000002 // traces DxWnd directdraw screen handling
 #define OUTWINMESSAGES		0x00000004 // traces windows messages
-#define OUTCURSORTRACE		0x00000008 // traces windows messages
+#define OUTCURSORTRACE		0x00000008 // traces cursor positions & operations
 #define OUTPROXYTRACE		0x00000010 // warning: it also enables proxy functions !!!!
 #define DXPROXED			0x00000020 // hook DX proxy methods to log each call in original behaviour
 #define ASSERTDIALOG		0x00000040 // show assert messages in Dialog Box
 #define OUTIMPORTTABLE		0x00000080 // dump import table contents
 #define OUTDEBUG			0x00000100 // detailed debugging indormation
 #define OUTREGISTRY			0x00000200 // log registry operations
+#define TRACEHOOKS			0x00000400 // log hook operations
 
 #define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE | LOCKEDSURFACE)
 #define HANDLEFPS			(SHOWFPS | SHOWFPSOVERLAY | LIMITFPS | SKIPFPS)
@@ -186,6 +188,7 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define OutTraceC if(dxw.dwTFlags & OUTCURSORTRACE) OutTrace
 #define OutTraceB if(dxw.dwTFlags & OUTDEBUG) OutTrace
 #define OutTraceR if(dxw.dwTFlags & OUTREGISTRY) OutTrace
+#define OutTraceH if(dxw.dwTFlags & TRACEHOOKS) OutTrace
 #define OutTraceP OutTrace
 #define OutTraceE OutTrace
 
@@ -194,6 +197,7 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define IsTraceD (dxw.dwTFlags & OUTDDRAWTRACE)
 #define IsTraceC (dxw.dwTFlags & OUTCURSORTRACE)
 #define IsTraceR (dxw.dwTFlags & OUTREGISTRY)
+#define IsTraceH (dxw.dwTFlags & TRACEHOOKS)
 #define IsTraceP (TRUE)
 #define IsTraceE (TRUE)
 #define IsDebug  (dxw.dwTFlags & OUTDEBUG)

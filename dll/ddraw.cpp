@@ -268,6 +268,7 @@ static void RefProbe(INTERFACE *obj, char *op, int line)
 	OutTrace("### COM obj=%x op=%s refcount=%d at %d ###\n", obj, op, (*pReleaseS)((LPDIRECTDRAWSURFACE)obj), line);
 }
 
+//#define REFPROVE_TEST // comment out to eliminate
 #ifdef REFPROVE_TEST
 #define REFPROBE(obj, op) RefProbe((INTERFACE *)(obj), op, __LINE__)
 #else
@@ -1287,6 +1288,22 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 	SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast, (void **)&pBltFast, "BltFast(S)");
 	// IDirectDrawSurface::DeleteAttachedSurface
 	SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface, (void **)&pDeleteAttachedSurface, "DeleteAttachedSurface(S)");
+	// IDirectDrawSurface::GetAttachedSurface
+	switch(dxversion) {
+	case 1:
+	case 2:
+		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface1, (void **)&pGetAttachedSurface1, "GetAttachedSurface(S1)");
+		break;
+	case 3:
+		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface3, (void **)&pGetAttachedSurface3, "GetAttachedSurface(S3)");
+		break;
+	case 4:
+		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface4, (void **)&pGetAttachedSurface4, "GetAttachedSurface(S4)");
+		break;
+	case 7:
+		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface7, (void **)&pGetAttachedSurface7, "GetAttachedSurface(S7)");
+		break;
+	}
 	// IDirectDrawSurface::GetCaps
 	switch(dxversion) {
 	case 1:
@@ -1350,22 +1367,6 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 	SetHook((void *)(**(DWORD **)lplpdds + 16), extAddOverlayDirtyRectProxy, (void **)&pAddOverlayDirtyRect, "AddOverlayDirtyRect(S)");
 	// IDirectDrawSurface::BltBatch
 	SetHook((void *)(**(DWORD **)lplpdds + 24), extBltBatchProxy, (void **)&pBltBatch, "BltBatch(S)");
-	// IDirectDrawSurface::GetAttachedSurface
-	switch(dxversion) {
-	case 1:
-	case 2:
-		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface1Proxy, (void **)&pGetAttachedSurface1, "GetAttachedSurface(S1)");
-		break;
-	case 3:
-		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface3Proxy, (void **)&pGetAttachedSurface3, "GetAttachedSurface(S3)");
-		break;
-	case 4:
-		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface4Proxy, (void **)&pGetAttachedSurface4, "GetAttachedSurface(S4)");
-		break;
-	case 7:
-		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface7Proxy, (void **)&pGetAttachedSurface7, "GetAttachedSurface(S7)");
-		break;
-	}
 	// IDirectDrawSurface::EnumAttachedSurfaces
 	SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces, (void **)&pEnumAttachedSurfaces, "EnumAttachedSurfaces(S)");
 	// IDirectDrawSurface::EnumOverlayZOrders
@@ -1739,6 +1740,7 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	}
 
 	if(lpdds == lpDDSBack) lpDDSBack = (LPDIRECTDRAWSURFACE)*obp;
+
 	return 0;
 }
 
@@ -1947,20 +1949,20 @@ static char *FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd)
 			// Submarine titans (8BPP)
 			OutTrace("FixSurfaceCaps: SystemMemory OffScreen PixelFormat (1)\n");
 			//lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
+			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 			return SetPixFmt(lpddsd);
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
 			// Duckman
 			OutTrace("FixSurfaceCaps: SystemMemory OffScreen PixelFormat (2)\n");
 			//lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-			//lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
+			//lpddsd->ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 			return SetPixFmt(lpddsd);
 			break;
 		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER:
 			// the Sims
 			OutTrace("FixSurfaceCaps: SystemMemory ZBuffer for the Sims\n");
-			//lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER; identical ...
+			//lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER); identical ...
 			return "ZBUFFER";
 			break;
 		}
@@ -2005,7 +2007,7 @@ static char *FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd)
 	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) == (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) && 
 		(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)){
 		OutTraceB("FixSurfaceCaps: Experimental pixelformat for ZBUFFER case\n");
-		lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY; // Evany
+		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); // Evany
 		lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 		return "ZBUFFER";
 	}
@@ -2021,9 +2023,9 @@ static char *FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd)
 	}
 	// adjust pixel format
 	OutTraceB("FixSurfaceCaps: suppress DDSCAPS_VIDEOMEMORY case\n");
-	lpddsd->dwFlags |= DDSD_CAPS | DDSD_PIXELFORMAT; 
+	lpddsd->dwFlags |= (DDSD_CAPS|DDSD_PIXELFORMAT); 
 	lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-	lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
+	lpddsd->ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 	return SetPixFmt(lpddsd);
 }
 
@@ -2041,6 +2043,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	HRESULT res;
 
 	// emulated primary surface
+#if 0
 	ClearSurfaceDesc((void *)&ddsd, dxversion);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY | DDSCAPS_OFFSCREENPLAIN;
@@ -2051,6 +2054,17 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	SetPixFmt((LPDDSURFACEDESC2)&ddsd);
+#else
+	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
+	ddsd.dwFlags &= ~(DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE);
+	ddsd.dwFlags |= (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT);
+	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
+	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	ddsd.dwWidth = dxw.GetScreenWidth();
+	ddsd.dwHeight = dxw.GetScreenHeight();
+	SetPixFmt((LPDDSURFACEDESC2)&ddsd);
+#endif
 
 	// create Primary surface
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]" , __LINE__);
@@ -2134,7 +2148,7 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	// genuine primary surface
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
 	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE|DDSD_PIXELFORMAT);
-	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_FLIP | DDSCAPS_COMPLEX);
+	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_FLIP|DDSCAPS_COMPLEX);
 
 	// create Primary surface
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]" , __LINE__);
@@ -2192,12 +2206,25 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	HRESULT res;
 
 	// create BackBuffer surface
+#if 0
 	ClearSurfaceDesc((void *)&ddsd, dxversion);
 	ddsd.dwFlags = DDSD_CAPS|DDSD_PIXELFORMAT|DDSD_HEIGHT|DDSD_WIDTH;
 	ddsd.ddsCaps.dwCaps=DDSCAPS_SYSTEMMEMORY | DDSCAPS_OFFSCREENPLAIN;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	SetPixFmt(&ddsd);
+#else
+	memcpy(&ddsd, lpddsd, lpddsd->dwSize);
+	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE);
+	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT);
+	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_BACKBUFFER|DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
+	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	ddsd.dwWidth = dxw.GetScreenWidth();
+	ddsd.dwHeight = dxw.GetScreenHeight();
+	SetPixFmt(&ddsd);
+#endif 
+
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Backbuf]" , __LINE__);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res) {
@@ -2280,23 +2307,19 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	HRESULT res;
 
 	memcpy(&ddsd, lpddsd, lpddsd->dwSize); // Copy over ....
+	if(ddsd.dwFlags & DDSD_CAPS){
+		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY; 
+	}
+	else{
+		ddsd.dwFlags |= DDSD_CAPS;
+		ddsd.ddsCaps.dwCaps = 0; 
+	}
+	ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
+	//if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
 	FixSurfaceCaps(&ddsd);
+
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]" , __LINE__);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
-	if(res){
-		// v2.1.81: retry on system memory may fix not only the DDERR_OUTOFVIDEOMEMORY
-		// error, but the DDERR_INVALIDPIXELFORMAT (see "The Sims ???")
-		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && 
-			((res==DDERR_OUTOFVIDEOMEMORY) || (res==DDERR_INVALIDPIXELFORMAT))){
-			OutTraceD("CreateSurface: CreateSurface ERROR err=%x(%s) at %d, retry in SYSTEMMEMORY\n", 
-				res, ExplainDDError(res), __LINE__);
-			ddsd.dwFlags |= DDSD_CAPS;
-			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY; 
-			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
-			DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic2]" , __LINE__);
-			res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
-		}
-	}
 	if (res) {
 		OutTraceE("CreateSurface: ERROR on Emu_Generic res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
@@ -3931,7 +3954,7 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 	// note: C&C95 Gold Edition includes a check for the primary surface NOT having 
 	// DDSCAPS_SYSTEMMEMORY bit set 
 
-	if(IsPrim) caps->dwCaps = dxw.dwPrimarySurfaceCaps;
+	if(IsPrim) caps->dwCaps |= dxw.dwPrimarySurfaceCaps;
 	// v2.1.83: add FLIP capability (Funtraks a.k.a. Ignition)
 	// v2.2.26: add VIDEOMEMORY|LOCALVIDMEM capability (Alien Cabal 95 - partial fix)
 	if(dxw.dwFlags1 & EMULATESURFACE) {
@@ -4101,7 +4124,7 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 	
 	//if(dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 	if(dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM;
-	
+
 	if(IsFixed) DumpSurfaceAttributes(lpddsd, "GetSurfaceDesc [FIXED]", __LINE__);
 	return DD_OK;
 }

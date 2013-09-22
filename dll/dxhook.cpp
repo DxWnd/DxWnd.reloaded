@@ -78,7 +78,7 @@ static char *Flag4Names[32]={
 static char *TFlagNames[32]={
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
 	"OUTPROXYTRACE", "DXPROXED", "ASSERTDIALOG", "OUTIMPORTTABLE",
-	"OUTDEBUG", "OUTREGISTRY", "", "",
+	"OUTDEBUG", "OUTREGISTRY", "TRACEHOOKS", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -167,12 +167,12 @@ void HookDlls(HMODULE module)
 	__try{
 		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
 		if(!pnth) {
-			OutTraceB("HookDlls: ERROR no pnth at %d\n", __LINE__);
+			OutTraceH("HookDlls: ERROR no pnth at %d\n", __LINE__);
 			return;
 		}
 		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 		if(!rva) {
-			OutTraceB("HookDlls: ERROR no rva at %d\n", __LINE__);
+			OutTraceH("HookDlls: ERROR no rva at %d\n", __LINE__);
 			return;
 		}
 
@@ -190,18 +190,18 @@ void HookDlls(HMODULE module)
 			if(idx != -1) {
 				DllBase=GetModuleHandle(impmodule);
 				SysLibs[idx]=DllBase;
-				OutTraceB("HookDlls: system module %s at %x\n", impmodule, DllBase);
+				OutTraceH("HookDlls: system module %s at %x\n", impmodule, DllBase);
 				continue;
 			}
 
-			OutTraceB("HookDlls: ENTRY timestamp=%x module=%s forwarderchain=%x\n", 
+			OutTraceH("HookDlls: ENTRY timestamp=%x module=%s forwarderchain=%x\n", 
 				pidesc->TimeDateStamp, impmodule, pidesc->ForwarderChain);
 			if(pidesc->OriginalFirstThunk) {
 				ptname = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk);
 			}
 			else{
 				ptname = 0;
-				OutTraceB("HookDlls: no PE OFTs - stripped module=%s\n", impmodule);
+				OutTraceH("HookDlls: no PE OFTs - stripped module=%s\n", impmodule);
 			}
 
 			DllBase=GetModuleHandle(impmodule);
@@ -283,7 +283,7 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	static DWORD MinHook=0xFFFFFFFF;
 	static DWORD MaxHook=0;
 	
-	OutTraceB("SetHook: DEBUG target=%x, proc=%x name=%s\n", target, hookproc, hookname);
+	OutTraceH("SetHook: DEBUG target=%x, proc=%x name=%s\n", target, hookproc, hookname);
 	// keep track of hooked call range to avoid re-hooking of hooked addresses !!!
 	if ((DWORD)hookproc < MinHook) MinHook=(DWORD)hookproc;
 	if ((DWORD)hookproc > MaxHook) MaxHook=(DWORD)hookproc;
@@ -488,7 +488,7 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 			pidesc ++;
 		}
 		if(!pidesc->FirstThunk) {
-			OutTraceB("HookAPI: PE unreferenced dll=%s\n", dll);
+			OutTraceH("HookAPI: PE unreferenced dll=%s\n", dll);
 			return 0;
 		}
 
@@ -496,7 +496,7 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 		ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
 
 		if((apiproc==NULL) && (ptname==NULL)){
-			if (IsDebug) OutTraceD("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
+			OutTraceH("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
 			return 0;
 		}
 
@@ -531,7 +531,7 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 			OutTraceD("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
-		if(IsDebug) OutTrace("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
+		OutTraceH("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{       
@@ -657,11 +657,6 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 	// fixing windows message handling procedure
 
 	pWindowProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
-	if (((DWORD)pWindowProc & 0xFFFF0000) == 0xFFFF0000){
-		// don't hook pseudo-callbacks (v2.1.71: Commandos 2)
-		OutTraceD("GetWindowLong: no valid WindowProc routine detected, hwnd=%x WindowProc=%x\n", hwnd, (DWORD)pWindowProc);
-	}
-	else
 	if (pWindowProc == extWindowProc){
 		// hooked already !!!
 		OutTraceD("GetWindowLong: extWindowProc already in place, hwnd=%x\n", hwnd);
@@ -1090,7 +1085,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		case VK_F6:
 		case VK_F5:
 			if (dxw.dwFlags2 & TIMESTRETCH) {
-				char *sTSCaption[17]={"x16","x8","x4","x2","x1",":2",":4",":8",":16"};
 				if (wparam == VK_F5 && (dxw.TimeShift <  8)) dxw.TimeShift++;
 				if (wparam == VK_F6 && (dxw.TimeShift > -8)) dxw.TimeShift--;
 				OutTrace("Time Stretch: shift=%d speed=%s\n", dxw.TimeShift, dxw.GetTSCaption());
@@ -1116,7 +1110,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	//	(*pWindowProc), extWindowProc, message, ExplainWinMessage(message), wparam, lparam);
 	if(pWindowProc) {
 		LRESULT ret;
-		ret=(*pWindowProc)(hwnd, message, wparam, lparam);
+
+		// v2.02.36: use CallWindowProc that handles WinProc handles
+		ret=(*pCallWindowProc)(pWindowProc, hwnd, message, wparam, lparam);
+		
 		// save last NCHITTEST cursor position for use with KEEPASPECTRATIO scaling
 		if(message==WM_NCHITTEST) LastCursorPos=ret;
 		// v2.1.89: if FORCEWINRESIZE add standard processing for the missing WM_NC* messages

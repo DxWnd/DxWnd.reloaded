@@ -911,7 +911,7 @@ char *dxwCore::GetTSCaption(int shift)
 		"x1",
 		":1.5",":2",":3",":4",
 		":6",":8",":12",":16"};
-	if (shift<0 || shift>16) return "???";
+	if (shift<(-8) || shift>(+8)) return "???";
 	return sTSCaption[shift+8];
 }
 char *dxwCore::GetTSCaption(void)

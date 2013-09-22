@@ -44,6 +44,7 @@ void CTabLogs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_OUTDXTRACE, cTarget->m_OutDXTrace);
 	DDX_Check(pDX, IDC_IMPORTTABLE, cTarget->m_ImportTable);
 	DDX_Check(pDX, IDC_OUTREGISTRY, cTarget->m_RegistryOp);
+	DDX_Check(pDX, IDC_TRACEHOOKS, cTarget->m_TraceHooks);
 	if(gbDebug){
 		DDX_Check(pDX, IDC_DXPROXED, cTarget->m_DXProxed);
 		DDX_Check(pDX, IDC_ASSERT, cTarget->m_AssertDialog);
