@@ -36,7 +36,6 @@
 #define IDD_TAB_COMPAT                  160
 #define IDD_TAB_GDI                     161
 #define IDD_TAB_COLOR                   162
-
 #define IDC_AUTO                        300
 #define IDC_DIRECTX1                    301
 #define IDC_DIRECTX7                    302
@@ -45,18 +44,15 @@
 #define IDC_NODIRECTX                   305
 #define IDC_DIRECTX10                   306
 #define IDC_DIRECTX11                   307
-
 #define IDC_FILE                        1000
 #define IDC_OPEN                        1001
 #define IDC_STATUSINFO                  1005
 #define IDC_VERSION                     1006
 #define IDC_UNNOTIFY                    1007
-
 #define IDC_NOEMULATESURFACE            1008
 #define IDC_EMULATEBUFFER               1009
 #define IDC_LOCKEDSURFACE               1010
 #define IDC_EMULATESURFACE              1011
-
 #define IDC_MODIFYMOUSE                 1012
 #define IDC_OUTTRACE                    1013
 #define IDC_HANDLEDC                    1014
@@ -111,6 +107,7 @@
 #define IDC_CURSORTRACE                 1063
 #define IDC_IMPORTTABLE                 1064
 #define IDC_HANDLEEXCEPTIONS            1065
+#define IDC_IMPORTTABLE2                1065
 #define IDC_BLITFROMBACKBUFFER          1066
 #define IDC_OUTDEBUG                    1067
 #define IDC_SUPPRESSCLIPPING            1068
@@ -158,6 +155,10 @@
 #define IDC_SAVECAPS                    1110
 #define IDC_SINGLEPROCAFFINITY          1111
 #define IDC_HOOKDI                      1112
+#define IDC_EMULATEREGISTRY             1113
+#define IDC_CDROMDRIVETYPE              1114
+#define IDC_OUTREGISTRY                 1115
+#define IDC_NOWINDOWMOVE                1116
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

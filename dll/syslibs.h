@@ -15,6 +15,16 @@ user32.dll.dll
 type definitions
 ====================================================================*/
 
+// advapi32.dll
+
+typedef LONG	(WINAPI *RegCloseKey_Type)(HKEY);
+typedef LONG	(WINAPI *RegCreateKeyEx_Type)(HKEY, LPCTSTR, DWORD, LPTSTR, DWORD, REGSAM, LPSECURITY_ATTRIBUTES, PHKEY, LPDWORD);
+typedef LONG	(WINAPI *RegOpenKeyEx_Type)(HKEY, LPCTSTR, DWORD, REGSAM, PHKEY);
+typedef LONG	(WINAPI *RegQueryValueEx_Type)(HKEY, LPCTSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
+typedef LONG	(WINAPI *RegSetValueEx_Type)(HKEY, LPCTSTR, DWORD, DWORD, const BYTE *, DWORD);
+
+// ImmLib.dll:
+
 typedef BOOL	(WINAPI *ImmNotifyIME_Type)(HIMC, DWORD, DWORD, DWORD);
 typedef HIMC	(WINAPI *ImmCreateContext_Type)(void);
 typedef BOOL	(WINAPI *ImmDestroyContext_Type)(HIMC);
@@ -52,6 +62,7 @@ typedef BOOL	(WINAPI *TextOut_Type)(HDC, int, int, LPCTSTR, int);
 
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
+typedef UINT	(WINAPI *GetDriveType_Type)(LPCSTR);
 typedef void	(WINAPI *GetLocalTime_Type)(LPSYSTEMTIME);
 typedef FARPROC (WINAPI *GetProcAddress_Type)(HMODULE, LPCSTR);
 typedef void	(WINAPI *GetSystemTime_Type)(LPSYSTEMTIME);
@@ -70,7 +81,8 @@ typedef void	(WINAPI *Sleep_Type)(DWORD);
 typedef DWORD	(WINAPI *SleepEx_Type)(DWORD, BOOL);
 
 // ole32.dll:
-typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID FAR* ppv);
+typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
+typedef HRESULT (STDAPICALLTYPE *CoCreateInstanceEx_Type)(REFCLSID, IUnknown *, DWORD, COSERVERINFO *, DWORD, MULTI_QI *);
 
 // user32.dll:
 typedef HDC		(WINAPI *BeginPaint_Type)(HWND, LPPAINTSTRUCT);
@@ -82,6 +94,7 @@ typedef BOOL	(WINAPI *ClipCursor_Type)(const RECT *);
 typedef HWND	(WINAPI *CreateDialogIndirectParam_Type)(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
 typedef HWND	(WINAPI *CreateDialogParam_Type)(HINSTANCE, LPCTSTR, HWND, DLGPROC, LPARAM);
 typedef HWND	(WINAPI *CreateWindowExA_Type)(DWORD, LPCTSTR, LPCTSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
+typedef HWND	(WINAPI *CreateWindowExW_Type)(DWORD, LPCWSTR, LPCWSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
 typedef LRESULT (WINAPI *DefWindowProc_Type)(HWND, UINT, WPARAM, LPARAM);
 typedef BOOL	(WINAPI *EndPaint_Type)(HWND, const PAINTSTRUCT *);
 typedef LONG	(WINAPI *EnumDisplaySettings_Type)(LPCTSTR, DWORD, LPDEVMODEA);
@@ -93,6 +106,7 @@ typedef HDC		(WINAPI *GDIGetDC_Type)(HWND);
 typedef HWND	(WINAPI *GetDesktopWindow_Type)(void);
 typedef BOOL	(WINAPI *GetMessage_Type)(LPMSG, HWND, UINT, UINT);
 typedef int		(WINAPI *GetSystemMetrics_Type)(int);
+typedef HWND	(WINAPI *GetTopWindow_Type)(HWND);
 typedef LONG	(WINAPI *GetWindowLong_Type)(HWND, int);
 typedef BOOL	(WINAPI *GetWindowRect_Type)(HWND, LPRECT);
 typedef BOOL	(WINAPI *InvalidateRect_Type)(HWND, CONST RECT *, BOOL);
@@ -131,6 +145,16 @@ hooked APIs real pointers
 #define DXWINITIALIZED
 #endif
 
+// advapi32.dll
+
+DXWEXTERN RegCloseKey_Type pRegCloseKey DXWINITIALIZED;
+DXWEXTERN RegCreateKeyEx_Type pRegCreateKeyEx DXWINITIALIZED;
+DXWEXTERN RegOpenKeyEx_Type pRegOpenKeyEx DXWINITIALIZED;
+DXWEXTERN RegQueryValueEx_Type pRegQueryValueEx DXWINITIALIZED;
+DXWEXTERN RegSetValueEx_Type pRegSetValueEx DXWINITIALIZED;
+
+// ImmLib.dll
+
 DXWEXTERN ImmNotifyIME_Type pImmNotifyIME DXWINITIALIZED;
 DXWEXTERN ImmCreateContext_Type pImmCreateContext DXWINITIALIZED;
 DXWEXTERN ImmDestroyContext_Type pImmDestroyContext DXWINITIALIZED;
@@ -168,6 +192,7 @@ DXWEXTERN TextOut_Type pGDITextOutA DXWINITIALIZED;
 
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
+DXWEXTERN GetDriveType_Type pGetDriveType DXWINITIALIZED;
 DXWEXTERN GetLocalTime_Type pGetLocalTime DXWINITIALIZED;
 DXWEXTERN GetProcAddress_Type pGetProcAddress DXWINITIALIZED;
 DXWEXTERN GetSystemTime_Type pGetSystemTime DXWINITIALIZED;
@@ -186,6 +211,7 @@ DXWEXTERN SleepEx_Type pSleepEx DXWINITIALIZED;
 
 // ole32.dll:
 DXWEXTERN CoCreateInstance_Type pCoCreateInstance DXWINITIALIZED;
+DXWEXTERN CoCreateInstanceEx_Type pCoCreateInstanceEx  DXWINITIALIZED;
 
 // user32.dll:
 DXWEXTERN BeginPaint_Type pBeginPaint DXWINITIALIZED;
@@ -197,6 +223,7 @@ DXWEXTERN ClipCursor_Type pClipCursor DXWINITIALIZED;
 DXWEXTERN CreateDialogIndirectParam_Type pCreateDialogIndirectParam DXWINITIALIZED;
 DXWEXTERN CreateDialogParam_Type pCreateDialogParam DXWINITIALIZED;
 DXWEXTERN CreateWindowExA_Type pCreateWindowExA DXWINITIALIZED;
+DXWEXTERN CreateWindowExW_Type pCreateWindowExW DXWINITIALIZED;
 DXWEXTERN DefWindowProc_Type pDefWindowProc DXWINITIALIZED;
 DXWEXTERN EndPaint_Type pEndPaint DXWINITIALIZED;
 DXWEXTERN EnumDisplaySettings_Type pEnumDisplaySettings DXWINITIALIZED;
@@ -208,6 +235,7 @@ DXWEXTERN GDIGetDC_Type pGDIGetDC DXWINITIALIZED;
 DXWEXTERN GetDesktopWindow_Type pGetDesktopWindow DXWINITIALIZED;
 DXWEXTERN GetMessage_Type pGetMessage DXWINITIALIZED;
 DXWEXTERN GetSystemMetrics_Type pGetSystemMetrics DXWINITIALIZED;
+DXWEXTERN GetTopWindow_Type pGetTopWindow DXWINITIALIZED;
 DXWEXTERN GDIGetDC_Type pGDIGetWindowDC DXWINITIALIZED;
 DXWEXTERN GetWindowLong_Type pGetWindowLong DXWINITIALIZED;
 DXWEXTERN GetWindowRect_Type pGetWindowRect DXWINITIALIZED;
@@ -234,6 +262,16 @@ DXWEXTERN timeGetTime_Type ptimeGetTime DXWINITIALIZED;
 /* ===================================================================
 hook procedures (possibly more tnan one per each API...)
 ====================================================================*/
+
+// advapi32.dll
+
+extern LONG	WINAPI extRegCloseKey(HKEY);
+extern LONG	WINAPI extRegCreateKeyEx(HKEY, LPCTSTR, DWORD, LPTSTR, DWORD, REGSAM, LPSECURITY_ATTRIBUTES, PHKEY, LPDWORD);
+extern LONG	WINAPI extRegOpenKeyEx(HKEY, LPCTSTR, DWORD, REGSAM, PHKEY);
+extern LONG	WINAPI extRegQueryValueEx(HKEY, LPCTSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
+extern LONG	WINAPI extRegSetValueEx(HKEY, LPCTSTR, DWORD, DWORD, const BYTE *, DWORD);
+
+// ImmLib.dll
 
 extern BOOL WINAPI extImmNotifyIME(HIMC, DWORD, DWORD, DWORD);
 extern HIMC	WINAPI extImmCreateContext(void);
@@ -277,6 +315,7 @@ extern BOOL WINAPI extTextOutA(HDC, int, int, LPCTSTR, int);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
+extern UINT WINAPI extGetDriveType(LPCSTR);
 extern void WINAPI extGetLocalTime(LPSYSTEMTIME);
 extern FARPROC WINAPI extGetProcAddress(HMODULE, LPCSTR);
 extern void WINAPI extGetSystemTime(LPSYSTEMTIME);
@@ -296,6 +335,7 @@ extern DWORD WINAPI extSleepEx(DWORD, BOOL);
 
 // ole32.dll:
 extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
+extern HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID, IUnknown *, DWORD, COSERVERINFO *, DWORD, MULTI_QI *);
 
 // user32.dll:
 extern HDC WINAPI extBeginPaint(HWND, LPPAINTSTRUCT);
@@ -307,6 +347,7 @@ extern BOOL WINAPI extClipCursor(LPRECT);
 extern HWND WINAPI extCreateDialogIndirectParam(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
 extern HWND WINAPI extCreateDialogParam(HINSTANCE, LPCSTR, HWND, DLGPROC, LPARAM);
 extern HWND WINAPI extCreateWindowExA(DWORD, LPCTSTR, LPCTSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
+extern HWND WINAPI extCreateWindowExW(DWORD, LPCWSTR, LPCWSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
 extern LRESULT WINAPI extDefWindowProc(HWND, UINT, WPARAM, LPARAM);
 extern BOOL WINAPI extEndPaint(HWND, const PAINTSTRUCT *);
 extern LONG WINAPI extEnumDisplaySettings(LPCTSTR, DWORD, DEVMODE *);
@@ -319,6 +360,7 @@ extern HDC WINAPI extDDGetDC(HWND);
 extern HWND WINAPI extGetDesktopWindow(void);
 extern BOOL WINAPI extGetMessage(LPMSG, HWND, UINT, UINT);
 extern int WINAPI extGetSystemMetrics(int);
+extern HWND WINAPI extGetTopWindow(HWND);
 extern HDC WINAPI extGDIGetWindowDC(HWND);
 extern HDC WINAPI extDDGetWindowDC(HWND);
 extern LONG WINAPI extGetWindowLong(HWND, int);

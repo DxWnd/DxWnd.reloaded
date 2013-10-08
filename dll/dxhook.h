@@ -8,6 +8,7 @@ extern void HookImeLib(HMODULE);
 extern void HookKernel32(HMODULE);
 extern void HookUser32(HMODULE);
 extern void HookWinMM(HMODULE);
+extern void HookAdvApi32(HMODULE);
 
 extern void InitPosition(int, int, int, int, int, int);
 //void InitWindowPos(int, int, int, int);
@@ -29,6 +30,7 @@ extern FARPROC Remap_trust_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_WinMM_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_ImeLib_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_vfw_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_AdvApi32_ProcAddress(LPCSTR, HMODULE);
 
 typedef struct {
 	char *APIName;

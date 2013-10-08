@@ -161,11 +161,6 @@ BOOL dxwCore::IsDesktop(HWND hwnd)
 
 POINT dxwCore::FixCursorPos(POINT prev)
 {
-	return FixCursorPos(hWnd, prev);
-}
-
-POINT dxwCore::FixCursorPos(HWND hwnd, POINT prev)
-{
 	POINT curr;
 	RECT rect;
 	extern LPRECT lpClipRegion;
@@ -175,18 +170,34 @@ POINT dxwCore::FixCursorPos(HWND hwnd, POINT prev)
 	// scale mouse coordinates
 	// remember: rect from GetClientRect always start at 0,0!
 	if(dxw.dwFlags1 & MODIFYMOUSE){
-		if (!(*pGetClientRect)(hwnd, &rect)) {
+		int w, h, b; // width, height and border
+		if (!(*pGetClientRect)(hWnd, &rect)) { // v2.02.30: always use desktop win
 			OutTraceD("GetClientRect ERROR %d at %d\n", GetLastError(),__LINE__);
 			curr.x = curr.y = 0;
+		}
+		w = rect.right - rect.left;
+		h = rect.bottom - rect.top;
+
+		if ((dxw.Coordinates == DXW_DESKTOP_WORKAREA) && (dxw.dwFlags2 & KEEPASPECTRATIO)) {
+			if ((w * 600) > (h * 800)){
+				b = (w - (h * 800 / 600))/2;
+				curr.x -= b;
+				w -= 2*b;
+			}
+			else {
+				b = (h - (w * 600 / 800))/2;
+				curr.y -= b;
+				h -= 2*b;
+			}
 		}
 
 		if (curr.x < 0) curr.x = 0;
 		if (curr.y < 0) curr.y = 0;
-		if (curr.x > rect.right) curr.x = rect.right;
-		if (curr.y > rect.bottom) curr.y = rect.bottom;
+		if (curr.x > w) curr.x = w;
+		if (curr.y > h) curr.y = h;
 
-		if (rect.right)  curr.x = (curr.x * dxw.GetScreenWidth()) / rect.right;
-		if (rect.bottom) curr.y = (curr.y * dxw.GetScreenHeight()) / rect.bottom;
+		if (w) curr.x = (curr.x * dxw.GetScreenWidth()) / w;
+		if (h) curr.y = (curr.y * dxw.GetScreenHeight()) / h;
 	}
 
 	if((dxw.dwFlags1 & ENABLECLIPPING) && lpClipRegion){
@@ -282,33 +293,37 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	POINT UpLeft={0,0};
 	RECT RetRect;
 	RECT ClientRect;
+	int w, h, bx, by; // width, height and x,y borders
 	if (!(*pGetClientRect)(hWnd, &ClientRect)){
 		OutTraceE("GetClientRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
 	}
-	if(lpRect){
-		RetRect.left = lpRect->left * ClientRect.right / dwScreenWidth;
-		RetRect.right = lpRect->right * ClientRect.right / dwScreenWidth;
-		RetRect.top = lpRect->top * ClientRect.bottom / dwScreenHeight;
-		RetRect.bottom = lpRect->bottom * ClientRect.bottom / dwScreenHeight;
-	}
-	else {
-		RetRect=ClientRect;
-		if ((dxw.Coordinates == DXW_DESKTOP_WORKAREA) && (dwFlags2 & KEEPASPECTRATIO)){
-			int w, h, b; // width, height and border
-			w = RetRect.right - RetRect.left;
-			h = RetRect.bottom - RetRect.top;
-			if ((w * 600) > (h * 800)){
-				b = (w - (h * 800 / 600))/2;
-				RetRect.left = ClientRect.left + b;
-				RetRect.right = ClientRect.right - b;
-			}
-			else {
-				b = (h - (w * 600 / 800))/2;
-				RetRect.top = ClientRect.top + b;
-				RetRect.bottom = ClientRect.bottom - b;
-			}
+	RetRect=ClientRect;
+	bx = by = 0;
+	if ((dxw.Coordinates == DXW_DESKTOP_WORKAREA) && (dwFlags2 & KEEPASPECTRATIO)){
+		w = RetRect.right - RetRect.left;
+		h = RetRect.bottom - RetRect.top;
+		if ((w * 600) > (h * 800)){
+			bx = (w - (h * 800 / 600))/2;
 		}
+		else {
+			by = (h - (w * 600 / 800))/2;
+		}
+		OutTraceD("bx=%d by=%d\n", bx, by);
 	}
+
+	if(lpRect){
+		RetRect.left = (lpRect->left * ClientRect.right / dwScreenWidth) + bx;
+		RetRect.right = (lpRect->right * ClientRect.right / dwScreenWidth) - bx;
+		RetRect.top = (lpRect->top * ClientRect.bottom / dwScreenHeight) + by;
+		RetRect.bottom = (lpRect->bottom * ClientRect.bottom / dwScreenHeight) - by;
+	}
+	else{
+		RetRect.left = ClientRect.left + bx;
+		RetRect.right = ClientRect.right - bx;
+		RetRect.top = ClientRect.top + by;
+		RetRect.bottom = ClientRect.bottom - by;
+	}
+
 	if(!(*pClientToScreen)(hWnd, &UpLeft)){
 		OutTraceE("ClientToScreen ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
 	}
@@ -828,6 +843,7 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 		"tapi32",
 		"netapi32",
 		"wintrust",
+		"advapi32",
 		NULL
 	};	
 	

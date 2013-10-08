@@ -37,10 +37,12 @@ public:
 	BOOL	m_DXProxed;
 	BOOL	m_AssertDialog;
 	BOOL	m_ImportTable;
+	BOOL	m_RegistryOp;
 	BOOL	m_HandleDC;
 	BOOL	m_UnNotify;
 	BOOL	m_Windowize;
 	BOOL	m_HookDLLs;
+	BOOL	m_EmulateRegistry;
 	BOOL	m_NoBanner;
 	BOOL	m_StartDebug;
 	BOOL	m_HookEnabled;
@@ -79,6 +81,7 @@ public:
 	BOOL	m_HideMultiMonitor;
 	BOOL	m_WallpaperMode;
 	BOOL	m_FixD3DFrame;
+	BOOL	m_NoWindowMove;
 	BOOL	m_HookChildWin;
 	BOOL	m_MessageProc;
 	BOOL	m_FixNCHITTEST;
@@ -100,6 +103,7 @@ public:
 	BOOL	m_FullRectBlt;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
+	BOOL	m_CDROMDriveType;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_SaveCaps;

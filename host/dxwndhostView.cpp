@@ -111,6 +111,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_UnNotify) t->flags |= UNNOTIFY;
 	if(dlg->m_Windowize) t->flags2 |= WINDOWIZE;
 	if(dlg->m_HookDLLs) t->flags3 |= HOOKDLLS;
+	if(dlg->m_EmulateRegistry) t->flags3 |= EMULATEREGISTRY;
 	if(dlg->m_HookEnabled) t->flags3 |= HOOKENABLED;
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
@@ -133,9 +134,11 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DXProxed) t->tflags |= DXPROXED;
 	if(dlg->m_AssertDialog) t->tflags |= ASSERTDIALOG;
 	if(dlg->m_ImportTable) t->tflags |= OUTIMPORTTABLE;
+	if(dlg->m_RegistryOp) t->tflags |= OUTREGISTRY;
 	if(dlg->m_HandleDC) t->flags |= HANDLEDC;
 	if(dlg->m_HandleExceptions) t->flags |= HANDLEEXCEPTIONS;
 	if(dlg->m_LimitResources) t->flags2 |= LIMITRESOURCES;
+	if(dlg->m_CDROMDriveType) t->flags3 |= CDROMDRIVETYPE;
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
@@ -172,6 +175,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HideMultiMonitor) t->flags2 |= HIDEMULTIMONITOR;
 	if(dlg->m_WallpaperMode) t->flags2 |= WALLPAPERMODE;
 	if(dlg->m_FixD3DFrame) t->flags3 |= FIXD3DFRAME;
+	if(dlg->m_NoWindowMove) t->flags3 |= NOWINDOWMOVE;
 	if(dlg->m_Force16BPP) t->flags3 |= FORCE16BPP;
 	if(dlg->m_HookChildWin) t->flags |= HOOKCHILDWIN;
 	if(dlg->m_MessageProc) t->flags |= MESSAGEPROC;
@@ -222,6 +226,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_UnNotify = t->flags & UNNOTIFY ? 1 : 0;
 	dlg->m_Windowize = t->flags2 & WINDOWIZE ? 1 : 0;
 	dlg->m_HookDLLs = t->flags3 & HOOKDLLS ? 1 : 0;
+	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
 	dlg->m_HookEnabled = t->flags3 & HOOKENABLED ? 1 : 0;
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
@@ -242,6 +247,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DXProxed = t->tflags & DXPROXED ? 1 : 0;
 	dlg->m_AssertDialog = t->tflags & ASSERTDIALOG ? 1 : 0;
 	dlg->m_ImportTable = t->tflags & OUTIMPORTTABLE ? 1 : 0;
+	dlg->m_RegistryOp = t->tflags & OUTREGISTRY ? 1 : 0;
 	dlg->m_HandleDC = t->flags & HANDLEDC ? 1 : 0;
 	dlg->m_HandleExceptions = t->flags & HANDLEEXCEPTIONS ? 1 : 0;
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;
@@ -250,6 +256,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SaveCaps = t->flags3 & SAVECAPS ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
+	dlg->m_CDROMDriveType = t->flags3 & CDROMDRIVETYPE ? 1 : 0;
 	dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
@@ -281,6 +288,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HideMultiMonitor = t->flags2 & HIDEMULTIMONITOR ? 1 : 0;
 	dlg->m_WallpaperMode = t->flags2 & WALLPAPERMODE ? 1 : 0;
 	dlg->m_FixD3DFrame = t->flags3 & FIXD3DFRAME ? 1 : 0;
+	dlg->m_NoWindowMove = t->flags3 & NOWINDOWMOVE ? 1 : 0;
 	dlg->m_Force16BPP = t->flags3 & FORCE16BPP ? 1 : 0;
 	dlg->m_HookChildWin = t->flags & HOOKCHILDWIN ? 1 : 0;
 	dlg->m_MessageProc = t->flags & MESSAGEPROC ? 1 : 0;

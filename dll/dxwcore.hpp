@@ -25,7 +25,6 @@ public: // methods
 	BOOL IsFullScreen() {return FullScreen;}
 	BOOL IsDesktop(HWND);
 	POINT FixCursorPos(POINT);
-	POINT FixCursorPos(HWND, POINT);
 	void FixNCHITCursorPos(LPPOINT);
 	void SetClipCursor(void);
 	void EraseClipCursor(void);

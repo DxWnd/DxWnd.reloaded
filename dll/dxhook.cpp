@@ -56,7 +56,7 @@ static char *Flag2Names[32]={
 static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
-	"SAVECAPS", "SINGLEPROCAFFINITY", "Flag3:11", "Flag3:12",
+	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
 	"Flag3:13", "Flag3:14", "Flag3:15", "Flag3:16",
 	"", "", "", "",
 	"", "", "", "",
@@ -78,7 +78,7 @@ static char *Flag4Names[32]={
 static char *TFlagNames[32]={
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
 	"OUTPROXYTRACE", "DXPROXED", "ASSERTDIALOG", "OUTIMPORTTABLE",
-	"OUTDEBUG", "", "", "",
+	"OUTDEBUG", "OUTREGISTRY", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -625,6 +625,9 @@ void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 	OutTraceD("AdjustWindowPos: hwnd=%x, size=(%d,%d)\n", hwnd, width, height);
 	CalculateWindowPos(hwnd, width, height, &wp);
 	OutTraceD("AdjustWindowPos: fixed pos=(%d,%d) size=(%d,%d)\n", wp.x, wp.y, wp.cx, wp.cy);
+	//if(!pSetWindowPos) pSetWindowPos=SetWindowPos;
+	//OutTraceD("pSetWindowPos=%x\n", pSetWindowPos);
+	OutTraceD("hwnd=%x pos=(%d,%d) size=(%d,%d)\n", pSetWindowPos, wp.x, wp.y, wp.cx, wp.cy);
 	if(!(*pSetWindowPos)(hwnd, 0, wp.x, wp.y, wp.cx, wp.cy, 0)){
 		OutTraceE("AdjustWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
@@ -815,7 +818,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 	// v2.1.93: adjust clipping region
 
-	OutTraceW("WindowProc: WinMsg=[0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
+	OutTraceW("WindowProc[%x]: WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
 
 #if 0
 	if(dxw.dwFlags2 & WALLPAPERMODE) {
@@ -837,6 +840,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 	switch(message){
 	// v2.02.13: added WM_GETMINMAXINFO/WM_NCCALCSIZE interception - (see Actua Soccer 3 problems...)
+	//case WM_NCDESTROY:
+	//	return 0;
 	case WM_GETMINMAXINFO: 
 		if(dxw.dwFlags1 & LOCKWINPOS){
 			extern void dxwFixMinMaxInfo(char *, HWND, LPARAM);
@@ -845,7 +850,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_NCCALCSIZE:
-		if(dxw.dwFlags1 & LOCKWINPOS){
+		if((dxw.dwFlags1 & LOCKWINPOS) && (hwnd == dxw.GethWnd())){ // v2.02.30: don't alter child and other windows....
 			OutTraceD("WindowProc: WS_NCCALCSIZE wparam=%x\n", wparam);
 			if(wparam){
 				// nothing so far ....
@@ -978,7 +983,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
 			// scale mouse coordinates
-			curr=dxw.FixCursorPos(hwnd, prev);
+			curr=dxw.FixCursorPos(prev); //v2.02.30
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
@@ -1001,7 +1006,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			// scale mouse coordinates
 			prev.x = LOWORD(lparam);
 			prev.y = HIWORD(lparam);
-			curr=dxw.FixCursorPos(hwnd, prev);
+			curr=dxw.FixCursorPos(prev); //v2.02.30
 			lparam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 		}
@@ -1243,6 +1248,7 @@ void HookModule(HMODULE base, int dxversion)
 	HookDirectDraw(base, dxversion);
 	HookDirect3D(base, dxversion);
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
+	if((dxw.dwFlags3 & EMULATEREGISTRY) || (dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 }
 

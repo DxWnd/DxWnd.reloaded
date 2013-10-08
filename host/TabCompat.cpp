@@ -34,6 +34,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_LIMITRESOURCES, cTarget->m_LimitResources);
 	DDX_Check(pDX, IDC_SUPPRESSIME, cTarget->m_SuppressIME);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
+	DDX_Check(pDX, IDC_CDROMDRIVETYPE, cTarget->m_CDROMDriveType);
 }
 
 BEGIN_MESSAGE_MAP(CTabCompat, CDialog)

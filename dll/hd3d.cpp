@@ -473,7 +473,7 @@ HRESULT WINAPI extGetAdapterIdentifier(void *pd3dd, UINT Adapter, DWORD Flags, D
 {
 	HRESULT res;
 	OutTraceD("GetAdapterIdentifier: Adapter=%d flags=%x\n", Adapter, Flags);
-	res=(*pGetAdapterIdentifier)(pd3dd, Adapter, Flags, pIdentifier);
+	res=pGetAdapterIdentifier(pd3dd, Adapter, Flags, pIdentifier);
 	OutTraceD("GetAdapterIdentifier: ret=%x\n", res);
 	return res;
 }
@@ -572,10 +572,13 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	D3DDISPLAYMODE mode;
 	int Windowed;
 
+	OutTraceD("CreateDevice: D3DVersion=%d lpd3d=%x adapter=%x hFocusWnd=%x behavior=%x, size=(%d,%d)\n",
+		dwD3DVersion, lpd3d, adapter, hfocuswindow, behaviorflags, ppresentparam->BackBufferWidth, ppresentparam->BackBufferHeight);
+
 	memcpy(param, ppresentparam, (dwD3DVersion == 9)?56:52);
 	dxw.SethWnd(hfocuswindow);
 	dxw.SetScreenSize(param[0], param[1]);
-	AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	if(!(dxw.dwFlags3 & NOWINDOWMOVE)) AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	if(dxw.dwFlags3 & FIXD3DFRAME){
 		char ClassName[81];
@@ -1098,7 +1101,7 @@ HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
 
 HRESULT WINAPI extGetDirect3D(void *lpdd3dd, IDirect3D9 **ppD3D9)
 {
-	OutTraceD("Device::GetDirect3D\n");
+	OutTraceB("Device::GetDirect3D\n");
 	return (*pGetDirect3D)(lpdd3dd, ppD3D9);
 }
 

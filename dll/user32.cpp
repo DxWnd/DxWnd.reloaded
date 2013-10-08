@@ -22,6 +22,7 @@ static HookEntry_Type Hooks[]={
 	{"FillRect", (FARPROC)FillRect, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
 	{"DefWindowProcA", (FARPROC)DefWindowProcA, (FARPROC *)&pDefWindowProc, (FARPROC)extDefWindowProc},
 	{"CreateWindowExA", (FARPROC)CreateWindowExA, (FARPROC *)&pCreateWindowExA, (FARPROC)extCreateWindowExA},
+	{"CreateWindowExW", (FARPROC)CreateWindowExW, (FARPROC *)&pCreateWindowExW, (FARPROC)extCreateWindowExW},
 	{"RegisterClassExA", (FARPROC)RegisterClassExA, (FARPROC *)&pRegisterClassExA, (FARPROC)extRegisterClassExA},
 	{"GetSystemMetrics", (FARPROC)GetSystemMetrics, (FARPROC *)&pGetSystemMetrics, (FARPROC)extGetSystemMetrics},
 	{"GetDesktopWindow", (FARPROC)GetDesktopWindow, (FARPROC *)&pGetDesktopWindow, (FARPROC)extGetDesktopWindow},
@@ -400,8 +401,6 @@ BOOL WINAPI extDDInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		OutTraceD("InvalidateRect: hwnd=%x rect=NULL erase=%x\n",
 		hwnd, bErase);
 
-	if(dxw.IsFullScreen() && dxw.IsDesktop(hwnd)) hwnd=dxw.GethWnd();
-
 	return (*pInvalidateRect)(hwnd, NULL, bErase);
 }
 
@@ -413,8 +412,6 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 	else
 		OutTraceD("InvalidateRect: hwnd=%x rect=NULL erase=%x\n",
 		hwnd, bErase);
-
-	if(dxw.IsFullScreen() && dxw.IsDesktop(hwnd)) hwnd=dxw.GethWnd();
 
 	return (*pInvalidateRect)(hwnd, NULL, bErase);
 }
@@ -497,17 +494,21 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong)
 	}
 
 	if (nIndex==GWL_WNDPROC){
-		long lres;
+		WNDPROC lres;
+		WNDPROC OldProc;
 		// GPL fix
-		if(hwnd==0) {
+		if(dxw.IsDesktop(hwnd)) {
 			hwnd=dxw.GethWnd();
-			OutTrace("SetWindowLong: NULL hwnd, FIXING hwnd=%x\n",hwnd);
+			OutTraceD("SetWindowLong: DESKTOP hwnd, FIXING hwnd=%x\n",hwnd);
 		}
 		// end of GPL fix
-		res=(LONG)WhndGetWindowProc(hwnd);		
+
+		OldProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
+		if(OldProc==extWindowProc) OldProc=WhndGetWindowProc(hwnd);
 		WhndStackPush(hwnd, (WNDPROC)dwNewLong);
+		res=(LONG)OldProc;
 		SetLastError(0);
-		lres=(*pSetWindowLong)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
+		lres=(WNDPROC)(*pSetWindowLong)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
 		if(!lres && GetLastError())OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 	else {
@@ -575,7 +576,8 @@ HDWP WINAPI extDeferWindowPos(HDWP hWinPosInfo, HWND hwnd, HWND hWndInsertAfter,
 	OutTraceD("DeferWindowPos: hwnd=%x%s pos=(%d,%d) dim=(%d,%d) Flags=%x\n", 
 		hwnd, dxw.IsFullScreen()?"(FULLSCREEN)":"", X, Y, cx, cy, uFlags);
 
-	if ((hwnd != dxw.GethWnd()) || !dxw.IsFullScreen()){
+	//if ((hwnd != dxw.GethWnd()) || !dxw.IsFullScreen()){
+	{
 		// just proxy
 		res=(*pGDIDeferWindowPos)(hWinPosInfo, hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 		if(!res)OutTraceE("SetWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -620,6 +622,9 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	LRESULT ret;
 	OutTraceW("SendMessage: hwnd=%x WinMsg=[0x%x]%s(%x,%x)\n", 
 		hwnd, Msg, ExplainWinMessage(Msg), wParam, lParam);
+
+	//if(Msg==WM_NCDESTROY) return 1;
+	
 	if(dxw.dwFlags1 & MODIFYMOUSE){
 		switch (Msg){
 		case WM_MOUSEMOVE:
@@ -803,6 +808,7 @@ BOOL WINAPI extGetMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgF
 	Message=lpMsg->message & 0xFFFF;
 	if((Message <= WM_MOUSELAST) && (Message >= WM_MOUSEFIRST)){
 		FixedHwnd=(hwnd)?hwnd:dxw.GethWnd();
+		if(dxw.IsDesktop(FixedHwnd)) FixedHwnd=dxw.GethWnd(); // GPL fix...
 		lpMsg->pt=FixMessagePt(FixedHwnd, lpMsg->pt);
 		lpMsg->lParam = MAKELPARAM(lpMsg->pt.x, lpMsg->pt.y); 
 		OutTraceC("PeekMessage: fixed lparam/pt=(%d,%d)\n", lpMsg->pt.x, lpMsg->pt.y);
@@ -1008,6 +1014,33 @@ ATOM WINAPI extRegisterClassExA(WNDCLASSEX *lpwcx)
 	return (*pRegisterClassExA)(lpwcx);
 }
 
+HWND WINAPI extCreateWindowExW(
+  DWORD dwExStyle,
+  LPCWSTR lpClassName,
+  LPCWSTR lpWindowName,
+  DWORD dwStyle,
+  int x,
+  int y,
+  int nWidth,
+  int nHeight,
+  HWND hWndParent,
+  HMENU hMenu,
+  HINSTANCE hInstance,
+  LPVOID lpParam) 
+{
+	char sClassName[256+1];
+	char sWindowName[256+1];
+	wcstombs_s(NULL, sClassName, lpClassName, 80);
+	wcstombs_s(NULL, sWindowName, lpWindowName, 80);
+
+	OutTraceD("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
+		lpClassName, lpWindowName, x, y, nWidth, nHeight, 
+		dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+	if(IsDebug) OutTrace("CreateWindowExW: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
+
+	return extCreateWindowExA(dwExStyle, sClassName, sWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+}
+
 // GHO: pro Diablo
 HWND WINAPI extCreateWindowExA(
   DWORD dwExStyle,
@@ -1027,14 +1060,14 @@ HWND WINAPI extCreateWindowExA(
 	WNDPROC pWindowProc;
 	BOOL isValidHandle=TRUE;
 
-	OutTraceD("CreateWindowEx: class=\"%s\" wname=\"%s\" pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
+	OutTraceD("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
 		lpClassName, lpWindowName, x, y, nWidth, nHeight, 
 		dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
-	if(IsDebug) OutTrace("CreateWindowEx: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	if(IsDebug) OutTrace("CreateWindowExA: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	// no maximized windows in any case
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
-		OutTraceD("CreateWindowEx: handling PREVENTMAXIMIZE mode\n");
+		OutTraceD("CreateWindowExA: handling PREVENTMAXIMIZE mode\n");
 		dwStyle &= ~(WS_MAXIMIZE | WS_POPUP);
 		dwExStyle &= ~WS_EX_TOPMOST;
 	}
@@ -1046,9 +1079,10 @@ HWND WINAPI extCreateWindowExA(
 	// rendering using CW_USEDEFAULT placement and 800x600 size while the previous
 	// main win was 640x480 only!
 	// v2.02.13: if it's a WS_CHILD window, don't reposition the x,y, placement for BIG win.
+	// v2.02.30: fix (Fable - lost chapters) Fable creates a bigger win with negative x,y coordinates. 
 	if	(
 			(
-				((x==0)&&(y==0)) || ((x==CW_USEDEFAULT)&&(y==CW_USEDEFAULT))
+				((x<=0)&&(y<=0)) || ((x==CW_USEDEFAULT)&&(y==CW_USEDEFAULT))
 			)
 		&&
 			(((DWORD)nWidth>=dxw.GetScreenWidth())&&((DWORD)nHeight>=dxw.GetScreenHeight()))
@@ -1059,6 +1093,11 @@ HWND WINAPI extCreateWindowExA(
 		){
 		RECT screen;
 		POINT upleft = {0,0};
+
+		// v2.02.30: fix (Fable - lost chapters)
+		if(nWidth==CW_USEDEFAULT) nWidth=dxw.GetScreenWidth();
+		if(nHeight==CW_USEDEFAULT) nHeight=dxw.GetScreenHeight();
+
 		// update virtual screen size if it has grown 
 		dxw.SetScreenSize(nWidth, nHeight);
 		// inserted some checks here, since the main window could be destroyed
@@ -1071,33 +1110,43 @@ HWND WINAPI extCreateWindowExA(
 			if (screen.right==0 || screen.bottom==0) break;
 			isValidHandle = TRUE;
 		} while(FALSE);
-		if (isValidHandle){
+		if (isValidHandle){ // use parent's coordinates
 			if (!(dwStyle & WS_CHILD)){ 
 				x=upleft.x;
 				y=upleft.y;
 			}
 			nWidth=screen.right;
 			nHeight=screen.bottom;
-			OutTraceD("CreateWindowEx: fixed BIG win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
+			OutTraceD("CreateWindowExA: fixed BIG win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
 		}
 		else {
 			// invalid parent coordinates: use initial placement, but leave the size.
 			// should also fix the window style and compensate for borders here?
-			if (!(dwStyle & WS_CHILD)){ 
+			// if (!(dwStyle & WS_CHILD)){  // commented out: can't be! see if condition
 				x=dxw.iPosX;
 				y=dxw.iPosY;
-			}
+			//}
 			nWidth=dxw.iSizX;
 			nHeight=dxw.iSizY;
-			OutTraceD("CreateWindowEx: renewed BIG win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
+			OutTraceD("CreateWindowExA: renewed BIG win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
 		}
 		dxw.SetFullScreen(TRUE);
+		if(dxw.Coordinates==DXW_DESKTOP_WORKAREA){
+			RECT workarea;
+			SystemParametersInfo(SPI_GETWORKAREA, NULL, &workarea, 0);
+			x=0;
+			y=0;
+			nWidth=workarea.right;
+			nHeight=workarea.bottom;
+			dwStyle=(dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW;
+			OutTraceD("CreateWindowExA: WORKAREA win pos=(%d,%d) size=(%d,%d)\n", x, y, nWidth, nHeight);
+		}
 	}
 
 	if(!dxw.IsFullScreen()){ // v2.1.63: needed for "Monster Truck Madness"
 		wndh= (*pCreateWindowExA)(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, 
 			hWndParent, hMenu, hInstance, lpParam);
-		OutTraceD("CreateWindowEx: windowed mode ret=%x\n", wndh);
+		OutTraceD("CreateWindowExA: windowed mode ret=%x\n", wndh);
 		return wndh;
 	}
 
@@ -1105,24 +1154,24 @@ HWND WINAPI extCreateWindowExA(
 	// Age of Empires....
 	if (dwStyle & WS_CHILD){ 
 		dxw.MapClient(&x, &y, &nWidth, &nHeight);
-		OutTraceD("CreateWindowEx: fixed WS_CHILD pos=(%d,%d) size=(%d,%d)\n",
+		OutTraceD("CreateWindowExA: fixed WS_CHILD pos=(%d,%d) size=(%d,%d)\n",
 			x, y, nWidth, nHeight);
 	}
 	// needed for Diablo, that creates a new control parent window that must be
 	// overlapped to the directdraw surface.
 	else if (dwExStyle & WS_EX_CONTROLPARENT){
 		dxw.MapWindow(&x, &y, &nWidth, &nHeight);
-		OutTraceD("CreateWindowEx: fixed WS_EX_CONTROLPARENT pos=(%d,%d) size=(%d,%d)\n",
+		OutTraceD("CreateWindowExA: fixed WS_EX_CONTROLPARENT pos=(%d,%d) size=(%d,%d)\n",
 			x, y, nWidth, nHeight);
 	}
 
-	OutTraceB("CreateWindowEx: fixed pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
+	OutTraceB("CreateWindowExA: fixed pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
 		x, y, nWidth, nHeight, dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 
 	wndh= (*pCreateWindowExA)(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, 
 		hWndParent, hMenu, hInstance, lpParam);
 	if (wndh==(HWND)NULL){
-		OutTraceE("CreateWindowEx: ERROR err=%d Style=%x(%s) ExStyle=%x\n",
+		OutTraceE("CreateWindowExA: ERROR err=%d Style=%x(%s) ExStyle=%x\n",
 			GetLastError(), dwStyle, ExplainStyle(dwStyle), dwExStyle);
 		return wndh;
 	}
@@ -1132,7 +1181,7 @@ HWND WINAPI extCreateWindowExA(
 		extern void AdjustWindowPos(HWND, DWORD, DWORD);
 		(*pSetWindowLong)(wndh, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
 		(*pSetWindowLong)(wndh, GWL_EXSTYLE, 0); 
-		OutTraceD("CreateWindow: hwnd=%x, set style=WS_OVERLAPPEDWINDOW extstyle=0\n", wndh); 
+		OutTraceD("CreateWindowExA: hwnd=%x, set style=WS_OVERLAPPEDWINDOW extstyle=0\n", wndh); 
 		AdjustWindowPos(wndh, nWidth, nHeight);
 		(*pShowWindow)(wndh, SW_SHOWNORMAL);
 	}
@@ -1150,15 +1199,17 @@ HWND WINAPI extCreateWindowExA(
 		if(!res) OutTraceE("CreateWindowExA: SetWindowLong ERROR %x\n", GetLastError());
 	}
 
-	OutTraceD("CreateWindowEx: ret=%x\n", wndh);
+	OutTraceD("CreateWindowExA: ret=%x\n", wndh);
 	return wndh;
 }
 
 LRESULT WINAPI extCallWindowProc(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
+	// v2.02.30: fix (Imperialism II): apply to main window only !!!
 	HRESULT res;
 
-	res=FixWindowProc("CallWindowProc", hwnd, Msg, wParam, &lParam);
+	res = -1;
+	if(hwnd == dxw.GethWnd()) res=FixWindowProc("CallWindowProc", hwnd, Msg, wParam, &lParam);
 
 	if (res==(HRESULT)-1)
 		return (*pCallWindowProc)(lpPrevWndFunc, hwnd, Msg, wParam, lParam);
@@ -1168,9 +1219,11 @@ LRESULT WINAPI extCallWindowProc(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WPA
 
 LRESULT WINAPI extDefWindowProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
+	// v2.02.30: fix (Imperialism II): apply to main window only !!!
 	HRESULT res;
 
-	res=FixWindowProc("DefWindowProc", hwnd, Msg, wParam, &lParam);
+	res = -1;
+	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProc", hwnd, Msg, wParam, &lParam);
 
 	if (res==(HRESULT)-1)
 		return (*pDefWindowProc)(hwnd, Msg, wParam, lParam);
@@ -1444,7 +1497,7 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	OutTraceD("GDI.BeginPaint: hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, dxw.IsFullScreen());
 	hdc=(*pBeginPaint)(hwnd, lpPaint);
 
-	return hdc;
+	//return hdc;
 
 	// if not in fullscreen mode, that's all!
 	if(!dxw.IsFullScreen()) return hdc;
@@ -1483,7 +1536,7 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 	OutTraceD("GDI.EndPaint: hwnd=%x ret=%x\n", hwnd, ret);
 	if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 
-	return ret;
+	//return ret;
 
 	// if not in fullscreen mode, that's all!
 	if(!dxw.IsFullScreen()) return ret;
@@ -1628,22 +1681,31 @@ int WINAPI extShowCursor(BOOL bShow)
 	return ret;
 }
 
-int extDrawTextA(HDC hDC, LPCTSTR lpchText, int nCount, LPRECT lpRect, UINT uFormat)
+int WINAPI extDrawTextA(HDC hDC, LPCTSTR lpchText, int nCount, LPRECT lpRect, UINT uFormat)
 {
 	return 0;
 }
 
-int extDrawTextExA(HDC hDC, LPCTSTR lpchText, int cchText, LPRECT lprc, UINT dwDTFormat, LPDRAWTEXTPARAMS lpDTParams)
+int WINAPI extDrawTextExA(HDC hDC, LPCTSTR lpchText, int cchText, LPRECT lprc, UINT dwDTFormat, LPDRAWTEXTPARAMS lpDTParams)
 {
 	return 0;
 }
 
-BOOL extDrawFocusRect(HDC hDC, const RECT *lprc)
+BOOL WINAPI extDrawFocusRect(HDC hDC, const RECT *lprc)
 {
 	return TRUE;
 }
 
-BOOL extScrollDC(HDC hDC, int dx, int dy, const RECT *lprcScroll, const RECT *lprcClip, HRGN hrgnUpdate, LPRECT lprcUpdate)
+BOOL WINAPI extScrollDC(HDC hDC, int dx, int dy, const RECT *lprcScroll, const RECT *lprcClip, HRGN hrgnUpdate, LPRECT lprcUpdate)
 {
 	return TRUE;
+}
+HWND WINAPI extGetTopWindow(HWND hwnd)
+{
+	HWND ret;
+	OutTraceD("GetTopWindow: hwnd=%x fullscreen=%x\n", hwnd, dxw.IsFullScreen()); 
+	// a fullscreen program is supposed to be always top Z-order on the desktop!
+	ret = (dxw.IsFullScreen() && dxw.IsDesktop(hwnd)) ? dxw.GethWnd() : (*pGetTopWindow)(hwnd);
+	OutTraceD("GetTopWindow: ret=%x\n", ret); 
+	return ret;
 }

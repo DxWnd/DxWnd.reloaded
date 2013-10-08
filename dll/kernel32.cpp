@@ -13,6 +13,7 @@ static HookEntry_Type Hooks[]={
 	{"LoadLibraryExA", (FARPROC)LoadLibraryExA, (FARPROC *)&pLoadLibraryExA, (FARPROC)extLoadLibraryExA},
 	{"LoadLibraryW", (FARPROC)LoadLibraryW, (FARPROC *)&pLoadLibraryW, (FARPROC)extLoadLibraryW},
 	{"LoadLibraryExW", (FARPROC)LoadLibraryExW, (FARPROC *)&pLoadLibraryExW, (FARPROC)extLoadLibraryExW},
+	{"GetDriveTypeA", (FARPROC)NULL, (FARPROC *)&pGetDriveType, (FARPROC)extGetDriveType},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -426,6 +427,9 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_WINTRUST:
 			if (remap=Remap_trust_ProcAddress(proc, hModule)) return remap;
 			break;
+		case SYSLIBIDX_ADVAPI32:
+			if (remap=Remap_AdvApi32_ProcAddress(proc, hModule)) return remap;
+			break;
 		default:
 			break; 
 		}
@@ -483,4 +487,11 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 	ret=(*pGetProcAddress)(hModule, proc);
 	OutTraceD("GetProcAddress: ret=%x\n", ret);
 	return ret;
+}
+
+UINT WINAPI extGetDriveType(LPCTSTR lpRootPathName)
+{
+	OutTraceD("GetDriveType: path=\"%s\"\n", lpRootPathName);
+	if (dxw.dwFlags3 & CDROMDRIVETYPE) return DRIVE_CDROM;
+	return (*pGetDriveType)(lpRootPathName);
 }

@@ -32,3 +32,4 @@ extern char *ExplainLoadLibFlags(DWORD);
 extern char *ExplainDevModeFields(DWORD);
 extern char *ExplainMCICommands(DWORD);
 extern char *ExplainMCIFlags(DWORD, DWORD);
+extern char *ExplainRegType(DWORD);

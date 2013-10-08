@@ -2384,8 +2384,10 @@ static void BlitError(HRESULT res, LPRECT lps, LPRECT lpd, int line)
 	return;
 }
 
-static void BlitTrace(char *label, LPRECT lps, LPRECT lpd, DWORD flags, int line)
+static void BlitTrace(char *label, LPRECT lps, LPRECT lpd, int line)
 {
+	extern HANDLE hTraceMutex;
+	WaitForSingleObject(hTraceMutex, INFINITE);
 	OutTrace("Blt: %s", label);
 	if (lps)
 		OutTrace(" src=(%d,%d)-(%d,%d)",lps->left, lps->top, lps->right, lps->bottom);
@@ -2395,7 +2397,8 @@ static void BlitTrace(char *label, LPRECT lps, LPRECT lpd, DWORD flags, int line
 		OutTrace(" dest=(%d,%d)-(%d,%d)",lpd->left, lpd->top, lpd->right, lpd->bottom);
 	else
 		OutTrace(" dest=(NULL)");
-	OutTrace(" flags=%x(%s) at %d\n", flags, ExplainBltFlags(flags), line);
+	OutTrace(" at %d\n", __LINE__);
+	ReleaseMutex(hTraceMutex);
 	return;
 }
 
@@ -2511,21 +2514,21 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			}
 		}
 
-		if (IsDebug) BlitTrace("NOPRIM", lpsrcrect, lpdestrect, dwflags, __LINE__);
+		if (IsDebug) BlitTrace("NOPRIM", lpsrcrect, lpdestrect, __LINE__);
 		res= (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
 		// Blitting compressed data may work to screen surfaces only. In this case, it may be worth
 		// trying blitting directly to lpDDSEmu_Prim: it makes DK2 intro movies working.
 		switch(res){
 		case DDERR_UNSUPPORTED:
 			if (dxw.dwFlags1 & EMULATESURFACE){
-				if (IsDebug) BlitTrace("UNSUPP", lpsrcrect ? &srcrect : NULL, lpdestrect, dwflags, __LINE__);
+				if (IsDebug) BlitTrace("UNSUPP", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
 				res=(*pBlt)(lpDDSEmu_Prim, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
 			}
 			break;
 		case DDERR_SURFACEBUSY:
 			(*pUnlockMethod(lpdds))(lpdds, NULL);
 			if (lpddssrc) (*pUnlockMethod(lpddssrc))(lpddssrc, NULL);	
-			if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, dwflags, __LINE__);
+			if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
 			res=(*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags|DDBLT_WAIT, lpddbltfx);
 			break;
 		default:
@@ -2547,7 +2550,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 		if (lpdds != lpddssrc) {
 			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc); 
-			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, dwflags, __LINE__);
+			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
 			res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 		}
 		if(res){
@@ -2555,7 +2558,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			// Try to handle HDC lock concurrency....		
 			if(res==DDERR_SURFACEBUSY){
 				(*pUnlockMethod(lpdds))(lpdds, NULL);
-				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, dwflags, __LINE__);
+				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, __LINE__);
 				res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 			}
@@ -2591,7 +2594,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	res=0;
 	// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 	if (lpdds != lpddssrc){
-		if (IsDebug) BlitTrace("SRC2EMU", &emurect, &destrect, dwflags, __LINE__);
+		if (IsDebug) BlitTrace("SRC2EMU", &emurect, &destrect, __LINE__);
 		res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 	}
 
@@ -2605,7 +2608,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		*/
 		if(res==DDERR_UNSUPPORTED){
 			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc);
-			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, dwflags, __LINE__);
+			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2614,7 +2617,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		if(res==DDERR_SURFACEBUSY){
 			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 			if(res) OutTraceE("Unlock ERROR: err=%x(%s)\n", res, ExplainDDError(res));
-			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, dwflags, __LINE__);
+			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
@@ -2643,11 +2646,11 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	}
 
 	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
-	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, dwflags, __LINE__);
+	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
 	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 	if (res==DDERR_NOCLIPLIST){
 		RenewClipper(lpDD, lpDDSEmu_Prim);
-		if (IsDebug) BlitTrace("NOCLIP", &emurect, &destrect, dwflags, __LINE__);
+		if (IsDebug) BlitTrace("NOCLIP", &emurect, &destrect, __LINE__);
 		res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 	}
 
@@ -3194,13 +3197,13 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 			dxw.palNumEntries=256;
 			res=(*pCreatePalette)(lpDD, DDPCAPS_ALLOW256|DDPCAPS_8BIT|DDPCAPS_INITIALIZE, dxw.palPalEntry, &lpDDP, NULL);
 			if (res) {
-				OutTraceE("CreateSurface: CreatePalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				OutTraceE("GetDC: CreatePalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 				return res;
 			}
 		}
 		res=(*pSetPalette)(lpdds, lpDDP);
 		if (res) {
-			OutTraceE("CreateSurface: SetPalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			OutTraceE("GetDC: SetPalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
 		// retry ....

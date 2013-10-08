@@ -89,6 +89,9 @@
 #define BLACKWHITE			0x00000080 // Simulate a B&W screen monitor mapping colors to grayscales
 #define SAVECAPS			0x00000100 // Saves and restores original surface flags & capabilities
 #define SINGLEPROCAFFINITY	0x00000200 // Set Process Affinity to a single core
+#define EMULATEREGISTRY		0x00000400 // Emulate registry api to read extra keys
+#define CDROMDRIVETYPE		0x00000800 // Pretends that GetDriveType() always returns DRIVE_CDROM
+#define NOWINDOWMOVE		0x00001000 // Do not try to update window position & size on D3D rendering
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -100,6 +103,7 @@
 #define ASSERTDIALOG		0x00000040 // show assert messages in Dialog Box
 #define OUTIMPORTTABLE		0x00000080 // dump import table contents
 #define OUTDEBUG			0x00000100 // detailed debugging indormation
+#define OUTREGISTRY			0x00000200 // log registry operations
 
 #define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE | LOCKEDSURFACE)
 #define HANDLEFPS			(SHOWFPS | SHOWFPSOVERLAY | LIMITFPS | SKIPFPS)
@@ -172,6 +176,7 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define OutTraceD if(dxw.dwTFlags & OUTDDRAWTRACE) OutTrace
 #define OutTraceC if(dxw.dwTFlags & OUTCURSORTRACE) OutTrace
 #define OutTraceB if(dxw.dwTFlags & OUTDEBUG) OutTrace
+#define OutTraceR if(dxw.dwTFlags & OUTREGISTRY) OutTrace
 #define OutTraceP OutTrace
 #define OutTraceE OutTrace
 
@@ -179,6 +184,7 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define IsTraceX (dxw.dwTFlags & OUTPROXYTRACE)
 #define IsTraceD (dxw.dwTFlags & OUTDDRAWTRACE)
 #define IsTraceC (dxw.dwTFlags & OUTCURSORTRACE)
+#define IsTraceR (dxw.dwTFlags & OUTREGISTRY)
 #define IsTraceP (TRUE)
 #define IsTraceE (TRUE)
 #define IsDebug  (dxw.dwTFlags & OUTDEBUG)

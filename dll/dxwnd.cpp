@@ -26,6 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define VERSION "2.02.29"
 
+#define DDTHREADLOCK 1
+
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam);
 
 HINSTANCE hInst;
@@ -36,6 +38,7 @@ DXWNDSTATUS *pStatus;
 HANDLE hMutex;
 HANDLE hTraceMutex;
 HANDLE hLockMutex;
+HANDLE hDDLockMutex;
 HANDLE hKillMutex;
 int HookStatus=DXW_IDLE;
 static int TaskIndex=-1;
@@ -68,6 +71,10 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
 	if(!hTraceMutex) hTraceMutex = CreateMutex(0, FALSE, "Trace_Mutex");
 	hLockMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, "Lock_Mutex");
 	if(!hLockMutex) hLockMutex = CreateMutex(0, FALSE, "Lock_Mutex");
+	if(DDTHREADLOCK){
+		hDDLockMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, "DDLock_Mutex");
+		if(!hDDLockMutex) hDDLockMutex = CreateMutex(0, FALSE, "DDLock_Mutex");
+	}
 	InjectHook();
 	return true;
 }

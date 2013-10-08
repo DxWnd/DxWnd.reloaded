@@ -182,8 +182,16 @@ fixed d3d8/9 hook to Get/SetGammaRamp. This should make a great number of recent
 v2.02.29
 CORE:
 hooked DirectDrawSurface::Lock method to center primary surface memory updates centered into the window (in no emulated mode)
-added "Locked surface" emulation type to enable scaled blitting to primary surface to stretch to the correct area.
-Fixed BltFast handling to fix "Duckman" rendering problems.
-GUI:
-added support for "Locked surface" emulation type
 
+v2.02.30
+CORE:
+Some ddraw::GetDC log message fixes
+added preliminary registry emulation - tested ok with "duckman"
+added separate flag for preliminary registry operation trace
+added CDROM drive type emulation - tested ok with "Fighting Forces" RIP
+fixed FixCursorPos routine: cursor x,y compensation must always use pseudo-fullscreen window parameters - fixes Imperialism II mouse problems
+fixed Desktop Workarea position mode for ddraw games
+added CoCreateInstanceEx hook - "Final Fighter" seems to be using it, but who knows why...?
+added "Don't move D3D Rendering Window" window option to make "Fable Lost Chapters" working  
+GUI:
+updated default values on new entry creation to map most-likely-to-work parameters
