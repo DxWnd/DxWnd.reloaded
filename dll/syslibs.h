@@ -175,6 +175,8 @@ typedef HWND	(WINAPI *SetCapture_Type)(HWND);
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
 typedef DWORD	(WINAPI *timeGetTime_Type)(void);
+typedef MMRESULT(WINAPI *timeKillEvent_Type)(UINT);
+typedef MMRESULT(WINAPI *timeSetEvent_Type)(UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT);
 
 /* ===================================================================
 hooked APIs real pointers
@@ -352,6 +354,8 @@ DXWEXTERN SetCapture_Type pSetCapture DXWINITIALIZED;
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
 DXWEXTERN timeGetTime_Type ptimeGetTime DXWINITIALIZED;
+DXWEXTERN timeKillEvent_Type ptimeKillEvent DXWINITIALIZED;
+DXWEXTERN timeSetEvent_Type ptimeSetEvent DXWINITIALIZED;
 
 /* ===================================================================
 hook procedures (possibly more tnan one per each API...)
@@ -526,6 +530,8 @@ extern HWND WINAPI extSetCapture(HWND);
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
 extern DWORD WINAPI exttimeGetTime(void);
+extern MMRESULT WINAPI exttimeSetEvent(UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT);
+extern MMRESULT WINAPI exttimeKillEvent(UINT);
 
 // extern function declaration
 

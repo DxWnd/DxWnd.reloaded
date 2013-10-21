@@ -37,6 +37,9 @@ typedef HRESULT (WINAPI *SetViewport_Type)(void *, LPD3DVIEWPORT);
 typedef HRESULT (WINAPI *GetViewport_Type)(void *, LPD3DVIEWPORT);
 typedef HRESULT (WINAPI *QueryInterfaceD3_Type)(void *, REFIID, LPVOID *);
 
+typedef HRESULT (WINAPI *D3DInitialize_Type)(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
+typedef HRESULT (WINAPI *D3DGetCaps_Type)(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
+
 Initialize_Type pInitialize = NULL;
 EnumDevices_Type pEnumDevices = NULL;
 CreateLight_Type pCreateLight = NULL;
@@ -51,6 +54,9 @@ SetViewport_Type pSetViewport = NULL;
 GetViewport_Type pGetViewport = NULL;
 QueryInterfaceD3_Type pQueryInterfaceD3 = NULL;
 
+D3DInitialize_Type pD3DInitialize = NULL;
+D3DGetCaps_Type pD3DGetCaps = NULL;
+
 HRESULT WINAPI extInitialize(void *);
 HRESULT WINAPI extEnumDevices(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
 HRESULT WINAPI extCreateLight(void *, LPDIRECT3DLIGHT *, IUnknown *);
@@ -64,6 +70,9 @@ HRESULT WINAPI extInitializeVP(void *, LPDIRECT3D);
 HRESULT WINAPI extSetViewport(void *, LPD3DVIEWPORT);
 HRESULT WINAPI extGetViewport(void *, LPD3DVIEWPORT);
 HRESULT WINAPI extQueryInterfaceD3(void *, REFIID, LPVOID *);
+
+HRESULT WINAPI extD3DInitialize(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
+HRESULT WINAPI extD3DGetCaps(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
 
 extern char *ExplainDDError(DWORD);
 
@@ -309,7 +318,6 @@ HRESULT WINAPI extDeviceProxy(GUID FAR *lpGuid, LPSTR lpDeviceDescription, LPSTR
 	OutTraceD("EnumDevices: CALLBACK GUID=%x(%s) DeviceDescription=\"%s\", DeviceName=\"%s\", arg=%x\n", lpGuid->Data1, ExplainGUID(lpGuid), lpDeviceDescription, lpDeviceName, ((CallbackArg *)arg)->arg);
 	DumpD3DDevideDesc(lpd3ddd1, "HWDEV");
 	DumpD3DDevideDesc(lpd3ddd2, "SWDEV");
-	HookDirect3DDevice((LPDIRECTDRAW *)lpGuid, 0);
 	res = (*(((CallbackArg *)arg)->cb))(lpGuid, lpDeviceDescription, lpDeviceName, lpd3ddd1, lpd3ddd2, ((CallbackArg *)arg)->arg);
 	OutTraceD("EnumDevices: CALLBACK ret=%x\n", res);
 	return res;
@@ -426,8 +434,12 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 		OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
+	else 
+		OutTraceD("CreateDevice(D3D2): lpd3dd=%x\n", lpd3d, *lplpd3dd);
 
 	// Hook device here ...!
+	SetHook((void *)(**(DWORD **)lplpd3dd +  12), extD3DInitialize, (void **)&pD3DInitialize, "Initialize(D3D)");
+	SetHook((void *)(**(DWORD **)lplpd3dd +  16), extD3DGetCaps, (void **)&pD3DGetCaps, "GetCaps(D3D)");
 
 	return res;
 }
@@ -466,16 +478,28 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 	return res;
 }
 
-#if 0
-HRESULT WINAPI extInitialize(void *d3dd, LPDIRECT3D lpd3d, LPGUID lpGuid, LPD3DDEVICEDESC lpd3ddd)
+HRESULT WINAPI extD3DInitialize(void *d3dd, LPDIRECT3D lpd3d, LPGUID lpGuid, LPD3DDEVICEDESC lpd3dd)
 {
 	HRESULT res;
-	OutTrace("Initialize: d3dd=%x lpd3d=%x GUID=%x lpd3ddd=%x\n", d3dd, lpd3d, lpGuid->Data1, lpd3ddd);
-	res=(*pInitialize)(d3dd, lpd3d, lpGuid, lpd3ddd);
+	OutTrace("Initialize: d3dd=%x lpd3d=%x GUID=%x lpd3ddd=%x\n", d3dd, lpd3d, lpGuid->Data1, lpd3dd);
+	res=(*pD3DInitialize)(d3dd, lpd3d, lpGuid, lpd3dd);
 	if(res) OutTraceE("Initialize ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	DumpD3DDevideDesc(lpd3dd, "INIT");
 	return res;
 }
-HRESULT WINAPI extGetCaps(void *d3dd, LPD3DDEVICEDESC,LPD3DDEVICEDESC)
+
+HRESULT WINAPI extD3DGetCaps(void *d3dd, LPD3DDEVICEDESC lpd3dd ,LPD3DDEVICEDESC lpd3dd2)
+{
+	HRESULT res;
+	OutTrace("GetCaps(D3D): d3dd=%x lpd3dd=%x lpd3dd2=%x \n", d3dd, lpd3dd, lpd3dd2);
+	res=(*pD3DGetCaps)(d3dd, lpd3dd, lpd3dd2);
+	if(res) OutTraceE("GetCaps(D3D) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	DumpD3DDevideDesc(lpd3dd, "HWDEV");
+	DumpD3DDevideDesc(lpd3dd2, "SWDEV");
+	return res;
+}
+
+#if 0
 //HRESULT WINAPI extSwapTextureHandles(void *d3dd, LPDIRECT3DTEXTURE,LPDIRECT3DTEXTURE)
 //HRESULT WINAPI extCreateExecuteBuffer(void *d3dd, LPD3DEXECUTEBUFFERDESC,LPDIRECT3DEXECUTEBUFFER*,IUnknown*)
 //HRESULT WINAPI extGetStats(void *d3dd, LPD3DSTATS)

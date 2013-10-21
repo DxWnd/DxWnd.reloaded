@@ -3,6 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
@@ -12,7 +13,8 @@
 
 static HookEntry_Type Hooks[]={
 	{"UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
-	{"GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
+	//{"GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
+	//{"SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
 	{"ChangeDisplaySettingsA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettings, (FARPROC)extChangeDisplaySettings},
 	{"ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettingsEx, (FARPROC)extChangeDisplaySettingsEx},
 	{"BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
@@ -971,9 +973,10 @@ ATOM WINAPI extRegisterClassExA(WNDCLASSEX *lpwcx)
 
 static HWND WINAPI extCreateWindowCommon(
   LPCTSTR ApiName,
+  BOOL WideChar,
   DWORD dwExStyle,
-  LPCTSTR lpClassName,
-  LPCTSTR lpWindowName,
+  void *lpClassName,
+  void *lpWindowName,
   DWORD dwStyle,
   int x,
   int y,
@@ -1078,8 +1081,10 @@ static HWND WINAPI extCreateWindowCommon(
 	}
 
 	if(!dxw.IsFullScreen()){ // v2.1.63: needed for "Monster Truck Madness"
-		wndh= (*pCreateWindowExA)(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, 
-			hWndParent, hMenu, hInstance, lpParam);
+		if(WideChar)
+			wndh= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+		else
+			wndh= (*pCreateWindowExA)(dwExStyle, (LPCSTR)lpClassName, (LPCSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 		OutTraceD("%s: windowed mode ret=%x\n", ApiName, wndh);
 		return wndh;
 	}
@@ -1102,8 +1107,10 @@ static HWND WINAPI extCreateWindowCommon(
 	OutTraceB("%s: fixed pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
 		ApiName, x, y, nWidth, nHeight, dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 
-	wndh= (*pCreateWindowExA)(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, 
-		hWndParent, hMenu, hInstance, lpParam);
+	if(WideChar)
+		wndh= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	else
+		wndh= (*pCreateWindowExA)(dwExStyle, (LPCSTR)lpClassName, (LPCSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 	if (wndh==(HWND)NULL){
 		OutTraceE("%s: ERROR err=%d Style=%x(%s) ExStyle=%x\n",
 			ApiName, GetLastError(), dwStyle, ExplainStyle(dwStyle), dwExStyle);
@@ -1163,17 +1170,12 @@ HWND WINAPI extCreateWindowExW(
   HINSTANCE hInstance,
   LPVOID lpParam) 
 {
-	char sClassName[256+1];
-	char sWindowName[256+1];
-	wcstombs_s(NULL, sClassName, lpClassName, 80);
-	wcstombs_s(NULL, sWindowName, lpWindowName, 80);
-
 	OutTraceD("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
 		lpClassName, lpWindowName, x, y, nWidth, nHeight, 
 		dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 	if(IsDebug) OutTrace("CreateWindowExW: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
-	return extCreateWindowCommon("CreateWindowExW", dwExStyle, sClassName, sWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+	return extCreateWindowCommon("CreateWindowExW", TRUE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
 // GHO: pro Diablo
@@ -1196,7 +1198,7 @@ HWND WINAPI extCreateWindowExA(
 		dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 	if(IsDebug) OutTrace("CreateWindowExA: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
-	return extCreateWindowCommon("CreateWindowExA", dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+	return extCreateWindowCommon("CreateWindowExA", false, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
 LRESULT WINAPI extCallWindowProc(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
@@ -1427,8 +1429,39 @@ HDC WINAPI extGDIGetDC(HWND hwnd)
 
 HDC WINAPI extGDIGetDCEx(HWND hwnd, HRGN hrgnClip, DWORD flags)
 {
-	MessageBox(0, "GetDCEx", "to fix", MB_OK | MB_ICONEXCLAMATION);
-	return (HDC)NULL;
+	// used by Star Wars Shadow of the Empire
+	HDC ret;
+	HWND lochwnd;
+
+	OutTraceD("GDI.GetDCEx: hwnd=%x hrgnClip=%x flags=%x(%s)\n", hwnd, hrgnClip, flags, ExplainGetDCExFlags(flags));
+	lochwnd=hwnd;
+	if (dxw.IsRealDesktop(hwnd)) {
+		OutTraceD("GDI.GetDCEx: desktop remapping hwnd=%x->%x\n", hwnd, dxw.GethWnd());
+		lochwnd=dxw.GethWnd();
+	}
+
+	if(dxw.dwFlags3 & EMULATEDC)
+		ret=dxw.AcquireEmulatedDC(lochwnd);
+	else
+		ret=(*pGDIGetDC)(lochwnd);
+	
+	if(ret){
+		OutTraceD("GDI.GetDCEx: hwnd=%x ret=%x\n", lochwnd, ret);
+	}
+	else{
+		int err;
+		err=GetLastError();
+		OutTraceE("GDI.GetDCEx ERROR: hwnd=%x err=%d at %d\n", lochwnd, err, __LINE__);
+		if((err==ERROR_INVALID_WINDOW_HANDLE) && (lochwnd!=hwnd)){
+			ret=(*pGDIGetDCEx)(hwnd, hrgnClip, flags);	
+			if(ret)
+				OutTraceD("GDI.GetDCEx: hwnd=%x ret=%x\n", hwnd, ret);
+			else
+				OutTraceE("GDI.GetDCEx ERROR: hwnd=%x err=%d at %d\n", hwnd, GetLastError(), __LINE__);
+		}
+	}
+
+	return ret;
 }
 
 HDC WINAPI extGDIGetWindowDC(HWND hwnd)
@@ -1598,14 +1631,14 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 	if(dxw.IsDesktop(hwnd)){
 		// v2.1.93: happens in "Emergency Fighters for Life" ...
 		// what is the meaning of this? is it related to video stretching?
-		OutTraceD("MoveWindow: prevent moving desktop win\n");
-		return TRUE;
-	}
+			OutTraceD("MoveWindow: prevent moving desktop win\n");
+			return TRUE;
+		}
 
 	if((hwnd==dxw.GethWnd()) || (hwnd==dxw.hParentWnd)){
-		OutTraceD("MoveWindow: prevent moving main win\n");
-		return TRUE;
-	}
+			OutTraceD("MoveWindow: prevent moving main win\n");
+			return TRUE;
+		}
 
 	if (dxw.IsFullScreen()){
 		POINT upleft={0,0};

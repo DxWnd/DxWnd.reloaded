@@ -105,6 +105,7 @@ public:
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
 	BOOL	m_SurfaceWarn;
+	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
 	BOOL	m_CDROMDriveType;

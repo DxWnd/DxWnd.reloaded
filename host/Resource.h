@@ -148,6 +148,8 @@
 #define IDC_FULLRECTBLT2                1103
 #define IDC_SURFACEWARN                 1103
 #define IDC_HOOKDLLS                    1104
+#define IDC_ANALITICALMODE              1104
+#define IDC_ANALYTICMODE                1104
 #define IDC_HOOKENABLED                 1105
 #define IDC_DESKTOPWORKAREA             1106
 #define IDC_DESKTOPFULL                 1107

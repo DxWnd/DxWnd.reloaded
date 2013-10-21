@@ -272,3 +272,13 @@ code reorganization
 GUI:
 removed useless flags and moved debug options in a hidden tab
 
+v2.02.37
+CORE:
+fix: now saves ZBUFFER capabilities to restore them on queries. This eliminates one possible d3d error when attempting use surface emulated mode.
+fixed surface caps for "Ancient Evil", "Star Wars Shadows of the Empire", "Star Force Deluxe".
+fixed surface handling in "Star Force Deluxe" that rely on a implicit PRIMARY surface created with 0 flags & 0 capabilities.
+fixed handling of Flip operations when BACKBUFFER surface no longer exists, but there's a QueryInterface clone.
+attempt to fix GetSystemPaletteEntries in windowed mode by using CreateHalftonePalette
+d3d8/9 GetDisplayMode method duplicated to take in account the different prototype!!
+added tentative wrapper for GetDCEx() call
+initial coding for timers wrapping for time stretching

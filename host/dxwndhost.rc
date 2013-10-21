@@ -474,7 +474,8 @@ BEGIN
     CONTROL         "Assert Dialog",IDC_ASSERT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,166,73,11
     CONTROL         "ddraw Proxy",IDC_DXPROXED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,178,73,9
     CONTROL         "Warning for analytic surface mode",IDC_SURFACEWARN,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,72,127,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,84,127,10
+    CONTROL         "Analytic surface mode",IDC_ANALYTICMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,72,127,10
 END
 
 

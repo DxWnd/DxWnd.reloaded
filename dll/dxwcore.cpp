@@ -15,7 +15,6 @@ dxwCore::dxwCore()
 {
 	// initialization stuff ....
 	FullScreen=FALSE;
-	if(dxw.dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
 	SethWnd(NULL);
 	SetScreenSize();
 	dwMaxDDVersion=7;
@@ -60,6 +59,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags3 = target->flags3;
 	dwFlags4 = target->flags4;
 	dwTFlags = target->tflags;
+	if(dxw.dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
 	gsModules = target->module;
 	MaxFPS = target->MaxFPS;
 	CustomOpenGLLib = target->OpenGLLib;
@@ -156,8 +156,8 @@ BOOL dxwCore::IsAPrimarySurface(LPDIRECTDRAWSURFACE ps)
 	// treat NULL surface ptr as a non primary
 	if(!ps) return FALSE;
 	for (i=0;i<DDSQLEN;i++) {
-		if (PrimSurfaces[i]==(DWORD)ps) return TRUE;
 		if (PrimSurfaces[i]==0) return FALSE;
+		if (PrimSurfaces[i]==(DWORD)ps) return TRUE;
 	}
 	return FALSE;
 }
@@ -168,8 +168,8 @@ BOOL dxwCore::IsABackBufferSurface(LPDIRECTDRAWSURFACE ps)
 	// treat NULL surface ptr as a non primary
 	if(!ps) return FALSE;
 	for (i=0;i<DDSQLEN;i++) {
-		if (BackSurfaces[i]==(DWORD)ps) return TRUE;
 		if (BackSurfaces[i]==0) return FALSE;
+		if (BackSurfaces[i]==(DWORD)ps) return TRUE;
 	}
 	return FALSE;
 }

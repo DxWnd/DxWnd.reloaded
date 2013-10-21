@@ -214,6 +214,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FullRectBlt) t->flags2 |= FULLRECTBLT;
 	if(dlg->m_NoPaletteUpdate) t->flags2 |= NOPALETTEUPDATE;
 	if(dlg->m_SurfaceWarn) t->flags3 |= SURFACEWARN;
+	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	t->initx = dlg->m_InitX;
 	t->inity = dlg->m_InitY;
 	t->minx = dlg->m_MinX;
@@ -341,6 +342,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FullRectBlt = t->flags2 & FULLRECTBLT ? 1 : 0;
 	dlg->m_NoPaletteUpdate = t->flags2 & NOPALETTEUPDATE ? 1 : 0;
 	dlg->m_SurfaceWarn = t->flags3 & SURFACEWARN ? 1 : 0;
+	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_InitX = t->initx;
 	dlg->m_InitY = t->inity;
 	dlg->m_MinX = t->minx;

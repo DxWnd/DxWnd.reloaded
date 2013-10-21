@@ -103,6 +103,7 @@
 #define FILTERMESSAGES		0x00200000 // ignore offending messages that are typical of a window and are hot handled by a fullscreeen app
 #define PEEKALLMESSAGES		0x00400000 // force Peek-ing all sort of messages to avoid Win7 message queue saturation that leads to program halt 
 #define SURFACEWARN			0x00800000 // warn when a unclassified surface capability is met (debug only!)
+#define ANALYTICMODE		0x01000000 // activate analytic mode (debug only!)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

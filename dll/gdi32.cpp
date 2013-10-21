@@ -530,8 +530,20 @@ UINT WINAPI extGetSystemPaletteEntries(HDC hdc, UINT iStartIndex, UINT nEntries,
 	ret=(*pGDIGetSystemPaletteEntries)(hdc, iStartIndex, nEntries, lppe);
 	OutTraceD("GetSystemPaletteEntries: ret=%d\n", ret);
 	if((ret == 0) && (dxw.dwFlags1 & EMULATESURFACE)) {
-		OutTraceD("GetSystemPaletteEntries: fixing ret=%d\n", nEntries);
+		//OutTraceD("GetSystemPaletteEntries: fixing ret=%d\n", nEntries);
+		//ret = nEntries;
+		// this seems to build a more reasonable system palette ....
+		HPALETTE hpal;
+		hpal=CreateHalftonePalette(NULL);
+		GetPaletteEntries(hpal, iStartIndex, nEntries, lppe);
 		ret = nEntries;
+		OutTraceD("GetSystemPaletteEntries: fixing ret=%d\n", ret);
+		if(IsDebug){
+			UINT idx;
+			OutTraceD("PaletteEntries[%x]= ", nEntries);
+			for(idx=0; idx<nEntries; idx++) OutTraceD("(%02x.%02x.%02x)", lppe[idx].peRed, lppe[idx].peGreen, lppe[idx].peBlue);
+			OutTraceD("\n");
+		}
 	}
 	return ret;
 }

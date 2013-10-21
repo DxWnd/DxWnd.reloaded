@@ -401,17 +401,6 @@ char *ExplainFlipFlags(DWORD c)
 	return(eb);
 }
 
-char *ExplainFlipStatusFlags(DWORD c)
-{
-	char *ep;
-	switch(c){
-		case DDGFS_CANFLIP: ep="DDGFS_CANFLIP"; break;
-		case DDGFS_ISFLIPDONE: ep="DDGFS_ISFLIPDONE"; break;
-		default: ep="unknown"; break;
-	}
-	return ep;
-}
-
 char *ExplainBltFlags(DWORD c)
 {
 	static char eb[512];
@@ -467,6 +456,8 @@ char *ExplainBltFastFlags(DWORD c)
 	return(eb);
 }
 
+#define DDPCAPS_INITIALIZE_LEGACY 0x00000008l
+
 char *ExplainCreatePaletteFlags(DWORD c)
 {
 	static char eb[256];
@@ -475,7 +466,9 @@ char *ExplainCreatePaletteFlags(DWORD c)
 	if (c & DDPCAPS_4BIT) strcat(eb, "4BIT+");
 	if (c & DDPCAPS_8BITENTRIES) strcat(eb, "8BITENTRIES+");
 	if (c & DDPCAPS_8BIT) strcat(eb, "8BIT+");
-	if (c & DDPCAPS_INITIALIZE) strcat(eb, "INITIALIZE+");
+	//if (c & DDPCAPS_INITIALIZE) strcat(eb, "INITIALIZE+");
+	// DDPCAPS_INITIALIZE is obsolete and redefined to 0x0, but that is not the legacy value embedded in assembly!
+	if (c & DDPCAPS_INITIALIZE_LEGACY) strcat(eb, "INITIALIZE+");
 	if (c & DDPCAPS_PRIMARYSURFACE) strcat(eb, "PRIMARYSURFACE+");
 	if (c & DDPCAPS_PRIMARYSURFACELEFT) strcat(eb, "PRIMARYSURFACELEFT+");
 	if (c & DDPCAPS_ALLOW256) strcat(eb, "ALLOW256+");
@@ -632,6 +625,18 @@ char *ExplainBltStatus(DWORD c)
 	{
 	case DDGBS_CANBLT:		eb="DDGBS_CANBLT"; break;
 	case DDGBS_ISBLTDONE:	eb="DDGBS_ISBLTDONE"; break;
+	default:				eb="invalid"; break;
+	}
+	return(eb);
+}
+
+char *ExplainFlipStatus(DWORD c)
+{
+	static char *eb;
+	switch(c)
+	{
+	case DDGFS_CANFLIP:		eb="DDGFS_CANFLIP"; break;
+	case DDGFS_ISFLIPDONE:	eb="DDGFS_ISFLIPDONE"; break;
 	default:				eb="invalid"; break;
 	}
 	return(eb);
@@ -1493,3 +1498,31 @@ char *ExplainPeekRemoveMsg(DWORD c)
 	if(c & QS_ALLPOSTMESSAGE) strcat(eb, "+ALLPOSTMESSAGE");
 	return(eb);
 }
+
+char *ExplainGetDCExFlags(DWORD c)
+{
+	static char eb[128];
+	unsigned int l;
+	strcpy(eb,"DCX_");
+	if(c & DCX_WINDOW) strcat(eb, "WINDOW+");
+	if(c & DCX_CACHE) strcat(eb, "CACHE+");
+	if(c & DCX_PARENTCLIP) strcat(eb, "PARENTCLIP+");
+	if(c & DCX_CLIPSIBLINGS) strcat(eb, "CLIPSIBLINGS+");
+	if(c & DCX_CLIPCHILDREN) strcat(eb, "CLIPCHILDREN+");
+	if(c & DCX_NORESETATTRS) strcat(eb, "NORESETATTRS+");
+	if(c & DCX_EXCLUDERGN) strcat(eb, "EXCLUDERGN+");
+	if(c & DCX_EXCLUDEUPDATE) strcat(eb, "EXCLUDEUPDATE+");
+	if(c & DCX_INTERSECTRGN) strcat(eb, "INTERSECTRGN+");
+	if(c & DCX_INTERSECTUPDATE) strcat(eb, "INTERSECTUPDATE+");
+	if(c & DCX_VALIDATE) strcat(eb, "VALIDATE+");
+	l=strlen(eb);
+	if (l>strlen("DCX_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}
+
+
+
+
+
+

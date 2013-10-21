@@ -6,6 +6,9 @@
 
 #include "MMSystem.h"
 
+#undef OutTraceD
+#define OutTraceD OutTrace
+
 static HookEntry_Type Hooks[]={
 	{"mciSendCommandA", NULL, (FARPROC *)&pmciSendCommand, (FARPROC)extmciSendCommand},
 	{0, NULL, 0, 0} // terminator
@@ -13,6 +16,8 @@ static HookEntry_Type Hooks[]={
 
 static HookEntry_Type TimeHooks[]={
 	{"timeGetTime", NULL, (FARPROC *)&ptimeGetTime, (FARPROC)exttimeGetTime},
+	{"timeKillEvent", NULL, (FARPROC *)&ptimeKillEvent, (FARPROC)exttimeKillEvent},
+	{"timeSetEvent", NULL, (FARPROC *)&ptimeSetEvent, (FARPROC)exttimeSetEvent},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -39,6 +44,25 @@ DWORD WINAPI exttimeGetTime(void)
 	ret = dxw.GetTickCount();
 	if (IsDebug) OutTrace("timeGetTime: time=%x\n", ret);
 	return ret;
+}
+
+MMRESULT WINAPI exttimeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK lpTimeProc, DWORD_PTR dwUser, UINT fuEvent)
+{
+	MMRESULT res;
+	uDelay = uDelay * 8;
+	OutTraceD("timeSetEvent: Delay=%d Resolution=%d Event=%x\n", uDelay, uResolution, fuEvent);
+	res=(*ptimeSetEvent)(uDelay, uResolution, lpTimeProc, dwUser, fuEvent);
+	OutTraceD("timeSetEvent: ret=%x\n", res);
+	return res;
+}
+
+MMRESULT WINAPI exttimeKillEvent(UINT uTimerID)
+{
+	MMRESULT res;
+	OutTraceD("timeKillEvent: TimerID=%x\n", uTimerID);
+	res=(*ptimeKillEvent)(uTimerID);
+	OutTraceD("timeKillEvent: ret=%x\n", res);
+	return res;
 }
 
 /* MCI_DGV_PUT_FRAME

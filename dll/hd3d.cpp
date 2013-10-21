@@ -25,7 +25,8 @@ typedef HRESULT (WINAPI *CreateDeviceEx_Type)(void *, UINT, D3DDEVTYPE, HWND, DW
 typedef HRESULT (WINAPI *EnumAdapterModes8_Type)(void *, UINT, UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *EnumAdapterModes9_Type)(void *, UINT, D3DFORMAT ,UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *GetAdapterDisplayMode_Type)(void *, UINT, D3DDISPLAYMODE *);
-typedef HRESULT (WINAPI *GetDisplayMode_Type)(void *, D3DDISPLAYMODE *);
+typedef HRESULT (WINAPI *GetDisplayMode8_Type)(void *, D3DDISPLAYMODE *);
+typedef HRESULT (WINAPI *GetDisplayMode9_Type)(void *, UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *Present_Type)(void *, CONST RECT *, CONST RECT *, HWND, CONST RGNDATA *);
 typedef HRESULT (WINAPI *SetRenderState_Type)(void *, D3DRENDERSTATETYPE, DWORD);
 typedef HRESULT (WINAPI *GetRenderState_Type)(void *, D3DRENDERSTATETYPE, DWORD );
@@ -65,7 +66,8 @@ HRESULT WINAPI extEnumAdapterModes8(void *, UINT, UINT , D3DDISPLAYMODE *);
 HRESULT WINAPI extEnumAdapterModes9(void *, UINT, D3DFORMAT, UINT , D3DDISPLAYMODE *);
 HRESULT WINAPI extGetAdapterDisplayMode8(void *, UINT, D3DDISPLAYMODE *);
 HRESULT WINAPI extGetAdapterDisplayMode9(void *, UINT, D3DDISPLAYMODE *);
-HRESULT WINAPI extGetDisplayMode(void *, D3DDISPLAYMODE *);
+HRESULT WINAPI extGetDisplayMode8(void *, D3DDISPLAYMODE *);
+HRESULT WINAPI extGetDisplayMode9(void *, UINT, D3DDISPLAYMODE *);
 HRESULT WINAPI extPresent(void *, CONST RECT *, CONST RECT *, HWND, CONST RGNDATA *);
 HRESULT WINAPI extSetRenderState(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extGetRenderState(void *, D3DRENDERSTATETYPE, DWORD);
@@ -107,7 +109,8 @@ EnumAdapterModes8_Type pEnumAdapterModes8 = 0;
 EnumAdapterModes9_Type pEnumAdapterModes9 = 0;
 GetAdapterDisplayMode_Type pGetAdapterDisplayMode8 = 0;
 GetAdapterDisplayMode_Type pGetAdapterDisplayMode9 = 0;
-GetDisplayMode_Type pGetDisplayMode = 0;
+GetDisplayMode8_Type pGetDisplayMode8 = 0;
+GetDisplayMode9_Type pGetDisplayMode9 = 0;
 Present_Type pPresent = 0;
 SetRenderState_Type pSetRenderState = 0;
 GetRenderState_Type pGetRenderState = 0;
@@ -524,16 +527,30 @@ HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDes
 	return res;
 }
 
-HRESULT WINAPI extGetDisplayMode(void *lpd3d, D3DDISPLAYMODE *pMode)
+HRESULT WINAPI extGetDisplayMode8(void *lpd3d, D3DDISPLAYMODE *pMode)
 {
 	HRESULT res;
-	res=(*pGetDisplayMode)(lpd3d, pMode);
-	OutTraceD("DEBUG: GetDisplayMode: size=(%dx%d) RefreshRate=%d Format=%d\n",
+	res=(*pGetDisplayMode8)(lpd3d, pMode);
+	OutTraceD("DEBUG: GetDisplayMode(8): size=(%dx%d) RefreshRate=%d Format=%d\n",
 		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
 	if(dxw.dwFlags2 & KEEPASPECTRATIO){
 		pMode->Width=dxw.iSizX;
 		pMode->Height=dxw.iSizY;
-		OutTraceD("DEBUG: GetDisplayMode: fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+		OutTraceD("DEBUG: GetDisplayMode(8): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+	}
+	return res;
+}
+
+HRESULT WINAPI extGetDisplayMode9(void *lpd3d, UINT iSwapChain, D3DDISPLAYMODE *pMode)
+{
+	HRESULT res;
+	res=(*pGetDisplayMode9)(lpd3d, iSwapChain, pMode);
+	OutTraceD("DEBUG: GetDisplayMode(9): SwapChain=%d size=(%dx%d) RefreshRate=%d Format=%d\n",
+		iSwapChain, pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
+	if(dxw.dwFlags2 & KEEPASPECTRATIO){
+		pMode->Width=dxw.iSizX;
+		pMode->Height=dxw.iSizY;
+		OutTraceD("DEBUG: GetDisplayMode(9): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
 	}
 	return res;
 }
@@ -703,7 +720,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		pReset=NULL; // to avoid assert condition
 		SetHook((void *)(**(DWORD **)ppd3dd +  0), extQueryInterfaceDev8, (void **)&pQueryInterfaceDev8, "QueryInterface(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 24), extGetDirect3D, (void **)&pGetDirect3D, "GetDirect3D(D8)");
-		//SetHook((void *)(**(DWORD **)ppd3dd + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D8)");
+		SetHook((void *)(**(DWORD **)ppd3dd + 32), extGetDisplayMode8, (void **)&pGetDisplayMode8, "GetDisplayMode(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 56), extReset, (void **)&pReset, "Reset(D8)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 60), extPresent, (void **)&pPresent, "Present(D8)");
@@ -722,7 +739,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		pReset=NULL; // to avoid assert condition
 		SetHook((void *)(**(DWORD **)ppd3dd +  0), extQueryInterfaceDev9, (void **)&pQueryInterfaceDev9, "QueryInterface(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 24), extGetDirect3D, (void **)&pGetDirect3D, "GetDirect3D(D9)");
-		//SetHook((void *)(**(DWORD **)ppd3dd + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D9)");
+		SetHook((void *)(**(DWORD **)ppd3dd + 32), extGetDisplayMode9, (void **)&pGetDisplayMode9, "GetDisplayMode(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
 		SetHook((void *)(**(DWORD **)ppd3dd + 68), extPresent, (void **)&pPresent, "Present(D9)");
@@ -810,7 +827,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	void *pReset;
 	pReset=NULL; // to avoid assert condition
 	SetHook((void *)(**(DWORD **)ppd3dd +  0), extQueryInterfaceDev9, (void **)&pQueryInterfaceDev9, "QueryInterface(D9)");
-	SetHook((void *)(**(DWORD **)ppd3dd + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D9)");
+	SetHook((void *)(**(DWORD **)ppd3dd + 32), extGetDisplayMode9, (void **)&pGetDisplayMode9, "GetDisplayMode(D9)");
 	SetHook((void *)(**(DWORD **)ppd3dd + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
 	SetHook((void *)(**(DWORD **)ppd3dd + 64), extReset, (void **)&pReset, "Reset(D9)");
 	SetHook((void *)(**(DWORD **)ppd3dd + 68), extPresent, (void **)&pPresent, "Present(D9)");
@@ -1117,7 +1134,7 @@ HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
 		OutTraceD("Device hook for IID_IDirect3DDevice9 interface\n");
 		pReset=NULL; // to avoid assert condition
 		SetHook((void *)(**(DWORD **)ppvObj +  0), extQueryInterfaceDev9, (void **)&pQueryInterfaceDev9, "QueryInterface(D9)");
-		SetHook((void *)(**(DWORD **)ppvObj + 32), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D9)");
+		SetHook((void *)(**(DWORD **)ppvObj + 32), extGetDisplayMode9, (void **)&pGetDisplayMode9, "GetDisplayMode(D9)");
 		SetHook((void *)(**(DWORD **)ppvObj + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
 		SetHook((void *)(**(DWORD **)ppvObj + 64), extReset, (void **)&pReset, "Reset(D9)");
 		SetHook((void *)(**(DWORD **)ppvObj + 68), extPresent, (void **)&pPresent, "Present(D9)");

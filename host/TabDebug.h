@@ -42,6 +42,7 @@ protected:
 		// NOTE: the ClassWizard will add member functions here
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+public:
 };
 
 //{{AFX_INSERT_LOCATION}}

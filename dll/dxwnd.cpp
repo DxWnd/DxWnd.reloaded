@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.37"
+#define VERSION "2.02.38"
 
 #define DDTHREADLOCK 1
 
@@ -160,7 +160,7 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 		GetModuleFileName(0, name, MAX_PATH);
 		for(i = 0; name[i]; i ++) name[i] = tolower(name[i]);
 		WaitForSingleObject(hMutex, INFINITE);
-		for(i = 0; pMapping[i].path[0]; i ++){
+		for(i = 0; pMapping[i].path[0] && (i<MAXTARGETS); i++){
 			if (!(pMapping[i].flags3 & HOOKENABLED)) continue;
 			if(!strncmp(name, pMapping[i].path, strlen(name)))
 			{

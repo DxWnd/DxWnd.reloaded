@@ -694,22 +694,22 @@ HRESULT WINAPI extCreatePaletteProxy(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTE
 
 
 
-HRESULT WINAPI extGetCapsDProxy(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
-{
-	HRESULT res;
-	OutTraceP("GetCaps(D): PROXED lpdd=%x c1=%x c2=%x\n", lpdd, c1, c2);
-	res=(*pGetCapsD)(lpdd, c1, c2);
-	if(res) 
-		OutTraceP("GetCaps(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	else {
-		// to do: a full Caps dump!
-		OutTraceP("GetCaps(D): ");
-		if (c1) OutTraceP("hwcaps size=%x ", c1->dwSize);
-		if (c2) OutTraceP("swcaps size=%x ", c2->dwSize);
-		OutTraceP("\n");
-	}
-	return res;
-}
+//HRESULT WINAPI extGetCapsDProxy(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
+//{
+//	HRESULT res;
+//	OutTraceP("GetCaps(D): PROXED lpdd=%x c1=%x c2=%x\n", lpdd, c1, c2);
+//	res=(*pGetCapsD)(lpdd, c1, c2);
+//	if(res) 
+//		OutTraceP("GetCaps(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+//	else {
+//		// to do: a full Caps dump!
+//		OutTraceP("GetCaps(D): ");
+//		if (c1) OutTraceP("hwcaps size=%x ", c1->dwSize);
+//		if (c2) OutTraceP("swcaps size=%x ", c2->dwSize);
+//		OutTraceP("\n");
+//	}
+//	return res;
+//}
 
 HRESULT WINAPI extGetSurfaceFromDCProxy(LPDIRECTDRAW lpdd, HDC hdc, LPDIRECTDRAWSURFACE* lpDDS) 
 {
@@ -1186,26 +1186,13 @@ HRESULT WINAPI extGetClipperProxy(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER
 
 HRESULT WINAPI extGetFlipStatusProxy(LPDIRECTDRAWSURFACE lpdds, DWORD flags)
 {
-#if 0
 	HRESULT res;
-	OutTraceP("GetFlipStatus(S): PROXED lpdds=%x flags=%x(%s)\n", lpdds, flags, ExplainFlipStatusFlags(flags));
+	OutTraceP("GetFlipStatus(S): PROXED lpdds=%x flags=%x(%s)\n", lpdds, flags, ExplainFlipStatus(flags));
 	res=(*pGetFlipStatus)(lpdds, flags);
 	if(res==DDERR_WASSTILLDRAWING) OutTraceP("GetFlipStatus(S): res=%x(%s)\n", res, ExplainDDError(res));
 	else
 	if(res) OutTraceP("GetFlipStatus(S): ERROR err=%x(%s)\n", res, ExplainDDError(res));
 	return res;
-#else
-	HRESULT res;
-	static int DeMux=0;
-	OutTraceP("GetFlipStatus(S): DELAYED lpdds=%x flags=%x(%s)\n", lpdds, flags, ExplainFlipStatusFlags(flags));
-	DeMux = (DeMux + 1) % 10;
-	res=(*pGetFlipStatus)(lpdds, flags);
-	if(res==DDERR_WASSTILLDRAWING) OutTraceP("GetFlipStatus(S): res=%x(%s)\n", res, ExplainDDError(res));
-	else
-	if(res) OutTraceP("GetFlipStatus(S): ERROR err=%x(%s)\n", res, ExplainDDError(res));
-	if(DeMux) res=DDERR_WASSTILLDRAWING; 
-	return res;
-#endif
 }
 
 HRESULT WINAPI extGetOverlayPositionProxy(LPDIRECTDRAWSURFACE lpdds, LPLONG lpl1, LPLONG lpl2)
@@ -1710,7 +1697,7 @@ static void HookDDSessionProxy(LPDIRECTDRAW *lplpdd, int dxVersion)
 	// IDIrectDraw::FlipToGDISurface
 	SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurfaceProxy, (void **)&pFlipToGDISurface, "FlipToGDISurface(D)");
 	// IDIrectDraw::GetCaps
-	SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCapsDProxy, (void **)&pGetCapsD, "GetCaps(D)");
+	SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCapsD, (void **)&pGetCapsD, "GetCaps(D)");
 	// IDIrectDraw::GetDisplayMode
 	SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayModeProxy, (void **)&pGetDisplayMode, "GetDisplayMode(D)");
 	// IDIrectDraw::GetFourCCCodes
