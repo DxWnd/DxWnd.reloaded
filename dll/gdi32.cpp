@@ -816,6 +816,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	res=0;
 	if (OBJ_DC == GetObjectType(hdcDest)){
 		if (dxw.HandleFPS()) return TRUE;
+		if (dxw.dwFlags3 & NOGDIBLT) return TRUE;
 		if(dxw.IsFullScreen()){
 			int nWDest, nHDest;
 			nWDest= nWidth;
@@ -862,6 +863,7 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	if (OBJ_DC == GetObjectType(hdcDest)){
 		IsToScreen=TRUE;
 		if (dxw.HandleFPS()) return TRUE;
+		if (dxw.dwFlags3 & NOGDIBLT) return TRUE;
 		if (dxw.IsFullScreen()){ 
 			dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
 			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
@@ -897,6 +899,7 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 	IsToScreen=FALSE;
 	if (OBJ_DC == GetObjectType(hdcDest)){
 		if (dxw.HandleFPS()) return TRUE;
+		if (dxw.dwFlags3 & NOGDIBLT) return TRUE;
 		IsToScreen=TRUE;
 		if(dxw.IsFullScreen()){
 			dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);

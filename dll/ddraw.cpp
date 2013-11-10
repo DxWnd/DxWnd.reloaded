@@ -8,6 +8,7 @@
 #include <ddraw.h>
 #include "dxwnd.h"
 #include "dxhook.h"
+#include "ddrawi.h"
 #include "dxwcore.hpp"
 #include "stdio.h" 
 #include "hddraw.h"
@@ -38,7 +39,7 @@ HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW, LPDDSURFACEDESC);
 HRESULT WINAPI extGetGDISurface(LPDIRECTDRAW, LPDIRECTDRAWSURFACE *);
 HRESULT WINAPI extEnumDisplayModes1(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
 HRESULT WINAPI extEnumDisplayModes4(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
-//    STDMETHOD(Initialize)(THIS_ GUID FAR *) PURE;
+HRESULT WINAPI extInitialize(LPDIRECTDRAW, FAR GUID *);
 HRESULT WINAPI extSetCooperativeLevel(void *, HWND, DWORD);
 HRESULT WINAPI extSetDisplayMode1(LPDIRECTDRAW, DWORD, DWORD, DWORD);
 HRESULT WINAPI extSetDisplayMode2(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);
@@ -138,7 +139,7 @@ GetGDISurface_Type pGetGDISurface;
 GetMonitorFrequency_Type pGetMonitorFrequency;
 GetScanLine_Type pGetScanLine;
 GetVerticalBlankStatus_Type pGetVerticalBlankStatus;
-//Initialize
+Initialize_Type pInitialize;
 RestoreDisplayMode_Type pRestoreDisplayMode;
 SetCooperativeLevel_Type pSetCooperativeLevel;
 SetDisplayMode1_Type pSetDisplayMode1;
@@ -454,6 +455,8 @@ BOOL isPaletteUpdated;
 void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries)
 {
 	int i;
+	extern DXWNDSTATUS *pStatus;
+
 	OutTraceD("mySetPalette DEBUG: BPP=%d GBitMask=%x count=%d\n", 
 		dxw.ActualPixelFormat.dwRGBBitCount, dxw.ActualPixelFormat.dwGBitMask, dwcount);
 
@@ -466,6 +469,9 @@ void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries)
 			lpentries[dwstart+idx].peBlue  );
 		OutTraceD("\n");
 	}
+
+	for(int idx=0; idx<dwcount; idx++)  
+		pStatus->Palette[dwstart+idx]= lpentries[idx];
 
 	if (dxw.dwFlags3 & RGB2YUV){
 		int idx;
@@ -1000,6 +1006,8 @@ static void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D)");
 	// IDIrectDraw::GetGDISurface
 	SetHook((void *)(**(DWORD **)lplpdd + 56), extGetGDISurface, (void **)&pGetGDISurface, "GetGDISurface(D)");
+	// IDIrectDraw::Initialize
+	SetHook((void *)(**(DWORD **)lplpdd + 72), extInitialize, (void **)&pInitialize, "Initialize(D)");
 	// IDIrectDraw::SetCooperativeLevel
 	SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel, (void **)&pSetCooperativeLevel, "SetCooperativeLevel(D)");
 	// IDIrectDraw::SetDisplayMode
@@ -1035,8 +1043,6 @@ static void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	SetHook((void *)(**(DWORD **)lplpdd + 64), extGetScanLineProxy, (void **)&pGetScanLine, "GetScanLine(D)");
 	// IDIrectDraw::GetVerticalBlankStatus
 	SetHook((void *)(**(DWORD **)lplpdd + 68), extGetVerticalBlankStatusProxy, (void **)&pGetVerticalBlankStatus, "GetVerticalBlankStatus(D)");
-	// IDIrectDraw::Initialize
-	// offset 72: Undocumented
 	// IDIrectDraw::RestoreDisplayMode
 	SetHook((void *)(**(DWORD **)lplpdd + 76), extRestoreDisplayModeProxy, (void **)&pRestoreDisplayMode, "RestoreDisplayMode(D)");
 		// IDIrectDraw::GetAvailableVidMem
@@ -1365,6 +1371,57 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 }
 
 /* ------------------------------------------------------------------------------ */
+// CleanRect:
+// takes care of a corrupted RECT struct where some elements are not valid pointers.
+// In this case, the whole RECT * variable is set to NULL, a value that is interpreted
+// by directdraw functions as the whole surface area.
+/* ------------------------------------------------------------------------------ */
+
+static void CleanRect(RECT **lprect, int line)
+{
+	__try {
+		// normally unharmful statements
+		if(*lprect){
+			int i;
+			i=(*lprect)->bottom;
+			i=(*lprect)->top;
+			i=(*lprect)->left;
+			i=(*lprect)->right;
+		}
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER){ 
+		OutTraceE("Rectangle exception caught at %d: invalid RECT\n", __LINE__);
+		if(IsAssertEnabled) MessageBox(0, "Rectangle exception", "CleanRect", MB_OK | MB_ICONEXCLAMATION);
+        *lprect=NULL;
+    }
+}
+
+static void MaskCapsD(LPDDCAPS c1, LPDDCAPS c2)
+{
+	FILE *capfile;
+	//char sBuf[80+1];
+	char token[20+1];
+	DWORD val;
+	OutTraceD("MaskCaps\n");
+	capfile=fopen("dxwnd.cap", "r");
+	if(!capfile) return;
+	while(TRUE){
+		if(fscanf(capfile, "%s=%x", token, &val)!=2) break;
+		if(!strcmp(token, "dwCaps")) c1->dwCaps &= val;
+		if(!strcmp(token, "dwCaps2")) c1->dwCaps2 &= val;
+		if(!strcmp(token, "dwCKeyCaps")) c1->dwCKeyCaps &= val;
+		if(!strcmp(token, "dwFXCaps")) c1->dwFXCaps &= val;
+	}
+	OutTraceD("MaskCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+		c1->dwCaps, ExplainDDDCaps(c1->dwCaps),
+		c1->dwCaps2, ExplainDDDCaps2(c1->dwCaps2),
+		c1->dwFXCaps, ExplainDDFXCaps(c1->dwFXCaps),
+		c1->dwFXAlphaCaps, ExplainDDFXALPHACaps(c1->dwFXAlphaCaps),
+		c1->dwCKeyCaps, ExplainDDCKeyCaps(c1->dwCKeyCaps));
+	fclose(capfile);
+}
+
+/* ------------------------------------------------------------------------------ */
 // directdraw method hooks
 /* ------------------------------------------------------------------------------ */
 
@@ -1376,13 +1433,13 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 	if(res) 
 		OutTraceE("GetCaps(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	else {
-		if (c1) OutTraceD("GetCaps(D-HW): caps=%x(%s) caps2=%x(%s)fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+		if (c1) OutTraceD("GetCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
 			c1->dwCaps, ExplainDDDCaps(c1->dwCaps),
 			c1->dwCaps2, ExplainDDDCaps2(c1->dwCaps2),
 			c1->dwFXCaps, ExplainDDFXCaps(c1->dwFXCaps),
 			c1->dwFXAlphaCaps, ExplainDDFXALPHACaps(c1->dwFXAlphaCaps),
 			c1->dwCKeyCaps, ExplainDDCKeyCaps(c1->dwCKeyCaps));
-		if (c2) OutTraceD("GetCaps(D-SW): caps=%x(%s) caps2=%x(%s)fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+		if (c2) OutTraceD("GetCaps(D-SW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
 			c2->dwCaps, ExplainDDDCaps(c2->dwCaps),
 			c2->dwCaps2, ExplainDDDCaps2(c2->dwCaps2),
 			c2->dwFXCaps, ExplainDDFXCaps(c2->dwFXCaps),
@@ -1390,12 +1447,28 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 			c2->dwCKeyCaps, ExplainDDCKeyCaps(c2->dwCKeyCaps));
 	}
 
+	if((dxw.dwFlags3 & FORCESHEL) && c1) {
+		DDCAPS_DX7 swcaps; // DDCAPS_DX7 because it is the bigger in size
+		int size;
+		size=c1->dwSize;
+		if (!c2) {
+			memset(&swcaps, 0, sizeof(DDCAPS_DX7));
+			swcaps.dwSize=size;
+			c2=&swcaps;
+			res=(*pGetCapsD)(lpdd, NULL, c2);
+		}
+		memcpy((void *)c1, (void *)c2, size);
+	}
+
+	if((dxw.dwFlags3 & CAPMASK) && c1 && c2) MaskCapsD(c1, c2);
+
 	return res;
 }
 
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, IUnknown FAR *pu)
 {
 	HRESULT res;
+	GUID FAR *lpPrivGuid = lpguid;
 
 	OutTraceD("DirectDrawCreate: guid=%x(%s)\n", lpguid, ExplainGUID(lpguid));
 
@@ -1415,15 +1488,19 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 		}
 	}
 
-	res = (*pDirectDrawCreate)(lpguid, lplpdd, pu);
+	if((dxw.dwFlags3 & FORCESHEL) && (lpguid==NULL)) lpPrivGuid=(GUID FAR *)DDCREATE_EMULATIONONLY;
+
+	res = (*pDirectDrawCreate)(lpPrivGuid, lplpdd, pu);
 	if(res) {
 		OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
 
+	if(dxw.dwFlags3 & COLORFIX) (*((DDRAWI_DIRECTDRAW_INT **)lplpdd))->lpLcl->dwAppHackFlags |= 0x800;
+
 	dxw.dwDDVersion=1;
 	char *mode;
-	switch ((DWORD)lpguid){
+	switch ((DWORD)lpPrivGuid){
 		case 0: mode="NULL"; break;
 		case DDCREATE_HARDWAREONLY: mode="DDCREATE_HARDWAREONLY"; break;
 		case DDCREATE_EMULATIONONLY: mode="DDCREATE_EMULATIONONLY"; break;
@@ -1453,36 +1530,12 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 	return 0;
 }
 
-/* ------------------------------------------------------------------------------ */
-// CleanRect:
-// takes care of a corrupted RECT struct where some elements are not valid pointers.
-// In this case, the whole RECT * variable is set to NULL, a value that is interpreted
-// by directdraw functions as the whole surface area.
-/* ------------------------------------------------------------------------------ */
-
-static void CleanRect(RECT **lprect, int line)
-{
-	__try {
-		// normally unharmful statements
-		if(*lprect){
-			int i;
-			i=(*lprect)->bottom;
-			i=(*lprect)->top;
-			i=(*lprect)->left;
-			i=(*lprect)->right;
-		}
-	}
-	__except(EXCEPTION_EXECUTE_HANDLER){ 
-		OutTraceE("Rectangle exception caught at %d: invalid RECT\n", __LINE__);
-		if(IsAssertEnabled) MessageBox(0, "Rectangle exception", "CleanRect", MB_OK | MB_ICONEXCLAMATION);
-        *lprect=NULL;
-    }
-}
-
 HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	LPDIRECTDRAW FAR *lplpdd, REFIID iid, IUnknown FAR *pu)
 {
 	HRESULT res;
+	GUID FAR *lpPrivGuid = lpguid;
+
 	OutTraceD("DirectDrawCreateEx: guid=%x(%s) refiid=%x\n", lpguid, ExplainGUID(lpguid), iid);
 
 	// v2.1.70: auto-hooking (just in case...)
@@ -1505,15 +1558,19 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 		}
 	}
 
-	res = (*pDirectDrawCreateEx)(lpguid, lplpdd, iid, pu);
+	if((dxw.dwFlags3 & FORCESHEL) && (lpguid==NULL)) lpPrivGuid=(GUID FAR *)DDCREATE_EMULATIONONLY;
+
+	res = (*pDirectDrawCreateEx)(lpPrivGuid, lplpdd, iid, pu);
 	if (res){
 		OutTraceD("DirectDrawCreateEx: res=%x(%s)\n",res, ExplainDDError(res));
 		return res;
 	}
 
+	if(dxw.dwFlags3 & COLORFIX) (*((DDRAWI_DIRECTDRAW_INT **)lplpdd))->lpLcl->dwAppHackFlags |= 0x800;
+
 	dxw.dwDDVersion=7;
 	char *mode;
-	switch ((DWORD)lpguid){
+	switch ((DWORD)lpPrivGuid){
 		case 0: mode="NULL"; break;
 		case DDCREATE_HARDWAREONLY: mode="DDCREATE_HARDWAREONLY"; break;
 		case DDCREATE_EMULATIONONLY: mode="DDCREATE_EMULATIONONLY"; break;
@@ -1532,6 +1589,23 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	HookDDSession(lplpdd,dxw.dwDDVersion);
 
 	return 0;
+}
+
+HRESULT WINAPI extInitialize(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
+{
+	HRESULT res;
+	GUID FAR *lpPrivGuid = lpguid;
+
+	OutTraceD("Initialize: lpdd=%x guid=%x(%s)\n", lpdd, lpguid, ExplainGUID(lpguid));
+
+	if((dxw.dwFlags3 & FORCESHEL) && (lpguid==NULL)) lpPrivGuid=(GUID FAR *)DDCREATE_EMULATIONONLY;
+
+	res=(*pInitialize)(lpdd, lpPrivGuid);
+
+	if(dxw.dwFlags3 & COLORFIX) (((DDRAWI_DIRECTDRAW_INT *)lpdd))->lpLcl->dwAppHackFlags |= 0x800;
+
+	if(res) OutTraceE("Initialize ERROR: res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
 }
 
 HRESULT WINAPI extQueryInterfaceD(void *lpdd, REFIID riid, LPVOID *obp)
@@ -2081,6 +2155,7 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			break;
 		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_TEXTURE:
 			// Wargames Direct3D hw acceleration
+			// Star Wars Shadows of the Empire in RGB HEL mode
 			return;
 			break;
 		case DDSCAPS_TEXTURE:
@@ -2117,7 +2192,8 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			// Star Wars Shadows of the Empire
 			// seems to work both with/without SetPixFmt, but doesn't like DDSCAPS_SYSTEMMEMORY textures.
 			// Setting SetPixFmt makes bad alpha transparencies!
-			//lpddsd->ddsCaps.dwCaps = (DDSCAPS_TEXTURE|DDSCAPS_SYSTEMMEMORY|DDSCAPS_ALLOCONLOAD);
+			// DDSCAPS_VIDEOMEMORY doesn't work with HEL only! Better switch to DDSCAPS_SYSTEMMEMORY.
+			if (dxw.dwFlags3 & FORCESHEL) lpddsd->ddsCaps.dwCaps = (DDSCAPS_TEXTURE|DDSCAPS_SYSTEMMEMORY|DDSCAPS_ALLOCONLOAD);
 			//SetPixFmt(lpddsd);
 			return;
 			break;			
@@ -2188,6 +2264,21 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		SetPixFmt(lpddsd);
 		return;
 	}
+	//// DDSCAPS_ALLOCONLOAD on VIDEOMEMORY can't be done when HAL is disabled - it returns DDERR_NODIRECTDRAWHW error
+	//if((lpddsd->dwFlags & DDSD_CAPS) && 
+	//	((lpddsd->ddsCaps.dwCaps & (DDSCAPS_TEXTURE|DDSCAPS_ALLOCONLOAD))==(DDSCAPS_TEXTURE|DDSCAPS_ALLOCONLOAD))) { 
+	//	if (dxw.dwFlags3 & FORCESHEL) lpddsd->ddsCaps.dwCaps = (DDSCAPS_TEXTURE|DDSCAPS_SYSTEMMEMORY|DDSCAPS_ALLOCONLOAD);
+	//	return;
+	//}
+	// DDSCAPS_TEXTURE surfaces must be left untouched, unless you set FORCESHEL: in this case switch VIDEOMEMORY to SYSTEMMEMORY
+	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_TEXTURE)){
+		if (dxw.dwFlags3 & FORCESHEL) {
+			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+			lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+		}
+		// no further changes...
+		return;
+	}
 	if(lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH){
 		lpddsd->dwFlags &= ~DDSD_PIXELFORMAT;
 	}
@@ -2198,6 +2289,10 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		return;
 	}
 	// HoM&M3/4 fix.... don't alter pixel format set to OFFSCREENPLAIN+SYSTEMMEMORY surface
+	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) == (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) &&
+		(lpddsd->ddsCaps.dwCaps == (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY))){
+		return;
+	}
 	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) == (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) &&
 		(lpddsd->ddsCaps.dwCaps == (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY))){
 		return;
@@ -2830,7 +2925,6 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	BOOL ToPrim, FromPrim, ToScreen, FromScreen;
 	//CkArg arg;
 
-
 	ToPrim=dxw.IsAPrimarySurface(lpdds);
 	FromPrim=dxw.IsAPrimarySurface(lpddssrc);
 	ToScreen=ToPrim && !(dxw.dwFlags1 & EMULATESURFACE);
@@ -2879,6 +2973,14 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		}
 		strcat(sLog,"\n");
 		OutTrace(sLog);
+	}
+
+	// debug suppressions
+	if(ToPrim){
+		if(isFlipping)
+			if(dxw.dwFlags3 & NODDRAWFLIP) return DD_OK;
+		else
+			if(dxw.dwFlags3 & NODDRAWBLT) return DD_OK;
 	}
 
 #ifdef ONEPIXELFIX
@@ -3266,8 +3368,7 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 
 	HookDDPalette(lplpddp);
 
-	//if(dwflags & DDPCAPS_PRIMARYSURFACE){ 
-	if(dwflags & DDPCAPS_8BIT){ // v2.02.38
+	if((dwflags & (DDPCAPS_8BIT|DDPCAPS_PRIMARYSURFACE)) == (DDPCAPS_8BIT|DDPCAPS_PRIMARYSURFACE)){ // v2.02.39
 		mySetPalette(0, 256, lpddpa);
 		lpDDP = *lplpddp;
 	}

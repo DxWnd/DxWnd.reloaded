@@ -119,6 +119,7 @@ BEGIN
     BEGIN
         MENUITEM "Status",                      ID_VIEW_STATUS
         MENUITEM "Time Slider",                 ID_VIEW_TIMESLIDER
+        MENUITEM "Palette",                     ID_VIEW_PALETTE
     END
 END
 
@@ -316,7 +317,7 @@ BEGIN
     GROUPBOX        "Emulation",IDC_STATIC,7,109,98,61,WS_GROUP
     CONTROL         "Auto Primary Surface Refresh",IDC_AUTOREFRESH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,16,126,9
     GROUPBOX        "DirectDraw Surface handling",IDC_STATIC,112,3,181,167
-    CONTROL         "VIDEO->SYSTEM surf.  on fail",IDC_VIDEOTOSYSTEMMEM,
+    CONTROL         "switch VIDEO to SYSTEM on fail",IDC_VIDEOTOSYSTEMMEM,
                     "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,118,28,126,9
     CONTROL         "Suppress DX common errors",IDC_SUPPRESSDXERRORS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,40,127,10
     CONTROL         "Make Backbuf attachable",IDC_BACKBUFATTACH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,52,119,10
@@ -341,6 +342,8 @@ BEGIN
     GROUPBOX        "DirectInput",IDC_STATIC,7,172,286,61
     CONTROL         "Set AERO compatible mode",IDC_SETCOMPATIBILITY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,100,109,12
     CONTROL         "Disable HAL support",IDC_DISABLEHAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,112,109,12
+    CONTROL         "Forces HEL ",IDC_FORCESHEL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,124,109,12
+    CONTROL         "Win7 color fix",IDC_COLORFIX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,136,109,12
 END
 
 IDD_TAB_MOUSE DIALOGEX 0, 0, 300, 240
@@ -465,17 +468,30 @@ IDD_TAB_DEBUG DIALOGEX 0, 0, 300, 240
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Debug flags",IDC_STATIC,7,3,140,144
-    CONTROL         "Simulate YUV to RGB color conv.",IDC_YUV2RGB,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,36,119,9
-    CONTROL         "Simulate RGB to YUV color conv.",IDC_RGB2YUV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,48,119,9
-    CONTROL         "Highlight blit to primary",IDC_MARKBLIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,24,99,10
-    CONTROL         "Full RECT Blit",IDC_FULLRECTBLT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,60,119,10
+    GROUPBOX        "Debug flags",IDC_STATIC,7,7,140,140
+    CONTROL         "Simulate YUV to RGB color conv.",IDC_YUV2RGB,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,24,119,9
+    CONTROL         "Simulate RGB to YUV color conv.",IDC_RGB2YUV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,36,119,9
+    CONTROL         "Highlight blit to primary",IDC_MARKBLIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,126,99,10
+    CONTROL         "Full RECT Blit",IDC_FULLRECTBLT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,114,119,10
     GROUPBOX        "debug mode logs",IDC_STATIC,7,154,139,79
     CONTROL         "Assert Dialog",IDC_ASSERT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,166,73,11
     CONTROL         "ddraw Proxy",IDC_DXPROXED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,178,73,9
     CONTROL         "Warning for analytic surface mode",IDC_SURFACEWARN,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,84,127,10
-    CONTROL         "Analytic surface mode",IDC_ANALYTICMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,72,127,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,60,127,10
+    CONTROL         "Analytic surface mode",IDC_ANALYTICMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,48,127,10
+    CONTROL         "Enable capability mask",IDC_CAPMASK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,72,127,10
+    CONTROL         "Suppress ddraw Blt to primary",IDC_NODDRAWBLT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,24,127,10
+    CONTROL         "Suppress ddraw Flip",IDC_NODDRAWFLIP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,36,127,10
+    CONTROL         "Suppress GDI Blt",IDC_NOGDIBLT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,48,127,10
+    GROUPBOX        "Visual flags",IDC_STATIC,153,7,140,139
+END
+
+IDD_PALETTE DIALOGEX 0, 0, 169, 167
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "DxWnd Palette"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_PALETTECOLORS,"Static",SS_WHITEFRAME | SS_CENTERIMAGE,2,2,163,163
 END
 
 
@@ -653,6 +669,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 233
     END
+
+    IDD_PALETTE, DIALOG
+    BEGIN
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 167
+        TOPMARGIN, 2
+        BOTTOMMARGIN, 165
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -776,6 +800,25 @@ BEGIN
 END
 
 #endif    // Neutral resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Italian (Italy) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ITA)
+#ifdef _WIN32
+LANGUAGE LANG_ITALIAN, SUBLANG_ITALIAN
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_PALETTE             BITMAP                  "res\\palette24.bmp"
+#endif    // Italian (Italy) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

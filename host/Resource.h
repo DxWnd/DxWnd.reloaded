@@ -32,11 +32,13 @@
 #define IDD_TAB_TIMING                  156
 #define IDD_TAB_WINDOW                  157
 #define IDD_TAB_EMPTY                   158
+#define IDB_PALETTE                     158
 #define IDD_TAB_OPENGL                  159
 #define IDD_TAB_COMPAT                  160
 #define IDD_TAB_GDI                     161
 #define IDD_TAB_COLOR                   162
 #define IDD_TAB_DEBUG                   163
+#define IDD_PALETTE                     164
 #define IDC_AUTO                        300
 #define IDC_DIRECTX1                    301
 #define IDC_DIRECTX7                    302
@@ -135,6 +137,7 @@
 #define IDC_WINDOWIZE                   1091
 #define IDC_NOBANNER                    1092
 #define IDC_STARTDEBUG                  1093
+#define IDC_PALETTECOLORS               1093
 #define IDC_WIREFRAME                   1094
 #define IDC_DISABLEGAMMARAMP            1095
 #define IDC_FORCEWINRESIZE              1096
@@ -145,11 +148,7 @@
 #define IDC_SUPPRESSD3DEXT              1101
 #define IDC_FULLRECTBLT                 1102
 #define IDC_TIMESPEED                   1103
-#define IDC_FULLRECTBLT2                1103
-#define IDC_SURFACEWARN                 1103
 #define IDC_HOOKDLLS                    1104
-#define IDC_ANALITICALMODE              1104
-#define IDC_ANALYTICMODE                1104
 #define IDC_HOOKENABLED                 1105
 #define IDC_DESKTOPWORKAREA             1106
 #define IDC_DESKTOPFULL                 1107
@@ -177,6 +176,17 @@
 #define IDC_FILTERMESSAGES              1129
 #define IDC_PEEKALLMESSAGES             1130
 #define IDC_TRACEHOOKS                  1131
+#define IDC_FULLRECTBLT2                1132
+#define IDC_SURFACEWARN                 1133
+#define IDC_ANALITICALMODE              1134
+#define IDC_ANALYTICMODE                1135
+#define IDC_CAPMASK                     1136
+#define IDC_FORCESHEL                   1137
+#define IDC_COLORFIX                    1138
+#define IDC_NODDRAWBLIT                 1139
+#define IDC_NODDRAWBLT                  1139
+#define IDC_NODDRAWFLIP                 1140
+#define IDC_NOGDIBLT                    1141
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -218,15 +228,16 @@
 #define ID_INDEX0_EXPORT                32821
 #define ID_PEXPORT                      32822
 #define ID_PKILL                        32823
+#define ID_VIEW_PALETTE                 32825
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        156
-#define _APS_NEXT_COMMAND_VALUE         32825
-#define _APS_NEXT_CONTROL_VALUE         1092
+#define _APS_NEXT_RESOURCE_VALUE        159
+#define _APS_NEXT_COMMAND_VALUE         32826
+#define _APS_NEXT_CONTROL_VALUE         1095
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

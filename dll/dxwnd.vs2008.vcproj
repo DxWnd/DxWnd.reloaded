@@ -221,10 +221,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\analytic.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ddraw.cpp"
 				>
 				<FileConfiguration

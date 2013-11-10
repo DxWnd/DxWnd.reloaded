@@ -105,6 +105,10 @@ public:
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
 	BOOL	m_SurfaceWarn;
+	BOOL	m_CapMask;
+	BOOL	m_NoDDRAWBlt;
+	BOOL	m_NoDDRAWFlip;
+	BOOL	m_NoGDIBlt;
 	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
@@ -114,6 +118,8 @@ public:
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_DisableHAL;
+	BOOL	m_ForcesHEL;
+	BOOL	m_ColorFix;
 	BOOL	m_LockSysColors;
 	BOOL	m_SaveCaps;
 	BOOL	m_SingleProcAffinity;

@@ -104,6 +104,12 @@
 #define PEEKALLMESSAGES		0x00400000 // force Peek-ing all sort of messages to avoid Win7 message queue saturation that leads to program halt 
 #define SURFACEWARN			0x00800000 // warn when a unclassified surface capability is met (debug only!)
 #define ANALYTICMODE		0x01000000 // activate analytic mode (debug only!)
+#define FORCESHEL			0x02000000 // Forces HEL  (DDCREATE_EMULATIONONLY)
+#define CAPMASK				0x04000000 // Enable capability mask (according to ini file)
+#define COLORFIX			0x08000000 // Win7 color fix for 8bpp paletized modes
+#define NODDRAWBLT			0x10000000 // Suppress ddraw Blt to primary
+#define NODDRAWFLIP			0x20000000 // Suppress ddraw Flip to primary
+#define NOGDIBLT			0x40000000 // Suppress GDI Blt to video device
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -156,6 +162,7 @@ typedef struct
 	short IsFullScreen;
 	short Width, Height;
 	short ColorDepth;
+	//DDPIXELFORMAT VirtualPixel;
 	short DXVersion;
 	HWND hWnd;
 	DWORD dwPid;
@@ -163,6 +170,7 @@ typedef struct
 	DWORD FPSCount;
 	int TimeShift;
 	short CursorX, CursorY;
+	PALETTEENTRY Palette[256];
 } DXWNDSTATUS;
 
 extern DXWNDSTATUS DxWndStatus;

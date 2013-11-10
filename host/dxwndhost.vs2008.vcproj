@@ -220,6 +220,10 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\dib.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dxTabCtrl.cpp"
 				>
 			</File>
@@ -336,6 +340,14 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PaletteDialog.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\PaletteDialog.h"
+				>
+			</File>
+			<File
 				RelativePath=".\StatusDialog.cpp"
 				>
 			</File>
@@ -438,6 +450,10 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl"
 			>
+			<File
+				RelativePath=".\cdib.h"
+				>
+			</File>
 			<File
 				RelativePath=".\dxTabCtrl.h"
 				>
@@ -561,6 +577,10 @@
 			</File>
 			<File
 				RelativePath=".\res\idr_main.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\res\palette24.bmp"
 				>
 			</File>
 			<File

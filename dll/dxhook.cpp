@@ -153,6 +153,18 @@ static void dx_ToggleLogging()
 	GetHookInfo()->isLogging=(dxw.dwTFlags & OUTTRACE);
 }
 
+static void SuppressIMEWindow()
+{
+	OutTraceD("WindowProc: SUPPRESS IME\n");
+	typedef BOOL (WINAPI *ImmDisableIME_Type)(DWORD);
+	ImmDisableIME_Type pImmDisableIME;
+	HMODULE ImmLib;
+	ImmLib=(*pLoadLibraryA)("Imm32");
+	pImmDisableIME=(ImmDisableIME_Type)(*pGetProcAddress)(ImmLib,"ImmDisableIME");
+	(*pImmDisableIME)(-1);
+	CloseHandle(ImmLib);
+}
+
 void HookDlls(HMODULE module)
 {
 	PIMAGE_NT_HEADERS pnth;
@@ -627,6 +639,7 @@ void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 		OutTraceE("AdjustWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 
+	if(dxw.dwFlags2 & SUPPRESSIME) SuppressIMEWindow();
 	dxw.ShowBanner(hwnd);
 	return;
 }
@@ -909,15 +922,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_NCCREATE:
-		if(dxw.dwFlags2 & SUPPRESSIME){
-			OutTraceD("WindowProc: SUPPRESS IME\n");
-			typedef BOOL (WINAPI *ImmDisableIME_Type)(DWORD);
-			ImmDisableIME_Type pImmDisableIME;
-			HMODULE ImmLib;
-			ImmLib=(*pLoadLibraryA)("Imm32");
-			pImmDisableIME=(ImmDisableIME_Type)(*pGetProcAddress)(ImmLib,"ImmDisableIME");
-			(*pImmDisableIME)(-1);
-		}
+		if(dxw.dwFlags2 & SUPPRESSIME) SuppressIMEWindow();
 		break;
 	case WM_IME_SETCONTEXT:
 	case WM_IME_NOTIFY:

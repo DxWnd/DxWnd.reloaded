@@ -42,7 +42,7 @@ typedef HRESULT (WINAPI *GetGDISurface_Type)(LPDIRECTDRAW, LPDIRECTDRAWSURFACE *
 typedef HRESULT (WINAPI *GetMonitorFrequency_Type)(LPDIRECTDRAW, LPDWORD);
 typedef HRESULT (WINAPI *GetScanLine_Type)(LPDIRECTDRAW, LPDWORD);
 typedef HRESULT (WINAPI *GetVerticalBlankStatus_Type)(LPDIRECTDRAW, LPBOOL);
-//    STDMETHOD(Initialize)(THIS_ GUID FAR *) PURE;
+typedef HRESULT (WINAPI *Initialize_Type)(LPDIRECTDRAW, GUID FAR *);
 typedef HRESULT (WINAPI *RestoreDisplayMode_Type)(LPDIRECTDRAW);
 typedef HRESULT (WINAPI *SetCooperativeLevel_Type)(void *, HWND, DWORD);
 typedef HRESULT (WINAPI *SetDisplayMode2_Type)(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);

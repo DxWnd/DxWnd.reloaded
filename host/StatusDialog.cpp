@@ -38,6 +38,7 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 	int IconId;
 	LPCSTR Status;
 	char sMsg[1024];
+	char sMsg2[1024];
 	char sMsgBuf[80+1];
 	char DllVersion[21];
 	DXWNDSTATUS DxWndStatus;
@@ -45,8 +46,11 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 	extern TARGETMAP *pTargets;
 	TARGETMAP *Target;
 	extern char *GetTSCaption(int);
+	int  iPixelFormat;
+	PIXELFORMATDESCRIPTOR pfd;
 
 	CDialog::OnTimer(nIDEvent);
+	GetDllVersion(DllVersion);
 	DxStatus=GetHookStatus(&DxWndStatus);
 	switch (DxStatus){
 		case DXW_IDLE: IconId=IDI_DXIDLE; Status="DISABLED"; break;
@@ -55,14 +59,29 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 		default: IconId=IDI_DXIDLE; Status="???"; break;
 	}
 
-	GetDllVersion(DllVersion);
+	// get the current pixel format index 
+	//HDC myDC = this->GetDC()->m_hDC;
+	//iPixelFormat = GetPixelFormat(myDC); 
+	iPixelFormat = 1; 
+	HDC myDC = ::GetDC(::GetForegroundWindow());
+	//iPixelFormat = ::GetPixelFormat(myDC); 
+
+	// obtain a detailed description of that pixel format  
+	memset((void *)&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+	DescribePixelFormat(myDC, iPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+
+	sprintf_s(sMsg, 1024, 
+		"DxWnd %s\n"
+		"PixelFormat=%d DEPTH=%d RGBA=(%d,%d,%d,%d)\n"
+		"Hook status: %s", 
+		DllVersion, iPixelFormat, pfd.cColorBits, pfd.cRedBits, pfd.cGreenBits, pfd.cBlueBits, pfd.cAlphaBits, Status);
+
 	if(DxStatus==DXW_RUNNING){
 
 		Target=&pTargets[DxWndStatus.TaskIdx];
 
-		sprintf_s(sMsg, 1024, 
-			"DxWnd %s\nHook status: %s\n"
-			"Running \"%s\"\nScreen = (%dx%d) %dBPP\n"
+		sprintf_s(sMsg2, 1024, 
 			"FullScreen = %s\nDX version = %d\n"
 			"Logging = %s\n"
 			"Cursor = (%d,%d)",
@@ -72,6 +91,7 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 			DxWndStatus.IsFullScreen ? "Yes":"No", DxWndStatus.DXVersion,
 			DxWndStatus.isLogging?"ON":"OFF",
 			DxWndStatus.CursorX, DxWndStatus.CursorY);
+		strcat(sMsg, sMsg2);
 		if(Target->flags2 & (SHOWFPS|SHOWFPSOVERLAY)){
 			sprintf(sMsgBuf, "\nFPS = %d", DxWndStatus.FPSCount);   
 			strcat(sMsg, sMsgBuf);
@@ -83,8 +103,6 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 			}
 		}
 	}
-	else
-		sprintf_s(sMsg, 1024, "DxWnd %s\nHook status: %s", DllVersion, Status);
 
 	this->SetDlgItemTextA(IDC_STATUSINFO, sMsg);
 }

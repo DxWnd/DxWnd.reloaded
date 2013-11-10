@@ -60,7 +60,7 @@ extern GetGDISurface_Type pGetGDISurface;
 extern GetMonitorFrequency_Type pGetMonitorFrequency;
 extern GetScanLine_Type pGetScanLine;
 extern GetVerticalBlankStatus_Type pGetVerticalBlankStatus;
-// missing Initialize ...
+extern Initialize_Type pInitialize;
 extern RestoreDisplayMode_Type pRestoreDisplayMode;
 extern SetCooperativeLevel_Type pSetCooperativeLevel;
 extern SetDisplayMode1_Type pSetDisplayMode1;
@@ -656,6 +656,19 @@ ULONG WINAPI extReleaseDProxy(LPDIRECTDRAW lpdd)
 	ref=(*pReleaseD)(lpdd);
 	OutTraceP("Release(D): PROXED lpdd=%x ref=%x\n", lpdd, ref);
 	return ref;
+}
+
+HRESULT WINAPI extInitializeProxy(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
+{
+	HRESULT res;
+	GUID FAR *lpPrivGuid = lpguid;
+
+	OutTraceD("Initialize: lpdd=%x guid=%x(%s)\n", lpdd, lpguid, ExplainGUID(lpguid));
+
+	res=(*pInitialize)(lpdd, lpPrivGuid);
+
+	if(res) OutTraceE("Initialize ERROR: res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
 }
 
 HRESULT WINAPI extCreateClipperProxy(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
@@ -1711,7 +1724,7 @@ static void HookDDSessionProxy(LPDIRECTDRAW *lplpdd, int dxVersion)
 	// IDIrectDraw::GetVerticalBlankStatus
 	SetHook((void *)(**(DWORD **)lplpdd + 68), extGetVerticalBlankStatusProxy, (void **)&pGetVerticalBlankStatus, "GetVerticalBlankStatus(D)");
 	// IDIrectDraw::Initialize
-	// offset 72: Undocumented
+	SetHook((void *)(**(DWORD **)lplpdd + 72), extInitializeProxy, (void **)&pInitialize, "Initialize(D)");
 	// IDIrectDraw::RestoreDisplayMode
 	SetHook((void *)(**(DWORD **)lplpdd + 76), extRestoreDisplayModeProxy, (void **)&pRestoreDisplayMode, "RestoreDisplayMode(D)");
 	if (dxVersion >= 2){

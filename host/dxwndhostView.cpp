@@ -12,6 +12,7 @@
 #include "TargetDlg.h"
 #include "SystemTray.h"
 #include "StatusDialog.h"
+#include "PaletteDialog.h"
 #include "TimeSliderDialog.h"
 
 #ifdef _DEBUG
@@ -62,6 +63,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_RUN, OnRun)
 	ON_COMMAND(ID_TRAY_RESTORE, OnTrayRestore)
 	ON_COMMAND(ID_VIEW_STATUS, OnViewStatus)
+	ON_COMMAND(ID_VIEW_PALETTE, OnViewPalette)
 	ON_COMMAND(ID_VIEW_TIMESLIDER, OnViewTimeSlider)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -156,6 +158,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_DisableHAL) t->flags3 |= DISABLEHAL;
+	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
+	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
 	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
 	if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
@@ -214,6 +218,10 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FullRectBlt) t->flags2 |= FULLRECTBLT;
 	if(dlg->m_NoPaletteUpdate) t->flags2 |= NOPALETTEUPDATE;
 	if(dlg->m_SurfaceWarn) t->flags3 |= SURFACEWARN;
+	if(dlg->m_CapMask) t->flags3 |= CAPMASK;
+	if(dlg->m_NoDDRAWBlt) t->flags3 |= NODDRAWBLT;
+	if(dlg->m_NoDDRAWFlip) t->flags3 |= NODDRAWFLIP;
+	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	t->initx = dlg->m_InitX;
 	t->inity = dlg->m_InitY;
@@ -280,6 +288,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_DisableHAL = t->flags3 & DISABLEHAL ? 1 : 0;
+	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
+	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
 	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
 	dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
@@ -342,6 +352,10 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FullRectBlt = t->flags2 & FULLRECTBLT ? 1 : 0;
 	dlg->m_NoPaletteUpdate = t->flags2 & NOPALETTEUPDATE ? 1 : 0;
 	dlg->m_SurfaceWarn = t->flags3 & SURFACEWARN ? 1 : 0;
+	dlg->m_CapMask = t->flags3 & CAPMASK ? 1 : 0;
+	dlg->m_NoDDRAWBlt = t->flags3 & NODDRAWBLT ? 1 : 0;
+	dlg->m_NoDDRAWFlip = t->flags3 & NODDRAWFLIP ? 1 : 0;
+	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_InitX = t->initx;
 	dlg->m_InitY = t->inity;
@@ -1299,6 +1313,13 @@ void CDxwndhostView::OnViewStatus()
 {
 	CStatusDialog *pDlg = new CStatusDialog();
 	BOOL ret = pDlg->Create(CStatusDialog::IDD, this); 
+	pDlg->ShowWindow(SW_SHOW);
+}
+
+void CDxwndhostView::OnViewPalette()
+{
+	CPaletteDialog *pDlg = new CPaletteDialog();
+	BOOL ret = pDlg->Create(CPaletteDialog::IDD, this); 
 	pDlg->ShowWindow(SW_SHOW);
 }
 

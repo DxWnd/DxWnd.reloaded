@@ -38,6 +38,8 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOPALETTEUPDATE, cTarget->m_NoPaletteUpdate);
 	DDX_Check(pDX, IDC_SETCOMPATIBILITY, cTarget->m_SetCompatibility);
 	DDX_Check(pDX, IDC_DISABLEHAL, cTarget->m_DisableHAL);
+	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
+	DDX_Check(pDX, IDC_COLORFIX, cTarget->m_ColorFix);
 	//DDX_Check(pDX, IDC_SAVECAPS, cTarget->m_SaveCaps);
 	// DirectInput
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);

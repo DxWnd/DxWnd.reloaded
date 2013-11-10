@@ -1304,19 +1304,18 @@ BOOL WINAPI extClipCursor(RECT *lpRectArg)
 
 	if(dxw.dwFlags1 & MODIFYMOUSE){
 		// save desired clip region
+		// v2.02.39: fix - do not attempt to write to NULL lpRect
 		if (lpRect) {
 			ClipRegion=*lpRectArg;
 			lpClipRegion=&ClipRegion;
+			*lpRect=dxw.MapWindowRect(lpRect);
 		}
 		else
 			lpClipRegion=NULL;
-
-		*lpRect=dxw.MapWindowRect(lpRect);
 	}
 
 	if (pClipCursor) res=(*pClipCursor)(lpRect);
-	OutTraceD("ClipCursor: rect=(%d,%d)-(%d,%d) res=%x\n", 
-		lpRect->left,lpRect->top,lpRect->right,lpRect->bottom, res);
+	if (lpRect) OutTraceD("ClipCursor: REMAPPED rect=(%d,%d)-(%d,%d) res=%x\n", lpRect->left,lpRect->top,lpRect->right,lpRect->bottom, res);
 
 	return TRUE;
 }
