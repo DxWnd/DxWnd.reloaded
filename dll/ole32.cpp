@@ -38,8 +38,8 @@ static void HookDDSession(LPDIRECTDRAW *, int);
 HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID FAR* ppv)
 {
 	HRESULT res;
-	OutTraceD("CoCreateInstance: rclsid=%x UnkOuter=%x ClsContext=%x refiid=%x\n",
-		rclsid, pUnkOuter, dwClsContext, riid);
+	OutTraceD("CoCreateInstance: rclsid=%x UnkOuter=%x ClsContext=%x refiid=%x(%s)\n",
+		rclsid, pUnkOuter, dwClsContext, riid.Data1, ExplainGUID((GUID *)&riid));
 
 	// CLSID e436ebb3 implies loading quartz.dll to play movies through dshow:
 	// quartz.dll must be hooked.

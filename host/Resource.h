@@ -36,6 +36,7 @@
 #define IDD_TAB_COMPAT                  160
 #define IDD_TAB_GDI                     161
 #define IDD_TAB_COLOR                   162
+#define IDD_TAB_DEBUG                   163
 #define IDC_AUTO                        300
 #define IDC_DIRECTX1                    301
 #define IDC_DIRECTX7                    302
@@ -144,6 +145,8 @@
 #define IDC_SUPPRESSD3DEXT              1101
 #define IDC_FULLRECTBLT                 1102
 #define IDC_TIMESPEED                   1103
+#define IDC_FULLRECTBLT2                1103
+#define IDC_SURFACEWARN                 1103
 #define IDC_HOOKDLLS                    1104
 #define IDC_HOOKENABLED                 1105
 #define IDC_DESKTOPWORKAREA             1106
@@ -171,7 +174,7 @@
 #define IDC_BUFFEREDIOFIX               1128
 #define IDC_FILTERMESSAGES              1129
 #define IDC_PEEKALLMESSAGES             1130
-#define IDC_TRACEHOOKS					1131
+#define IDC_TRACEHOOKS                  1131
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

@@ -72,7 +72,8 @@ char *ExplainDDSCaps(DWORD c)
 	if (c & DDSCAPS_LIVEVIDEO) strcat(eb, "LIVEVIDEO+");
 	if (c & DDSCAPS_HWCODEC) strcat(eb, "HWCODEC+");
 	if (c & DDSCAPS_MODEX) strcat(eb, "MODEX+");
-	if (c & DDSCAPS_MIPMAP) strcat(eb, "MIPMAP+");
+	if (c & DDSCAPS_MIPMAP) strcat(eb, "MIPMAP+"); 
+	if (c & DDSCAPS_RESERVED2) strcat(eb, "RESERVED2+");
 	if (c & DDSCAPS_ALLOCONLOAD) strcat(eb, "ALLOCONLOAD+");
 	if (c & DDSCAPS_VIDEOPORT) strcat(eb, "VIDEOPORT+");
 	if (c & DDSCAPS_LOCALVIDMEM) strcat(eb, "LOCALVIDMEM+");
@@ -1101,6 +1102,11 @@ char *ExplainGUID(GUID FAR *lpguid)
 		case 0xb0ab3b61: sguid="IID_IDirect3DViewport3"; break;
 		case 0x7a503555: sguid="IID_IDirect3DVertexBuffer"; break;
 		case 0xf5049e7d: sguid="IID_IDirect3DVertexBuffer7"; break;
+		case 0xF2086B20: sguid="IID_IDirect3DRampDevice"; break;
+		case 0x881949a1: sguid="IID_IDirect3DMMXDevice"; break;
+		case 0x50936643: sguid="IID_IDirect3DRefDevice"; break;
+		case 0x8767df22: sguid="IID_IDirect3DNullDevice"; break;
+		case 0xf5049e78: sguid="IID_IDirect3DTnLHalDevice"; break;
 		case 0xD7B70EE0: sguid="CLSID_DirectDraw"; break;
 		case 0x3c305196: sguid="CLSID_DirectDraw7"; break;
 		case 0x593817A0: sguid="CLSID_DirectDrawClipper"; break;
@@ -1467,4 +1473,23 @@ char *ExplainDCType(DWORD c)
 
 	if (c>=0 && c<=GDI_OBJ_LAST) return Captions[c];
 	return "???";
+}
+
+char *ExplainPeekRemoveMsg(DWORD c)
+{
+	static char eb[128];
+	strcpy(eb, (c & PM_REMOVE) ? "PM_REMOVE" : "PM_NOREMOVE");
+	if(c & PM_NOYIELD) strcat(eb, "+NOYIELD");
+	c >>= 16;
+	if(c & QS_MOUSEMOVE) strcat(eb, "+MOUSEMOVE");
+	if(c & QS_MOUSEBUTTON) strcat(eb, "+MOUSEBUTTON");
+	if(c & QS_KEY) strcat(eb, "+KEY");
+	if(c & QS_RAWINPUT) strcat(eb, "+RAWINPUT");
+	if(c & QS_PAINT) strcat(eb, "+PAINT");
+	if(c & QS_POSTMESSAGE) strcat(eb, "+POSTMESSAGE");
+	if(c & QS_HOTKEY) strcat(eb, "+HOTKEY");
+	if(c & QS_TIMER) strcat(eb, "+TIMER");
+	if(c & QS_SENDMESSAGE) strcat(eb, "+SENDMESSAGE");
+	if(c & QS_ALLPOSTMESSAGE) strcat(eb, "+ALLPOSTMESSAGE");
+	return(eb);
 }

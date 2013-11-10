@@ -267,4 +267,8 @@ hook trace is now activated from a separate log flag to reduce debug log size
 added "Peek all messages in queue" to avoid queue saturation and automatic task kill in Win7 (thank to P K help)
 fixed message handling in the case messages are passed to a routine handle
 
+v2.02.37
+code reorganization
+GUI:
+removed useless flags and moved debug options in a hidden tab
 

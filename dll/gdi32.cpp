@@ -794,32 +794,41 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	OutTraceD("GDI.BitBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop, ExplainROP(dwRop));
 
-	if (dxw.HandleFPS()) return TRUE;
+	OutTraceB("GDI.StretchBlt: DEBUG FullScreen=%x target hdctype=%x(%s) hwnd=%x\n", 
+		dxw.IsFullScreen(), GetObjectType(hdcDest), ExplainDCType(GetObjectType(hdcDest)), WindowFromDC(hdcDest));
 
 	// beware: HDC could refer to screen DC that are written directly on screen, or memory DC that will be scaled to
 	// the screen surface later on, on ReleaseDC or ddraw Blit / Flip operation. Scaling of rect coordinates is 
 	// needed only in the first case, and must be avoided on the second, otherwise the image would be scaled twice!
 
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
-		int nWDest, nHDest;
-		nWDest= nWidth;
-		nHDest= nHeight;
-		dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
-		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
-		res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
-	}
-	else if(WindowFromDC(hdcDest)==NULL){
-		// V2.02.31: See StretchBlt.
-		int nWDest, nHDest;
-		nWDest= nWidth;
-		nHDest= nHeight;
-		dxw.MapWindow(&nXDest, &nYDest, &nWDest, &nHDest);
-		res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
-		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);
+	res=0;
+	if (OBJ_DC == GetObjectType(hdcDest)){
+		if (dxw.HandleFPS()) return TRUE;
+		if(dxw.IsFullScreen()){
+			int nWDest, nHDest;
+			nWDest= nWidth;
+			nHDest= nHeight;
+			dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+			res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
+			OutTrace("Debug: DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
+		}
+		else if(WindowFromDC(hdcDest)==NULL){
+			// V2.02.31: See StretchBlt.
+			int nWDest, nHDest;
+			nWDest= nWidth;
+			nHDest= nHeight;
+			dxw.MapWindow(&nXDest, &nYDest, &nWDest, &nHDest);
+			res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);
+			OutTrace("Debug: NULL dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
+		}
 	}
 	else {
 		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+		OutTrace("Debug: MEM dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWidth, nHeight);
 	}
+
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
 	return res;
@@ -828,28 +837,34 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, DWORD dwRop)
 {
 	BOOL res;
+	BOOL IsToScreen;
 
 	OutTraceD("GDI.PatBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop, ExplainROP(dwRop));
 
-	if (dxw.HandleFPS()) return TRUE;
-
 	OutTraceB("GDI.StretchBlt: DEBUG FullScreen=%x target hdctype=%x(%s) hwnd=%x\n", 
 		dxw.IsFullScreen(), GetObjectType(hdcDest), ExplainDCType(GetObjectType(hdcDest)), WindowFromDC(hdcDest));
 
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
-		dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
-		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
-		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
-	}
-	else if(WindowFromDC(hdcDest)==NULL){
-		// V2.02.31: See StretchBlt.
-		dxw.MapWindow(&nXDest, &nYDest, &nWidth, &nHeight);
-		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
+	IsToScreen=FALSE;
+	res=0;
+	if (OBJ_DC == GetObjectType(hdcDest)){
+		IsToScreen=TRUE;
+		if (dxw.HandleFPS()) return TRUE;
+		if (dxw.IsFullScreen()){ 
+			dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
+			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);		
+			res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
+		}
+		else if(WindowFromDC(hdcDest)==NULL){
+			// V2.02.31: See StretchBlt.
+			dxw.MapWindow(&nXDest, &nYDest, &nWidth, &nHeight);
+			res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
+		}
 	}
 	else {
 		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
 	}
+	if (IsToScreen && (dxw.dwFlags2 & SHOWFPSOVERLAY)) dxw.ShowFPS(hdcDest);
 	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
 	return res;
@@ -859,28 +874,31 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 							 HDC hdcSrc, int nXSrc, int nYSrc, int nWSrc, int nHSrc, DWORD dwRop)
 {
 	BOOL res;
+	BOOL IsToScreen;
 
 	OutTraceD("GDI.StretchBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d nWSrc=%d nHSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop, ExplainROP(dwRop));
 
-	if (dxw.HandleFPS()) return TRUE;
-
 	OutTraceB("GDI.StretchBlt: DEBUG FullScreen=%x target hdctype=%x(%s) hwnd=%x\n", 
 		dxw.IsFullScreen(), GetObjectType(hdcDest), ExplainDCType(GetObjectType(hdcDest)), WindowFromDC(hdcDest));
 
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdcDest))){
+	IsToScreen=FALSE;
+	if (OBJ_DC == GetObjectType(hdcDest)){
+		if (dxw.HandleFPS()) return TRUE;
+		IsToScreen=TRUE;
+		if(dxw.IsFullScreen()){
 			dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
-			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);
-	}
-	else if(WindowFromDC(hdcDest)==NULL){
-		// V2.02.31: In "Silent Hunter II" intro movie, QuickTime 5 renders the vidoe on the PrimarySurface->GetDC device context,
-		// that is a memory device type associated to NULL (desktop) window, through GDI StretchBlt api. So, you shoud compensate
-		// by scaling and offsetting to main window.
-		dxw.MapWindow(&nXDest, &nYDest, &nWidth, &nHeight);
-		if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(hdcDest);
+		}
+		else if(WindowFromDC(hdcDest)==NULL){
+			// V2.02.31: In "Silent Hunter II" intro movie, QuickTime 5 renders the video on the PrimarySurface->GetDC device context,
+			// that is a memory device type associated to NULL (desktop) window, through GDI StretchBlt api. So, you shoud compensate
+			// by scaling and offsetting to main window.
+			dxw.MapWindow(&nXDest, &nYDest, &nWidth, &nHeight);
+		}
 	}
 
 	res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
+	if (IsToScreen && (dxw.dwFlags2 & SHOWFPSOVERLAY)) dxw.ShowFPS(hdcDest);
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }

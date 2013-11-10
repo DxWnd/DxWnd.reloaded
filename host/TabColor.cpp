@@ -34,8 +34,6 @@ void CTabColor::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_BLACKWHITE, cTarget->m_BlackWhite);
 	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
 	DDX_Check(pDX, IDC_LOCKSYSCOLORS, cTarget->m_LockSysColors);
-	DDX_Check(pDX, IDC_RGB2YUV, cTarget->m_ForceRGBtoYUV);
-	DDX_Check(pDX, IDC_YUV2RGB, cTarget->m_ForceYUVtoRGB);
 }
 
 BEGIN_MESSAGE_MAP(CTabColor, CDialog)

@@ -41,3 +41,4 @@ extern char *ExplainMCICommands(DWORD);
 extern char *ExplainMCIFlags(DWORD, DWORD);
 extern char *ExplainRegType(DWORD);
 extern char *ExplainDCType(DWORD);
+extern char *ExplainPeekRemoveMsg(DWORD);

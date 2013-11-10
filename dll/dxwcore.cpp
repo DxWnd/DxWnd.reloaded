@@ -79,24 +79,6 @@ void dxwCore::InitTarget(TARGETMAP *target)
 // Primary surfaces auxiliary functions
 /* ------------------------------------------------------------------ */
 
-void dxwCore::MarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
-{
-	int i;
-	// OutTraceD("PRIMARYSURFACE add %x\n",ps);
-	for (i=0;i<DDSQLEN;i++) {
-		if (PrimSurfaces[i]==(DWORD)ps) return; // if already there ....
-		if (PrimSurfaces[i]==(DWORD)0) break; // got end of list
-	}
-	PrimSurfaces[i]=(DWORD)ps;
-}
-
-// Note: since MS itself declares that the object refcount is not reliable and should
-// be used for debugging only, it's not safe to rely on refcount==0 when releasing a
-// surface to terminate its classification as primary. As an alternate and more reliable
-// way, we use UnmarkPrimarySurface each time you create a new not primary surface, 
-// eliminating the risk that a surface previously classified as primary and then closed
-// had the same surface handle than this new one that is not primary at all.
-
 void dxwCore::UnmarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
 {
 	int i;
@@ -114,6 +96,60 @@ void dxwCore::UnmarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
 	}
 }
 
+void dxwCore::UnmarkBackBufferSurface(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	// OutTraceD("PRIMARYSURFACE del %x\n",ps);
+	for (i=0;i<DDSQLEN;i++) {
+		if (BackSurfaces[i]==(DWORD)ps) break; 
+		if (BackSurfaces[i]==0) break;
+	}
+	if (BackSurfaces[i]==(DWORD)ps){
+		for (; i<DDSQLEN; i++){
+			BackSurfaces[i]=BackSurfaces[i+1];
+			if (BackSurfaces[i]==0) break;
+		}
+		BackSurfaces[DDSQLEN]=0;
+	}
+}
+
+void dxwCore::MarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	// OutTraceD("PRIMARYSURFACE add %x\n",ps);
+	for (i=0;i<DDSQLEN;i++) {
+		if (PrimSurfaces[i]==(DWORD)ps) return; // if already there ....
+		if (PrimSurfaces[i]==(DWORD)0) break; // got end of list
+	}
+	PrimSurfaces[i]=(DWORD)ps;
+	UnmarkBackBufferSurface(ps);
+}
+
+void dxwCore::MarkBackBufferSurface(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	// OutTraceD("PRIMARYSURFACE add %x\n",ps);
+	for (i=0;i<DDSQLEN;i++) {
+		if (BackSurfaces[i]==(DWORD)ps) return; // if already there ....
+		if (BackSurfaces[i]==(DWORD)0) break; // got end of list
+	}
+	BackSurfaces[i]=(DWORD)ps;
+	UnmarkPrimarySurface(ps);
+}
+
+void dxwCore::MarkRegularSurface(LPDIRECTDRAWSURFACE ps)
+{
+	UnmarkBackBufferSurface(ps);
+	UnmarkPrimarySurface(ps);
+}
+
+// Note: since MS itself declares that the object refcount is not reliable and should
+// be used for debugging only, it's not safe to rely on refcount==0 when releasing a
+// surface to terminate its classification as primary. As an alternate and more reliable
+// way, we use UnmarkPrimarySurface each time you create a new not primary surface, 
+// eliminating the risk that a surface previously classified as primary and then closed
+// had the same surface handle than this new one that is not primary at all.
+
 BOOL dxwCore::IsAPrimarySurface(LPDIRECTDRAWSURFACE ps)
 {
 	int i;
@@ -126,6 +162,18 @@ BOOL dxwCore::IsAPrimarySurface(LPDIRECTDRAWSURFACE ps)
 	return FALSE;
 }
 
+BOOL dxwCore::IsABackBufferSurface(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	// treat NULL surface ptr as a non primary
+	if(!ps) return FALSE;
+	for (i=0;i<DDSQLEN;i++) {
+		if (BackSurfaces[i]==(DWORD)ps) return TRUE;
+		if (BackSurfaces[i]==0) return FALSE;
+	}
+	return FALSE;
+}
+
 LPDIRECTDRAWSURFACE dxwCore::GetPrimarySurface(void)
 {
 	// return last opened one....
@@ -134,6 +182,17 @@ LPDIRECTDRAWSURFACE dxwCore::GetPrimarySurface(void)
 		if (PrimSurfaces[i]==0) break;
 	}
 	if (i) return((LPDIRECTDRAWSURFACE)PrimSurfaces[i-1]);
+	return NULL;
+}
+
+LPDIRECTDRAWSURFACE dxwCore::GetBackBufferSurface(void)
+{
+	// return last opened one....
+	int i;
+	for (i=0;i<DDSQLEN;i++) {
+		if (BackSurfaces[i]==0) break;
+	}
+	if (i) return((LPDIRECTDRAWSURFACE)BackSurfaces[i-1]);
 	return NULL;
 }
 
@@ -1004,6 +1063,8 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 		"netapi32",
 		"wintrust",
 		"advapi32",
+		"d3dim",
+		"d3dim700",
 		NULL
 	};	
 	

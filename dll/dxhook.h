@@ -1,6 +1,7 @@
 extern int HookDirectDraw(HMODULE, int);
 extern int HookDDProxy(HMODULE, int);
 extern int HookDirect3D(HMODULE, int);
+extern int HookDirect3D7(HMODULE, int);
 extern void HookOle32(HMODULE);
 extern void HookGDI32(HMODULE);
 extern int HookDirectInput(HMODULE, int);
@@ -16,6 +17,7 @@ extern LPCSTR ProcToString(LPCSTR proc);
 extern HRESULT HookDxDiag(REFIID, LPVOID FAR*);
 
 extern FARPROC Remap_ddraw_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_d3d7_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_d3d8_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_d3d9_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_d3d10_ProcAddress(LPCSTR, HMODULE);

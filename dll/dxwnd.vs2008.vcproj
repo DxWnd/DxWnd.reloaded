@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="dxwnd"
 	ProjectGUID="{579E7FE7-2745-4100-A802-23511711FCDE}"
 	RootNamespace="dxwnd"
@@ -347,6 +347,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\hd3d7.cpp"
+				>
 			</File>
 			<File
 				RelativePath=".\hddproxy.cpp"

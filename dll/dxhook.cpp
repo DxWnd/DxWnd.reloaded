@@ -38,7 +38,7 @@ static char *FlagNames[32]={
 	"AUTOREFRESH", "FIXWINFRAME", "HIDEHWCURSOR", "SLOWDOWN",
 	"ENABLECLIPPING", "LOCKWINSTYLE", "MAPGDITOPRIMARY", "FIXTEXTOUT",
 	"KEEPCURSORWITHIN", "USERGB565", "SUPPRESSDXERRORS", "PREVENTMAXIMIZE",
-	"ONEPIXELFIX", "FIXPARENTWIN", "SWITCHVIDEOMEMORY", "CLIENTREMAPPING",
+	"LOCKEDSURFACE", "FIXPARENTWIN", "SWITCHVIDEOMEMORY", "CLIENTREMAPPING",
 	"HANDLEALTF4", "LOCKWINPOS", "HOOKCHILDWIN", "MESSAGEPROC"
 };
 
@@ -290,6 +290,12 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	dwTmp = *(DWORD *)target;
 	if(dwTmp == (DWORD)hookproc) return; // already hooked
 	if((dwTmp <= MaxHook) && (dwTmp >= MinHook)) return; // already hooked
+	if(dwTmp == 0){
+		sprintf(msg,"SetHook ERROR: NULL target for %s\n", hookname);
+		OutTraceD(msg);
+		MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
+		return; // error condition
+	}
 	if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) {
 		sprintf(msg,"SetHook ERROR: target=%x err=%d\n", target, GetLastError());
 		OutTraceD(msg);
@@ -841,7 +847,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	if(dxw.dwFlags3 & FILTERMESSAGES){
 		LRESULT ret;
 		switch(message){
-		case WM_NCCALCSIZE:
 		case WM_NCMOUSEMOVE:
 		case WM_NCLBUTTONDOWN:
 		case WM_NCLBUTTONUP:
@@ -852,8 +857,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		case WM_NCMBUTTONDOWN:
 		case WM_NCMBUTTONUP:
 		case WM_NCMBUTTONDBLCLK:
-		//case WM_WINDOWPOSCHANGING:
-		//case WM_WINDOWPOSCHANGED:
 			OutTraceW("WindowProc[%x]: WinMsg=%x filtered message=%x(%s)\n", hwnd, message, ExplainWinMessage(message));
 			ret=0;
 			return ret;
@@ -1285,6 +1288,7 @@ void HookModule(HMODULE base, int dxversion)
 	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base, dxversion);
 	HookDirectDraw(base, dxversion);
 	HookDirect3D(base, dxversion);
+	HookDirect3D7(base, dxversion);
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
 	if((dxw.dwFlags3 & EMULATEREGISTRY) || (dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?

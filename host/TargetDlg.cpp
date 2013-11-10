@@ -11,6 +11,8 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+extern BOOL gbDebug;
+
 /////////////////////////////////////////////////////////////////////////////
 // CTargetDlg Dialog
 
@@ -106,6 +108,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_ForceHookOpenGL = FALSE;
 	m_FakeVersion = FALSE;
 	m_FullRectBlt = FALSE;
+	m_SurfaceWarn = FALSE;
 	m_NoPaletteUpdate = FALSE;
 	m_WireFrame = FALSE;
 	m_BlackWhite = FALSE;
@@ -140,6 +143,7 @@ BOOL CTargetDlg::OnInitDialog()
 	m_tabdxTabCtrl.InsertItem(i++, _T("OpenGL"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("GDI"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Compat"));
+	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T("Debug"));
 	m_tabdxTabCtrl.Init();
 	return TRUE;
 }

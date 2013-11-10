@@ -104,6 +104,7 @@ public:
 	BOOL	m_ForceHookOpenGL;
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
+	BOOL	m_SurfaceWarn;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
 	BOOL	m_CDROMDriveType;

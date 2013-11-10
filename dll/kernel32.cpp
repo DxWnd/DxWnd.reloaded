@@ -442,6 +442,12 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_ADVAPI32:
 			if (remap=Remap_AdvApi32_ProcAddress(proc, hModule)) return remap;
 			break;
+		case SYSLIBIDX_DIRECT3D:
+			if (remap=Remap_d3d7_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_DIRECT3D700:
+			if (remap=Remap_d3d7_ProcAddress(proc, hModule)) return remap;
+			break;
 		default:
 			break; 
 		}

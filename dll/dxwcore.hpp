@@ -53,9 +53,12 @@ public: // methods
 	BOOL HandleFPS(void);
 	DWORD GetTickCount(void);
 	void MarkPrimarySurface(LPDIRECTDRAWSURFACE);
-	void UnmarkPrimarySurface(LPDIRECTDRAWSURFACE);
 	BOOL IsAPrimarySurface(LPDIRECTDRAWSURFACE);
 	LPDIRECTDRAWSURFACE GetPrimarySurface(void);
+	void MarkBackBufferSurface(LPDIRECTDRAWSURFACE);
+	BOOL IsABackBufferSurface(LPDIRECTDRAWSURFACE);
+	LPDIRECTDRAWSURFACE GetBackBufferSurface(void);
+	void MarkRegularSurface(LPDIRECTDRAWSURFACE);
 	void SetPrimarySurface(void);
 	void ResetPrimarySurface(void);
 	void GetSystemTime(LPSYSTEMTIME lpSystemTime);
@@ -81,8 +84,6 @@ public: // methods
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;
 	DDPIXELFORMAT VirtualPixelFormat;
-	DWORD dwPrimarySurfaceCaps;
-	DWORD dwBackBufferCount;
 	DWORD dwDDVersion;
 	DWORD dwTargetDDVersion;
 	DWORD dwMaxDDVersion;
@@ -119,8 +120,14 @@ protected:
 	BOOL FullScreen;
 	HWND hWnd, hWndFPS;
 	DWORD PrimSurfaces[DDSQLEN+1];
+	DWORD BackSurfaces[DDSQLEN+1];
 	HDC VirtualHDC;
 	HBITMAP VirtualPic;
+
+private:
+	void UnmarkPrimarySurface(LPDIRECTDRAWSURFACE);
+	void UnmarkBackBufferSurface(LPDIRECTDRAWSURFACE);
+
 };
 
 extern dxwCore dxw;
@@ -155,5 +162,7 @@ typedef enum {
 	SYSLIBIDX_TAPI32,
 	SYSLIBIDX_NETAPI32,
 	SYSLIBIDX_WINTRUST,
+	SYSLIBIDX_DIRECT3D,
+	SYSLIBIDX_DIRECT3D700,
 	SYSLIBIDX_MAX } 
 enum_syslibraries;

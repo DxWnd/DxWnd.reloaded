@@ -328,7 +328,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	long srcpitch, destpitch;
 	HRESULT res;
 	DWORD *src32;
-	DWORD *dest, dest0;
+	DWORD *dest, *dest0;
 	DDSURFACEDESC2 ddsd_src, ddsd_dst;
 
 	w = lpdestrect->right - lpdestrect->left; 
@@ -336,7 +336,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
 	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
-	ddsd_dst.dxw.dwFlags1 = DDSD_LPSURFACE | DDSD_PITCH;
+	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if(res=(*pLock)(lpddsdst, 0, (LPDIRECTDRAWSURFACE)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
@@ -344,7 +344,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
 	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
-	ddsd_src.dxw.dwFlags1 = DDSD_LPSURFACE | DDSD_PITCH;
+	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt32_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);

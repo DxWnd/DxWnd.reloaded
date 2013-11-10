@@ -16,7 +16,7 @@ class CTabLogs : public CDialog
 // Construction
 public:
 	CTabLogs(CWnd* pParent = NULL);   // standard constructor
-	virtual BOOL OnInitDialog();
+	//virtual BOOL OnInitDialog();
 
 // Dialog Data
 	//{{AFX_DATA(CTabLogs)

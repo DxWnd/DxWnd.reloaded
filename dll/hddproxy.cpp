@@ -1186,6 +1186,7 @@ HRESULT WINAPI extGetClipperProxy(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER
 
 HRESULT WINAPI extGetFlipStatusProxy(LPDIRECTDRAWSURFACE lpdds, DWORD flags)
 {
+#if 0
 	HRESULT res;
 	OutTraceP("GetFlipStatus(S): PROXED lpdds=%x flags=%x(%s)\n", lpdds, flags, ExplainFlipStatusFlags(flags));
 	res=(*pGetFlipStatus)(lpdds, flags);
@@ -1193,6 +1194,18 @@ HRESULT WINAPI extGetFlipStatusProxy(LPDIRECTDRAWSURFACE lpdds, DWORD flags)
 	else
 	if(res) OutTraceP("GetFlipStatus(S): ERROR err=%x(%s)\n", res, ExplainDDError(res));
 	return res;
+#else
+	HRESULT res;
+	static int DeMux=0;
+	OutTraceP("GetFlipStatus(S): DELAYED lpdds=%x flags=%x(%s)\n", lpdds, flags, ExplainFlipStatusFlags(flags));
+	DeMux = (DeMux + 1) % 10;
+	res=(*pGetFlipStatus)(lpdds, flags);
+	if(res==DDERR_WASSTILLDRAWING) OutTraceP("GetFlipStatus(S): res=%x(%s)\n", res, ExplainDDError(res));
+	else
+	if(res) OutTraceP("GetFlipStatus(S): ERROR err=%x(%s)\n", res, ExplainDDError(res));
+	if(DeMux) res=DDERR_WASSTILLDRAWING; 
+	return res;
+#endif
 }
 
 HRESULT WINAPI extGetOverlayPositionProxy(LPDIRECTDRAWSURFACE lpdds, LPLONG lpl1, LPLONG lpl2)

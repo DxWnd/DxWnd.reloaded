@@ -31,12 +31,15 @@
 #include "TabCompat.h"
 #include "TabColor.h"
 #include "TabGDI.h"
+#include "TabDebug.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+extern BOOL gbDebug;
 
 /////////////////////////////////////////////////////////////////////////////
 // CDXTabCtrl
@@ -54,6 +57,7 @@ CDXTabCtrl::CDXTabCtrl()
 	m_tabPages[i++]=new CTabOpenGL;
 	m_tabPages[i++]=new CTabGDI;
 	m_tabPages[i++]=new CTabCompat;
+	if (gbDebug) m_tabPages[i++]=new CTabDebug;
 
 	m_nNumberOfPages=i;
 }
@@ -80,6 +84,7 @@ void CDXTabCtrl::Init()
 	m_tabPages[i++]->Create(IDD_TAB_OPENGL, this);
 	m_tabPages[i++]->Create(IDD_TAB_GDI, this);
 	m_tabPages[i++]->Create(IDD_TAB_COMPAT, this);
+	if (gbDebug) m_tabPages[i++]->Create(IDD_TAB_DEBUG, this);
 
 	for(int nCount=0; nCount < m_nNumberOfPages; nCount++){
 		m_tabPages[nCount]->ShowWindow(nCount ? SW_HIDE:SW_SHOW);

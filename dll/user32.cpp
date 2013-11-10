@@ -73,15 +73,9 @@ static HookEntry_Type RemapHooks[]={
 	{0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type MessageHooks[]={
-	//{"PeekMessageA", (FARPROC)PeekMessageA, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
-	//{"GetMessageA", (FARPROC)GetMessageA, (FARPROC *)&pGetMessage, (FARPROC)extGetMessage},
-	{0, NULL, 0, 0} // terminator
-};
-
 static HookEntry_Type PeekAllHooks[]={
-	{"PeekMessageA", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekAnyMessage},
-	{"PeekMessageW", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekAnyMessage},
+	{"PeekMessageA", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
+	{"PeekMessageW", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -118,9 +112,6 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if (addr=RemapLibrary(proc, hModule, (dxw.dwFlags1 & MAPGDITOPRIMARY) ? DDHooks : GDIHooks)) return addr;
 	if (dxw.dwFlags1 & CLIENTREMAPPING) 
 		if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
-	// commented out since message processing was given to SetWindowHook callback
-	// if (dxw.dwFlags1 & MESSAGEPROC) 
-	//	if (addr=RemapLibrary(proc, hModule, MessageHooks)) return addr;
 	if(dxw.dwFlags1 & MODIFYMOUSE)
 		if (addr=RemapLibrary(proc, hModule, MouseHooks)) return addr;
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))
@@ -141,7 +132,6 @@ void HookUser32(HMODULE hModule)
 		HookLibrary(hModule, EmulateHooks, libname);
 	HookLibrary(hModule, (dxw.dwFlags1 & MAPGDITOPRIMARY) ? DDHooks : GDIHooks, libname);
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibrary(hModule, RemapHooks, libname);
-	//if (dxw.dwFlags1 & MESSAGEPROC) HookLibrary(hModule, MessageHooks, libname);
 	if(dxw.dwFlags1 & MODIFYMOUSE)HookLibrary(hModule, MouseHooks, libname);
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))HookLibrary(hModule, WinHooks, libname);
 	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibrary(hModule, MouseHooks2, libname);
@@ -154,7 +144,6 @@ void HookUser32Init()
 	HookLibInit(Hooks);
 	HookLibInit(DDHooks);
 	HookLibInit(RemapHooks);
-	HookLibInit(MessageHooks);
 	HookLibInit(MouseHooks);
 	HookLibInit(WinHooks);
 	HookLibInit(MouseHooks2);
@@ -350,11 +339,6 @@ static LRESULT WINAPI FixWindowProc(char *ApiName, HWND hwnd, UINT Msg, WPARAM w
 		ApiName, hwnd, Msg, ExplainWinMessage(Msg), wParam, lParam);
 
 	switch(Msg){
-	// attempt to fix Sleepwalker
-	//case WM_NCCALCSIZE:
-	//	if (dxw.dwFlags1 & PREVENTMAXIMIZE)
-	//		return 0;
-	//	break;
 	case WM_ERASEBKGND:
 		OutTraceD("%s: prevent erase background\n", ApiName);
 		return 1; // 1=erased
@@ -369,15 +353,6 @@ static LRESULT WINAPI FixWindowProc(char *ApiName, HWND hwnd, UINT Msg, WPARAM w
 	case WM_STYLECHANGING:
 	case WM_STYLECHANGED:
 		dxw.FixStyle(ApiName, hwnd, wParam, lParam);
-		break;
-	case WM_DISPLAYCHANGE:
-		// too late? to be deleted....
-		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()) return 0;
-		if (dxw.dwFlags1 & PREVENTMAXIMIZE){
-			OutTraceD("%s: WM_DISPLAYCHANGE depth=%d size=(%d,%d)\n",
-				ApiName, wParam, HIWORD(lParam), LOWORD(lParam));
-			return 0;
-		}
 		break;
 	case WM_SIZE:
 		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()) return 0;
@@ -780,85 +755,17 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 	return res;
 }
 
-BOOL WINAPI extPeekAnyMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 {
 	BOOL res;
 
 	res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, (wRemoveMsg & 0x000F));
 
-	OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, 
+	OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
 		lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
 		lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
 
-	return res;
-}
-
-BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
-{
-	BOOL res;
-	UINT iRemoveMsg;
-
-	iRemoveMsg = wRemoveMsg;
-	if(1) iRemoveMsg &= 0x000F; // Peek all messages
-
-	res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, iRemoveMsg);
-	
-	OutTraceW("PeekMessage: lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, 
-		lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
-		lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
-
-	// v2.1.74: skip message fix for WM_CHAR to avoid double typing bug
-	switch(lpMsg->message){
-		//case WM_CHAR:
-		case WM_KEYUP:
-		case WM_KEYDOWN:
-			return res;
-	}
-
-	// fix to avoid crash in Warhammer Final Liberation, that evidently intercepts mouse position by 
-	// peeking & removing messages from window queue and considering the lParam parameter.
-	// v2.1.100 - never alter the lpMsg, otherwise the message is duplicated in the queue! Work on a copy of it.
-	if(wRemoveMsg){
-		static MSG MsgCopy;
-		MsgCopy=*lpMsg;
-		MsgCopy.pt=FixMessagePt(dxw.GethWnd(), MsgCopy.pt);
-		if((MsgCopy.message <= WM_MOUSELAST) && (MsgCopy.message >= WM_MOUSEFIRST)) MsgCopy.lParam = MAKELPARAM(MsgCopy.pt.x, MsgCopy.pt.y); 
-		OutTraceC("PeekMessage: fixed lparam/pt=(%d,%d)\n", MsgCopy.pt.x, MsgCopy.pt.y);
-		lpMsg=&MsgCopy;
-		GetHookInfo()->CursorX=(short)MsgCopy.pt.x;
-		GetHookInfo()->CursorY=(short)MsgCopy.pt.y;
-	}
-
-	return res;
-}
-
-BOOL WINAPI extGetMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax)
-{
-	BOOL res;
-	HWND FixedHwnd;
-
-	res=(*pGetMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax);
-
-	OutTraceW("GetMessage: lpmsg=%x hwnd=%x filter=(%x-%x) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, 
-		lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
-		lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
-
-	// V2.1.68: processing ALL mouse events, to sync mouse over and mouse click events
-	// in "Uprising 2", now perfectly working.
-	DWORD Message;
-	Message=lpMsg->message & 0xFFFF;
-	if((Message <= WM_MOUSELAST) && (Message >= WM_MOUSEFIRST)){
-		FixedHwnd=(hwnd)?hwnd:dxw.GethWnd();
-		if(dxw.IsRealDesktop(FixedHwnd)) FixedHwnd=dxw.GethWnd(); // GPL fix...
-		lpMsg->pt=FixMessagePt(FixedHwnd, lpMsg->pt);
-		lpMsg->lParam = MAKELPARAM(lpMsg->pt.x, lpMsg->pt.y); 
-		OutTraceC("PeekMessage: fixed lparam/pt=(%d,%d)\n", lpMsg->pt.x, lpMsg->pt.y);
-		GetHookInfo()->CursorX=(short)lpMsg->pt.x;
-		GetHookInfo()->CursorY=(short)lpMsg->pt.y;
-	}
 	return res;
 }
 
@@ -1741,7 +1648,6 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 			OutTraceD("MoveWindow: fixed BIG win pos=(%d,%d) size=(%d,%d)\n", X, Y, nWidth, nHeight);
 		}
 	}
-
 
 	ret=(*pMoveWindow)(hwnd, X, Y, nWidth, nHeight, bRepaint);
 	if(!ret) OutTraceE("MoveWindow: ERROR err=%d at %d\n", GetLastError(), __LINE__);
