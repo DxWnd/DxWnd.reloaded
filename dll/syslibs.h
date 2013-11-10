@@ -88,6 +88,8 @@ typedef BOOL	(WINAPI *GetViewportOrgEx_Type)(HDC, LPPOINT);
 typedef BOOL	(WINAPI *GetWindowOrgEx_Type)(HDC, LPPOINT);
 typedef BOOL	(WINAPI *SetWindowOrgEx_Type)(HDC, int, int, LPPOINT);
 typedef BOOL	(WINAPI *GetCurrentPositionEx_Type)(HDC, LPPOINT);
+typedef BOOL	(WINAPI *AnimatePalette_Type)(HPALETTE, UINT, UINT, const PALETTEENTRY *);
+typedef UINT	(WINAPI *SetSystemPaletteUse_Type)(HDC, UINT);
 
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -271,6 +273,8 @@ DXWEXTERN CreateScalableFontResourceA_Type pCreateScalableFontResourceA DXWINITI
 DXWEXTERN AddFontResourceA_Type pAddFontResourceA DXWINITIALIZED;
 DXWEXTERN CreateScalableFontResourceW_Type pCreateScalableFontResourceW DXWINITIALIZED;
 DXWEXTERN AddFontResourceW_Type pAddFontResourceW DXWINITIALIZED;
+DXWEXTERN AnimatePalette_Type pAnimatePalette DXWINITIALIZED;
+DXWEXTERN SetSystemPaletteUse_Type pSetSystemPaletteUse DXWINITIALIZED;
 
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
@@ -443,6 +447,8 @@ extern BOOL WINAPI extCreateScalableFontResourceA(DWORD, LPCTSTR, LPCTSTR, LPCTS
 extern int WINAPI extAddFontResourceA(LPCTSTR);
 extern BOOL WINAPI extCreateScalableFontResourceW(DWORD, LPCWSTR, LPCWSTR, LPCWSTR);
 extern int WINAPI extAddFontResourceW(LPCWSTR);
+extern BOOL WINAPI extAnimatePalette(HPALETTE, UINT, UINT, const PALETTEENTRY *);
+extern UINT WINAPI extSetSystemPaletteUse(HDC, UINT);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);

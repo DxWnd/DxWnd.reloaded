@@ -130,9 +130,13 @@ static char *libname = "user32.dll";
 void HookUser32(HMODULE hModule)
 {
 	HookLibrary(hModule, Hooks, libname);
-	if ((dxw.dwFlags3 & EMULATEDC) || (dxw.dwFlags2 & HOOKGDI) || (dxw.dwFlags1 & MAPGDITOPRIMARY))
-		HookLibrary(hModule, EmulateHooks, libname);
-	HookLibrary(hModule, (dxw.dwFlags1 & MAPGDITOPRIMARY) ? DDHooks : GDIHooks, libname);
+	//if ((dxw.dwFlags3 & EMULATEDC) || (dxw.dwFlags2 & HOOKGDI) || (dxw.dwFlags1 & MAPGDITOPRIMARY))
+	//	HookLibrary(hModule, EmulateHooks, libname);
+	//HookLibrary(hModule, (dxw.dwFlags1 & MAPGDITOPRIMARY) ? DDHooks : GDIHooks, libname);
+	if (dxw.dwFlags3 & EMULATEDC)		HookLibrary(hModule, EmulateHooks, libname);
+	if (dxw.dwFlags2 & HOOKGDI)			HookLibrary(hModule, GDIHooks, libname);
+	if (dxw.dwFlags1 & MAPGDITOPRIMARY) HookLibrary(hModule, DDHooks, libname);
+
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibrary(hModule, RemapHooks, libname);
 	if(dxw.dwFlags1 & MODIFYMOUSE)HookLibrary(hModule, MouseHooks, libname);
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))HookLibrary(hModule, WinHooks, libname);
@@ -1236,17 +1240,17 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 	OutTraceD("FillRect: hdc=%x hbrush=%x rect=(%d,%d)-(%d,%d)\n", hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
 
 	// when not in fullscreen mode, just proxy the call
-	if(!dxw.IsFullScreen()) return (*pFillRect)(hdc, lprc, hbr);
+	// better not: some games may use excessive coordinates: see "Premier Manager 98"
+	// if(!dxw.IsFullScreen()) return (*pFillRect)(hdc, lprc, hbr);
 
 	memcpy(&rc, lprc, sizeof(rc));
-	if(OBJ_DC == GetObjectType(hdc)){
-		if(rc.left < 0) rc.left = 0;
-		if(rc.top < 0) rc.top = 0;
-		if((DWORD)rc.right > dxw.GetScreenWidth()) rc.right = dxw.GetScreenWidth();
-		if((DWORD)rc.bottom > dxw.GetScreenHeight()) rc.bottom = dxw.GetScreenHeight();
-		dxw.MapClient(&rc);
-		OutTraceD("FillRect: fixed rect=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
-	}
+	if(rc.left < 0) rc.left = 0;
+	if(rc.top < 0) rc.top = 0;
+	if((DWORD)rc.right > dxw.GetScreenWidth()) rc.right = dxw.GetScreenWidth();
+	if((DWORD)rc.bottom > dxw.GetScreenHeight()) rc.bottom = dxw.GetScreenHeight();
+	if(OBJ_DC == GetObjectType(hdc)) dxw.MapWindow(&rc);
+	//else dxw.MapClient(&rc);
+	OutTraceD("FillRect: fixed rect=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
 
 	res=(*pFillRect)(hdc, &rc, hbr);
 	return res;

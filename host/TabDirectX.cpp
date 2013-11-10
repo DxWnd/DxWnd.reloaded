@@ -40,6 +40,8 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_DISABLEHAL, cTarget->m_DisableHAL);
 	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
 	DDX_Check(pDX, IDC_COLORFIX, cTarget->m_ColorFix);
+	DDX_Check(pDX, IDC_NOPIXELFORMAT, cTarget->m_NoPixelFormat);
+	DDX_Check(pDX, IDC_NOALPHACHANNEL, cTarget->m_NoAlphaChannel);
 	//DDX_Check(pDX, IDC_SAVECAPS, cTarget->m_SaveCaps);
 	// DirectInput
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);

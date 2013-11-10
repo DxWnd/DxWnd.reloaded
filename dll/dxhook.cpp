@@ -59,9 +59,9 @@ static char *Flag3Names[32]={
 	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
 	"NOWINDOWMOVE", "DISABLEHAL", "LOCKSYSCOLORS", "EMULATEDC",
 	"FULLSCREENONLY", "FONTBYPASS", "YUV2RGB", "RGB2YUV",
-	"BUFFEREDIOFIX", "FILTERMESSAGES", "Flags3:23", "Flags3:24",
-	"Flags3:25", "Flags3:26", "Flags3:27", "Flags3:28",
-	"Flags3:29", "Flags3:30", "Flags3:31", "Flags3:32",
+	"BUFFEREDIOFIX", "FILTERMESSAGES", "PEEKALLMESSAGES", "SURFACEWARN",
+	"ANALYTICMODE", "FORCESHEL", "CAPMASK", "COLORFIX",
+	"NODDRAWBLT", "NODDRAWFLIP", "NOGDIBLT", "NOPIXELFORMAT",
 };
 
 static char *Flag4Names[32]={
@@ -490,12 +490,12 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 	__try{
 		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
 		if(!pnth) {
-			OutTraceE("HookAPI: ERROR no PNTH at %d\n", __LINE__);
+			OutTraceH("HookAPI: ERROR no PNTH at %d\n", __LINE__);
 			return 0;
 		}
 		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 		if(!rva) {
-			OutTraceE("HookAPI: ERROR no RVA at %d\n", __LINE__);
+			OutTraceH("HookAPI: ERROR no RVA at %d\n", __LINE__);
 			return 0;
 		}
 		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
@@ -778,6 +778,17 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	return DefWindowProc(hwnd, message, wparam, lparam);
 }
 
+static void dx_UpdatePositionLock(HWND hwnd)
+{
+	RECT rect;
+	POINT p={0,0};
+	(*pGetClientRect)(hwnd,&rect);
+	(*pClientToScreen)(hwnd,&p);
+	dxw.dwFlags1 |= LOCKWINPOS;
+	OutTraceD("Toggle position lock ON\n");
+	dxw.InitWindowPos(p.x, p.y, rect.right-rect.left, rect.bottom-rect.top);
+}
+
 static void dx_TogglePositionLock(HWND hwnd)
 {
 	// toggle position locking
@@ -787,15 +798,9 @@ static void dx_TogglePositionLock(HWND hwnd)
 		dxw.dwFlags1 &= ~LOCKWINPOS;
 	}
 	else {
-		// lock and update window position!!!
-		// v2.1.80: fixed 
-		RECT rect;
-		POINT p={0,0};
-		(*pGetClientRect)(hwnd,&rect);
-		(*pClientToScreen)(hwnd,&p);
-		dxw.dwFlags1 |= LOCKWINPOS;
 		OutTraceD("Toggle position lock ON\n");
-		dxw.InitWindowPos(p.x, p.y, rect.right-rect.left, rect.bottom-rect.top);
+		dxw.dwFlags1 |= LOCKWINPOS;
+		dx_UpdatePositionLock(hwnd);
 	}
 }
 
@@ -834,6 +839,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	WNDPROC pWindowProc;
 	extern void dxwFixWindowPos(char *, HWND, LPARAM);
 	extern LPRECT lpClipRegion;
+	static BOOL DoOnce = TRUE;
+	static BOOL IsToBeLocked;
+
+	if(DoOnce){
+		DoOnce=FALSE;
+		IsToBeLocked=(dxw.dwFlags1 & LOCKWINPOS);
+	}
 
 	// v2.1.93: adjust clipping region
 
@@ -974,11 +986,18 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		OutTraceD("WindowProc: WM_WINDOWPOSCHANGING fixed size=(%d,%d)\n", wp->cx, wp->cy);
 		break;
 	case WM_ENTERSIZEMOVE:
+		if(IsToBeLocked){
+			dxw.dwFlags1 &= ~LOCKWINPOS;
+		}
 		while((*pShowCursor)(1) < 0);
 		if(dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 		if(dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
 	case WM_EXITSIZEMOVE:
+		if(IsToBeLocked){
+			dxw.dwFlags1 |= LOCKWINPOS;
+			dx_UpdatePositionLock(hwnd);
+		}
 		if (dxw.dwFlags1 & HIDEHWCURSOR) while((*pShowCursor)(0) >= 0);
 		if (dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
 		if(dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);

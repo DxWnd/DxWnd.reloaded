@@ -110,6 +110,10 @@
 #define NODDRAWBLT			0x10000000 // Suppress ddraw Blt to primary
 #define NODDRAWFLIP			0x20000000 // Suppress ddraw Flip to primary
 #define NOGDIBLT			0x40000000 // Suppress GDI Blt to video device
+#define NOPIXELFORMAT		0x80000000 // Don't fix the pixel format for plain surfaces
+
+// fourth flags DWORD dxw.dwFlags4:
+#define NOALPHACHANNEL		0x00000001 // By default, create surfaces with no DDPF_ALPHAPIXELS capability
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

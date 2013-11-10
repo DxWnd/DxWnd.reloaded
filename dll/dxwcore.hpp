@@ -105,7 +105,7 @@ public: // simple data variables
 	short iSizX;
 	short iSizY;
 	//BOOL IsWithinDDraw; // flag to avoid double intervention at ddraw & GDI level
-	BOOL IsGDIPalette;
+	//BOOL IsGDIPalette;
 	char *CustomOpenGLLib;
     WORD palVersion;
     WORD palNumEntries;

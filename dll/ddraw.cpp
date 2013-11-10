@@ -251,31 +251,21 @@ DWORD *Palette16BPP = NULL;
 void *EmuScreenBuffer = NULL; // to implement pitch bug fix
 DWORD rPitch = 0;
 LPVOID rSurface = NULL;
-static char *SetPixFmt(LPDDSURFACEDESC2);
+static void SetPixFmt(LPDDSURFACEDESC2);
+static void GetPixFmt(LPDDSURFACEDESC2);
+
+static HookEntry_Type ddHooks[]={
+	{"DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
+	{"DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
+	{"DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
+	{"DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
+	{0, NULL, 0, 0} // terminator
+};
 
 FARPROC Remap_ddraw_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
-	if (!strcmp(proc,"DirectDrawCreate")){
-		pDirectDrawCreate=(DirectDrawCreate_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreate);
-		return (FARPROC)extDirectDrawCreate;
-	}
-	if (!strcmp(proc,"DirectDrawCreateEx")){
-		pDirectDrawCreateEx=(DirectDrawCreateEx_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreateEx);
-		return (FARPROC)extDirectDrawCreateEx;
-	}
-	if (!strcmp(proc,"DirectDrawEnumerateA")){
-		pDirectDrawEnumerate=(DirectDrawEnumerate_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerate);
-		return (FARPROC)extDirectDrawEnumerateProxy;
-	}
-	if (!strcmp(proc,"DirectDrawEnumerateExA")){
-		pDirectDrawEnumerateEx=(DirectDrawEnumerateEx_Type)(*pGetProcAddress)(hModule, proc);
-		OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerateEx);
-		return (FARPROC)extDirectDrawEnumerateExProxy;
-	}
-	// NULL -> keep the original call address
+	FARPROC addr;
+	if (addr=RemapLibrary(proc, hModule, ddHooks)) return addr;
 	return NULL;
 }
 
@@ -303,7 +293,7 @@ static void Stopper(char *s, int line)
 #define REFPROBE(obj, op)
 #endif
 
-#define STOPPER_TEST // comment out to eliminate
+//#define STOPPER_TEST // comment out to eliminate
 #ifdef STOPPER_TEST
 #define STOPPER(s) Stopper(s, __LINE__)
 #else
@@ -333,11 +323,19 @@ static char *DumpPixelFormat(LPDDSURFACEDESC2 lpddsd)
 	sprintf(sBuf, " PixelFormat size=%d flags=%x(%s) BPP=%d", 
 		lpddsd->dwSize, flags, ExplainPixelFormatFlags(flags), lpddsd->ddpfPixelFormat.dwRGBBitCount);
 	if (flags & DDPF_RGB) {
-		sprintf(sItem, " RGBA=(%x,%x,%x,%x)", 
-			lpddsd->ddpfPixelFormat.dwRBitMask,
-			lpddsd->ddpfPixelFormat.dwGBitMask,
-			lpddsd->ddpfPixelFormat.dwBBitMask,
-			lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask);
+		if (flags & DDPF_ALPHAPIXELS) {
+			sprintf(sItem, " RGBA=(%x,%x,%x,%x)", 
+				lpddsd->ddpfPixelFormat.dwRBitMask,
+				lpddsd->ddpfPixelFormat.dwGBitMask,
+				lpddsd->ddpfPixelFormat.dwBBitMask,
+				lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask);
+		}
+		else {
+			sprintf(sItem, " RGB=(%x,%x,%x)", 
+				lpddsd->ddpfPixelFormat.dwRBitMask,
+				lpddsd->ddpfPixelFormat.dwGBitMask,
+				lpddsd->ddpfPixelFormat.dwBBitMask);
+		}
 		strcat(sBuf, sItem);
 	}
 	if (flags & DDPF_YUV) {
@@ -559,18 +557,10 @@ void InitDDScreenParameters(LPDIRECTDRAW lpdd)
 		return;
 	}
 
-	OutTraceD("InitDDScreenParameters: Flags=%x FourCC=%x RGBBitCount=%d RGBA BitMask=(%x,%x,%x,%x)\n",
-		ddsd.ddpfPixelFormat.dwFlags,
-		ddsd.ddpfPixelFormat.dwFourCC,
-		ddsd.ddpfPixelFormat.dwRGBBitCount,
-		ddsd.ddpfPixelFormat.dwRBitMask,
-		ddsd.ddpfPixelFormat.dwGBitMask,
-		ddsd.ddpfPixelFormat.dwBBitMask,
-		ddsd.ddpfPixelFormat.dwRGBAlphaBitMask);
-
+	OutTraceD("InitDDScreenParameters: Actual %s\n", DumpPixelFormat((LPDDSURFACEDESC2)&ddsd));
 	dxw.ActualPixelFormat=ddsd.ddpfPixelFormat;
+	if(dxw.VirtualPixelFormat.dwRGBBitCount==0) dxw.VirtualPixelFormat=ddsd.ddpfPixelFormat;
 	SetBltTransformations();
-
 	return;
 }
 
@@ -578,24 +568,17 @@ void InitDSScreenParameters(LPDIRECTDRAWSURFACE lpdds)
 {
 	HRESULT res;
 	DDPIXELFORMAT p;
+	DDSURFACEDESC2 ddsd;
 	p.dwSize=sizeof(DDPIXELFORMAT);
 	if(res=(*pGetPixelFormat)(lpdds, &p)){
 		OutTraceE("GetPixelFormat: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
 
-	OutTraceD("InitDSScreenParameters: Flags=%x FourCC=%x RGBBitCount=%d RGBA BitMask=(%x,%x,%x,%x)\n",
-		p.dwFlags,
-		p.dwFourCC,
-		p.dwRGBBitCount,
-		p.dwRBitMask,
-		p.dwGBitMask,
-		p.dwBBitMask,
-		p.dwRGBAlphaBitMask);
-
+	ddsd.ddpfPixelFormat = p;
+	OutTraceD("InitDSScreenParameters: Actual %s\n", DumpPixelFormat(&ddsd));
 	dxw.ActualPixelFormat=p;
 	SetBltTransformations();
-
 	return;
 }
 
@@ -624,7 +607,6 @@ void InitScreenParameters()
 	// initialize to default null values, but dwRGBBitCount
 	dxw.ActualPixelFormat.dwRGBBitCount=CurrDevMode.dmBitsPerPel;
 	dxw.VirtualPixelFormat.dwRGBBitCount=CurrDevMode.dmBitsPerPel; // until set differently
-	//if(dxw.dwFlags2 & INIT8BPP) dxw.VirtualPixelFormat.dwRGBBitCount = 8;
 	OutTraceD("InitScreenParameters: RGBBitCount=%d\n", CurrDevMode.dmBitsPerPel);
 	SetBltTransformations();
 
@@ -644,19 +626,20 @@ void FixPixelFormat(int ColorDepth, DDPIXELFORMAT *pf)
 		pf->dwRGBAlphaBitMask = 0x0000;
 		break;
 	case 16:
-		pf->dwFlags |= DDPF_ALPHAPIXELS; // v2.02.33	
 		pf->dwRGBBitCount = 16;
 		if (dxw.dwFlags1 & USERGB565){
 			pf->dwRBitMask = 0xf800; 
 			pf->dwGBitMask = 0x07e0;
 			pf->dwBBitMask = 0x001f;
+			pf->dwRGBAlphaBitMask = 0x0000;
 		}
 		else {
+			if(!(dxw.dwFlags4 & NOALPHACHANNEL)) pf->dwFlags |= DDPF_ALPHAPIXELS; // v2.02.33,40	
 			pf->dwRBitMask = 0x7c00;
 			pf->dwGBitMask = 0x03e0;
 			pf->dwBBitMask = 0x001f;
+			pf->dwRGBAlphaBitMask = 0x8000;
 		}
-		pf->dwRGBAlphaBitMask = 0x8000;
 		break;
 	case 24:
 		pf->dwRGBBitCount = 24;
@@ -666,7 +649,7 @@ void FixPixelFormat(int ColorDepth, DDPIXELFORMAT *pf)
 		pf->dwRGBAlphaBitMask = 0x00000000;
 		break;
 	case 32:
-		pf->dwFlags |= DDPF_ALPHAPIXELS; // v2.02.33	
+		if(!(dxw.dwFlags4 & NOALPHACHANNEL)) pf->dwFlags |= DDPF_ALPHAPIXELS; // v2.02.33
 		pf->dwRGBBitCount = 32;
 		pf->dwRBitMask = 0x00FF0000;
 		pf->dwGBitMask = 0x0000FF00;
@@ -863,59 +846,44 @@ int lpddHookedVersion(LPDIRECTDRAW lpdd)
 
 /* ------------------------------------------------------------------ */
 
-static char *SetPixFmt(LPDDSURFACEDESC2 lpdd)
+// SetPixFmt: builds a pixel format descriptor when no one is specified, starting from the color depth, the current
+// desktop pixel format (when the color depth is the same) or the config flags
+
+static void SetPixFmt(LPDDSURFACEDESC2 lpdd)
 {
-	char *pfstr;
-	OutTraceD("SetPixFmt: BPP=%d Use565=%d\n", dxw.VirtualPixelFormat.dwRGBBitCount, dxw.dwFlags1 & USERGB565 ? 1:0);
+	OutTraceD("SetPixFmt: BPP=%d Use565=%d NoAlpha=%d\n", 
+		dxw.VirtualPixelFormat.dwRGBBitCount, 
+		dxw.dwFlags1 & USERGB565 ? 1:0,
+		dxw.dwFlags4 & NOALPHACHANNEL ? 1:0);
 
 	memset(&lpdd->ddpfPixelFormat,0,sizeof(DDPIXELFORMAT));
 	lpdd->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-	lpdd->ddpfPixelFormat.dwRGBBitCount = dxw.ActualPixelFormat.dwRGBBitCount;
-	if(dxw.ActualPixelFormat.dwRGBBitCount==dxw.VirtualPixelFormat.dwRGBBitCount && dxw.ActualPixelFormat.dwRBitMask){
-		// if same color depth, choose current color masks
-		pfstr="CURRENT";
-		lpdd->ddpfPixelFormat=dxw.ActualPixelFormat;
-	}
-	else
+
+	switch (dxw.VirtualPixelFormat.dwRGBBitCount)
 	{
-		switch (dxw.VirtualPixelFormat.dwRGBBitCount)
-		{
-		case 8:
-			pfstr="RGB8";
-			FixPixelFormat(8, &lpdd->ddpfPixelFormat);
-			break;
-		case 16:
-			pfstr=(dxw.dwFlags1 & USERGB565)?"RGB16-565":"RGB16-555";
-			FixPixelFormat(16, &lpdd->ddpfPixelFormat);
-			break;
-		case 24:
-			pfstr="RGB24";
-			FixPixelFormat(24, &lpdd->ddpfPixelFormat);
-			break;
-		case 32:
-			pfstr="RGB32";
-			FixPixelFormat(32, &lpdd->ddpfPixelFormat);
-			break;
-		default:
-			pfstr="unsupported";
-			OutTraceE("CreateSurface ERROR: Unsupported resolution ColorBPP=%d\n", dxw.VirtualPixelFormat.dwRGBBitCount);
-			break;
-		}
+	case 8:
+	case 16:
+	case 24:
+	case 32:
+		FixPixelFormat(dxw.VirtualPixelFormat.dwRGBBitCount, &lpdd->ddpfPixelFormat);
+		break;
+	default:
+		OutTraceE("CreateSurface ERROR: Unsupported resolution ColorBPP=%d\n", dxw.VirtualPixelFormat.dwRGBBitCount);
+		break;
 	}
+
 
 	// remember current virtual settings
 	dxw.VirtualPixelFormat=lpdd->ddpfPixelFormat;
+	OutTraceD("SetPixFmt: %s\n", DumpPixelFormat(lpdd));
+}
 
-	OutTraceD("SetPixFmt: RGBBitCount=%d Flags=%x FourCC=%x RGBA BitMask=(%x,%x,%x,%x)\n", 
-	lpdd->ddpfPixelFormat.dwRGBBitCount,
-	lpdd->ddpfPixelFormat.dwFlags,
-	lpdd->ddpfPixelFormat.dwFourCC,
-	lpdd->ddpfPixelFormat.dwRBitMask,
-	lpdd->ddpfPixelFormat.dwGBitMask,
-	lpdd->ddpfPixelFormat.dwBBitMask,
-	lpdd->ddpfPixelFormat.dwRGBAlphaBitMask);
+// retrieves the stored pixel format
 
-	return pfstr;
+static void GetPixFmt(LPDDSURFACEDESC2 lpdd)
+{
+	lpdd->ddpfPixelFormat = dxw.VirtualPixelFormat;
+	OutTraceD("GetPixFmt: %s\n", DumpPixelFormat(lpdd));
 }
 
 static void RenewClipper(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE lpdds)
@@ -1433,15 +1401,17 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 	if(res) 
 		OutTraceE("GetCaps(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	else {
-		if (c1) OutTraceD("GetCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+		if (c1) OutTraceD("GetCaps(D-HW): caps=%x(%s) caps2=%x(%s) palcaps=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
 			c1->dwCaps, ExplainDDDCaps(c1->dwCaps),
 			c1->dwCaps2, ExplainDDDCaps2(c1->dwCaps2),
+			c1->dwPalCaps, ExplainDDPalCaps(c1->dwPalCaps),
 			c1->dwFXCaps, ExplainDDFXCaps(c1->dwFXCaps),
 			c1->dwFXAlphaCaps, ExplainDDFXALPHACaps(c1->dwFXAlphaCaps),
 			c1->dwCKeyCaps, ExplainDDCKeyCaps(c1->dwCKeyCaps));
-		if (c2) OutTraceD("GetCaps(D-SW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+		if (c2) OutTraceD("GetCaps(D-SW): caps=%x(%s) caps2=%x(%s) palcaps=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
 			c2->dwCaps, ExplainDDDCaps(c2->dwCaps),
 			c2->dwCaps2, ExplainDDDCaps2(c2->dwCaps2),
+			c2->dwPalCaps, ExplainDDPalCaps(c2->dwPalCaps),
 			c2->dwFXCaps, ExplainDDFXCaps(c2->dwFXCaps),
 			c2->dwFXAlphaCaps, ExplainDDFXALPHACaps(c2->dwFXAlphaCaps),
 			c2->dwCKeyCaps, ExplainDDCKeyCaps(c2->dwCKeyCaps));
@@ -1457,7 +1427,10 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 			c2=&swcaps;
 			res=(*pGetCapsD)(lpdd, NULL, c2);
 		}
+		//DWORD AlphaCaps;
+		//AlphaCaps=c1->dwFXAlphaCaps;
 		memcpy((void *)c1, (void *)c2, size);
+		//c1->dwFXAlphaCaps=AlphaCaps;		
 	}
 
 	if((dxw.dwFlags3 & CAPMASK) && c1 && c2) MaskCapsD(c1, c2);
@@ -1825,10 +1798,8 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	if(IsTraceD){
 		OutTrace("SetDisplayMode: version=%d dwWidth=%i dwHeight=%i dwBPP=%i",
 			version, dwwidth, dwheight, dwbpp);
-		if (version==2)
-			OutTrace(" dwRefresh=%i dwFlags=%x\n", dwrefreshrate, dwflags);
-		else
-			OutTrace("\n");
+		if (version==2) OutTrace(" dwRefresh=%i dwFlags=%x\n", dwrefreshrate, dwflags);
+		else OutTrace("\n");
 	}
 
 	dxw.SetScreenSize(dwwidth, dwheight);
@@ -1837,15 +1808,16 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	AdjustWindowFrame(dxw.GethWnd(), dwwidth, dwheight);
 
 	if(dxw.dwFlags1 & EMULATESURFACE){
+		// in EMULATESURFACE mode, let SetPixFmt decide upon the PixelFormat
 		dxw.VirtualPixelFormat.dwRGBBitCount = dwbpp;
-		dwbpp = dxw.ActualPixelFormat.dwRGBBitCount;
+		SetPixFmt(&ddsd);
 		SetBltTransformations();
-		OutTraceD("SetDisplayMode: mode=EMULATESURFACE EmuBPP=%d ActBPP=%d\n", dxw.VirtualPixelFormat.dwRGBBitCount, dxw.ActualPixelFormat.dwRGBBitCount);
+		OutTraceD("SetDisplayMode: mode=EMULATE %s ret=OK\n", DumpPixelFormat(&ddsd));
+		return DD_OK;
 	}
-	else {
-		OutTraceD("SetDisplayMode: mode=STANDARD BPP=%d\n", dwbpp);
-		dxw.ActualPixelFormat.dwRGBBitCount = dwbpp;
-	}
+
+	OutTraceD("SetDisplayMode: mode=STANDARD BPP=%d\n", dwbpp);
+	dxw.ActualPixelFormat.dwRGBBitCount = dwbpp;
 
 	ZeroMemory(&ddsd, sizeof(ddsd));
 	ddsd.dwSize = Set_dwSize_From_DDraw(lpdd);
@@ -1854,14 +1826,13 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	ddsd.ddpfPixelFormat.dwFlags = DDPF_RGB; 
 
 	(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
-	if(ddsd.ddpfPixelFormat.dwRGBBitCount != dwbpp){
-		OutTraceD("SetDisplayMode: fixing colordepth current=%d required=%d size=(%dx%d)\n",
+	if (version==1)
+		res = (*pSetDisplayMode1)(lpdd, ddsd.dwWidth, ddsd.dwHeight, dwbpp);
+	else
+		res = (*pSetDisplayMode2)(lpdd, ddsd.dwWidth, ddsd.dwHeight, dwbpp, ddsd.dwRefreshRate, 0);
+
+	OutTraceD("SetDisplayMode: fixing colordepth current=%d required=%d size=(%dx%d)\n",
 			ddsd.ddpfPixelFormat.dwRGBBitCount, dwbpp, ddsd.dwWidth, ddsd.dwHeight);
-		if (version==1)
-			res = (*pSetDisplayMode1)(lpdd, ddsd.dwWidth, ddsd.dwHeight, dwbpp);
-		else
-			res = (*pSetDisplayMode2)(lpdd, ddsd.dwWidth, ddsd.dwHeight, dwbpp, ddsd.dwRefreshRate, 0);
-	}
 
 	return 0;
 }
@@ -1883,7 +1854,10 @@ HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 	OutTraceD("GetDisplayMode\n");
 
 	(*pGetDisplayMode)(lpdd, lpddsd);
-	if(dxw.dwFlags1 & EMULATESURFACE) SetPixFmt((LPDDSURFACEDESC2)lpddsd);
+	if(dxw.dwFlags1 & EMULATESURFACE) {
+		GetPixFmt((LPDDSURFACEDESC2)lpddsd);
+		if(!lpddsd->ddpfPixelFormat.dwFlags) SetPixFmt((LPDDSURFACEDESC2)lpddsd);
+	}
 	lpddsd->dwWidth = dxw.GetScreenWidth();
 	lpddsd->dwHeight = dxw.GetScreenHeight();
 
@@ -1894,13 +1868,15 @@ HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 		OutTraceD("GetDisplayMode: fix RGBBitCount=%d\n", lpddsd->ddpfPixelFormat.dwRGBBitCount);
 	}
 
-	OutTraceD("GetDisplayMode: returning WxH=(%dx%d) PixelFormat Flags=%x(%s) RGBBitCount=%d RGBAmask=(%x,%x,%x,%x) Caps=%x(%s)\n",
-		lpddsd->dwWidth, lpddsd->dwHeight, 
-		lpddsd->ddpfPixelFormat.dwFlags, ExplainPixelFormatFlags(lpddsd->ddpfPixelFormat.dwFlags),
-		lpddsd->ddpfPixelFormat.dwRGBBitCount,
-		lpddsd->ddpfPixelFormat.dwRBitMask, lpddsd->ddpfPixelFormat.dwGBitMask, lpddsd->ddpfPixelFormat.dwBBitMask,
-		lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask,
-		lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
+	//OutTraceD("GetDisplayMode: returning WxH=(%dx%d) PixelFormat Flags=%x(%s) RGBBitCount=%d RGBAmask=(%x,%x,%x,%x) Caps=%x(%s)\n",
+	//	lpddsd->dwWidth, lpddsd->dwHeight, 
+	//	lpddsd->ddpfPixelFormat.dwFlags, ExplainPixelFormatFlags(lpddsd->ddpfPixelFormat.dwFlags),
+	//	lpddsd->ddpfPixelFormat.dwRGBBitCount,
+	//	lpddsd->ddpfPixelFormat.dwRBitMask, lpddsd->ddpfPixelFormat.dwGBitMask, lpddsd->ddpfPixelFormat.dwBBitMask,
+	//	lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask,
+	//	lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
+
+	OutTraceD("GetDisplayMode: returning size=(%dx%d) %s\n", lpddsd->dwWidth, lpddsd->dwHeight, DumpPixelFormat((LPDDSURFACEDESC2)lpddsd));
 
 	return 0;
 }
@@ -2006,7 +1982,7 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	//		lpddsd->ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY;
 	//		lpddsd->dwHeight = dxw.GetScreenHeight();
 	//		lpddsd->dwWidth = dxw.GetScreenWidth();
-	//		SetPixFmt(lpddsd);
+	//		GetPixFmt(lpddsd);
 	//		return;
 	//		break;
 	//	}
@@ -2016,7 +1992,7 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		// dwFlags: DDSD_CAPS+HEIGHT+WIDTH+PIXELFORMAT+TEXTURESTAGE
 		// dwCaps1: DDSCAPS_OFFSCREENPLAIN+SYSTEMMEMORY+TEXTURE
 		// dwCaps2: DDSCAPS2_TEXTUREMANAGE
-		SetPixFmt(lpddsd);
+		GetPixFmt(lpddsd);
 		return;
 		break;
 	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_ZBUFFERBITDEPTH:
@@ -2067,54 +2043,54 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY:
 			// Alien Nations, Heroes of Might & Magic IV --- troublesome!!!!
-			//lpddsd->dwFlags = 0;
-			//lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-			lpddsd->ddsCaps.dwCaps = 0;
+			lpddsd->dwFlags = (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT);
+			lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
 			// Cave Story, HoMM3
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		case DDSCAPS_SYSTEMMEMORY:
 			// Magic & Mayhem
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
 			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		case DDSCAPS_OFFSCREENPLAIN:
 			// Cave Story, Magic & Mayhem
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
 			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE:
 			// Nightmare Ned
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE:
 			// Actua Soccer 3
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		case DDSCAPS_VIDEOMEMORY|DDSCAPS_3DDEVICE:
 			// Actua Soccer 3
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
 			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE;
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_SYSTEMMEMORY:
 			// Nightmare Ned, The Sims ???
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		}
@@ -2139,14 +2115,26 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_SYSTEMMEMORY);
 			// eotry
 			return;
-			break;		case DDSCAPS_OFFSCREENPLAIN:
+			break;		
+		case DDSCAPS_OFFSCREENPLAIN:
 			// Submarine titans (8BPP)
 			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
-			// Duckman, HoM&M4
+			// Duckman, HoM&M4, Beavis & Butthead do U.
+			// unsetting the Pixel Format may cause the backbuffer to be created with DDPF_ALPHAPIXELS flag on 
+			// and some generic surface with DDPF_ALPHAPIXELS off, so that blitting is unsupported.
+			// But it seems impossible to get HOMM4 to cope with Beavis & Butthead!!!
+			if(!(dxw.dwFlags3 & NOPIXELFORMAT)) GetPixFmt(lpddsd);
+			return;
+			break;
+		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY:
+			// Dungeon Keeper II GOG release (intro screen): doesn't like calling GetPixFmt!!!
+			// need not to be configurable until we get a different case.
+			// it works both on VIDEOMEMORY or SYSTEMMEMORY. The latter should be more stable.
+			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 			return;
 			break;
 		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER:
@@ -2154,7 +2142,7 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			return;
 			break;
 		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_TEXTURE:
-			// Wargames Direct3D hw acceleration
+			// Wargames Direct3D hw acceleration 
 			// Star Wars Shadows of the Empire in RGB HEL mode
 			return;
 			break;
@@ -2174,7 +2162,7 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE:
 			// Premier Manager 98
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			return;
 			break;		
 		case DDSCAPS_OVERLAY|DDSCAPS_VIDEOMEMORY: // NOT WORKING
@@ -2185,16 +2173,15 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		case DDSCAPS_SYSTEMMEMORY:
 			// Star Force Deluxe
 			lpddsd->ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY;
-			// SetPixFmt(lpddsd);
+			// GetPixFmt(lpddsd);
 			return;
 			break;			
 		case DDSCAPS_TEXTURE|DDSCAPS_VIDEOMEMORY|DDSCAPS_ALLOCONLOAD: 
 			// Star Wars Shadows of the Empire
-			// seems to work both with/without SetPixFmt, but doesn't like DDSCAPS_SYSTEMMEMORY textures.
-			// Setting SetPixFmt makes bad alpha transparencies!
+			// seems to work both with/without GetPixFmt, but doesn't like DDSCAPS_SYSTEMMEMORY textures.
+			// Setting GetPixFmt makes bad alpha transparencies!
 			// DDSCAPS_VIDEOMEMORY doesn't work with HEL only! Better switch to DDSCAPS_SYSTEMMEMORY.
 			if (dxw.dwFlags3 & FORCESHEL) lpddsd->ddsCaps.dwCaps = (DDSCAPS_TEXTURE|DDSCAPS_SYSTEMMEMORY|DDSCAPS_ALLOCONLOAD);
-			//SetPixFmt(lpddsd);
 			return;
 			break;			
 		}
@@ -2204,7 +2191,7 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		case DDSCAPS_SYSTEMMEMORY:
 			// Wargames
 			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
-			SetPixFmt(lpddsd);
+			GetPixFmt(lpddsd);
 			//lpddsd->dwFlags = DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH; // turn DDSD_PIXELFORMAT off
 			return;
 			break;
@@ -2237,6 +2224,8 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	// 5) ignore DDSD_CKSRCBLT, ....
 	// 6) setting a different pixel format in memory requires DDSCAPS_OFFSCREENPLAIN capability
 	// 7) DDSD_TEXTURESTAGE surfaces may need to adjust fixel format (....???)
+	// 8) Generic surfaces are mapped to SYSTEMMEMORY and set to primary surface PixelFormat
+	// 9) When pixelformat is unspecified, be sure to pick the right one (with or without alphapixels?)
 
 	if(!(lpddsd->dwFlags & DDSD_CAPS)) lpddsd->ddsCaps.dwCaps = 0;
 
@@ -2251,7 +2240,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	}
 	if((lpddsd->dwFlags & (DDSD_PIXELFORMAT|DDSD_TEXTURESTAGE)) == (DDSD_PIXELFORMAT|DDSD_TEXTURESTAGE)){
 		// textures, set proper color depth and make no further changes
-		SetPixFmt(lpddsd);
+		GetPixFmt(lpddsd);
 		return;
 	}
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) { // z-buffer surface - set to memory
@@ -2261,7 +2250,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) { // 3DDEVICE: enforce PIXELFORMAT on MEMORY
 		lpddsd->dwFlags |= DDSD_PIXELFORMAT;
 		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE); 
-		SetPixFmt(lpddsd);
+		GetPixFmt(lpddsd);
 		return;
 	}
 	//// DDSCAPS_ALLOCONLOAD on VIDEOMEMORY can't be done when HAL is disabled - it returns DDERR_NODIRECTDRAWHW error
@@ -2282,28 +2271,23 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	if(lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH){
 		lpddsd->dwFlags &= ~DDSD_PIXELFORMAT;
 	}
+#if 0
 	// HoM&M3/4 fix....
 	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT)) == (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) &&
-		(lpddsd->ddsCaps.dwCaps == (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY))){
-		lpddsd->ddsCaps.dwCaps = 0;
+		((lpddsd->ddsCaps.dwCaps & ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_VIDEOMEMORY) == DDSCAPS_OFFSCREENPLAIN)){
+		//lpddsd->ddsCaps.dwCaps = 0;
+		lpddsd->dwFlags = (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT);
+		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+		GetPixFmt(lpddsd);
 		return;
 	}
-	// HoM&M3/4 fix.... don't alter pixel format set to OFFSCREENPLAIN+SYSTEMMEMORY surface
-	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) == (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) &&
-		(lpddsd->ddsCaps.dwCaps == (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY))){
-		return;
-	}
-	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) == (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT)) &&
-		(lpddsd->ddsCaps.dwCaps == (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY))){
-		return;
-	}
-
+#endif
 	// default case: adjust pixel format
 	OutTraceB("FixSurfaceCaps: suppress DDSCAPS_VIDEOMEMORY case\n");
 	lpddsd->dwFlags |= (DDSD_CAPS|DDSD_PIXELFORMAT); 
 	lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
 	lpddsd->ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
-	SetPixFmt(lpddsd);
+	if(!(dxw.dwFlags3 & NOPIXELFORMAT)) GetPixFmt(lpddsd);
 	return;
 }
 
@@ -2322,6 +2306,14 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	// emulated primary surface
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
+
+	// handle the surface attributes before the ddsd.dwFlags gets updated:
+	// if a surface desc is NOT specified, build one
+	if(!(ddsd.dwFlags & DDSD_PIXELFORMAT)) SetPixFmt((LPDDSURFACEDESC2)&ddsd);
+	// then save it
+	dxw.VirtualPixelFormat = ddsd.ddpfPixelFormat;
+
+	OutTraceD("DDSD_PIXELFORMAT: color=%d flags=%x\n", dxw.VirtualPixelFormat.dwRGBBitCount, dxw.VirtualPixelFormat.dwFlags);
 	ddsd.dwFlags &= ~(DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE);
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
@@ -2329,7 +2321,6 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
-	SetPixFmt((LPDDSURFACEDESC2)&ddsd);
 
 	// create Primary surface
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]" , __LINE__);
@@ -2358,7 +2349,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		ClearSurfaceDesc((void *)&ddsd, dxversion);
 		ddsd.dwFlags = DDSD_CAPS; 
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-		SetPixFmt(&ddsd);
+		GetPixFmt(&ddsd);
 		DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuPrim]" , __LINE__);
 
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
@@ -2477,7 +2468,7 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
-	SetPixFmt(&ddsd);
+	GetPixFmt(&ddsd);
 
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Backbuf]" , __LINE__);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
@@ -2977,10 +2968,12 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 
 	// debug suppressions
 	if(ToPrim){
-		if(isFlipping)
+		if(isFlipping){
 			if(dxw.dwFlags3 & NODDRAWFLIP) return DD_OK;
-		else
+		}
+		else {
 			if(dxw.dwFlags3 & NODDRAWBLT) return DD_OK;
+	}
 	}
 
 #ifdef ONEPIXELFIX
@@ -3033,6 +3026,8 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		res= (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
 		// Blitting compressed data may work to screen surfaces only. In this case, it may be worth
 		// trying blitting directly to lpDDSEmu_Prim: it makes DK2 intro movies working.
+		// Wrong guess!!! The cause was not compression, but simply a pixelformat mismatch. Better
+		// configure things properly and avoid this branch.
 		switch(res){
 		case DDERR_UNSUPPORTED:
 			if (dxw.dwFlags1 & EMULATESURFACE){
@@ -3338,44 +3333,6 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 	return ret;
 }
 
-#define DDPCAPS_INITIALIZE_LEGACY 0x00000008l
-
-HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa,
-	LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
-{
-	HRESULT res;
-
-	OutTraceD("CreatePalette: dwFlags=%x(%s)\n", dwflags, ExplainCreatePaletteFlags(dwflags));
-
-	if(!(dxw.dwFlags1 & EMULATESURFACE)){
-		res = (*pCreatePalette)(lpdd, dwflags, lpddpa, lplpddp, pu);
-		if (res) {
-			OutTraceD("CreatePalette: res=%x(%s)\n", res, ExplainDDError(res));
-			return res;
-		}
-		HookDDPalette(lplpddp);
-		OutTraceD("CreatePalette: GENUINE lpddp=%x\n", *lplpddp);
-		return res;
-	}
-
-	if (dwflags & ~(DDPCAPS_PRIMARYSURFACE|DDPCAPS_8BIT|DDPCAPS_ALLOW256|DDPCAPS_INITIALIZE_LEGACY)) STOPPER("Palette flags");
-
-	res = (*pCreatePalette)(lpdd, dwflags & ~DDPCAPS_PRIMARYSURFACE, lpddpa, lplpddp, pu);
-	if(res) {
-		if (res) OutTraceD("CreatePalette: res=%x(%s)\n", res, ExplainDDError(res));
-		return res;
-	}
-
-	HookDDPalette(lplpddp);
-
-	if((dwflags & (DDPCAPS_8BIT|DDPCAPS_PRIMARYSURFACE)) == (DDPCAPS_8BIT|DDPCAPS_PRIMARYSURFACE)){ // v2.02.39
-		mySetPalette(0, 256, lpddpa);
-		lpDDP = *lplpddp;
-	}
-	OutTraceD("CreatePalette: EMULATED lpddp=%x\n", *lplpddp);
-	return 0;
-}
-
 HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE hevent)
 {
 	static DWORD time = 0;
@@ -3391,7 +3348,37 @@ HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE 
 	return 0;
 }
 
-// extGetPalette: To revise completely. 
+#define DDPCAPS_INITIALIZE_LEGACY 0x00000008l
+
+HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa,
+	LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
+{
+	HRESULT res;
+
+	OutTraceD("CreatePalette: dwFlags=%x(%s)\n", dwflags, ExplainCreatePaletteFlags(dwflags));
+	if(IsDebug && (dwflags & DDPCAPS_8BIT)){
+		int idx;
+		OutTrace("CreatePalette: ");
+		for(idx=0; idx<256; idx++) OutTrace("(%02x.%02x.%02x)", 
+			lpddpa[idx].peRed,
+			lpddpa[idx].peGreen,
+			lpddpa[idx].peBlue  );
+		OutTrace("\n");
+	}
+
+	if (dwflags & ~(DDPCAPS_PRIMARYSURFACE|DDPCAPS_8BIT|DDPCAPS_ALLOW256|DDPCAPS_INITIALIZE_LEGACY)) STOPPER("Palette flags");
+
+	if(dxw.dwFlags1 & EMULATESURFACE) dwflags &= ~DDPCAPS_PRIMARYSURFACE;
+	res = (*pCreatePalette)(lpdd, dwflags, lpddpa, lplpddp, pu);
+	if (res) {
+		OutTraceE("CreatePalette: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		return res;
+	}
+	else OutTrace("CreatePalette: OK lpddp=%x\n", *lplpddp);
+
+	HookDDPalette(lplpddp);
+	return 0;
+}
 
 HRESULT WINAPI extGetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
 {
@@ -3399,24 +3386,10 @@ HRESULT WINAPI extGetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lpl
 
 	OutTraceD("GetPalette: lpdds=%x\n", lpdds);
 
-	// if NO-EMU mode, just proxy the call
-	if(!(dxw.dwFlags1 & EMULATESURFACE)){
-		res=(*pGetPalette)(lpdds, lplpddp);
-		if (res) OutTraceE("GetPalette: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		return 0;
-		return res;
-	}
-
-	// in EMU mode, return the global palette ptr
-	if (lpDDP){
-		*lplpddp  = lpDDP;
-		return 0;
-	}
-	else {
-		OutTraceD("GetPalette: ASSERT no lpDDP\n");
-		*lplpddp  = lpDDP;
-		return DDERR_NOPALETTEATTACHED;
-	}
+	res=(*pGetPalette)(lpdds, lplpddp);
+	if (res) OutTraceE("GetPalette: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	else OutTrace("GetPalette: OK\n");
+	return res;
 }
 
 HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
@@ -3425,17 +3398,17 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 	BOOL isPrim;
 	HRESULT res;
 	
-	dxw.IsGDIPalette=FALSE;	
 	isPrim=dxw.IsAPrimarySurface(lpdds);
 	OutTraceD("SetPalette: lpdds=%x%s lpddp=%x\n", lpdds, isPrim?"(PRIM)":"", lpddp);
 
 	res=(*pSetPalette)(lpdds, lpddp);
+	res=DD_OK;
 	if(res)OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	else OutTrace("SetPalette: OK\n");
 
-	if(dxw.dwFlags1 & EMULATESURFACE){
-		OutTraceD("SetPalette: DEBUG emulating palette\n");
+	if((dxw.dwFlags1 & EMULATESURFACE) && isPrim){
+		OutTraceD("SetPalette: register PRIMARY palette lpDDP=%x\n", lpddp);
 		lpDDP = lpddp;
-
 		if(lpddp){
 			HRESULT res2;
 			lpentries = (LPPALETTEENTRY)PaletteEntries;
@@ -3453,31 +3426,30 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 {
 	HRESULT res;
 
-	dxw.IsGDIPalette=FALSE;	
 	OutTraceD("SetEntries: lpddp=%x dwFlags=%x, start=%d, count=%d entries=%x\n", //GHO: added trace infos
 		lpddp, dwflags, dwstart, dwcount, lpentries);
 
 	res = (*pSetEntries)(lpddp, dwflags, dwstart, dwcount, lpentries);
 	if(res) OutTraceE("SetEntries: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	else OutTrace("SetEntries: OK\n");
 
-	if(!(dxw.dwFlags1 & EMULATESURFACE) || lpDDP != lpddp){
-		return res;
+	if((dxw.dwFlags1 & EMULATESURFACE) && (lpDDP == lpddp)){
+		OutTraceD("SetEntries: update PRIMARY palette lpDDP=%x\n", lpddp);
+		if ((dwstart + dwcount > 256) || (dwstart<0)){
+			dwcount=256;
+			dwstart=0;
+			OutTraceD("SetEntries: ASSERT start+count > 256\n");
+		}
+
+		mySetPalette(dwstart, dwcount, lpentries);
+
+		// GHO: needed for fixed rect and variable palette animations, 
+		// e.g. dungeon keeper loading screen, Warcraft II splash, ...
+		// GHO: but refreshing cause flickering when GDI was used without updating the primary surface
+		// e.g. Tomb Raider 2 intro titles, Virtua Fighter PC, ...
+		if ((dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags2 & NOPALETTEUPDATE)) dxw.ScreenRefresh();
 	}
-
-	if ((dwstart + dwcount > 256) || (dwstart<0)){
-		dwcount=256;
-		dwstart=0;
-		OutTraceD("SetEntries: ASSERT start+count > 256\n");
-	}
-
-	mySetPalette(dwstart, dwcount, lpentries);
-
-	// GHO: needed for fixed rect and variable palette animations, 
-	// e.g. dungeon keeper loading screen, Warcraft II splash, ...
-	// GHO: but refreshing cause flickering when GDI was used without updating the primary surface
-	// e.g. Tomb Raider 2 intro titles
-	if ((dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags2 & NOPALETTEUPDATE)) dxw.ScreenRefresh();
-	return 0;
+	return res;
 }
 
 HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
@@ -3772,7 +3744,6 @@ HRESULT WINAPI extFlipToGDISurface(LPDIRECTDRAW lpdd)
 	//HRESULT res;
 
 	OutTraceD("FlipToGDISurface: lpdd=%x\n", lpdd);
-	STOPPER("FlipToGDISurface");
 	// to revise: so far, it seems the best thing to do is NOTHING, just return 0.
 	//res=(*pFlipToGDISurface)(lpdd);
 	//if (res) OutTraceE("FlipToGDISurface: ERROR res=%x(%s), skipping\n", res, ExplainDDError(res));
@@ -3814,14 +3785,7 @@ HRESULT WINAPI EnumModesCallbackDumper(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 	OutTrace("\tdwBackBufferCount=%d\n", lpDDSurfaceDesc->dwBackBufferCount);
 	OutTrace("\tdwRefreshRate=%d\n", lpDDSurfaceDesc->dwRefreshRate);
 	OutTrace("\tlpSurface=%x\n", lpDDSurfaceDesc->lpSurface);
-	OutTrace("\tddpfPixelFormat.dwSize=%D\n", lpDDSurfaceDesc->ddpfPixelFormat.dwSize);
-	OutTrace("\tddpfPixelFormat.dwFlags=%x\n", lpDDSurfaceDesc->ddpfPixelFormat.dwFlags);
-	OutTrace("\tddpfPixelFormat.dwRGBBitCount=%d\n", lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount);
-	OutTrace("\tddpfPixelFormat.dwARGBBitMask=(%x,%x,%x,%x)\n", 
-		lpDDSurfaceDesc->ddpfPixelFormat.dwRGBAlphaBitMask,
-		lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask,
-		lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask,
-		lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask);
+	OutTrace("\tddpfPixelFormat %s\n", DumpPixelFormat((LPDDSURFACEDESC2)lpDDSurfaceDesc));
 	return DDENUMRET_OK;
 }
 

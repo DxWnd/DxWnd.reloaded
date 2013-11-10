@@ -183,10 +183,11 @@
 #define IDC_CAPMASK                     1136
 #define IDC_FORCESHEL                   1137
 #define IDC_COLORFIX                    1138
-#define IDC_NODDRAWBLIT                 1139
 #define IDC_NODDRAWBLT                  1139
 #define IDC_NODDRAWFLIP                 1140
 #define IDC_NOGDIBLT                    1141
+#define IDC_NOPIXELFORMAT               1142
+#define IDC_NOALPHACHANNEL              1143
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

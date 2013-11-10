@@ -25,7 +25,7 @@ dxwCore::dxwCore()
 	TimeShift = 0;
 	lpDDSPrimHDC = NULL;
 	//IsWithinDDraw = FALSE;
-	IsGDIPalette = FALSE;
+	//IsGDIPalette = FALSE;
 	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
 	ResetEmulatedDC();
 }

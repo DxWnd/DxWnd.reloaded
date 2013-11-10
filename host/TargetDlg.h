@@ -120,6 +120,8 @@ public:
 	BOOL	m_DisableHAL;
 	BOOL	m_ForcesHEL;
 	BOOL	m_ColorFix;
+	BOOL	m_NoPixelFormat;
+	BOOL	m_NoAlphaChannel;
 	BOOL	m_LockSysColors;
 	BOOL	m_SaveCaps;
 	BOOL	m_SingleProcAffinity;

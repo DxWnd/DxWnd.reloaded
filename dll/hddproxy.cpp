@@ -693,6 +693,15 @@ HRESULT WINAPI extCreatePaletteProxy(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTE
 	HRESULT res;
 
 	OutTraceP("CreatePalette(D): PROXED lpdd=%x dwFlags=%x(%s)\n", lpdd, dwflags, ExplainCreatePaletteFlags(dwflags));
+	if(IsDebug && (dwflags & DDPCAPS_8BIT)){
+		int idx;
+		OutTrace("CreatePalette: ");
+		for(idx=0; idx<256; idx++) OutTrace("(%02x.%02x.%02x)", 
+			lpddpa[idx].peRed,
+			lpddpa[idx].peGreen,
+			lpddpa[idx].peBlue  );
+		OutTrace("\n");
+	}
 	res = (*pCreatePalette)(lpdd, dwflags, lpddpa, lplpddp, pu);
 	if (res) {
 		OutTraceP("CreatePalette(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
@@ -2042,6 +2051,12 @@ UINT WINAPI extGetSystemPaletteEntriesProxy(HDC hdc, UINT iStartIndex, UINT nEnt
 
 	ret=(*pGDIGetSystemPaletteEntries)(hdc, iStartIndex, nEntries, lppe);
 	OutTrace("GDI.GetSystemPaletteEntries: PROXED hdc=%x start=%d num=%d ret=%d\n", hdc, iStartIndex, nEntries, ret);
+	if(ret && IsDebug){
+		UINT idx;
+		OutTraceD("PaletteEntries[%x]= ", nEntries);
+		for(idx=iStartIndex; idx<nEntries; idx++) OutTraceD("(%02x.%02x.%02x-F%02x)", lppe[idx].peRed, lppe[idx].peGreen, lppe[idx].peBlue, lppe[idx].peFlags);
+		OutTraceD("\n");
+	}
 	if(!ret) OutTrace("GDI.GetSystemPaletteEntries: ERROR err=%d\n", GetLastError());
 	return ret;
 }

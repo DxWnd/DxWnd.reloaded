@@ -317,8 +317,6 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 	HMODULE libhandle;
 	int idx;
 	
-	//if(!strcmp(lpFileName, "d3d9.dll") && GetModuleHandle(lpFileName)) return GetModuleHandle(lpFileName); // attempt to avoid loading same dll twice....
-
 	libhandle=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
 	OutTraceD("%s: FileName=%s hFile=%x Flags=%x(%s) hmodule=%x\n", api, lpFileName, hFile, dwFlags, ExplainLoadLibFlags(dwFlags), libhandle);
 	if(!libhandle){

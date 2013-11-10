@@ -160,6 +160,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DisableHAL) t->flags3 |= DISABLEHAL;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
+	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
+	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
 	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
 	if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
@@ -290,6 +292,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DisableHAL = t->flags3 & DISABLEHAL ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
+	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
+	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
 	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
 	dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;

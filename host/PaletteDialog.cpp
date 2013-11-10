@@ -33,6 +33,9 @@ END_MESSAGE_MAP()
 
 // CPaletteDialog message handlers
 
+CDib dib;
+CWnd *myWin;
+
 void CPaletteDialog::OnTimer(UINT_PTR nIDEvent)
 {
 	DXWNDSTATUS DxWndStatus;
@@ -41,14 +44,14 @@ void CPaletteDialog::OnTimer(UINT_PTR nIDEvent)
 	extern TARGETMAP *pTargets;
 	RECT Rect;
 	int h, w;
+	static BOOL PaletteUpdated = FALSE;
 
 	DxStatus=GetHookStatus(&DxWndStatus);
-	this->GetDC()->GetWindow()->GetClientRect(&Rect);
+	myWin->GetClientRect(&Rect);
 	h=Rect.bottom - Rect.top;
 	w=Rect.right - Rect.left;
+	if((h==0) || (w==0)) return;
 
-	CDib dib;
-	dib.ReadFromResource(IDB_PALETTE);
 	if(DxStatus==DXW_RUNNING){
 		for(int row=0; row<16; row++){
 			for(int col=0; col<16; col++){
@@ -61,13 +64,26 @@ void CPaletteDialog::OnTimer(UINT_PTR nIDEvent)
 				dib.SetPixel(col, row, rgbq);
 			}
 		}
+		PaletteUpdated = TRUE;
 	}
-	dib.Draw(this->GetDC(), CRect(0, 0, w, h), CRect(0, 0, 16, 16));
+	else{
+		if (PaletteUpdated) dib.ReadFromResource(IDB_PALETTE);
+		PaletteUpdated = FALSE;
+	}
+
+	CDC *dc;
+	dc=this->GetDC();
+	if(dc) dib.Draw(dc, CRect(0, 0, w, h), CRect(0, 0, 16, 16));
+	this->ReleaseDC(dc);
 }
 
 BOOL CPaletteDialog::OnInitDialog()
 {
+	CDC *myDC;
 	CDialog::OnInitDialog();
+	if((myDC=this->GetDC())==NULL) return FALSE;
+	if((myWin=myDC->GetWindow())==NULL) return FALSE;
+	dib.ReadFromResource(IDB_PALETTE);
 	SetTimer(IDPaletteTIMER, 200, NULL);
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
@@ -76,7 +92,8 @@ BOOL CPaletteDialog::OnInitDialog()
 void CPaletteDialog::OnOK()
 {
 	// TODO: Add your specialized code here and/or call the base class
-	KillTimer(IDPaletteTIMER);
 	// stop timer
+	KillTimer(IDPaletteTIMER);
+	// delete(dib);
 	CDialog::OnOK();
 }
