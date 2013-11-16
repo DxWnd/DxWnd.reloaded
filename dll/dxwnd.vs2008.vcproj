@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="dxwnd"
 	ProjectGUID="{579E7FE7-2745-4100-A802-23511711FCDE}"
 	RootNamespace="dxwnd"
@@ -221,6 +221,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ddproxy.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ddraw.cpp"
 				>
 				<FileConfiguration
@@ -353,10 +357,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\hddproxy.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\imelib.cpp"
 				>
 			</File>
@@ -402,6 +402,10 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
+				RelativePath=".\ddproxy.h"
+				>
+			</File>
+			<File
 				RelativePath=".\dxhelper.h"
 				>
 			</File>
@@ -419,10 +423,6 @@
 			</File>
 			<File
 				RelativePath=".\glhook.h"
-				>
-			</File>
-			<File
-				RelativePath=".\hddproxy.h"
 				>
 			</File>
 			<File

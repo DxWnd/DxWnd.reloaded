@@ -65,7 +65,7 @@ static char *Flag3Names[32]={
 };
 
 static char *Flag4Names[32]={
-	"", "", "", "",
+	"NOALPHACHANNEL", "SUPPRESSCHILD", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -605,9 +605,23 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 		break;
 	}
 
+	RECT UnmappedRect;
+	UnmappedRect=rect;
 	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 	hMenu = GetMenu(hwnd);	
 	AdjustWindowRect(&rect, dwStyle, (hMenu!=NULL));
+	if (hMenu) CloseHandle(hMenu);
+	switch(dxw.Coordinates){
+	case DXW_DESKTOP_WORKAREA:
+	case DXW_DESKTOP_FULL:
+		// if there's a menu, reduce height to fit area
+		if(rect.top != UnmappedRect.top){
+			rect.bottom = rect.bottom - UnmappedRect.top + rect.top;
+		}
+		break;
+	default:
+		break;
+	}
 
 	// shift down-right so that the border is visible
 	// and also update the iPosX,iPosY upper-left coordinates of the client area

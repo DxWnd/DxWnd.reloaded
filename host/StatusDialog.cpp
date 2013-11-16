@@ -46,8 +46,6 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 	extern TARGETMAP *pTargets;
 	TARGETMAP *Target;
 	extern char *GetTSCaption(int);
-	int  iPixelFormat;
-	PIXELFORMATDESCRIPTOR pfd;
 
 	CDialog::OnTimer(nIDEvent);
 	GetDllVersion(DllVersion);
@@ -59,33 +57,21 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 		default: IconId=IDI_DXIDLE; Status="???"; break;
 	}
 
-	// get the current pixel format index 
-	//HDC myDC = this->GetDC()->m_hDC;
-	//iPixelFormat = GetPixelFormat(myDC); 
-	iPixelFormat = 1; 
-	HDC myDC = ::GetDC(::GetForegroundWindow());
-	//iPixelFormat = ::GetPixelFormat(myDC); 
-
-	// obtain a detailed description of that pixel format  
-	memset((void *)&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-	DescribePixelFormat(myDC, iPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
-
 	sprintf_s(sMsg, 1024, 
 		"DxWnd %s\n"
-		"PixelFormat=%d DEPTH=%d RGBA=(%d,%d,%d,%d)\n"
 		"Hook status: %s", 
-		DllVersion, iPixelFormat, pfd.cColorBits, pfd.cRedBits, pfd.cGreenBits, pfd.cBlueBits, pfd.cAlphaBits, Status);
+		DllVersion, Status);
 
 	if(DxStatus==DXW_RUNNING){
 
 		Target=&pTargets[DxWndStatus.TaskIdx];
 
 		sprintf_s(sMsg2, 1024, 
+			"\nTask=%s\n"
+			"Screen = (%dx%d) Color BPP=%d\n"
 			"FullScreen = %s\nDX version = %d\n"
 			"Logging = %s\n"
 			"Cursor = (%d,%d)",
-			DllVersion, Status,
 			pTitles[DxWndStatus.TaskIdx].title,
 			DxWndStatus.Width, DxWndStatus.Height, DxWndStatus.ColorDepth, 
 			DxWndStatus.IsFullScreen ? "Yes":"No", DxWndStatus.DXVersion,

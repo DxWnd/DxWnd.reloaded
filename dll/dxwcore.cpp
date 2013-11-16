@@ -433,6 +433,7 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 		ClientRect.right=iRatioX;
 		ClientRect.bottom=iRatioY;
 	}
+	
 	RetRect=ClientRect;
 	bx = by = 0;
 	if (dwFlags2 & KEEPASPECTRATIO){
@@ -444,14 +445,16 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 		else {
 			by = (h - (w * iRatioY / iRatioX))/2;
 		}
-		OutTraceB("bx=%d by=%d\n", bx, by);
 	}
 
-	if(lpRect){
-		RetRect.left = (lpRect->left * ClientRect.right / dwScreenWidth) + bx;
-		RetRect.right = (lpRect->right * ClientRect.right / dwScreenWidth) - bx;
-		RetRect.top = (lpRect->top * ClientRect.bottom / dwScreenHeight) + by;
-		RetRect.bottom = (lpRect->bottom * ClientRect.bottom / dwScreenHeight) - by;
+	if(lpRect){ // v2.02.41 - fixed coordinates for KEEPASPECTRATIO option
+		LONG Width, Height;
+		Width = ClientRect.right - (2*bx);
+		Height = ClientRect.bottom - (2*by);
+		RetRect.left = bx + (lpRect->left * Width / dwScreenWidth);
+		RetRect.right = bx + (lpRect->right * Width / dwScreenWidth);
+		RetRect.top = by + (lpRect->top * Height / dwScreenHeight);
+		RetRect.bottom = by + (lpRect->bottom * Height / dwScreenHeight);
 	}
 	else{
 		RetRect.left = ClientRect.left + bx;

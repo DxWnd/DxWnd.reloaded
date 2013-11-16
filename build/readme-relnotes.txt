@@ -272,3 +272,13 @@ code reorganization
 GUI:
 removed useless flags and moved debug options in a hidden tab
 
+v2.02.38-40
+Fixed coordinate calculation for blit operations when keeping aspect ratio.
+Fixed window coordinate placement in desktop / client area mode for programs with a visible menu bar.
+Changed "Lock win coordinates" flag: now it allows window movement / resizing when driven by mouse input.
+Fixed a bug in GDI "Map DC to primary surface"mode.
+Added palette display window to GUI
+
+v2.02.41
+Added "suppress child process creation" flag. This flag is introduced to manage games such as "Heart of Iron 2" and "Chariots of War" that start intro movie by means of a separate process. Both games are starting the binkplay.exe program in the game's avi subfolder. This way you don't get a windowed movie, but completely suppress it.
+Added "fix ddraw ref counter" flag, to have primary directdraw object addref & release ref counters identical to those without dxwnd. Some games check for the value and show error messages, i.e. "Grand Prix World"!

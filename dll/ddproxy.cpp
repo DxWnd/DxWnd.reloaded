@@ -18,7 +18,7 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 #include "hddraw.h"
-#include "hddproxy.h"
+#include "ddproxy.h"
 
 static void HookDDSessionProxy(LPDIRECTDRAW *, int);
 static void HookDDSurfaceProxy(LPDIRECTDRAWSURFACE *, int);
@@ -193,6 +193,7 @@ HPALETTE WINAPI extSelectPaletteProxy(HDC, HPALETTE, BOOL);
 UINT WINAPI extRealizePaletteProxy(HDC);
 HDC WINAPI extBeginPaintProxy(HWND, LPPAINTSTRUCT);
 UINT WINAPI extGetSystemPaletteEntriesProxy(HDC, UINT, UINT, LPPALETTEENTRY);
+int WINAPI extGetDeviceCapsProxy(HDC, int);
 
 // ------------------------------------------------------------------------------------------ //
 //
@@ -323,6 +324,8 @@ int HookDDProxy(HMODULE module, int dxVersion)
 	if(tmp) pGDIRealizePalette = (RealizePalette_Type)tmp;
 	tmp = HookAPI(module, "GDI32.dll", GetSystemPaletteEntries, "GetSystemPaletteEntries", extGetSystemPaletteEntriesProxy);
 	if(tmp) pGDIGetSystemPaletteEntries = (GetSystemPaletteEntries_Type)tmp;
+	tmp = HookAPI(module, "GDI32.dll", GetDeviceCaps, "GetDeviceCaps", extGetDeviceCapsProxy);
+	if(tmp) pGDIGetDeviceCaps = (GetDeviceCaps_Type)tmp;
 	tmp = HookAPI(module, "user32.dll", BeginPaint, "BeginPaint", extBeginPaintProxy);
 	if(tmp) pBeginPaint = (BeginPaint_Type)tmp;
 	pGetProcAddress = (GetProcAddress_Type)GetProcAddress;
@@ -876,6 +879,9 @@ HRESULT WINAPI extCreateSurfaceProxy(int dxVersion, CreateSurface_Type pCreateSu
 	if (res) {
 		OutTraceP("CreateSurface(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 		return res;
+	}
+	if(IsDebug){
+		OutTrace("CreateSurface(D): built Caps=%x(%s)\n", lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
 	}
 	OutTraceP("CreateSurface(D): lpdds=%x\n", *lplpdds);
 #ifdef HOOKSURFACE
@@ -2069,6 +2075,28 @@ HDC WINAPI extBeginPaintProxy(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	ret=(*pBeginPaint)(hwnd, lpPaint);
 	OutTraceP("GDI.BeginPaint: ret=%x\n", ret);
 	return ret;
+}
+
+int WINAPI extGetDeviceCapsProxy(HDC hdc, int nindex)
+{
+	DWORD res;
+	
+	res = (*pGDIGetDeviceCaps)(hdc, nindex);
+	OutTraceD("GetDeviceCaps: hdc=%x index=%x(%s) res=%x\n",
+		hdc, nindex, ExplainDeviceCaps(nindex), res);
+
+	switch(nindex){
+	case VERTRES:
+		OutTraceD("GetDeviceCaps: VERTRES=%d\n", res);
+		break;
+	case HORZRES:
+		OutTraceD("GetDeviceCaps: HORZRES=%d\n", res);
+		break;
+	case RASTERCAPS:
+		OutTraceD("GetDeviceCaps: RASTERCAPS=%x(%s)\n",res, ExplainRasterCaps(res));
+		break;
+	}
+	return res;
 }
 
 

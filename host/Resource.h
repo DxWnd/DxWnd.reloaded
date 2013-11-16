@@ -67,7 +67,6 @@
 #define IDC_MAXX                        1020
 #define IDC_MAXY                        1021
 #define IDC_MAXFPS                      1022
-#define IDC_MODULE                      1023
 #define IDC_OPENGLLIB                   1024
 #define IDC_AUTOREFRESH                 1025
 #define IDC_FIXWINFRAME                 1026
@@ -188,6 +187,8 @@
 #define IDC_NOGDIBLT                    1141
 #define IDC_NOPIXELFORMAT               1142
 #define IDC_NOALPHACHANNEL              1143
+#define IDC_SUPPRESSCHILD               1144
+#define IDC_FIXREFCOUNTER               1145
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

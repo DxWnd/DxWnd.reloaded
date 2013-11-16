@@ -34,7 +34,6 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_LOCKWINSTYLE, cTarget->m_LockWinStyle);
 	DDX_Check(pDX, IDC_FIXPARENTWIN, cTarget->m_FixParentWin);
 	DDX_Check(pDX, IDC_MODALSTYLE, cTarget->m_ModalStyle);
-	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_FORCEWINRESIZE, cTarget->m_ForceWinResize);
 	DDX_Check(pDX, IDC_HIDEMULTIMONITOR, cTarget->m_HideMultiMonitor);
 	DDX_Check(pDX, IDC_WALLPAPERMODE, cTarget->m_WallpaperMode);
@@ -42,6 +41,7 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_REFRESHONRESIZE, cTarget->m_RefreshOnResize);
 	DDX_Check(pDX, IDC_FIXD3DFRAME, cTarget->m_FixD3DFrame);
 	DDX_Check(pDX, IDC_NOWINDOWMOVE, cTarget->m_NoWindowMove);
+	DDX_Check(pDX, IDC_SUPPRESSCHILD, cTarget->m_SuppressChild);
 }
 
 BOOL CTabWindow::OnInitDialog()

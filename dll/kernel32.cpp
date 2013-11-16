@@ -4,7 +4,7 @@
 #include "dxhook.h"
 #include "dxhelper.h"
 #include "hddraw.h"
-#include "hddproxy.h"
+#include "ddproxy.h"
 
 static HookEntry_Type Hooks[]={
 	{"IsDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extIsDebuggerPresent},
@@ -48,6 +48,11 @@ static HookEntry_Type VersionHooks[]={
 	{0, NULL, 0, 0} // terminator
 };
 
+static HookEntry_Type SuppressChildHooks[]={
+	{"CreateProcessA", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extCreateProcessA},
+	{0, NULL, 0, 0} // terminator
+};
+
 static char *libname = "kernel32.dll";
 
 void HookKernel32(HMODULE module)
@@ -57,6 +62,7 @@ void HookKernel32(HMODULE module)
 	if(dxw.dwFlags2 & LIMITRESOURCES) HookLibrary(module, LimitHooks, libname);
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
+	if(dxw.dwFlags4 & SUPPRESSCHILD) HookLibrary(module, SuppressChildHooks, libname);
 }
 
 void HookKernel32Init()
@@ -84,6 +90,9 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 
 	if(dxw.dwFlags2 & FAKEVERSION)
 		if (addr=RemapLibrary(proc, hModule, VersionHooks)) return addr;
+
+	if(dxw.dwFlags4 & SUPPRESSCHILD)
+		if (addr=RemapLibrary(proc, hModule, SuppressChildHooks)) return addr;
 
 	return NULL;
 }
@@ -674,4 +683,21 @@ DWORD WINAPI extSetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDista
 			OutTrace("SetFilePointer: ret=%x\n", ret);
 	}
 	return ret;
+}
+
+BOOL WINAPI extCreateProcessA(
+	LPCTSTR lpApplicationName, 
+	LPTSTR lpCommandLine, 
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	BOOL bInheritHandles,
+	DWORD dwCreationFlags,
+	LPVOID lpEnvironment,
+	LPCTSTR lpCurrentDirectory,
+	LPSTARTUPINFO lpStartupInfo,
+	LPPROCESS_INFORMATION lpProcessInformation
+)
+{
+	OutTraceD("CreateProcess: SUPPRESS ApplicationName=%s CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
+	return TRUE;
 }

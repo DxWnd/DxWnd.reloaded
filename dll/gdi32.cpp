@@ -317,22 +317,22 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 	DWORD res;
 	
 	res = (*pGDIGetDeviceCaps)(hdc, nindex);
-	OutTraceD("GetDeviceCaps: hdc=%x index=%x(%s) res=%x\n",
-		hdc, nindex, ExplainDeviceCaps(nindex), res);
-
-#ifdef GDIEMULATIONONLY
-	switch(nindex){
-	case VERTRES:
-		res= dxw.GetScreenHeight();
-		OutTraceD("GetDeviceCaps: fix(0) VERTRES cap=%d\n", res);
-		break;
-	case HORZRES:
-		res= dxw.GetScreenWidth();
-		OutTraceD("GetDeviceCaps: fix(0) HORZRES cap=%d\n", res);
-		break;
+	if(IsTraceD){
+		OutTrace("GetDeviceCaps: hdc=%x index=%x(%s)", hdc, nindex, ExplainDeviceCaps(nindex));
+		switch(nindex){
+			case RASTERCAPS:
+				OutTrace(" res=0x%04x(%s)\n",res, ExplainRasterCaps(res)); break;
+			case BITSPIXEL:
+			case COLORRES:
+			case VERTRES:
+			case SIZEPALETTE:
+			case NUMRESERVED:
+				OutTrace(" res=%d\n",res); break;
+			default:
+				OutTrace(" res=0x%04x\n",res); break;
+		}
 	}
-	return res;
-#endif
+
 
 	// if you have a bypassed setting, use it first!
 	if(pSetDevMode){
@@ -387,8 +387,8 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 		switch(nindex){
 		case RASTERCAPS:
 			if((dxw.VirtualPixelFormat.dwRGBBitCount==8) || (dxw.dwFlags2 & INIT8BPP)){
-				res = RC_PALETTE;
-				OutTraceD("GetDeviceCaps: fix(3) RASTERCAPS setting RC_PALETTE cap=%x\n",res);
+				res |= RC_PALETTE;
+				OutTraceD("GetDeviceCaps: fix(3) RASTERCAPS setting RC_PALETTE cap=%x(%s)\n", res, ExplainRasterCaps(res));
 			}
 			break;
 		case BITSPIXEL:

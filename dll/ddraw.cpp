@@ -12,7 +12,7 @@
 #include "dxwcore.hpp"
 #include "stdio.h" 
 #include "hddraw.h"
-#include "hddproxy.h"
+#include "ddproxy.h"
 #include "dxhelper.h"
 #include "syslibs.h"
 
@@ -237,7 +237,6 @@ LPDIRECTDRAWSURFACE lpDDTexture=NULL;
 LPDIRECTDRAW lpPrimaryDD=NULL;
 LPDIRECTDRAW lpBackBufferDD=NULL;
 int iBakBufferVersion;
-LPDIRECTDRAWCLIPPER lpDDC=NULL;
 LPDIRECTDRAWPALETTE lpDDP=NULL;
 
 // v2.02.37: globals to store requested main surface capabilities 
@@ -257,8 +256,10 @@ static void GetPixFmt(LPDDSURFACEDESC2);
 static HookEntry_Type ddHooks[]={
 	{"DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
 	{"DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
-	{"DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
-	{"DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
+	{"DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
+	{"DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
+	//{"DirectDrawEnumerateW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateW, (FARPROC)extDirectDrawCreate},
+	//{"DirectDrawEnumerateExW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateExW, (FARPROC)extDirectDrawCreate},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -273,25 +274,12 @@ FARPROC Remap_ddraw_ProcAddress(LPCSTR proc, HMODULE hModule)
 // auxiliary (static) functions
 /* ------------------------------------------------------------------------------ */
 
-static void RefProbe(INTERFACE *obj, char *op, int line)
-{
-	obj->AddRef(); 
-	OutTrace("### COM obj=%x op=%s refcount=%d at %d ###\n", obj, op, (*pReleaseS)((LPDIRECTDRAWSURFACE)obj), line);
-}
-
 static void Stopper(char *s, int line)
 {
 	char sMsg[81];
 	sprintf(sMsg,"break: \"%s\"", s);
 	MessageBox(0, sMsg, "break", MB_OK | MB_ICONEXCLAMATION);
 }
-
-//#define REFPROBE_TEST // comment out to eliminate
-#ifdef REFPROBE_TEST
-#define REFPROBE(obj, op) RefProbe((INTERFACE *)(obj), op, __LINE__)
-#else
-#define REFPROBE(obj, op)
-#endif
 
 //#define STOPPER_TEST // comment out to eliminate
 #ifdef STOPPER_TEST
@@ -884,24 +872,6 @@ static void GetPixFmt(LPDDSURFACEDESC2 lpdd)
 {
 	lpdd->ddpfPixelFormat = dxw.VirtualPixelFormat;
 	OutTraceD("GetPixFmt: %s\n", DumpPixelFormat(lpdd));
-}
-
-static void RenewClipper(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE lpdds)
-{
-	HRESULT res;
-
-	return;
-
-	if (lpDDC) lpDDC->Release();
-	res=lpdd->CreateClipper(0, &lpDDC, NULL);
-	if(res) OutTraceE("CreateSurface: CreateClipper ERROR: lpdd=%x res=%x(%s) at %d\n", lpdd, res, ExplainDDError(res), __LINE__);
-	//HookDDClipper(&lpDDC);
-	res=lpDDC->SetHWnd(0, dxw.GethWnd()); 
-	if(res) OutTraceE("CreateSurface: SetHWnd ERROR: hWnd=%x res=%x(%s) at %d\n", dxw.GethWnd(), res, ExplainDDError(res), __LINE__);
-	res=lpdds->SetClipper(lpDDC);
-	//res=(*pSetClipper)(lpdds, lpDDC);
-	if(res) OutTraceE("CreateSurface: SetClipper ERROR: lpdds=%x res=%x(%s) at %d\n", lpdds, res, ExplainDDError(res), __LINE__);
-	return;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1500,6 +1470,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 		(LPDIRECTDRAW)(*lplpdd)->GetCaps(&DriverCaps, &EmulCaps);
 		//OutTrace("DirectDrawCreate: drivercaps=%x(%s) emulcaps=%x(%s)\n", DriverCaps.ddsCaps, "???", EmulCaps.ddsCaps, "???");
 	}
+
 	return 0;
 }
 
@@ -1780,7 +1751,7 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	if((lpdds == lpDDSBack) && dwLocalDDVersion) {
 		// assume that you always use the newer interface version, if available.
 		if(dwLocalDDVersion > (UINT)iBakBufferVersion){
-			OutTrace("QueryInterface(S): switching backbuffer %x -> %x\n", lpDDSBack, *obp); 
+			OutTraceD("QueryInterface(S): switching backbuffer %x -> %x\n", lpDDSBack, *obp); 
 			lpDDSBack = (LPDIRECTDRAWSURFACE)*obp;
 			iBakBufferVersion = dwLocalDDVersion;
 		}
@@ -1810,6 +1781,8 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	if(dxw.dwFlags1 & EMULATESURFACE){
 		// in EMULATESURFACE mode, let SetPixFmt decide upon the PixelFormat
 		dxw.VirtualPixelFormat.dwRGBBitCount = dwbpp;
+		memset(&ddsd, 0, sizeof(ddsd));
+		ddsd.dwSize=sizeof(ddsd);
 		SetPixFmt(&ddsd);
 		SetBltTransformations();
 		OutTraceD("SetDisplayMode: mode=EMULATE %s ret=OK\n", DumpPixelFormat(&ddsd));
@@ -2132,8 +2105,12 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY:
 			// Dungeon Keeper II GOG release (intro screen): doesn't like calling GetPixFmt!!!
+			// it requests a DDPF_FOURCC surface with fourcc="YYYY" that should not be overridden?
+			//
 			// need not to be configurable until we get a different case.
 			// it works both on VIDEOMEMORY or SYSTEMMEMORY. The latter should be more stable.
+			// v2.02.41: don't alter FOURCC pixel formats
+			if(lpddsd->ddpfPixelFormat.dwFlags & DDPF_FOURCC) return;
 			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 			return;
 			break;
@@ -2268,9 +2245,14 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		// no further changes...
 		return;
 	}
+
 	if(lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH){
 		lpddsd->dwFlags &= ~DDSD_PIXELFORMAT;
 	}
+
+	// v2.02.41: don't alter FOURCC pixel formats
+	if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwFlags & DDPF_FOURCC)) return;
+
 #if 0
 	// HoM&M3/4 fix....
 	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT)) == (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) &&
@@ -2349,7 +2331,6 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		ClearSurfaceDesc((void *)&ddsd, dxversion);
 		ddsd.dwFlags = DDSD_CAPS; 
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-		GetPixFmt(&ddsd);
 		DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuPrim]" , __LINE__);
 
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
@@ -2430,7 +2411,6 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	if(dxw.dwFlags1 & EMULATEBUFFER){
 		lpDDSEmu_Prim = *lplpdds;
 		dxw.MarkRegularSurface(lpDDSEmu_Prim);
-		RenewClipper(lpdd, lpDDSEmu_Prim);
 
 		ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
 		// warning: can't create zero sized backbuffer surface !!!!
@@ -2552,7 +2532,7 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		OutTraceE("CreateSurface: ERROR on Emu_Generic res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
-
+		
 	OutTraceD("CreateSurface: created Emu_Generic dds=%x\n", *lplpdds);
 	if(IsDebug) DescribeSurface(*lplpdds, dxversion, "DDSEmu_Generic", __LINE__);
 	// diagnostic hooks ....
@@ -2646,7 +2626,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 	if((dxversion == 1) && (ddsd.dwFlags == 0)){ // Star Force Deluxe
 		ddsd.dwFlags = DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-		if(dxw.VirtualPixelFormat.dwRGBBitCount == 8) ddsd.ddsCaps.dwCaps |= DDSCAPS_PALETTE;
+		//if(dxw.VirtualPixelFormat.dwRGBBitCount == 8) ddsd.ddsCaps.dwCaps |= DDSCAPS_PALETTE;
 	}
 
 	// creation of the primary surface....
@@ -2660,7 +2640,6 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 
 		// beware of the different behaviour between older and newer directdraw releases...
 		if(dxversion >= 4){
-			if (lpDDC) while(lpDDC->Release());
 			if (lpDDSEmu_Back) while(lpDDSEmu_Back->Release());
 			if (lpDDSEmu_Prim) while(lpDDSEmu_Prim->Release());
 			if (ddsd.dwFlags & DDSD_BACKBUFFERCOUNT) { // Praetorians !!!!
@@ -2668,7 +2647,6 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 				lpBackBufferDD = NULL;
 			}
 		}
-		lpDDC=NULL;
 		lpDDSEmu_Back=NULL;
 		lpDDSEmu_Prim=NULL;
 
@@ -2718,9 +2696,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		}
  
 		// rebuild the clipper area
-		if (lpDDC==NULL) RenewClipper(lpdd, lpDDSEmu_Prim);
 		if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
-		REFPROBE(*lplpdds, "CREATED");
 		return DD_OK;
 	}
 
@@ -2729,14 +2705,12 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		if (lpDDSBack) {
 			OutTraceD("CreateSurface: returning current DDSBack=%x\n", lpDDSBack);
 			*lplpdds = lpDDSBack;
-			REFPROBE(lpDDSBack, "CREATED");
 			return DD_OK;
 		}
 
 		res=BuildBackBuffer(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, NULL);
 		lpDDSBack = *lplpdds;
 		dxw.MarkBackBufferSurface(lpDDSBack);
-		REFPROBE(*lplpdds, "CREATED");
 		return res;
 	}
 
@@ -2751,7 +2725,6 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 	res=BuildGeneric(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, pu);
 	if(!res) dxw.MarkRegularSurface(*lplpdds);
 
-	REFPROBE(*lplpdds, "CREATED");
 	return res;
 }
 
@@ -2973,7 +2946,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		}
 		else {
 			if(dxw.dwFlags3 & NODDRAWBLT) return DD_OK;
-	}
+		}
 	}
 
 #ifdef ONEPIXELFIX
@@ -3048,8 +3021,10 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			break;
 		}
 		if (res) BlitError(res, &srcrect, lpdestrect, __LINE__);
-		DescribeSurface(lpdds,    0, "[DST]" , __LINE__);
-		if (lpddssrc) DescribeSurface(lpddssrc, 0, "[SRC]" , __LINE__); // lpddssrc could be NULL!!!
+		if(IsDebug) {
+			DescribeSurface(lpdds, 0, "[DST]" , __LINE__);
+			if (lpddssrc) DescribeSurface(lpddssrc, 0, "[SRC]" , __LINE__); // lpddssrc could be NULL!!!
+		}
 		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
 		return res;
 	}
@@ -3059,6 +3034,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	if(dxw.HandleFPS()) return DD_OK;
 	
 	destrect=dxw.MapWindowRect(lpdestrect);
+	//OutTrace("DESTRECT=(%d,%d)-(%d,%d)\n", destrect.left, destrect.top, destrect.right, destrect.bottom);
 
 	if(!(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER))){ 
 		res=0;
@@ -3165,11 +3141,6 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
 	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
 	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
-	if (res==DDERR_NOCLIPLIST){
-		RenewClipper(lpPrimaryDD, lpDDSEmu_Prim);
-		if (IsDebug) BlitTrace("NOCLIP", &emurect, &destrect, __LINE__);
-		res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
-	}
 
 	if (res) BlitError(res, &emurect, &destrect, __LINE__);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
@@ -3274,7 +3245,6 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 	HRESULT ret;
 	BOOL ToPrim, FromPrim;
 
-	REFPROBE(lpdds, "BLTFAST");
 	ToPrim=dxw.IsAPrimarySurface(lpdds);
 	FromPrim=dxw.IsAPrimarySurface(lpddssrc);
 
@@ -3374,7 +3344,7 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 		OutTraceE("CreatePalette: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
-	else OutTrace("CreatePalette: OK lpddp=%x\n", *lplpddp);
+	else OutTraceD("CreatePalette: OK lpddp=%x\n", *lplpddp);
 
 	HookDDPalette(lplpddp);
 	return 0;
@@ -3388,7 +3358,7 @@ HRESULT WINAPI extGetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lpl
 
 	res=(*pGetPalette)(lpdds, lplpddp);
 	if (res) OutTraceE("GetPalette: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	else OutTrace("GetPalette: OK\n");
+	else OutTraceD("GetPalette: OK\n");
 	return res;
 }
 
@@ -3404,7 +3374,7 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 	res=(*pSetPalette)(lpdds, lpddp);
 	res=DD_OK;
 	if(res)OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	else OutTrace("SetPalette: OK\n");
+	else OutTraceD("SetPalette: OK\n");
 
 	if((dxw.dwFlags1 & EMULATESURFACE) && isPrim){
 		OutTraceD("SetPalette: register PRIMARY palette lpDDP=%x\n", lpddp);
@@ -3431,7 +3401,7 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 
 	res = (*pSetEntries)(lpddp, dwflags, dwstart, dwcount, lpentries);
 	if(res) OutTraceE("SetEntries: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	else OutTrace("SetEntries: OK\n");
+	else OutTraceD("SetEntries: OK\n");
 
 	if((dxw.dwFlags1 & EMULATESURFACE) && (lpDDP == lpddp)){
 		OutTraceD("SetEntries: update PRIMARY palette lpDDP=%x\n", lpddp);
@@ -3824,7 +3794,7 @@ HRESULT WINAPI myEnumModesFilter(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpConte
 HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPDIRECTDRAW lpdd, DWORD dwflags, LPDDSURFACEDESC lpddsd, LPVOID lpContext, LPDDENUMMODESCALLBACK cb)
 {
 	HRESULT res;
-	OutTraceP("EnumDisplayModes(D): lpdd=%x flags=%x lpddsd=%x callback=%x\n", lpdd, dwflags, lpddsd, cb);
+	OutTraceD("EnumDisplayModes(D): lpdd=%x flags=%x lpddsd=%x callback=%x\n", lpdd, dwflags, lpddsd, cb);
 
 	// note: extEnumDisplayModes serves both the EnumDisplayModes and EnumDisplayModes2 interfaces:
 	// they differ for the lpddsd argument that should point to either DDSURFACEDESC or DDSURFACEDESC2
@@ -3976,7 +3946,6 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	IsBack=dxw.IsABackBufferSurface(lpdds);
-	REFPROBE(lpdds, "RELEASE");
 	
 	res = (*pReleaseS)(lpdds);
 
@@ -4222,24 +4191,55 @@ HRESULT WINAPI extGetCaps7S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 caps)
 	return extGetCapsS(7, (GetCapsS_Type)pGetCaps7S, lpdds, (LPDDSCAPS)caps);
 }
 
+#define FIXREFCOUNTERS 1
+#define ZEROREFCOUNTERS 0
+
+HRESULT WINAPI DumpHandle(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
+{
+	OutTrace("lpdds=%x flags=%x(%s) caps=%x(%s); ", 
+		lpDDSurface, 
+		lpDDSurfaceDesc->dwFlags, ExplainFlags(lpDDSurfaceDesc->dwFlags),
+		lpDDSurfaceDesc->ddsCaps.dwCaps, ExplainDDSCaps(lpDDSurfaceDesc->ddsCaps.dwCaps));
+	lpDDSurface->Release();
+	return DDENUMRET_OK;
+}
+
 ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 {
-	ULONG ref;
+	ULONG ActualRef;
+	LONG VirtualRef;
 	int dxversion;
 
 	dxversion=lpddHookedVersion(lpdd); // must be called BEFORE releasing the session!!
 	OutTraceD("Release(D): lpdd=%x dxversion=%d\n", lpdd, dxversion);
 	
-	ref=(*pReleaseD)(lpdd);
+	ActualRef=(*pReleaseD)(lpdd);
+	VirtualRef=(LONG)ActualRef;
+	OutTraceD("Release(D): lpdd=%x service_lpdd=%x ref=%d\n", lpdd, lpPrimaryDD, ActualRef);
+	if(IsDebug && ActualRef){
+		OutTrace("Release(D): surfaces ");
+		//(*pEnumSurfaces)(lpdd, DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, DumpHandle);
+		lpdd->EnumSurfaces(DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, DumpHandle);
+		OutTrace("\n");
+	}
 
 	if (lpdd == lpPrimaryDD) { // v2.1.87: fix for Dungeon Keeper II
-		OutTraceD("Release(D): service lpdd=%x version=%d\n", lpdd, dxversion);
-		if((dxversion<4) && (ref==0)){
+		if(FIXREFCOUNTERS){
+			// v2.02.41: fix the ref counter to sumulate the unwindowed original situation
+			--VirtualRef; // why ????
+			if(lpDDSBack) --VirtualRef;
+			if(dxw.dwFlags1 & EMULATESURFACE){
+				if(lpDDSEmu_Prim) --VirtualRef;
+				if(lpDDSEmu_Back) --VirtualRef;
+			}
+			if(VirtualRef<0) VirtualRef=0;
+			OutTraceD("Release(D): fixed ref counter %d->%d\n", ActualRef, VirtualRef);
+		}
+		if((dxversion<4) && (ActualRef==0)){
 			// directdraw old versions automatically free all linked objects when the parent session is closed.
 			OutTraceD("Release(D): RefCount=0 - service object RESET condition\n");
 			lpDDSEmu_Prim=NULL;
 			lpDDSEmu_Back=NULL;
-			lpDDC=NULL;
 			lpDDP=NULL;
 			lpPrimaryDD=NULL; // v2.02.31
 			if(lpBackBufferDD==lpdd){ 
@@ -4247,10 +4247,13 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 				lpDDSBack=NULL; // beware: Silent Hunter II seems to require the backbuffer .... 
 			}
 		}
+		if(ZEROREFCOUNTERS){
+			VirtualRef=0;
+		}
 	}
 
-	OutTraceD("Release(D): lpdd=%x ref=%x\n", lpdd, ref);
-	return ref;
+	OutTraceD("Release(D): lpdd=%x ref=%x\n", lpdd, VirtualRef);
+	return (ULONG)VirtualRef;
 }
 
 HRESULT WINAPI extCreateClipper(LPDIRECTDRAW lpdd, DWORD dwflags, 
@@ -4274,10 +4277,6 @@ HRESULT WINAPI extReleaseC(LPDIRECTDRAWCLIPPER lpddClip)
 	ref = (*pReleaseC)(lpddClip);
 
 	OutTraceD("Release(C): PROXED lpddClip=%x ref=%x\n", lpddClip, ref);
-	if (lpddClip==lpDDC && ref==0) {
-		OutTraceD("Release(C): Clearing lpDDC pointer\n");
-		lpDDC=NULL;
-	}
 	return ref;
 }
 
@@ -4435,7 +4434,7 @@ BOOL WINAPI DDEnumerateCallbackExFilter(GUID *lpGuid, LPSTR lpDriverDescription,
 	BOOL res;
 	typedef struct {LPDDENUMCALLBACKEX lpCallback; LPVOID lpContext;} Context_Type;
 	Context_Type *p=(Context_Type *)lpContext;
-	OutTrace("DDEnumerateCallbackEx: guid=%x DriverDescription=\"%s\" DriverName=\"%s\" Context=%x hm=%x\n", 
+	OutTraceD("DDEnumerateCallbackEx: guid=%x DriverDescription=\"%s\" DriverName=\"%s\" Context=%x hm=%x\n", 
 		lpGuid, lpDriverDescription, lpDriverName, lpContext, hm);
 	res=TRUE;
 	if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext, hm);
@@ -4447,7 +4446,7 @@ BOOL WINAPI DDEnumerateCallbackExFilter(GUID *lpGuid, LPSTR lpDriverDescription,
 HRESULT WINAPI extDirectDrawEnumerate(LPDDENUMCALLBACK lpCallback, LPVOID lpContext)
 {
 	HRESULT ret;
-	OutTraceP("DirectDrawEnumerate: lpCallback=%x lpContext=%x\n", lpCallback, lpContext);
+	OutTraceD("DirectDrawEnumerate: lpCallback=%x lpContext=%x\n", lpCallback, lpContext);
 	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG)){
 		struct {LPDDENUMCALLBACK lpCallback; LPVOID lpContext;} myContext;
 		myContext.lpCallback=lpCallback;
@@ -4456,7 +4455,7 @@ HRESULT WINAPI extDirectDrawEnumerate(LPDDENUMCALLBACK lpCallback, LPVOID lpCont
 	}
 	else
 		ret=(*pDirectDrawEnumerate)(lpCallback, lpContext);
-	if(ret) OutTraceP("DirectDrawEnumerate: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	if(ret) OutTraceE("DirectDrawEnumerate: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
 
@@ -4473,7 +4472,7 @@ HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX lpCallback, LPVOID lp
 	}
 	else
 		ret=(*pDirectDrawEnumerateEx)(lpCallback, lpContext, dwFlags);
-	if(ret) OutTraceP("DirectDrawEnumerateEx: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	if(ret) OutTraceD("DirectDrawEnumerateEx: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
 

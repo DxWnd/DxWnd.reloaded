@@ -29,7 +29,6 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_COORDINATES, cTarget->m_Coordinates);
 	DDX_Control(pDX, IDC_FILE, cTarget->m_File);
 	DDX_Text(pDX, IDC_FILE, cTarget->m_FilePath);
-	DDX_Text(pDX, IDC_MODULE, cTarget->m_Module);
 	DDX_Text(pDX, IDC_TITLE, cTarget->m_Title);
 	DDX_Check(pDX, IDC_UNNOTIFY, cTarget->m_UnNotify);
 	DDX_Check(pDX, IDC_WINDOWIZE, cTarget->m_Windowize);
@@ -45,6 +44,7 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CLIENTREMAPPING, cTarget->m_ClientRemapping);
 	DDX_Check(pDX, IDC_SAVELOAD, cTarget->m_SaveLoad);
 	DDX_Check(pDX, IDC_HANDLEALTF4, cTarget->m_HandleAltF4);
+	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
 	DDX_Text(pDX, IDC_POSX, cTarget->m_PosX);
 	DDX_Text(pDX, IDC_POSY, cTarget->m_PosY);
 	DDX_Text(pDX, IDC_SIZX, cTarget->m_SizX);

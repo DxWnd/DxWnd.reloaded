@@ -9,8 +9,8 @@
 // exported API
 
 DWORD gD3DVersion; // quick & dirty ....
-#undef OutTraceD
-#define OutTraceD OutTrace
+//#undef OutTraceD
+//#define OutTraceD OutTrace
 
 typedef HRESULT (WINAPI *Direct3DCreateDevice_Type)(GUID FAR *, LPDIRECT3D, LPDIRECTDRAWSURFACE, LPDIRECT3D *, LPUNKNOWN);
 typedef HRESULT (WINAPI *Direct3DCreate_Type)(UINT, LPDIRECT3D *, LPUNKNOWN);
@@ -297,19 +297,21 @@ typedef struct {
 
 static void DumpD3DDevideDesc(LPD3DDEVICEDESC d3, char *label)
 {
-	OutTraceD("EnumDevices: CALLBACK dev=%s Size=%d Flags=%x ", label, d3->dwSize, d3->dwFlags);
-	if(d3->dwFlags & D3DDD_COLORMODEL) OutTraceD("ColorModel=%x ", d3->dcmColorModel);
-	if(d3->dwFlags & D3DDD_DEVCAPS) OutTraceD("DevCaps=%x ", d3->dwDevCaps);
-	if(d3->dwFlags & D3DDD_TRANSFORMCAPS) OutTraceD("TransformCaps=%x ", d3->dtcTransformCaps.dwCaps);
-	if(d3->dwFlags & D3DDD_LIGHTINGCAPS) OutTraceD("LightingCaps=%x ", d3->dlcLightingCaps);
-	if(d3->dwFlags & D3DDD_BCLIPPING) OutTraceD("Clipping=%x ", d3->bClipping);
-	if(d3->dwFlags & D3DDD_LINECAPS) OutTraceD("LineCaps=%x ", d3->dpcLineCaps);
-	if(d3->dwFlags & D3DDD_TRICAPS) OutTraceD("TriCaps=%x ", d3->dpcTriCaps);
-	if(d3->dwFlags & D3DDD_DEVICERENDERBITDEPTH) OutTraceD("DeviceRenderBitDepth=%d ", d3->dwDeviceRenderBitDepth);
-	if(d3->dwFlags & D3DDD_DEVICEZBUFFERBITDEPTH) OutTraceD("DeviceZBufferBitDepth=%d ", d3->dwDeviceZBufferBitDepth);
-	if(d3->dwFlags & D3DDD_MAXBUFFERSIZE) OutTraceD("MaxBufferSize=%d ", d3->dwMaxBufferSize);
-	if(d3->dwFlags & D3DDD_MAXVERTEXCOUNT) OutTraceD("MaxVertexCount=%d ", d3->dwMaxVertexCount);
-	OutTraceD("\n");
+	if(IsTraceD){
+		OutTrace("EnumDevices: CALLBACK dev=%s Size=%d Flags=%x ", label, d3->dwSize, d3->dwFlags);
+		if(d3->dwFlags & D3DDD_COLORMODEL) OutTrace("ColorModel=%x ", d3->dcmColorModel);
+		if(d3->dwFlags & D3DDD_DEVCAPS) OutTrace("DevCaps=%x ", d3->dwDevCaps);
+		if(d3->dwFlags & D3DDD_TRANSFORMCAPS) OutTrace("TransformCaps=%x ", d3->dtcTransformCaps.dwCaps);
+		if(d3->dwFlags & D3DDD_LIGHTINGCAPS) OutTrace("LightingCaps=%x ", d3->dlcLightingCaps);
+		if(d3->dwFlags & D3DDD_BCLIPPING) OutTrace("Clipping=%x ", d3->bClipping);
+		if(d3->dwFlags & D3DDD_LINECAPS) OutTrace("LineCaps=%x ", d3->dpcLineCaps);
+		if(d3->dwFlags & D3DDD_TRICAPS) OutTrace("TriCaps=%x ", d3->dpcTriCaps);
+		if(d3->dwFlags & D3DDD_DEVICERENDERBITDEPTH) OutTrace("DeviceRenderBitDepth=%d ", d3->dwDeviceRenderBitDepth);
+		if(d3->dwFlags & D3DDD_DEVICEZBUFFERBITDEPTH) OutTrace("DeviceZBufferBitDepth=%d ", d3->dwDeviceZBufferBitDepth);
+		if(d3->dwFlags & D3DDD_MAXBUFFERSIZE) OutTrace("MaxBufferSize=%d ", d3->dwMaxBufferSize);
+		if(d3->dwFlags & D3DDD_MAXVERTEXCOUNT) OutTrace("MaxVertexCount=%d ", d3->dwMaxVertexCount);
+		OutTrace("\n");
+	}
 }
 
 HRESULT WINAPI extDeviceProxy(GUID FAR *lpGuid, LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC lpd3ddd1, LPD3DDEVICEDESC lpd3ddd2, LPVOID arg)

@@ -6,8 +6,8 @@
 
 #include "MMSystem.h"
 
-#undef OutTraceD
-#define OutTraceD OutTrace
+//#undef OutTraceD
+//#define OutTraceD OutTrace
 
 static HookEntry_Type Hooks[]={
 	{"mciSendCommandA", NULL, (FARPROC *)&pmciSendCommand, (FARPROC)extmciSendCommand},

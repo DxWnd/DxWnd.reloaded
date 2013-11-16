@@ -45,3 +45,4 @@ extern char *ExplainDCType(DWORD);
 extern char *ExplainPeekRemoveMsg(DWORD);
 extern char *ExplainGetDCExFlags(DWORD);
 extern char *ExplainPaletteUse(UINT);
+extern char *ExplainRasterCaps(DWORD);

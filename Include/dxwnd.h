@@ -114,6 +114,8 @@
 
 // fourth flags DWORD dxw.dwFlags4:
 #define NOALPHACHANNEL		0x00000001 // By default, create surfaces with no DDPF_ALPHAPIXELS capability
+#define SUPPRESSCHILD		0x00000002 // suppress child process generation (CreateProcessA, ...?)
+#define FIXREFCOUNTER		0x00000004 // fixes the reference counter for the main directdraw session (the one connected to primary surfaces)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

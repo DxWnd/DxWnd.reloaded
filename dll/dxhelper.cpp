@@ -1545,5 +1545,31 @@ char *ExplainPaletteUse(UINT uUsage)
 	return eb;
 }
 
+char *ExplainRasterCaps(DWORD c)
+{
+	static char eb[128];
+	unsigned int l;
+	strcpy(eb,"RC_");
+	if(c & RC_BITBLT) strcat(eb, "BITBLT+");
+	if(c & RC_BANDING) strcat(eb, "BANDING+");
+	if(c & RC_SCALING) strcat(eb, "SCALING+");
+	if(c & RC_BITMAP64) strcat(eb, "BITMAP64+");
+	if(c & RC_GDI20_OUTPUT) strcat(eb, "GDI20_OUTPUT+");
+	if(c & RC_GDI20_STATE) strcat(eb, "GDI20_STATE+");
+	if(c & RC_SAVEBITMAP) strcat(eb, "SAVEBITMAP+");
+	if(c & RC_DI_BITMAP) strcat(eb, "DI_BITMAP+");
+	if(c & RC_PALETTE) strcat(eb, "PALETTE+");
+	if(c & RC_DIBTODEV) strcat(eb, "DIBTODEV+");
+	if(c & RC_BIGFONT) strcat(eb, "BIGFONT+");
+	if(c & RC_STRETCHBLT) strcat(eb, "STRETCHBLT+");
+	if(c & RC_FLOODFILL) strcat(eb, "FLOODFILL+");
+	if(c & RC_STRETCHDIB) strcat(eb, "STRETCHDIB+");
+	if(c & RC_OP_DX_OUTPUT) strcat(eb, "OP_DX_OUTPUT+");
+	if(c & RC_DEVBITS) strcat(eb, "DEVBITS+");
+	l=strlen(eb);
+	if (l>strlen("RC_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}
 
 

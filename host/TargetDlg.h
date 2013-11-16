@@ -122,6 +122,8 @@ public:
 	BOOL	m_ColorFix;
 	BOOL	m_NoPixelFormat;
 	BOOL	m_NoAlphaChannel;
+	BOOL	m_FixRefCounter;
+	BOOL	m_SuppressChild;
 	BOOL	m_LockSysColors;
 	BOOL	m_SaveCaps;
 	BOOL	m_SingleProcAffinity;
