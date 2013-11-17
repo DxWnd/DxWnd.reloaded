@@ -280,5 +280,10 @@ Fixed a bug in GDI "Map DC to primary surface"mode.
 Added palette display window to GUI
 
 v2.02.41
-Added "suppress child process creation" flag. This flag is introduced to manage games such as "Heart of Iron 2" and "Chariots of War" that start intro movie by means of a separate process. Both games are starting the binkplay.exe program in the game's avi subfolder. This way you don't get a windowed movie, but completely suppress it.
-Added "fix ddraw ref counter" flag, to have primary directdraw object addref & release ref counters identical to those without dxwnd. Some games check for the value and show error messages, i.e. "Grand Prix World"!
+Added "suppress child process creation"flag. This flag is introduced to manage games such as "Heart of Iron 2" that start intro movie by means of a separate process. HoI2 is starting the binkplay.exe program in the game's avi subfolder. This way you don't get a windowed movie, but completely suppress it.
+
+v2.02.42
+added hook to kernel32.dll QueryPerformanceCounter API to enable time stretching to Rayman 2
+handled GetAttachedSurface emulation for FLIP capability on primary surface - that makes the intro movies of Empire Earth visible.
+Some code cleaning
+Cleared invisible debug flags ...

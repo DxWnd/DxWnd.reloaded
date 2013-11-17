@@ -118,6 +118,8 @@ typedef int		(WINAPI *AddFontResourceW_Type)(LPCWSTR);
 typedef HANDLE  (WINAPI *CreateFile_Type)(LPCTSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
 typedef DWORD	(WINAPI *SetFilePointer_Type)(HANDLE, LONG, PLONG, DWORD);
 typedef BOOL	(WINAPI *CloseHandle_Type)(HANDLE);
+typedef BOOL	(WINAPI *QueryPerformanceFrequency_Type)(LARGE_INTEGER *);
+typedef BOOL	(WINAPI *QueryPerformanceCounter_Type)(LARGE_INTEGER *);
 
 // ole32.dll:
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
@@ -298,6 +300,8 @@ DXWEXTERN SleepEx_Type pSleepEx DXWINITIALIZED;
 DXWEXTERN CreateFile_Type pCreateFile DXWINITIALIZED;
 DXWEXTERN SetFilePointer_Type pSetFilePointer DXWINITIALIZED;
 DXWEXTERN CloseHandle_Type pCloseHandle DXWINITIALIZED;
+DXWEXTERN QueryPerformanceFrequency_Type pQueryPerformanceFrequency DXWINITIALIZED;
+DXWEXTERN QueryPerformanceCounter_Type pQueryPerformanceCounter DXWINITIALIZED;
 
 // ole32.dll:
 DXWEXTERN CoCreateInstance_Type pCoCreateInstance DXWINITIALIZED;
@@ -474,6 +478,8 @@ extern HANDLE WINAPI extCreateFile(LPCTSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES,
 extern DWORD WINAPI extSetFilePointer(HANDLE, LONG, PLONG, DWORD);
 extern BOOL WINAPI extCloseHandle(HANDLE);
 extern BOOL WINAPI extCreateProcessA(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION);
+extern BOOL WINAPI extQueryPerformanceFrequency(LARGE_INTEGER *);
+extern BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *);
 
 // ole32.dll:
 extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);

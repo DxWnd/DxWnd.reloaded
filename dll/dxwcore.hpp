@@ -64,6 +64,7 @@ public: // methods
 	void GetSystemTime(LPSYSTEMTIME lpSystemTime);
 	void GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime);
 	DWORD StretchTime(DWORD);
+	DWORD StretchCounter(DWORD);
 	void ShowFPS(LPDIRECTDRAWSURFACE);
 	void ShowFPS(void);
 	void ShowFPS(HDC);

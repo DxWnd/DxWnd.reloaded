@@ -831,6 +831,13 @@ DWORD dxwCore::StretchTime(DWORD dwTimer)
 	return dwTimer;
 }
 
+DWORD dxwCore::StretchCounter(DWORD dwTimer)
+{
+	TimeShift=GetHookInfo()->TimeShift;
+	dwTimer = TimeShifter(dwTimer, TimeShift);
+	return dwTimer;
+}
+
 void dxwCore::GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 {
 	DWORD dwTick;

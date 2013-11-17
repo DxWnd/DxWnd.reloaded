@@ -39,6 +39,7 @@ static HookEntry_Type TimeHooks[]={
 	{"Sleep", (FARPROC)Sleep, (FARPROC *)&pSleep, (FARPROC)extSleep},
 	{"SleepEx", (FARPROC)SleepEx, (FARPROC *)&pSleepEx, (FARPROC)extSleepEx},
 	{"SetTimer", (FARPROC)SetTimer, (FARPROC *)&pSetTimer, (FARPROC)extSetTimer},
+	{"QueryPerformanceCounter", (FARPROC)NULL, (FARPROC *)&pQueryPerformanceCounter, (FARPROC)extQueryPerformanceCounter},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -53,6 +54,11 @@ static HookEntry_Type SuppressChildHooks[]={
 	{0, NULL, 0, 0} // terminator
 };
 
+//static HookEntry_Type SuppressPerfCountersHooks[]={
+//	//{"QueryPerformanceFrequency", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)QueryPerformanceFrequency},
+//	{0, NULL, 0, 0} // terminator
+//};
+
 static char *libname = "kernel32.dll";
 
 void HookKernel32(HMODULE module)
@@ -63,6 +69,7 @@ void HookKernel32(HMODULE module)
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
 	if(dxw.dwFlags4 & SUPPRESSCHILD) HookLibrary(module, SuppressChildHooks, libname);
+	//if (1) HookLibrary(module, SuppressPerfCountersHooks, libname);
 }
 
 void HookKernel32Init()
@@ -93,6 +100,8 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 
 	if(dxw.dwFlags4 & SUPPRESSCHILD)
 		if (addr=RemapLibrary(proc, hModule, SuppressChildHooks)) return addr;
+
+	//if (addr=RemapLibrary(proc, hModule, SuppressPerfCountersHooks)) return addr;
 
 	return NULL;
 }
@@ -700,4 +709,23 @@ BOOL WINAPI extCreateProcessA(
 {
 	OutTraceD("CreateProcess: SUPPRESS ApplicationName=%s CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
 	return TRUE;
+}
+
+BOOL WINAPI extQueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
+{
+	// just proxy, but currently unhooked.....
+	BOOL ret;
+	ret=(*pQueryPerformanceFrequency)(lpFrequency);
+	return ret;
+}
+
+BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
+{
+	BOOL ret;
+	LARGE_INTEGER myPerfCount;
+	ret=(*pQueryPerformanceCounter)(&myPerfCount);
+	myPerfCount.HighPart = dxw.StretchCounter(myPerfCount.HighPart);
+	myPerfCount.LowPart = dxw.StretchCounter(myPerfCount.LowPart);
+	*lpPerformanceCount = myPerfCount;
+	return ret;
 }

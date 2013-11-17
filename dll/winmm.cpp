@@ -49,7 +49,7 @@ DWORD WINAPI exttimeGetTime(void)
 MMRESULT WINAPI exttimeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK lpTimeProc, DWORD_PTR dwUser, UINT fuEvent)
 {
 	MMRESULT res;
-	uDelay = uDelay * 8;
+	//uDelay = uDelay * 8;
 	OutTraceD("timeSetEvent: Delay=%d Resolution=%d Event=%x\n", uDelay, uResolution, fuEvent);
 	res=(*ptimeSetEvent)(uDelay, uResolution, lpTimeProc, dwUser, fuEvent);
 	OutTraceD("timeSetEvent: ret=%x\n", res);

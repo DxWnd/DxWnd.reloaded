@@ -2791,19 +2791,10 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 		return 0;
 	}
 
-	if(!IsPrim){
-		res=(*pGetAttachedSurface)(lpdds, lpddsc, lplpddas);
-		if(res) 
-			OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
-		else
-			OutTraceD("GetAttachedSurface(%d): attached=%x\n", dxversion, *lplpddas); 
-		return(res);
-	}
-
 	// on primary surface return the lpDDSBack surface coming from either an explicit
 	// AddAttachedSurface, or a primary complex surface creation otherwise....
 
-	if(lpddsc->dwCaps & DDSCAPS_BACKBUFFER){ // WIPWIP
+	if(IsPrim && (lpddsc->dwCaps & (DDSCAPS_BACKBUFFER|DDSCAPS_FLIP))) { // v2.02.42 added DDSCAPS_FLIP for Empire Earth
 		if (lpDDSBack) {
 			*lplpddas = lpDDSBack;
 			OutTraceD("GetAttachedSurface(%d): BACKBUFFER attached=%x\n", dxversion, *lplpddas); 
@@ -2815,14 +2806,16 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 			return DDERR_NOTFOUND;
 		}
 	}
-	else{
-		res=(*pGetAttachedSurface)(lpdds, lpddsc, lplpddas);
-		if(res) 
-			OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
-		else
-			OutTraceD("GetAttachedSurface(%d): attached=%x\n", dxversion, *lplpddas); 
-		return res;
-	}
+	
+	// proxy the call...
+
+	res=(*pGetAttachedSurface)(lpdds, lpddsc, lplpddas);
+	if(res) 
+		OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
+	else
+		OutTraceD("GetAttachedSurface(%d): attached=%x\n", dxversion, *lplpddas); 
+	return res;
+	
 }
 
 HRESULT WINAPI extGetAttachedSurface1(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
@@ -4191,19 +4184,6 @@ HRESULT WINAPI extGetCaps7S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 caps)
 	return extGetCapsS(7, (GetCapsS_Type)pGetCaps7S, lpdds, (LPDDSCAPS)caps);
 }
 
-#define FIXREFCOUNTERS 1
-#define ZEROREFCOUNTERS 0
-
-HRESULT WINAPI DumpHandle(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
-{
-	OutTrace("lpdds=%x flags=%x(%s) caps=%x(%s); ", 
-		lpDDSurface, 
-		lpDDSurfaceDesc->dwFlags, ExplainFlags(lpDDSurfaceDesc->dwFlags),
-		lpDDSurfaceDesc->ddsCaps.dwCaps, ExplainDDSCaps(lpDDSurfaceDesc->ddsCaps.dwCaps));
-	lpDDSurface->Release();
-	return DDENUMRET_OK;
-}
-
 ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 {
 	ULONG ActualRef;
@@ -4216,15 +4196,9 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 	ActualRef=(*pReleaseD)(lpdd);
 	VirtualRef=(LONG)ActualRef;
 	OutTraceD("Release(D): lpdd=%x service_lpdd=%x ref=%d\n", lpdd, lpPrimaryDD, ActualRef);
-	if(IsDebug && ActualRef){
-		OutTrace("Release(D): surfaces ");
-		//(*pEnumSurfaces)(lpdd, DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, DumpHandle);
-		lpdd->EnumSurfaces(DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, DumpHandle);
-		OutTrace("\n");
-	}
 
 	if (lpdd == lpPrimaryDD) { // v2.1.87: fix for Dungeon Keeper II
-		if(FIXREFCOUNTERS){
+		if(dxw.dwFlags4 & FIXREFCOUNTER){
 			// v2.02.41: fix the ref counter to sumulate the unwindowed original situation
 			--VirtualRef; // why ????
 			if(lpDDSBack) --VirtualRef;
@@ -4246,9 +4220,6 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 				lpBackBufferDD=NULL;
 				lpDDSBack=NULL; // beware: Silent Hunter II seems to require the backbuffer .... 
 			}
-		}
-		if(ZEROREFCOUNTERS){
-			VirtualRef=0;
 		}
 	}
 

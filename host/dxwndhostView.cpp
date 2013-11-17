@@ -499,6 +499,7 @@ static int LoadConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPa
 {
 	char key[32];
 	DWORD flags;
+	extern BOOL gbDebug;
 	sprintf_s(key, sizeof(key), "path%i", i);
 	GetPrivateProfileString("target", key, "", TargetMap->path, MAX_PATH, InitPath);
 	if(!TargetMap->path[0]) return FALSE;
@@ -556,6 +557,14 @@ static int LoadConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPa
 	TargetMap->MaxFPS = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "initts%i", i);
 	TargetMap->InitTS = GetPrivateProfileInt("target", key, 0, InitPath);
+
+	if (!gbDebug){
+		// clear debug flags
+		TargetMap->flags &= ~(0);
+		TargetMap->flags2 &= ~(FULLRECTBLT);
+		TargetMap->flags3 &= ~(YUV2RGB|RGB2YUV|SURFACEWARN|ANALYTICMODE|NODDRAWBLT|NODDRAWFLIP|NOGDIBLT);
+		TargetMap->flags4 &= ~(0);
+	}
 	return TRUE;
 }
 
