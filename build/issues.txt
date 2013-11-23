@@ -1,0 +1,1 @@
+Ancient Evil: working both in emulated / direct mode, but in emulated mode the cursor is not visible.

@@ -1762,11 +1762,11 @@ LONG WINAPI extTabbedTextOutA(HDC hdc, int X, int Y, LPCTSTR lpString, int nCoun
 
 BOOL WINAPI extDestroyWindow(HWND hWnd)
 {
+	// v2.02.43: Empire Earth builds test surfaces that must be destroyed!
 	BOOL res;
 	OutTraceB("DestroyWindow: hwnd=%x\n", hWnd);
 	if (hWnd == dxw.GethWnd()) {
 		OutTraceD("DestroyWindow: destroy main hwnd=%x\n", hWnd);
-		if(1) return 0;
 		dxw.SethWnd(NULL);
 	}
 	res=(*pDestroyWindow)(hWnd);

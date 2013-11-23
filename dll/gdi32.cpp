@@ -210,7 +210,7 @@ FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if(dxw.dwFlags2 & DISABLEGAMMARAMP)
 		if(addr=RemapLibrary(proc, hModule, GammaHooks)) return addr;
 
-	if(1) // v2.02.33 - for "Stratego" compatibility option
+	if(dxw.dwFlags3 & FONTBYPASS) // v2.02.33 - for "Stratego" compatibility option
 		if(addr=RemapLibrary(proc, hModule, FontHooks)) return addr;
 
 	return NULL;
@@ -1692,9 +1692,10 @@ BOOL WINAPI extCreateScalableFontResourceA(DWORD fdwHidden, LPCTSTR lpszFontRes,
 	BOOL res;
 	OutTraceD("CreateScalableFontResource: hidden=%d FontRes=\"%s\" FontFile=\"%s\" CurrentPath=\"%s\"\n",
 		fdwHidden, lpszFontRes, lpszFontFile, lpszCurrentPath);
-	if (1) return TRUE;
+	if(dxw.dwFlags3 & FONTBYPASS) return TRUE;
 	res=(*pCreateScalableFontResourceA)(fdwHidden, lpszFontRes, lpszFontFile, lpszCurrentPath);
 	if(!res) OutTraceE("CreateScalableFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return res;
 }
 
 BOOL WINAPI extCreateScalableFontResourceW(DWORD fdwHidden, LPCWSTR lpszFontRes, LPCWSTR lpszFontFile, LPCWSTR lpszCurrentPath)
@@ -1702,27 +1703,36 @@ BOOL WINAPI extCreateScalableFontResourceW(DWORD fdwHidden, LPCWSTR lpszFontRes,
 	BOOL res;
 	OutTraceD("CreateScalableFontResource: hidden=%d FontRes=\"%ls\" FontFile=\"%ls\" CurrentPath=\"%ls\"\n",
 		fdwHidden, lpszFontRes, lpszFontFile, lpszCurrentPath);
-	if (1) return TRUE;
+	if(dxw.dwFlags3 & FONTBYPASS) return TRUE;
 	res=(*pCreateScalableFontResourceW)(fdwHidden, lpszFontRes, lpszFontFile, lpszCurrentPath);
 	if(!res) OutTraceE("CreateScalableFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return res;
 }
 
 int WINAPI extAddFontResourceA(LPCTSTR lpszFontFile)
 {
 	BOOL res;
 	OutTraceD("AddFontResource: FontFile=\"%s\"\n", lpszFontFile);
-	if(1) return TRUE;
+	if(dxw.dwFlags3 & FONTBYPASS) {
+		OutTraceD("AddFontResource: SUPPRESSED FontFile=\"%s\"\n", lpszFontFile);
+		return TRUE;
+	}
 	res=(*pAddFontResourceA)(lpszFontFile);
 	if(!res) OutTraceE("AddFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return res;
 }
 
 int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
 {
 	BOOL res;
 	OutTraceD("AddFontResource: FontFile=\"%ls\"\n", lpszFontFile);
-	if(1) return TRUE;
+	if(dxw.dwFlags3 & FONTBYPASS) {
+		OutTraceD("AddFontResource: SUPPRESSED FontFile=\"%ls\"\n", lpszFontFile);
+		return TRUE;
+	}
 	res=(*pAddFontResourceW)(lpszFontFile);
 	if(!res) OutTraceE("AddFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return res;
 }
 
 UINT WINAPI extSetSystemPaletteUse(HDC hdc, UINT uUsage)

@@ -287,3 +287,10 @@ added hook to kernel32.dll QueryPerformanceCounter API to enable time stretching
 handled GetAttachedSurface emulation for FLIP capability on primary surface - that makes the intro movies of Empire Earth visible.
 Some code cleaning
 Cleared invisible debug flags ...
+
+v2.02.43
+Several changes for Empire Earth:
+fix: restore 16BPP color mode after directdraw session termination
+fix: recovered window destruction
+fix: proper handling of MIPMAP and LOCALVIDMEM surfaces 
+fix: revised color management, now when the program terminates the desktop is restored to the previous color depth

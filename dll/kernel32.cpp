@@ -54,11 +54,6 @@ static HookEntry_Type SuppressChildHooks[]={
 	{0, NULL, 0, 0} // terminator
 };
 
-//static HookEntry_Type SuppressPerfCountersHooks[]={
-//	//{"QueryPerformanceFrequency", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)QueryPerformanceFrequency},
-//	{0, NULL, 0, 0} // terminator
-//};
-
 static char *libname = "kernel32.dll";
 
 void HookKernel32(HMODULE module)
@@ -69,7 +64,6 @@ void HookKernel32(HMODULE module)
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
 	if(dxw.dwFlags4 & SUPPRESSCHILD) HookLibrary(module, SuppressChildHooks, libname);
-	//if (1) HookLibrary(module, SuppressPerfCountersHooks, libname);
 }
 
 void HookKernel32Init()

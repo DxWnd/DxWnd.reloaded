@@ -373,28 +373,30 @@ static char *DumpPixelFormat(LPDDSURFACEDESC2 lpddsd)
 
 static void LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 {
-	OutTraceD("SurfaceDesc: %s Flags=%x(%s)",
+	if(!IsTraceD) return;
+	OutTrace("SurfaceDesc: %s Flags=%x(%s)",
 		label, 
 		lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags));
-	if (lpddsd->dwFlags & DDSD_BACKBUFFERCOUNT) OutTraceD(" BackBufferCount=%d", lpddsd->dwBackBufferCount);
-	if (lpddsd->dwFlags & DDSD_WIDTH) OutTraceD(" Width=%d", lpddsd->dwWidth);
-	if (lpddsd->dwFlags & DDSD_HEIGHT) OutTraceD(" Height=%d", lpddsd->dwHeight);
-	if (lpddsd->dwFlags & DDSD_PITCH) OutTraceD(" Pitch=%d", lpddsd->lPitch);
+	if (lpddsd->dwFlags & DDSD_BACKBUFFERCOUNT) OutTrace(" BackBufferCount=%d", lpddsd->dwBackBufferCount);
+	if (lpddsd->dwFlags & DDSD_WIDTH) OutTrace(" Width=%d", lpddsd->dwWidth);
+	if (lpddsd->dwFlags & DDSD_HEIGHT) OutTrace(" Height=%d", lpddsd->dwHeight);
+	if (lpddsd->dwFlags & DDSD_PITCH) OutTrace(" Pitch=%d", lpddsd->lPitch);
+	if (lpddsd->dwFlags & DDSD_MIPMAPCOUNT) OutTrace(" MipMapCount=%d", lpddsd->dwMipMapCount);
 	if (lpddsd->dwFlags & DDSD_CAPS) {
-		OutTraceD(" Caps=%x(%s)", lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
+		OutTrace(" Caps=%x(%s)", lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
 		if(lpddsd->dwSize==sizeof(DDSURFACEDESC2)){
 			LPDDSURFACEDESC2 lpddsd2=(LPDDSURFACEDESC2)lpddsd;
-			OutTraceD(" Caps2=%x(%s)", lpddsd2->ddsCaps.dwCaps2, ExplainDDSCaps2(lpddsd2->ddsCaps.dwCaps2));
-			OutTraceD(" Caps3=%x(%s)", lpddsd2->ddsCaps.dwCaps3, ExplainDDSCaps3(lpddsd2->ddsCaps.dwCaps3));
+			OutTrace(" Caps2=%x(%s)", lpddsd2->ddsCaps.dwCaps2, ExplainDDSCaps2(lpddsd2->ddsCaps.dwCaps2));
+			OutTrace(" Caps3=%x(%s)", lpddsd2->ddsCaps.dwCaps3, ExplainDDSCaps3(lpddsd2->ddsCaps.dwCaps3));
 		}
 	}
-	if (lpddsd->dwFlags & DDSD_CKDESTBLT ) OutTraceD(" CKDestBlt=(%x,%x)", lpddsd->ddckCKDestBlt.dwColorSpaceLowValue, lpddsd->ddckCKDestBlt.dwColorSpaceHighValue);
-	if (lpddsd->dwFlags & DDSD_CKDESTOVERLAY ) OutTraceD(" CKDestOverlay=(%x,%x)", lpddsd->ddckCKDestOverlay.dwColorSpaceLowValue, lpddsd->ddckCKDestOverlay.dwColorSpaceHighValue);
-	if (lpddsd->dwFlags & DDSD_CKSRCBLT ) OutTraceD(" CKSrcBlt=(%x,%x)", lpddsd->ddckCKSrcBlt.dwColorSpaceLowValue, lpddsd->ddckCKSrcBlt.dwColorSpaceHighValue);
-	if (lpddsd->dwFlags & DDSD_CKSRCOVERLAY ) OutTraceD(" CKSrcOverlay=(%x,%x)", lpddsd->ddckCKSrcOverlay.dwColorSpaceLowValue, lpddsd->ddckCKSrcOverlay.dwColorSpaceHighValue);
-	if (lpddsd->dwFlags & DDSD_PIXELFORMAT ) OutTraceD("%s", DumpPixelFormat((LPDDSURFACEDESC2)lpddsd));
-	if (lpddsd->dwFlags & DDSD_LPSURFACE) OutTraceD(" Surface=%x", lpddsd->lpSurface);
-	OutTraceD("\n");
+	if (lpddsd->dwFlags & DDSD_CKDESTBLT ) OutTrace(" CKDestBlt=(%x,%x)", lpddsd->ddckCKDestBlt.dwColorSpaceLowValue, lpddsd->ddckCKDestBlt.dwColorSpaceHighValue);
+	if (lpddsd->dwFlags & DDSD_CKDESTOVERLAY ) OutTrace(" CKDestOverlay=(%x,%x)", lpddsd->ddckCKDestOverlay.dwColorSpaceLowValue, lpddsd->ddckCKDestOverlay.dwColorSpaceHighValue);
+	if (lpddsd->dwFlags & DDSD_CKSRCBLT ) OutTrace(" CKSrcBlt=(%x,%x)", lpddsd->ddckCKSrcBlt.dwColorSpaceLowValue, lpddsd->ddckCKSrcBlt.dwColorSpaceHighValue);
+	if (lpddsd->dwFlags & DDSD_CKSRCOVERLAY ) OutTrace(" CKSrcOverlay=(%x,%x)", lpddsd->ddckCKSrcOverlay.dwColorSpaceLowValue, lpddsd->ddckCKSrcOverlay.dwColorSpaceHighValue);
+	if (lpddsd->dwFlags & DDSD_PIXELFORMAT ) OutTrace("%s", DumpPixelFormat((LPDDSURFACEDESC2)lpddsd));
+	if (lpddsd->dwFlags & DDSD_LPSURFACE) OutTrace(" Surface=%x", lpddsd->lpSurface);
+	OutTrace("\n");
 }
 
 static void DumpPixFmt(LPDDSURFACEDESC2 lpdds)
@@ -2114,6 +2116,15 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 			return;
 			break;
+		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
+			// Empire Earth
+			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+			return;
+			break;
+		case DDSCAPS_COMPLEX|DDSCAPS_TEXTURE|DDSCAPS_MIPMAP:
+			// Empire Earth: flags = DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT|DDSD_MIPMAPCOUNT
+			return;
+			break;
 		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER:
 			// the Sims
 			return;
@@ -2194,7 +2205,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	// To do: fix Dungeon Keeper II
 
 	// rules of thumb:
-	// 1) always get rid of DDSCAPS_VIDEOMEMORY caps
+	// 1) always get rid of DDSCAPS_VIDEOMEMORY & DDSCAPS_LOCALVIDMEM caps
 	// 2) always add DDSCAPS_SYSTEMMEMORY caps
 	// 3) DDSCAPS_SYSTEMMEMORY is supported from dxversion 4
 	// 4) if DDSD_CAPS is not set, ignore caps
@@ -2254,6 +2265,14 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwFlags & DDPF_FOURCC)) return;
 
 #if 0
+	// v2.02.43: don't alter MIPMAP surfaces
+	if((lpddsd->dwFlags & DDSD_MIPMAPCOUNT) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_MIPMAP)) {
+		//GetPixFmt(lpddsd);
+		return;
+	}
+#endif
+
+#if 0
 	// HoM&M3/4 fix....
 	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT)) == (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) &&
 		((lpddsd->ddsCaps.dwCaps & ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_VIDEOMEMORY) == DDSCAPS_OFFSCREENPLAIN)){
@@ -2267,7 +2286,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	// default case: adjust pixel format
 	OutTraceB("FixSurfaceCaps: suppress DDSCAPS_VIDEOMEMORY case\n");
 	lpddsd->dwFlags |= (DDSD_CAPS|DDSD_PIXELFORMAT); 
-	lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+	lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); // v2.02.43
 	lpddsd->ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 	if(!(dxw.dwFlags3 & NOPIXELFORMAT)) GetPixFmt(lpddsd);
 	return;
@@ -3479,7 +3498,7 @@ LPDIRECTDRAWSURFACE2 lpDDSBuffer = NULL;
 
 HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSURFACE lpdds2, DWORD flags, HANDLE hEvent)
 {
-	HRESULT res;
+	HRESULT res, res2;
 	static RECT client;
 	POINT upleft={0,0};
 	LPDIRECTDRAWSURFACE lpDDSPrim;
@@ -3497,7 +3516,13 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAW
 			OutTrace(" rect=(NULL)\n");
 	}
 
-	(*pGetGDISurface)(lpPrimaryDD, &lpDDSPrim);
+	// V2.02.43: Empire Earth does some test Lock operations apparently before the primary surface is created
+	if(lpPrimaryDD){
+		lpDDSPrim=0;
+		res2=(*pGetGDISurface)(lpPrimaryDD, &lpDDSPrim);
+		if(res2)
+			OutTraceE("Lock: GetGDISurface ERROR res=%x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
+		else
 	(*pReleaseS)(lpDDSPrim);
 	if(lpdds==lpDDSPrim){
 		if(dxw.dwFlags1 & LOCKEDSURFACE){
@@ -3537,6 +3562,7 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAW
 			OutTraceD("Lock: NULL rect remapped to (%d,%d)-(%d,%d)\n", 
 				lprect->left, lprect->top, lprect->right, lprect->bottom);
 		}
+	}
 	}
 
 	res=(*pLock)(lpdds, lprect, lpdds2, flags, hEvent);
@@ -3922,13 +3948,36 @@ HRESULT WINAPI extGetPixelFormat(LPDIRECTDRAWSURFACE lpdds, LPDDPIXELFORMAT p)
 	return res;
 }
 
+#if 0
+static HRESULT WINAPI RestoreAll(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
+{
+	HRESULT res;
+	//res=lpDDSurface->Restore();
+	res=(*pRestore)((LPDIRECTDRAWSURFACE)lpDDSurface);
+	OutTraceB("TestCooperativeLevel: Restore lpdds=%x res=%x(%s)\n", lpDDSurface, res, ExplainDDError(res));
+	(*pReleaseS)((LPDIRECTDRAWSURFACE)lpDDSurface);
+	if(res) return DDENUMRET_CANCEL;
+	return DDENUMRET_OK;
+}
+#endif
+
 HRESULT WINAPI extTestCooperativeLevel(LPDIRECTDRAW lpdd)
 {
 	HRESULT res;
 	res=(*pTestCooperativeLevel)(lpdd);
-	if(IsDebug) 
-		OutTrace("TestCooperativeLevel: lpdd=%x res=%x(%s)\n", lpdd, res, ExplainDDError(res));
-	return DD_OK;
+	OutTraceB("TestCooperativeLevel: lpdd=%x res=%x(%s)\n", lpdd, res, ExplainDDError(res));
+	if(res==DDERR_WRONGMODE) {
+#if 0
+		(*pEnumSurfaces4)(lpdd, DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, (LPDDENUMSURFACESCALLBACK2)RestoreAll);
+		//lpDDSEmu_Prim->Restore();
+		//res=(*pEnumSurfaces4)(lpdd, dwflags, lpddsd, lpContext, cb);
+#else
+		res=((LPDIRECTDRAW7)lpdd)->RestoreAllSurfaces();
+		if(res) OutTraceE("TestCooperativeLevel: RestoreAllSurfaces ERROR res=%x(%s)\n", res, ExplainDDError(res));
+#endif
+	}
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) return DD_OK;
+	return res;
 }
 
 HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
@@ -4222,6 +4271,11 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 			}
 		}
 	}
+
+	// when lpdd session is closed (ref==0) the system restores the default color depth
+	// so if FORCE16BPP is set, dxwnd must restore the 16BPP value
+	//extern void SwitchTo16BPP();
+	//if((ActualRef==0) && (dxw.dwFlags3 & FORCE16BPP)) SwitchTo16BPP();
 
 	OutTraceD("Release(D): lpdd=%x ref=%x\n", lpdd, VirtualRef);
 	return (ULONG)VirtualRef;

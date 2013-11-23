@@ -980,7 +980,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_ERASEBKGND:
-		if(dxw.IsRealDesktop(hwnd)){
+		if(dxw.IsDesktop(hwnd)){ 
 			OutTraceD("WindowProc: WM_ERASEBKGND(%x,%x) - suppressed\n", wparam, lparam);
 			return 1; // 1 == OK, erased
 		}
@@ -989,7 +989,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
 			OutTraceD("WindowProc: prevent WM_DISPLAYCHANGE depth=%d size=(%d,%d)\n",
 				wparam, HIWORD(lparam), LOWORD(lparam));
-			return 0;
+			// v2.02.43: unless EMULATESURFACE is set, lock the screen resolution only, but not the color depth!
+			if(dxw.dwFlags1 & EMULATESURFACE) return 0;
+			// let rparam (color depth) change, but override lparam (screen width & height.)
+			lparam = MAKELPARAM((LONG)dxw.GetScreenHeight(), (LONG)dxw.GetScreenWidth());
+			//return 0;
 		}
 		break;
 	case WM_WINDOWPOSCHANGING:
@@ -1197,31 +1201,41 @@ void HookSysLibsInit()
 	HookGDI32Init();
 }
 
+DEVMODE InitDevMode;
+
+static void SaveScreenMode()
+{
+	static BOOL DoOnce=FALSE;
+	if(DoOnce) return;
+	DoOnce=TRUE;
+	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &InitDevMode);
+	OutTraceD("DXWND: Initial display mode WxH=(%dx%d) BitsPerPel=%d\n", 
+		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
+}
+
 static void RecoverScreenMode()
 {
-	DEVMODE InitDevMode, CurrentDevMode;
+	DEVMODE CurrentDevMode;
 	BOOL res;
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
-	EnumDisplaySettings(NULL, ENUM_REGISTRY_SETTINGS, &InitDevMode);
 	OutTraceD("ChangeDisplaySettings: recover CURRENT WxH=(%dx%d) BitsPerPel=%d TARGET WxH=(%dx%d) BitsPerPel=%d\n", 
 		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel,
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
-	//InitDevMode.dmFields |= (DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT);
 	InitDevMode.dmFields = (DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT);
 	res=(*pChangeDisplaySettings)(&InitDevMode, 0);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
 
-static void SwitchTo16BPP()
+void SwitchTo16BPP()
 {
-	DEVMODE InitDevMode;
+	DEVMODE CurrentDevMode;
 	BOOL res;
-	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &InitDevMode);
+	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
 	OutTraceD("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> 16\n", 
-		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
-	InitDevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-	InitDevMode.dmBitsPerPel = 16;
-	res=(*pChangeDisplaySettings)(&InitDevMode, 0);
+		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel);
+	CurrentDevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+	CurrentDevMode.dmBitsPerPel = 16;
+	res=(*pChangeDisplaySettings)(&CurrentDevMode, CDS_UPDATEREGISTRY);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
 
@@ -1229,7 +1243,6 @@ static void LockScreenMode(DWORD dmPelsWidth, DWORD dmPelsHeight, DWORD dmBitsPe
 {
 	DEVMODE InitDevMode;
 	BOOL res;
-	EnumDisplaySettings(NULL, ENUM_REGISTRY_SETTINGS, &InitDevMode);
 	OutTraceD("ChangeDisplaySettings: LOCK wxh=(%dx%d) BitsPerPel=%d -> wxh=(%dx%d) BitsPerPel=%d\n", 
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel,
 		dmPelsWidth, dmPelsHeight, dmBitsPerPel);
@@ -1240,7 +1253,6 @@ static void LockScreenMode(DWORD dmPelsWidth, DWORD dmPelsHeight, DWORD dmBitsPe
 		if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 }
-
 
 // to do: find a logic in the exception codes (0xc0000095 impies a bitmask ?)
 // idem for ExceptionFlags
@@ -1484,6 +1496,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		sModule=strtok(NULL," ;");
 	}
 
+	SaveScreenMode();
 	if(dxw.dwFlags2 & RECOVERSCREENMODE) RecoverScreenMode();
 	if(dxw.dwFlags3 & FORCE16BPP) SwitchTo16BPP();
 
