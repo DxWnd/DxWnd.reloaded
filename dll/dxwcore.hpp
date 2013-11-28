@@ -66,8 +66,11 @@ public: // methods
 	DWORD StretchTime(DWORD);
 	DWORD StretchCounter(DWORD);
 	void ShowFPS(LPDIRECTDRAWSURFACE);
+	void ShowTimeStretching(LPDIRECTDRAWSURFACE);
 	void ShowFPS(void);
+	void ShowTimeStretching(void);
 	void ShowFPS(HDC);
+	void ShowTimeStretching(HDC);
 	char *GetTSCaption(int);
 	char *GetTSCaption(void);
 	void DoSlow(int);
@@ -81,6 +84,7 @@ public: // methods
 	BOOL IsVirtual(HDC);
 	void ResetEmulatedDC();
 	int VirtualOffsetX, VirtualOffsetY;
+	void DumpPalette(DWORD, LPPALETTEENTRY);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;

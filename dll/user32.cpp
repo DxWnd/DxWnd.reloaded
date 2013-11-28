@@ -39,6 +39,9 @@ static HookEntry_Type Hooks[]={
 	{"DestroyWindow", (FARPROC)NULL, (FARPROC *)&pDestroyWindow, (FARPROC)extDestroyWindow},
 	{"SetSysColors", (FARPROC)NULL, (FARPROC *)&pSetSysColors, (FARPROC)extSetSysColors},
 	{"SetCapture", (FARPROC)NULL, (FARPROC *)&pSetCapture, (FARPROC)extSetCapture},
+
+	{"GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
+	{"GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -154,6 +157,24 @@ void HookUser32Init()
 	HookLibInit(WinHooks);
 	HookLibInit(MouseHooks2);
 }
+
+/* ------------------------------------------------------------------------------ */
+// auxiliary (static) functions
+/* ------------------------------------------------------------------------------ */
+
+static void Stopper(char *s, int line)
+{
+	char sMsg[81];
+	sprintf(sMsg,"break: \"%s\"", s);
+	MessageBox(0, sMsg, "break", MB_OK | MB_ICONEXCLAMATION);
+}
+
+//#define STOPPER_TEST // comment out to eliminate
+#ifdef STOPPER_TEST
+#define STOPPER(s) Stopper(s, __LINE__)
+#else
+#define STOPPER(s)
+#endif
 
 // --------------------------------------------------------------------------
 //
@@ -1879,5 +1900,23 @@ HWND WINAPI extSetCapture(HWND hwnd)
 	OutTraceD("SetCapture: hwnd=%x\n", hwnd);
 	ret=(*pSetCapture)(hwnd);
 	OutTraceD("SetCapture: ret=%x\n", ret);
+	return ret;
+}
+
+HWND WINAPI extGetActiveWindow(void)
+{
+	HWND ret;
+	ret=(*pGetActiveWindow)();
+	OutTraceD("GetActiveWindow: ret=%x\n", ret);
+	STOPPER("GetActiveWindow");
+	return ret;
+}
+
+HWND WINAPI extGetForegroundWindow(void)
+{
+	HWND ret;
+	ret=(*pGetForegroundWindow)();
+	OutTraceD("GetForegroundWindow: ret=%x\n", ret);
+	STOPPER("GetForegroundWindow");
 	return ret;
 }

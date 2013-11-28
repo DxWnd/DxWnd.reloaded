@@ -243,7 +243,7 @@ void HookViewport(LPDIRECT3DVIEWPORT *lpViewport, int dxversion)
 	}
 }
 
-HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID * ppvObj)
+HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID *ppvObj)
 {
 	HRESULT res;
 	int d3dversion;

@@ -109,6 +109,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SkipFPS = FALSE;
 	m_ShowFPS = FALSE;
 	m_ShowFPSOverlay = FALSE;
+	m_ShowTimeStretch = FALSE;
 	m_TimeStretch = FALSE;
 	m_HookOpenGL = FALSE;
 	m_ForceHookOpenGL = FALSE;

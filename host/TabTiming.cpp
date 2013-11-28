@@ -32,6 +32,7 @@ void CTabTiming::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SKIPFPS, cTarget->m_SkipFPS);
 	DDX_Check(pDX, IDC_SHOWFPS, cTarget->m_ShowFPS);
 	DDX_Check(pDX, IDC_SHOWFPSOVERLAY, cTarget->m_ShowFPSOverlay);
+	DDX_Check(pDX, IDC_SHOWTIMESTRETCH, cTarget->m_ShowTimeStretch);
 	DDX_Check(pDX, IDC_TIMESTRETCH, cTarget->m_TimeStretch);
 	DDX_Text(pDX, IDC_MAXFPS, cTarget->m_MaxFPS);
 	DDX_LBIndex(pDX, IDC_LISTTS, cTarget->m_InitTS);

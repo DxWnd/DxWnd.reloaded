@@ -99,6 +99,7 @@ public:
 	BOOL	m_LimitFPS;
 	BOOL	m_ShowFPS;
 	BOOL	m_ShowFPSOverlay;
+	BOOL	m_ShowTimeStretch;
 	BOOL	m_TimeStretch;
 	BOOL	m_HookOpenGL;
 	BOOL	m_ForceHookOpenGL;

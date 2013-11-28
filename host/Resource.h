@@ -189,6 +189,7 @@
 #define IDC_NOALPHACHANNEL              1143
 #define IDC_SUPPRESSCHILD               1144
 #define IDC_FIXREFCOUNTER               1145
+#define IDC_SHOWTIMESTRETCH             1146
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

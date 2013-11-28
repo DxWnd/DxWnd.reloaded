@@ -65,7 +65,7 @@ static char *Flag3Names[32]={
 };
 
 static char *Flag4Names[32]={
-	"NOALPHACHANNEL", "SUPPRESSCHILD", "", "",
+	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",

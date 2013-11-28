@@ -293,4 +293,18 @@ Several changes for Empire Earth:
 fix: restore 16BPP color mode after directdraw session termination
 fix: recovered window destruction
 fix: proper handling of MIPMAP and LOCALVIDMEM surfaces 
-fix: revised color management, now when the program terminates the desktop is restored to the previous color depth
+fix: color depth handling - now when the program terminates the desktop is brought to the original color depth
+
+v2.02.45
+Improved debug logging for all palette operations
+fixed a bugged log causing the crash of Empire Earth in debug mode
+added show time stretching flag - preliminary version. Some code cleaning as well.
+change in automatic screen refresh - should make the "palette update don't blit" flag obsolete.....
+added a static definition for the default system palette
+added interception for CoCreateInstance following cases:
+	case 0xe436ebb3: Module="quartz"; Class="CLSID_FilterGraph";
+	case 0x4fd2a832: Module="ddrawex"; Class="CLSID_DirectDrawEx";
+	case 0x49c47ce5: Module="amstream"; Class="CLSID_AMMultiMediaStream";
+preliminary (proxed) interception for "GetActiveWindow" and "GetForegroundWindow"
+
+ 

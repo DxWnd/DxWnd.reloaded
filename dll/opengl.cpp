@@ -220,6 +220,7 @@ void WINAPI extglDrawBuffer(GLenum mode)
 	}
 	(*pglDrawBuffer)(mode);
 	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS();
+	if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching();
 }
 
 void WINAPI extglPolygonMode(GLenum face, GLenum mode)

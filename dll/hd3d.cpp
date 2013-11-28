@@ -524,6 +524,7 @@ HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDes
 	// proxy ....
 	res=(*pPresent)(pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS();
+	if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching();
 	return res;
 }
 

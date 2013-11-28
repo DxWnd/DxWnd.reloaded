@@ -445,93 +445,51 @@ void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries)
 	int i;
 	extern DXWNDSTATUS *pStatus;
 
-	OutTraceD("mySetPalette DEBUG: BPP=%d GBitMask=%x count=%d\n", 
-		dxw.ActualPixelFormat.dwRGBBitCount, dxw.ActualPixelFormat.dwGBitMask, dwcount);
-
-	if(IsDebug){
-		int idx;
-		OutTraceD("PaletteEntries: start=%d count=%d ", dwstart, dwcount);
-		for(idx=0; idx<dwcount; idx++) OutTraceD("(%02x.%02x.%02x)", 
-			lpentries[dwstart+idx].peRed,
-			lpentries[dwstart+idx].peGreen,
-			lpentries[dwstart+idx].peBlue  );
-		OutTraceD("\n");
-	}
-
 	for(int idx=0; idx<dwcount; idx++)  
 		pStatus->Palette[dwstart+idx]= lpentries[idx];
 
-	if (dxw.dwFlags3 & RGB2YUV){
-		int idx;
-		for(idx=0; idx<dwcount; idx++){
-			long Y, U, V, R, G, B;
-			R=lpentries[dwstart+idx].peRed;
-			G=lpentries[dwstart+idx].peGreen;
-			B=lpentries[dwstart+idx].peBlue;
-			Y = ((299 * R) + (587 * G) + (114 * B)) / 1000;
-			U = ((-169 * R) + (-331 * G) + (500 * B)) / 1000 + 128;
-			V = ((500 * R) + (-419 * G) + (-813 * B)) / 1000 + 128;
-			//Y = ((299 * R) + (587 * G) + (114 * B)) / 1000;
-			//U = ((-147 * R) + (-289 * G) + (436 * B)) / 1000 + 128;
-			//V = ((615 * R) + (-515 * G) + (-100 * B)) / 1000 + 128;
-			if (Y<0) Y=0; if(Y>255) Y=255;
-			if (U<0) U=0; if(U>255) U=255;
-			if (V<0) V=0; if(V>255) V=255;
-			lpentries[dwstart+idx].peRed = (BYTE)Y;
-			lpentries[dwstart+idx].peGreen = (BYTE)U;
-			lpentries[dwstart+idx].peBlue = (BYTE)V;
-		}
-	}
+#if 0
+	typedef struct {
+    WORD        palVersion;
+    WORD        palNumEntries;
+    PALETTEENTRY        palPalEntry[256];
+	} LOGPALETTE256;
+	LOGPALETTE256 GDIPalette;
+	HPALETTE pal;
+	GDIPalette.palNumEntries=256;
+	GDIPalette.palVersion=0;
+	memcpy(GDIPalette.palPalEntry, lpentries, 256*sizeof(PALETTEENTRY));
+	pal=CreatePalette((LOGPALETTE *)&GDIPalette);
+	SelectPalette(GetDC(dxw.GethWnd()), pal, 0);
+	RealizePalette(GetDC(dxw.GethWnd()));
+#endif
 
-	if (dxw.dwFlags3 & YUV2RGB){
-		int idx;
-		for(idx=0; idx<dwcount; idx++){
-			long Y, U, V, R, G, B;
-			R=lpentries[dwstart+idx].peRed;
-			G=lpentries[dwstart+idx].peGreen;
-			B=lpentries[dwstart+idx].peBlue;
-			Y = ((1000 * R) + (0 * G) + (1140 * B)) / 1000;
-			U = ((1000 * R) + (-395 * G) + (-580 * B)) / 1000;
-			V = ((1000 * R) + (-32 * G) + (0 * B)) / 1000;
-			if (Y<0) Y=0; if(Y>255) Y=255;
-			if (U<0) U=0; if(U>255) U=255;
-			if (V<0) V=0; if(V>255) V=255;
-			lpentries[dwstart+idx].peRed = (BYTE)Y;
-			lpentries[dwstart+idx].peGreen = (BYTE)U;
-			lpentries[dwstart+idx].peBlue = (BYTE)V;
-		}
-	}
-
-	// actually, it should be like this: R/G/B = (red * 0.30) + (green * 0.59) + (blue * 0.11) 
-	// (http://www.codeproject.com/Articles/66253/Converting-Colors-to-Gray-Shades)
-
-	if (dxw.dwFlags3 & BLACKWHITE){
-		for(i = 0; i < dwcount; i ++){
+	for(i = 0; i < dwcount; i ++){
+		PALETTEENTRY PalColor;
+		PalColor = lpentries[i];
+		if (dxw.dwFlags3 & BLACKWHITE){
+			// (http://www.codeproject.com/Articles/66253/Converting-Colors-to-Gray-Shades):
+			// gray = (red * 0.30) + (green * 0.59) + (blue * 0.11) 
 			DWORD grayscale;
 			//grayscale = ((DWORD)lpentries[i].peRed + (DWORD)lpentries[i].peGreen + (DWORD)lpentries[i].peBlue) / 3;
-			grayscale = (((DWORD)lpentries[i].peRed * 30) + ((DWORD)lpentries[i].peGreen * 59) + ((DWORD)lpentries[i].peBlue) * 11) / 100;
-			lpentries[i].peRed = lpentries[i].peGreen = lpentries[i].peBlue = (BYTE)grayscale;
+			grayscale = (((DWORD)PalColor.peRed * 30) + ((DWORD)PalColor.peGreen * 59) + ((DWORD)PalColor.peBlue) * 11) / 100;
+			PalColor.peRed = PalColor.peGreen = PalColor.peBlue = (BYTE)grayscale;
 		}
-	}
-
-	switch (dxw.ActualPixelFormat.dwRGBBitCount){
-	case 32:
-		for(i = 0; i < dwcount; i ++){
+		switch (dxw.ActualPixelFormat.dwRGBBitCount){
+		case 32:
 			PaletteEntries[i + dwstart] =
-				(((DWORD)lpentries[i].peRed) << 16) + (((DWORD)lpentries[i].peGreen) << 8) + ((DWORD)lpentries[i].peBlue);
-		}
-		break;
-	case 16:
-		for(i = 0; i < dwcount; i ++){
+				(((DWORD)PalColor.peRed) << 16) + (((DWORD)PalColor.peGreen) << 8) + ((DWORD)PalColor.peBlue);
+			break;
+		case 16:
 			PaletteEntries[i + dwstart] = (dxw.ActualPixelFormat.dwGBitMask == 0x03E0) ?
-				(((DWORD)lpentries[i].peRed & 0xF8) << 8) + (((DWORD)lpentries[i].peGreen & 0xFC) << 3) + (((DWORD)lpentries[i].peBlue &0xF8) >> 3)
+				(((DWORD)PalColor.peRed & 0xF8) << 8) + (((DWORD)PalColor.peGreen & 0xFC) << 3) + (((DWORD)PalColor.peBlue &0xF8) >> 3)
 				:
-				(((DWORD)lpentries[i].peRed & 0xF8) << 8) + (((DWORD)lpentries[i].peGreen & 0xF8) << 3) + (((DWORD)lpentries[i].peBlue &0xF8) >> 3);
+				(((DWORD)PalColor.peRed & 0xF8) << 8) + (((DWORD)PalColor.peGreen & 0xF8) << 3) + (((DWORD)PalColor.peBlue &0xF8) >> 3);
+			break;
+		default:
+			OutTraceD("ASSERT: unsupported Color BPP=%d\n", dxw.ActualPixelFormat.dwRGBBitCount);
+			break;
 		}
-		break;
-	default:
-		OutTraceD("ASSERT: unsupported Color BPP=%d\n", dxw.ActualPixelFormat.dwRGBBitCount);
-		break;
 	}
 
 	isPaletteUpdated = TRUE;
@@ -567,7 +525,7 @@ void InitDSScreenParameters(LPDIRECTDRAWSURFACE lpdds)
 
 	ddsd.ddpfPixelFormat = p;
 	OutTraceD("InitDSScreenParameters: Actual %s\n", DumpPixelFormat(&ddsd));
-	dxw.ActualPixelFormat=p;
+	dxw.ActualPixelFormat = p;
 	SetBltTransformations();
 	return;
 }
@@ -2586,7 +2544,7 @@ static HRESULT BuildGenericDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	HookDDSurfaceGeneric(lplpdds, dxversion);
 
 	OutTraceD("CreateSurface: created lpdds=%x type=Generic ret=%x\n", *lplpdds, res);
-	if(IsDebug) DescribeSurface(lpDDSBack, dxversion, "Generic", __LINE__);
+	if(IsDebug) DescribeSurface(*lplpdds, dxversion, "Generic", __LINE__); //v2.02.44 bug fix
 
 	return DD_OK;
 }
@@ -3053,6 +3011,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 		if (lpdds != lpddssrc) {
 			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc); 
+			if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(lpddssrc);
 			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
 			res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 		}
@@ -3113,6 +3072,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		*/
 		if(res==DDERR_UNSUPPORTED){
 			if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpddssrc);
+			if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(lpddssrc);
 			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
@@ -3151,6 +3111,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	}
 
 	if (dxw.dwFlags2 & SHOWFPSOVERLAY) dxw.ShowFPS(lpDDSSource);
+	if (dxw.dwFlags4 & SHOWTIMESTRETCH) dxw.ShowTimeStretching(lpDDSSource);
 	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
 	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
 
@@ -3338,15 +3299,7 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 	HRESULT res;
 
 	OutTraceD("CreatePalette: dwFlags=%x(%s)\n", dwflags, ExplainCreatePaletteFlags(dwflags));
-	if(IsDebug && (dwflags & DDPCAPS_8BIT)){
-		int idx;
-		OutTrace("CreatePalette: ");
-		for(idx=0; idx<256; idx++) OutTrace("(%02x.%02x.%02x)", 
-			lpddpa[idx].peRed,
-			lpddpa[idx].peGreen,
-			lpddpa[idx].peBlue  );
-		OutTrace("\n");
-	}
+	if(IsDebug && (dwflags & DDPCAPS_8BIT)) dxw.DumpPalette(256, lpddpa);
 
 	if (dwflags & ~(DDPCAPS_PRIMARYSURFACE|DDPCAPS_8BIT|DDPCAPS_ALLOW256|DDPCAPS_INITIALIZE_LEGACY)) STOPPER("Palette flags");
 
@@ -3396,7 +3349,7 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 			lpentries = (LPPALETTEENTRY)PaletteEntries;
 			res2=lpddp->GetEntries(0, 0, 256, lpentries);
 			if(res2) OutTraceE("SetPalette: GetEntries ERROR res=%x(%s)\n", res2, ExplainDDError(res2));
-			mySetPalette(0, 256, lpentries);
+			//mySetPalette(0, 256, lpentries);
 		}
 		res=0;
 	}
@@ -3410,6 +3363,7 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 
 	OutTraceD("SetEntries: lpddp=%x dwFlags=%x, start=%d, count=%d entries=%x\n", //GHO: added trace infos
 		lpddp, dwflags, dwstart, dwcount, lpentries);
+	if(IsDebug) dxw.DumpPalette(dwcount, &lpentries[dwstart]);
 
 	res = (*pSetEntries)(lpddp, dwflags, dwstart, dwcount, lpentries);
 	if(res) OutTraceE("SetEntries: ERROR res=%x(%s)\n", res, ExplainDDError(res));
@@ -3523,46 +3477,46 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAW
 		if(res2)
 			OutTraceE("Lock: GetGDISurface ERROR res=%x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
 		else
-	(*pReleaseS)(lpDDSPrim);
-	if(lpdds==lpDDSPrim){
-		if(dxw.dwFlags1 & LOCKEDSURFACE){
-			DDSURFACEDESC2 ddsd;
-			DDBLTFX fx;
-			memset(&ddsd, 0, sizeof(ddsd));
-			//ddsd.dwSize=SurfaceDescrSize(lpdds);
-			ddsd.dwSize=sizeof(DDSURFACEDESC);
-			ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
-			ddsd.dwWidth = dxw.GetScreenWidth();
-			ddsd.dwHeight = dxw.GetScreenHeight();
-			ddsd.ddsCaps.dwCaps = 0;
-			//if (SurfaceDescrSize(lpdds)==sizeof(DDSURFACEDESC2)) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
-			DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Dir FixBuf]" , __LINE__);
-			res=(*pCreateSurface1)(lpPrimaryDD, (DDSURFACEDESC *)&ddsd, (LPDIRECTDRAWSURFACE *)&lpDDSBuffer, 0);
-			if(res){
-				OutTraceE("CreateSurface: ERROR on DDSBuffer res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-				return res;
+			(*pReleaseS)(lpDDSPrim);
+		if(lpdds==lpDDSPrim){
+			if(dxw.dwFlags1 & LOCKEDSURFACE){
+				DDSURFACEDESC2 ddsd;
+				DDBLTFX fx;
+				memset(&ddsd, 0, sizeof(ddsd));
+				//ddsd.dwSize=SurfaceDescrSize(lpdds);
+				ddsd.dwSize=sizeof(DDSURFACEDESC);
+				ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
+				ddsd.dwWidth = dxw.GetScreenWidth();
+				ddsd.dwHeight = dxw.GetScreenHeight();
+				ddsd.ddsCaps.dwCaps = 0;
+				//if (SurfaceDescrSize(lpdds)==sizeof(DDSURFACEDESC2)) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+				DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Dir FixBuf]" , __LINE__);
+				res=(*pCreateSurface1)(lpPrimaryDD, (DDSURFACEDESC *)&ddsd, (LPDIRECTDRAWSURFACE *)&lpDDSBuffer, 0);
+				if(res){
+					OutTraceE("CreateSurface: ERROR on DDSBuffer res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
+					return res;
+				}
+				memset(&fx, 0, sizeof(fx));
+				fx.dwSize=sizeof(DDBLTFX);
+				fx.dwFillColor=0;
+				res=(*pBlt)((LPDIRECTDRAWSURFACE)lpDDSBuffer, NULL, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
+				if(res){
+					OutTraceE("Blt: ERROR on DDSBuffer res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
+				}
+				lpdds=(LPDIRECTDRAWSURFACE)lpDDSBuffer;
 			}
-			memset(&fx, 0, sizeof(fx));
-			fx.dwSize=sizeof(DDBLTFX);
-			fx.dwFillColor=0;
-			res=(*pBlt)((LPDIRECTDRAWSURFACE)lpDDSBuffer, NULL, NULL, NULL, DDBLT_WAIT|DDBLT_COLORFILL, &fx);
-			if(res){
-				OutTraceE("Blt: ERROR on DDSBuffer res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
+			else{
+				// since it can't scale, at least the updated rect is centered into the window.
+				(*pGetClientRect)(dxw.GethWnd(), &client);
+				(*pClientToScreen)(dxw.GethWnd(), &upleft);
+				if (!lprect) lprect=&client;
+				OffsetRect(lprect, 
+					upleft.x+(client.right-dxw.GetScreenWidth())/2, 
+					upleft.y+(client.bottom-dxw.GetScreenHeight())/2);
+				OutTraceD("Lock: NULL rect remapped to (%d,%d)-(%d,%d)\n", 
+					lprect->left, lprect->top, lprect->right, lprect->bottom);
 			}
-			lpdds=(LPDIRECTDRAWSURFACE)lpDDSBuffer;
 		}
-		else{
-			// since it can't scale, at least the updated rect is centered into the window.
-			(*pGetClientRect)(dxw.GethWnd(), &client);
-			(*pClientToScreen)(dxw.GethWnd(), &upleft);
-			if (!lprect) lprect=&client;
-			OffsetRect(lprect, 
-				upleft.x+(client.right-dxw.GetScreenWidth())/2, 
-				upleft.y+(client.bottom-dxw.GetScreenHeight())/2);
-			OutTraceD("Lock: NULL rect remapped to (%d,%d)-(%d,%d)\n", 
-				lprect->left, lprect->top, lprect->right, lprect->bottom);
-		}
-	}
 	}
 
 	res=(*pLock)(lpdds, lprect, lpdds2, flags, hEvent);

@@ -678,6 +678,14 @@ POINT dxwCore::SubCoordinates(POINT p1, POINT p2)
 	return ps;
 }
 
+void dxwCore::DumpPalette(DWORD dwcount, LPPALETTEENTRY lpentries)
+{
+	for(DWORD idx=0; idx<dwcount; idx++) 
+		OutTrace("(%02x.%02x.%02x:%02x)", 
+		lpentries[idx].peRed, lpentries[idx].peGreen, lpentries[idx].peBlue, lpentries[idx].peFlags);
+	OutTrace("\n");
+}
+
 void dxwCore::ScreenRefresh(void)
 {
 	// optimization: don't blit too often!
@@ -693,14 +701,15 @@ void dxwCore::ScreenRefresh(void)
 	int tn = (*pGetTickCount)();
 
 	if (tn-t < DXWREFRESHINTERVAL) return;
-
-	lpDDSPrim=dxw.GetPrimarySurface();
-	// if too early ....
-	if (lpDDSPrim)
-		extBlt(lpDDSPrim, NULL, lpDDSPrim, NULL, 0, NULL);
-
-	(*pInvalidateRect)(hWnd, NULL, FALSE);
 	t = tn;
+
+	// if not too early, refresh colors on primary surface ....
+	lpDDSPrim=dxw.GetPrimarySurface();
+	if (lpDDSPrim) extBlt(lpDDSPrim, NULL, lpDDSPrim, NULL, 0, NULL);
+
+	// v2.02.44 - used for what? Commenting out seems to fix the palette update glitches  
+	// and make the "Palette updates don't blit"option useless....
+	//(*pInvalidateRect)(hWnd, NULL, FALSE); 
 }
 
 void dxwCore::DoSlow(int delay)
@@ -913,6 +922,14 @@ void dxwCore::ShowFPS()
 	this->ShowFPS(GetDC(hWnd));
 }
 
+void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
+{
+	HDC hdc; // the working dc
+	if (FAILED(lpdds->GetDC(&hdc))) return;
+	this->ShowFPS(hdc);
+	lpdds->ReleaseDC(hdc);
+}
+
 void dxwCore::ShowFPS(HDC xdc)
 {
 	char sBuf[81];
@@ -942,34 +959,56 @@ void dxwCore::ShowFPS(HDC xdc)
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
 }
 
-void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
+void dxwCore::ShowTimeStretching()
 {
-	HDC xdc; // the working dc
+	HDC hdc;
+	hdc=GetDC(hWnd);
+	if(hdc)this->ShowTimeStretching(hdc);
+}
+
+void dxwCore::ShowTimeStretching(LPDIRECTDRAWSURFACE lpdds)
+{
+	HDC hdc; // the working dc
+	__try {
+		if (FAILED(lpdds->GetDC(&hdc))) return;
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER){
+		return;
+	}
+	if(hdc)this->ShowTimeStretching(hdc);
+	lpdds->ReleaseDC(hdc);
+}
+
+void dxwCore::ShowTimeStretching(HDC xdc)
+{
 	char sBuf[81];
 	static DWORD dwTimer = 0;
 	static int corner = 0;
 	static int x, y;
 	static DWORD color;
+	static int LastTimeShift = 1000; // any initial number different from -8 .. +8
 
 	if((*pGetTickCount)()-dwTimer > 4000){
+		RECT rect;
+		if(LastTimeShift==TimeShift) return; // after a while, stop the show
 		dwTimer = (*pGetTickCount)();
+		LastTimeShift=TimeShift;
 		corner = dwTimer % 4;
-		color=0xFF0000; // blue
+		color=0x0000FF; // red
+		(*pGetClientRect)(hWnd, &rect);
 		switch (corner) {
 		case 0: x=10; y=10; break;
-		case 1: x=dwScreenWidth-60; y=10; break;
-		case 2: x=dwScreenWidth-60; y=dwScreenHeight-20; break;
-		case 3: x=10; y=dwScreenHeight-20; break;
+		case 1: x=rect.right-60; y=10; break;
+		case 2: x=rect.right-60; y=rect.bottom-20; break;
+		case 3: x=10; y=rect.bottom-20; break;
 		}
-	}
+	} 
 
-	if (FAILED(lpdds->GetDC(&xdc))) return;
 	SetTextColor(xdc,color);
 	//SetBkMode(xdc, TRANSPARENT);
 	SetBkMode(xdc, OPAQUE);
-	sprintf_s(sBuf, 80, "FPS: %d", GetHookInfo()->FPSCount);
+	sprintf_s(sBuf, 80, "Time %s", dxw.GetTSCaption());
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
-	lpdds->ReleaseDC(xdc);
 }
 
 char *dxwCore::GetTSCaption(int shift)
@@ -983,6 +1022,7 @@ char *dxwCore::GetTSCaption(int shift)
 	if (shift<(-8) || shift>(+8)) return "???";
 	return sTSCaption[shift+8];
 }
+
 char *dxwCore::GetTSCaption(void)
 {
 	return GetTSCaption(TimeShift);

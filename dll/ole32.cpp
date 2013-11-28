@@ -41,16 +41,6 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 	OutTraceD("CoCreateInstance: rclsid=%x UnkOuter=%x ClsContext=%x refiid=%x(%s)\n",
 		rclsid, pUnkOuter, dwClsContext, riid.Data1, ExplainGUID((GUID *)&riid));
 
-	// CLSID e436ebb3 implies loading quartz.dll to play movies through dshow:
-	// quartz.dll must be hooked.
-	if (*(DWORD *)&rclsid==0xe436ebb3){
-		HMODULE qlib;
-		OutTraceD("CoCreateInstance: CLSID_FilterGraph RIID=%x\n", *(DWORD *)&riid);
-		qlib=(*pLoadLibraryA)("quartz.dll");
-		OutTraceD("CoCreateInstance: quartz lib handle=%x\n", qlib);
-		HookModule(qlib, 0);
-	}
-
 	res=(*pCoCreateInstance)(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 	if(res) 
 		OutTraceE("CoCreateInstance: ERROR res=%x\n", res);
@@ -92,6 +82,26 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 	}
 	else
 	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
+
+	// hook of library modules loaded by CoCreateInstance without going through LoadLibrary call....
+	char *Module=NULL;
+	char *Class=NULL;
+	HMODULE hModule=NULL;
+	switch (*(DWORD *)&rclsid){
+		case 0xe436ebb3: Module="quartz"; Class="CLSID_FilterGraph"; break;
+		case 0x4fd2a832: Module="ddrawex"; Class="CLSID_DirectDrawEx"; break;
+		case 0x49c47ce5: Module="amstream"; Class="CLSID_AMMultiMediaStream"; break;
+	}
+	if(Module){
+		hModule=GetModuleHandle(Module);
+		if(hModule){
+			OutTraceD("CoCreateInstance: Class=%s RIID=%x lib=%s handle=%x\n", Class, *(DWORD *)&riid, Module, hModule);
+			HookModule(hModule, 0);
+		}
+		else {
+			OutTraceE("CoCreateInstance: GetModuleHandle(%s) ERROR err=%d at %d\n", Module, GetLastError(), __LINE__);
+		}
+	}
 
 	return res;
 }
