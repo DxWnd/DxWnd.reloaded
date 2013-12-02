@@ -273,6 +273,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\dxwnd.rc"
+				>
+			</File>
+			<File
 				RelativePath=".\glhook.cpp"
 				>
 			</File>
@@ -341,6 +345,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\imelib.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\syslibs.cpp"
 				>
 			</File>
@@ -382,6 +390,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
 				RelativePath=".\syslibs.h"
 				>
 			</File>
@@ -390,6 +402,10 @@
 			Name="Resource Files"
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
+			<File
+				RelativePath=".\dxwbanner.bmp"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

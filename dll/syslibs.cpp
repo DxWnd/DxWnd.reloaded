@@ -1109,7 +1109,7 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 	// are NOT implemented and may cause later troubles!
 	case RASTERCAPS:
 		if(dxw.dwFlags2 & INIT8BPP) {
-			res = RC_PALETTE;
+			res |= RC_PALETTE; // v2.02.12
 			OutTraceD("GetDeviceCaps: fix RASTERCAPS setting RC_PALETTE cap=%x\n",res);
 		}
 		break;
@@ -1556,8 +1556,12 @@ HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=ret;
 	}
-
-	HookSysLibs(NULL);
+	//if(idx==SYSLIBIDX_MAX) {
+	//	OutTraceD("LoadLibraryA: hook %s\n", lpName);
+	//	HookModule((char *)lpName, 0);
+	//}
+	//HookSysLibs(NULL);
+	HookModule(NULL, 0);
 	return ret;
 }
 
@@ -1585,8 +1589,12 @@ HMODULE WINAPI extLoadLibraryW(LPCWSTR lpFileName)
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=ret;
 	}
-
-	HookSysLibs(NULL);
+	//if(idx==SYSLIBIDX_MAX) {
+	//	OutTraceD("LoadLibraryW: hook %s\n", lpName);
+	//	HookModule((char *)lpName, 0);
+	//}
+	//HookSysLibs(NULL);
+	HookModule(NULL, 0);
 	return ret;
 }
 
@@ -1614,8 +1622,12 @@ HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=ret;
 	}
-
-	HookSysLibs(NULL);
+	//if(idx==SYSLIBIDX_MAX) {
+	//	OutTraceD("LoadLibraryExA: hook %s\n", lpName);
+	//	HookModule((char *)lpName, 0);
+	//}
+	//HookSysLibs(NULL);
+	HookModule(NULL, 0);
 	return ret;
 }
 
@@ -1643,8 +1655,12 @@ HMODULE WINAPI extLoadLibraryExW(LPCWSTR lpFileName, HANDLE hFile, DWORD dwFlags
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=ret;
 	}
-
-	HookSysLibs(NULL);
+	//if(idx==SYSLIBIDX_MAX) {
+	//	OutTraceD("LoadLibraryExW: hook %s\n", lpName);
+	//	HookModule((char *)lpName, 0);
+	//}
+	//HookSysLibs(NULL);
+	HookModule(NULL, 0);
 	return ret;
 }
 
@@ -2783,3 +2799,4 @@ DWORD WINAPI extGetVersion(void)
 
 	return dwVersion;
 }
+

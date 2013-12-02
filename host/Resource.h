@@ -25,6 +25,18 @@
 #define IDI_RUN6                        148
 #define IDD_STATUS                      149
 #define IDD_TIMESLIDER                  150
+#define IDD_TAB_PROGRAM                 152
+#define IDD_TAB_LOG                     153
+#define IDD_TAB_DIRECTX                 154
+#define IDD_TAB_MOUSE                   155
+#define IDD_TAB_TIMING                  156
+#define IDD_TAB_WINDOW                  157
+#define IDD_TAB_EMPTY                   158
+#define IDD_TAB_EMPTY1                  159
+#define IDD_TAB_OPENGL                  159
+#define IDD_TAB_COMPAT                  160
+#define IDD_TAB_EMPTY2                  161
+#define IDD_TAB_GDI                     161
 #define IDC_AUTO                        300
 #define IDC_DIRECTX1                    301
 #define IDC_DIRECTX7                    302
@@ -107,6 +119,8 @@
 #define IDC_KEEPASPECTRATIO             1070
 #define IDC_LIMITRESOURCES              1071
 #define IDC_FORCEWINRESIZE              1072
+#define IDC_LIMITRESOURCES2             1072
+#define IDC_SUPPRESSIME                 1072
 #define IDC_DISABLEGAMMARAMP            1073
 #define IDC_FIXNCHITTEST                1074
 #define IDC_LIMITFPS                    1075
@@ -128,6 +142,9 @@
 #define IDC_LIST2                       1088
 #define IDC_LISTTS                      1088
 #define IDC_LISTFAKE                    1089
+#define IDC_TABPANEL                    1090
+#define IDC_WINDOWIZE                   1091
+#define IDC_NOBANNER                    1092
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -167,9 +184,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        152
+#define _APS_NEXT_RESOURCE_VALUE        153
 #define _APS_NEXT_COMMAND_VALUE         32816
-#define _APS_NEXT_CONTROL_VALUE         1089
+#define _APS_NEXT_CONTROL_VALUE         1091
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

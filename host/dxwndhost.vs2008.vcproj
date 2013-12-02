@@ -219,6 +219,10 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\dxTabCtrl.cpp"
+				>
+			</File>
+			<File
 				RelativePath="dxwndhost.cpp"
 				>
 				<FileConfiguration
@@ -353,6 +357,42 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TabCompat.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabDirectX.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabGDI.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabLogs.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabMouse.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabOpenGL.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabProgram.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabTiming.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabWindow.cpp"
+				>
+			</File>
+			<File
 				RelativePath="TargetDlg.cpp"
 				>
 				<FileConfiguration
@@ -381,6 +421,10 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl"
 			>
+			<File
+				RelativePath=".\dxTabCtrl.h"
+				>
+			</File>
 			<File
 				RelativePath="..\Include\dxwnd.h"
 				>
@@ -411,6 +455,42 @@
 			</File>
 			<File
 				RelativePath="StdAfx.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabCompat.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabDirectX.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabGDI.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabLogs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabMouse.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabOpenGL.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabProgram.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabTiming.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabWindow.h"
 				>
 			</File>
 			<File

@@ -54,3 +54,9 @@ Hooked
 extDirectDrawEnumerate/Ex ddraw calls to handle Hide multi-monitor option.
 Detected directshow activation through CoCreateInstance and hooked quartz.dll segment: now Urban Assault movies don't require "Full RECT Blit" option to be set.
 Updated DDSurface::Release hook 
+
+v2.02.12
+GUI: Tabbed setup panel. More space for more future options.
+DLL: (optional) splash screen 
+probably, some regression bugs....
+ 

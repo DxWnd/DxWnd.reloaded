@@ -372,6 +372,8 @@ void CDxwndhostView::OnModify()
 	dlg.m_OpenGLLib = TargetMaps[i].OpenGLLib;
 	dlg.m_Title = TitleMaps[i].title;
 	dlg.m_UnNotify = TargetMaps[i].flags & UNNOTIFY ? 1 : 0;
+	dlg.m_Windowize = TargetMaps[i].flags2 & WINDOWIZE ? 1 : 0;
+	dlg.m_NoBanner = TargetMaps[i].flags2 & NOBANNER ? 1 : 0;
 	dlg.m_EmulateSurface = TargetMaps[i].flags & EMULATESURFACE ? 1 : 0;
 	dlg.m_NoEmulateSurface = TargetMaps[i].flags & EMULATEFLAGS ? 0 : 1;
 	dlg.m_EmulateBuffer = TargetMaps[i].flags & EMULATEBUFFER ? 1 : 0; 
@@ -388,6 +390,8 @@ void CDxwndhostView::OnModify()
 	dlg.m_ImportTable = TargetMaps[i].tflags & OUTIMPORTTABLE ? 1 : 0;
 	dlg.m_HandleDC = TargetMaps[i].flags & HANDLEDC ? 1 : 0;
 	dlg.m_HandleExceptions = TargetMaps[i].flags & HANDLEEXCEPTIONS ? 1 : 0;
+	dlg.m_SuppressIME = TargetMaps[i].flags2 & SUPPRESSIME ? 1 : 0;
+	dlg.m_LimitResources = TargetMaps[i].flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg.m_SaveLoad = TargetMaps[i].flags & SAVELOAD ? 1 : 0;
 	dlg.m_SlowDown = TargetMaps[i].flags & SLOWDOWN ? 1 : 0;
 	dlg.m_BlitFromBackBuffer = TargetMaps[i].flags & BLITFROMBACKBUFFER ? 1 : 0;
@@ -459,6 +463,8 @@ void CDxwndhostView::OnModify()
 		TargetMaps[i].flags2 = 0;
 		TargetMaps[i].tflags = 0;
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
+		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
+		if(dlg.m_NoBanner) TargetMaps[i].flags2 |= NOBANNER;
 		if(dlg.m_NoEmulateSurface) {
 			dlg.m_EmulateSurface = FALSE;
 			dlg.m_EmulateBuffer = FALSE;
@@ -489,6 +495,8 @@ void CDxwndhostView::OnModify()
 		if(dlg.m_ImportTable) TargetMaps[i].tflags |= OUTIMPORTTABLE;
 		if(dlg.m_HandleDC) TargetMaps[i].flags |= HANDLEDC;
 		if(dlg.m_HandleExceptions) TargetMaps[i].flags |= HANDLEEXCEPTIONS;
+		if(dlg.m_LimitResources) TargetMaps[i].flags2 |= LIMITRESOURCES;
+		if(dlg.m_SuppressIME) TargetMaps[i].flags2 |= SUPPRESSIME;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;
 		if(dlg.m_BlitFromBackBuffer) TargetMaps[i].flags |= BLITFROMBACKBUFFER;
@@ -753,6 +761,8 @@ void CDxwndhostView::OnAdd()
 		TargetMaps[i].flags2 = 0;
 		TargetMaps[i].tflags = 0;
 		if(dlg.m_UnNotify) TargetMaps[i].flags |= UNNOTIFY;
+		if(dlg.m_Windowize) TargetMaps[i].flags2 |= WINDOWIZE;
+		if(dlg.m_NoBanner) TargetMaps[i].flags2 |= NOBANNER;
 		if(dlg.m_NoEmulateSurface) {
 			dlg.m_EmulateSurface = FALSE;
 			dlg.m_EmulateBuffer = FALSE;
@@ -783,6 +793,8 @@ void CDxwndhostView::OnAdd()
 		if(dlg.m_ImportTable) TargetMaps[i].tflags |= OUTIMPORTTABLE;
 		if(dlg.m_HandleDC) TargetMaps[i].flags |= HANDLEDC;
 		if(dlg.m_HandleExceptions) TargetMaps[i].flags |= HANDLEEXCEPTIONS;
+		if(dlg.m_SuppressIME) TargetMaps[i].flags2 |= SUPPRESSIME;
+		if(dlg.m_LimitResources) TargetMaps[i].flags2 |= LIMITRESOURCES;
 		if(dlg.m_SaveLoad) TargetMaps[i].flags |= SAVELOAD;
 		if(dlg.m_SlowDown) TargetMaps[i].flags |= SLOWDOWN;
 		if(dlg.m_BlitFromBackBuffer) TargetMaps[i].flags |= BLITFROMBACKBUFFER;

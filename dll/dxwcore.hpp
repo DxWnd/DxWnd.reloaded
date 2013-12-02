@@ -50,6 +50,7 @@ public: // methods
 	char *GetTSCaption(int);
 	char *GetTSCaption(void);
 	void DoSlow(int);
+	void ShowBanner(HWND);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;

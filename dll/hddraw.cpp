@@ -525,6 +525,8 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 			res=extDirectDrawCreateEx(NULL, (LPDIRECTDRAW *)&ppv, IID_IDirectDraw7, 0);
 			if(res)OutTraceD("DirectDrawCreateEx: res=%x(%s)\n", res, ExplainDDError(res));
 			break;
+		case 0xe436ebb3:
+			break;
 		}
 	}
 
@@ -2844,6 +2846,7 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSUR
 HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 {
 	HRESULT res;
+	//RECT screen, rect;
 	BOOL IsPrim;
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
@@ -3325,7 +3328,6 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 		IsClosed=1;
 	};
 	
-	// avoid crashing....
 	res = IsClosed ? 0 :(*pReleaseS)(lpdds);
 
 	OutTraceD("Release(S): lpdds=%x%s refcount=%d\n", lpdds, IsPrim?"(PRIM)":"", res);

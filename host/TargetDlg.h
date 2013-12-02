@@ -6,7 +6,7 @@
 #endif // _MSC_VER > 1000
 // TargetDlg.h : Header file
 //
-
+#include "dxTabCtrl.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CTargetDlg Dialog
@@ -16,10 +16,12 @@ class CTargetDlg : public CDialog
 // Constructor
 public:
 	CTargetDlg(CWnd* pParent = NULL);   // Standard constructor
+	void OnOK();
 
 // Dialog Data
 	//{{AFX_DATA(CTargetDlg)
 	enum { IDD = IDD_TARGET };
+	CDXTabCtrl	m_tabdxTabCtrl;
 	CEdit	m_File;
 	int		m_DXVersion;
 	BOOL	m_EmulateSurface;
@@ -38,6 +40,8 @@ public:
 	BOOL	m_ImportTable;
 	BOOL	m_HandleDC;
 	BOOL	m_UnNotify;
+	BOOL	m_Windowize;
+	BOOL	m_NoBanner;
 	CString	m_FilePath;
 	CString	m_Module;
 	CString	m_Title;
@@ -90,6 +94,8 @@ public:
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
 	BOOL	m_NoPaletteUpdate;
+	BOOL	m_LimitResources;
+	BOOL	m_SuppressIME;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;
@@ -115,51 +121,17 @@ public:
 
 // Implementation
 protected:
-
 	// Generated message map functions
 	//{{AFX_MSG(CTargetDlg)
 	afx_msg void OnOpen();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-public:
-	afx_msg void OnBnClickedUnnotify();
-	afx_msg void OnBnClickedEmulateBuffer();
-	afx_msg void OnBnClickedEmulateSurface();
-	afx_msg void OnBnClickedNoEmulateSurface();
-	afx_msg void OnBnClickedOuttrace();
-	afx_msg void OnBnClickedLogEnabled();
-	afx_msg void OnBnClickedHandleDC();
-	afx_msg void OnEnChangeFile2();
-	afx_msg void OnBnClickedAutorefresh();
-	afx_msg void OnBnClickedFixWinFrame();
-	//afx_msg void OnBnClickedHideHwCursor();
-	afx_msg void OnBnClickedEnableClipping();
-	afx_msg void OnBnClickedHandleCursorPos();
-	afx_msg void OnBnClickedFixTextOut();
-	afx_msg void OnBnClickedKeepCursorWithin();
-	afx_msg void OnBnClickedKeepCursorFixed();
-	afx_msg void OnBnClickedUseRGB565();
-	afx_msg void OnBnClickedCursorScaling();
-	afx_msg void OnBnClickedPreventMaximize();
-	afx_msg void OnBnClickedClientRemapping();
-	afx_msg void OnBnClickedMapGDIToPrimary();
-	afx_msg void OnBnClickedLockWinPos();
-	afx_msg void OnBnClickedLockWinStyle();
-	afx_msg void OnBnClickedHookChildWin();
-	afx_msg void OnBnClickedMessageProc();
-	afx_msg void OnBnClickedRecoverScreenMode();
-	afx_msg void OnBnClickedRefreshOnResize();
-	afx_msg void OnBnClickedInit8BPP();
-	afx_msg void OnBnClickedInit16BPP();
-	afx_msg void OnBnClickedBackBufAttach();
-	afx_msg void OnBnClickedHandleAltF4();
-	afx_msg void OnBnClickedHandleExceptions();
-	afx_msg void OnEnChangeMaxx();
-	afx_msg void OnEnChangeInitx();
+
 public:
 	virtual BOOL OnInitDialog();
+
 };
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ Will insert additional declarations immediately before the previous line.
 
-#endif // !defined(AFX_TARGETDLG_H__683E529D_7282_484C_A403_367A6A90CC57__INCLUDED_)
+#endif

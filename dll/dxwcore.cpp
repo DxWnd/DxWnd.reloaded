@@ -2,6 +2,7 @@
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
+#include "resource.h"
 
 /* ------------------------------------------------------------------ */
 // Constructor, destructor, initialization....
@@ -611,4 +612,44 @@ char *dxwCore::GetTSCaption(int shift)
 char *dxwCore::GetTSCaption(void)
 {
 	return GetTSCaption(TimeShift);
+}
+
+void dxwCore::ShowBanner(HWND hwnd)
+{
+	static BOOL JustOnce=FALSE;
+	extern HMODULE hInst;
+	BITMAP bm;
+	HDC hClientDC;
+	HBITMAP g_hbmBall;
+	RECT client;
+
+	if(JustOnce || (dwFlags2 & NOBANNER)) return;
+	JustOnce=TRUE;
+
+	hClientDC=GetDC(hwnd);
+	(*pGetClientRect)(hwnd, &client);
+	//BitBlt(hClientDC, 0, 0,  wp.cx, wp.cy, NULL, 0, 0, BLACKNESS);
+	BitBlt(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
+    g_hbmBall = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BANNER));
+    HDC hdcMem = CreateCompatibleDC(hClientDC);
+    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, g_hbmBall);
+    GetObject(g_hbmBall, sizeof(bm), &bm);
+	for (int i=1; i<=16; i++){
+		int w, h;
+		w=(bm.bmWidth*i)/8;
+		h=(bm.bmHeight*i)/8;
+		StretchBlt(hClientDC, (client.right-w)/2, (client.bottom-h)/2, w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
+		Sleep(40);
+	}
+	for (int i=16; i>=8; i--){
+		int w, h;
+		w=(bm.bmWidth*i)/8;
+		h=(bm.bmHeight*i)/8;
+		BitBlt(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
+		StretchBlt(hClientDC, (client.right-w)/2, (client.bottom-h)/2, w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
+		Sleep(40);
+	}
+    SelectObject(hdcMem, hbmOld);
+    DeleteDC(hdcMem);
+	Sleep(200);
 }

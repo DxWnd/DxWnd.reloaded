@@ -69,6 +69,10 @@
 #define FAKEVERSION			0x00400000 // pretends the platvorm is a given window version / subversion
 #define FULLRECTBLT			0x00800000 // blit to primary surface using NULL source & dest rect
 #define NOPALETTEUPDATE		0x01000000 // Do not refresh primary surface on palette updates
+#define SUPPRESSIME			0x02000000 // suppress IME 
+#define NOBANNER			0x04000000 // suppress fancy logo & banneer effects 
+#define WINDOWIZE			0x08000000 // Run in a Window (default TRUE) 
+#define LIMITRESOURCES		0x10000000 // Limit resources to fit an old program's expectations 
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

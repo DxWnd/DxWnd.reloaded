@@ -13,6 +13,8 @@
 #include "syslibs.h"
 #undef DXWDECLARATIONS
 #include "dxhelper.h"
+#include "Ime.h"
+#include "Winnls32.h"
 
 dxwCore dxw;
 
@@ -40,7 +42,7 @@ static char *Flag2Names[32]={
 	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
 	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
 	"HOOKGDI", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
-	"NOPALETTEUPDATE", "", "", "",
+	"NOPALETTEUPDATE", "SUPPRESSIME", "NOBANNER", "WINDOWIZE",
 	"", "", "", "",
 };
 
@@ -358,6 +360,8 @@ void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 	if(!(*pSetWindowPos)(hwnd, 0, wp.x, wp.y, wp.cx, wp.cy, 0)){
 		OutTraceE("AdjustWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
+
+	dxw.ShowBanner(hwnd);
 	return;
 }
 
@@ -562,6 +566,31 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 #endif
 
 	switch(message){
+	case WM_NCCREATE:
+		if(dxw.dwFlags2 & SUPPRESSIME){
+			OutTraceD("WindowProc: SUPPRESS IME\n");
+			typedef BOOL (WINAPI *ImmDisableIME_Type)(DWORD);
+			ImmDisableIME_Type pImmDisableIME;
+			HMODULE ImmLib;
+			ImmLib=(*pLoadLibraryA)("Imm32");
+			pImmDisableIME=(ImmDisableIME_Type)(*pGetProcAddress)(ImmLib,"ImmDisableIME");
+			(*pImmDisableIME)(-1);
+		}
+		break;
+	case WM_IME_SETCONTEXT:
+	case WM_IME_NOTIFY:
+	case WM_IME_CONTROL:
+	case WM_IME_COMPOSITIONFULL:
+	case WM_IME_SELECT:
+	case WM_IME_CHAR:
+	case WM_IME_REQUEST:
+	case WM_IME_KEYDOWN:
+	case WM_IME_KEYUP:
+		if(dxw.dwFlags2 & SUPPRESSIME){
+			OutTraceD("WindowProc: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
+			return 0;
+		}
+		break;
 	case WM_NCHITTEST:
 		if((dxw.dwFlags2 & FIXNCHITTEST) && (dxw.dwFlags1 & MODIFYMOUSE)){ // mouse processing 
 			POINT cursor;
@@ -1133,12 +1162,66 @@ void HookExceptionHandler(void)
 void HookModule(char *module, int dxversion)
 {
 	HookSysLibs(module);
+	//if(dxw.dwFlags2 & SUPPRESSIME) HookImeLib(module);
 	if(dxw.dwFlags2 & HOOKGDI) HookGDILib(module);
 	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(module, dxversion);
 	HookDirectDraw(module, dxversion);
 	HookDirect3D(module, dxversion);
 	HookOle32(module, dxversion); // unfinished business
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(module, dxw.CustomOpenGLLib); 
+}
+
+void ForceHookOpenGL() // to do .....
+{
+	HMODULE hGlLib;
+	//hGlLib=(*pLoadLibraryA)("OpenGL32.dll");
+	hGlLib=LoadLibrary("OpenGL32.dll");
+	OutTrace("hGlLib=%x\n",hGlLib);
+	pglViewport=(glViewport_Type)GetProcAddress(hGlLib, "glViewport");
+	if(pglViewport) 
+		HookAPI(NULL, "OpenGL32.dll", pglViewport, "glViewport", extglViewport);
+		//SetHook(void *target, void *hookproc, void **hookedproc, char *hookname);
+	pglScissor=(glScissor_Type)GetProcAddress(hGlLib, "glScissor");
+	if(pglScissor) HookAPI(NULL, "OpenGL32.dll", pglScissor, "glScissor", extglScissor);
+	pglGetIntegerv=(glGetIntegerv_Type)GetProcAddress(hGlLib, "glGetIntegerv");
+	if(pglGetIntegerv) HookAPI(NULL, "OpenGL32.dll", pglGetIntegerv, "glGetIntegerv", extglGetIntegerv);
+	pglDrawBuffer=(glDrawBuffer_Type)GetProcAddress(hGlLib, "glDrawBuffer");
+	if(pglDrawBuffer) HookAPI(NULL, "OpenGL32.dll", pglDrawBuffer, "glDrawBuffer", extglDrawBuffer);
+}
+
+void DisableIME()
+{
+	BOOL res;
+	HMODULE hm;
+	hm=GetModuleHandle("User32");
+	// here, GetProcAddress may be not hooked yet!
+	if(!pGetProcAddress) pGetProcAddress=GetProcAddress;
+#ifdef USEWINNLSENABLE
+	typedef BOOL (WINAPI *WINNLSEnableIME_Type)(HWND, BOOL);
+	WINNLSEnableIME_Type pWINNLSEnableIME;
+	pWINNLSEnableIME=(WINNLSEnableIME_Type)(*pGetProcAddress)(hm, "WINNLSEnableIME");
+	OutTrace("DisableIME: GetProcAddress(WINNLSEnableIME)=%x\n", pWINNLSEnableIME);
+	if(!pWINNLSEnableIME) return;
+	SetLastError(0);
+	res=(*pWINNLSEnableIME)(NULL, FALSE);
+	OutTrace("IME previous state=%x error=%d\n", res, GetLastError());
+#else
+	typedef LRESULT (WINAPI *SendIMEMessage_Type)(HWND, LPARAM);
+	SendIMEMessage_Type pSendIMEMessage;
+	pSendIMEMessage=(SendIMEMessage_Type)(*pGetProcAddress)(hm, "SendIMEMessage");
+	OutTrace("DisableIME: GetProcAddress(SendIMEMessage)=%x\n", pSendIMEMessage);
+	if(!pSendIMEMessage) return;
+	HGLOBAL imeh;
+	IMESTRUCT *imes;
+	imeh=GlobalAlloc(GMEM_MOVEABLE|GMEM_SHARE, sizeof(IMESTRUCT));
+	imes=(IMESTRUCT *)imeh;
+	//imes->fnc=IME_SETLEVEL;
+	imes->fnc=7;
+	imes->wParam=1;
+	SetLastError(0);
+	res=(*pSendIMEMessage)(dxw.GethWnd(), (LPARAM)imeh);
+	OutTrace("res=%x error=%d\n", res, GetLastError());
+#endif
 }
 
 int HookInit(TARGETMAP *target, HWND hwnd)
@@ -1171,13 +1254,15 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	}
 
 	if(dxw.dwFlags1 & HANDLEEXCEPTIONS) HookExceptionHandler();
-
 	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(NULL);
+	//if(dxw.dwFlags2 & SUPPRESSIME) DisableIME();
 
 	if (dxw.dwTFlags & DXPROXED){
 		HookDDProxy(NULL, dxw.dwTargetDDVersion);
 		return 0;
 	}
+
+	//ForceHookOpenGL();
 
 	// make InitPosition used for both DInput and DDraw
 	InitPosition(target->initx, target->inity,
@@ -1189,6 +1274,8 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 	HookModule(NULL, dxw.dwTargetDDVersion);
 	sModule=strtok(dxw.gsModules," ");
 	while (sModule) {
+		HMODULE hm;
+		hm=(*pLoadLibraryA)(sModule);
 		OutTraceD("HookInit: hooking additional module=%s\n", sModule);
 		if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(sModule);
 		HookModule(sModule, dxw.dwTargetDDVersion);
@@ -1206,6 +1293,7 @@ int HookInit(TARGETMAP *target, HWND hwnd)
 		res=(*pMoveWindow)(dxw.hParentWnd, wp.x, wp.y, wp.cx, wp.cy, FALSE);
 		if(!res) OutTraceE("MoveWindow ERROR: dxw.hParentWnd=%x err=%d at %d\n", dxw.hParentWnd, GetLastError(), __LINE__);
 	}
+
 
 	return 0;
 }
