@@ -40,15 +40,15 @@ HRESULT HookDxDiag(REFIID riid, LPVOID FAR* ppv)
 {
 	HMODULE dxdlib;
 
-	OutTraceD("CoCreateInstance: CLSID_DxDiagProvider object\n");
+	OutTraceDW("CoCreateInstance: CLSID_DxDiagProvider object\n");
 	dxdlib=(*pLoadLibraryA)("dxdiagn.dll");
-	OutTraceD("CoCreateInstance: dxdiagn lib handle=%x\n", dxdlib);
+	OutTraceDW("CoCreateInstance: dxdiagn lib handle=%x\n", dxdlib);
 	extern void HookModule(HMODULE, int);
 	HookModule(dxdlib, 0);
 
 	switch (*(DWORD *)&riid){
 	case 0x9C6B4CB0:
-		OutTraceD("CoCreateInstance: IID_DxDiagProvider RIID\n");
+		OutTraceDW("CoCreateInstance: IID_DxDiagProvider RIID\n");
 		// IID_DxDiagProvider::QueryInterface
 		SetHook((void *)(**(DWORD **)ppv), extQueryInterfaceDD, (void **)&pQueryInterfaceDD, "QueryInterface(DxDiag)");
 		// IID_DxDiagProvider::Initialize
@@ -57,7 +57,7 @@ HRESULT HookDxDiag(REFIID riid, LPVOID FAR* ppv)
 		SetHook((void *)(**(DWORD **)ppv + 16), extGetRootContainer, (void **)&pGetRootContainer, "GetRootContainer(DxDiag)");
 		break;
 	case 0x7D0F462F:
-		OutTraceD("CoCreateInstance: IID_IDxDiagContainer RIID\n");
+		OutTraceDW("CoCreateInstance: IID_IDxDiagContainer RIID\n");
 		break;
 	}
 
@@ -68,65 +68,65 @@ HRESULT HookDxDiag(REFIID riid, LPVOID FAR* ppv)
 HRESULT WINAPI extInitializeDD(void *th, DXDIAG_INIT_PARAMS *pParams)
 {
 	HRESULT res;
-	OutTraceD("DxDiag::Initialize Params=%x\n", pParams);
+	OutTraceDW("DxDiag::Initialize Params=%x\n", pParams);
 	res=(*pInitializeDD)(th, pParams);
-	OutTraceD("DxDiag::Initialize res=%x\n", res);
+	OutTraceDW("DxDiag::Initialize res=%x\n", res);
 	return res;
 }
 
 HRESULT WINAPI extGetRootContainer(void *th, IDxDiagContainer **ppInstance)
 {
 	HRESULT res;
-	OutTraceD("DxDiag::GetRootContainer pInstance=%x\n", *ppInstance);
+	OutTraceDW("DxDiag::GetRootContainer pInstance=%x\n", *ppInstance);
 	res=(*pGetRootContainer)(th, ppInstance);
 	// IID_IDxDiagContainer::GetNumberOfChildContainers
 	SetHook((void *)(**(DWORD **)ppInstance + 12), extGetNumberOfChildContainers, (void **)&pGetNumberOfChildContainers, "GetNumberOfChildContainers(DxDiag)");
 	// IID_IDxDiagContainer::GetProp
 	SetHook((void *)(**(DWORD **)ppInstance + 32), extGetProp, (void **)&pGetProp, "GetProp(DxDiag)");
-	OutTraceD("DxDiag::GetRootContainer res=%x\n", res);
+	OutTraceDW("DxDiag::GetRootContainer res=%x\n", res);
 	return res;
 }
 
 HRESULT WINAPI extGetNumberOfChildContainers(void *th, DWORD *pdwCount)
 {
 	HRESULT res;
-	OutTraceD("DxDiag::GetNumberOfChildContainers\n");
+	OutTraceDW("DxDiag::GetNumberOfChildContainers\n");
 	res=(*pGetNumberOfChildContainers)(th, pdwCount);
-	OutTraceD("DxDiag::GetNumberOfChildContainers res=%x Count=%d\n", res, *pdwCount);
+	OutTraceDW("DxDiag::GetNumberOfChildContainers res=%x Count=%d\n", res, *pdwCount);
 	return res;
 }
 
 HRESULT WINAPI extQueryInterfaceDD(void *th, REFIID riid, LPVOID *ppvObj)
 {
 	HRESULT res;
-	OutTraceD("DxDiag::QueryInterface ref=%x\n");
+	OutTraceDW("DxDiag::QueryInterface ref=%x\n");
 	res=(*pQueryInterfaceDD)(th, riid, ppvObj);
-	OutTraceD("DxDiag::QueryInterface res=%x\n", res);
+	OutTraceDW("DxDiag::QueryInterface res=%x\n", res);
 	return res;
 }
 
 HRESULT WINAPI extGetProp(void *th, LPCWSTR pwszPropName, VARIANT *pvarProp)
 {
 	HRESULT res;
-	OutTraceD("DxDiag::GetProp PropName=%ls\n", pwszPropName);
+	OutTraceDW("DxDiag::GetProp PropName=%ls\n", pwszPropName);
 	res=(*pGetProp)(th, pwszPropName, pvarProp);
 	if(res)
 		OutTraceE("DxDiag::GetProp ERROR res=%x\n", res);
 
 	if (!wcsncmp(L"dwDirectXVersionMajor", pwszPropName, sizeof(L"dwDirectXVersionMajor"))){
-		OutTraceD("DxDiag::GetProp DirectXVersionMajor=%d\n", *pvarProp);
+		OutTraceDW("DxDiag::GetProp DirectXVersionMajor=%d\n", *pvarProp);
 		//*(DWORD *)pvarProp=10;
-		//OutTraceD("DxDiag::GetProp fixed DirectXVersionMajor=%d\n", *pvarProp);
+		//OutTraceDW("DxDiag::GetProp fixed DirectXVersionMajor=%d\n", *pvarProp);
 	}
 	if (!wcsncmp(L"dwDirectXVersionMinor", pwszPropName, sizeof(L"dwDirectXVersionMinor"))){
-		OutTraceD("DxDiag::GetProp DirectXVersionMinor=%d\n", *pvarProp);
+		OutTraceDW("DxDiag::GetProp DirectXVersionMinor=%d\n", *pvarProp);
 		//*(DWORD *)pvarProp=10;
-		//OutTraceD("DxDiag::GetProp fixed dwDirectXVersionMinor=%d\n", *pvarProp);
+		//OutTraceDW("DxDiag::GetProp fixed dwDirectXVersionMinor=%d\n", *pvarProp);
 	}
 	if (!wcsncmp(L"szDirectXVersionLetter", pwszPropName, sizeof(L"szDirectXVersionLetter"))){
-		OutTraceD("DxDiag::GetProp DirectXVersionLetter=%d\n", *pvarProp);
+		OutTraceDW("DxDiag::GetProp DirectXVersionLetter=%d\n", *pvarProp);
 		//*(DWORD *)pvarProp=9;
-		//OutTraceD("DxDiag::GetProp fixed szDirectXVersionLetter=%d\n", *pvarProp);
+		//OutTraceDW("DxDiag::GetProp fixed szDirectXVersionLetter=%d\n", *pvarProp);
 	}
 	return res;
 }

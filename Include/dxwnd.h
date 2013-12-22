@@ -122,19 +122,23 @@
 #define ZBUFFERALWAYS		0x00000040 // Forces ZBUFFER D3DCMP_ALWAYS condition to show all planes....
 #define DISABLEFOGGING		0x00000080 // Disable D3D fogging
 #define NOPOWER2FIX			0x00000100 // Handle textures whose size is not a power of 2 (32, 64, 128 ...)
+#define NOPERFCOUNTER		0x00000200 // Disables the GetPerfCounter performance metrics API,as if it was not supported....
+#define ADDPROXYLIBS		0x00000400 // Add proxy libs to otherwise hook-resilient system libraries (e.g. d3d9.dll)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
 #define OUTDDRAWTRACE		0x00000002 // traces DxWnd directdraw screen handling
 #define OUTWINMESSAGES		0x00000004 // traces windows messages
 #define OUTCURSORTRACE		0x00000008 // traces cursor positions & operations
-#define OUTPROXYTRACE		0x00000010 // warning: it also enables proxy functions !!!!
+#define OUTPROXYTRACE		0x00000010 // enables all operations through proxy functions
 #define DXPROXED			0x00000020 // hook DX proxy methods to log each call in original behaviour
 #define ASSERTDIALOG		0x00000040 // show assert messages in Dialog Box
 #define OUTIMPORTTABLE		0x00000080 // dump import table contents
 #define OUTDEBUG			0x00000100 // detailed debugging indormation
 #define OUTREGISTRY			0x00000200 // log registry operations
 #define TRACEHOOKS			0x00000400 // log hook operations
+#define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
+#define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
 
 #define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE | LOCKEDSURFACE)
 #define HANDLEFPS			(SHOWFPS | SHOWFPSOVERLAY | LIMITFPS | SKIPFPS)
@@ -206,7 +210,9 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 
 #define OutTraceW if(dxw.dwTFlags & OUTWINMESSAGES) OutTrace
 #define OutTraceX if(dxw.dwTFlags & OUTPROXYTRACE) OutTrace
-#define OutTraceD if(dxw.dwTFlags & OUTDDRAWTRACE) OutTrace
+#define OutTraceDW if(dxw.dwTFlags & OUTDXWINTRACE) OutTrace
+#define OutTraceDDRAW if(dxw.dwTFlags & OUTDDRAWTRACE) OutTrace
+#define OutTraceD3D if(dxw.dwTFlags & OUTD3DTRACE) OutTrace
 #define OutTraceC if(dxw.dwTFlags & OUTCURSORTRACE) OutTrace
 #define OutTraceB if(dxw.dwTFlags & OUTDEBUG) OutTrace
 #define OutTraceR if(dxw.dwTFlags & OUTREGISTRY) OutTrace
@@ -216,7 +222,9 @@ LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 
 #define IsTraceW (dxw.dwTFlags & OUTWINMESSAGES)
 #define IsTraceX (dxw.dwTFlags & OUTPROXYTRACE)
-#define IsTraceD (dxw.dwTFlags & OUTDDRAWTRACE)
+#define IsTraceDW (dxw.dwTFlags & OUTDXWINTRACE)
+#define IsTraceDDRAW (dxw.dwTFlags & OUTDDRAWTRACE)
+#define IsTraceD3D (dxw.dwTFlags & OUTD3DTRACE)
 #define IsTraceC (dxw.dwTFlags & OUTCURSORTRACE)
 #define IsTraceR (dxw.dwTFlags & OUTREGISTRY)
 #define IsTraceH (dxw.dwTFlags & TRACEHOOKS)

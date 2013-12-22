@@ -40,6 +40,7 @@ static HookEntry_Type TimeHooks[]={
 	{"SleepEx", (FARPROC)SleepEx, (FARPROC *)&pSleepEx, (FARPROC)extSleepEx},
 	{"SetTimer", (FARPROC)SetTimer, (FARPROC *)&pSetTimer, (FARPROC)extSetTimer},
 	{"QueryPerformanceCounter", (FARPROC)NULL, (FARPROC *)&pQueryPerformanceCounter, (FARPROC)extQueryPerformanceCounter},
+	{"QueryPerformanceFrequency", (FARPROC)NULL, (FARPROC *)&pQueryPerformanceFrequency, (FARPROC)extQueryPerformanceFrequency},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -64,6 +65,26 @@ void HookKernel32(HMODULE module)
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
 	if(dxw.dwFlags4 & SUPPRESSCHILD) HookLibrary(module, SuppressChildHooks, libname);
+
+#if 0
+	if(dxw.dwFlags2 & TIMESTRETCH){
+		HINSTANCE hinst;
+		LARGE_INTEGER myPerfCount;
+		hinst = LoadLibrary("kernel32.dll");
+		pQueryPerformanceFrequency=(QueryPerformanceFrequency_Type)GetProcAddress(hinst, "QueryPerformanceFrequency");
+		pQueryPerformanceCounter=(QueryPerformanceCounter_Type)GetProcAddress(hinst, "QueryPerformanceCounter");
+		pGetTickCount=(GetTickCount_Type)GetProcAddress(hinst, "GetTickCount");
+		if(pQueryPerformanceFrequency){
+			HookAPI(hinst, "kernel32.dll", pQueryPerformanceFrequency, "QueryPerformanceFrequency", extQueryPerformanceFrequency);
+			HookAPI(hinst, "kernel32.dll", pQueryPerformanceCounter, "QueryPerformanceCounter", extQueryPerformanceCounter);
+			extQueryPerformanceFrequency(&myPerfCount);
+		}
+		if(pGetTickCount){
+			HookAPI(hinst, "kernel32.dll", pGetTickCount, "GetTickCount", extGetTickCount);
+			extGetTickCount();
+		}
+	}
+#endif
 }
 
 void HookKernel32Init()
@@ -78,6 +99,14 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 
+	if (dxw.dwFlags4 & NOPERFCOUNTER){
+		if( !strcmp(proc, "QueryPerformanceCounter") ||
+			!strcmp(proc, "QueryPerformanceFrequency")){
+				OutTraceDW("GetProcAddress: HIDING proc=%s\n", proc);
+			return NULL;
+		}
+	}
+			
 	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
 
 	if(dxw.dwFlags3 & BUFFEREDIOFIX)
@@ -106,14 +135,14 @@ extern void HookModule(HMODULE, int);
 
 int WINAPI extIsDebuggerPresent(void)
 {
-	OutTraceD("extIsDebuggerPresent: return FALSE\n");
+	OutTraceDW("extIsDebuggerPresent: return FALSE\n");
 	return FALSE;
 }
 
 BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters)
 {
 	BOOL ret;
-	OutTraceD("GetDiskFreeSpace: RootPathName=\"%s\"\n", lpRootPathName);
+	OutTraceDW("GetDiskFreeSpace: RootPathName=\"%s\"\n", lpRootPathName);
 	ret=(*pGetDiskFreeSpaceA)(lpRootPathName, lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters);
 	if(!ret) OutTraceE("GetDiskFreeSpace: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	*lpNumberOfFreeClusters = 16000;
@@ -142,7 +171,7 @@ BIGENOUGH 0x20000000 // surely positive !!!
 void WINAPI extGlobalMemoryStatus(LPMEMORYSTATUS lpBuffer)
 {
 	(*pGlobalMemoryStatus)(lpBuffer);
-	OutTraceD("GlobalMemoryStatus: Length=%x MemoryLoad=%x "
+	OutTraceDW("GlobalMemoryStatus: Length=%x MemoryLoad=%x "
 		"TotalPhys=%x AvailPhys=%x TotalPageFile=%x AvailPageFile=%x TotalVirtual=%x AvailVirtual=%x\n",
 		lpBuffer->dwMemoryLoad, lpBuffer->dwTotalPhys, lpBuffer->dwAvailPhys,
 		lpBuffer->dwTotalPageFile, lpBuffer->dwAvailPageFile, lpBuffer->dwTotalVirtual, lpBuffer->dwAvailVirtual);
@@ -200,7 +229,7 @@ BOOL WINAPI extGetVersionEx(LPOSVERSIONINFO lpVersionInfo)
 		return ret;
 	}
 
-	OutTraceD("GetVersionEx: version=%d.%d build=(%d)\n", 
+	OutTraceDW("GetVersionEx: version=%d.%d build=(%d)\n", 
 		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber);
 
 	if(dxw.dwFlags2 & FAKEVERSION) {
@@ -208,7 +237,7 @@ BOOL WINAPI extGetVersionEx(LPOSVERSIONINFO lpVersionInfo)
 		lpVersionInfo->dwMajorVersion = WinVersions[dxw.FakeVersionId].bMajor;
 		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
 		lpVersionInfo->dwBuildNumber = 0;
-		OutTraceD("GetVersionEx: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
+		OutTraceDW("GetVersionEx: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
 			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
 			WinVersions[dxw.FakeVersionId].sName);
 	}
@@ -234,14 +263,14 @@ DWORD WINAPI extGetVersion(void)
     if (dwVersion < 0x80000000)              
         dwBuild = (DWORD)(HIWORD(dwVersion));
 
-	OutTraceD("GetVersion: version=%d.%d build=(%d)\n", dwMajorVersion, dwMinorVersion, dwBuild);
+	OutTraceDW("GetVersion: version=%d.%d build=(%d)\n", dwMajorVersion, dwMinorVersion, dwBuild);
 
 	if(dxw.dwFlags2 & FAKEVERSION) {
 		dwVersion = WinVersions[dxw.FakeVersionId].bMajor | (WinVersions[dxw.FakeVersionId].bMinor << 8);
 		dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
 	    dwMinorVersion = (DWORD)(HIBYTE(LOWORD(dwVersion)));
 		dwBuild = (DWORD)(HIWORD(dwVersion));
-		OutTraceD("GetVersion: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
+		OutTraceDW("GetVersion: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
 			dwMajorVersion, dwMinorVersion, dwBuild, WinVersions[dxw.FakeVersionId].sName);
 	}
 
@@ -330,7 +359,7 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 	int idx;
 	
 	libhandle=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
-	OutTraceD("%s: FileName=%s hFile=%x Flags=%x(%s) hmodule=%x\n", api, lpFileName, hFile, dwFlags, ExplainLoadLibFlags(dwFlags), libhandle);
+	OutTraceDW("%s: FileName=%s hFile=%x Flags=%x(%s) hmodule=%x\n", api, lpFileName, hFile, dwFlags, ExplainLoadLibFlags(dwFlags), libhandle);
 	if(!libhandle){
 		OutTraceE("%s: ERROR FileName=%s err=%d\n", api, lpFileName, GetLastError());
 		return libhandle;
@@ -348,6 +377,13 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 		SysLibs[idx]=libhandle;
 	}
 	if (idx == -1) HookModule(libhandle, 0);
+#if 0
+	switch(idx){
+		case SYSLIBIDX_DIRECTDRAW: HookDirectDraw(libhandle, 0); break;
+		case SYSLIBIDX_DIRECT3D8: HookDirect3D(libhandle, 8); break;
+		case SYSLIBIDX_DIRECT3D9: HookDirect3D(libhandle, 9); break;
+	}
+#endif
 	return libhandle;
 }
 
@@ -393,7 +429,7 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 	// If this parameter is an ordinal value, it must be in the low-order word; 
 	// the high-order word must be zero.
 
-	OutTraceD("GetProcAddress: hModule=%x proc=%s\n", hModule, ProcToString(proc));
+	OutTraceDW("GetProcAddress: hModule=%x proc=%s\n", hModule, ProcToString(proc));
 
 	for(idx=0; idx<SYSLIBIDX_MAX; idx++){
 		if(SysLibs[idx]==hModule) break;
@@ -468,12 +504,12 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			switch((DWORD)proc){
 			case 0x0008: // DirectDrawCreate
 				pDirectDrawCreate=(DirectDrawCreate_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreate);
+				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreate);
 				return (FARPROC)extDirectDrawCreate;
 				break;
 			case 0x000A: // DirectDrawCreateEx
 				pDirectDrawCreateEx=(DirectDrawCreateEx_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreateEx);
+				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreateEx);
 				return (FARPROC)extDirectDrawCreateEx;
 				break;
 			case 0x000B: // DirectDrawEnumerateA
@@ -490,22 +526,22 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			break;
 		case SYSLIBIDX_USER32:
 			if ((DWORD)proc == 0x0020){ // ChangeDisplaySettingsA
-				pChangeDisplaySettings=(ChangeDisplaySettings_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pChangeDisplaySettings);
-				return (FARPROC)extChangeDisplaySettings;
+				pChangeDisplaySettingsA=(ChangeDisplaySettingsA_Type)(*pGetProcAddress)(hModule, proc);
+				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pChangeDisplaySettingsA);
+				return (FARPROC)extChangeDisplaySettingsA;
 			}
 			break;
 #ifndef ANTICHEATING
 		case SYSLIBIDX_KERNEL32:
 			if ((DWORD)proc == 0x022D){ // "IsDebuggerPresent"
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extIsDebuggerPresent);
+				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extIsDebuggerPresent);
 				return (FARPROC)extIsDebuggerPresent;
 			}
 #endif
 		case SYSLIBIDX_OLE32:
 			if ((DWORD)proc == 0x0011){ // "CoCreateInstance"
 				pCoCreateInstance=(CoCreateInstance_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pCoCreateInstance);
+				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pCoCreateInstance);
 				return (FARPROC)extCoCreateInstance;
 			}
 			break;
@@ -513,13 +549,13 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 	}
 
 	ret=(*pGetProcAddress)(hModule, proc);
-	OutTraceD("GetProcAddress: ret=%x\n", ret);
+	OutTraceDW("GetProcAddress: ret=%x\n", ret);
 	return ret;
 }
 
 UINT WINAPI extGetDriveType(LPCTSTR lpRootPathName)
 {
-	OutTraceD("GetDriveType: path=\"%s\"\n", lpRootPathName);
+	OutTraceDW("GetDriveType: path=\"%s\"\n", lpRootPathName);
 	if (dxw.dwFlags3 & CDROMDRIVETYPE) return DRIVE_CDROM;
 	return (*pGetDriveType)(lpRootPathName);
 }
@@ -701,25 +737,41 @@ BOOL WINAPI extCreateProcessA(
 	LPPROCESS_INFORMATION lpProcessInformation
 )
 {
-	OutTraceD("CreateProcess: SUPPRESS ApplicationName=%s CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
+	OutTraceDW("CreateProcess: SUPPRESS ApplicationName=%s CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
 	return TRUE;
-}
-
-BOOL WINAPI extQueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
-{
-	// just proxy, but currently unhooked.....
-	BOOL ret;
-	ret=(*pQueryPerformanceFrequency)(lpFrequency);
-	return ret;
 }
 
 BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
 {
 	BOOL ret;
 	LARGE_INTEGER myPerfCount;
-	ret=(*pQueryPerformanceCounter)(&myPerfCount);
-	myPerfCount.HighPart = dxw.StretchCounter(myPerfCount.HighPart);
-	myPerfCount.LowPart = dxw.StretchCounter(myPerfCount.LowPart);
+	if(dxw.dwFlags4 & NOPERFCOUNTER){
+		ret=0;
+		myPerfCount.HighPart = 0;
+		myPerfCount.LowPart = 0;
+	}
+	else{
+		ret=(*pQueryPerformanceCounter)(&myPerfCount);
+		myPerfCount.HighPart = dxw.StretchCounter(myPerfCount.HighPart);
+		myPerfCount.LowPart = dxw.StretchCounter(myPerfCount.LowPart);
+	}
 	*lpPerformanceCount = myPerfCount;
+	OutTraceB("QueryPerformanceCounter: ret=%x Count=%x-%x\n", ret, lpPerformanceCount->HighPart, lpPerformanceCount->LowPart);
+	return ret;
+}
+
+BOOL WINAPI extQueryPerformanceFrequency(LARGE_INTEGER *lpPerformanceFrequency)
+{
+	BOOL ret;
+	if(dxw.dwFlags4 & NOPERFCOUNTER){
+		LARGE_INTEGER myPerfFrequency;
+		myPerfFrequency.LowPart = 0L;
+		myPerfFrequency.HighPart = 0L;
+		*lpPerformanceFrequency=myPerfFrequency;
+		ret = 0;
+	}
+	else
+		ret=(*pQueryPerformanceFrequency)(lpPerformanceFrequency);
+	OutTraceDW("QueryPerformanceFrequency: ret=%x Frequency=%x-%x\n", ret, lpPerformanceFrequency->HighPart, lpPerformanceFrequency->LowPart);
 	return ret;
 }

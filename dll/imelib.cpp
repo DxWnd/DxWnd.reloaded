@@ -35,49 +35,49 @@ FARPROC Remap_ImeLib_ProcAddress(LPCSTR proc, HMODULE hModule)
 
 BOOL WINAPI extImmNotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD dwValue)
 {
-	OutTraceD("ImmNotifyIME: hIMC=%x dwAction=%x dwIndex=%x dwValue=%x\n", hIMC, dwAction, dwIndex, dwValue);
+	OutTraceDW("ImmNotifyIME: hIMC=%x dwAction=%x dwIndex=%x dwValue=%x\n", hIMC, dwAction, dwIndex, dwValue);
 	return(*pImmNotifyIME)(hIMC, dwAction, dwIndex, dwValue);
 }
 
 HIMC WINAPI extImmCreateContext(void)
 {
-	OutTraceD("ImmCreateContext\n");
+	OutTraceDW("ImmCreateContext\n");
 	return(*pImmCreateContext)();
 }
 
 BOOL WINAPI extImmDestroyContext(HIMC hIMC)
 {
-	OutTraceD("ImmDestroyContext: hIMC=%x\n", hIMC);
+	OutTraceDW("ImmDestroyContext: hIMC=%x\n", hIMC);
 	return(*pImmDestroyContext)(hIMC);
 }
 
 BOOL WINAPI extImmSetOpenStatus(HIMC hIMC, BOOL fOpen)
 {
-	OutTraceD("ImmSetOpenStatus: hIMC=%x fOpen=%x\n", hIMC, fOpen);
+	OutTraceDW("ImmSetOpenStatus: hIMC=%x fOpen=%x\n", hIMC, fOpen);
 	return(*pImmSetOpenStatus)(hIMC, fOpen);
 }
 
 HIMC WINAPI extImmAssociateContext(HWND hwnd, HIMC hIMC)
 {
-	OutTraceD("ImmAssociateContext: hwnd=%x hIMC=%x\n", hwnd, hIMC);
+	OutTraceDW("ImmAssociateContext: hwnd=%x hIMC=%x\n", hwnd, hIMC);
 	//return NULL;
 	return(*pImmAssociateContext)(hwnd, hIMC);
 }
 
 BOOL WINAPI extImmSetCompositionWindow(HIMC hIMC, LPCOMPOSITIONFORM lpCompForm)
 {
-	OutTraceD("ImmSetCompositionWindow: hIMC=%x lpCompForm=%x\n", hIMC, lpCompForm);
+	OutTraceDW("ImmSetCompositionWindow: hIMC=%x lpCompForm=%x\n", hIMC, lpCompForm);
 	return(*pImmSetCompositionWindow)(hIMC, lpCompForm);
 }
 
 BOOL WINAPI extImmSetCompositionString(HIMC hIMC, DWORD dwIndex, LPVOID lpComp, DWORD dwCompLen, LPVOID lpRead, DWORD dwReadLen)
 {
-	OutTraceD("ImmSetCompositionString: hIMC=%x dwIndex=%x lpComp=%x dwCompLen=%x dwRead=%x dwReadLen=%x\n", hIMC, dwIndex, lpComp, dwCompLen, lpRead, dwReadLen);
+	OutTraceDW("ImmSetCompositionString: hIMC=%x dwIndex=%x lpComp=%x dwCompLen=%x dwRead=%x dwReadLen=%x\n", hIMC, dwIndex, lpComp, dwCompLen, lpRead, dwReadLen);
 	return (*pImmSetCompositionString)(hIMC, dwIndex, lpComp, dwCompLen, lpRead, dwReadLen);
 }
 
 BOOL WINAPI extImmGetOpenStatus(HIMC hIMC)
 {
-	OutTraceD("ImmGetOpenStatus: hIMC=%x\n", hIMC);
+	OutTraceDW("ImmGetOpenStatus: hIMC=%x\n", hIMC);
 	return(*pImmGetOpenStatus)(hIMC);
 }

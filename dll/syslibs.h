@@ -120,6 +120,7 @@ typedef DWORD	(WINAPI *SetFilePointer_Type)(HANDLE, LONG, PLONG, DWORD);
 typedef BOOL	(WINAPI *CloseHandle_Type)(HANDLE);
 typedef BOOL	(WINAPI *QueryPerformanceFrequency_Type)(LARGE_INTEGER *);
 typedef BOOL	(WINAPI *QueryPerformanceCounter_Type)(LARGE_INTEGER *);
+typedef BOOL	(WINAPI *QueryPerformanceFrequency_Type)(LARGE_INTEGER *);
 
 // ole32.dll:
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
@@ -129,8 +130,10 @@ typedef HRESULT (STDAPICALLTYPE *CoInitialize_Type)(LPVOID);
 // user32.dll:
 typedef HDC		(WINAPI *BeginPaint_Type)(HWND, LPPAINTSTRUCT);
 typedef LRESULT (WINAPI *CallWindowProc_Type)(WNDPROC, HWND, UINT, WPARAM, LPARAM);
-typedef LONG	(WINAPI *ChangeDisplaySettings_Type)(DEVMODE *, DWORD);
-typedef LONG	(WINAPI *ChangeDisplaySettingsEx_Type)(LPCTSTR, DEVMODE *, HWND, DWORD, LPVOID);
+typedef LONG	(WINAPI *ChangeDisplaySettingsA_Type)(DEVMODEA *, DWORD);
+typedef LONG	(WINAPI *ChangeDisplaySettingsExA_Type)(LPCTSTR, DEVMODEA *, HWND, DWORD, LPVOID);
+typedef LONG	(WINAPI *ChangeDisplaySettingsW_Type)(DEVMODEW *, DWORD);
+typedef LONG	(WINAPI *ChangeDisplaySettingsExW_Type)(LPCTSTR, DEVMODEW *, HWND, DWORD, LPVOID);
 typedef BOOL	(WINAPI *ClientToScreen_Type)(HWND, LPPOINT);
 typedef BOOL	(WINAPI *ClipCursor_Type)(const RECT *);
 typedef HWND	(WINAPI *CreateDialogIndirectParam_Type)(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
@@ -314,8 +317,10 @@ DXWEXTERN CoInitialize_Type pCoInitialize  DXWINITIALIZED;
 // user32.dll:
 DXWEXTERN BeginPaint_Type pBeginPaint DXWINITIALIZED;
 DXWEXTERN CallWindowProc_Type pCallWindowProc DXWINITIALIZED;
-DXWEXTERN ChangeDisplaySettings_Type pChangeDisplaySettings DXWINITIALIZED;
-DXWEXTERN ChangeDisplaySettingsEx_Type pChangeDisplaySettingsEx DXWINITIALIZED;
+DXWEXTERN ChangeDisplaySettingsA_Type pChangeDisplaySettingsA DXWINITIALIZED;
+DXWEXTERN ChangeDisplaySettingsExA_Type pChangeDisplaySettingsExA DXWINITIALIZED;
+DXWEXTERN ChangeDisplaySettingsW_Type pChangeDisplaySettingsW DXWINITIALIZED;
+DXWEXTERN ChangeDisplaySettingsExW_Type pChangeDisplaySettingsExW DXWINITIALIZED;
 DXWEXTERN ClientToScreen_Type pClientToScreen DXWINITIALIZED;
 DXWEXTERN ClipCursor_Type pClipCursor DXWINITIALIZED;
 DXWEXTERN CreateDialogIndirectParam_Type pCreateDialogIndirectParam DXWINITIALIZED;
@@ -495,8 +500,10 @@ extern HRESULT STDAPICALLTYPE extCoInitialize(LPVOID);
 // user32.dll:
 extern HDC WINAPI extBeginPaint(HWND, LPPAINTSTRUCT);
 extern LRESULT WINAPI extCallWindowProc(WNDPROC, HWND, UINT, WPARAM, LPARAM);
-extern LONG WINAPI extChangeDisplaySettings(DEVMODE *, DWORD);
-extern LONG WINAPI extChangeDisplaySettingsEx(LPCTSTR, DEVMODE *, HWND, DWORD, LPVOID);
+extern LONG WINAPI extChangeDisplaySettingsA(DEVMODEA *, DWORD);
+extern LONG WINAPI extChangeDisplaySettingsExA(LPCTSTR, DEVMODEA *, HWND, DWORD, LPVOID);
+extern LONG WINAPI extChangeDisplaySettingsW(DEVMODEW *, DWORD);
+extern LONG WINAPI extChangeDisplaySettingsExW(LPCTSTR, DEVMODEW *, HWND, DWORD, LPVOID);
 extern BOOL WINAPI extClientToScreen(HWND, LPPOINT);
 extern BOOL WINAPI extClipCursor(LPRECT);
 extern HWND WINAPI extCreateDialogIndirectParam(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);

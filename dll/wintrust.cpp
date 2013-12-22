@@ -28,8 +28,8 @@ FARPROC Remap_trust_ProcAddress(LPCSTR proc, HMODULE hModule)
 LONG WINAPI extWinVerifyTrust(HWND hWnd, GUID *pgActionID, LPVOID pWVTData)
 {
 	LONG ret;
-	OutTraceD("WinVerifyTrust: hwnd=%x pgActionID=%x pWVTData=%x\n", hWnd, pgActionID, pWVTData);
+	OutTraceDW("WinVerifyTrust: hwnd=%x pgActionID=%x pWVTData=%x\n", hWnd, pgActionID, pWVTData);
 	ret = (*pWinVerifyTrust)(hWnd, pgActionID, pWVTData);
-	OutTraceD("WinVerifyTrust: ret=%x\n", ret);
+	OutTraceDW("WinVerifyTrust: ret=%x\n", ret);
 	return ret;
 }

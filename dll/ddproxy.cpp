@@ -666,7 +666,7 @@ HRESULT WINAPI extInitializeProxy(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 	HRESULT res;
 	GUID FAR *lpPrivGuid = lpguid;
 
-	OutTraceD("Initialize: lpdd=%x guid=%x(%s)\n", lpdd, lpguid, ExplainGUID(lpguid));
+	OutTraceDW("Initialize: lpdd=%x guid=%x(%s)\n", lpdd, lpguid, ExplainGUID(lpguid));
 
 	res=(*pInitialize)(lpdd, lpPrivGuid);
 
@@ -2072,18 +2072,18 @@ int WINAPI extGetDeviceCapsProxy(HDC hdc, int nindex)
 	DWORD res;
 	
 	res = (*pGDIGetDeviceCaps)(hdc, nindex);
-	OutTraceD("GetDeviceCaps: hdc=%x index=%x(%s) res=%x\n",
+	OutTraceDW("GetDeviceCaps: hdc=%x index=%x(%s) res=%x\n",
 		hdc, nindex, ExplainDeviceCaps(nindex), res);
 
 	switch(nindex){
 	case VERTRES:
-		OutTraceD("GetDeviceCaps: VERTRES=%d\n", res);
+		OutTraceDW("GetDeviceCaps: VERTRES=%d\n", res);
 		break;
 	case HORZRES:
-		OutTraceD("GetDeviceCaps: HORZRES=%d\n", res);
+		OutTraceDW("GetDeviceCaps: HORZRES=%d\n", res);
 		break;
 	case RASTERCAPS:
-		OutTraceD("GetDeviceCaps: RASTERCAPS=%x(%s)\n",res, ExplainRasterCaps(res));
+		OutTraceDW("GetDeviceCaps: RASTERCAPS=%x(%s)\n",res, ExplainRasterCaps(res));
 		break;
 	}
 	return res;

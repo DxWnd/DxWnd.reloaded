@@ -65,6 +65,10 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_VIEW_STATUS, OnViewStatus)
 	ON_COMMAND(ID_VIEW_PALETTE, OnViewPalette)
 	ON_COMMAND(ID_VIEW_TIMESLIDER, OnViewTimeSlider)
+	ON_COMMAND(ID_DESKTOPCOLORDEPTH_8BPP, OnDesktopcolordepth8bpp)
+	ON_COMMAND(ID_DESKTOPCOLORDEPTH_16BPP, OnDesktopcolordepth16bpp)
+	ON_COMMAND(ID_DESKTOPCOLORDEPTH_24BPP, OnDesktopcolordepth24bpp)
+	ON_COMMAND(ID_DESKTOPCOLORDEPTH_32BPP, OnDesktopcolordepth32bpp)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -137,12 +141,14 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	}
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
-	if(dlg->m_OutTrace) t->tflags |= OUTDDRAWTRACE;
+	if(dlg->m_OutProxyTrace) t->tflags |= OUTPROXYTRACE;
 	if(dlg->m_OutDebug) t->tflags |= OUTDEBUG;
 	if(dlg->m_CursorTrace) t->tflags |= OUTCURSORTRACE;
 	if(dlg->m_LogEnabled) t->tflags |= OUTTRACE;
 	if(dlg->m_OutWinMessages) t->tflags |= OUTWINMESSAGES;
-	if(dlg->m_OutDXTrace) t->tflags |= OUTPROXYTRACE;
+	if(dlg->m_OutDWTrace) t->tflags |= OUTDXWINTRACE;
+	if(dlg->m_OutDDRAWTrace) t->tflags |= OUTDDRAWTRACE;
+	if(dlg->m_OutD3DTrace) t->tflags |= OUTD3DTRACE;
 	if(dlg->m_DXProxed) t->tflags |= DXPROXED;
 	if(dlg->m_AssertDialog) t->tflags |= ASSERTDIALOG;
 	if(dlg->m_ImportTable) t->tflags |= OUTIMPORTTABLE;
@@ -158,6 +164,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ZBuffer0Clean) t->flags4 |= ZBUFFER0CLEAN;
 	if(dlg->m_ZBufferAlways) t->flags4 |= ZBUFFERALWAYS;
 	if(dlg->m_NoPower2Fix) t->flags4 |= NOPOWER2FIX;
+	if(dlg->m_NoPerfCounter) t->flags4 |= NOPERFCOUNTER;
+	if(dlg->m_AddProxyLibs) t->flags4 |= ADDPROXYLIBS;
 	if(dlg->m_DisableFogging) t->flags4 |= DISABLEFOGGING;
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
@@ -281,12 +289,14 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
-	dlg->m_OutTrace = t->tflags & OUTDDRAWTRACE ? 1 : 0;
+	dlg->m_OutProxyTrace = t->tflags & OUTPROXYTRACE ? 1 : 0;
 	dlg->m_OutDebug = t->tflags & OUTDEBUG ? 1 : 0;
 	dlg->m_CursorTrace = t->tflags & OUTCURSORTRACE ? 1 : 0;
 	dlg->m_LogEnabled = t->tflags & OUTTRACE ? 1 : 0;
 	dlg->m_OutWinMessages = t->tflags & OUTWINMESSAGES ? 1 : 0;
-	dlg->m_OutDXTrace = t->tflags & OUTPROXYTRACE ? 1 : 0;
+	dlg->m_OutDWTrace = t->tflags & OUTDXWINTRACE ? 1 : 0;
+	dlg->m_OutD3DTrace = t->tflags & OUTD3DTRACE ? 1 : 0;
+	dlg->m_OutDDRAWTrace = t->tflags & OUTDDRAWTRACE ? 1 : 0;
 	dlg->m_DXProxed = t->tflags & DXPROXED ? 1 : 0;
 	dlg->m_AssertDialog = t->tflags & ASSERTDIALOG ? 1 : 0;
 	dlg->m_ImportTable = t->tflags & OUTIMPORTTABLE ? 1 : 0;
@@ -317,6 +327,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ZBuffer0Clean = t->flags4 & ZBUFFER0CLEAN ? 1 : 0;
 	dlg->m_ZBufferAlways = t->flags4 & ZBUFFERALWAYS ? 1 : 0;
 	dlg->m_NoPower2Fix = t->flags4 & NOPOWER2FIX ? 1 : 0;
+	dlg->m_NoPerfCounter = t->flags4 & NOPERFCOUNTER ? 1 : 0;
+	dlg->m_AddProxyLibs = t->flags4 & ADDPROXYLIBS ? 1 : 0;
 	dlg->m_DisableFogging = t->flags4 & DISABLEFOGGING ? 1 : 0;
 	dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
@@ -1423,6 +1435,18 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	case ID_FILE_IMPORT:
 		OnImport();
 		break;
+	case ID_DESKTOPCOLORDEPTH_8BPP:
+		OnDesktopcolordepth8bpp();
+		break;
+	case ID_DESKTOPCOLORDEPTH_16BPP:
+		OnDesktopcolordepth16bpp();
+		break;
+	case ID_DESKTOPCOLORDEPTH_24BPP:
+		OnDesktopcolordepth24bpp();
+		break;
+	case ID_DESKTOPCOLORDEPTH_32BPP:
+		OnDesktopcolordepth32bpp();
+		break;
 	}
 	CListView::OnRButtonDown(nFlags, point);
 }
@@ -1554,4 +1578,58 @@ void CDxwndhostView::OnRun()
 	else{
 		CreateProcess(NULL, TargetMaps[i].path, 0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
 	}
+}
+
+void SwitchToColorDepth(int bpp)
+{
+	DEVMODE CurrentDevMode;
+	BOOL res;
+	char MsgBuf[256+1];
+	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
+	sprintf(MsgBuf, "ChangeDisplaySettings: color depth %d -> %d BPP\n", CurrentDevMode.dmBitsPerPel, bpp);
+	if(MessageBoxEx(0, MsgBuf, "Warning", MB_OKCANCEL | MB_ICONQUESTION, NULL)!=IDOK) return;
+	//OutTraceDW("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> 16\n", 
+	//	CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel);
+	CurrentDevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+	CurrentDevMode.dmBitsPerPel = bpp;
+	res=ChangeDisplaySettings(&CurrentDevMode, CDS_UPDATEREGISTRY);
+	if(res!=DISP_CHANGE_SUCCESSFUL) {
+		char *err;
+		switch(res){
+			case DISP_CHANGE_BADDUALVIEW: err="BADDUALVIEW"; break;
+			case DISP_CHANGE_BADFLAGS: err="BADFLAGS"; break;
+			case DISP_CHANGE_BADMODE: err="BADMODE"; break;
+			case DISP_CHANGE_BADPARAM: err="BADPARAM"; break;
+			case DISP_CHANGE_FAILED: err="FAILED"; break;
+			case DISP_CHANGE_NOTUPDATED: err="NOTUPDATED"; break;
+			case DISP_CHANGE_RESTART: err="RESTART"; break;
+			default: err="???"; break;
+		}
+		sprintf(MsgBuf, "ChangeDisplaySettings ERROR res=%s err=%d\n", err, GetLastError());
+		MessageBoxEx(0, MsgBuf, "Error", MB_OKCANCEL | MB_ICONQUESTION, NULL);
+	}
+}
+
+void CDxwndhostView::OnDesktopcolordepth8bpp()
+{
+	// TODO: Add your command handler code here
+	SwitchToColorDepth(8);
+}
+
+void CDxwndhostView::OnDesktopcolordepth16bpp()
+{
+	// TODO: Add your command handler code here
+	SwitchToColorDepth(16);
+}
+
+void CDxwndhostView::OnDesktopcolordepth24bpp()
+{
+	// TODO: Add your command handler code here
+	SwitchToColorDepth(24);
+}
+
+void CDxwndhostView::OnDesktopcolordepth32bpp()
+{
+	// TODO: Add your command handler code here
+	SwitchToColorDepth(32);
 }

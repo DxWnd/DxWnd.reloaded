@@ -54,7 +54,6 @@
 #define IDC_LOCKEDSURFACE               1010
 #define IDC_EMULATESURFACE              1011
 #define IDC_MODIFYMOUSE                 1012
-#define IDC_OUTTRACE                    1013
 #define IDC_HANDLEDC                    1014
 #define IDC_SAVELOAD                    1015
 #define IDC_INITX                       1016
@@ -76,9 +75,6 @@
 #define IDC_USERGB565                   1033
 #define IDC_SUPPRESSDXERRORS            1034
 #define IDC_PREVENTMAXIMIZE             1035
-#define IDC_OUTWINMESSAGES              1036
-#define IDC_OUTDXTRACE                  1037
-#define IDC_DXPROXED                    1038
 #define IDC_TITLE                       1039
 #define IDC_SLOW                        1040
 #define IDC_CLIPCURSOR                  1041
@@ -107,7 +103,6 @@
 #define IDC_IMPORTTABLE                 1064
 #define IDC_HANDLEEXCEPTIONS            1065
 #define IDC_BLITFROMBACKBUFFER          1066
-#define IDC_OUTDEBUG                    1067
 #define IDC_SUPPRESSCLIPPING            1068
 #define IDC_MODALSTYLE                  1069
 #define IDC_KEEPASPECTRATIO             1070
@@ -156,7 +151,6 @@
 #define IDC_HOOKDI                      1112
 #define IDC_EMULATEREGISTRY             1113
 #define IDC_CDROMDRIVETYPE              1114
-#define IDC_OUTREGISTRY                 1115
 #define IDC_NOWINDOWMOVE                1116
 #define IDC_DISABLEHAL                  1117
 #define IDC_LOCKSYSCOLORS               1118
@@ -191,6 +185,16 @@
 #define IDC_ZBUFFERALWAYS               1147
 #define IDC_ZBUFFER0CLEAN               1148
 #define IDC_NOPOWER2FIX                 1149
+#define IDC_NOPERFCOUNTER               1150
+#define IDC_OUTPROXYTRACE               1151
+#define IDC_OUTD3DTRACE                 1152
+#define IDC_OUTDWTRACE                  1153
+#define IDC_DXPROXED                    1154
+#define IDC_OUTWINMESSAGES              1155
+#define IDC_OUTDDRAWTRACE               1157
+#define IDC_OUTDEBUG                    1158
+#define IDC_OUTREGISTRY                 1159
+#define IDC_ADDPROXYLIBS                1160
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -224,8 +228,6 @@
 #define ID_VIEW_STATUS32813             32813
 #define ID_VIEW_TIMESLIDER32814         32814
 #define ID_VIEW_STATUS3                 32815
-#define ID_KILL_PAUSE                   32816
-#define ID_KILL_RESUME                  32817
 #define ID_KILL_KILL                    32818
 #define ID_TASK_RESUME                  32819
 #define ID_FILE_IMPORT                  32820
@@ -233,6 +235,11 @@
 #define ID_PEXPORT                      32822
 #define ID_PKILL                        32823
 #define ID_VIEW_PALETTE                 32825
+#define ID_FILE_DESKTOPCOLORDEPTH       32826
+#define ID_DESKTOPCOLORDEPTH_16BPP      32827
+#define ID_DESKTOPCOLORDEPTH_24BPP      32828
+#define ID_DESKTOPCOLORDEPTH_32BPP      32829
+#define ID_DESKTOPCOLORDEPTH_8BPP       32830
 
 // Next default values for new objects
 // 
@@ -240,7 +247,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        159
-#define _APS_NEXT_COMMAND_VALUE         32826
+#define _APS_NEXT_COMMAND_VALUE         32830
 #define _APS_NEXT_CONTROL_VALUE         1095
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

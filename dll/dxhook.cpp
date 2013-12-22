@@ -67,7 +67,7 @@ static char *Flag3Names[32]={
 static char *Flag4Names[32]={
 	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
 	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
-	"NOPOWER2FIX", "", "", "",
+	"NOPOWER2FIX", "NOPERFCOUNTER", "ADDPROXYLIBS", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -143,19 +143,19 @@ static void dx_ToggleLogging()
 {
 	// toggle LOGGING
 	if(dxw.dwTFlags & OUTTRACE){
-		OutTraceD("Toggle logging OFF\n");
+		OutTraceDW("Toggle logging OFF\n");
 		dxw.dwTFlags &= ~OUTTRACE;
 	}
 	else {
 		dxw.dwTFlags |= OUTTRACE;
-		OutTraceD("Toggle logging ON\n");
+		OutTraceDW("Toggle logging ON\n");
 	}
 	GetHookInfo()->isLogging=(dxw.dwTFlags & OUTTRACE);
 }
 
 static void SuppressIMEWindow()
 {
-	OutTraceD("WindowProc: SUPPRESS IME\n");
+	OutTraceDW("WindowProc: SUPPRESS IME\n");
 	typedef BOOL (WINAPI *ImmDisableIME_Type)(DWORD);
 	ImmDisableIME_Type pImmDisableIME;
 	HMODULE ImmLib;
@@ -222,7 +222,7 @@ void HookDlls(HMODULE module)
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{       
-		OutTraceD("HookDlls: EXCEPTION\n");
+		OutTraceDW("HookDlls: EXCEPTION\n");
 	}
 	return;
 }
@@ -282,7 +282,7 @@ void DumpImportTable(HMODULE module)
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{       
-		OutTraceD("DumpImportTable: EXCEPTION\n");
+		OutTraceDW("DumpImportTable: EXCEPTION\n");
 	}
 	return;
 }
@@ -304,23 +304,32 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	if((dwTmp <= MaxHook) && (dwTmp >= MinHook)) return; // already hooked
 	if(dwTmp == 0){
 		sprintf(msg,"SetHook ERROR: NULL target for %s\n", hookname);
-		OutTraceD(msg);
+		OutTraceDW(msg);
 		MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
 		return; // error condition
 	}
 	if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) {
 		sprintf(msg,"SetHook ERROR: target=%x err=%d\n", target, GetLastError());
-		OutTraceD(msg);
+		OutTraceDW(msg);
 		if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
 		return; // error condition
 	}
 	*(DWORD *)target = (DWORD)hookproc;
-	VirtualProtect(target, 4, oldprot, &oldprot);
+	if(!VirtualProtect(target, 4, oldprot, &oldprot)){
+		OutTrace("SetHook: VirtualProtect ERROR target=%x, err=%x\n", target, GetLastError());
+		return; // error condition
+	}
+#if 0
+	if(!FlushInstructionCache(GetCurrentProcess(), target, 4)){
+		OutTrace("SetHook: FlushInstructionCache ERROR target=%x, err=%x\n", target, GetLastError());
+		return; // error condition
+	}
+#endif
 	tmp=(void *)dwTmp;
 
 	if (*hookedproc && *hookedproc!=tmp) {
 		sprintf(msg,"SetHook: proc=%s oldhook=%x newhook=%x\n", hookname, hookedproc, tmp);
-		OutTraceD(msg);
+		OutTraceDW(msg);
 		if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
 	}
 	*hookedproc = tmp;
@@ -397,13 +406,13 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 			return 0;
 		}
 		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
-		OutTraceD("HookAPI: pidesc=%x\n", pidesc); 
+		OutTraceDW("HookAPI: pidesc=%x\n", pidesc); 
 
 		while(pidesc->Name){
 			pThunk=(PCHAR)base+pidesc->FirstThunk;
 			dwThunk = pidesc->FirstThunk;
 			pDllName=(PSTR)base+pidesc->Name;
-			OutTraceD("HookAPI: pDllName=%s Name=%s\n", pDllName, pidesc->Name);
+			OutTraceDW("HookAPI: pDllName=%s Name=%s\n", pDllName, pidesc->Name);
 			//impmodule = (PSTR)(base + pidesc->Name);
 			//if(!lstrcmpi(dll, impmodule)) break;
 			pidesc ++;
@@ -417,7 +426,7 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 		ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
 
 		if((apiproc==NULL) && (ptname==NULL)){
-			if (IsDebug) OutTraceD("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
+			if (IsDebug) OutTraceDW("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
 			return 0;
 		}
 
@@ -440,23 +449,23 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 		if(org == hookproc) return 0; // already hooked
 			
 		if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
-			OutTraceD("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
+			OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
 		ptaddr->u1.Function = (DWORD)hookproc;
 		if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
-			OutTraceD("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
+			OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
 		if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
-			OutTraceD("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
+			OutTraceDW("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
 		if(IsDebug) OutTrace("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{       
-		OutTraceD("HookAPI: EXCEPTION hook=%s:%s Hook Failed.\n", dll, apiname);
+		OutTraceDW("HookAPI: EXCEPTION hook=%s:%s Hook Failed.\n", dll, apiname);
 		org = 0;
 	}
 	return org;
@@ -537,23 +546,23 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 		if(org == hookproc) return 0; // already hooked
 			
 		if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
-			OutTraceD("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
+			OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
 		ptaddr->u1.Function = (DWORD)hookproc;
 		if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
-			OutTraceD("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
+			OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
 		if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
-			OutTraceD("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
+			OutTraceDW("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
 			return 0;
 		}
 		OutTraceH("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{       
-		OutTraceD("HookAPI: EXCEPTION hook=%s:%s Hook Failed.\n", dll, apiname);
+		OutTraceDW("HookAPI: EXCEPTION hook=%s:%s Hook Failed.\n", dll, apiname);
 		org = 0;
 	}
 	return org;
@@ -643,12 +652,12 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 {
 	WINDOWPOS wp;
-	OutTraceD("AdjustWindowPos: hwnd=%x, size=(%d,%d)\n", hwnd, width, height);
+	OutTraceDW("AdjustWindowPos: hwnd=%x, size=(%d,%d)\n", hwnd, width, height);
 	CalculateWindowPos(hwnd, width, height, &wp);
-	OutTraceD("AdjustWindowPos: fixed pos=(%d,%d) size=(%d,%d)\n", wp.x, wp.y, wp.cx, wp.cy);
+	OutTraceDW("AdjustWindowPos: fixed pos=(%d,%d) size=(%d,%d)\n", wp.x, wp.y, wp.cx, wp.cy);
 	//if(!pSetWindowPos) pSetWindowPos=SetWindowPos;
-	//OutTraceD("pSetWindowPos=%x\n", pSetWindowPos);
-	OutTraceD("hwnd=%x pos=(%d,%d) size=(%d,%d)\n", pSetWindowPos, wp.x, wp.y, wp.cx, wp.cy);
+	//OutTraceDW("pSetWindowPos=%x\n", pSetWindowPos);
+	OutTraceDW("hwnd=%x pos=(%d,%d) size=(%d,%d)\n", pSetWindowPos, wp.x, wp.y, wp.cx, wp.cy);
 	if(!(*pSetWindowPos)(hwnd, 0, wp.x, wp.y, wp.cx, wp.cy, 0)){
 		OutTraceE("AdjustWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
@@ -658,14 +667,29 @@ void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 	return;
 }
 
+void HookWindowProc(HWND hwnd)
+{
+	WNDPROC pWindowProc;
+	pWindowProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
+	if (pWindowProc == extWindowProc){
+		// hooked already !!!
+		OutTraceDW("GetWindowLong: hwnd=%x WindowProc HOOK already in place\n", hwnd);
+	}
+	else {// don't hook twice ....
+		long lres;
+		WhndStackPush(hwnd, pWindowProc);
+		lres=(*pSetWindowLong)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
+		OutTraceDW("SetWindowLong: hwnd=%x HOOK WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
+	}
+}
+
 void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 {
 
 	HRESULT res=0;
-	WNDPROC pWindowProc;
 	LONG style;
 
-	OutTraceD("AdjustWindowFrame hwnd=%x, size=(%d,%d) coord=%d\n", hwnd, width, height, dxw.Coordinates); 
+	OutTraceDW("AdjustWindowFrame hwnd=%x, size=(%d,%d) coord=%d\n", hwnd, width, height, dxw.Coordinates); 
 
 	dxw.SetScreenSize(width, height);
 	if (hwnd==NULL) return;
@@ -684,29 +708,18 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 	(*pSetWindowLong)(hwnd, GWL_STYLE, style);
 	(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0); 
 	(*pShowWindow)(hwnd, SW_SHOWNORMAL);
-	OutTraceD("AdjustWindowFrame hwnd=%x, set style=%s extstyle=0\n", hwnd, (style == 0) ? "0" : "WS_OVERLAPPEDWINDOW"); 
+	OutTraceDW("AdjustWindowFrame hwnd=%x, set style=%s extstyle=0\n", hwnd, (style == 0) ? "0" : "WS_OVERLAPPEDWINDOW"); 
 	AdjustWindowPos(hwnd, width, height);
 
 	// fixing windows message handling procedure
-
-	pWindowProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
-	if (pWindowProc == extWindowProc){
-		// hooked already !!!
-		OutTraceD("GetWindowLong: extWindowProc already in place, hwnd=%x\n", hwnd);
-	}
-	else {// don't hook twice ....
-		long lres;
-		WhndStackPush(hwnd, pWindowProc);
-		lres=(*pSetWindowLong)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
-		OutTraceD("AdjustWindowFrame: fixing hwnd=%x WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
-	}
+	HookWindowProc(hwnd);
 
 	// fixing cursor view and clipping region
 
 	if (dxw.dwFlags1 & HIDEHWCURSOR) while ((*pShowCursor)(0) >= 0);
 	if (dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
 	if (dxw.dwFlags1 & CLIPCURSOR) {
-		OutTraceD("AdjustWindowFrame: setting clip region\n");
+		OutTraceDW("AdjustWindowFrame: setting clip region\n");
 		dxw.SetClipCursor();
 	}
 
@@ -736,7 +749,7 @@ INT_PTR CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPA
 	pWindowProc=WhndGetWindowProc(hwnd);
 	if(pWindowProc) return(*pWindowProc)(hwnd, message, wparam, lparam);
 	char *sMsg="ASSERT: DialogWinMsg pWindowProc=NULL !!!\n";
-	OutTraceD(sMsg);
+	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "WindowProc", MB_OK | MB_ICONEXCLAMATION);
 	return NULL;
 }
@@ -799,7 +812,7 @@ static void dx_UpdatePositionLock(HWND hwnd)
 	(*pGetClientRect)(hwnd,&rect);
 	(*pClientToScreen)(hwnd,&p);
 	dxw.dwFlags1 |= LOCKWINPOS;
-	OutTraceD("Toggle position lock ON\n");
+	OutTraceDW("Toggle position lock ON\n");
 	dxw.InitWindowPos(p.x, p.y, rect.right-rect.left, rect.bottom-rect.top);
 }
 
@@ -808,11 +821,11 @@ static void dx_TogglePositionLock(HWND hwnd)
 	// toggle position locking
 	if(dxw.dwFlags1 & LOCKWINPOS){
 		// unlock
-		OutTraceD("Toggle position lock OFF\n");
+		OutTraceDW("Toggle position lock OFF\n");
 		dxw.dwFlags1 &= ~LOCKWINPOS;
 	}
 	else {
-		OutTraceD("Toggle position lock ON\n");
+		OutTraceDW("Toggle position lock ON\n");
 		dxw.dwFlags1 |= LOCKWINPOS;
 		dx_UpdatePositionLock(hwnd);
 	}
@@ -915,19 +928,19 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;
 	case WM_NCCALCSIZE:
 		if((dxw.dwFlags1 & LOCKWINPOS) && (hwnd == dxw.GethWnd())){ // v2.02.30: don't alter child and other windows....
-			OutTraceD("WindowProc: WS_NCCALCSIZE wparam=%x\n", wparam);
+			OutTraceDW("WindowProc: WS_NCCALCSIZE wparam=%x\n", wparam);
 			if(wparam){
 				// nothing so far ....
 				if (IsDebug){
 					NCCALCSIZE_PARAMS *ncp;
 					ncp = (NCCALCSIZE_PARAMS *) lparam;
-					OutTraceD("WindowProc: WS_NCCALCSIZE rect[0]=(%d,%d)-(%d,%d)\n", 
+					OutTraceDW("WindowProc: WS_NCCALCSIZE rect[0]=(%d,%d)-(%d,%d)\n", 
 						ncp->rgrc[0].left, ncp->rgrc[0].top, ncp->rgrc[0].right, ncp->rgrc[0].bottom);
-					OutTraceD("WindowProc: WS_NCCALCSIZE rect[1]=(%d,%d)-(%d,%d)\n", 
+					OutTraceDW("WindowProc: WS_NCCALCSIZE rect[1]=(%d,%d)-(%d,%d)\n", 
 						ncp->rgrc[1].left, ncp->rgrc[1].top, ncp->rgrc[1].right, ncp->rgrc[1].bottom);
-					OutTraceD("WindowProc: WS_NCCALCSIZE rect[2]=(%d,%d)-(%d,%d)\n", 
+					OutTraceDW("WindowProc: WS_NCCALCSIZE rect[2]=(%d,%d)-(%d,%d)\n", 
 						ncp->rgrc[2].left, ncp->rgrc[2].top, ncp->rgrc[2].right, ncp->rgrc[2].bottom);
-					OutTraceD("WindowProc: WS_NCCALCSIZE winrect=(%d,%d)-(%d,%d)\n", 
+					OutTraceDW("WindowProc: WS_NCCALCSIZE winrect=(%d,%d)-(%d,%d)\n", 
 						ncp->lppos->x, ncp->lppos->y, ncp->lppos->cx, ncp->lppos->cy);
 				}
 			}
@@ -960,7 +973,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_IME_KEYDOWN:
 	case WM_IME_KEYUP:
 		if(dxw.dwFlags2 & SUPPRESSIME){
-			OutTraceD("WindowProc: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
+			OutTraceDW("WindowProc: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
 			return 0;
 		}
 		break;
@@ -981,13 +994,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;
 	case WM_ERASEBKGND:
 		if(dxw.IsDesktop(hwnd)){ 
-			OutTraceD("WindowProc: WM_ERASEBKGND(%x,%x) - suppressed\n", wparam, lparam);
+			OutTraceDW("WindowProc: WM_ERASEBKGND(%x,%x) - suppressed\n", wparam, lparam);
 			return 1; // 1 == OK, erased
 		}
 		break;
 	case WM_DISPLAYCHANGE:
 		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
-			OutTraceD("WindowProc: prevent WM_DISPLAYCHANGE depth=%d size=(%d,%d)\n",
+			OutTraceDW("WindowProc: prevent WM_DISPLAYCHANGE depth=%d size=(%d,%d)\n",
 				wparam, HIWORD(lparam), LOWORD(lparam));
 			// v2.02.43: unless EMULATESURFACE is set, lock the screen resolution only, but not the color depth!
 			if(dxw.dwFlags1 & EMULATESURFACE) return 0;
@@ -1001,7 +1014,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		LPWINDOWPOS wp;
 		wp = (LPWINDOWPOS)lparam;
 		dxwFixWindowPos("WindowProc", hwnd, lparam);
-		OutTraceD("WindowProc: WM_WINDOWPOSCHANGING fixed size=(%d,%d)\n", wp->cx, wp->cy);
+		OutTraceDW("WindowProc: WM_WINDOWPOSCHANGING fixed size=(%d,%d)\n", wp->cx, wp->cy);
 		break;
 	case WM_ENTERSIZEMOVE:
 		if(IsToBeLocked){
@@ -1090,16 +1103,16 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		GetHookInfo()->CursorY=HIWORD(lparam);
 		break;	
 	case WM_SETFOCUS:
-		OutTraceD("WindowProc: hwnd=%x GOT FOCUS\n", hwnd);
+		OutTraceDW("WindowProc: hwnd=%x GOT FOCUS\n", hwnd);
 		if (dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		break;
 	case WM_KILLFOCUS:
-		OutTraceD("WindowProc: hwnd=%x LOST FOCUS\n", hwnd);
+		OutTraceDW("WindowProc: hwnd=%x LOST FOCUS\n", hwnd);
 		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
 	case WM_CLOSE:
-		OutTraceD("WindowProc: WM_CLOSE - terminating process\n");
+		OutTraceDW("WindowProc: WM_CLOSE - terminating process\n");
 		if(dxw.dwFlags3 & FORCE16BPP) RecoverScreenMode();
 		TerminateProcess(GetCurrentProcess(),0);
 		break;
@@ -1108,7 +1121,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		switch (wparam){
 		case VK_F12:
 			if(dxw.dwFlags1 & CLIPCURSOR){
-				OutTraceD("WindowProc: WM_SYSKEYDOWN key=%x ToggleState=%x\n",wparam,ClipCursorToggleState);
+				OutTraceDW("WindowProc: WM_SYSKEYDOWN key=%x ToggleState=%x\n",wparam,ClipCursorToggleState);
 				ClipCursorToggleState = !ClipCursorToggleState;
 				ClipCursorToggleState ? dxw.SetClipCursor() : dxw.EraseClipCursor();
 			}
@@ -1138,7 +1151,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			break;
 		case VK_F4:
 			if (dxw.dwFlags1 & HANDLEALTF4) {
-				OutTraceD("WindowProc: WM_SYSKEYDOWN(ALT-F4) - terminating process\n");
+				OutTraceDW("WindowProc: WM_SYSKEYDOWN(ALT-F4) - terminating process\n");
 				TerminateProcess(GetCurrentProcess(),0);
 			}
 			break;
@@ -1180,12 +1193,12 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		return ret;
 	}
 
-	//OutTraceD("ASSERT: WindowProc mismatch hwnd=%x\n", hwnd);
+	//OutTraceDW("ASSERT: WindowProc mismatch hwnd=%x\n", hwnd);
 	// ??? maybe it's a normal condition, whenever you don't have a WindowProc routine
 	// like in Commandos 2. Flag it?
 	char sMsg[81];
 	sprintf(sMsg,"ASSERT: WindowProc mismatch hwnd=%x\n", hwnd);
-	OutTraceD(sMsg);
+	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "WindowProc", MB_OK | MB_ICONEXCLAMATION);	
 	return (*pDefWindowProc)(hwnd, message, wparam, lparam);
 }
@@ -1209,7 +1222,7 @@ static void SaveScreenMode()
 	if(DoOnce) return;
 	DoOnce=TRUE;
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &InitDevMode);
-	OutTraceD("DXWND: Initial display mode WxH=(%dx%d) BitsPerPel=%d\n", 
+	OutTraceDW("DXWND: Initial display mode WxH=(%dx%d) BitsPerPel=%d\n", 
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
 }
 
@@ -1218,11 +1231,11 @@ static void RecoverScreenMode()
 	DEVMODE CurrentDevMode;
 	BOOL res;
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
-	OutTraceD("ChangeDisplaySettings: recover CURRENT WxH=(%dx%d) BitsPerPel=%d TARGET WxH=(%dx%d) BitsPerPel=%d\n", 
+	OutTraceDW("ChangeDisplaySettings: recover CURRENT WxH=(%dx%d) BitsPerPel=%d TARGET WxH=(%dx%d) BitsPerPel=%d\n", 
 		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel,
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
 	InitDevMode.dmFields = (DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT);
-	res=(*pChangeDisplaySettings)(&InitDevMode, 0);
+	res=(*pChangeDisplaySettingsA)(&InitDevMode, 0);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
 
@@ -1231,11 +1244,11 @@ void SwitchTo16BPP()
 	DEVMODE CurrentDevMode;
 	BOOL res;
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
-	OutTraceD("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> 16\n", 
+	OutTraceDW("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> 16\n", 
 		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel);
 	CurrentDevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 	CurrentDevMode.dmBitsPerPel = 16;
-	res=(*pChangeDisplaySettings)(&CurrentDevMode, CDS_UPDATEREGISTRY);
+	res=(*pChangeDisplaySettingsA)(&CurrentDevMode, CDS_UPDATEREGISTRY);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
 
@@ -1243,13 +1256,13 @@ static void LockScreenMode(DWORD dmPelsWidth, DWORD dmPelsHeight, DWORD dmBitsPe
 {
 	DEVMODE InitDevMode;
 	BOOL res;
-	OutTraceD("ChangeDisplaySettings: LOCK wxh=(%dx%d) BitsPerPel=%d -> wxh=(%dx%d) BitsPerPel=%d\n", 
+	OutTraceDW("ChangeDisplaySettings: LOCK wxh=(%dx%d) BitsPerPel=%d -> wxh=(%dx%d) BitsPerPel=%d\n", 
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel,
 		dmPelsWidth, dmPelsHeight, dmBitsPerPel);
 	if( (dmPelsWidth != InitDevMode.dmPelsWidth) ||
 		(dmPelsHeight !=InitDevMode.dmPelsHeight) ||
 		(dmBitsPerPel != InitDevMode.dmBitsPerPel)){
-		res=(*pChangeDisplaySettings)(&InitDevMode, 0);
+		res=(*pChangeDisplaySettingsA)(&InitDevMode, 0);
 		if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 }
@@ -1300,7 +1313,7 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
 {
-	OutTraceD("SetUnhandledExceptionFilter: lpExceptionFilter=%x\n", lpTopLevelExceptionFilter);
+	OutTraceDW("SetUnhandledExceptionFilter: lpExceptionFilter=%x\n", lpTopLevelExceptionFilter);
 	extern LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
 }
@@ -1310,7 +1323,7 @@ void HookExceptionHandler(void)
 	void *tmp;
 	HMODULE base;
 
-	OutTraceD("Set exception handlers\n");
+	OutTraceDW("Set exception handlers\n");
 	base=GetModuleHandle(NULL);
 	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
 	//v2.1.75 override default exception handler, if any....
@@ -1385,15 +1398,15 @@ void SetSingleProcessAffinity(void)
 	DWORD ProcessAffinityMask, SystemAffinityMask;
 	if(!GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
 		OutTraceE("GetProcessAffinityMask: ERROR err=%d\n", GetLastError());
-	OutTraceD("Process affinity=%x\n", ProcessAffinityMask);
+	OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
 	for (i=0; i<(8 * sizeof(DWORD)); i++){
 		if (ProcessAffinityMask & 0x1) break;
 		ProcessAffinityMask >>= 1;
 	}
-	OutTraceD("First process affinity bit=%d\n", i);
+	OutTraceDW("First process affinity bit=%d\n", i);
 	ProcessAffinityMask &= 0x1;
 	for (; i; i--) ProcessAffinityMask <<= 1;
-	OutTraceD("Process affinity=%x\n", ProcessAffinityMask);
+	OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
 	if (!SetProcessAffinityMask(GetCurrentProcess(), ProcessAffinityMask))
 		OutTraceE("SetProcessAffinityMask: ERROR err=%d\n", GetLastError());
 }
@@ -1440,13 +1453,26 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		dxw.SethWnd((dxw.dwFlags1 & FIXPARENTWIN) ? GetParent(hwnd) : hwnd);
 	}
 
-	if(IsTraceD){
+	if(IsTraceDDRAW){
 		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)", 
 			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
 			target->posx, target->posy, target->sizx, target->sizy);
 		if(hwnd) OutTrace(" hWnd=%x dxw.hParentWnd=%x desktop=%x\n", hwnd, dxw.hParentWnd, GetDesktopWindow());
 		else OutTrace("\n");
 	}
+
+#if 0
+	if(dxw.dwFlags4 & ADDPROXYLIBS){
+		#define MAX_FILE_PATH 512
+		char sSourcePath[MAX_FILE_PATH+1];
+		char *p;
+		GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_FILE_PATH);
+		p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
+		strcpy(p, "d3d9.dll");
+		OutTraceDW("HookInit: copy %s -> d3d9.dll\n", sSourcePath);
+		CopyFile(sSourcePath, "d3d9.dll", FALSE);
+	}
+#endif
 
 	if (hwnd && IsDebug){
 		DWORD dwStyle, dwExStyle;
@@ -1489,7 +1515,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 			OutTraceE("HookInit: LoadLibrary ERROR module=%s err=%d\n", sModule, GetLastError());
 		}
 		else {
-			OutTraceD("HookInit: hooking additional module=%s base=%x\n", sModule, base);
+			OutTraceDW("HookInit: hooking additional module=%s base=%x\n", sModule, base);
 			if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
 			HookModule(base, dxw.dwTargetDDVersion);
 		}
@@ -1507,8 +1533,9 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	}
 
 	InitScreenParameters();
+	if(hwnd) HookWindowProc(hwnd);
 
-	if (IsDebug) OutTraceD("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY); //v2.02.09
+	if (IsDebug) OutTraceDW("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY); //v2.02.09
 }
 
 LPCSTR ProcToString(LPCSTR proc)
@@ -1527,7 +1554,8 @@ FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
 	for(; Hooks->APIName; Hooks++){
 		if (!strcmp(proc,Hooks->APIName)){
 			if (Hooks->StoreAddress) *(Hooks->StoreAddress)=(*pGetProcAddress)(hModule, proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), (Hooks->StoreAddress) ? *(Hooks->StoreAddress) : 0);
+			OutTraceDW("GetProcAddress: hooking proc=%s addr=%x->%x\n", 
+				ProcToString(proc), (Hooks->StoreAddress) ? *(Hooks->StoreAddress) : 0, Hooks->HookerAddress);
 			return Hooks->HookerAddress;
 		}
 	}

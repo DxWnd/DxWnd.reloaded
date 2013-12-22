@@ -49,7 +49,7 @@ static FARPROC wglRemapLibrary(LPCSTR proc, HookEntry_Type *Hooks)
 		Hook=&Hooks[i];
 		if (!strcmp(proc,Hook->APIName)){
 			if (Hook->StoreAddress) *(Hook->StoreAddress)=(*pwglGetProcAddress)(proc);
-			OutTraceD("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), (Hook->StoreAddress) ? *(Hook->StoreAddress) : 0);
+			OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), (Hook->StoreAddress) ? *(Hook->StoreAddress) : 0);
 			return Hook->HookerAddress;
 		}
 	}
@@ -154,7 +154,7 @@ void HookOpenGLLibs(HMODULE module, char *customlib)
 
 	if (!customlib) customlib=DefOpenGLModule;
 
-	OutTraceD("HookOpenGLLibs module=%x lib=\"%s\" forced=%x\n", module, customlib, (dxw.dwFlags3 & FORCEHOOKOPENGL)?1:0);
+	OutTraceDW("HookOpenGLLibs module=%x lib=\"%s\" forced=%x\n", module, customlib, (dxw.dwFlags3 & FORCEHOOKOPENGL)?1:0);
 	if (dxw.dwFlags3 & FORCEHOOKOPENGL) 
 		ForceHookOpenGL(module);
 	else
@@ -169,14 +169,14 @@ void WINAPI extglViewport(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height
 	POINT p={0,0};
 	//if (dxw.dwFlags2 & HANDLEFPS) if(dxw.HandleFPS()) return;
 	(*pGetClientRect)(dxw.GethWnd(), &client);
-	OutTraceD("glViewport: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
+	OutTraceDW("glViewport: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	if(IsDebug) OutTrace("glViewport: DEBUG win=(%d,%d) screen=(%d,%d)\n",
 		client.right, client.bottom, dxw.GetScreenWidth(), dxw.GetScreenHeight());
 	x = (x * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
 	y = (y * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
 	width = (width * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
 	height = (height * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
-	OutTraceD("glViewport: remapped pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
+	OutTraceDW("glViewport: remapped pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	(*pglViewport)(x, y, width, height);
 }
 
@@ -186,19 +186,19 @@ void WINAPI extglScissor(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height)
 	POINT p={0,0};
 	//if (dxw.dwFlags2 & HANDLEFPS) if(dxw.HandleFPS()) return;
 	(*pGetClientRect)(dxw.GethWnd(), &client);
-	OutTraceD("glScissor: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
+	OutTraceDW("glScissor: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	x = (x * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
 	y = (y * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
 	width = (width * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
 	height = (height * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
-	OutTraceD("glScissor: remapped pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
+	OutTraceDW("glScissor: remapped pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	(*pglScissor)(x, y, width, height);
 }
 
 void WINAPI extglGetIntegerv(GLenum pname, GLint *params)
 {
 	(*pglGetIntegerv)(pname, params);
-	OutTraceD("glGetIntegerv: pname=%d\n", pname);
+	OutTraceDW("glGetIntegerv: pname=%d\n", pname);
 }
 
 void WINAPI extglDrawBuffer(GLenum mode)
@@ -224,8 +224,8 @@ void WINAPI extglDrawBuffer(GLenum mode)
 
 void WINAPI extglPolygonMode(GLenum face, GLenum mode)
 {
-	OutTraceD("glPolygonMode: face=%x mode=%x\n", face, mode);
-	//OutTraceD("glPolygonMode: extglPolygonMode=%x pglPolygonMode=%x\n", extglPolygonMode, pglPolygonMode);
+	OutTraceDW("glPolygonMode: face=%x mode=%x\n", face, mode);
+	//OutTraceDW("glPolygonMode: extglPolygonMode=%x pglPolygonMode=%x\n", extglPolygonMode, pglPolygonMode);
 	if(dxw.dwFlags2 & WIREFRAME) mode = GL_LINE; // trick to set wireframe mode....
 	(*pglPolygonMode)(face, mode);
 	return;
@@ -233,7 +233,7 @@ void WINAPI extglPolygonMode(GLenum face, GLenum mode)
 
 void WINAPI extglGetFloatv(GLenum pname, GLboolean *params)
 {
-	OutTraceD("glGetFloatv: pname=%x\n", pname);
+	OutTraceDW("glGetFloatv: pname=%x\n", pname);
 	(*pglGetFloatv)(pname, params);
 	return;
 }
@@ -247,22 +247,22 @@ void WINAPI extglClear(GLbitfield mask)
 HGLRC WINAPI extwglCreateContext(HDC hdc)
 {
 	HGLRC ret;
-	OutTraceD("wglCreateContext: hdc=%x\n", hdc);
+	OutTraceDW("wglCreateContext: hdc=%x\n", hdc);
 	// v2.02.31: don't let it use desktop hdc
 	if(dxw.IsDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
-		OutTraceD("wglCreateContext: remapped desktop hdc=%x->%x\n", oldhdc, hdc);
+		OutTraceDW("wglCreateContext: remapped desktop hdc=%x->%x\n", oldhdc, hdc);
 	}
 	ret=(*pwglCreateContext)(hdc);
 	if(ret){
 		HWND hwnd;
 		hwnd=WindowFromDC(hdc);
 		dxw.SethWnd(hwnd);
-		OutTraceD("wglCreateContext: SET hwnd=%x\n", hwnd);
+		OutTraceDW("wglCreateContext: SET hwnd=%x\n", hwnd);
 	}
 	else {
-		OutTraceD("wglCreateContext: ERROR err=%x\n", GetLastError());
+		OutTraceDW("wglCreateContext: ERROR err=%x\n", GetLastError());
 	}
 	return ret;
 }
@@ -271,7 +271,7 @@ PROC WINAPI extwglGetProcAddress(LPCSTR proc)
 {
 	PROC procaddr;
 
-	OutTraceD("wglGetProcAddress: proc=%s\n", proc);
+	OutTraceDW("wglGetProcAddress: proc=%s\n", proc);
 	procaddr=Remap_wgl_ProcAddress(proc);
 	if (!procaddr) procaddr=(*pwglGetProcAddress)(proc);
 	return procaddr;
@@ -287,18 +287,18 @@ BOOL WINAPI extwglMakeCurrent(HDC hdc, HGLRC hglrc)
 {
 	BOOL ret;
 
-	OutTraceD("wglMakeCurrent: hdc=%x hglrc=%x\n", hdc, hglrc);
+	OutTraceDW("wglMakeCurrent: hdc=%x hglrc=%x\n", hdc, hglrc);
 	// v2.02.31: don't let it use desktop hdc
 	if(dxw.IsDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
-		OutTraceD("wglMakeCurrent: remapped desktop hdc=%x->%x\n", oldhdc, hdc);
+		OutTraceDW("wglMakeCurrent: remapped desktop hdc=%x->%x\n", oldhdc, hdc);
 	}
 	ret=(*pwglMakeCurrent)(hdc, hglrc);
 	if(ret){
 		HWND hWnd;
 		hWnd = WindowFromDC(hdc);
-		OutTraceD("wglMakeCurrent: setting hwnd=%x\n", hWnd);
+		OutTraceDW("wglMakeCurrent: setting hwnd=%x\n", hWnd);
 		dxw.SethWnd(hWnd);
 	}
 	return ret;

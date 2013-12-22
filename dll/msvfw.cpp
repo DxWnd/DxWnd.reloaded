@@ -30,7 +30,7 @@ void HookMSV4WLibs(HMODULE module)
 LRESULT WINAPI extICSendMessage(HIC hic, UINT wMsg, DWORD_PTR dw1, DWORD_PTR dw2)
 {
 	LRESULT res;
-	OutTraceD("ICSendMessage: hic=%x wMsg=%x dw1=%x dw2=%x\n", hic, wMsg, dw1, dw2);
+	OutTraceDW("ICSendMessage: hic=%x wMsg=%x dw1=%x dw2=%x\n", hic, wMsg, dw1, dw2);
 	return 0;
 	res=(*pICSendMessage)(hic, wMsg, dw1, dw2);
 	return res;
@@ -38,7 +38,7 @@ LRESULT WINAPI extICSendMessage(HIC hic, UINT wMsg, DWORD_PTR dw1, DWORD_PTR dw2
 
 HIC WINAPI extICOpen(DWORD fccType, DWORD fccHandler, UINT wMode)
 {
-	OutTraceD("ICOpen: fccType=%x fccHandler=%x wMode=%x\n", fccType, fccHandler, wMode);
+	OutTraceDW("ICOpen: fccType=%x fccHandler=%x wMode=%x\n", fccType, fccHandler, wMode);
 	return (HIC)0;
 }
 

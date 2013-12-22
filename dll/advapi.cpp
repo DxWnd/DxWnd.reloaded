@@ -72,7 +72,7 @@ LONG WINAPI extRegOpenKeyEx(
 	FILE *regf;
 	char sKey[256+1];
 	sprintf(sKey,"%s\\%s", hKey2String(hKey), lpSubKey);
-	OutTraceD("RegOpenKeyEx: searching for key=\"%s\"\n", sKey);
+	OutTraceDW("RegOpenKeyEx: searching for key=\"%s\"\n", sKey);
 	regf=fopen("dxwnd.reg","r");
 	if(regf==NULL) return ERROR_FILE_NOT_FOUND;
 	fgets(RegBuf, 256, regf);
@@ -150,7 +150,7 @@ LONG WINAPI extRegQueryValueEx(
 		else {
 			if(hCurKey==hKey){
 
-				//OutTraceD("loop: \"%s\"\n", RegBuf);
+				//OutTraceDW("loop: \"%s\"\n", RegBuf);
 				if((RegBuf[0]=='"') &&
 					!strncmp(lpValueName, &RegBuf[1], strlen(lpValueName)) &&
 					(RegBuf[strlen(lpValueName)+1]=='"') &&
@@ -172,7 +172,7 @@ LONG WINAPI extRegQueryValueEx(
 						}
 						if(lpType) *lpType=REG_SZ;
 						//
-						OutTraceD("RegQueryValueEx: Data=\"%s\" type=REG_SZ\n", lpData);
+						OutTraceDW("RegQueryValueEx: Data=\"%s\" type=REG_SZ\n", lpData);
 						res=ERROR_SUCCESS;
 					}
 					if(!strncmp(pData,"dword:",strlen("dword:"))){ //dword value
@@ -182,7 +182,7 @@ LONG WINAPI extRegQueryValueEx(
 						memcpy(lpData, &val, sizeof(DWORD));
 						if(lpType) *lpType=REG_DWORD;
 						*lpcbData=sizeof(DWORD);
-						OutTraceD("RegQueryValueEx: Data=0x%x type=REG_DWORD\n", val);
+						OutTraceDW("RegQueryValueEx: Data=0x%x type=REG_DWORD\n", val);
 						res=ERROR_SUCCESS;
 					}
 					if(!strncmp(pData,"hex:",strlen("hex:"))){ //dword value
@@ -190,15 +190,15 @@ LONG WINAPI extRegQueryValueEx(
 						lpData[strlen((char *)lpData)-1]=0; // eliminates \n
 						if(lpType) *lpType=REG_BINARY;
 						*lpcbData=0;
-						OutTraceD("RegQueryValueEx: Data=");
+						OutTraceDW("RegQueryValueEx: Data=");
 						while(strlen(pData)>1){
 							sscanf(pData, "%x,", (char *)lpData);
-							OutTraceD("%02.2x,", *(unsigned char *)lpData);
+							OutTraceDW("%02.2x,", *(unsigned char *)lpData);
 							pData+=3;
 							lpData++;
 							(*lpcbData)++;
 						}
-						OutTraceD(" type=REG_BINARY cbData=%d\n", *lpcbData);
+						OutTraceDW(" type=REG_BINARY cbData=%d\n", *lpcbData);
 						res=ERROR_SUCCESS;
 					}
 					fclose(regf);

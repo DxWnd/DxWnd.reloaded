@@ -86,6 +86,10 @@ protected:
 	afx_msg void OnViewPalette();
 	afx_msg void OnViewTimeSlider();
 	afx_msg void OnExit();
+	afx_msg void OnDesktopcolordepth8bpp();
+	afx_msg void OnDesktopcolordepth16bpp();
+	afx_msg void OnDesktopcolordepth24bpp();
+	afx_msg void OnDesktopcolordepth32bpp();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

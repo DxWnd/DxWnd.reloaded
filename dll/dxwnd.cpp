@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.48"
+#define VERSION "2.02.49"
 
 #define DDTHREADLOCK 1
 
@@ -92,7 +92,7 @@ int SetTarget(TARGETMAP *targets){
 	pStatus->Height = pStatus->Width = 0;
 	pStatus->DXVersion = 0;
 	for(i = 0; targets[i].path[0]; i ++){
-		//OutTraceD("SetTarget entry %s\n",pMapping[i].path);
+		//OutTraceDW("SetTarget entry %s\n",pMapping[i].path);
 		pMapping[i] = targets[i];
 		for(j = 0; pMapping[i].path[j]; j ++)
 			pMapping[i].path[j] = tolower(pMapping[i].path[j]);

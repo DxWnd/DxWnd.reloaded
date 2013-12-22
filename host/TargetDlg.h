@@ -29,12 +29,14 @@ public:
 	int		m_DCEmulationMode;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
-	BOOL	m_OutTrace;
+	BOOL	m_OutProxyTrace;
 	BOOL	m_OutDebug;
 	BOOL	m_CursorTrace;
 	BOOL	m_LogEnabled;
 	BOOL	m_OutWinMessages;
-	BOOL	m_OutDXTrace;
+	BOOL	m_OutDWTrace;
+	BOOL	m_OutD3DTrace;
+	BOOL	m_OutDDRAWTrace;
 	BOOL	m_DXProxed;
 	BOOL	m_AssertDialog;
 	BOOL	m_ImportTable;
@@ -120,6 +122,8 @@ public:
 	BOOL	m_ZBuffer0Clean;
 	BOOL	m_ZBufferAlways;
 	BOOL	m_NoPower2Fix;
+	BOOL	m_NoPerfCounter;
+	BOOL	m_AddProxyLibs;
 	BOOL	m_DisableFogging;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;

@@ -1,15 +1,15 @@
 [target]
-title0=Empire Earth
-path0=D:\Games\Empire Earth\Empire Earth.exe
+title0=State of Emergency
+path0=D:\Games\State of Emergency\KaosPC.exe
 module0=
 opengllib0=
-ver0=0
+ver0=8
 coord0=0
-flag0=1744847009
-flagg0=201326608
-flagh0=65620
-flagi0=0
-tflag0=23
+flag0=671088676
+flagg0=1207959552
+flagh0=20
+flagi0=4
+tflag0=7315
 initx0=0
 inity0=0
 minx0=0

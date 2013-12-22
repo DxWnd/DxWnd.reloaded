@@ -32,7 +32,7 @@ void WhndStackPush(HWND hwnd, WNDPROC wndproc)
 	// wndproc values of 0xFFFFxxxx type seems to be error codes rather than valid callback addresses ....
 	// v2.02.36 using CallWindowProc you can pass WinProc handles, so you don't need to eliminate them!
 	//if (((DWORD)wndproc & 0xFFFF0000) == 0xFFFF0000) return;
-	//OutTraceD("DEBUG: WNDPROC STACK push hwnd=%x, wndproc=%x\n", hwnd, wndproc);
+	//OutTraceDW("DEBUG: WNDPROC STACK push hwnd=%x, wndproc=%x\n", hwnd, wndproc);
 	// try update first...
 	for(StackIdx=0; StackIdx<WhndTOS; StackIdx++) 
 		if (WhndStack[StackIdx].hwnd==hwnd) {
@@ -55,9 +55,9 @@ WNDPROC WhndGetWindowProc(HWND hwnd)
 {
 	int StackIdx;
 	for(StackIdx=0; StackIdx<MAXWNDHSTACK; StackIdx++) if (WhndStack[StackIdx].hwnd==hwnd) {
-		//OutTraceD("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=%x\n", hwnd, WhndStack[StackIdx].wndproc);
+		//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=%x\n", hwnd, WhndStack[StackIdx].wndproc);
 		return WhndStack[StackIdx].wndproc;
 	}
-	//OutTraceD("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=NULL\n", hwnd);
+	//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=NULL\n", hwnd);
 	return NULL;
 }

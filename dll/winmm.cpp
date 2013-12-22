@@ -6,8 +6,8 @@
 
 #include "MMSystem.h"
 
-//#undef OutTraceD
-//#define OutTraceD OutTrace
+//#undef OutTraceDW
+//#define OutTraceDW OutTrace
 
 static HookEntry_Type Hooks[]={
 	{"mciSendCommandA", NULL, (FARPROC *)&pmciSendCommand, (FARPROC)extmciSendCommand},
@@ -50,18 +50,18 @@ MMRESULT WINAPI exttimeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK lp
 {
 	MMRESULT res;
 	//uDelay = uDelay * 8;
-	OutTraceD("timeSetEvent: Delay=%d Resolution=%d Event=%x\n", uDelay, uResolution, fuEvent);
+	OutTraceDW("timeSetEvent: Delay=%d Resolution=%d Event=%x\n", uDelay, uResolution, fuEvent);
 	res=(*ptimeSetEvent)(uDelay, uResolution, lpTimeProc, dwUser, fuEvent);
-	OutTraceD("timeSetEvent: ret=%x\n", res);
+	OutTraceDW("timeSetEvent: ret=%x\n", res);
 	return res;
 }
 
 MMRESULT WINAPI exttimeKillEvent(UINT uTimerID)
 {
 	MMRESULT res;
-	OutTraceD("timeKillEvent: TimerID=%x\n", uTimerID);
+	OutTraceDW("timeKillEvent: TimerID=%x\n", uTimerID);
 	res=(*ptimeKillEvent)(uTimerID);
-	OutTraceD("timeKillEvent: ret=%x\n", res);
+	OutTraceDW("timeKillEvent: ret=%x\n", res);
 	return res;
 }
 
@@ -84,7 +84,7 @@ MCIERROR WINAPI extmciSendCommand(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdw
 	MCI_ANIM_RECT_PARMS *pr;
 	MCI_OVLY_WINDOW_PARMSW *pw;
 
-	OutTraceD("mciSendCommand: IDDevice=%x msg=%x(%s) Command=%x(%s)\n",
+	OutTraceDW("mciSendCommand: IDDevice=%x msg=%x(%s) Command=%x(%s)\n",
 		IDDevice, uMsg, ExplainMCICommands(uMsg), fdwCommand, ExplainMCIFlags(uMsg, fdwCommand));
 
 	if(dxw.IsFullScreen()){

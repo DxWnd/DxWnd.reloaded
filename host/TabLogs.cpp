@@ -36,12 +36,14 @@ void CTabLogs::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	//extern BOOL gbDebug;
-	DDX_Check(pDX, IDC_OUTTRACE, cTarget->m_OutTrace);
+	DDX_Check(pDX, IDC_OUTPROXYTRACE, cTarget->m_OutProxyTrace);
+	DDX_Check(pDX, IDC_OUTD3DTRACE, cTarget->m_OutD3DTrace);
+	DDX_Check(pDX, IDC_OUTDDRAWTRACE, cTarget->m_OutDDRAWTrace);
 	DDX_Check(pDX, IDC_OUTDEBUG, cTarget->m_OutDebug);
 	DDX_Check(pDX, IDC_CURSORTRACE, cTarget->m_CursorTrace);
 	DDX_Check(pDX, IDC_LOGENABLED, cTarget->m_LogEnabled);
 	DDX_Check(pDX, IDC_OUTWINMESSAGES, cTarget->m_OutWinMessages);
-	DDX_Check(pDX, IDC_OUTDXTRACE, cTarget->m_OutDXTrace);
+	DDX_Check(pDX, IDC_OUTDWTRACE, cTarget->m_OutDWTrace);
 	DDX_Check(pDX, IDC_IMPORTTABLE, cTarget->m_ImportTable);
 	DDX_Check(pDX, IDC_OUTREGISTRY, cTarget->m_RegistryOp);
 	DDX_Check(pDX, IDC_TRACEHOOKS, cTarget->m_TraceHooks);

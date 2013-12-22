@@ -324,3 +324,16 @@ Clean ZBUFFER @0.0 fix: to fix "Crimson Skies" black blocks bug on ATI cards
 v2.02.48
 New options: "Disable fogging", "Textures not power of 2 fix"
 A few fix to prevent game crashes
+
+v2.02.49
+Separated ddraw, d3d and dxwnd log messages
+Hooked GetAvailableVidMem method to limit memory values
+Hooked ChangeDisplaySettings call in both versions ANSI and WIDECHAR, to prevent messing up with the screen
+Added HookWindowProc() subroutine, called at dxhook.c@1534
+Added "Add proxy libs" flag - so far to copy a d3d9.dll proxy lib to fix d3d9 games
+Hooked d3d8/9 SetCursorPosition method
+Hooked d3d8/9 AddRef / release methods (for logging)
+Fixed D3DDevice8/9 hooking
+Hooked QueryPerformanceFrequency
+Fixed a bug in d3d7 hooking
+GUI: added desktop cplor setting

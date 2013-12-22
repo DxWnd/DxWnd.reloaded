@@ -37,14 +37,14 @@ dxwCore::~dxwCore()
 
 void dxwCore::SetFullScreen(BOOL fs, int line) 
 {
-	OutTraceD("SetFullScreen: %s at %d\n", fs?"FULLSCREEN":"WINDOWED", line);
+	OutTraceDW("SetFullScreen: %s at %d\n", fs?"FULLSCREEN":"WINDOWED", line);
 	FullScreen=fs;
 }
 
 void dxwCore::SetFullScreen(BOOL fs) 
 {
 	if(dxw.dwFlags3 & FULLSCREENONLY) fs=TRUE;
-	OutTraceD("SetFullScreen: %s\n", fs?"FULLSCREEN":"WINDOWED");
+	OutTraceDW("SetFullScreen: %s\n", fs?"FULLSCREEN":"WINDOWED");
 	FullScreen=fs;
 }
 
@@ -84,7 +84,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 void dxwCore::UnmarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
 {
 	int i;
-	// OutTraceD("PRIMARYSURFACE del %x\n",ps);
+	// OutTraceDW("PRIMARYSURFACE del %x\n",ps);
 	for (i=0;i<DDSQLEN;i++) {
 		if (PrimSurfaces[i]==(DWORD)ps) break; 
 		if (PrimSurfaces[i]==0) break;
@@ -101,7 +101,7 @@ void dxwCore::UnmarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
 void dxwCore::UnmarkBackBufferSurface(LPDIRECTDRAWSURFACE ps)
 {
 	int i;
-	// OutTraceD("PRIMARYSURFACE del %x\n",ps);
+	// OutTraceDW("PRIMARYSURFACE del %x\n",ps);
 	for (i=0;i<DDSQLEN;i++) {
 		if (BackSurfaces[i]==(DWORD)ps) break; 
 		if (BackSurfaces[i]==0) break;
@@ -118,7 +118,7 @@ void dxwCore::UnmarkBackBufferSurface(LPDIRECTDRAWSURFACE ps)
 void dxwCore::MarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
 {
 	int i;
-	// OutTraceD("PRIMARYSURFACE add %x\n",ps);
+	// OutTraceDW("PRIMARYSURFACE add %x\n",ps);
 	for (i=0;i<DDSQLEN;i++) {
 		if (PrimSurfaces[i]==(DWORD)ps) return; // if already there ....
 		if (PrimSurfaces[i]==(DWORD)0) break; // got end of list
@@ -130,7 +130,7 @@ void dxwCore::MarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
 void dxwCore::MarkBackBufferSurface(LPDIRECTDRAWSURFACE ps)
 {
 	int i;
-	// OutTraceD("PRIMARYSURFACE add %x\n",ps);
+	// OutTraceDW("PRIMARYSURFACE add %x\n",ps);
 	for (i=0;i<DDSQLEN;i++) {
 		if (BackSurfaces[i]==(DWORD)ps) return; // if already there ....
 		if (BackSurfaces[i]==(DWORD)0) break; // got end of list
@@ -270,7 +270,7 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		iRatioY = iSizY ? iSizY : 3;
 
 		if (!(*pGetClientRect)(hWnd, &rect)) { // v2.02.30: always use desktop win
-			OutTraceD("GetClientRect ERROR %d at %d\n", GetLastError(),__LINE__);
+			OutTraceDW("GetClientRect ERROR %d at %d\n", GetLastError(),__LINE__);
 			curr.x = curr.y = 0;
 		}
 		w = rect.right - rect.left;
@@ -360,9 +360,9 @@ void dxwCore::SetClipCursor()
 	RECT Rect;
 	POINT UpLeftCorner={0,0};
 
-	OutTraceD("SetClipCursor:\n");
+	OutTraceDW("SetClipCursor:\n");
 	if (hWnd==NULL) {
-		OutTraceD("SetClipCursor: ASSERT hWnd==NULL\n");
+		OutTraceDW("SetClipCursor: ASSERT hWnd==NULL\n");
 		return;
 	}
 	if(!(*pGetClientRect)(hWnd, &Rect))
@@ -376,19 +376,19 @@ void dxwCore::SetClipCursor()
 	(*pClipCursor)(NULL);
 	if(!(*pClipCursor)(&Rect))
 		OutTraceE("ClipCursor: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	OutTraceD("SetClipCursor: rect=(%d,%d)-(%d,%d)\n",
+	OutTraceDW("SetClipCursor: rect=(%d,%d)-(%d,%d)\n",
 		Rect.left, Rect.top, Rect.right, Rect.bottom);
 }
 
 void dxwCore::EraseClipCursor()
 {
-	OutTraceD("EraseClipCursor:\n");
+	OutTraceDW("EraseClipCursor:\n");
 	(*pClipCursor)(NULL);
 }
 
 void dxwCore::SethWnd(HWND hwnd) 
 {
-	OutTraceD("SethWnd: setting main win=%x\n", hwnd);
+	OutTraceDW("SethWnd: setting main win=%x\n", hwnd);
 	hWnd=hwnd; 
 	hWndFPS=hwnd;
 }
@@ -743,7 +743,7 @@ static void CountFPS(HWND hwnd)
 		char sBuf[80+15+1]; // title + fps string + terminator
 		char *fpss;
 		// log fps count
-		OutTrace("FPS: Delta=%x FPSCount=%d\n", (tmp-time), FPSCount);
+		// OutTrace("FPS: Delta=%x FPSCount=%d\n", (tmp-time), FPSCount);
 		// show fps count on status win
 		GetHookInfo()->FPSCount = FPSCount; // for overlay display
 		// show fps on win title bar
@@ -1077,7 +1077,7 @@ void dxwCore::ShowBanner(HWND hwnd)
     GetObject(g_hbmBall, sizeof(bm), &bm);
 
 	(*pGetWindowRect)(hwnd, &win);
-	OutTraceD("ShowBanner: hdc=%x win=(%d,%d)-(%d,%d) banner size=(%dx%d)\n", 
+	OutTraceDW("ShowBanner: hwnd=%x win=(%d,%d)-(%d,%d) banner size=(%dx%d)\n", 
 		hwnd, win.left, win.top, win.right, win.bottom, bm.bmWidth, bm.bmHeight);
 
 	//if(!pSetViewportOrgEx) pSetViewportOrgEx=SetViewportOrgEx;
@@ -1153,7 +1153,7 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 			(!lstrcmpi(lpName,SysNames[idx])) ||
 			(!lstrcmpi(lpName,SysNameExt))
 		){
-			OutTraceB("Registered DLL FileName=%s\n", lpFileName);
+			OutTraceDW("Registered DLL FileName=%s\n", lpFileName);
 			break;
 		}
 	}
@@ -1168,7 +1168,7 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 
 	switch (wParam) {
 	case GWL_STYLE:
-		OutTraceD("%s: new Style=%x(%s)\n", 
+		OutTraceDW("%s: new Style=%x(%s)\n", 
 			ApiName, lpSS->styleNew, ExplainStyle(lpSS->styleNew));
 		if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
 			lpSS->styleNew= WS_OVERLAPPEDWINDOW;
@@ -1178,13 +1178,13 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 		}
 		if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
 			if (lpSS->styleNew & WS_MAXIMIZE){
-				OutTraceD("%s: prevent maximize style\n", ApiName);
+				OutTraceDW("%s: prevent maximize style\n", ApiName);
 				lpSS->styleNew &= ~WS_MAXIMIZE;
 			}
 		}
 		break;
 	case GWL_EXSTYLE:
-		OutTraceD("%s: new ExStyle=%x(%s)\n", 
+		OutTraceDW("%s: new ExStyle=%x(%s)\n", 
 			ApiName, lpSS->styleNew, ExplainExStyle(lpSS->styleNew));
 		if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
 			lpSS->styleNew= 0;
@@ -1194,7 +1194,7 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 		}
 		if ((dxw.dwFlags1 & PREVENTMAXIMIZE) && (hwnd==hWnd)){ // disable maximize settings
 			if (lpSS->styleNew & WS_EX_TOPMOST){
-				OutTraceD("%s: prevent EXSTYLE topmost style\n", ApiName);
+				OutTraceDW("%s: prevent EXSTYLE topmost style\n", ApiName);
 				lpSS->styleNew &= ~WS_EX_TOPMOST;
 			}
 		}

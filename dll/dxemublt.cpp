@@ -116,7 +116,7 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	src8 += lpsrcrect->left;
 	srcpitch = ddsd_src.lPitch - w;
 
-	// OutTraceD("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
 	for(y = 0; y < h; y ++){
 		for(x = 0; x < w; x ++){
 			*(dest ++) = PaletteEntries[*(src8 ++)];
@@ -126,6 +126,31 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	}
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
+#if 0
+	if(1 && IsTraceDDRAW) {
+		DWORD dwStats[256];
+		src8 = (BYTE *)lpsurface;
+		src8 += lpsrcrect->top*ddsd_src.lPitch;
+		src8 += lpsrcrect->left;
+		for(x = 0; x < 256; x ++) dwStats[x]=0;
+		for(y = 0; y < h; y ++){
+			for(x = 0; x < w; x ++){
+				dwStats[*(src8 ++)]++;
+			}
+			src8 += srcpitch;
+		}
+		OutTrace("Colors: ");
+		for(x = 0; x < 256; x ++) {
+			char sElement[8];
+			if (dwStats[x]) 
+				sprintf(sElement,"%x,", dwStats[x]);
+			else
+				strcpy(sElement, "_,");
+			OutTrace(sElement);
+		}
+		OutTrace("\n");
+	}
+#endif
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
@@ -133,7 +158,6 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	if (res) OutTraceE("EmuBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
-
 
 static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
@@ -189,7 +213,7 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	src16 += lpsrcrect->left;
 	srcpitch = ddsd_src.lPitch - w;
 
-	// OutTraceD("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src16,dest,srcpitch,destpitch);
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src16,dest,srcpitch,destpitch);
 	if (!Palette16BPP) { // first time through .....
 		unsigned int pi;
 		Palette16BPP = (DWORD *)malloc(0x10000 * sizeof(DWORD));
@@ -375,7 +399,7 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	src32 += lpsrcrect->left;
 	srcpitch = ddsd_src.lPitch - w;
 
-	// OutTraceD("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src32,dest,srcpitch,destpitch);
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src32,dest,srcpitch,destpitch);
 	for(y = 0; y < h; y ++){
 		for(x = 0; x < w; x ++)
 			*(dest ++) = *(src32 ++);
@@ -446,7 +470,7 @@ static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	src8 += lpsrcrect->left;
 	srcpitch = ddsd_src.lPitch - w;
 
-	// OutTraceD("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
 	for(y = 0; y < h; y ++){
 		for(x = 0; x < w; x ++){
 			*(dest ++) = (SHORT)PaletteEntries[*(src8 ++)];
@@ -471,7 +495,7 @@ static HRESULT WINAPI EmuBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 #ifdef DXWNDDIRECTBLITTING
 	return (*pBlt)(lpddsdst, lpdestrect, lpddssrc, lpsrcrect, dwflags, NULL);
 #else
-	OutTraceD("EmuBlt_16_to_16: UNSUPPORTED\n");
+	OutTraceDW("EmuBlt_16_to_16: UNSUPPORTED\n");
 	return -1;
 #endif
 }
@@ -610,7 +634,7 @@ static int GetMatchingPaletteEntry32(DWORD crColor)
 
 		if (iMinDistance==0) break; // got the perfect match!
 	}
-	OutTraceD("GetMatchingPaletteEntry32: color=%x matched with palette[%d]=%x dist=%d\n", 
+	OutTraceDW("GetMatchingPaletteEntry32: color=%x matched with palette[%d]=%x dist=%d\n", 
 		crColor, iMinColorIndex, PaletteEntries[iMinColorIndex], iDistance);
 
 	return iMinColorIndex;
@@ -647,7 +671,7 @@ static int GetMatchingPaletteEntry16(DWORD crColor)
 
 		if (iMinDistance==0) break; // got the perfect match!
 	}
-	OutTraceD("GetMatchingPaletteEntry: color=%x matched with palette[%d]=%x dist=%d\n", 
+	OutTraceDW("GetMatchingPaletteEntry: color=%x matched with palette[%d]=%x dist=%d\n", 
 		crColor, iMinColorIndex, PaletteEntries[iMinColorIndex], iDistance);
 
 	return iMinColorIndex;
@@ -678,7 +702,7 @@ static HRESULT WINAPI RevBlt_32_to_8(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	static BYTE *PaletteFlags = NULL;
 	int pi;
 
-	OutTraceD("RevBlt32_8: src=%x dst=%d\n", lpddssrc, lpddsdst);
+	OutTraceDW("RevBlt32_8: src=%x dst=%d\n", lpddssrc, lpddsdst);
 
 	w = lpdestrect->right - lpdestrect->left; 
 	h = lpdestrect->bottom - lpdestrect->top; 
@@ -710,7 +734,7 @@ static HRESULT WINAPI RevBlt_32_to_8(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	src8 += lpsrcrect->left;
 	srcpitch = ddsd_src.lPitch - w;
 
-	// OutTraceD("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
 	if (!PaletteRev32BPP) { // first time through .....
 		PaletteRev32BPP = (BYTE *)malloc(REVPAL32SIZE);
 		PaletteFlags = (BYTE *)malloc(REVPAL32SIZE);
@@ -756,7 +780,7 @@ static HRESULT WINAPI RevBlt_32_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	long srcpitch, destpitch;
 	DWORD x, y, w, h;
 
-	OutTraceD("RevBlt32_16: src=%x dst=%d\n", lpddssrc, lpddsdst);
+	OutTraceDW("RevBlt32_16: src=%x dst=%d\n", lpddssrc, lpddsdst);
 
 	w = lpdestrect->right - lpdestrect->left; 
 	h = lpdestrect->bottom - lpdestrect->top; 
@@ -816,7 +840,7 @@ static HRESULT WINAPI RevBlt_16_to_8(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	static BYTE *PaletteFlags = NULL;
 	int pi;
 
-	OutTraceD("RevBlt16_8: src=%x dst=%d\n", lpddssrc, lpddsdst);
+	OutTraceDW("RevBlt16_8: src=%x dst=%d\n", lpddssrc, lpddsdst);
 
 	w = lpdestrect->right - lpdestrect->left; 
 	h = lpdestrect->bottom - lpdestrect->top; 
@@ -848,7 +872,7 @@ static HRESULT WINAPI RevBlt_16_to_8(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	src8 += lpsrcrect->left;
 	srcpitch = ddsd_src.lPitch - w;
 
-	// OutTraceD("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
 	if (!PaletteRev16BPP) { // first time through .....
 		PaletteRev16BPP = (BYTE *)malloc(REVPAL16SIZE);
 		PaletteFlags = (BYTE *)malloc(REVPAL16SIZE);
@@ -902,7 +926,7 @@ static HRESULT WINAPI RevBlt_Null(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrec
 
 void SetBltTransformations()
 {
-	OutTraceD("SetBltTransformations: color transformation %d->%d\n", 
+	OutTraceDW("SetBltTransformations: color transformation %d->%d\n", 
 		dxw.VirtualPixelFormat.dwRGBBitCount, dxw.ActualPixelFormat.dwRGBBitCount);
 
 	/* default (bad) setting */
@@ -915,24 +939,24 @@ void SetBltTransformations()
 		case 8:
 			pRevBlt=RevBlt_32_to_8; 
 			pEmuBlt=EmuBlt_8_to_32;
-			OutTraceD("set color transformation 8<->32\n");
+			OutTraceDW("set color transformation 8<->32\n");
 			break;
 		case 16: 
 			pRevBlt=RevBlt_32_to_16;
 			pEmuBlt=EmuBlt_16_to_32;
-			OutTraceD("set color transformation 16<->32\n");
+			OutTraceDW("set color transformation 16<->32\n");
 			break;
 		case 24: 
 			//pRevBlt=RevBlt_24_to_32;
 			pEmuBlt=EmuBlt_24_to_32;
-			OutTraceD("set color transformation 24->32\n");
+			OutTraceDW("set color transformation 24->32\n");
 			break;
 		case 32: 
 			pEmuBlt=EmuBlt_32_to_32;
-			OutTraceD("set color transformation 32->32\n");
+			OutTraceDW("set color transformation 32->32\n");
 			break;
 		default:
-			OutTraceD("unsupported color transformation %d->32\n", dxw.VirtualPixelFormat.dwRGBBitCount);
+			OutTraceDW("unsupported color transformation %d->32\n", dxw.VirtualPixelFormat.dwRGBBitCount);
 			break;
 		}
 		break;
@@ -941,28 +965,28 @@ void SetBltTransformations()
 		case 8:
 			pRevBlt=RevBlt_16_to_8;
 			pEmuBlt=EmuBlt_8_to_16;
-			OutTraceD("set color transformation 8<->16\n");
+			OutTraceDW("set color transformation 8<->16\n");
 			break;
 		case 16:
 			pRevBlt=RevBlt_16_to_16;
 			pEmuBlt=EmuBlt_16_to_16;
-			OutTraceD("set color transformation 16<->16\n");
+			OutTraceDW("set color transformation 16<->16\n");
 			break;
 		case 24: 
 			//pRevBlt=RevBlt_24_to_16;
 			pEmuBlt=EmuBlt_24_to_16;
-			OutTraceD("set color transformation 24<->16\n");
+			OutTraceDW("set color transformation 24<->16\n");
 			break;
 		case 32:
 			pEmuBlt=EmuBlt_32_to_16;
 			break;
 		default:
-			OutTraceD("unsupported color transformation %d->16\n", dxw.VirtualPixelFormat.dwRGBBitCount);
+			OutTraceDW("unsupported color transformation %d->16\n", dxw.VirtualPixelFormat.dwRGBBitCount);
 			break;
 		}
 		break;
 	default:
-		OutTraceD("unsupported color transformation %d->%d\n",
+		OutTraceDW("unsupported color transformation %d->%d\n",
 			dxw.VirtualPixelFormat.dwRGBBitCount,
 			dxw.ActualPixelFormat.dwRGBBitCount);
 		break;
