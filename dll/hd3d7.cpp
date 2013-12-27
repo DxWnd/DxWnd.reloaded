@@ -43,7 +43,7 @@ typedef HRESULT (WINAPI *D3DGetCaps_Type)(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDE
 typedef HRESULT (WINAPI *SetRenderState3_Type)(void *, D3DRENDERSTATETYPE, DWORD);
 typedef HRESULT (WINAPI *Scene3_Type)(void *);
 typedef HRESULT (WINAPI *GetCaps3_Type)(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
-
+typedef HRESULT (WINAPI *SetLightState_Type)(void *, D3DLIGHTSTATETYPE, DWORD);
 
 Initialize_Type pInitialize = NULL;
 EnumDevices_Type pEnumDevices = NULL;
@@ -69,6 +69,8 @@ Scene3_Type pEndScene2 = NULL;
 Scene3_Type pEndScene3 = NULL;
 
 GetCaps3_Type pGetCaps3 = NULL;
+
+SetLightState_Type pSetLightState3 = NULL;
 
 D3DInitialize_Type pD3DInitialize = NULL;
 D3DGetCaps_Type pD3DGetCaps = NULL;
@@ -99,6 +101,7 @@ HRESULT WINAPI extSetRenderState3(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extBeginScene3(void *);
 HRESULT WINAPI extEndScene3(void *);
 HRESULT WINAPI extGetCaps3(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
+HRESULT WINAPI extSetLightState3(void *d3dd, D3DLIGHTSTATETYPE d3dls, DWORD t);
 
 extern char *ExplainDDError(DWORD);
 
@@ -239,6 +242,7 @@ void HookDirect3DDevice(void **lpd3ddev, int dxversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extBeginScene3, (void **)&pBeginScene3, "BeginScene(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extEndScene3, (void **)&pEndScene3, "EndScene(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  88), extSetRenderState3, (void **)&pSetRenderState3, "SetRenderState(3)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  96), extSetLightState3, (void **)&pSetLightState3, "SetLightState(3)");
 		if(pSetRenderState3){
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
@@ -737,5 +741,14 @@ HRESULT WINAPI extGetCaps3(void *d3dd, LPD3DDEVICEDESC hd, LPD3DDEVICEDESC sd)
             sd->dpcTriCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
         }
     }
+	return res;
+}
+
+HRESULT WINAPI extSetLightState3(void *d3dd, D3DLIGHTSTATETYPE d3dls, DWORD t)
+{
+	HRESULT res;
+	OutTraceD3D("SetLightState(3): d3d=%x lightstate=%x t=%x\n", d3dd, d3dls, t);
+	res=(*pSetLightState3)(d3dd, d3dls, t);
+	if(res) OutTraceE("SetLightState(3): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }

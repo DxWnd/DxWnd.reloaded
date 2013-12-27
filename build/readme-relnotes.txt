@@ -336,4 +336,8 @@ Hooked d3d8/9 AddRef / release methods (for logging)
 Fixed D3DDevice8/9 hooking
 Hooked QueryPerformanceFrequency
 Fixed a bug in d3d7 hooking
-GUI: added desktop cplor setting
+GUI: added desktop color setting
+
+v2.02.50
+Added "Intercept RDTSC" option: so far, tested on Unreal Tournament only.
+To implement RDTSC detection, I owe a big thank you to Olly who shared the disasm lib used to browse the assembly code.

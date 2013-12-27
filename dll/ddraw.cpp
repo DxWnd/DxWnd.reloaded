@@ -2161,9 +2161,10 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	// 4) if DDSD_CAPS is not set, ignore caps
 	// 5) ignore DDSD_CKSRCBLT, ....
 	// 6) setting a different pixel format in memory requires DDSCAPS_OFFSCREENPLAIN capability
-	// 7) DDSD_TEXTURESTAGE surfaces may need to adjust fixel format (....???)
+	// 7) DDSD_TEXTURESTAGE surfaces may need to adjust pixel format (....???)
 	// 8) Generic surfaces are mapped to SYSTEMMEMORY and set to primary surface PixelFormat
 	// 9) When pixelformat is unspecified, be sure to pick the right one (with or without alphapixels?)
+	// 10) Don't alter surfaces with a color depth different from primary surface (Lords of Magic Special Edition)
 
 	if(!(lpddsd->dwFlags & DDSD_CAPS)) lpddsd->ddsCaps.dwCaps = 0;
 
@@ -2213,6 +2214,9 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 
 	// v2.02.41: don't alter FOURCC pixel formats
 	if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwFlags & DDPF_FOURCC)) return;
+
+	// v2.02.50: don't alter surfaces with different color depth
+	if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwRGBBitCount != dxw.VirtualPixelFormat.dwRGBBitCount)) return;
 
 #if 0
 	// v2.02.43: don't alter MIPMAP surfaces
@@ -2497,6 +2501,12 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]" , __LINE__);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
+	if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res==DDERR_OUTOFVIDEOMEMORY)){
+		OutTraceDW("CreateSurface ERROR: res=%x(%s) at %d, retry\n", res, ExplainDDError(res), __LINE__);
+		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
+		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+		res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
+	}
 	if (res) {
 		OutTraceE("CreateSurface: ERROR on Emu_Generic res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;

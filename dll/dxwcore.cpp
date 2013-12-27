@@ -388,7 +388,15 @@ void dxwCore::EraseClipCursor()
 
 void dxwCore::SethWnd(HWND hwnd) 
 {
-	OutTraceDW("SethWnd: setting main win=%x\n", hwnd);
+	RECT WinRect;
+	if (pGetWindowRect){
+		(*pGetWindowRect)(hwnd, &WinRect);
+		OutTraceDW("SethWnd: setting main win=%x pos=(%d,%d)-(%d,%d)\n", 
+			hwnd, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
+	}
+	else {
+		OutTraceDW("SethWnd: setting main win=%x\n", hwnd);
+	}
 	hWnd=hwnd; 
 	hWndFPS=hwnd;
 }

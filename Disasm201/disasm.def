@@ -1,0 +1,6 @@
+LIBRARY disasm
+EXPORTS
+		Preparedisasm		@1
+		Finishdisasm		@2
+		Disasm				@3
+		Geterrwarnmessage	@4

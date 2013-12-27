@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <psapi.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "dxhook.h"
@@ -17,6 +18,7 @@
 #include "Ime.h"
 #include "Winnls32.h"
 #include "Mmsystem.h"
+#include "disasm.h"
 
 dxwCore dxw;
 
@@ -67,7 +69,7 @@ static char *Flag3Names[32]={
 static char *Flag4Names[32]={
 	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
 	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
-	"NOPOWER2FIX", "NOPERFCOUNTER", "ADDPROXYLIBS", "",
+	"NOPOWER2FIX", "NOPERFCOUNTER", "ADDPROXYLIBS", "INTERCEPTRDTSC",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -576,7 +578,7 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 {
 	RECT rect, desktop, workarea;
-	DWORD dwStyle;
+	DWORD dwStyle, dwExStyle;
 	int MaxX, MaxY;
 	HMENU hMenu;
 
@@ -617,8 +619,9 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	RECT UnmappedRect;
 	UnmappedRect=rect;
 	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
+	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 	hMenu = GetMenu(hwnd);	
-	AdjustWindowRect(&rect, dwStyle, (hMenu!=NULL));
+	AdjustWindowRectEx(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
 	if (hMenu) CloseHandle(hMenu);
 	switch(dxw.Coordinates){
 	case DXW_DESKTOP_WORKAREA:
@@ -1318,6 +1321,51 @@ LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_E
 	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
 }
 
+//#define USEPERFCOUNTERS
+
+unsigned __int64 inline GetRDTSC() {
+   __asm {
+      ; Flush the pipeline
+      XOR eax, eax
+      CPUID
+      ; Get RDTSC counter in edx:eax
+      RDTSC
+   }
+}
+
+LONG CALLBACK Int3Handler(PEXCEPTION_POINTERS ExceptionInfo)
+{
+	// Vectored Handler routine to intercept INT3 opcodes replacing RDTSC
+ 	if (ExceptionInfo->ExceptionRecord->ExceptionCode == 0x80000003){
+		LARGE_INTEGER myPerfCount;
+#ifdef USEPERFCOUNTERS
+		if(!pQueryPerformanceCounter) pQueryPerformanceCounter=QueryPerformanceCounter;
+		(*pQueryPerformanceCounter)(&myPerfCount);
+#else
+	   __asm {
+		  ; Flush the pipeline
+		  XOR eax, eax
+		  CPUID
+		  ; Get RDTSC counter in edx:eax
+		  RDTSC 
+		  mov myPerfCount.LowPart, eax
+		  mov myPerfCount.HighPart, edx
+	   }
+#endif
+		myPerfCount.HighPart = dxw.StretchCounter(myPerfCount.HighPart);
+		myPerfCount.LowPart = dxw.StretchCounter(myPerfCount.LowPart);
+		OutTraceDW("Int3Handler: INT3 at=%x tick=%x RDTSC=%x:%x\n", 
+			ExceptionInfo->ExceptionRecord->ExceptionAddress, (*pGetTickCount)(), myPerfCount.HighPart, myPerfCount.LowPart);
+
+		ExceptionInfo->ContextRecord->Edx = myPerfCount.HighPart;
+		ExceptionInfo->ContextRecord->Eax = myPerfCount.LowPart;
+		ExceptionInfo->ContextRecord->Eip++; // skip ahead one-byte ( jump over 0xCC op-code )
+		ExceptionInfo->ContextRecord->Eip++; // skip ahead one-byte ( jump over 0x90 op-code )
+		return EXCEPTION_CONTINUE_EXECUTION;
+	}
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 void HookExceptionHandler(void)
 {
 	void *tmp;
@@ -1329,15 +1377,12 @@ void HookExceptionHandler(void)
 	//v2.1.75 override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	tmp = HookAPI(base, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
-	// so far, no need to save the previous handler.
-	//if(tmp) pUnhandledExceptionFilter = (UnhandledExceptionFilter_Type)tmp;
+	// so far, no need to save the previous handler, but anyway...
 	tmp = HookAPI(base, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
-	//tmp = HookAPI("KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", myUnhandledExceptionFilter);
 	if(tmp) pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
 
 	SetErrorMode(SEM_NOGPFAULTERRORBOX|SEM_NOOPENFILEERRORBOX|SEM_FAILCRITICALERRORS);
 	(*pSetUnhandledExceptionFilter)((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
-	//(*pSetUnhandledExceptionFilter)(NULL);
 }
 
 void HookModule(HMODULE base, int dxversion)
@@ -1432,6 +1477,97 @@ LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(hMouseHook, code, wParam, lParam);
 }
 
+static void ReplaceRDTSC()
+{
+	typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
+	typedef int (*Preparedisasm_Type)(void);
+	typedef void (*Finishdisasm_Type)(void);
+	typedef unsigned long (*Disasm_Type)(const unsigned char *, unsigned long, unsigned long, t_disasm *, int, t_config *, int (*)(tchar *, unsigned long));
+	typedef BOOL (WINAPI *GetModuleInformation_Type)(HANDLE, HMODULE, LPMODULEINFO, DWORD);
+
+	HMODULE disasmlib;
+	#define MAX_FILE_PATH 512
+	char sSourcePath[MAX_FILE_PATH+1];
+	char *p;
+	Geterrwarnmessage_Type pGeterrwarnmessage;
+	Preparedisasm_Type pPreparedisasm;
+	Finishdisasm_Type pFinishdisasm;
+	Disasm_Type pDisasm;
+	DWORD dwAttrib;
+	unsigned char *opcodes;
+	t_disasm da;
+	MODULEINFO mi;
+	HMODULE psapilib;
+	GetModuleInformation_Type pGetModuleInformation;
+	DWORD dwSegSize;
+
+	dwAttrib = GetFileAttributes("dxwnd.dll");
+	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return;
+	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_FILE_PATH);
+	p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
+	strcpy(p, "disasm.dll");
+	disasmlib=(*pLoadLibraryA)(sSourcePath);
+	if(!disasmlib) {
+		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", sSourcePath, GetLastError());
+		return;
+	}
+	pGeterrwarnmessage=(Geterrwarnmessage_Type)(*pGetProcAddress)(disasmlib, "Geterrwarnmessage");
+	pPreparedisasm=(Preparedisasm_Type)(*pGetProcAddress)(disasmlib, "Preparedisasm");
+	pFinishdisasm=(Finishdisasm_Type)(*pGetProcAddress)(disasmlib, "Finishdisasm");
+	pDisasm=(Disasm_Type)(*pGetProcAddress)(disasmlib, "Disasm");
+	OutTraceDW("DXWND: Load disasm.dll ptrs=%x,%x,%x,%x\n", pGeterrwarnmessage, pPreparedisasm, pFinishdisasm, pDisasm);
+
+	// getting segment size
+	psapilib=(*pLoadLibraryA)("psapi.dll");
+	if(!psapilib) {
+		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", "psapi.dll", GetLastError());
+		return;
+	}
+	pGetModuleInformation=(GetModuleInformation_Type)(*pGetProcAddress)(psapilib, "GetModuleInformation");
+	(*pGetModuleInformation)(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(mi));
+	dwSegSize = mi.SizeOfImage;
+	FreeLibrary(psapilib);
+
+	(*pPreparedisasm)();
+	opcodes=(unsigned char *)GetModuleHandle(NULL);
+	unsigned int offset = 0;
+	BOOL cont = TRUE;
+	OutTraceDW("DXWND: opcode starting at addr=%x size=%x\n", opcodes, dwSegSize);
+	while (TRUE) {
+		int cmdlen;
+		__try{
+			cmdlen=(*pDisasm)(opcodes+offset,20,offset,&da,0,NULL,NULL);
+			//OutTrace("offset=%x opcode=%x\n", offset, *(opcodes+offset));
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER){
+			OutTrace("exception at offset=%x\n", offset);
+			cont=FALSE;
+		}		
+		if (cmdlen==0) break;
+		// search for RDTSC opcode 0x0F31
+		if((*(opcodes+offset) == 0x0F) && (*(opcodes+offset+1) == 0x31)){
+			DWORD oldprot;
+			OutTraceDW("DXWND: RDTSC opcode found at addr=%x\n", (opcodes+offset));
+			if(!VirtualProtect((LPVOID)(opcodes+offset), 4, PAGE_READWRITE, &oldprot)) {
+				OutTrace("VirtualProtect ERROR: target=%x err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
+				return; // error condition
+			}
+			*(opcodes+offset) = 0xCC;	// __asm INT3
+			*(opcodes+offset+1) = 0x90; // __asm NOP
+			if(!VirtualProtect((LPVOID)(opcodes+offset), 4, oldprot, &oldprot)){
+				OutTrace("VirtualProtect ERROR; target=%x, err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
+				return; // error condition
+			}
+		}
+		offset+=cmdlen; 
+		if((offset+0x10) > dwSegSize) break;
+	}
+
+	return;
+	(*pFinishdisasm)();
+	FreeLibrary(disasmlib);
+}
+
 void HookInit(TARGETMAP *target, HWND hwnd)
 {
 	HMODULE base;
@@ -1453,26 +1589,13 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		dxw.SethWnd((dxw.dwFlags1 & FIXPARENTWIN) ? GetParent(hwnd) : hwnd);
 	}
 
-	if(IsTraceDDRAW){
+	if(IsTraceDW){
 		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)", 
 			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
 			target->posx, target->posy, target->sizx, target->sizy);
 		if(hwnd) OutTrace(" hWnd=%x dxw.hParentWnd=%x desktop=%x\n", hwnd, dxw.hParentWnd, GetDesktopWindow());
 		else OutTrace("\n");
 	}
-
-#if 0
-	if(dxw.dwFlags4 & ADDPROXYLIBS){
-		#define MAX_FILE_PATH 512
-		char sSourcePath[MAX_FILE_PATH+1];
-		char *p;
-		GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_FILE_PATH);
-		p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
-		strcpy(p, "d3d9.dll");
-		OutTraceDW("HookInit: copy %s -> d3d9.dll\n", sSourcePath);
-		CopyFile(sSourcePath, "d3d9.dll", FALSE);
-	}
-#endif
 
 	if (hwnd && IsDebug){
 		DWORD dwStyle, dwExStyle;
@@ -1487,10 +1610,14 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	HookSysLibsInit(); // this just once...
 
 	base=GetModuleHandle(NULL);
-	if(dxw.dwFlags3 & SINGLEPROCAFFINITY) SetSingleProcessAffinity();
-	if(dxw.dwFlags1 & HANDLEEXCEPTIONS) HookExceptionHandler();
+	if (dxw.dwFlags3 & SINGLEPROCAFFINITY) SetSingleProcessAffinity();
+	if (dxw.dwFlags4 & INTERCEPTRDTSC) AddVectoredExceptionHandler(1, Int3Handler); // 1 = first call, 0 = call last
+	if (dxw.dwFlags1 & HANDLEEXCEPTIONS) HookExceptionHandler();
 	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
-	//if(dxw.dwFlags2 & SUPPRESSIME) DisableIME();
+	if (dxw.dwFlags2 & SUPPRESSIME) DisableIME();
+
+	//if ((hwnd==0) && (dxw.dwFlags4 & INTERCEPTRDTSC)) ReplaceRDTSC();
+	if (dxw.dwFlags4 & INTERCEPTRDTSC) ReplaceRDTSC();
 
 	if (dxw.dwTFlags & DXPROXED){
 		HookDDProxy(base, dxw.dwTargetDDVersion);

@@ -44,6 +44,7 @@ static HookEntry_Type Hooks[]={
 
 	//{"GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
 	//{"GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+	{"IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -724,12 +725,16 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 
 	// useful??? to be demonstrated....
 	// when altering main window in fullscreen mode, fix the coordinates for borders
-	DWORD dwCurStyle;
+	DWORD dwCurStyle, dwExStyle;
+	HMENU hMenu;
 	RECT rect;
 	rect.top=rect.left=0;
 	rect.right=cx; rect.bottom=cy;
 	dwCurStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
-	AdjustWindowRect(&rect, dwCurStyle, FALSE);
+	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
+	hMenu = GetMenu(hwnd);	
+	AdjustWindowRectEx(&rect, dwCurStyle, (hMenu!=NULL), dwExStyle);
+	if (hMenu) CloseHandle(hMenu);
 	cx=rect.right; cy=rect.bottom;
 	OutTraceDW("SetWindowPos: main form hwnd=%x fixed size=(%d,%d)\n", hwnd, cx, cy);
 
@@ -831,6 +836,7 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 	prev=*lppoint;
 	*lppoint=dxw.ScreenToClient(*lppoint);
 	*lppoint=dxw.FixCursorPos(*lppoint);
+
 	GetHookInfo()->CursorX=(short)lppoint->x;
 	GetHookInfo()->CursorY=(short)lppoint->y;
 	OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", prev.x, prev.y, lppoint->x, lppoint->y);
@@ -1313,13 +1319,13 @@ HWND WINAPI extCreateWindowExW(
   HINSTANCE hInstance,
   LPVOID lpParam) 
 {
-	if(IsTraceDDRAW){
+	if(IsTraceDW){
 		char xString[20], yString[20];
 		if (x==CW_USEDEFAULT) strcpy(xString,"CW_USEDEFAULT"); 
 		else sprintf(xString,"%d", x);
 		if (y==CW_USEDEFAULT) strcpy(yString,"CW_USEDEFAULT"); 
 		else sprintf(yString,"%d", y);
-		OutTraceDW("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
+		OutTrace("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
 			lpClassName, lpWindowName, xString, yString, nWidth, nHeight, 
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 	}
@@ -1343,19 +1349,19 @@ HWND WINAPI extCreateWindowExA(
   HINSTANCE hInstance,
   LPVOID lpParam) 
 {
-	if(IsTraceDDRAW){
+	if(IsTraceDW){
 		char xString[20], yString[20];
 		if (x==CW_USEDEFAULT) strcpy(xString,"CW_USEDEFAULT"); 
 		else sprintf(xString,"%d", x);
 		if (y==CW_USEDEFAULT) strcpy(yString,"CW_USEDEFAULT"); 
 		else sprintf(yString,"%d", y);
-		OutTraceDW("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
+		OutTrace("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
 			ClassToStr(lpClassName), lpWindowName, xString, yString, nWidth, nHeight, 
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 	}
 	if(IsDebug) OutTrace("CreateWindowExA: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
-	return extCreateWindowCommon("CreateWindowExA", false, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+	return extCreateWindowCommon("CreateWindowExA", FALSE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
 LRESULT WINAPI extCallWindowProc(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
@@ -2079,5 +2085,17 @@ HWND WINAPI extGetForegroundWindow(void)
 	ret=(*pGetForegroundWindow)();
 	OutTraceDW("GetForegroundWindow: ret=%x\n", ret);
 	STOPPER("GetForegroundWindow");
+	return ret;
+}
+
+BOOL WINAPI extIsWindowVisible(HWND hwnd)
+{
+	BOOL ret;
+	ret=(*pIsWindowVisible)(hwnd);
+	OutTraceDW("IsWindowVisible: hwnd=%x ret=%x\n", hwnd, ret);
+	if(dxw.IsDesktop(hwnd)){
+		OutTraceDW("IsWindowVisible: FORCING ret=TRUE\n");
+		ret=TRUE;
+	}
 	return ret;
 }

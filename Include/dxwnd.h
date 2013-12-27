@@ -124,6 +124,7 @@
 #define NOPOWER2FIX			0x00000100 // Handle textures whose size is not a power of 2 (32, 64, 128 ...)
 #define NOPERFCOUNTER		0x00000200 // Disables the GetPerfCounter performance metrics API,as if it was not supported....
 #define ADDPROXYLIBS		0x00000400 // Add proxy libs to otherwise hook-resilient system libraries (e.g. d3d9.dll)
+#define INTERCEPTRDTSC		0x00000800 // Intercapts RDTSC opcodes to hook at assembly level
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

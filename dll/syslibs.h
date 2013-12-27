@@ -181,6 +181,7 @@ typedef BOOL	(WINAPI *SetWindowPlacement_Type)(HWND, WINDOWPLACEMENT *);
 typedef HWND	(WINAPI *SetCapture_Type)(HWND);
 typedef HWND	(WINAPI *GetForegroundWindow_Type)(void);
 typedef HWND	(WINAPI *GetActiveWindow_Type)(void);
+typedef BOOL	(WINAPI *IsWindowVisible_Type)(HWND);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -369,6 +370,7 @@ DXWEXTERN SetWindowPlacement_Type pSetWindowPlacement DXWINITIALIZED;
 DXWEXTERN SetCapture_Type pSetCapture DXWINITIALIZED;
 DXWEXTERN GetForegroundWindow_Type pGetForegroundWindow DXWINITIALIZED;
 DXWEXTERN GetActiveWindow_Type pGetActiveWindow DXWINITIALIZED;
+DXWEXTERN IsWindowVisible_Type pIsWindowVisible DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
@@ -555,6 +557,7 @@ extern BOOL WINAPI extSetWindowPlacement(HWND, WINDOWPLACEMENT *);
 extern HWND WINAPI extSetCapture(HWND);
 extern HWND WINAPI extGetForegroundWindow(void);
 extern HWND WINAPI extGetActiveWindow(void);
+extern BOOL WINAPI extIsWindowVisible(HWND);
 
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);

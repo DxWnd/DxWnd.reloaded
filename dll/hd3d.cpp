@@ -1014,8 +1014,6 @@ HRESULT WINAPI extD3D10CreateDevice(
 	return res;
 }
 
-// -- log revised to here ...
-
 HRESULT WINAPI extD3D10CreateDevice1(
 	IDXGIAdapter *pAdapter, 
 	D3D10_DRIVER_TYPE DriverType, 
@@ -1026,10 +1024,10 @@ HRESULT WINAPI extD3D10CreateDevice1(
 	ID3D10Device **ppDevice)
 {
 	HRESULT res;
-	OutTraceDW("D3D10CreateDevice1: DriverType=%x Flags=%x HardwareLevel=%x SDKVersion=%x\n", DriverType, Flags, HardwareLevel, SDKVersion);
+	OutTraceD3D("D3D10CreateDevice1: DriverType=%x Flags=%x HardwareLevel=%x SDKVersion=%x\n", DriverType, Flags, HardwareLevel, SDKVersion);
 	res=(*pD3D10CreateDevice1)(pAdapter, DriverType, Software, Flags, HardwareLevel, SDKVersion, ppDevice);
 	SetHook((void *)(*(DWORD *)*ppDevice + 100), extRSSetViewports, (void **)&pRSSetViewports, "RSSetViewports(D10)");
-	OutTraceDW("D3D10CreateDevice1: ret=%x\n", res);
+	OutTraceD3D("D3D10CreateDevice1: ret=%x\n", res);
 	return res;
 }
 
@@ -1044,12 +1042,12 @@ HRESULT WINAPI extD3D10CreateDeviceAndSwapChain(
 	ID3D10Device **ppDevice)
 {
 	HRESULT res;
-	OutTraceDW("D3D10CreateDeviceAndSwapChain: DriverType=%x Flags=%x SDKVersion=%x\n", DriverType, Flags, SDKVersion);
+	OutTraceD3D("D3D10CreateDeviceAndSwapChain: DriverType=%x Flags=%x SDKVersion=%x\n", DriverType, Flags, SDKVersion);
 	//return 0x887a0004;
 	pSwapChainDesc->OutputWindow = dxw.GethWnd();
 	pSwapChainDesc->Windowed = true;	
 	res=(*pD3D10CreateDeviceAndSwapChain)(pAdapter, DriverType, Software, Flags, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice);
-	OutTraceDW("D3D10CreateDeviceAndSwapChain ret=%x\n", res);
+	OutTraceD3D("D3D10CreateDeviceAndSwapChain ret=%x\n", res);
 	return res;
 }
 
@@ -1064,12 +1062,12 @@ HRESULT WINAPI extD3D10CreateDeviceAndSwapChain1(
 	ID3D10Device **ppDevice)
 {
 	HRESULT res;
-	OutTraceDW("D3D10CreateDeviceAndSwapChain1: DriverType=%x Flags=%x SDKVersion=%x\n", DriverType, Flags, SDKVersion);
+	OutTraceD3D("D3D10CreateDeviceAndSwapChain1: DriverType=%x Flags=%x SDKVersion=%x\n", DriverType, Flags, SDKVersion);
 	//return 0x887a0004;
 	pSwapChainDesc->OutputWindow = dxw.GethWnd();
 	pSwapChainDesc->Windowed = true;	
 	res=(*pD3D10CreateDeviceAndSwapChain1)(pAdapter, DriverType, Software, Flags, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice);
-	OutTraceDW("D3D10CreateDeviceAndSwapChain1 ret=%x\n", res);
+	OutTraceD3D("D3D10CreateDeviceAndSwapChain1 ret=%x\n", res);
 	return res;
 }
 
@@ -1086,16 +1084,16 @@ HRESULT WINAPI extD3D11CreateDevice(
 	ID3D11DeviceContext **ppImmediateContext)
 {
 	HRESULT res;
-	OutTraceDW("D3D11CreateDevice: DriverType=%x Flags=%x FeatureLevels=%x SDKVersion=%x\n", DriverType, Flags, FeatureLevels, SDKVersion);
+	OutTraceD3D("D3D11CreateDevice: DriverType=%x Flags=%x FeatureLevels=%x SDKVersion=%x\n", DriverType, Flags, FeatureLevels, SDKVersion);
 	//return 0x887a0004;
 	res=(*pD3D11CreateDevice)(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
 	if(res){
-		OutTraceDW("D3D11CreateDevice: ret=%x\n", res);
+		OutTraceD3D("D3D11CreateDevice: ret=%x\n", res);
 		return res;
 	}
 	SetHook((void *)(*(DWORD *)ppImmediateContext + 148), extRSSetViewports, (void **)&pRSSetViewports, "RSSetViewports(D11)");
 	//SetHook((void *)(*(DWORD *)ppImmediateContext + 152), extRSSetScissorRects, (void **)&pRSSetScissorRects, "RSSetScissorRects(D11)");
-	OutTraceDW("D3D11CreateDevice ret=%x\n", res);
+	OutTraceD3D("D3D11CreateDevice ret=%x\n", res);
 	return res;
 }
 
@@ -1114,16 +1112,15 @@ HRESULT WINAPI extD3D11CreateDeviceAndSwapChain(
 	ID3D11DeviceContext **ppImmediateContext)
 {
 	HRESULT res;
-	OutTraceDW("D3D11CreateDeviceAndSwapChain\n");
-	return 0x887a0004;
+	OutTraceD3D("D3D11CreateDeviceAndSwapChain\n");
 	res=(*pD3D11CreateDeviceAndSwapChain)(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
-	OutTraceDW("D3D11CreateDeviceAndSwapChain ret=%x\n", res);
+	OutTraceD3D("D3D11CreateDeviceAndSwapChain ret=%x\n", res);
 	return res;
 }
 
 void WINAPI extRSSetViewports(ID3D11DeviceContext *This, UINT NumViewports, D3D11_VIEWPORT *pViewports)
 {
-	OutTraceDW("RSSetViewports: NumViewports=%d\n", NumViewports);
+	OutTraceD3D("RSSetViewports: NumViewports=%d\n", NumViewports);
 
 	if(NumViewports==1){
 		pViewports->TopLeftX=dxw.iPosX;
@@ -1138,24 +1135,46 @@ void WINAPI extRSSetViewports(ID3D11DeviceContext *This, UINT NumViewports, D3D1
 HRESULT WINAPI extQueryInterfaceD3D8(void *obj, REFIID riid, void** ppvObj)
 {
 	HRESULT res;
-	OutTraceDW("D3D::QueryInterface(8)\n");
+	OutTraceD3D("D3D::QueryInterface(8): d3d=%x riid=%x\n", obj, riid.Data1);
 	res=pQueryInterfaceD3D8(obj, riid, ppvObj);
+	if(res)
+		OutTraceE("D3D::QueryInterface(8): ERROR ret=%x(%s)\n", res, ExplainDDError(res));
+	else
+		OutTraceD3D("D3D::QueryInterface(8): obp=%x\n", *ppvObj);
 	return res;
 }
 
 HRESULT WINAPI extQueryInterfaceDev8(void *obj, REFIID riid, void** ppvObj)
 {
 	HRESULT res;
-	OutTraceDW("Device::QueryInterface(8)\n");
+	OutTraceD3D("Device::QueryInterface(8): d3d=%x riid=%x\n", obj, riid.Data1);
 	res=pQueryInterfaceDev8(obj, riid, ppvObj);
+	if(res){
+		OutTraceE("Device::QueryInterface(8): ERROR ret=%x(%s)\n", res, ExplainDDError(res));
+		return res;
+	}
+	OutTraceD3D("Device::QueryInterface(8): obp=%x\n", *ppvObj);
+
+	switch(*(DWORD *)&riid){
+	case 0x7385E5DF: // IID_IDirect3DDevice8
+		HookD3DDevice8(ppvObj);
+		break;
+	case 0xD0223B96: // IID_IDirect3DDevice9
+		HookD3DDevice9(ppvObj);
+		break;
+	}
 	return res;
 }
 
 HRESULT WINAPI extQueryInterfaceD3D9(void *obj, REFIID riid, void** ppvObj)
 {
 	HRESULT res;
-	OutTraceDW("D3D::QueryInterface(9)\n");
+	OutTraceD3D("D3D::QueryInterface(9): d3d=%x riid=%x\n", obj, riid.Data1);
 	res=pQueryInterfaceD3D9(obj, riid, ppvObj);
+	if(res)
+		OutTraceE("D3D::QueryInterface(9): ERROR ret=%x(%s)\n", res, ExplainDDError(res));
+	else
+		OutTraceD3D("D3D::QueryInterface(9): obp=%x\n", *ppvObj);
 	return res;
 }
 
@@ -1163,13 +1182,13 @@ HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
 {
 	HRESULT res;
 
-	OutTraceDW("Device::QueryInterface(9): lpd3dd=%x refiid=%x\n", obj, riid);
+	OutTraceD3D("Device::QueryInterface(9): d3d=%x riid=%x\n", obj, riid.Data1);
 	res=pQueryInterfaceDev9(obj, riid, ppvObj);
 	if(res){
-		OutTraceDW("Device::QueryInterface(9): ERROR ret=%x\n", res);
+		OutTraceD3D("Device::QueryInterface(9): ERROR ret=%x\n", res);
 		return res;
 	}
-	OutTraceDW("Device::QueryInterface(9): ppvObj=%x\n", *ppvObj);
+	OutTraceD3D("Device::QueryInterface(9): ppvObj=%x\n", *ppvObj);
 
 	switch(*(DWORD *)&riid){
 	case 0x7385E5DF: // IID_IDirect3DDevice8
@@ -1185,32 +1204,32 @@ HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
 
 HRESULT WINAPI extGetDirect3D(void *lpdd3dd, IDirect3D9 **ppD3D9)
 {
-	OutTraceB("Device::GetDirect3D\n");
+	OutTraceD3D("Device::GetDirect3D(9): d3dd=%x\n", lpdd3dd);
 	return (*pGetDirect3D)(lpdd3dd, ppD3D9);
 }
 
 HRESULT WINAPI extCheckFullScreen(void)
 {
-	OutTraceDW("CheckFullScreen\n");
+	OutTraceDW("CheckFullScreen: return OK\n");
 	return 0;
 }
 
 void WINAPI extSetGammaRamp(void *lpdd3dd, UINT iSwapChain, DWORD Flags, D3DGAMMARAMP *pRamp)
 {
-	OutTraceDW("SetGammaRamp: dd3dd=%x SwapChain=%d flags=%x\n", lpdd3dd, iSwapChain, Flags);
+	OutTraceD3D("SetGammaRamp: dd3dd=%x SwapChain=%d flags=%x\n", lpdd3dd, iSwapChain, Flags);
 	if (dxw.dwFlags2 & DISABLEGAMMARAMP) return;
 	(*pSetGammaRamp)(lpdd3dd, iSwapChain, Flags, pRamp);
 }
 
 void WINAPI extGetGammaRamp(void *lpdd3dd, UINT iSwapChain, D3DGAMMARAMP *pRamp)
 {
-	OutTraceDW("GetGammaRamp: dd3dd=%x SwapChain=%d\n", lpdd3dd, iSwapChain);
+	OutTraceD3D("GetGammaRamp: dd3dd=%x SwapChain=%d\n", lpdd3dd, iSwapChain);
 	(*pGetGammaRamp)(lpdd3dd, iSwapChain, pRamp);
 }
 
 void WINAPI extSetCursorPosition9(void *lpdd3dd, int X, int Y, DWORD Flags)
 {
-	OutTraceDW("SetCursorPosition: dd3dd=%x pos=(%d,%d) flags=%x\n", lpdd3dd, X, Y, Flags);
+	OutTraceD3D("SetCursorPosition: dd3dd=%x pos=(%d,%d) flags=%x\n", lpdd3dd, X, Y, Flags);
 	if(dxw.dwFlags2 & KEEPCURSORFIXED) return;
 	// to do: proper scaling.....
 	//(*pSetCursorPosition9)(lpdd3dd, X, Y, Flags);
@@ -1218,7 +1237,7 @@ void WINAPI extSetCursorPosition9(void *lpdd3dd, int X, int Y, DWORD Flags)
 
 void WINAPI extSetCursorPosition8(void *lpdd3dd, int X, int Y, DWORD Flags)
 {
-	OutTraceDW("SetCursorPosition: dd3dd=%x pos=(%d,%d) flags=%x\n", lpdd3dd, X, Y, Flags);
+	OutTraceD3D("SetCursorPosition: dd3dd=%x pos=(%d,%d) flags=%x\n", lpdd3dd, X, Y, Flags);
 	if(dxw.dwFlags2 & KEEPCURSORFIXED) return;
 	// to do: proper scaling.....
 	//(*pSetCursorPosition8)(lpdd3dd, X, Y, Flags);
@@ -1228,7 +1247,7 @@ ULONG WINAPI extAddRef9(void *lpdd3dd)
 {
 	ULONG res;
 	res=(*pAddRef9)(lpdd3dd);
-	OutTraceD3D("AddRef(9): dd3dd=%x res=%x\n", lpdd3dd, res);
+	OutTraceD3D("Device::AddRef(9): dd3dd=%x res=%x\n", lpdd3dd, res);
 	return res;
 }
 
@@ -1236,6 +1255,6 @@ ULONG WINAPI extRelease9(void *lpdd3dd)
 {
 	ULONG res;
 	res=(*pRelease9)(lpdd3dd);
-	OutTraceD3D("Release(9): dd3dd=%x res=%x\n", lpdd3dd, res);
+	OutTraceD3D("Device::Release(9): dd3dd=%x res=%x\n", lpdd3dd, res);
 	return res;
 }

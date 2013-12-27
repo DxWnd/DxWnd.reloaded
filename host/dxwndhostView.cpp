@@ -228,6 +228,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ShowFPSOverlay) t->flags2 |= SHOWFPSOVERLAY;
 	if(dlg->m_ShowTimeStretch) t->flags4 |= SHOWTIMESTRETCH;
 	if(dlg->m_TimeStretch) t->flags2 |= TIMESTRETCH;
+	if(dlg->m_InterceptRDTSC) t->flags4 |= INTERCEPTRDTSC;
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
 	if(dlg->m_ForceHookOpenGL) t->flags3 |= FORCEHOOKOPENGL;
 	if(dlg->m_WireFrame) t->flags2 |= WIREFRAME;
@@ -376,6 +377,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ShowFPSOverlay = t->flags2 & SHOWFPSOVERLAY ? 1 : 0;
 	dlg->m_ShowTimeStretch = t->flags4 & SHOWTIMESTRETCH ? 1 : 0;
 	dlg->m_TimeStretch = t->flags2 & TIMESTRETCH ? 1 : 0;
+	dlg->m_InterceptRDTSC = t->flags4 & INTERCEPTRDTSC ? 1 : 0;
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;
 	dlg->m_ForceHookOpenGL = t->flags3 & FORCEHOOKOPENGL ? 1 : 0;
 	dlg->m_WireFrame = t->flags2 & WIREFRAME ? 1 : 0;
