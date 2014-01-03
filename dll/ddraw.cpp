@@ -1320,19 +1320,36 @@ static void MaskCapsD(LPDDCAPS c1, LPDDCAPS c2)
 	OutTraceDW("MaskCaps\n");
 	capfile=fopen("dxwnd.cap", "r");
 	if(!capfile) return;
-	while(TRUE){
-		if(fscanf(capfile, "%s=%x", token, &val)!=2) break;
-		if(!strcmp(token, "dwCaps")) c1->dwCaps &= val;
-		if(!strcmp(token, "dwCaps2")) c1->dwCaps2 &= val;
-		if(!strcmp(token, "dwCKeyCaps")) c1->dwCKeyCaps &= val;
-		if(!strcmp(token, "dwFXCaps")) c1->dwFXCaps &= val;
+	if(c1) {
+		while(TRUE){
+			if(fscanf(capfile, "%s=%x", token, &val)!=2) break;
+			if(!strcmp(token, "dwCaps")) c1->dwCaps &= val;
+			if(!strcmp(token, "dwCaps2")) c1->dwCaps2 &= val;
+			if(!strcmp(token, "dwCKeyCaps")) c1->dwCKeyCaps &= val;
+			if(!strcmp(token, "dwFXCaps")) c1->dwFXCaps &= val;
+		}
+		OutTraceDW("MaskCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+			c1->dwCaps, ExplainDDDCaps(c1->dwCaps),
+			c1->dwCaps2, ExplainDDDCaps2(c1->dwCaps2),
+			c1->dwFXCaps, ExplainDDFXCaps(c1->dwFXCaps),
+			c1->dwFXAlphaCaps, ExplainDDFXALPHACaps(c1->dwFXAlphaCaps),
+			c1->dwCKeyCaps, ExplainDDCKeyCaps(c1->dwCKeyCaps));
 	}
-	OutTraceDW("MaskCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
-		c1->dwCaps, ExplainDDDCaps(c1->dwCaps),
-		c1->dwCaps2, ExplainDDDCaps2(c1->dwCaps2),
-		c1->dwFXCaps, ExplainDDFXCaps(c1->dwFXCaps),
-		c1->dwFXAlphaCaps, ExplainDDFXALPHACaps(c1->dwFXAlphaCaps),
-		c1->dwCKeyCaps, ExplainDDCKeyCaps(c1->dwCKeyCaps));
+	if(c2) {
+		while(TRUE){
+			if(fscanf(capfile, "%s=%x", token, &val)!=2) break;
+			if(!strcmp(token, "dwCaps")) c2->dwCaps &= val;
+			if(!strcmp(token, "dwCaps2")) c2->dwCaps2 &= val;
+			if(!strcmp(token, "dwCKeyCaps")) c2->dwCKeyCaps &= val;
+			if(!strcmp(token, "dwFXCaps")) c2->dwFXCaps &= val;
+		}
+		OutTraceDW("MaskCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+			c2->dwCaps, ExplainDDDCaps(c2->dwCaps),
+			c2->dwCaps2, ExplainDDDCaps2(c2->dwCaps2),
+			c2->dwFXCaps, ExplainDDFXCaps(c2->dwFXCaps),
+			c2->dwFXAlphaCaps, ExplainDDFXALPHACaps(c2->dwFXAlphaCaps),
+			c2->dwCKeyCaps, ExplainDDCKeyCaps(c2->dwCKeyCaps));
+	}	
 	fclose(capfile);
 }
 
@@ -1380,7 +1397,7 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 		//c1->dwFXAlphaCaps=AlphaCaps;		
 	}
 
-	if((dxw.dwFlags3 & CAPMASK) && c1 && c2) MaskCapsD(c1, c2);
+	if(dxw.dwFlags3 & CAPMASK) MaskCapsD(c1, c2);
 
 	return res;
 }
@@ -2551,7 +2568,8 @@ static HRESULT BuildGenericDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	res = (*pCreateSurface)(lpdd, lpddsd, lplpdds, 0); 
 	if(res){
-		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res==DDERR_OUTOFVIDEOMEMORY)){
+		// v2.02.60: Ref. game Incoming GOG release, post by Marek, error DDERR_UNSUPPORTED while trying to create ZBUFFER surface 
+		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && ((res==DDERR_OUTOFVIDEOMEMORY)||(res==DDERR_UNSUPPORTED))){
 			OutTraceDW("CreateSurface ERROR: res=%x(%s) at %d, retry\n", res, ExplainDDError(res), __LINE__);
 			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
 			lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
@@ -4564,9 +4582,17 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
  HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree, GetAvailableVidMem_Type pGetAvailableVidMem)
 {
 	HRESULT res;
+	const DWORD dwMaxMem = 0x7FFFF000;
 	OutTraceDDRAW("GetAvailableVidMem(D): lpdd=%x\n", lpdd);
 	res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree);
 	if(res){
+		if((dxw.dwFlags3 & FORCESHEL) && (res==DDERR_NODIRECTDRAWHW)){
+			// fake some video memory....
+			OutTraceDW("GetAvailableVidMem(D): FORCESHEL mode Total=Free=%x\n", dwMaxMem);
+			*lpdwTotal = dwMaxMem;
+			*lpdwFree = dwMaxMem;
+			return DD_OK;
+		}
 		OutTraceE("GetAvailableVidMem(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	}
 	else {
@@ -4574,7 +4600,6 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 			*lpDDSCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
 		if(dxw.dwFlags2 & LIMITRESOURCES){ // check for memory value overflow - see "Mageslayer" and "Take no Prisoners"
 			DWORD dwLocalTotal;
-			const DWORD dwMaxMem = 0x7FFFF000;
 			if(lpdwTotal == NULL) {
 				lpdwTotal = &dwLocalTotal; // point to usable memory....
 				res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree); // do it again to get total memory

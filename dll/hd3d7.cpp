@@ -301,6 +301,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		if(pSetRenderState2){
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
+			if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
 		}		
 		break;
 	case 3:
@@ -315,6 +316,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		if(pSetRenderState3){
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
+			if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
 		}		
 		break;
 	case 7:
@@ -801,6 +803,10 @@ HRESULT WINAPI extSetRenderState2(void *d3dd, D3DRENDERSTATETYPE State, DWORD Va
 	if((dxw.dwFlags2 & WIREFRAME) && (State == D3DRENDERSTATE_FILLMODE)){
 		Value = D3DFILL_WIREFRAME;
 		OutTraceD3D("SetRenderState: FIXED State=FILLMODE Value=D3DFILL_WIREFRAME\n");
+}	
+	if((dxw.dwFlags4 & DISABLEFOGGING) && (State == D3DRENDERSTATE_FOGENABLE)){
+		OutTraceD3D("SetRenderState: FIXED State=FOGENABLE Value=FALSE\n");
+		Value = FALSE;
 	}
 	res=(*pSetRenderState2)(d3dd, State, Value);
 	if(res) OutTraceE("SetRenderState(2): res=%x(%s)\n", res, ExplainDDError(res));

@@ -41,8 +41,8 @@ static HookEntry_Type TimeHooks[]={
 	{"GetSystemTimeAsFileTime", (FARPROC)GetSystemTimeAsFileTime, (FARPROC *)&pGetSystemTimeAsFileTime, (FARPROC)extGetSystemTimeAsFileTime},
 	{"Sleep", (FARPROC)Sleep, (FARPROC *)&pSleep, (FARPROC)extSleep},
 	{"SleepEx", (FARPROC)SleepEx, (FARPROC *)&pSleepEx, (FARPROC)extSleepEx},
-	{"QueryPerformanceCounter", (FARPROC)NULL, (FARPROC *)&pQueryPerformanceCounter, (FARPROC)extQueryPerformanceCounter},
-	{"QueryPerformanceFrequency", (FARPROC)NULL, (FARPROC *)&pQueryPerformanceFrequency, (FARPROC)extQueryPerformanceFrequency},
+	{"QueryPerformanceCounter", (FARPROC)QueryPerformanceCounter, (FARPROC *)&pQueryPerformanceCounter, (FARPROC)extQueryPerformanceCounter},
+	{"QueryPerformanceFrequency", (FARPROC)QueryPerformanceFrequency, (FARPROC *)&pQueryPerformanceFrequency, (FARPROC)extQueryPerformanceFrequency},
 	{0, NULL, 0, 0} // terminator
 };
 

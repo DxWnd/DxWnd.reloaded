@@ -40,6 +40,11 @@ typedef void	(WINAPI *GetGammaRamp_Type)(void *, UINT, D3DGAMMARAMP *);
 typedef void	(WINAPI *SetCursorPosition9_Type)(void *, int, int, DWORD);
 typedef void	(WINAPI *SetCursorPosition8_Type)(void *, int, int, DWORD);
 
+//typedef ULONG	(WINAPI *CreateRenderTarget8_Type)(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, IDirect3DSurface8**);
+typedef ULONG	(WINAPI *CreateRenderTarget8_Type)(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, void**);
+typedef ULONG	(WINAPI *BeginScene_Type)(void *);
+typedef ULONG	(WINAPI *EndScene_Type)(void *);
+
 typedef HRESULT (WINAPI *D3D10CreateDevice_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
 typedef HRESULT (WINAPI *D3D10CreateDeviceAndSwapChain_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D10Device **);
 typedef HRESULT (WINAPI *D3D10CreateDevice1_Type)(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, D3D10_FEATURE_LEVEL1, UINT, ID3D10Device **);
@@ -88,6 +93,13 @@ ULONG WINAPI extAddRef9(void *);
 ULONG WINAPI extRelease9(void *);
 BOOL  WINAPI voidDisableD3DSpy(void);
 
+//ULONG WINAPI extCreateRenderTarget8(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, IDirect3DSurface8**);
+ULONG WINAPI extCreateRenderTarget8(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, void**);
+ULONG WINAPI extBeginScene8(void *);
+ULONG WINAPI extEndScene8(void *);
+ULONG WINAPI extBeginScene9(void *);
+ULONG WINAPI extEndScene9(void *);
+
 
 
 HRESULT WINAPI extD3D10CreateDevice(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
@@ -134,6 +146,12 @@ SetGammaRamp_Type pSetGammaRamp = 0;
 GetGammaRamp_Type pGetGammaRamp = 0;
 SetCursorPosition9_Type pSetCursorPosition9 = 0;
 SetCursorPosition8_Type pSetCursorPosition8 = 0;
+
+CreateRenderTarget8_Type pCreateRenderTarget8 = 0;
+BeginScene_Type pBeginScene8 = 0;
+EndScene_Type pEndScene8 = 0;
+BeginScene_Type pBeginScene9 = 0;
+EndScene_Type pEndScene9 = 0;
 
 D3D10CreateDevice_Type pD3D10CreateDevice = 0;
 D3D10CreateDeviceAndSwapChain_Type pD3D10CreateDeviceAndSwapChain = 0;
@@ -468,11 +486,20 @@ void HookD3DDevice8(void** ppD3Ddev8)
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 72), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D8)");
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 76), extGetGammaRamp, (void **)&pGetGammaRamp, "GetGammaRamp(D8)");
 	}
-	if(dxw.dwFlags2 & WIREFRAME){
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 100), extCreateRenderTarget8, (void **)&pCreateRenderTarget8, "CreateRenderTarget(D8)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 136), extBeginScene8, (void **)&pBeginScene8, "BeginScene(D8)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 140), extEndScene8, (void **)&pEndScene8, "EndScene(D8)");
+	if((dxw.dwFlags2 & WIREFRAME) || (dxw.dwFlags4 & DISABLEFOGGING) || (dxw.dwFlags4 & ZBUFFERALWAYS)){
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 200), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D8)");
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 204), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D8)");
-		(*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+		if(dxw.dwFlags2 & WIREFRAME) (*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+		if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_FOGENABLE, FALSE);
+		if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_ZFUNC, D3DCMP_ALWAYS);
+		//if(1) (*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_SPECULARENABLE, TRUE);
 	}
+	//if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
+	//SetHook((void *)(**(DWORD **)ppD3Ddev8 +  4), extAddRef8, (void **)&pAddRef8, "AddRef(D8)");
+	//SetHook((void *)(**(DWORD **)ppD3Ddev8 +  8), extRelease8, (void **)&pRelease8, "Release(D8)");
 }
 
 void HookD3DDevice9(void** ppD3Ddev9)
@@ -491,14 +518,18 @@ void HookD3DDevice9(void** ppD3Ddev9)
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 84), extSetGammaRamp, (void **)&pSetGammaRamp, "SetGammaRamp(D9)");
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 88), extGetGammaRamp, (void **)&pGetGammaRamp, "GetGammaRamp(D9)");
 	}
+	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 164), extBeginScene9, (void **)&pBeginScene9, "BeginScene(D9)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 168), extEndScene9, (void **)&pEndScene9, "EndScene(D9)");
 	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
 	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +192), extGetViewport, (void **)&pGetViewport, "GetViewport(D9)");
-	if(dxw.dwFlags2 & WIREFRAME){
+	if((dxw.dwFlags2 & WIREFRAME) || (dxw.dwFlags4 & DISABLEFOGGING) || (dxw.dwFlags4 & ZBUFFERALWAYS)){
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 228), extSetRenderState, (void **)&pSetRenderState, "SetRenderState(D9)");
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 232), extGetRenderState, (void **)&pGetRenderState, "GetRenderState(D9)");
-		(*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+		if(dxw.dwFlags2 & WIREFRAME) (*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+		if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_FOGENABLE, FALSE);
+		if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_ZFUNC, D3DCMP_ALWAYS);
+		//if(1) (*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_SPECULARENABLE, TRUE);
 	}
-
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  4), extAddRef9, (void **)&pAddRef9, "AddRef(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  8), extRelease9, (void **)&pRelease9, "Release(D9)");
@@ -925,9 +956,17 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	return 0;
 }
 
+extern char *ExplainRenderstateValue(DWORD Value);
+
 HRESULT WINAPI extSetRenderState(void *pd3dd, D3DRENDERSTATETYPE State, DWORD Value) 
 {
-	if (State == D3DRS_FILLMODE) Value=D3DFILL_WIREFRAME;
+	if((dxw.dwFlags4 & ZBUFFERALWAYS) && (State == D3DRS_ZFUNC)) {
+		OutTraceD3D("SetRenderState: FIXED State=ZFUNC Value=%s->D3DCMP_ALWAYS\n", ExplainRenderstateValue(Value));
+		Value = D3DCMP_ALWAYS;
+	}
+	if((dxw.dwFlags2 & WIREFRAME) && (State == D3DRS_FILLMODE)) Value=D3DFILL_WIREFRAME;
+	if((dxw.dwFlags4 & DISABLEFOGGING) && (State == D3DRS_FOGENABLE)) Value=FALSE;
+	//if(1 && (State == D3DRS_SPECULARENABLE)) Value=TRUE;
 	return (*pSetRenderState)(pd3dd, State, Value);
 }
 
@@ -1295,3 +1334,48 @@ ULONG WINAPI extRelease9(void *lpdd3dd)
 	return res;
 }
 
+//ULONG WINAPI extCreateRenderTarget8(void *lpdd3dd, UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, BOOL Lockable, IDirect3DSurface8** ppSurface) 
+ULONG WINAPI extCreateRenderTarget8(void *lpdd3dd, UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, BOOL Lockable, void** ppSurface) 
+{
+	ULONG res;
+
+	OutTraceD3D("Device::CreateRenderTarget(8): dd3dd=%x dim=(%dx%d) Format=%x Lockable=%x\n", 
+		lpdd3dd, Width, Height, Format, Lockable);
+	res=(*pCreateRenderTarget8)(lpdd3dd, Width, Height, Format, MultiSample, Lockable, ppSurface);
+	OutTraceD3D("Device::CreateRenderTarget(8): res=%x\n", res);
+	return res;
+}
+
+ULONG WINAPI extBeginScene8(void *lpdd3dd)
+{
+	ULONG res;
+	OutTraceD3D("Device::BeginScene(8): d3dd=%x\n", lpdd3dd);
+	res=(*pBeginScene8)(lpdd3dd);
+	if (res) OutTraceE("Device::BeginScene(8) ERROR: err=%x\n", res);
+	return res;
+}
+
+ULONG WINAPI extBeginScene9(void *lpdd3dd)
+{
+	ULONG res;
+	OutTraceD3D("Device::BeginScene(9): d3dd=%x\n", lpdd3dd);
+	res=(*pBeginScene9)(lpdd3dd);
+	if (res) OutTraceE("Device::BeginScene(9) ERROR: err=%x\n", res);
+	return res;
+}
+
+ULONG WINAPI extEndScene8(void *lpdd3dd)
+{
+	ULONG res;
+	res=(*pEndScene8)(lpdd3dd);
+	if (res) OutTraceE("Device::EndScene(8) ERROR: err=%x\n", res);
+	return res;
+}
+
+ULONG WINAPI extEndScene9(void *lpdd3dd)
+{
+	ULONG res;
+	res=(*pEndScene9)(lpdd3dd);
+	if (res) OutTraceE("Device::EndScene(9) ERROR: err=%x\n", res);
+	return res;
+}

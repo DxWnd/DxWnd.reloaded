@@ -398,7 +398,10 @@ minor fixes on logging
 
 v2.02.59
 fixed IDIrectDraw reference counter for ddraw release 1 session: fixes "Warhammer 40K Rites Of War" first screen
-fixed QueryPerformanceCounter handling: fixes "New Yourk Racer" time stretching problems
+fixed QueryPerformanceCounter handling: fixes "New York Racer" time stretching problems
 
-
+v2.02.60
+fixed time stretching to handle Total Soccer 2000
+fixed ZBUFFER surface creation to handle GOG Incoming troubles on some cards
+fixed handling of special effects (wireframe, no fogging, zbuffer always) to be valid on all d3d versions
 

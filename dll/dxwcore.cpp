@@ -884,7 +884,13 @@ DWORD dxwCore::GetTickCount(void)
 	static DWORD dwLastRealTick=0;
 	static DWORD dwLastFakeTick=0;
 	DWORD dwNextRealTick;
+	BOOL FirstTime = TRUE;
 
+	if(FirstTime){
+		dwLastRealTick=(*pGetTickCount)();
+		dwLastFakeTick=dwLastRealTick;
+		FirstTime=FALSE;
+	}
 	dwNextRealTick=(*pGetTickCount)();
 	dwTick=(dwNextRealTick-dwLastRealTick);
 	TimeShift=GetHookInfo()->TimeShift;
@@ -910,9 +916,13 @@ DWORD dxwCore::StretchCounter(DWORD dwTimer)
 
 LARGE_INTEGER dxwCore::StretchCounter(LARGE_INTEGER dwTimer)
 {
+	static int Reminder = 0;
+	LARGE_INTEGER ret;
 	TimeShift=GetHookInfo()->TimeShift;
-	dwTimer = TimeShifter64(dwTimer, TimeShift);
-	return dwTimer;
+	dwTimer.QuadPart += Reminder;
+	ret = TimeShifter64(dwTimer, TimeShift);
+	Reminder = (ret.QuadPart==0) ? dwTimer.LowPart : 0;
+	return ret;
 }
 
 void dxwCore::GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
