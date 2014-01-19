@@ -568,7 +568,8 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong)
 	}
 
 	if (dxw.dwFlags1 & FIXWINFRAME){
-		if((nIndex==GWL_STYLE) && !(dwNewLong & WS_CHILD)){
+		//if((nIndex==GWL_STYLE) && !(dwNewLong & WS_CHILD)){
+		if((nIndex==GWL_STYLE) && !(dwNewLong & WS_CHILD) && dxw.IsDesktop(hwnd)){
 			OutTraceDW("SetWindowLong: GWL_STYLE %x force OVERLAPPEDWINDOW\n", dwNewLong);
 			dwNewLong |= WS_OVERLAPPEDWINDOW; 
 			dwNewLong &= ~WS_CLIPSIBLINGS; 
@@ -1189,7 +1190,8 @@ static HWND WINAPI extCreateWindowCommon(
 		(*pShowWindow)(wndh, SW_SHOWNORMAL);
 	}
 
-	if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwStyle & WS_CHILD))
+	//if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwStyle & WS_CHILD))
+	if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwStyle & WS_CHILD) && dxw.IsDesktop(wndh))
 		dxw.FixWindowFrame(wndh);
 
 	// to do: handle inner child, and leave dialogue & modal child alone!!!
@@ -1686,7 +1688,6 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 {
 	HDC hdc;
-	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
 
 	OutTraceDW("GDI.BeginPaint: hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, dxw.IsFullScreen());
 	hdc=(*pBeginPaint)(hwnd, lpPaint);
@@ -1695,12 +1696,7 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	if(!dxw.IsFullScreen()) return hdc;
 
 	// on CLIENTREMAPPING, resize the paint area to virtual screen size
-	if(dxw.dwFlags1 & CLIENTREMAPPING){
-		lpPaint->rcPaint.top=0;
-		lpPaint->rcPaint.left=0;
-		lpPaint->rcPaint.right=dxw.GetScreenWidth();
-		lpPaint->rcPaint.bottom=dxw.GetScreenHeight();
-	}
+	if(dxw.dwFlags1 & CLIENTREMAPPING) lpPaint->rcPaint=dxw.GetScreenRect();
 
 	if(!dxw.IsDesktop(hwnd)) return hdc;
 
@@ -1708,7 +1704,7 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 		HDC EmuHDC; 
 		EmuHDC = dxw.AcquireEmulatedDC(hwnd); 
 		lpPaint->hdc=EmuHDC;
-		dxw.MapClient(&lpPaint->rcPaint);
+		//dxw.MapClient(&lpPaint->rcPaint);
 		OutTraceDW("GDI.BeginPaint(GDIEMULATEDC): hdc=%x -> %x\n", hdc, EmuHDC);
 		return EmuHDC;
 	}
@@ -1717,26 +1713,21 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	return hdc;
 }
 
+#ifndef EXPERIMENTAL
 HDC WINAPI extDDBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 {
 	HDC hdc;
 	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
 
-	OutTraceDW("GDI.BeginPaint: hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, dxw.IsFullScreen());
+	OutTraceDW("GDI.BeginPaint: hwnd=%x%s lpPaint=%x FullScreen=%x\n", 
+		hwnd, dxw.IsDesktop(hwnd)?"(DESKTOP)":"", lpPaint, dxw.IsFullScreen());
+
+	if(dxw.IsDesktop(hwnd)) hwnd=dxw.GethWnd();
+
 	hdc=(*pBeginPaint)(hwnd, lpPaint);
 
 	// if not in fullscreen mode, that's all!
 	if(!dxw.IsFullScreen()) return hdc;
-
-	// on CLIENTREMAPPING, resize the paint area to virtual screen size
-	if(dxw.dwFlags1 & CLIENTREMAPPING){
-		lpPaint->rcPaint.top=0;
-		lpPaint->rcPaint.left=0;
-		lpPaint->rcPaint.right=dxw.GetScreenWidth();
-		lpPaint->rcPaint.bottom=dxw.GetScreenHeight();
-	}
-
-	if(!dxw.IsDesktop(hwnd)) return hdc;
 
 	// on MAPGDITOPRIMARY, return the PrimHDC handle instead of the window DC
 	// if a primary surface has not been created yet, do it
@@ -1747,8 +1738,7 @@ HDC WINAPI extDDBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 		LPDIRECTDRAWSURFACE lpDDS;
 		DDSURFACEDESC ddsd;
 		res=extDirectDrawCreate(0, &lpDD, NULL);
-		//lpDD->SetDisplayMode(dxw.GetScreenWidth(), dxw.GetScreenHeight(), NULL);
-		lpDD->SetCooperativeLevel(hwnd, DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE);
+		lpDD->SetCooperativeLevel(dxw.GethWnd(), DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE);
 		memset((void *)&ddsd, 0, sizeof(DDSURFACEDESC));
 		ddsd.dwSize = sizeof(DDSURFACEDESC);
 		ddsd.dwFlags = DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH;
@@ -1759,61 +1749,80 @@ HDC WINAPI extDDBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 		dxw.lpDDSPrimHDC = lpDDS;
 		OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): dd=%x ddsPrim=%x\n", lpDD, lpDDS);
 	}
+
 	extGetDC(dxw.lpDDSPrimHDC,&PrimHDC);
 	lpPaint->hdc=PrimHDC;
-	//dxw.MapClient(&lpPaint->rcPaint);			
+	// resize the paint area to virtual screen size (see CivIII clipped panels...)
+	lpPaint->rcPaint=dxw.GetScreenRect();
+
 	OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): hdc=%x -> %x\n", hdc, PrimHDC);
 	return PrimHDC;
 }
+#else
+HDC WINAPI extDDBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
+{
+	HDC hdc;
+	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
+
+	OutTraceDW("GDI.BeginPaint: hwnd=%x%s lpPaint=%x FullScreen=%x\n", 
+		hwnd, dxw.IsDesktop(hwnd)?"(DESKTOP)":"", lpPaint, dxw.IsFullScreen());
+
+	if(dxw.IsDesktop(hwnd)) hwnd=dxw.GethWnd();
+
+	hdc=(*pBeginPaint)(hwnd, lpPaint);
+
+	// if not in fullscreen mode, that's all!
+	if(!dxw.IsFullScreen()) return hdc;
+
+	// on MAPGDITOPRIMARY, return the PrimHDC handle instead of the window DC
+	// if a primary surface has not been created yet, do it
+	if(!pGetDC || !dxw.lpDDSPrimHDC){
+		extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
+		HRESULT res;
+		LPDIRECTDRAW lpDD;
+		LPDIRECTDRAWSURFACE lpDDS;
+		DDSURFACEDESC ddsd;
+		res=extDirectDrawCreate(0, &lpDD, NULL);
+		lpDD->SetCooperativeLevel(dxw.GethWnd(), DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE);
+		memset((void *)&ddsd, 0, sizeof(DDSURFACEDESC));
+		ddsd.dwSize = sizeof(DDSURFACEDESC);
+		ddsd.dwFlags = DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH;
+		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+		ddsd.dwHeight = dxw.GetScreenHeight();
+		ddsd.dwWidth = dxw.GetScreenWidth();
+		res=lpDD->CreateSurface(&ddsd, &lpDDS, NULL);
+		dxw.lpDDSPrimHDC = lpDDS;
+		OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): dd=%x ddsPrim=%x\n", lpDD, lpDDS);
+	}
+
+	HDC EmuHDC; 
+	EmuHDC = dxw.AcquireEmulatedDC(dxw.lpDDSPrimHDC); 
+	lpPaint->hdc=EmuHDC;
+	lpPaint->rcPaint=dxw.GetScreenRect();
+	OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): hdc=%x -> %x\n", hdc, EmuHDC);
+	return EmuHDC;
+}
+#endif
 
 BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 {
 	BOOL ret;
-	extern HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc);
-	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
-	extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx);
 
 	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x\n", hwnd, lpPaint, lpPaint->hdc);
 
 	if((dxw.dwFlags3 & GDIEMULATEDC) && dxw.IsFullScreen() && dxw.IsDesktop(hwnd)){
 		OutTraceDW("GDI.EndPaint(GDIEMULATEDC): hwnd=%x\n", hwnd);
 		ret=dxw.ReleaseEmulatedDC(hwnd);
-		ret=(*pEndPaint)(hwnd, lpPaint); // useful ???? seems not ....
-		if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-		return ret;
-	}
-
-	// v2.02.53 ...
-	if((dxw.dwFlags1 & MAPGDITOPRIMARY) && dxw.IsFullScreen() && dxw.IsDesktop(hwnd)){
-		ret=(*pEndPaint)(hwnd, lpPaint);
-		dxw.lpDDSPrimHDC->Unlock(NULL);
-		//dxw.ScreenRefresh();
-		extBlt(dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL);
-		return TRUE;
 	}
 
 	// proxy part ...
 	ret=(*pEndPaint)(hwnd, lpPaint);
 	OutTraceDW("GDI.EndPaint: hwnd=%x ret=%x\n", hwnd, ret);
 	if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-
-	//return ret;
-
-	// if not in fullscreen mode, that's all!
-	if(!dxw.IsFullScreen()) return ret;
-
-	// v2.02.09: on MAPGDITOPRIMARY, release the PrimHDC handle 
-	if(dxw.dwFlags1 & MAPGDITOPRIMARY) {
-		if(pReleaseDC && dxw.lpDDSPrimHDC){
-			extGetDC(dxw.lpDDSPrimHDC,&PrimHDC);
-			extReleaseDC(dxw.lpDDSPrimHDC, PrimHDC);
-			OutTraceDW("GDI.EndPaint: released hdc=%x\n", PrimHDC);
-		}
-	}
-	
 	return ret;
 }
 
+#ifndef EXPERIMENTAL
 BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 {
 	BOOL ret;
@@ -1821,10 +1830,12 @@ BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
 	extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx);
 
-	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x\n", hwnd, lpPaint, lpPaint->hdc);
+	OutTraceDW("GDI.EndPaint: hwnd=%x%s lpPaint=%x lpPaint.hdc=%x\n", 
+		hwnd, dxw.IsDesktop(hwnd)?"(DESKTOP)":"", lpPaint, lpPaint->hdc);
 
 	// v2.02.53 ...
-	if(dxw.IsFullScreen() && dxw.IsDesktop(hwnd)){
+	//if(dxw.IsFullScreen() && dxw.IsDesktop(hwnd)){
+	if(dxw.IsFullScreen()){
 		ret=(*pEndPaint)(hwnd, lpPaint);
 		dxw.lpDDSPrimHDC->Unlock(NULL);
 		//dxw.ScreenRefresh();
@@ -1838,6 +1849,40 @@ BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 	if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 	return ret;
 }
+#else
+BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
+{
+	BOOL ret;
+	extern HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc);
+	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
+	extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx);
+
+	OutTraceDW("GDI.EndPaint: hwnd=%x%s lpPaint=%x lpPaint.hdc=%x\n", 
+		hwnd, dxw.IsDesktop(hwnd)?"(DESKTOP)":"", lpPaint, lpPaint->hdc);
+
+	// v2.02.53 ...
+	//if(dxw.IsFullScreen() && dxw.IsDesktop(hwnd)){
+	if(dxw.IsFullScreen()){
+		RECT client;
+		HDC hdc;
+		ret=(*pEndPaint)(hwnd, lpPaint);
+		(*pGetDC)(dxw.lpDDSPrimHDC, &hdc);
+		(*pGetClientRect)(hwnd, &client);
+		if(!(*pGDIBitBlt)(hdc, 0, 0, client.right, client.bottom, lpPaint->hdc, 0, 0, SRCCOPY))
+			OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		extReleaseDC(dxw.lpDDSPrimHDC, hdc);
+		//dxw.ScreenRefresh();
+		extBlt(dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL);
+		return TRUE;
+	}
+
+	// proxy part ...
+	ret=(*pEndPaint)(hwnd, lpPaint);
+	OutTraceDW("GDI.EndPaint: hwnd=%x ret=%x\n", hwnd, ret);
+	if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+	return ret;
+}
+#endif
 
 HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpTemplate, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM lParamInit)
 {

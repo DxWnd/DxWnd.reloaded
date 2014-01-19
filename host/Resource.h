@@ -73,6 +73,8 @@
 #define IDC_VIDEOTOSYSTEMMEM            1030
 #define IDC_FIXTEXTOUT                  1031
 #define IDC_KEEPCURSORWITHIN            1032
+#define IDC_FIXTEXTOUT2                 1032
+#define IDC_HOOKGLIDE                   1032
 #define IDC_USERGB565                   1033
 #define IDC_SUPPRESSDXERRORS            1034
 #define IDC_PREVENTMAXIMIZE             1035

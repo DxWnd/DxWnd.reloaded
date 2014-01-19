@@ -1627,13 +1627,25 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 		break;
 	case 0x84e63de0:
 		OutTraceDW("QueryInterface: IID_IDirect3DHALDevice\n");
+#ifdef COMMENTED_OUT
 		if (dxw.dwFlags3 & DISABLEHAL){ // IID_IDirect3DHALDevice - Dark Vengeance
 			// this is odd: this piece of code returns the very same error code returned by the actual 
 			// QueryInterface call, but avoid a memory corruption and makes the game working....
 			// there must be something wrong behind it.
+
+			// SEEMS FIXED NOW, NO MORE CRASHES, THIS OPTION IS USELESS
+
 			OutTraceDW("QueryInterface: suppress IID_IDirect3DHALDevice interface res=DDERR_GENERIC\n");
 			return DDERR_GENERIC;
+
+			//GUID IID_IDirect3DRGBDevice = {0xA4665C60,0x2673,0x11CF,0xA3,0x1A,0x00,0xAA,0x00,0xB9,0x33,0x56};
+			//res = (*pQueryInterfaceS)(lpdds, IID_IDirect3DRGBDevice, obp);
+			//OutTraceDW("QueryInterface: redirect IID_IDirect3DHALDevice to RGB interface res=%x(%s)\n", res, ExplainDDError(res));
+			//return res;
+
+			//return DD_OK;
 		}
+#endif
 		break;
 	case 0xA4665C60: //  IID_IDirect3DRGBDevice
 		OutTraceDW("QueryInterface: IID_IDirect3DRGBDevice\n");
@@ -3724,6 +3736,23 @@ HRESULT WINAPI myEnumModesFilter(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpConte
 		}
 	}
 
+	if(dxw.dwFlags4 & LIMITSCREENRES){
+		#define HUGE 100000
+		DWORD maxw, maxh;
+		switch(dxw.MaxScreenRes){
+			case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
+			case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
+			case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
+			case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
+			case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
+			case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
+		}
+		if((lpDDSurfaceDesc->dwWidth > maxw) || (lpDDSurfaceDesc->dwHeight > maxh)){
+			OutTraceDW("EnumDisplaySettings: hide device mode=(%d,%d)\n", maxw, maxh);
+			return DDENUMRET_OK;
+		}
+	}
+
 	// tricky part: in 16BPP color depth let the callback believe that the pixel encoding
 	// is actually the one implemented in the emulation routines.
 	// should it fix also the other color depths? 
@@ -4428,6 +4457,7 @@ HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX lpCallback, LPVOID lp
 	else
 		ret=(*pDirectDrawEnumerateEx)(lpCallback, lpContext, dwFlags);
 	if(ret) OutTraceE("DirectDrawEnumerateEx: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) ret=0;
 	return ret;
 }
 
@@ -4461,11 +4491,14 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 	}
 	else {
 		OutTraceDW("GetAvailableVidMem(D): DDSCaps=%x(%s) Total=%x Free=%x\n", 
-			*lpDDSCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), *lpdwTotal, *lpdwFree);
+			*lpDDSCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
 		if(dxw.dwFlags2 & LIMITRESOURCES){ // check for memory value overflow - see "Mageslayer" and "Take no Prisoners"
 			DWORD dwLocalTotal;
 			const DWORD dwMaxMem = 0x7FFFF000;
-			if(lpdwTotal == NULL) lpdwTotal = &dwLocalTotal; // point to usable memory....
+			if(lpdwTotal == NULL) {
+				lpdwTotal = &dwLocalTotal; // point to usable memory....
+				res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree); // do it again to get total memory
+			}
 			if(*lpdwTotal > dwMaxMem){
 				if(lpdwFree != NULL){
 					DWORD dwDiff = *lpdwTotal - *lpdwFree;

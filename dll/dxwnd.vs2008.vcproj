@@ -333,6 +333,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\glide.cpp"
+				>
+			</File>
+			<File
 				RelativePath="hd3d.cpp"
 				>
 				<FileConfiguration
@@ -423,6 +427,10 @@
 			</File>
 			<File
 				RelativePath=".\glhook.h"
+				>
+			</File>
+			<File
+				RelativePath=".\glidehook.h"
 				>
 			</File>
 			<File

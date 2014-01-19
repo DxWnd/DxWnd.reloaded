@@ -70,6 +70,7 @@ public:
 	BOOL	m_CursorClipping;
 	BOOL	m_VideoToSystemMem;
 	BOOL	m_FixTextOut;
+	BOOL	m_HookGlide;
 	BOOL	m_KeepCursorWithin;
 	BOOL	m_KeepCursorFixed;
 	BOOL	m_UseRGB565;

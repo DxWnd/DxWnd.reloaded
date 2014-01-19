@@ -34,6 +34,9 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	// OpenGL
 	DDX_Check(pDX, IDC_FORCEHOOKOPENGL, cTarget->m_ForceHookOpenGL);
 	DDX_Text(pDX, IDC_OPENGLLIB, cTarget->m_OpenGLLib);
+
+	// Glide
+	DDX_Check(pDX, IDC_HOOKGLIDE, cTarget->m_HookGlide);
 }
 
 BEGIN_MESSAGE_MAP(CTabSysLibs, CDialog)

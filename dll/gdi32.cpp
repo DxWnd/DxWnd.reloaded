@@ -629,7 +629,7 @@ HDC WINAPI extDDCreateCompatibleDC(HDC hdc)
 			res=(*pGetDC)(dxw.lpDDSPrimHDC, &PrimHDC);
 			if(res) OutTraceE("GDI.CreateCompatibleDC ERROR: GetDC lpdds=%x err=%d(%s) at %d\n", dxw.lpDDSPrimHDC, res, ExplainDDError(res), __LINE__);
 		}
-		OutTraceDW("GDI.CreateCompatibleDC: duplicating screen HDC lpDDSPrimHDC=%x SrcHdc=%x\n", dxw.lpDDSPrimHDC, PrimHDC); 
+		OutTraceDW("GDI.CreateCompatibleDC: duplicating primary surface HDC lpDDSPrimHDC=%x SrcHdc=%x\n", dxw.lpDDSPrimHDC, PrimHDC); 
 		RetHdc=(*pGDICreateCompatibleDC)(PrimHDC);
 	} 
 	else
@@ -654,7 +654,6 @@ BOOL WINAPI extDDDeleteDC(HDC hdc)
 	return res;
 }
 
-#if 1
 static HDC WINAPI winDDGetDC(HWND hwnd, char *api)
 {
 	HDC hdc;
@@ -700,42 +699,6 @@ static HDC WINAPI winDDGetDC(HWND hwnd, char *api)
 		OutTraceE("%s: ERROR err=%d at %d\n", api, GetLastError, __LINE__);
 	return(hdc);
 }
-#else
-HDC hPrimaryDC=NULL;
-static HDC WINAPI winDDGetDC(HWND hwnd, char *api)
-{
-	HDC hdc;
-	//HRESULT res;
-	//extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
-
-	OutTraceDW("%s: hwnd=%x\n", api, hwnd);
-
-	//dxw.ResetPrimarySurface();
-	//dxw.SetPrimarySurface();
-	if(dxw.IsRealDesktop(hwnd) && dxw.IsFullScreen()){
-		LPDIRECTDRAWSURFACE lpPrim;
-		HDC PrimDC;
-		lpPrim=dxw.GetPrimarySurface();
-		(*pGetDC)(lpPrim, &PrimDC);
-		hdc=(*pGDICreateCompatibleDC)(PrimDC);
-		(*pReleaseDC)(lpPrim, PrimDC);
-		OutTraceDW("%s: returning DDRAW DC handle hwnd=%x hdc=%x\n", api, hwnd, hdc);
-		hPrimaryDC=hdc;
-		return hdc;
-	}
-	else {
-		hdc=(*pGDIGetDC)(hwnd ? hwnd : dxw.GethWnd());
-		OutTraceDW("%s: returning window DC handle hwnd=%x hdc=%x\n", api, hwnd, hdc);
-		//PrimHDC=NULL;
-	}
-
-	if(hdc)
-		OutTraceDW("%s: hwnd=%x hdc=%x\n", api, hwnd, hdc);
-	else
-		OutTraceE("%s: ERROR err=%d at %d\n", api, GetLastError, __LINE__);
-	return(hdc);
-}
-#endif
 
 HDC WINAPI extDDCreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMODE *InitData)
 {
@@ -807,9 +770,8 @@ BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHe
 	OutTraceDW("GDI.BitBlt(PRIMARY): HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop, ExplainROP(dwRop));
 
-	ret=1; // OK
+	ret=TRUE; // OK
 
-	//if(hdcDest==0) {
 	if(dxw.IsDesktop(WindowFromDC(hdcDest))) {
 		OutTrace("hdcDest=%x PrimHDC=%x\n", hdcDest, PrimHDC);
 		hdcDest=PrimHDC;
@@ -822,20 +784,12 @@ BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHe
 		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 		if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		dxw.ScreenRefresh();
-
+		return ret;
 	}
 
+	// proxy ...
 	res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-
-
-	//dxw.SetPrimarySurface();
-	//OutTraceDW("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
-	//sBlt("GDI.BitBlt", dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL, 0);
-	//res=(*pUnlockMethod(dxw.lpDDSPrimHDC))(dxw.lpDDSPrimHDC, NULL);
-
-	//res=(*pGDIBitBlt)(NULL, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-	//if(!res) ret=0;
 	return ret;
 }
 

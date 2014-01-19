@@ -20,7 +20,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CTargetDlg::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(CTargetDlg)
-	m_DXVersion = -1;
+	m_DXVersion = 0;
 	m_Coordinates = 0;
 	m_DxEmulationMode = 3; // default: EMULATESURFACE
 	m_DCEmulationMode = 0; // default: no emulation
@@ -88,6 +88,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_CursorClipping = FALSE;
 	m_VideoToSystemMem = FALSE;
 	m_FixTextOut = FALSE;
+	m_HookGlide = FALSE;
 	m_KeepCursorWithin = FALSE;
 	m_KeepCursorFixed = FALSE;
 	m_UseRGB565 = FALSE;

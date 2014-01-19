@@ -10,6 +10,7 @@
 #include "dxwcore.hpp"
 #include "dxhook.h"
 #include "glhook.h"
+#include "glidehook.h"
 #include "msvfwhook.h"
 #define DXWDECLARATIONS 1
 #include "syslibs.h"
@@ -59,7 +60,7 @@ static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
 	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
-	"NOWINDOWMOVE", "DISABLEHAL", "LOCKSYSCOLORS", "GDIEMULATEDC",
+	"NOWINDOWMOVE", "--DISABLEHAL--", "LOCKSYSCOLORS", "GDIEMULATEDC",
 	"FULLSCREENONLY", "FONTBYPASS", "YUV2RGB", "RGB2YUV",
 	"BUFFEREDIOFIX", "FILTERMESSAGES", "PEEKALLMESSAGES", "SURFACEWARN",
 	"ANALYTICMODE", "FORCESHEL", "CAPMASK", "COLORFIX",
@@ -70,7 +71,7 @@ static char *Flag4Names[32]={
 	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
 	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
 	"NOPOWER2FIX", "NOPERFCOUNTER", "ADDPROXYLIBS", "INTERCEPTRDTSC",
-	"LIMITSCREENRES", "NOFILLRECT", "", "",
+	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -162,9 +163,11 @@ static void SuppressIMEWindow()
 	ImmDisableIME_Type pImmDisableIME;
 	HMODULE ImmLib;
 	ImmLib=(*pLoadLibraryA)("Imm32");
-	pImmDisableIME=(ImmDisableIME_Type)(*pGetProcAddress)(ImmLib,"ImmDisableIME");
-	(*pImmDisableIME)(-1);
-	CloseHandle(ImmLib);
+	if(ImmLib){
+		pImmDisableIME=(ImmDisableIME_Type)(*pGetProcAddress)(ImmLib,"ImmDisableIME");
+		if(pImmDisableIME)(*pImmDisableIME)(-1);
+		FreeLibrary(ImmLib);
+	}
 }
 
 void HookDlls(HMODULE module)
@@ -1279,6 +1282,7 @@ void HookModule(HMODULE base, int dxversion)
 	HookDirect3D(base, dxversion);
 	HookDirect3D7(base, dxversion);
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
+	if(dxw.dwFlags4 & HOOKGLIDE) HookGlideLibs(base); 
 	if((dxw.dwFlags3 & EMULATEREGISTRY) || (dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 }

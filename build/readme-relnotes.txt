@@ -366,3 +366,14 @@ fixed window move/resize when message processing is enabled: coordinates outside
 expanded timer processing to include user32 Set/KillTimer - in "Aaron Hall's Dungeon Odissey"
 fixed possible recursion while hooking child window procedure identical to parent's one
 fixed gdi emulation on top of ddraw surface, enough to play "Sid Meyer's Civilization III".
+
+v2.02.54
+fixed a bug in d3d GetAvailableVidMem that was causing too many troubles...
+fixed a bug in Suppress IME option
+fixed a bug in handled library list, possibly affecting d3d/d3d7 games
+avoid fixing window style for non-desktop windows (fixed a Port Royale 2 bug)
+eliminated "Disable HAL support", no longer necessary
+some incomplete work on gdi game handling
+added preliminary, incomplete (not working) glide handling
+
+

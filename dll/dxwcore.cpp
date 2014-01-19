@@ -1203,9 +1203,11 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 		"tapi32",
 		"netapi32",
 		"wintrust",
-		"advapi32",
 		"d3dim",
 		"d3dim700",
+//		"+glide",
+//		"+glide2x",
+//		"+glide3x",
 		NULL
 	};	
 	
@@ -1306,6 +1308,16 @@ HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
 	if(!(wdc=(*pGDIGetDC)(hwnd)))
 	OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	return AcquireEmulatedDC(wdc);
+}
+
+HDC dxwCore::AcquireEmulatedDC(LPDIRECTDRAWSURFACE lpdds)
+{
+	HDC ddc;
+	typedef HRESULT (WINAPI *GetDC_Type) (LPDIRECTDRAWSURFACE, HDC FAR *);
+	extern GetDC_Type pGetDC;
+	if((*pGetDC)(lpdds, &ddc))
+	OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return AcquireEmulatedDC(ddc);
 }
 
 HDC dxwCore::AcquireEmulatedDC(HDC wdc)
@@ -1452,4 +1464,22 @@ void dxwCore::RenewTimers()
 		}
 		break;
 	}
+}
+
+BOOL dxwCore::CheckScreenResolution(unsigned int w, unsigned int h)
+{
+	#define HUGE 100000
+	if(dxw.dwFlags4 & LIMITSCREENRES){
+		DWORD maxw, maxh;
+		switch(MaxScreenRes){
+			case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
+			case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
+			case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
+			case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
+			case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
+			case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
+		}
+		if((w > maxw) || (h > maxh)) return FALSE;
+	}
+	return TRUE;
 }

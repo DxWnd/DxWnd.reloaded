@@ -196,6 +196,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
 	if(dlg->m_FixTextOut) t->flags |= FIXTEXTOUT;
+	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
 	if(dlg->m_KeepCursorWithin) t->flags |= KEEPCURSORWITHIN;
 	if(dlg->m_KeepCursorFixed) t->flags2 |= KEEPCURSORFIXED;
 	if(dlg->m_UseRGB565) t->flags |= USERGB565;
@@ -348,6 +349,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
 	dlg->m_VideoToSystemMem = t->flags & SWITCHVIDEOMEMORY ? 1 : 0;
 	dlg->m_FixTextOut = t->flags & FIXTEXTOUT ? 1 : 0;
+	dlg->m_HookGlide = t->flags4 & HOOKGLIDE ? 1 : 0;
 	dlg->m_KeepCursorWithin = t->flags & KEEPCURSORWITHIN ? 1 : 0;
 	dlg->m_KeepCursorFixed = t->flags2 & KEEPCURSORFIXED ? 1 : 0;
 	dlg->m_UseRGB565 = t->flags & USERGB565 ? 1 : 0;
@@ -1142,16 +1144,17 @@ void CDxwndhostView::OnAdd()
 	CTargetDlg dlg;
 	LV_ITEM listitem;
 
-	dlg.m_DXVersion = 0;
-	dlg.m_Coordinates = 0;
-	dlg.m_MaxX = 0; //639;
-	dlg.m_MaxY = 0; //479;
-	dlg.m_DxEmulationMode = 3; // defaulting to EMULATIONMODE
+	//dlg.m_DXVersion = 0;
+	//dlg.m_Coordinates = 0;
+	//dlg.m_MaxX = 0; //639;
+	//dlg.m_MaxY = 0; //479;
+	//dlg.m_DxEmulationMode = 3; // defaulting to EMULATIONMODE
 	for(i = 0; i < MAXTARGETS; i ++) if(!TargetMaps[i].path[0]) break;
 	if(i>=MAXTARGETS){
 		MessageBoxEx(0, "Maximum entries number reached.\nDelete some entry to add a new one.", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
 		return;
 	}
+	memset(&TargetMaps[i],0,sizeof(TARGETMAP)); // clean up, just in case....
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strncpy(TitleMaps[i].title, dlg.m_Title, 40);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);

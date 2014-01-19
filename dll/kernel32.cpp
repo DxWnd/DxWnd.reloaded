@@ -406,7 +406,10 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 	if(dwFlags & (LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE|LOAD_LIBRARY_AS_DATAFILE)) return libhandle;
 
 	idx=dxw.GetDLLIndex((char *)lpFileName);
-	if(idx != -1) SysLibs[idx]=libhandle;
+	if(idx != -1) {
+		OutTraceDW("%s: push idx=%x library=%s hdl=%x\n", api, idx, lpFileName, libhandle);
+		SysLibs[idx]=libhandle;
+	}
 	// handle custom OpenGL library
 	if(!lstrcmpi(lpFileName,dxw.CustomOpenGLLib)){
 		idx=SYSLIBIDX_OPENGL;
@@ -509,12 +512,17 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_DIRECT3D10_1:
 			if (remap=Remap_d3d10_1_ProcAddress(proc, hModule)) return remap;
 			break;
-		case SYSLIBIDX_DIRECT2D11:
+		case SYSLIBIDX_DIRECT3D11:
 			if (remap=Remap_d3d11_ProcAddress(proc, hModule)) return remap;
 			break;
 		case SYSLIBIDX_OPENGL:
 			if (remap=Remap_gl_ProcAddress(proc, hModule)) return remap;
 			break;
+//		case SYSLIBIDX_GLIDE:
+//		case SYSLIBIDX_GLIDE2X:
+//		case SYSLIBIDX_GLIDE3X:
+//			if (remap=Remap_Glide_ProcAddress(proc, hModule)) return remap;
+//			break;
 		case SYSLIBIDX_MSVFW:
 			if (remap=Remap_vfw_ProcAddress(proc, hModule)) return remap;
 			break;
@@ -534,7 +542,7 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			if (remap=Remap_d3d7_ProcAddress(proc, hModule)) return remap;
 			break;
 		default:
-			break; 
+			break;
 		}
 	}
 	else {

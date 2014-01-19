@@ -100,6 +100,7 @@ public: // methods
 	void FixWindowFrame(HWND);
 	HDC AcquireEmulatedDC(HWND);
 	HDC AcquireEmulatedDC(HDC);
+	HDC AcquireEmulatedDC(LPDIRECTDRAWSURFACE);
 	BOOL ReleaseEmulatedDC(HWND);
 	BOOL IsVirtual(HDC);
 	void ResetEmulatedDC();
@@ -110,6 +111,7 @@ public: // methods
 	void PopTimer(UINT);
 	void PopTimer(HWND, UINT_PTR);
 	void RenewTimers();
+	BOOL CheckScreenResolution(unsigned int, unsigned int);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;
@@ -177,7 +179,7 @@ typedef enum {
 	SYSLIBIDX_DIRECT3D9,
 	SYSLIBIDX_DIRECT3D10,
 	SYSLIBIDX_DIRECT3D10_1,
-	SYSLIBIDX_DIRECT2D11,
+	SYSLIBIDX_DIRECT3D11,
 	SYSLIBIDX_OPENGL,
 	SYSLIBIDX_MSVFW,
 	SYSLIBIDX_SMACK,
@@ -197,5 +199,9 @@ typedef enum {
 	SYSLIBIDX_WINTRUST,
 	SYSLIBIDX_DIRECT3D,
 	SYSLIBIDX_DIRECT3D700,
+//	SYSLIBIDX_GLIDE,
+//	SYSLIBIDX_GLIDE2X,
+//	SYSLIBIDX_GLIDE3X,
 	SYSLIBIDX_MAX } 
 enum_syslibraries;
+
