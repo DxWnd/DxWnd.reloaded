@@ -376,4 +376,5 @@ eliminated "Disable HAL support", no longer necessary
 some incomplete work on gdi game handling
 added preliminary, incomplete (not working) glide handling
 
-
+v2.02.54
+added "Hide desktop background" video option

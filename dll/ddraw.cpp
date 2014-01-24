@@ -93,6 +93,7 @@ HRESULT WINAPI extUnlockDir4(LPDIRECTDRAWSURFACE, LPRECT);
 HRESULT WINAPI extUnlockDir1(LPDIRECTDRAWSURFACE, LPVOID);
 
 HRESULT WINAPI extCreateSurface(int, CreateSurface_Type, LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
+HRESULT WINAPI extSetSurfaceDesc(LPDIRECTDRAWSURFACE, LPDDSURFACEDESC, DWORD);
 
 // DirectDrawClipper
 HRESULT WINAPI extReleaseC(LPDIRECTDRAWCLIPPER);
@@ -202,6 +203,7 @@ Unlock4_Type pUnlock4;
 UpdateOverlay_Type pUpdateOverlay;
 UpdateOverlayDisplay_Type pUpdateOverlayDisplay;
 UpdateOverlayZOrder_Type pUpdateOverlayZOrder;
+SetSurfaceDesc_Type pSetSurfaceDesc;
 
 /* DirectDrawClipper hook pointers */
 QueryInterface_Type pQueryInterfaceC;
@@ -1218,6 +1220,9 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 		else
 			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlockDir4, (void **)&pUnlock4, "Unlock(S4)");
 	}
+
+	if (dxversion == 7)
+		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc, (void **)&pSetSurfaceDesc, "SetSurfaceDesc(S3)");
 
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 
@@ -4487,7 +4492,7 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 	OutTraceDDRAW("GetAvailableVidMem(D): lpdd=%x\n", lpdd);
 	res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree);
 	if(res){
-		OutTraceDW("GetAvailableVidMem(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		OutTraceE("GetAvailableVidMem(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	}
 	else {
 		OutTraceDW("GetAvailableVidMem(D): DDSCaps=%x(%s) Total=%x Free=%x\n", 
@@ -4525,4 +4530,13 @@ HRESULT WINAPI extGetAvailableVidMem2(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LP
 HRESULT WINAPI extGetAvailableVidMem4(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	return extGetAvailableVidMem(lpdd, lpDDSCaps, lpdwTotal, lpdwFree, pGetAvailableVidMem4);
+}
+
+HRESULT WINAPI extSetSurfaceDesc(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpDDsd2, DWORD dwFlags)
+{
+	HRESULT res;
+	OutTrace("SetSurfaceDesc: REACHED\n");
+	res = (*pSetSurfaceDesc)(lpdds, lpDDsd2, dwFlags);
+	OutTraceE("SetSurfaceDesc: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
 }

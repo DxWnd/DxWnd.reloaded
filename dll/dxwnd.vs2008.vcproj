@@ -265,6 +265,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\dwhide.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dxdiaghook.cpp"
 				>
 			</File>

@@ -504,7 +504,7 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 				nCmdShow=SW_SHOWNORMAL;
 			}
 		}
-}	
+	}	
 
 	res=(*pShowWindow)(hwnd, nCmdShow);
 

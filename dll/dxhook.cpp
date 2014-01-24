@@ -545,6 +545,7 @@ void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 
 	if(dxw.dwFlags2 & SUPPRESSIME) SuppressIMEWindow();
 	dxw.ShowBanner(hwnd);
+	if(dxw.dwFlags4 & HIDEDESKTOP) dxw.HideDesktop(dxw.GethWnd());
 	return;
 }
 
@@ -917,10 +918,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			dxw.dwFlags1 |= LOCKWINPOS;
 			dx_UpdatePositionLock(hwnd);
 		}
-		if (dxw.dwFlags1 & HIDEHWCURSOR) while((*pShowCursor)(0) >= 0);
-		if (dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
+		if(dxw.dwFlags1 & HIDEHWCURSOR) while((*pShowCursor)(0) >= 0);
+		if(dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
 		if(dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		if(dxw.dwFlags2 & REFRESHONRESIZE) dxw.ScreenRefresh();
+		if(dxw.dwFlags4 & HIDEDESKTOP) dxw.HideDesktop(dxw.GethWnd());
 		break;
 	case WM_ACTIVATE:
 		dxw.bActive = (LOWORD(wparam) == WA_ACTIVE || LOWORD(wparam) == WA_CLICKACTIVE) ? 1 : 0;

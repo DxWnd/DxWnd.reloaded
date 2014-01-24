@@ -202,6 +202,7 @@
 #define IDC_ADDPROXYLIBS                1160
 #define IDC_INTERCEPTRDTSC              1161
 #define IDC_NOFILLRECT                  1162
+#define IDC_HIDEDESKTOP                 1163
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

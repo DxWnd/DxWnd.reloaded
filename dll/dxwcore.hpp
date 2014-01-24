@@ -94,6 +94,7 @@ public: // methods
 	char *GetTSCaption(int);
 	void DoSlow(int);
 	void ShowBanner(HWND);
+	void HideDesktop(HWND);
 	POINT ScreenToClient(POINT);
 	int GetDLLIndex(char *);
 	void FixStyle(char *, HWND, WPARAM, LPARAM);

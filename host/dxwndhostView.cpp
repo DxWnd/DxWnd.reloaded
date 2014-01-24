@@ -177,6 +177,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
 	if(dlg->m_FixRefCounter) t->flags4 |= FIXREFCOUNTER;
 	if(dlg->m_SuppressChild) t->flags4 |= SUPPRESSCHILD;
+	if(dlg->m_HideDesktop) t->flags4 |= HIDEDESKTOP;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
 	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
 	if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
@@ -319,6 +320,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
 	dlg->m_FixRefCounter = t->flags4 & FIXREFCOUNTER ? 1 : 0;
 	dlg->m_SuppressChild = t->flags4 & SUPPRESSCHILD ? 1 : 0;
+	dlg->m_HideDesktop = t->flags4 & HIDEDESKTOP ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
 	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
 	dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
