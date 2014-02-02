@@ -5,6 +5,7 @@
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
+#include "dxhelper.h"
 
 typedef HRESULT (WINAPI *QueryInterface_Type)(void *, REFIID, LPVOID *);
 typedef HRESULT (WINAPI *DirectInputCreate_Type)(HINSTANCE, DWORD, LPDIRECTINPUT *, LPUNKNOWN);
@@ -103,7 +104,10 @@ HRESULT WINAPI extDirectInputCreate(HINSTANCE hinst,
 		dwversion);
 
 	res = (*pDirectInputCreate)(hinst, dwversion, lplpdi, pu);
-	if(res) return res;
+	if(res) {
+		OutTraceE("DirectInputCreate: ERROR err=%x(%s)\n", res, ExplainDDError(res));
+		return res;
+	}
 	SetHook((void *)(**(DWORD **)lplpdi), extQueryInterfaceI, (void **)&pQueryInterfaceI, "QueryInterface(I)");
 	SetHook((void *)(**(DWORD **)lplpdi + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
 	SetHook((void *)(**(DWORD **)lplpdi + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
@@ -119,10 +123,14 @@ HRESULT WINAPI extDirectInputCreateEx(HINSTANCE hinst,
 		dwversion, riidltf.Data1);
 
 	res = (*pDirectInputCreateEx)(hinst, dwversion, riidltf, ppvout, pu);
-	if(res) return res;
+	if(res) {
+		OutTraceE("DirectInputCreateEx: ERROR err=%x(%s)\n", res, ExplainDDError(res));
+		return res;
+	}
 	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
 	SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
-	SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceEx, (void **)pDICreateDeviceEx, "DICreateDeviceEx(I)");
+	if(dwversion > 700)
+		SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceEx, (void **)&pDICreateDeviceEx, "DICreateDeviceEx(I)");
 	return 0;
 }
 
@@ -139,7 +147,7 @@ HRESULT WINAPI extQueryInterfaceI(void * lpdi, REFIID riid, LPVOID *obp)
 	switch(riid.Data1){
 	case 0x5944E662:		//DirectInput2A
 	case 0x5944E663:		//DirectInput2W
-		SetHook((void *)(**(DWORD **)obp + 12), extDICreateDevice, (void **)pDICreateDevice, "CreateDevice(I)");
+		SetHook((void *)(**(DWORD **)obp + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
 		SetHook((void *)(**(DWORD **)obp + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
 		break;
 	}

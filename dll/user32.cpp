@@ -32,6 +32,7 @@ static HookEntry_Type Hooks[]={
 	{"CreateWindowExA", (FARPROC)CreateWindowExA, (FARPROC *)&pCreateWindowExA, (FARPROC)extCreateWindowExA},
 	{"CreateWindowExW", (FARPROC)CreateWindowExW, (FARPROC *)&pCreateWindowExW, (FARPROC)extCreateWindowExW},
 	{"RegisterClassExA", (FARPROC)RegisterClassExA, (FARPROC *)&pRegisterClassExA, (FARPROC)extRegisterClassExA},
+	{"RegisterClassA", (FARPROC)RegisterClassA, (FARPROC *)&pRegisterClassA, (FARPROC)extRegisterClassA},
 	{"GetSystemMetrics", (FARPROC)GetSystemMetrics, (FARPROC *)&pGetSystemMetrics, (FARPROC)extGetSystemMetrics},
 	{"GetDesktopWindow", (FARPROC)GetDesktopWindow, (FARPROC *)&pGetDesktopWindow, (FARPROC)extGetDesktopWindow},
 	{"TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
@@ -102,8 +103,8 @@ static HookEntry_Type PeekAllHooks[]={
 static HookEntry_Type MouseHooks[]={
 	{"GetCursorPos", (FARPROC)GetCursorPos, (FARPROC *)&pGetCursorPos, (FARPROC)extGetCursorPos},
 	{"SetCursor", (FARPROC)SetCursor, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor},
-	{"SendMessageA", (FARPROC)SendMessageA, (FARPROC *)&pSendMessageA, (FARPROC)extSendMessage}, // ???
-	{"SendMessageW", (FARPROC)SendMessageW, (FARPROC *)&pSendMessageW, (FARPROC)extSendMessage}, // ???
+	{"SendMessageA", (FARPROC)SendMessageA, (FARPROC *)&pSendMessageA, (FARPROC)extSendMessageA}, 
+	{"SendMessageW", (FARPROC)SendMessageW, (FARPROC *)&pSendMessageW, (FARPROC)extSendMessageW}, 
 	//{"SetPhysicalCursorPos", NULL, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor}, // ???
 	{0, NULL, 0, 0} // terminator
 };
@@ -677,7 +678,7 @@ HDWP WINAPI extDeferWindowPos(HDWP hWinPosInfo, HWND hwnd, HWND hWndInsertAfter,
 	return res;
 }
 
-LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+LRESULT WINAPI extSendMessage(SendMessage_Type pSendMessage, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT ret;
 	OutTraceW("SendMessage: hwnd=%x WinMsg=[0x%x]%s(%x,%x)\n", 
@@ -718,9 +719,19 @@ LRESULT WINAPI extSendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 	}
-	ret=(*pSendMessageA)(hwnd, Msg, wParam, lParam);
+	ret=(*pSendMessage)(hwnd, Msg, wParam, lParam);
 	OutTraceW("SendMessage: lresult=%x\n", ret); 
 	return ret;
+}
+
+LRESULT WINAPI extSendMessageA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	return extSendMessage(pSendMessageA, hwnd, Msg, wParam, lParam);
+}
+
+LRESULT WINAPI extSendMessageW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	return extSendMessage(pSendMessageW, hwnd, Msg, wParam, lParam);
 }
 
 HCURSOR WINAPI extSetCursor(HCURSOR hCursor)
@@ -1030,9 +1041,17 @@ int WINAPI extGetSystemMetrics(int nindex)
 
 ATOM WINAPI extRegisterClassExA(WNDCLASSEX *lpwcx)
 {
-	OutTraceDW("RegisterClassEx: PROXED ClassName=%s style=%x(%s)\n", 
-		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style));
+	OutTraceDW("RegisterClassEx: PROXED ClassName=%s style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
+		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
 	return (*pRegisterClassExA)(lpwcx);
+}
+
+ATOM WINAPI extRegisterClassA(WNDCLASS *lpwcx)
+{
+	// referenced by Syberia, together with RegisterClassExA
+	OutTraceDW("RegisterClass: PROXED ClassName=%s style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
+		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
+	return (*pRegisterClassA)(lpwcx);
 }
 
 static HWND WINAPI extCreateWindowCommon(

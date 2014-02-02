@@ -80,6 +80,7 @@ HRESULT WINAPI extGetPalette(LPDIRECTDRAWSURFACE, LPDIRECTDRAWPALETTE *);
 HRESULT WINAPI extGetPixelFormat(LPDIRECTDRAWSURFACE, LPDDPIXELFORMAT);
 HRESULT WINAPI extGetSurfaceDesc1(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd);
 HRESULT WINAPI extGetSurfaceDesc2(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd);
+HRESULT WINAPI extGetSurfaceDesc7(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd);
 //    STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, LPDDSURFACEDESC2) PURE;
 HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, DWORD, HANDLE);
 HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, DWORD, HANDLE);
@@ -189,6 +190,8 @@ GetPalette_Type pGetPalette;
 GetPixelFormat_Type pGetPixelFormat;
 GetSurfaceDesc_Type pGetSurfaceDesc1;
 GetSurfaceDesc2_Type pGetSurfaceDesc4;
+GetSurfaceDesc2_Type pGetSurfaceDesc7;
+
 //Initialize
 IsLost_Type pIsLost;
 Lock_Type pLock;
@@ -424,17 +427,30 @@ static void DescribeSurface(LPDIRECTDRAWSURFACE lpdds, int dxversion, char *labe
 	int dwSize = (dxversion<4)?sizeof(DDSURFACEDESC):sizeof(DDSURFACEDESC2);
 	memset(&ddsd, 0, dwSize);
 	ddsd.dwSize = dwSize;
-	if(dxversion<4){
+	switch (dxversion){
+	case 0:
+	case 1:
+	case 2:
+	case 3:
 		if (pGetSurfaceDesc1) 
 			res=(*pGetSurfaceDesc1)(lpdds, (LPDDSURFACEDESC)&ddsd);
 		else
 			res=lpdds->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
-	}
-	else {
+		break;
+	case 4:
+	case 5:
+	case 6:
 		if (pGetSurfaceDesc4) 
 			res=(*pGetSurfaceDesc4)((LPDIRECTDRAWSURFACE2)lpdds, &ddsd);
 		else
 			res=lpdds->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
+		break;
+	case 7:
+		if (pGetSurfaceDesc7) 
+			res=(*pGetSurfaceDesc7)((LPDIRECTDRAWSURFACE2)lpdds, &ddsd);
+		else
+			res=lpdds->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
+		break;
 	}
 	if(res)return;
 	OutTrace("Surface %s: ddsd=%x dxversion=%d ", label, lpdds, dxversion);
@@ -1071,8 +1087,11 @@ static void HookDDSurfacePrim(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 	if (dxversion < 4) {
 		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc1, (void **)&pGetSurfaceDesc1, "GetSurfaceDesc(S1)");
 	}
-	else {
+	if((dxversion >= 4) && (dxversion < 7)) {
 		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc2, (void **)&pGetSurfaceDesc4, "GetSurfaceDesc(S4)");
+	}
+	if(dxversion ==  7) {
+		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc7, (void **)&pGetSurfaceDesc7, "GetSurfaceDesc(S7)");
 	}
 	// IDirectDrawSurface::SetClipper
 	SetHook((void *)(**(DWORD **)lplpdds + 112), extSetClipper, (void **)&pSetClipper, "SetClipper(S)");
@@ -1545,10 +1564,10 @@ HRESULT WINAPI extQueryInterfaceD(void *lpdd, REFIID riid, LPVOID *obp)
 		dwLocalD3DVersion = 1;
 		break;
 	case 0x6aae1ec1:		//Direct3D2
-		dwLocalD3DVersion = 5;
+		dwLocalD3DVersion = 2;
 		break;
 	case 0xbb223240:		//Direct3D3
-		dwLocalD3DVersion = 6;
+		dwLocalD3DVersion = 3;
 		break;
 	case 0xf5049e77:		//Direct3D7
 		dwLocalD3DVersion = 7;
@@ -1582,8 +1601,8 @@ HRESULT WINAPI extQueryInterfaceD(void *lpdd, REFIID riid, LPVOID *obp)
 	extern void HookDirect3DSession(LPDIRECTDRAW *, int);
 	switch (dwLocalD3DVersion){
 	case 1: 
-	case 5:
-	case 6:
+	case 2:
+	case 3:
 	case 7:
 		HookDirect3DSession((LPDIRECTDRAW *)obp, dwLocalD3DVersion);
 		break;
@@ -1799,7 +1818,7 @@ HRESULT WINAPI extSetDisplayMode1(LPDIRECTDRAW lpdd,
 
 HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 {
-	OutTraceDDRAW("GetDisplayMode: lpdd=%x lpddsd=%s\n", lpdd, lpddsd);
+	OutTraceDDRAW("GetDisplayMode: lpdd=%x lpddsd=%x\n", lpdd, lpddsd);
 
 	(*pGetDisplayMode)(lpdd, lpddsd);
 	if(dxw.dwFlags1 & EMULATESURFACE) {
@@ -4391,6 +4410,25 @@ HRESULT WINAPI extGetSurfaceDesc2(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 l
 	return DDERR_INVALIDOBJECT;
 }
 
+HRESULT WINAPI extGetSurfaceDesc7(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd)
+{
+	if (!lpddsd->dwSize) lpddsd->dwSize = sizeof(DDSURFACEDESC2); // enforce correct dwSize value
+	switch(lpddsd->dwSize){
+		case sizeof(DDSURFACEDESC):
+		if (pGetSurfaceDesc1) return extGetSurfaceDesc(pGetSurfaceDesc1, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd);
+		break;
+		case sizeof(DDSURFACEDESC2):
+		if (pGetSurfaceDesc7) return extGetSurfaceDesc((GetSurfaceDesc_Type)pGetSurfaceDesc7, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd);
+		break;
+		default:
+		OutTraceDW("GetSurfaceDesc: ASSERT - bad dwSize=%d lpdds=%x at %d\n", lpddsd->dwSize, lpdds, __LINE__);
+		return DDERR_INVALIDOBJECT;
+	}
+	OutTraceDW("GetSurfaceDesc: ASSERT - missing hook lpdds=%x dwSize=%d(%s) at %d\n", 
+		lpdds, lpddsd->dwSize, lpddsd->dwSize==sizeof(DDSURFACEDESC)?"DDSURFACEDESC":"DDSURFACEDESC2", __LINE__);
+	return DDERR_INVALIDOBJECT;
+}
+
 HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 {
 	ULONG ref;
@@ -4479,10 +4517,10 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
  HRESULT WINAPI extDDSetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDGAMMARAMP lpgr)
 {
 	HRESULT ret;
-	OutTraceDDRAW("GetGammaRamp: dds=%x dwFlags=%x RGB=(%x,%x,%x)\n", lpdds, dwFlags, lpgr->red, lpgr->green, lpgr->blue);
+	OutTraceDDRAW("SetGammaRamp: dds=%x dwFlags=%x RGB=(%x,%x,%x)\n", lpdds, dwFlags, lpgr->red, lpgr->green, lpgr->blue);
 	if (dxw.dwFlags2 & DISABLEGAMMARAMP) return DD_OK;
 	ret=(*pDDSetGammaRamp)(lpdds, dwFlags, lpgr);
-	if(ret) OutTraceE("GetGammaRamp: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	if(ret) OutTraceE("SetGammaRamp: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
 

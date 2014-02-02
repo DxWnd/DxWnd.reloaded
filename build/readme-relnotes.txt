@@ -376,5 +376,14 @@ eliminated "Disable HAL support", no longer necessary
 some incomplete work on gdi game handling
 added preliminary, incomplete (not working) glide handling
 
-v2.02.54
+v2.02.55
 added "Hide desktop background" video option
+
+v2.02.56
+hooked RegisterClassA API (useless so far...)
+fixed bug in SendMessageW hooking: caused truncated text in window titles and form captions
+fixed several d3d1-7 hooks: prevented some d3d games to properly work, i.e. "Thief the Dark Project"
+fixed d3d GetDisplayMode to return virtual desktop size - fixed "Affari Tuoi", an italian game.
+fixed some log messages
+
+
