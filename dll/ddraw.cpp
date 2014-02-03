@@ -741,6 +741,22 @@ CreateSurface2_Type pCreateSurfaceMethod(LPDIRECTDRAWSURFACE lpdds)
 	return (CreateSurface2_Type)pCreateSurface1;
 }
 
+GetSurfaceDesc2_Type pGetSurfaceDescMethod(LPDIRECTDRAWSURFACE lpdds)
+{
+	char sMsg[81];
+	void * extUnlock;
+	extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
+	if(extUnlock==(void *)extUnlock1) return (GetSurfaceDesc2_Type)pGetSurfaceDesc1;
+	if(extUnlock==(void *)extUnlock4) return pGetSurfaceDesc7 ? pGetSurfaceDesc7 : pGetSurfaceDesc4;
+	if(extUnlock==(void *)extUnlockDir1) return (GetSurfaceDesc2_Type)pGetSurfaceDesc1;
+	if(extUnlock==(void *)extUnlockDir4) return pGetSurfaceDesc7 ? pGetSurfaceDesc7 : pGetSurfaceDesc4;
+	sprintf_s(sMsg, 80, "pGetSurfaceDescMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
+	OutTraceDW(sMsg);
+	if (IsAssertEnabled) MessageBox(0, sMsg, "pGetSurfaceDescMethod", MB_OK | MB_ICONEXCLAMATION);
+	if (pGetSurfaceDesc4) return pGetSurfaceDesc4;
+	return (GetSurfaceDesc2_Type)pGetSurfaceDesc1;
+}
+
 int SurfaceDescrSize(LPDIRECTDRAWSURFACE lpdds)
 {
 	char sMsg[81];
@@ -3191,6 +3207,8 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 {
 	BOOL IsPrim;
 	HRESULT res;
+	DDSURFACEDESC2 ddsd;
+	LPDIRECTDRAWSURFACE lpddsTmp;
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("Flip: lpdds=%x%s, src=%x, flags=%x(%s)\n", 
@@ -3198,7 +3216,6 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 
 	if (!IsPrim){
 		if(lpddssrc){
-			//return 0;
 			res=(*pFlip)(lpdds, lpddssrc, dwflags);
 		}
 		else{
@@ -3234,6 +3251,20 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 
 	if((dwflags & DDFLIP_WAIT) || (dxw.dwFlags1 & SAVELOAD)) lpPrimaryDD->WaitForVerticalBlank(DDWAITVB_BLOCKEND , 0);
 
+	if(dxw.dwFlags4 & NOFLIPEMULATION){
+		memset(&ddsd, 0, sizeof(ddsd));
+		ddsd.dwSize = SurfaceDescrSize(lpdds);
+		//if(pGetSurfaceDesc1) (*pGetSurfaceDesc1)(lpDDSBack, (LPDDSURFACEDESC)&ddsd);
+		(*pGetSurfaceDescMethod(lpdds))((LPDIRECTDRAWSURFACE2)lpDDSBack, &ddsd);
+		ddsd.dwFlags &= ~DDSD_PITCH;	
+		//DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[temp]" , __LINE__);
+		res=(*pCreateSurfaceMethod(lpdds))(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
+		if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		// copy front buffer 
+		res= (*pBlt)(lpddsTmp, NULL, lpdds, NULL, DDBLT_WAIT, NULL);
+		if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
+	}
+
 	if(lpddssrc){
 		//res=lpdds->Blt(0, lpddssrc, 0, DDBLT_WAIT, 0);
 		res=sBlt("Flip", lpdds, NULL, lpddssrc, NULL, DDBLT_WAIT, 0, TRUE);
@@ -3254,6 +3285,15 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 		}
 		else
 			res=sBlt("Flip", lpdds, NULL, lpDDSBack, NULL, DDBLT_WAIT, 0, TRUE);
+
+		lpddssrc = lpDDSBack;
+	}
+
+	if(dxw.dwFlags4 & NOFLIPEMULATION){
+		// restore flipped backbuffer
+		res= (*pBlt)(lpddssrc, NULL, lpddsTmp, NULL, DDBLT_WAIT, NULL);
+		if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
+		(*pReleaseS)(lpddsTmp);
 	}
 
 	if(res) OutTraceE("Flip: Blt ERROR %x(%s)\n", res, ExplainDDError(res));

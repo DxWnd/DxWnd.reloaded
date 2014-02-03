@@ -130,6 +130,7 @@
 #define HOOKGLIDE			0x00004000 // Hook glide calls
 #define HIDEDESKTOP			0x00008000 // Hide desktop background
 #define STRETCHTIMERS		0x00010000 // Enables timers stretching when TIMESTRETCH is on
+#define NOFLIPEMULATION		0x00020000 // Compensate the effect of Flip-ping through Blt operations
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

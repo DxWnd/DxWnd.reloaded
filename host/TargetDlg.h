@@ -60,6 +60,7 @@ public:
 	BOOL	m_SaveLoad;
 	BOOL	m_SlowDown;
 	BOOL	m_BlitFromBackBuffer;
+	BOOL	m_NoFlipEmulation;
 	BOOL	m_SuppressClipping;
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;

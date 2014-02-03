@@ -56,7 +56,6 @@
 #define IDC_EMULATESURFACE              1011
 #define IDC_AUTOMATIC                   1012
 #define IDC_MODIFYMOUSE                 1013
-//#define IDC_HANDLEDC                    1014
 #define IDC_SAVELOAD                    1015
 #define IDC_INITX                       1016
 #define IDC_INITY                       1017
@@ -205,6 +204,7 @@
 #define IDC_NOFILLRECT                  1162
 #define IDC_HIDEDESKTOP                 1163
 #define IDC_STRETCHTIMERS               1164
+#define IDC_NOFLIPEMULATION             1165
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

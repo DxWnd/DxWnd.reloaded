@@ -405,3 +405,5 @@ fixed time stretching to handle Total Soccer 2000
 fixed ZBUFFER surface creation to handle GOG Incoming troubles on some cards
 fixed handling of special effects (wireframe, no fogging, zbuffer always) to be valid on all d3d versions
 
+v2.02.61
+added directx "Compensate Flip emulation" flag: used primarily to get rid of mouse artifacts due to emulated Flip rpocedure in windowed mode. Fixes Gruntz issues and some other games...

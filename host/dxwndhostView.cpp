@@ -188,6 +188,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
 	if(dlg->m_SlowDown) t->flags |= SLOWDOWN;
 	if(dlg->m_BlitFromBackBuffer) t->flags |= BLITFROMBACKBUFFER;
+	if(dlg->m_NoFlipEmulation) t->flags4 |= NOFLIPEMULATION;
 	if(dlg->m_SuppressClipping) t->flags |= SUPPRESSCLIPPING;
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
@@ -344,6 +345,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
+	dlg->m_NoFlipEmulation = t->flags4 & NOFLIPEMULATION ? 1 : 0;
 	dlg->m_SuppressClipping = t->flags & SUPPRESSCLIPPING ? 1 : 0;
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;

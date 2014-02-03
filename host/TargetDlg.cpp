@@ -79,6 +79,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SaveLoad = FALSE;
 	m_SlowDown = FALSE;
 	m_BlitFromBackBuffer = FALSE;
+	m_NoFlipEmulation = FALSE;
 	m_SuppressClipping = FALSE;
 	m_DisableGammaRamp = FALSE;
 	m_AutoRefresh = FALSE;
