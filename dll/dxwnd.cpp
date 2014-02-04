@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.66"
+#define VERSION "2.02.67"
 
 #define DDTHREADLOCK 1
 
@@ -160,13 +160,20 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 	// could use WM_NCCREATE instead of WM_CREATE. Are there differences?
 	hwnd = ((CWPSTRUCT *)lparam)->hwnd;
 	if(((CWPSTRUCT *)lparam)->message == WM_CREATE){
+		int iNameLength;
 		name[MAX_PATH]=0; // string terminator
 		GetModuleFileName(0, name, MAX_PATH);
 		for(i = 0; name[i]; i ++) name[i] = tolower(name[i]);
+		iNameLength = strlen(name);
 		WaitForSingleObject(hMutex, INFINITE);
 		for(i = 0; pMapping[i].path[0] && (i<MAXTARGETS); i++){
+			register BOOL bMatched;
 			if (!(pMapping[i].flags3 & HOOKENABLED)) continue;
-			if(!strncmp(name, pMapping[i].path, strlen(name)))
+			if(pMapping[i].path[0]=='*')
+				bMatched=!strncmp(&name[iNameLength-strlen(pMapping[i].path)+1], &pMapping[i].path[1], iNameLength);
+			else
+				bMatched=!strncmp(name, pMapping[i].path, iNameLength);
+			if(bMatched)
 			{
 				// V.68 late fix:
 				// check for locking thread (and hook) just once per process.
@@ -183,27 +190,19 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 					ReleaseMutex(hMutex);
 					exit(0);
 				}
-				else {
-					pStatus->Status=DXW_RUNNING;
-					pStatus->TaskIdx=i;
-					pStatus->IsFullScreen=FALSE;
-					pStatus->hWnd=hwnd;
-					pStatus->dwPid=GetProcessId(GetCurrentProcess());
-					pStatus->TimeShift=pMapping[i].InitTS;
-					pStatus->CursorX = pStatus->CursorY = 0;
-					DxWndStatus = *pStatus;
-					HookInit(&pMapping[i], hwnd);
-				}
 #else
+				WaitForSingleObject(hLockMutex, 0);
+#endif				
+
 				pStatus->Status=DXW_RUNNING;
 				pStatus->TaskIdx=i;
 				pStatus->IsFullScreen=FALSE;
 				pStatus->hWnd=hwnd;
 				pStatus->dwPid=GetProcessId(GetCurrentProcess());
+				pStatus->TimeShift=pMapping[i].InitTS;
+				pStatus->CursorX = pStatus->CursorY = 0;
 				DxWndStatus = *pStatus;
-				WaitForSingleObject(hLockMutex, 0);
 				HookInit(&pMapping[i], hwnd);
-#endif				
 			}
 		}
 		ReleaseMutex(hMutex);

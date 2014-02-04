@@ -571,75 +571,15 @@ static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	return res;
 }
 
+
+
 static HRESULT WINAPI EmuBlt_32_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
-	HRESULT res;
-	BYTE *src32;
-	SHORT *dest, *dest0;
-	DDSURFACEDESC2 ddsd_src, ddsd_dst;
-	long srcpitch, destpitch;
-	DWORD x, y, w, h;
-
-	w = lpdestrect->right - lpdestrect->left; 
-	h = lpdestrect->bottom - lpdestrect->top; 
-
-	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
-	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
-		OutTraceE("EmuBlt32_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		return res;
-	}
-
-	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
-	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if (lpsurface) { // already locked, just get info ....
-		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
-			OutTraceE("EmuBlt32_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
-			return 0;
-		}
-	}
-	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
-			OutTraceE("EmuBlt32_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			return 0;
-		}
-		lpsurface=ddsd_src.lpSurface;
-	}
-
-	ddsd_dst.lPitch >>= 1;
-	dest = (SHORT *)ddsd_dst.lpSurface;
-	dest += lpdestrect->top*ddsd_dst.lPitch;
-	dest += lpdestrect->left;
-	destpitch = ddsd_dst.lPitch - w;
-	dest0 = dest;
-
-	src32 = (BYTE *)lpsurface;
-	src32 += lpsrcrect->top*ddsd_src.lPitch;
-	src32 += lpsrcrect->left;
-	srcpitch = ddsd_src.lPitch - 4*w;
-
-	for(y = 0; y < h; y ++){
-		for(x = 0; x < w; x ++){
-			*(dest ++) = (*(src32+2) & 0xF8)<<8 | (*(src32+1) & 0xFC)<<3 | (*(src32+0) & 0xF8)>>3;
-			src32 += 4; // 4 bytes = 32 bits
-		}
-		dest += destpitch;
-		src32 += srcpitch;
-	}
-
-	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
-
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-	if (res) OutTraceE("EmuBlt32_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
-	if (res) OutTraceE("EmuBlt32_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
-	return res;
+	char *sMsg="EmuBlt32_16: CURRENTLY UNSUPPORTED\n";
+	OutTraceE(sMsg);
+	if(IsAssertEnabled) MessageBox(0, sMsg, "EmuBlt", MB_OK | MB_ICONEXCLAMATION);
+	return -1;
 }
 
 static HRESULT WINAPI EmuBlt_Null(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,

@@ -3910,10 +3910,33 @@ HRESULT WINAPI EnumModesCallbackDumper(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 }
 
 typedef HRESULT (WINAPI *EnumModesCallback_Type)(LPDDSURFACEDESC, LPVOID);
-typedef struct {LPVOID lpContext; EnumModesCallback_Type lpCallback; } NewContext_Type;
+typedef struct {
+	LPVOID lpContext; 
+	EnumModesCallback_Type lpCallback; 
+	DWORD dwWidth;
+	DWORD dwHeight;
+} NewContext_Type;
 
-HRESULT WINAPI myEnumModesFilter(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
+static struct {
+	int w; 
+	int h;
+}SupportedRes[7]= {
+	{320,200},
+	{320,240},
+	{640,400},
+	{640,480},
+	{800,600},
+	{1024,768},
+	{0,0}
+};
+
+HRESULT WINAPI myEnumModesFilterDirect(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
 {
+	HRESULT res;
+
+	if ((((NewContext_Type *)lpContext)->dwHeight != lpDDSurfaceDesc->dwHeight) ||
+		(((NewContext_Type *)lpContext)->dwWidth != lpDDSurfaceDesc->dwWidth)) return DDENUMRET_OK;
+
 	if (IsDebug) EnumModesCallbackDumper(lpDDSurfaceDesc, NULL);
 
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
@@ -3925,37 +3948,33 @@ HRESULT WINAPI myEnumModesFilter(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpConte
 		}
 	}
 
-	if(dxw.dwFlags4 & LIMITSCREENRES){
-		#define HUGE 100000
-		DWORD maxw, maxh;
-		switch(dxw.MaxScreenRes){
-			case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
-			case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
-			case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
-			case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
-			case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
-			case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
-		}
-		if((lpDDSurfaceDesc->dwWidth > maxw) || (lpDDSurfaceDesc->dwHeight > maxh)){
-			OutTraceDW("EnumDisplaySettings: hide device mode=(%d,%d)\n", maxw, maxh);
-			return DDENUMRET_OK;
-		}
-	}
+	// tricky part: for each color depth related to current video resolution, fake each of the 
+	// supported resolutions, unless is greater than maximum allowed
 
-	// tricky part: in 16BPP color depth let the callback believe that the pixel encoding
-	// is actually the one implemented in the emulation routines.
-	// should it fix also the other color depths? 
-
-	switch(lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount){
-	case 8:
-	case 16:
-	case 24:
-	case 32:
-		FixPixelFormat(lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount, &lpDDSurfaceDesc->ddpfPixelFormat);
-		return (*((NewContext_Type *)lpContext)->lpCallback)(lpDDSurfaceDesc, ((NewContext_Type *)lpContext)->lpContext);
-		break;
+	for (int ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
+		lpDDSurfaceDesc->dwHeight=SupportedRes[ResIdx].h;
+		lpDDSurfaceDesc->dwWidth=SupportedRes[ResIdx].w;
+		if(dxw.dwFlags4 & LIMITSCREENRES){
+			#define HUGE 100000
+			DWORD maxw, maxh;
+			switch(dxw.MaxScreenRes){
+				case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
+				case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
+				case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
+				case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
+				case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
+				case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
+			}
+			if((lpDDSurfaceDesc->dwWidth > maxw) || (lpDDSurfaceDesc->dwHeight > maxh)){
+				OutTraceDW("EnumDisplaySettings: hide device mode=(%d,%d)\n", maxw, maxh);
+				return DDENUMRET_OK;
+			}
+		}
+		res=(*((NewContext_Type *)lpContext)->lpCallback)(lpDDSurfaceDesc, ((NewContext_Type *)lpContext)->lpContext);
+		OutTraceDW("EnumDisplayModes(D): proposed size[%d]=(%d,%d) res=%x\n", ResIdx, SupportedRes[ResIdx].w, SupportedRes[ResIdx].h, res);
+		if(res==DDENUMRET_CANCEL) break;
 	}
-	return DDENUMRET_OK;
+	return res;
 }
 
 HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPDIRECTDRAW lpdd, DWORD dwflags, LPDDSURFACEDESC lpddsd, LPVOID lpContext, LPDDENUMMODESCALLBACK cb)
@@ -3967,78 +3986,49 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 	// they differ for the lpddsd argument that should point to either DDSURFACEDESC or DDSURFACEDESC2
 	// structures, but unification is possible if the lpddsd->dwSize is properly set and is left untouched.
 
-	if(dxw.dwFlags1 & EMULATESURFACE){
-#if 0
-		struct {int w; int h;}SupportedRes[5]= {(320,240),(640,480),(800,600),(1024,1200),(0,0)};
-		int SupportedDepths[5]={8,16,24,32,0};
-		int ResIdx, DepthIdx, ColorDepth;
-		DDSURFACEDESC2 EmuDesc;
 
-		//if (1) res=(*pEnumDisplayModes)(lpdd, dwflags, lpddsd, lpContext, EnumModesCallbackDumper);
+	if((dxw.dwFlags1 & EMULATESURFACE)){
+		int SupportedDepths[5]={8,16,24,32,0};
+		int ResIdx, DepthIdx;
+		DDSURFACEDESC2 EmuDesc;
 
 		EmuDesc.dwRefreshRate = 0; 
 		EmuDesc.ddpfPixelFormat.dwFlags = DDPF_RGB;
 		if (lpddsd) EmuDesc.dwSize=lpddsd->dwSize; // sizeof either DDSURFACEDESC or DDSURFACEDESC2 !!!
 		else EmuDesc.dwSize = sizeof(DDSURFACEDESC2);
 		EmuDesc.dwFlags=DDSD_PIXELFORMAT|DDSD_REFRESHRATE|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH; 
-		for (ResIdx=0; ResIdx<4; ResIdx++){
+		for (ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
 			EmuDesc.dwHeight=SupportedRes[ResIdx].h;
 			EmuDesc.dwWidth=SupportedRes[ResIdx].w;
 			EmuDesc.ddpfPixelFormat.dwSize=sizeof(DDPIXELFORMAT);
 			EmuDesc.ddpfPixelFormat.dwFlags=DDPF_RGB;
-			for (DepthIdx=0; DepthIdx<4; DepthIdx++) {
-				ColorDepth=SupportedDepths[DepthIdx];
-				EmuDesc.ddpfPixelFormat.dwRGBBitCount=ColorDepth; 
-				EmuDesc.lPitch=(ColorDepth/8) * SupportedRes[ResIdx].w;
-				switch (SupportedDepths[DepthIdx]){
-				case 8:
-					EmuDesc.ddpfPixelFormat.dwFlags = DDPF_RGB | DDPF_PALETTEINDEXED8;
-					break;
-				case 16:
-					if (dxw.dwFlags1 & USERGB565){
-						EmuDesc.ddpfPixelFormat.dwRBitMask = 0xf800; // Grim Fandango
-						EmuDesc.ddpfPixelFormat.dwGBitMask = 0x07e0;
-						EmuDesc.ddpfPixelFormat.dwBBitMask = 0x001f;
-						EmuDesc.ddpfPixelFormat.dwRGBAlphaBitMask = 0x0000;
-					}
-					else {
-						EmuDesc.ddpfPixelFormat.dwRBitMask = 0x7c00;
-						EmuDesc.ddpfPixelFormat.dwGBitMask = 0x03e0;
-						EmuDesc.ddpfPixelFormat.dwBBitMask = 0x001f;
-						EmuDesc.ddpfPixelFormat.dwRGBAlphaBitMask = 0x8000;
-					}
-					break;
-				case 24:
-					EmuDesc.ddpfPixelFormat.dwRBitMask = 0x00FF0000;
-					EmuDesc.ddpfPixelFormat.dwGBitMask = 0x0000FF00;
-					EmuDesc.ddpfPixelFormat.dwBBitMask = 0x000000FF;
-					EmuDesc.ddpfPixelFormat.dwRGBAlphaBitMask = 0x00000000;
-					break;
-				case 32:
-					EmuDesc.ddpfPixelFormat.dwRBitMask = 0x00FF0000;
-					EmuDesc.ddpfPixelFormat.dwGBitMask = 0x0000FF00;
-					EmuDesc.ddpfPixelFormat.dwBBitMask = 0x000000FF;
-					EmuDesc.ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
-					break;
-				}
+			for (DepthIdx=0; SupportedDepths[DepthIdx]; DepthIdx++) {
+				EmuDesc.ddpfPixelFormat.dwRGBBitCount=SupportedDepths[DepthIdx];
+				FixPixelFormat(EmuDesc.ddpfPixelFormat.dwRGBBitCount, &(EmuDesc.ddpfPixelFormat));
 				res=(*cb)((LPDDSURFACEDESC)&EmuDesc, lpContext);
+				OutTraceDW("EnumDisplayModes(D): proposed depth[%d]=%d size[%d]=(%d,%d) res=%x\n", 
+					DepthIdx, SupportedDepths[DepthIdx], ResIdx, SupportedRes[ResIdx].w, SupportedRes[ResIdx].h, res);
 				if(res==DDENUMRET_CANCEL) break;
 			}
 			if(res==DDENUMRET_CANCEL) break;
 		}
-		OutTraceDW("EnumDisplayModes(D): cycled to res=%d size=(%d,%d)\n", 
-			SupportedDepths[DepthIdx], SupportedRes[ResIdx].w, SupportedRes[ResIdx].h);
-#else
-		NewContext_Type NewContext;
-		NewContext.lpContext=lpContext;
-		NewContext.lpCallback=cb;
-
-		res=(*pEnumDisplayModes)(lpdd, dwflags, lpddsd, &NewContext, myEnumModesFilter);
-#endif
+		res=DD_OK;
 	}
 	else{
-		// proxy the call
-		res=(*pEnumDisplayModes)(lpdd, dwflags, lpddsd, lpContext, cb);
+		DDSURFACEDESC2 EmuDesc;
+		memset(&EmuDesc, 0, sizeof(EmuDesc));
+		EmuDesc.dwSize = sizeof(DDSURFACEDESC); // using release 1 type ....
+	 	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&EmuDesc);
+		if(res){
+			OutTraceE("GetDisplayMode(D): ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
+		NewContext_Type NewContext;
+		NewContext.dwWidth = EmuDesc.dwWidth;
+		NewContext.dwHeight = EmuDesc.dwHeight;
+		NewContext.lpContext=lpContext;
+		NewContext.lpCallback=cb;
+		res=(*pEnumDisplayModes)(lpdd, dwflags, lpddsd, &NewContext, myEnumModesFilterDirect);
 	}
 	if(res) OutTraceE("EnumDisplayModes(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	return res;

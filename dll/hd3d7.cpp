@@ -720,11 +720,13 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 			dxw.dwFlags1 |= LOCKEDSURFACE;
 			res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
 		}
-		if (res) return res;
+		if (res) {
+			OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
 	}
-	else 
-		OutTraceD3D("CreateDevice(D3D2): lpd3dd=%x\n", lpd3d, *lplpd3dd);
-
+		
+	OutTraceD3D("CreateDevice(D3D2): lpd3dd=%x\n", lpd3d, *lplpd3dd);
 	HookDirect3DDevice((void **)lplpd3dd, 2);
 	return res;
 }
@@ -742,9 +744,13 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 			dxw.dwFlags1 |= LOCKEDSURFACE;
 			res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
 		}
-		if (res) return res;
+		if (res) {
+			OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
 	}
-
+		
+	OutTraceD3D("CreateDevice(D3D3): lpd3dd=%x\n", lpd3d, *lplpd3dd);
 	HookDirect3DDevice((void **)lplpd3dd, 3); 
 
 	return res;
@@ -763,10 +769,13 @@ HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7
 			dxw.dwFlags1 |= LOCKEDSURFACE;
 			res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
 		}
-		if (res) return res;
-		return res;
+		if (res) {
+			OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
 	}
 
+	OutTraceD3D("CreateDevice(D3D7): lpd3dd=%x\n", lpd3d, *lplpd3dd);
 	HookDirect3DDevice((void **)lplpd3dd, 7); 
 
 	return res;
