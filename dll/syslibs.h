@@ -345,7 +345,8 @@ DXWEXTERN CreateDialogIndirectParam_Type pCreateDialogIndirectParam DXWINITIALIZ
 DXWEXTERN CreateDialogParam_Type pCreateDialogParam DXWINITIALIZED;
 DXWEXTERN CreateWindowExA_Type pCreateWindowExA DXWINITIALIZED;
 DXWEXTERN CreateWindowExW_Type pCreateWindowExW DXWINITIALIZED;
-DXWEXTERN DefWindowProc_Type pDefWindowProc DXWINITIALIZED;
+DXWEXTERN DefWindowProc_Type pDefWindowProcA DXWINITIALIZED;
+DXWEXTERN DefWindowProc_Type pDefWindowProcW DXWINITIALIZED;
 DXWEXTERN DrawText_Type pDrawText DXWINITIALIZED;
 DXWEXTERN DrawTextEx_Type pDrawTextEx DXWINITIALIZED;
 DXWEXTERN EndPaint_Type pEndPaint DXWINITIALIZED;
@@ -394,6 +395,7 @@ DXWEXTERN GetForegroundWindow_Type pGetForegroundWindow DXWINITIALIZED;
 DXWEXTERN GetActiveWindow_Type pGetActiveWindow DXWINITIALIZED;
 DXWEXTERN IsWindowVisible_Type pIsWindowVisible DXWINITIALIZED;
 DXWEXTERN SystemParametersInfo_Type pSystemParametersInfoA DXWINITIALIZED;
+DXWEXTERN SystemParametersInfo_Type pSystemParametersInfoW DXWINITIALIZED;
 DXWEXTERN KillTimer_Type pKillTimer DXWINITIALIZED;
 DXWEXTERN GetUpdateRect_Type pGetUpdateRect DXWINITIALIZED;
 
@@ -543,7 +545,8 @@ extern HWND WINAPI extCreateDialogIndirectParam(HINSTANCE, LPCDLGTEMPLATE, HWND,
 extern HWND WINAPI extCreateDialogParam(HINSTANCE, LPCSTR, HWND, DLGPROC, LPARAM);
 extern HWND WINAPI extCreateWindowExA(DWORD, LPCTSTR, LPCTSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
 extern HWND WINAPI extCreateWindowExW(DWORD, LPCWSTR, LPCWSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
-extern LRESULT WINAPI extDefWindowProc(HWND, UINT, WPARAM, LPARAM);
+extern LRESULT WINAPI extDefWindowProcA(HWND, UINT, WPARAM, LPARAM);
+extern LRESULT WINAPI extDefWindowProcW(HWND, UINT, WPARAM, LPARAM);
 extern int WINAPI extDrawTextA(HDC, LPCTSTR, int, LPRECT, UINT);
 extern int WINAPI extDrawTextExA(HDC, LPTSTR, int, LPRECT, UINT, LPDRAWTEXTPARAMS);
 extern BOOL WINAPI extEndPaint(HWND, const PAINTSTRUCT *);
@@ -603,6 +606,7 @@ extern HWND WINAPI extGetForegroundWindow(void);
 extern HWND WINAPI extGetActiveWindow(void);
 extern BOOL WINAPI extIsWindowVisible(HWND);
 extern BOOL WINAPI extSystemParametersInfoA(UINT, UINT, PVOID, UINT);
+extern BOOL WINAPI extSystemParametersInfoW(UINT, UINT, PVOID, UINT);
 extern BOOL WINAPI extKillTimer(HWND, UINT_PTR);
 extern BOOL WINAPI extGetUpdateRect(HWND, LPRECT, BOOL);
 

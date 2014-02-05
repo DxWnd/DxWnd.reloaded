@@ -800,8 +800,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	}
 
 	if(dxw.dwFlags4 & STRETCHTIMERS){
-	if(LastTimeShift != dxw.TimeShift) dxw.RenewTimers();
-	LastTimeShift=dxw.TimeShift;
+		if(LastTimeShift != dxw.TimeShift) dxw.RenewTimers();
+		LastTimeShift=dxw.TimeShift;
 	}
 
 	switch(message){
@@ -819,7 +819,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_NCPAINT:
 		if((dxw.dwFlags1 & LOCKWINPOS) && (hwnd == dxw.GethWnd()) && dxw.IsFullScreen()){ // v2.02.30: don't alter child and other windows....
 			OutTraceDW("WindowProc: %s wparam=%x\n", ExplainWinMessage(message), wparam);
-			return (*pDefWindowProc)(hwnd, message, wparam, lparam);
+			return (*pDefWindowProcA)(hwnd, message, wparam, lparam);
 		}
 		break;
 	case WM_NCCREATE:
@@ -843,7 +843,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if((dxw.dwFlags2 & FIXNCHITTEST) && (dxw.dwFlags1 & MODIFYMOUSE)){ // mouse processing 
 			POINT cursor;
 			LRESULT ret;
-			ret=(*pDefWindowProc)(hwnd, message, wparam, lparam);
+			ret=(*pDefWindowProcA)(hwnd, message, wparam, lparam);
 			if (ret==HTCLIENT) {
 				cursor.x=LOWORD(lparam);
 				cursor.y=HIWORD(lparam);
@@ -855,13 +855,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_ERASEBKGND:
-		if(dxw.IsDesktop(hwnd)){ 
+		if(dxw.Windowize && dxw.IsDesktop(hwnd)){ 
 			OutTraceDW("WindowProc: WM_ERASEBKGND(%x,%x) - suppressed\n", wparam, lparam);
 			return 1; // 1 == OK, erased
 		}
 		break;
 	case WM_DISPLAYCHANGE:
-		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
+		if (dxw.Windowize && (dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
 			OutTraceDW("WindowProc: prevent WM_DISPLAYCHANGE depth=%d size=(%d,%d)\n",
 				wparam, LOWORD(lparam), HIWORD(lparam));
 			// v2.02.43: unless EMULATESURFACE is set, lock the screen resolution only, but not the color depth!
@@ -873,7 +873,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;
 	case WM_WINDOWPOSCHANGING:
 	case WM_WINDOWPOSCHANGED:
-		if(dxw.IsFullScreen()){
+		if(dxw.Windowize && dxw.IsFullScreen()){
 			LPWINDOWPOS wp;
 			wp = (LPWINDOWPOS)lparam;
 			dxwFixWindowPos("WindowProc", hwnd, lparam);
@@ -917,26 +917,28 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		while((*pShowCursor)(1) < 0);
 		break;
 	case WM_MOUSEMOVE:
-		prev.x = LOWORD(lparam);
-		prev.y = HIWORD(lparam);
-		if (dxw.dwFlags1 & HIDEHWCURSOR) {
-			(*pGetClientRect)(hwnd, &rect);
-			if(prev.x >= 0 && prev.x < rect.right && prev.y >= 0 && prev.y < rect.bottom)
-				while((*pShowCursor)(0) >= 0);
-			else
+		if(dxw.Windowize){
+			prev.x = LOWORD(lparam);
+			prev.y = HIWORD(lparam);
+			if (dxw.dwFlags1 & HIDEHWCURSOR) {
+				(*pGetClientRect)(hwnd, &rect);
+				if(prev.x >= 0 && prev.x < rect.right && prev.y >= 0 && prev.y < rect.bottom)
+					while((*pShowCursor)(0) >= 0);
+				else
+					while((*pShowCursor)(1) < 0);
+			}
+			else {
 				while((*pShowCursor)(1) < 0);
+			}
+			if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
+				// scale mouse coordinates
+				curr=dxw.FixCursorPos(prev); //v2.02.30
+				lparam = MAKELPARAM(curr.x, curr.y); 
+				OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
+			}
+			GetHookInfo()->CursorX=LOWORD(lparam);
+			GetHookInfo()->CursorY=HIWORD(lparam);
 		}
-		else {
-			while((*pShowCursor)(1) < 0);
-		}
-		if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
-			// scale mouse coordinates
-			curr=dxw.FixCursorPos(prev); //v2.02.30
-			lparam = MAKELPARAM(curr.x, curr.y); 
-			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
-		}
-		GetHookInfo()->CursorX=LOWORD(lparam);
-		GetHookInfo()->CursorY=HIWORD(lparam);
 		break;	
 	// fall through cases:
 	case WM_MOUSEWHEEL:
@@ -949,23 +951,25 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_MBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MBUTTONDBLCLK:
-		if((dxw.dwFlags1 & CLIPCURSOR) && ClipCursorToggleState) dxw.SetClipCursor();
-		if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
-			// scale mouse coordinates
-			prev.x = LOWORD(lparam);
-			prev.y = HIWORD(lparam);
-			curr = prev;
-			if(message == WM_MOUSEWHEEL){ // v2.02.33 mousewheel fix
-				POINT upleft={0,0};
-				(*pClientToScreen)(dxw.GethWnd(), &upleft);
-				curr = dxw.SubCoordinates(curr, upleft);
+		if(dxw.Windowize){
+			if((dxw.dwFlags1 & CLIPCURSOR) && ClipCursorToggleState) dxw.SetClipCursor();
+			if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
+				// scale mouse coordinates
+				prev.x = LOWORD(lparam);
+				prev.y = HIWORD(lparam);
+				curr = prev;
+				if(message == WM_MOUSEWHEEL){ // v2.02.33 mousewheel fix
+					POINT upleft={0,0};
+					(*pClientToScreen)(dxw.GethWnd(), &upleft);
+					curr = dxw.SubCoordinates(curr, upleft);
+				}
+				curr=dxw.FixCursorPos(curr); //v2.02.30
+				lparam = MAKELPARAM(curr.x, curr.y); 
+				OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 			}
-			curr=dxw.FixCursorPos(curr); //v2.02.30
-			lparam = MAKELPARAM(curr.x, curr.y); 
-			OutTraceC("WindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
+			GetHookInfo()->CursorX=LOWORD(lparam);
+			GetHookInfo()->CursorY=HIWORD(lparam);
 		}
-		GetHookInfo()->CursorX=LOWORD(lparam);
-		GetHookInfo()->CursorY=HIWORD(lparam);
 		break;	
 	case WM_SETFOCUS:
 		OutTraceDW("WindowProc: hwnd=%x GOT FOCUS\n", hwnd);
@@ -1051,7 +1055,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			case WM_SETCURSOR:		// shows a different cursor when moving on borders
 			case WM_NCLBUTTONDOWN:	// intercepts mouse down on borders
 			case WM_NCLBUTTONUP:	// intercepts mouse up on borders
-				ret=(*pDefWindowProc)(hwnd, message, wparam, lparam);
+				ret=(*pDefWindowProcA)(hwnd, message, wparam, lparam);
 				break;
 			}
 		}
@@ -1066,7 +1070,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	sprintf(sMsg,"ASSERT: WindowProc mismatch hwnd=%x\n", hwnd);
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "WindowProc", MB_OK | MB_ICONEXCLAMATION);	
-	return (*pDefWindowProc)(hwnd, message, wparam, lparam);
+	return (*pDefWindowProcA)(hwnd, message, wparam, lparam);
 }
 
 void HookSysLibsInit()
@@ -1528,9 +1532,11 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	}
 
 	// make InitPosition used for both DInput and DDraw
-	InitPosition(target->initx, target->inity,
-		target->minx, target->miny, target->maxx, target->maxy);
-	dxw.InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);
+	if(dxw.Windowize){
+		InitPosition(target->initx, target->inity,
+			target->minx, target->miny, target->maxx, target->maxy);
+		dxw.InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);
+	}
 
 	OutTraceB("HookInit: base hmodule=%x\n", base);
 	HookModule(base, dxw.dwTargetDDVersion);
@@ -1563,14 +1569,17 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	InitScreenParameters();
 	if(hwnd) HookWindowProc(hwnd);
+	// in fullscreen mode, messages seem to reach and get processed by the parent window
+	if(!dxw.Windowize && hwnd) HookWindowProc(GetParent(hwnd));
 
 	// initialize window: if
 	// 1) not in injection mode (hwnd != 0) and
-	// 2) supposedly in fullscreen mode (dxw.IsFullScreen()) and
-	// 3) configuration ask for a overlapped bordered window (dxw.dwFlags1 & FIXWINFRAME) then
+	// 2) in Windowed mode and
+	// 3) supposedly in fullscreen mode (dxw.IsFullScreen()) and
+	// 4) configuration ask for a overlapped bordered window (dxw.dwFlags1 & FIXWINFRAME) then
 	// update window styles: just this window or, when FIXPARENTWIN is set, the father one as well.
 
-	if (hwnd && dxw.IsFullScreen() && (dxw.dwFlags1 & FIXWINFRAME)) {
+	if (hwnd && dxw.Windowize && dxw.IsFullScreen() && (dxw.dwFlags1 & FIXWINFRAME)) {
 		dxw.FixWindowFrame(dxw.hChildWnd);
 		AdjustWindowPos(dxw.hChildWnd, target->sizx, target->sizy);
 		if(dxw.dwFlags1 & FIXPARENTWIN) {

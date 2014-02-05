@@ -359,15 +359,15 @@ BEGIN
     CONTROL         "Correct mouse position",IDC_MODIFYMOUSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,38,107,12
     CONTROL         "Hide Cursor",IDC_HIDEHWCURSOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,15,100,10
     CONTROL         "Intercept GDI Cursor Clipping",IDC_ENABLECLIPPING,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,85,109,10
-    GROUPBOX        "Cursor handling",IDC_STATIC,7,3,129,148
-    CONTROL         "Keep cursor within window",IDC_KEEPCURSORWITHIN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,61,108,10
-    CONTROL         "Force cursor clipping",IDC_CLIPCURSOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,50,108,10
-    CONTROL         "Message processing",IDC_MESSAGEPROC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,96,103,10
-    CONTROL         "Keep cursor fixed",IDC_KEEPCURSORFIXED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,73,107,10
-    CONTROL         "fix WM_NCHITTEST",IDC_FIXNCHITTEST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,107,103,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,97,109,10
+    GROUPBOX        "Cursor handling",IDC_STATIC,7,3,129,162
+    CONTROL         "Keep cursor within window",IDC_KEEPCURSORWITHIN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,73,108,10
+    CONTROL         "Force cursor clipping",IDC_CLIPCURSOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,62,108,10
+    CONTROL         "Message processing",IDC_MESSAGEPROC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,108,103,10
+    CONTROL         "Keep cursor fixed",IDC_KEEPCURSORFIXED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,85,107,10
+    CONTROL         "fix WM_NCHITTEST",IDC_FIXNCHITTEST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,119,103,10
     CONTROL         "Show Cursor",IDC_SHOWHWCURSOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,27,104,10
-    CONTROL         "Slow down mouse polling",IDC_SLOW,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,118,103,12
+    CONTROL         "Slow down mouse polling",IDC_SLOW,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,130,103,12
     LTEXT           "Initial coord.",IDC_STATIC,148,33,46,9
     LTEXT           "X",IDC_STATIC,234,34,9,9
     LTEXT           "Y",IDC_STATIC,261,34,9,9
@@ -388,7 +388,8 @@ BEGIN
     CONTROL         "Filter offending messages",IDC_FILTERMESSAGES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,150,96,114,10
     CONTROL         "Peek all messages in queue",IDC_PEEKALLMESSAGES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,150,108,114,10
     GROUPBOX        "Message handling",IDC_STATIC,142,79,151,72
-    CONTROL         "Release mouse outside window",IDC_RELEASEMOUSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,130,114,12
+    CONTROL         "Release mouse outside window",IDC_RELEASEMOUSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,142,114,12
+    CONTROL         "Window frame compensation",IDC_FRAMECOMPENSATION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,50,114,12
 END
 
 IDD_TAB_TIMING DIALOGEX 0, 0, 300, 240

@@ -517,7 +517,7 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			if (remap=Remap_d3d11_ProcAddress(proc, hModule)) return remap;
 			break;
 		case SYSLIBIDX_OPENGL:
-			if (remap=Remap_gl_ProcAddress(proc, hModule)) return remap;
+			if(dxw.Windowize) if (remap=Remap_gl_ProcAddress(proc, hModule)) return remap;
 			break;
 //		case SYSLIBIDX_GLIDE:
 //		case SYSLIBIDX_GLIDE2X:

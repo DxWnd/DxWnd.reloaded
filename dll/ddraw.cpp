@@ -1843,7 +1843,7 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	dxw.SetScreenSize(dwwidth, dwheight);
 	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
 	GetHookInfo()->Width=(short)dxw.GetScreenWidth();
-	AdjustWindowFrame(dxw.GethWnd(), dwwidth, dwheight);
+	if(dxw.Windowize) AdjustWindowFrame(dxw.GethWnd(), dwwidth, dwheight);
 
 	if(dxw.dwFlags1 & EMULATESURFACE){
 		// in EMULATESURFACE mode, let SetPixFmt decide upon the PixelFormat
@@ -1852,27 +1852,38 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 		ddsd.dwSize=sizeof(ddsd);
 		SetPixFmt(&ddsd);
 		SetBltTransformations();
-		OutTraceDW("SetDisplayMode: mode=EMULATE %s ret=OK\n", DumpPixelFormat(&ddsd));
-		return DD_OK;
+		if(dxw.Windowize) {
+			OutTraceDW("SetDisplayMode: mode=EMULATE %s ret=OK\n", DumpPixelFormat(&ddsd));
+			SetVSyncDelays(lpdd);
+			return DD_OK;
+		}
 	}
-
-	OutTraceDW("SetDisplayMode: mode=STANDARD BPP=%d\n", dwbpp);
-	dxw.ActualPixelFormat.dwRGBBitCount = dwbpp;
+	else{
+		OutTraceDW("SetDisplayMode: mode=STANDARD BPP=%d\n", dwbpp);
+		dxw.ActualPixelFormat.dwRGBBitCount = dwbpp;
+	}
 
 	ZeroMemory(&ddsd, sizeof(ddsd));
 	ddsd.dwSize = Set_dwSize_From_DDraw(lpdd);
 	ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT | DDSD_REFRESHRATE;
 	ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ddsd.ddpfPixelFormat.dwFlags = DDPF_RGB; 
-
 	(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
-	if (version==1)
-		res = (*pSetDisplayMode1)(lpdd, ddsd.dwWidth, ddsd.dwHeight, dwbpp);
-	else
-		res = (*pSetDisplayMode2)(lpdd, ddsd.dwWidth, ddsd.dwHeight, dwbpp, ddsd.dwRefreshRate, 0);
+	
+	if(dxw.Windowize){
+		dwwidth = ddsd.dwWidth;
+		dwheight = ddsd.dwHeight;
+		OutTraceDW("SetDisplayMode: fixing colordepth current=%d required=%d size=(%dx%d)\n",
+				ddsd.ddpfPixelFormat.dwRGBBitCount, dwbpp, dwwidth, dwheight);
+	}
+	if(dxw.dwFlags1 & EMULATESURFACE){
+		dwbpp = ddsd.ddpfPixelFormat.dwRGBBitCount;
+	}
 
-	OutTraceDW("SetDisplayMode: fixing colordepth current=%d required=%d size=(%dx%d)\n",
-			ddsd.ddpfPixelFormat.dwRGBBitCount, dwbpp, ddsd.dwWidth, ddsd.dwHeight);
+	if (version==1)
+		res = (*pSetDisplayMode1)(lpdd, dwwidth, dwheight, dwbpp);
+	else
+		res = (*pSetDisplayMode2)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0);
 
 	SetVSyncDelays(lpdd);
 	return 0;
@@ -1899,14 +1910,17 @@ HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 		GetPixFmt((LPDDSURFACEDESC2)lpddsd);
 		if(!lpddsd->ddpfPixelFormat.dwFlags) SetPixFmt((LPDDSURFACEDESC2)lpddsd);
 	}
-	lpddsd->dwWidth = dxw.GetScreenWidth();
-	lpddsd->dwHeight = dxw.GetScreenHeight();
 
-	// v2.1.96: fake screen color depth
-	if(dxw.dwFlags2 & (INIT8BPP|INIT16BPP)){ // v2.02.32 fix
-		if(dxw.dwFlags2 & INIT8BPP) FixPixelFormat(8, &lpddsd->ddpfPixelFormat);
-		if(dxw.dwFlags2 & INIT16BPP) FixPixelFormat(16, &lpddsd->ddpfPixelFormat);
-		OutTraceDW("GetDisplayMode: fix RGBBitCount=%d\n", lpddsd->ddpfPixelFormat.dwRGBBitCount);
+	if(dxw.Windowize){
+		lpddsd->dwWidth = dxw.GetScreenWidth();
+		lpddsd->dwHeight = dxw.GetScreenHeight();
+
+		// v2.1.96: fake screen color depth
+		if(dxw.dwFlags2 & (INIT8BPP|INIT16BPP)){ // v2.02.32 fix
+			if(dxw.dwFlags2 & INIT8BPP) FixPixelFormat(8, &lpddsd->ddpfPixelFormat);
+			if(dxw.dwFlags2 & INIT16BPP) FixPixelFormat(16, &lpddsd->ddpfPixelFormat);
+			OutTraceDW("GetDisplayMode: fix RGBBitCount=%d\n", lpddsd->ddpfPixelFormat.dwRGBBitCount);
+		}
 	}
 
 	//OutTraceDW("GetDisplayMode: returning WxH=(%dx%d) PixelFormat Flags=%x(%s) RGBBitCount=%d RGBAmask=(%x,%x,%x,%x) Caps=%x(%s)\n",
@@ -1932,37 +1946,44 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 
 	InitDDScreenParameters((LPDIRECTDRAW)lpdd);
 
-	if (dwflags & DDSCL_FULLSCREEN){
-		// v2.01.82 fix:
-		// WARN: Tomb Raider 4 demo is setting cooperative level against hwnd 0 (desktop)
-		// so in this case better use the registered hWnd value. Same as GP500, who uses 
-		// the desktop window handle.
-		// v2.02.31 fix:
-		// Hooligans - Storm over Europe wants to set cooperative level NORMAL to hwnd 0
-		// that is legitimate, but setting against desktop window gives an error code - so
-		// the zero hwnd redirection had to be moved within the FULLSCREEN if case.
-		if(dxw.IsRealDesktop(hwnd)){
-			OutTraceDW("SetCooperativeLevel: desktop hwnd=%x -> %x\n", hwnd, dxw.GethWnd());
-			hwnd=dxw.GethWnd();
+	if(dxw.Windowize){
+		if (dwflags & DDSCL_FULLSCREEN){
+			// v2.01.82 fix:
+			// WARN: Tomb Raider 4 demo is setting cooperative level against hwnd 0 (desktop)
+			// so in this case better use the registered hWnd value. Same as GP500, who uses 
+			// the desktop window handle.
+			// v2.02.31 fix:
+			// Hooligans - Storm over Europe wants to set cooperative level NORMAL to hwnd 0
+			// that is legitimate, but setting against desktop window gives an error code - so
+			// the zero hwnd redirection had to be moved within the FULLSCREEN if case.
+			if(dxw.IsRealDesktop(hwnd)){
+				OutTraceDW("SetCooperativeLevel: desktop hwnd=%x -> %x\n", hwnd, dxw.GethWnd());
+				hwnd=dxw.GethWnd();
+			}
+			dxw.SetFullScreen(TRUE);
+			dwflags &= ~(DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
+			dwflags |= DDSCL_NORMAL;
+			res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
+			AdjustWindowFrame(hwnd, dxw.GetScreenWidth(), dxw.GetScreenHeight());
+			if (dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(hwnd);
 		}
-		dxw.SetFullScreen(TRUE);
-		dwflags &= ~(DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
-		dwflags |= DDSCL_NORMAL;
-		res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
-		AdjustWindowFrame(hwnd, dxw.GetScreenWidth(), dxw.GetScreenHeight());
-		if (dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(hwnd);
+		else{
+			RECT client;
+			(*pGetClientRect)(hwnd, &client);
+			// v2.02.11:
+			// Non fullscreen cooperative mode means windowed, unless the window occupies the whole desktop area
+			dxw.SetFullScreen(client.right==dxw.iSizX && client.bottom==dxw.iSizY);
+			//dxw.SetFullScreen(FALSE);
+			res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
+		}
 	}
-	else{
-		RECT client;
-		(*pGetClientRect)(hwnd, &client);
-		// v2.02.11:
-		// Non fullscreen cooperative mode means windowed, unless the window occupies the whole desktop area
-		dxw.SetFullScreen(client.right==dxw.iSizX && client.bottom==dxw.iSizY);
-		//dxw.SetFullScreen(FALSE);
+	else {
 		res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
 	}
+
 	if(res)
-		OutTraceE("SetCooperativeLevel: ERROR err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		OutTraceE("SetCooperativeLevel: ERROR lpdd=%x hwnd=%x Flags=%x err=%x(%s) at %d\n", 
+			lpdd, hwnd, dwflags, res, ExplainDDError(res), __LINE__);
 
 	GetHookInfo()->IsFullScreen=dxw.IsFullScreen();
 
@@ -2396,8 +2417,17 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
 		if(res==DDERR_PRIMARYSURFACEALREADYEXISTS){
 			OutTraceDW("CreateSurface: ASSERT DDSEmu_Prim already exists\n");
-			res=(*pGetGDISurface)(lpdd, &lpDDSEmu_Prim); // ok only if the previous surface has the good properties!!!
-			(*pReleaseS)(lpDDSEmu_Prim);
+			if(dxw.Windowize){
+				// in Winowize mode, the desktop properties are untouched, then the current primary surface can be recycled
+				res=(*pGetGDISurface)(lpdd, &lpDDSEmu_Prim); 
+				(*pReleaseS)(lpDDSEmu_Prim);
+			}
+			else {
+				// in non-Windowized mode, the primary surface must be released and rebuilt with the proper properties
+				res=(*pGetGDISurface)(lpdd, &lpDDSEmu_Prim); 
+				if (lpDDSEmu_Prim) while((*pReleaseS)(lpDDSEmu_Prim));
+				res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
+			}
 		}
 		if(res){
 			OutTraceE("CreateSurface: ERROR on DDSEmu_Prim res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -2662,6 +2692,9 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 	BuildSurface_Type BuildPrimary;
 	BuildSurface_Type BuildBackBuffer;
 	BuildSurface_Type BuildGeneric;
+
+	if(!dxw.Windowize){
+	}
 
 	if (dxw.dwFlags1 & EMULATESURFACE){
 		BuildPrimary = BuildPrimaryEmu;

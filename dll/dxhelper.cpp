@@ -955,6 +955,7 @@ char *ExplainWinMessage(DWORD c)
 		case WM_IME_COMPOSITIONFULL: 	eb="WM_IME_COMPOSITIONFULL"; break;
 		case WM_IME_SELECT: 		 	eb="WM_IME_SELECT"; break;
 		case WM_IME_CHAR: 		 		eb="WM_IME_CHAR"; break;
+		case WM_IME_REQUEST: 			eb="WM_IME_REQUEST"; break;
 		case WM_IME_KEYDOWN: 		 	eb="WM_IME_KEYDOWN"; break;
 		case WM_IME_KEYUP: 		 		eb="WM_IME_KEYUP"; break;
 #endif /* WINVER >= 0x0400 */

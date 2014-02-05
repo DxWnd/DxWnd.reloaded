@@ -472,3 +472,6 @@ added "Launch" field (optional) to start the program with arguments or a separat
 v2.02.72
 fix: fixed Launch field used with "Use DLL injection" flag
 fix: somehow improved "Use DLL injection" to avoid blocked tasks and allow exception handling
+
+v2.02.73
+to be written ....

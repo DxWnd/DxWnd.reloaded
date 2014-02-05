@@ -661,52 +661,54 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 		OutTrace("    PresentationInterval = 0x%x\n", *(tmp ++));
 	}
 
-	if(Windowed) {
-		// do not attempt to reset when returning to windowed mode: it is useless (you are windowed already)
-		// and the code below (GetDirect3D, ...) doesn't work.
-		OutTraceDW("SKIPPED!\n");
-		return DD_OK;
-	}
+	if(dxw.Windowize){
+		if(Windowed) {
+			// do not attempt to reset when returning to windowed mode: it is useless (you are windowed already)
+			// and the code below (GetDirect3D, ...) doesn't work.
+			OutTraceDW("SKIPPED!\n");
+			return DD_OK;
+		}
 
-	if (dwD3DVersion == 9){
-		res=(*pGetDirect3D9)(pd3dd, &pD3D);
-		if(res) {
-			OutTraceDW("GetDirect3D FAILED! %x\n", res);
-			return(DD_OK);
+		if (dwD3DVersion == 9){
+			res=(*pGetDirect3D9)(pd3dd, &pD3D);
+			if(res) {
+				OutTraceDW("GetDirect3D FAILED! %x\n", res);
+				return(DD_OK);
+			}
+			OutTraceDW("GetDirect3D pd3d=%x\n", pD3D);
+			res=(*pGetAdapterDisplayMode9)(pD3D, 0, &mode);
+			if(res) {
+				OutTraceDW("GetAdapterDisplayMode FAILED! %x\n", res);
+				return(DD_OK);
+			}
+			param[2] = mode.Format;
+			param[7] = 0;			//hDeviceWindow
+			dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
+			param[8] = 1;			//Windowed
+			//param[11] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
+			param[12] = 0;			//FullScreen_RefreshRateInHz;
+			param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 		}
-		OutTraceDW("GetDirect3D pd3d=%x\n", pD3D);
-		res=(*pGetAdapterDisplayMode9)(pD3D, 0, &mode);
-		if(res) {
-			OutTraceDW("GetAdapterDisplayMode FAILED! %x\n", res);
-			return(DD_OK);
+		else{
+			res=(*pGetDirect3D8)(pd3dd, &pD3D);
+			if(res) {
+				OutTraceDW("GetDirect3D FAILED! %x\n", res);
+				return(DD_OK);
+			}
+			OutTraceDW("GetDirect3D pd3d=%x\n", pD3D);
+			res=(*pGetAdapterDisplayMode8)(pD3D, 0, &mode);
+			if(res) {
+				OutTraceDW("GetAdapterDisplayMode FAILED! %x\n", res);
+				return(DD_OK);
+			}
+			param[2] = mode.Format;
+			param[6] = 0;			//hDeviceWindow
+			dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
+			param[7] = 1;			//Windowed
+			//param[10] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
+			param[11] = 0;			//FullScreen_RefreshRateInHz;
+			param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 		}
-		param[2] = mode.Format;
-		param[7] = 0;			//hDeviceWindow
-		dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
-		param[8] = 1;			//Windowed
-		//param[11] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
-		param[12] = 0;			//FullScreen_RefreshRateInHz;
-		param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
-	}
-	else{
-		res=(*pGetDirect3D8)(pd3dd, &pD3D);
-		if(res) {
-			OutTraceDW("GetDirect3D FAILED! %x\n", res);
-			return(DD_OK);
-		}
-		OutTraceDW("GetDirect3D pd3d=%x\n", pD3D);
-		res=(*pGetAdapterDisplayMode8)(pD3D, 0, &mode);
-		if(res) {
-			OutTraceDW("GetAdapterDisplayMode FAILED! %x\n", res);
-			return(DD_OK);
-		}
-		param[2] = mode.Format;
-		param[6] = 0;			//hDeviceWindow
-		dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
-		param[7] = 1;			//Windowed
-		//param[10] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
-		param[11] = 0;			//FullScreen_RefreshRateInHz;
-		param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 	}
 
 	res = (*pReset)(pd3dd, (D3DPRESENT_PARAMETERS *)param);
@@ -836,43 +838,10 @@ HRESULT WINAPI extGetAdapterDisplayMode9(void *lpd3d, UINT Adapter, D3DDISPLAYMO
 	return res;
 }
 
-//HRESULT extValidateDevice(void *, DWORD *pNumPasses);
-//HRESULT extGetDeviceCaps(void *, D3DCAPS9 *pCaps);
-//typedef HRESULT (WINAPI *ValidateDevice_Type)(void *, DWORD *);
-//typedef HRESULT (WINAPI *GetDeviceCapsD3D_Type)(void *, D3DCAPS9 *);
-//ValidateDevice_Type pValidateDevice;
-//GetDeviceCapsD3D_Type pGetDeviceCapsD3D;
-//HRESULT extValidateDevice(void *lpd3dd, DWORD *pNumPasses)
-//{
-//	OutTrace("ValidateDevice hooked\n");
-//	return (*pValidateDevice)(lpd3dd, pNumPasses);
-//}
-//HRESULT extGetDeviceCapsD3D(void *lpd3dd, D3DCAPS9 *pCaps)
-//{
-//	OutTrace("GetDeviceCaps hooked\n");
-//	return (*pGetDeviceCapsD3D)(lpd3dd, pCaps);
-//}
-HRESULT WINAPI extProbe(void *lpd3dd)
+void FixD3DWindowFrame(HWND hfocuswindow)
 {
-	OutTraceD3D("Probe: d3dd=%x\n", lpd3dd);
-	return 0;
-}
-
-HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
-	HWND hfocuswindow, DWORD behaviorflags, D3DPRESENT_PARAMETERS *ppresentparam, void **ppd3dd)
-{
-	HRESULT res;
-	DWORD param[64], *tmp;
-	D3DDISPLAYMODE mode;
-	int Windowed;
-
-	OutTraceD3D("CreateDevice: D3DVersion=%d lpd3d=%x adapter=%x hFocusWnd=%x behavior=%x, size=(%d,%d)\n",
-		dwD3DVersion, lpd3d, adapter, hfocuswindow, behaviorflags, ppresentparam->BackBufferWidth, ppresentparam->BackBufferHeight);
-
-	memcpy(param, ppresentparam, (dwD3DVersion == 9)?56:52);
-	dxw.SethWnd(hfocuswindow);
-	dxw.SetScreenSize(param[0], param[1]);
-	if(!(dxw.dwFlags3 & NOWINDOWMOVE)) AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	if(!(dxw.dwFlags3 & NOWINDOWMOVE)) 
+		AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	if(dxw.dwFlags3 & FIXD3DFRAME){
 		char ClassName[81];
@@ -893,6 +862,24 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 			OutTraceE("CreateDevice: CreateWindowEx ERROR err=%d\n", GetLastError());
 		dxw.SethWnd(hfocuswindow, dxw.GethWnd());
 	}
+}
+
+HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
+	HWND hfocuswindow, DWORD behaviorflags, D3DPRESENT_PARAMETERS *ppresentparam, void **ppd3dd)
+{
+	HRESULT res;
+	DWORD param[64], *tmp;
+	D3DDISPLAYMODE mode;
+	int Windowed;
+
+	OutTraceD3D("CreateDevice: D3DVersion=%d lpd3d=%x adapter=%x hFocusWnd=%x behavior=%x, size=(%d,%d)\n",
+		dwD3DVersion, lpd3d, adapter, hfocuswindow, behaviorflags, ppresentparam->BackBufferWidth, ppresentparam->BackBufferHeight);
+
+	memcpy(param, ppresentparam, (dwD3DVersion == 9)?56:52);
+	dxw.SethWnd(hfocuswindow);
+	dxw.SetScreenSize(param[0], param[1]);
+
+	if(dxw.Windowize) FixD3DWindowFrame(hfocuswindow);
 
 	if(IsTraceDW){
 		tmp = param;
@@ -917,7 +904,6 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		OutTrace("    PresentationInterval = 0x%x\n", *(tmp ++));
 	}
 
-	//((LPDIRECT3D9)lpd3d)->GetAdapterDisplayMode(0, &mode);
 	if(dwD3DVersion == 9)
 		(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
 	else
@@ -927,24 +913,26 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	OutTraceDW("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceDW("    Current Refresh Rate = %d\n", mode.RefreshRate);
 
-	//param[0]=param[1]=0;
-
 	if(dwD3DVersion == 9){
-		param[7] = 0;			//hDeviceWindow
-		dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
-		param[8] = 1;			//Windowed
-		//param[11] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
-		param[12] = 0;			//FullScreen_RefreshRateInHz;
-		param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		if(dxw.Windowize){
+			param[7] = 0;			//hDeviceWindow
+			dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
+			param[8] = 1;			//Windowed
+			//param[11] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
+			param[12] = 0;			//FullScreen_RefreshRateInHz;
+			param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		}
 		res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 	}
 	else{
-		param[6] = 0;			//hDeviceWindow
-		dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
-		param[7] = 1;			//Windowed
-		//param[10] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
-		param[11] = 0;			//FullScreen_RefreshRateInHz;
-		param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		if(dxw.Windowize){
+			param[6] = 0;			//hDeviceWindow
+			dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
+			param[7] = 1;			//Windowed
+			//param[10] = D3DPRESENTFLAG_DEVICECLIP;			//Flags;
+			param[11] = 0;			//FullScreen_RefreshRateInHz;
+			param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		}
 		res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 	}
 
@@ -984,7 +972,8 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	memcpy(param, ppresentparam, 56);
 	dxw.SethWnd(hfocuswindow);
 	dxw.SetScreenSize(param[0], param[1]);
-	AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
+
+	if(dxw.Windowize) FixD3DWindowFrame(hfocuswindow);
 
 	tmp = param;
 	if(IsTraceDW){
@@ -1016,12 +1005,14 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	OutTraceDW("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceDW("    Current Refresh Rate = %d\n", mode.RefreshRate);
 
-	//param[7] = 0;			//hDeviceWindow
-	param[7] = (DWORD)dxw.GethWnd();			//hDeviceWindow
-	dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
-	param[8] = 1;			//Windowed
-	param[12] = 0;			//FullScreen_RefreshRateInHz;
-	param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+	if(dxw.Windowize){
+		//param[7] = 0;			//hDeviceWindow
+		param[7] = (DWORD)dxw.GethWnd();			//hDeviceWindow
+		dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
+		param[8] = 1;			//Windowed
+		param[12] = 0;			//FullScreen_RefreshRateInHz;
+		param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+	}
 
 	res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
 	if(res){
@@ -1105,7 +1096,7 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3d, D3DPRESENT_PARAMETERS *
 
 	memcpy(param, pPresentationParameters, (dwD3DVersion == 9)?56:52);
 	dxw.SetScreenSize(param[0], param[1]);
-	AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	if(dxw.Windowize) FixD3DWindowFrame(dxw.GethWnd());
 
 	tmp = param;
 	if(IsTraceDW){
@@ -1135,19 +1126,21 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3d, D3DPRESENT_PARAMETERS *
 	OutTraceDW("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceDW("    Current Refresh Rate = %d\n", mode.RefreshRate);
 
-	if(dwD3DVersion == 9){
-		param[7] = 0;			//hDeviceWindow
-		dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
-		param[8] = 1;			//Windowed
-		param[12] = 0;			//FullScreen_RefreshRateInHz;
-		param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
-	}
-	else{
-		param[6] = 0;			//hDeviceWindow
-		dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
-		param[7] = 1;			//Windowed
-		param[11] = 0;			//FullScreen_RefreshRateInHz;
-		param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+	if(dxw.Windowize){
+		if(dwD3DVersion == 9){
+			param[7] = 0;			//hDeviceWindow
+			dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
+			param[8] = 1;			//Windowed
+			param[12] = 0;			//FullScreen_RefreshRateInHz;
+			param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		}
+		else{
+			param[6] = 0;			//hDeviceWindow
+			dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
+			param[7] = 1;			//Windowed
+			param[11] = 0;			//FullScreen_RefreshRateInHz;
+			param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		}
 	}
 	res=(*pCreateAdditionalSwapChain)(lpd3d, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
 	if(res) OutTraceE("CreateAdditionalSwapChain ERROR: res=%x\n", res);
@@ -1175,13 +1168,16 @@ HRESULT WINAPI extD3D10CreateDevice(
 		return res;
 	}
 	SetHook((void *)(*(DWORD *)*ppDevice + 100), extRSSetViewports, (void **)&pRSSetViewports, "RSSetViewports(D10)");
-	ViewPort.TopLeftX=dxw.iPosX;
-    ViewPort.TopLeftY=dxw.iPosY;
-    ViewPort.Width=dxw.iSizX;
-    ViewPort.Height=dxw.iSizY;
-    ViewPort.MinDepth=1.0;
-    ViewPort.MaxDepth=1.0;
-	(*pRSSetViewports)((void *)*ppDevice, 1, (D3D11_VIEWPORT *)&ViewPort);
+
+	if(dxw.Windowize){
+		ViewPort.TopLeftX=dxw.iPosX;
+		ViewPort.TopLeftY=dxw.iPosY;
+		ViewPort.Width=dxw.iSizX;
+		ViewPort.Height=dxw.iSizY;
+		ViewPort.MinDepth=1.0;
+		ViewPort.MaxDepth=1.0;
+		(*pRSSetViewports)((void *)*ppDevice, 1, (D3D11_VIEWPORT *)&ViewPort);
+	}
 	OutTraceD3D("D3D10CreateDevice: ret=%x\n", res);
 	return res;
 }
@@ -1216,8 +1212,10 @@ HRESULT WINAPI extD3D10CreateDeviceAndSwapChain(
 	HRESULT res;
 	OutTraceD3D("D3D10CreateDeviceAndSwapChain: DriverType=%x Flags=%x SDKVersion=%x\n", DriverType, Flags, SDKVersion);
 	//return 0x887a0004;
-	pSwapChainDesc->OutputWindow = dxw.GethWnd();
-	pSwapChainDesc->Windowed = true;	
+	if(dxw.Windowize){
+		pSwapChainDesc->OutputWindow = dxw.GethWnd();
+		pSwapChainDesc->Windowed = true;	
+	}
 	res=(*pD3D10CreateDeviceAndSwapChain)(pAdapter, DriverType, Software, Flags, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice);
 	OutTraceD3D("D3D10CreateDeviceAndSwapChain ret=%x\n", res);
 	return res;
@@ -1236,8 +1234,10 @@ HRESULT WINAPI extD3D10CreateDeviceAndSwapChain1(
 	HRESULT res;
 	OutTraceD3D("D3D10CreateDeviceAndSwapChain1: DriverType=%x Flags=%x SDKVersion=%x\n", DriverType, Flags, SDKVersion);
 	//return 0x887a0004;
-	pSwapChainDesc->OutputWindow = dxw.GethWnd();
-	pSwapChainDesc->Windowed = true;	
+	if(dxw.Windowize){
+		pSwapChainDesc->OutputWindow = dxw.GethWnd();
+		pSwapChainDesc->Windowed = true;	
+	}
 	res=(*pD3D10CreateDeviceAndSwapChain1)(pAdapter, DriverType, Software, Flags, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice);
 	OutTraceD3D("D3D10CreateDeviceAndSwapChain1 ret=%x\n", res);
 	return res;
@@ -1294,7 +1294,7 @@ void WINAPI extRSSetViewports(ID3D11DeviceContext *This, UINT NumViewports, D3D1
 {
 	OutTraceD3D("RSSetViewports: NumViewports=%d\n", NumViewports);
 
-	if(NumViewports==1){
+	if(dxw.Windowize && (NumViewports==1)){
 		pViewports->TopLeftX=dxw.iPosX;
 		pViewports->TopLeftY=dxw.iPosY;
 		pViewports->Width=dxw.iSizX;
@@ -1405,8 +1405,16 @@ HRESULT WINAPI extGetDirect3D9(void *lpdd3dd, void **ppD3D9)
 
 HRESULT WINAPI extCheckFullScreen(void)
 {
-	OutTraceDW("CheckFullScreen: return OK\n");
-	return 0;
+	HRESULT res;
+	if(dxw.Windowize){
+		OutTraceDW("CheckFullScreen: return OK\n");
+		res=0;
+	}
+	else{
+		res=(*pCheckFullScreen)();
+		OutTraceDW("CheckFullScreen: return %x\n", res);
+	}
+	return res;
 }
 
 void WINAPI extSetGammaRamp(void *lpdd3dd, UINT iSwapChain, DWORD Flags, D3DGAMMARAMP *pRamp)

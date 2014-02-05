@@ -138,6 +138,7 @@
 #define SUPPORTSVGA			0x00400000 // Supports SVGA standard resolutions
 #define SUPPORTHDTV			0x00800000 // Supports HDTV standard resolutions
 #define RELEASEMOUSE		0x01000000 // GetCursorPos returns centered coordinates when the mouse cursor is moved outside the window
+#define FRAMECOMPENSATION	0x02000000 // Compensate for frame border adding x,y displacement of (x) left border and (y) window title bar
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

@@ -110,6 +110,7 @@ public:
 	BOOL	m_StretchTimers;
 	BOOL	m_FineTiming;
 	BOOL	m_ReleaseMouse;
+	BOOL	m_FrameCompensation;
 	BOOL	m_InterceptRDTSC;
 	BOOL	m_HookOpenGL;
 	BOOL	m_ForceHookOpenGL;

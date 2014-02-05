@@ -64,6 +64,7 @@ void dxwCore::SetFullScreen(BOOL fs)
 
 BOOL dxwCore::IsFullScreen()
 {
+	//if(!Windowize) return FALSE;
 	return FullScreen;
 }
 
@@ -74,7 +75,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags3 = target->flags3;
 	dwFlags4 = target->flags4;
 	dwTFlags = target->tflags;
-	if(dxw.dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
+	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
+	if(dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
 	gsModules = target->module;
 	MaxFPS = target->MaxFPS;
 	CustomOpenGLLib = target->OpenGLLib;

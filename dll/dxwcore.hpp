@@ -118,6 +118,7 @@ public: // methods
 	LARGE_INTEGER StretchLargeCounter(LARGE_INTEGER);
 
 public: // simple data variables
+	BOOL Windowize;
 	DDPIXELFORMAT ActualPixelFormat;
 	DDPIXELFORMAT VirtualPixelFormat;
 	DWORD dwDDVersion;
