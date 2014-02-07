@@ -12,6 +12,7 @@ IMPLEMENT_DYNAMIC(CTimeSliderDialog, CDialog)
 CTimeSliderDialog::CTimeSliderDialog(CWnd* pParent /*=NULL*/)
 	: CDialog(CTimeSliderDialog::IDD, pParent)
 {
+	LoadString(AfxGetResourceHandle(), DXW_STRING_IDLE, IdleString, sizeof(IdleString));
 }
 
 CTimeSliderDialog::~CTimeSliderDialog()
@@ -52,7 +53,7 @@ void CTimeSliderDialog::OnTimer(UINT_PTR nIDEvent)
 	i_TimeSlider=Slider->GetPos();
 	if(GetHookStatus(NULL)!=DXW_RUNNING) {
 		Slider->SetPos(0);
-		Text->SetWindowTextA("idle");
+		Text->SetWindowTextA(IdleString);
 		return;
 	}
 	if(i_TimeSlider==iLastPos){

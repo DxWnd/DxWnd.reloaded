@@ -14,6 +14,9 @@
 
 #include "resource.h"       // Main symbols
 
+extern int MessageBoxLang(UINT, UINT, UINT);
+extern int MessageBoxLangArg(UINT, UINT, UINT, ...);
+
 // DxWnd host app private data
 // fields here are associated to TARGETMAP records, but need not to be passed
 // to the dxwnd hook callback, so they are left in a separate array to save 

@@ -45,6 +45,9 @@ class CNewCommandLineInfo : public CCommandLineInfo
 	void ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast);
 };
 
+BOOL LangSelected=FALSE;
+char LangString[20+1] = {0};
+
 void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 {
 	if(bFlag) {
@@ -66,8 +69,12 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 			CString Lang;
 			Lang = sParam.MakeLower().Right(2);
 			ResLib=LoadLibrary("Resources_"+Lang+".dll");
-			if(ResLib) AfxSetResourceHandle(ResLib);
+			if(ResLib) {
+				AfxSetResourceHandle(ResLib);
+				LangSelected=TRUE;
+			}
 			else MessageBoxEx(NULL, "Missing language \""+Lang+"\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
+			//strcpy(LangString, sParam.MakeLower().Mid(5));
 			return;
 		}
 		if (sParam.Left(2).MakeLower() == "c:"){
@@ -123,6 +130,50 @@ BOOL CDxwndhostApp::InitInstance()
 	// and user-defined flags. The CCommandLine class has been replaced
 	CNewCommandLineInfo cmdInfo;
 	ParseCommandLine(cmdInfo);
+
+	if(!LangSelected){
+		LANGID LangId;
+		char LangString[20+1];
+		char InitPath[MAX_PATH];
+		GetCurrentDirectory(MAX_PATH, InitPath);
+		strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
+		GetPrivateProfileString("window", "lang", "", LangString, 20+1, InitPath);
+		if(!strcmp(LangString, "default") || !strlen(LangString)){ // if no specification, or lang=default
+			// do nothing
+		}
+		if(!strcmp(LangString, "automatic")){ // lang=automatic
+			HMODULE ResLib;
+			LangId=GetUserDefaultUILanguage();
+			// other codes to be implemented:
+			// 409 (2-9): english (default)
+			// 411 (2-11): japanese
+			switch(LangId & 0x1FF){
+				case 0x04: // chinese family
+					ResLib=LoadLibrary("Resources_CN.dll");
+					if(ResLib) AfxSetResourceHandle(ResLib);
+					else MessageBoxEx(NULL, "Missing language \"CN\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
+					break;
+				case 0x10: // 410 - italian, 810 - switzerland italian
+					ResLib=LoadLibrary("Resources_IT.dll");
+					if(ResLib) AfxSetResourceHandle(ResLib);
+					else MessageBoxEx(NULL, "Missing language \"CN\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
+					break;
+				default: 
+					//char sBuf[81];
+					//sprintf(sBuf, "Got Lang=%x(%x-%x)", LangId, LangId>>9, (LangId & 0x1FF));
+					//MessageBox(NULL, sBuf, "LangId", MB_OK);
+					break;
+			}
+		}
+		if(strcmp(LangString, "automatic") && strcmp(LangString, "default") && strlen(LangString)) { // lang=something different from both automatic and default
+			HMODULE ResLib;
+			CString Lang;
+			Lang.SetString(LangString);
+			ResLib=LoadLibrary("Resources_"+Lang+".dll");
+			if(ResLib) AfxSetResourceHandle(ResLib);
+			else MessageBoxEx(NULL, "Missing language \""+Lang+"\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
+		}
+	}
 
 	// Dispatch commands specified on the command line.
 	if (!ProcessShellCommand(cmdInfo))

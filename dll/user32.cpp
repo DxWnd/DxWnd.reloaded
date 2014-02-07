@@ -22,6 +22,8 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsExA, (FARPROC *)&pChangeDisplaySettingsExA, (FARPROC)extChangeDisplaySettingsExA},
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsW, (FARPROC)extChangeDisplaySettingsW}, // ref. by Knights of Honor
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsExW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsExW, (FARPROC)extChangeDisplaySettingsExW},
+	{HOOK_HOT_CANDIDATE, "GetMonitorInfoA", (FARPROC)NULL, (FARPROC *)&pGetMonitorInfoA, (FARPROC)extGetMonitorInfoA},
+	{HOOK_HOT_CANDIDATE, "GetMonitorInfoW", (FARPROC)NULL, (FARPROC *)&pGetMonitorInfoW, (FARPROC)extGetMonitorInfoW},
 	{HOOK_IAT_CANDIDATE, "ShowCursor", (FARPROC)ShowCursor, (FARPROC *)&pShowCursor, (FARPROC)extShowCursor},
 	{HOOK_IAT_CANDIDATE, "CreateDialogIndirectParamA", (FARPROC)CreateDialogIndirectParamA, (FARPROC *)&pCreateDialogIndirectParam, (FARPROC)extCreateDialogIndirectParam},
 	{HOOK_IAT_CANDIDATE, "CreateDialogParamA", (FARPROC)CreateDialogParamA, (FARPROC *)&pCreateDialogParam, (FARPROC)extCreateDialogParam},
@@ -887,7 +889,7 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 	res=0;
 	if (pSetCursorPos) res=(*pSetCursorPos)(x,y);
 
-	OutTraceC("SetCursorPos: res=%x XY=(%d,%d)->(%d,%d)\n",res, PrevX, PrevY, x, y);
+	OutTraceC("SetCursorPos: res=%x XY=(%d,%d)->(%d,%d)\n", res, PrevX, PrevY, x, y);
 	return res;
 }
 
@@ -1122,6 +1124,39 @@ ATOM WINAPI extRegisterClassA(WNDCLASS *lpwcx)
 	return (*pRegisterClassA)(lpwcx);
 }
 
+static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
+{
+	// child window inherit the father's windproc, so if it's redirected to
+	// a hooker (either extWindowProc or extChildWindowProc) you have to retrieve
+	// the correct value (WhndGetWindowProc) before saving it (WhndStackPush).
+	long res;
+	WNDPROC pWindowProc;
+
+	pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
+	if((pWindowProc == extWindowProc) || 
+		(pWindowProc == extChildWindowProc) ||
+		(pWindowProc == extDialogWindowProc)){ // avoid recursions 
+		HWND Father;
+		WNDPROC pFatherProc;
+		Father=GetParent(hwnd);
+		pFatherProc=WhndGetWindowProc(Father);
+		OutTraceDW("%s: WndProc=%s father=%x WndProc=%x\n", ApiName, 
+			(pWindowProc == extWindowProc) ? "extWindowProc" : ((pWindowProc == extChildWindowProc) ? "extChildWindowProc" : "extDialogWindowProc"), 
+			Father, pFatherProc);
+		pWindowProc = pFatherProc;
+	}
+	WhndStackPush(hwnd, pWindowProc);
+	if(dwStyle & WS_CHILD){
+		OutTraceDW("%s: Hooking CHILD hwnd=%x father WindowProc %x->%x\n", ApiName, hwnd, pWindowProc, extChildWindowProc);
+		res=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extChildWindowProc);
+	}
+	else { // must be dwStyle & WS_DLGFRAME
+		OutTraceDW("%s: Hooking DLGFRAME hwnd=%x father WindowProc %x->%x\n", ApiName, hwnd, pWindowProc, extDialogWindowProc);
+		res=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extDialogWindowProc);
+	}
+	if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
+}
+
 static HWND WINAPI extCreateWindowCommon(
   LPCTSTR ApiName,
   BOOL WideChar,
@@ -1139,7 +1174,6 @@ static HWND WINAPI extCreateWindowCommon(
   LPVOID lpParam) 
 {
 	HWND hwnd;
-	WNDPROC pWindowProc;
 	BOOL isValidHandle=TRUE;
 
 	if(!dxw.Windowize){
@@ -1147,44 +1181,12 @@ static HWND WINAPI extCreateWindowCommon(
 			hwnd= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 		else
 			hwnd= (*pCreateWindowExA)(dwExStyle, (LPCSTR)lpClassName, (LPCSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-		if ((dwStyle & WS_CHILD) && (dxw.dwFlags1 & HOOKCHILDWIN)){
-			// child window inherit the father's windproc, so if it's redirected to
-			// a hooker (either extWindowProc or extChildWindowProc) you have to retrieve
-			// the correct value (WhndGetWindowProc) before saving it (WhndStackPush).
-			long res;
-			pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
-			if((pWindowProc == extWindowProc) || 
-				(pWindowProc == extChildWindowProc) ||
-				(pWindowProc == extDialogWindowProc)){ // avoid recursions 
-				HWND Father;
-				Father=GetParent(hwnd);
-				pWindowProc=WhndGetWindowProc(Father);
-			}
-			OutTraceDW("Hooking CHILD hwnd=%x father WindowProc %x->%x\n", hwnd, pWindowProc, extChildWindowProc);
-			res=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extChildWindowProc);
-			if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
-			WhndStackPush(hwnd, pWindowProc);
-		}
-		if ((dwStyle & WS_DLGFRAME) && (dxw.dwFlags1 & HOOKCHILDWIN)){
-			// child window inherit the father's windproc, so if it's redirected to
-			// a hooker (either extWindowProc or extChildWindowProc) you have to retrieve
-			// the correct value (WhndGetWindowProc) before saving it (WhndStackPush).
-			long res;
-			pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, DWL_DLGPROC);
-			if((pWindowProc == extWindowProc) || 
-				(pWindowProc == extChildWindowProc) ||
-				(pWindowProc == extDialogWindowProc)){ // avoid recursions 
-				HWND Father;
-				Father=GetParent(hwnd);
-				pWindowProc=WhndGetWindowProc(Father);
-			}
-			OutTraceDW("Hooking CHILD hwnd=%x father WindowProc %x->%x\n", hwnd, pWindowProc, extChildWindowProc);
-			res=(*pSetWindowLongA)(hwnd, DWL_DLGPROC, (LONG)extDialogWindowProc);
-			if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
-			WhndStackPush(hwnd, pWindowProc);
-		}
+
+		if ((dxw.dwFlags1 & HOOKCHILDWIN) && (dwStyle & (WS_CHILD|WS_DLGFRAME)))
+			HookChildWndProc(hwnd, dwStyle, ApiName);
+
 		OutTraceDW("%s: ret=%x\n", ApiName, hwnd);
-		return hwnd;	
+		return hwnd;
 	}
 
 	// no maximized windows in any case
@@ -1332,43 +1334,8 @@ static HWND WINAPI extCreateWindowCommon(
 	if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwStyle & WS_CHILD) && dxw.IsDesktop(hwnd))
 		dxw.FixWindowFrame(hwnd);
 
-	// to do: handle inner child, and leave dialogue & modal child alone!!!
-	if ((dwStyle & WS_CHILD) && (dxw.dwFlags1 & HOOKCHILDWIN)){
-		// child window inherit the father's windproc, so if it's redirected to
-		// a hooker (either extWindowProc or extChildWindowProc) you have to retrieve
-		// the correct value (WhndGetWindowProc) before saving it (WhndStackPush).
-		long res;
-		pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
-		if((pWindowProc == extWindowProc) || 
-			(pWindowProc == extChildWindowProc) ||
-			(pWindowProc == extDialogWindowProc)){ // avoid recursions 
-			HWND Father;
-			Father=GetParent(hwnd);
-			pWindowProc=WhndGetWindowProc(Father);
-		}
-		OutTraceDW("Hooking CHILD hwnd=%x father WindowProc %x->%x\n", hwnd, pWindowProc, extChildWindowProc);
-		res=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extChildWindowProc);
-		if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
-		WhndStackPush(hwnd, pWindowProc);
-	}
-	if ((dwStyle & WS_DLGFRAME) && (dxw.dwFlags1 & HOOKCHILDWIN)){
-		// child window inherit the father's windproc, so if it's redirected to
-		// a hooker (either extWindowProc or extChildWindowProc) you have to retrieve
-		// the correct value (WhndGetWindowProc) before saving it (WhndStackPush).
-		long res;
-		pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, DWL_DLGPROC);
-		if((pWindowProc == extWindowProc) || 
-			(pWindowProc == extChildWindowProc) ||
-			(pWindowProc == extDialogWindowProc)){ // avoid recursions 
-			HWND Father;
-			Father=GetParent(hwnd);
-			pWindowProc=WhndGetWindowProc(Father);
-		}
-		OutTraceDW("Hooking CHILD hwnd=%x father WindowProc %x->%x\n", hwnd, pWindowProc, extChildWindowProc);
-		res=(*pSetWindowLongA)(hwnd, DWL_DLGPROC, (LONG)extDialogWindowProc);
-		if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
-		WhndStackPush(hwnd, pWindowProc);
-	}
+	if ((dxw.dwFlags1 & HOOKCHILDWIN) && (dwStyle & (WS_CHILD|WS_DLGFRAME)))
+		HookChildWndProc(hwnd, dwStyle, ApiName);
 
 	OutTraceDW("%s: ret=%x\n", ApiName, hwnd);
 	return hwnd;
@@ -2331,13 +2298,53 @@ BOOL WINAPI extDestroyWindow(HWND hWnd)
 	return res;
 }
 
+static char *ExplainTAAlign(UINT c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"TA_");
+	strcat(eb, (c & TA_UPDATECP) ? "UPDATECP+" : "NOUPDATECP+");
+	strcat(eb, (c & TA_RIGHT) ? (((c & TA_CENTER) == TA_CENTER) ? "CENTER+" : "RIGHT+") : "LEFT+");
+	strcat(eb, (c & TA_BOTTOM) ? "BOTTOM+" : "TOP+");
+	if ((c & TA_BASELINE)==TA_BASELINE) strcat(eb, "BASELINE+");
+	if (c & TA_RTLREADING) strcat(eb, "RTLREADING+");
+	l=strlen(eb);
+	eb[l-1]=0; 
+	return(eb);
+}
+
+static char *ExplainDTFormat(UINT c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"DT_");
+	if(!(c & (DT_CENTER|DT_RIGHT))) strcat(eb, "LEFT+");
+	if(c & DT_CENTER) strcat(eb, "CENTER+");
+	if(c & DT_RIGHT) strcat(eb, "RIGHT+");
+	if(!(c & (DT_VCENTER|DT_BOTTOM))) strcat(eb, "TOP+");
+	if(c & DT_VCENTER) strcat(eb, "VCENTER+");
+	if(c & DT_BOTTOM) strcat(eb, "BOTTOM+");
+	if(c & DT_WORDBREAK) strcat(eb, "WORDBREAK+");
+	if(c & DT_SINGLELINE) strcat(eb, "SINGLELINE+");
+	if(c & DT_EXPANDTABS) strcat(eb, "EXPANDTABS+");
+	if(c & DT_TABSTOP) strcat(eb, "TABSTOP+");
+	if(c & DT_NOCLIP) strcat(eb, "NOCLIP+");
+	if(c & DT_EXTERNALLEADING) strcat(eb, "EXTERNALLEADING+");
+	if(c & DT_CALCRECT) strcat(eb, "CALCRECT+");
+	if(c & DT_NOPREFIX) strcat(eb, "NOPREFIX+");
+	if(c & DT_INTERNAL) strcat(eb, "INTERNAL+");
+	l=strlen(eb);
+	eb[l-1]=0; 
+	return(eb);
+}
+
 BOOL gFixed;
 
 int WINAPI extDrawTextA(HDC hdc, LPCTSTR lpchText, int nCount, LPRECT lpRect, UINT uFormat)
 {
 	int ret;
-	OutTraceDW("DrawText: hdc=%x rect=(%d,%d)-(%d,%d) Format=%x Text=(%d)\"%s\"\n", 
-		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, uFormat, nCount, lpchText);
+	OutTraceDW("DrawText: hdc=%x rect=(%d,%d)-(%d,%d) Format=%x(%s) Text=(%d)\"%s\"\n", 
+		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, uFormat, ExplainDTFormat(uFormat), nCount, lpchText);
 
 	gFixed = TRUE;
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
@@ -2642,3 +2649,28 @@ HWND WINAPI extChildWindowFromPointEx(HWND hWndParent, POINT Point, UINT uFlags)
 	return ret;
 }
 
+BOOL extGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpmi, GetMonitorInfo_Type pGetMonitorInfo)
+{
+	BOOL res;
+	OutTrace("GetMonitorInfo: hMonitor=%x mi=MONITORINFO%s\n", hMonitor, lpmi->cbSize==sizeof(MONITORINFO)?"":"EX");
+	res=(*pGetMonitorInfo)(hMonitor, lpmi);
+	if(res && dxw.Windowize){
+		OutTraceDW("GetMonitorInfo: FIX Work=(%d,%d)-(%d,%d) Monitor=(%d,%d)-(%d,%d) -> (%d,%d)-(%d,%d)\n", 
+			lpmi->rcWork.left, lpmi->rcWork.top, lpmi->rcWork.right, lpmi->rcWork.bottom,
+			lpmi->rcMonitor.left, lpmi->rcMonitor.top, lpmi->rcMonitor.right, lpmi->rcMonitor.bottom,
+			0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight());
+		lpmi->rcWork = dxw.GetScreenRect();
+		lpmi->rcMonitor = dxw.GetScreenRect();
+	}
+	return res;
+}
+
+BOOL WINAPI extGetMonitorInfoA(HMONITOR hMonitor, LPMONITORINFO lpmi)
+{
+	return extGetMonitorInfo(hMonitor, lpmi, pGetMonitorInfoA);
+}
+
+BOOL WINAPI extGetMonitorInfoW(HMONITOR hMonitor, LPMONITORINFO lpmi)
+{
+	return extGetMonitorInfo(hMonitor, lpmi, pGetMonitorInfoW);
+}

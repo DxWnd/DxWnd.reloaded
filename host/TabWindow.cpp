@@ -72,6 +72,8 @@ static char *Resolutions[]={
 	"" // terminator
 };
 
+char UnlimitedString[20+1];
+
 BOOL CTabWindow::OnInitDialog()
 {
 
@@ -82,6 +84,9 @@ BOOL CTabWindow::OnInitDialog()
 	int i;
 	List=(CListBox *)this->GetDlgItem(IDC_LISTRES);
 	List->ResetContent();
+	if(LoadString(AfxGetResourceHandle(), DXW_STRING_UNLIMITED, UnlimitedString, sizeof(UnlimitedString))){
+		Resolutions[0]=UnlimitedString;
+	}
 	for(i=0; strlen(Resolutions[i]); i++) List->AddString(Resolutions[i]);
 	List->SetCurSel(cTarget->m_MaxScreenRes);
 

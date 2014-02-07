@@ -27,4 +27,6 @@ public:
 	virtual BOOL OnInitDialog();
 protected:
 	virtual void OnOK();
+private:
+	char IdleString[20+1];
 };

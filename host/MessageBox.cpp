@@ -29,10 +29,3 @@ int MessageBoxLangArg(UINT iText, UINT iCaption, UINT uType, ...)
 	return MessageBoxExW(NULL, sBuffer, sCaption, uType, NULL);
 }
 
-int MessageBoxLangWstr(LPWSTR lpBuffer, UINT iCaption, UINT uType)
-{
-	WCHAR sCaption[48+1];
-	LoadStringW(AfxGetResourceHandle(), iCaption, (LPWSTR)&sCaption, sizeof(sCaption));
-
-	return MessageBoxExW(NULL, lpBuffer, sCaption, uType, NULL);
-}

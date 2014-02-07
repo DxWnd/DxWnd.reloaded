@@ -87,7 +87,7 @@ static char *Flag4Names[32]={
 	"STRETCHTIMERS", "NOFLIPEMULATION", "NOTEXTURES", "RETURNNULLREF",
 	"FINETIMING", "NATIVERES", "SUPPORTSVGA", "SUPPORTHDTV",
 	"RELEASEMOUSE", "FRAMECOMPENSATION", "HOTPATCH", "ENABLEHOTKEYS",
-	"HOTPATCHALWAYS", "NOD3DRESET", "OVERRIDEREGISTRY", "",
+	"HOTPATCHALWAYS", "NOD3DRESET", "OVERRIDEREGISTRY", "HIDECDROMEMPTY",
 };
 
 static char *TFlagNames[32]={
@@ -557,7 +557,7 @@ LRESULT CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPA
 	}
 
 	pWindowProc=WhndGetWindowProc(hwnd);
-	if(pWindowProc) return(*pWindowProc)(hwnd, message, wparam, lparam);
+	if(pWindowProc) return(*pCallWindowProc)(pWindowProc, hwnd, message, wparam, lparam);
 	char *sMsg="ASSERT: DialogWinMsg pWindowProc=NULL !!!\n";
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "WindowProc", MB_OK | MB_ICONEXCLAMATION);
@@ -571,49 +571,53 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	WNDPROC pWindowProc;
 
 	OutTraceW("DEBUG: ChildWinMsg [0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
-	switch(message){
 
-	// Cybermercs: it seems that all game menus are conveniently handled by the WindowProc routine,
-	// while the action screen get messages processed by the ChildWindowProc, that needs some different
-	// setting ..........
-	// Beware: Cybermercs handles some static info about cursor position handling, so that if you resize
-	// a menu it doesn't work correctly until you don't change screen.
-	case WM_MOUSEMOVE:
-	case WM_MOUSEWHEEL:
-	case WM_LBUTTONDOWN:
-	case WM_LBUTTONUP:
-	case WM_LBUTTONDBLCLK:
-	case WM_RBUTTONDOWN:
-	case WM_RBUTTONUP:
-	case WM_RBUTTONDBLCLK:
-	case WM_MBUTTONDOWN:
-	case WM_MBUTTONUP:
-	case WM_MBUTTONDBLCLK:
-		if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing  
-			POINT prev, curr;
-			// scale mouse coordinates
-			prev.x = LOWORD(lparam);
-			prev.y = HIWORD(lparam);
-			curr = prev;
-			if(message == WM_MOUSEWHEEL){ // v2.02.33 mousewheel fix
-				POINT upleft={0,0};
-				(*pClientToScreen)(dxw.GethWnd(), &upleft);
-				curr = dxw.SubCoordinates(curr, upleft);
+	if(dxw.Windowize){
+		switch(message){
+		// Cybermercs: it seems that all game menus are conveniently handled by the WindowProc routine,
+		// while the action screen get messages processed by the ChildWindowProc, that needs some different
+		// setting ..........
+		// Beware: Cybermercs handles some static info about cursor position handling, so that if you resize
+		// a menu it doesn't work correctly until you don't change screen.
+		case WM_MOUSEMOVE:
+		case WM_MOUSEWHEEL:
+		case WM_LBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_LBUTTONDBLCLK:
+		case WM_RBUTTONDOWN:
+		case WM_RBUTTONUP:
+		case WM_RBUTTONDBLCLK:
+		case WM_MBUTTONDOWN:
+		case WM_MBUTTONUP:
+		case WM_MBUTTONDBLCLK:
+			if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing  
+				POINT prev, curr;
+				// scale mouse coordinates
+				prev.x = LOWORD(lparam);
+				prev.y = HIWORD(lparam);
+				curr = prev;
+				if(message == WM_MOUSEWHEEL){ // v2.02.33 mousewheel fix
+					POINT upleft={0,0};
+					(*pClientToScreen)(dxw.GethWnd(), &upleft);
+					curr = dxw.SubCoordinates(curr, upleft);
+				}
+				//OutTraceC("ChildWindowProc: hwnd=%x pos XY prev=(%d,%d)\n", hwnd, prev.x, prev.y);
+				curr=dxw.FixCursorPos(curr); // Warn! the correction must refer to the main window hWnd, not the current hwnd one !!!
+				lparam = MAKELPARAM(curr.x, curr.y); 
+				OutTraceC("ChildWindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
 			}
-			//OutTraceC("ChildWindowProc: hwnd=%x pos XY prev=(%d,%d)\n", hwnd, prev.x, prev.y);
-			curr=dxw.FixCursorPos(curr); // Warn! the correction must refer to the main window hWnd, not the current hwnd one !!!
-			lparam = MAKELPARAM(curr.x, curr.y); 
-			OutTraceC("ChildWindowProc: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
+			break;	
+		default:
+			break;
 		}
-		break;	
-	default:
-		break;
 	}
 
 	pWindowProc=WhndGetWindowProc(hwnd);
 	
-	if(pWindowProc) return(*pWindowProc)(hwnd, message, wparam, lparam);
-
+	// v2.02.82: use CallWindowProc that handles WinProc handles
+	if(pWindowProc) return(*pCallWindowProc)(pWindowProc, hwnd, message, wparam, lparam);
+	// should never get here ....
+	OutTraceDW("ChildWindowProc: no WndProc for CHILD hwnd=%x\n", hwnd);
 	return DefWindowProc(hwnd, message, wparam, lparam);
 }
 

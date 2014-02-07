@@ -172,6 +172,7 @@ BOOL CTargetDlg::OnInitDialog()
 	int i=0;
 	AfxEnableControlContainer();
 	CDialog::OnInitDialog();
+#if 0
 	m_tabdxTabCtrl.InsertItem(i++, _T("Main"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Video"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Input"));
@@ -181,6 +182,27 @@ BOOL CTargetDlg::OnInitDialog()
 	m_tabdxTabCtrl.InsertItem(i++, _T("Libs"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Compat"));
 	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T("Debug"));
+#else
+	char sCaption[48+1];
+	LoadString(AfxGetResourceHandle(), DXW_TAB_MAIN, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_VIDEO, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_INPUT, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_DIRECTX, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_TIMING, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_LOGS, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_LIBS, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_COMPAT, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_DEBUG, sCaption, sizeof(sCaption));
+	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+#endif
 	m_tabdxTabCtrl.Init();
 	return TRUE;
 }

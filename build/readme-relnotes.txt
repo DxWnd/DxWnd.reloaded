@@ -532,3 +532,10 @@ fixed Sleep bug for small delays and accelerated timeshift: fixes "Wind Fantasy 
 added log for DirectInput::SetCooperativeLevel flags
 fixed flip emulation mode when backbuffer is lost: fixes cursor problems in "HellCopter"
 fixed Pitch setting in DirectDraw::EnumDisplayModes when in SVGA emulation mode. Let "Outlive" use this setting
+
+v2.02.81
+fix: hooked GetMonitorInfoA/W that is a possible way to get the screen resolution. The hooker sets the virtual screen size  updating both rcWork & rcMonitor rects in the MONITORINFO structure. This fixes the mouse control in "Tomb Raider Underworld" and likely in other games with a similar engine.
+
+v2.02.82
+fix: completed chinese translation and language selection through dxwnd.ini file.
+added very preliminary (and incomplete) italian translation for debugging.
