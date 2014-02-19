@@ -51,7 +51,8 @@ MMRESULT WINAPI exttimeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK lp
 	MMRESULT res;
 	UINT NewDelay;
 	OutTraceDW("timeSetEvent: Delay=%d Resolution=%d Event=%x\n", uDelay, uResolution, fuEvent);
-	NewDelay = dxw.StretchTime(uDelay);
+	if(dxw.dwFlags4 & STRETCHTIMERS) NewDelay = dxw.StretchTime(uDelay);
+	else NewDelay = uDelay;
 	res=(*ptimeSetEvent)(NewDelay, uResolution, lpTimeProc, dwUser, fuEvent);
 	if(res) dxw.PushTimer(res, uDelay, uResolution, lpTimeProc, dwUser, fuEvent);
 	OutTraceDW("timeSetEvent: ret=%x\n", res);

@@ -20,7 +20,6 @@
 #define HANDLEEXCEPTIONS	0x00000040 // Handles exceptions: Div by 0 ....
 #define SAVELOAD			0x00000080
 #define EMULATEBUFFER		0x00000100
-//#define HANDLEDC			0x00000200
 #define AUTOMATIC			0x00000200
 #define BLITFROMBACKBUFFER	0x00000400
 #define SUPPRESSCLIPPING	0x00000800
@@ -130,6 +129,7 @@
 #define NOFILLRECT			0x00002000 // Suppress FillRect calls
 #define HOOKGLIDE			0x00004000 // Hook glide calls
 #define HIDEDESKTOP			0x00008000 // Hide desktop background
+#define STRETCHTIMERS		0x00010000 // Enables timers stretching when TIMESTRETCH is on
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

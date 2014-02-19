@@ -396,5 +396,9 @@ Automatic mode allows dynamic mode change depending on the situation: it is nece
 fixed BltFast operation with SRC color key (often used to draw cursor from texures) directly to primary surface: this makes the cursor visible in Populous 3.
 minor fixes on logging
 
+v2.02.59
+fixed IDIrectDraw reference counter for ddraw release 1 session: fixes "Warhammer 40K Rites Of War" first screen
+fixed QueryPerformanceCounter handling: fixes "New Yourk Racer" time stretching problems
+
 
 

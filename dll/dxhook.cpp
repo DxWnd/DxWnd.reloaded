@@ -72,7 +72,7 @@ static char *Flag4Names[32]={
 	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
 	"NOPOWER2FIX", "NOPERFCOUNTER", "ADDPROXYLIBS", "INTERCEPTRDTSC",
 	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "HIDEDESKTOP",
-	"", "", "", "",
+	"STRETCHTIMERS", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -787,8 +787,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 	}
 
+	if(dxw.dwFlags4 & STRETCHTIMERS){
 	if(LastTimeShift != dxw.TimeShift) dxw.RenewTimers();
 	LastTimeShift=dxw.TimeShift;
+	}
 
 	switch(message){
 	// v2.02.13: added WM_GETMINMAXINFO/WM_NCCALCSIZE interception - (see Actua Soccer 3 problems...)
@@ -1200,7 +1202,8 @@ LONG CALLBACK Int3Handler(PEXCEPTION_POINTERS ExceptionInfo)
 		  mov myPerfCount.HighPart, edx
 	   }
 #endif
-		myPerfCount = dxw.StretchCounter(myPerfCount);
+		//myPerfCount = dxw.StretchCounter(myPerfCount);
+		myPerfCount = dxw.StretchLargeCounter(myPerfCount);
 		OutTraceDW("Int3Handler: INT3 at=%x tick=%x RDTSC=%x:%x\n", 
 			ExceptionInfo->ExceptionRecord->ExceptionAddress, (*pGetTickCount)(), myPerfCount.HighPart, myPerfCount.LowPart);
 

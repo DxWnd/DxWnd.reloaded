@@ -1,13 +1,13 @@
 [target]
-title0=Warhammer 40K Chaos Gate
-path0=D:\Games\Warhammer 40K Chaos Gate\game\WH40K.exe
+title0=New York Race
+path0=D:\Games\New York Race\NYR.exe
 module0=
 opengllib0=
-ver0=0
+ver0=8
 coord0=0
-flag0=679494176
-flagg0=134217728
-flagh0=20
+flag0=687867937
+flagg0=1207959568
+flagh0=65556
 flagi0=4
 tflag0=0
 initx0=0

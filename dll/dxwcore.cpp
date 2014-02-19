@@ -1438,18 +1438,24 @@ void dxwCore::PopTimer(HWND hWnd, UINT_PTR nIDEvent)
 
 void dxwCore::RenewTimers()
 {
+	OutTraceE("DXWND: RenewTimers type=%x\n", TimerEvent.dwTimerType);
 	switch(TimerEvent.dwTimerType){
 	case TIMER_TYPE_NONE:
+		OutTraceDW("DXWND: RenewTimers type=NONE\n");
 		break;
 	case TIMER_TYPE_USER32:
 		if(pSetTimer && pKillTimer){
 			UINT uElapse;
 			UINT_PTR res;
-			(*pKillTimer)(TimerEvent.t.hWnd, TimerEvent.t.nIDEvent);
+			res=(*pKillTimer)(TimerEvent.t.hWnd, TimerEvent.t.nIDEvent);
+			if(!res) OutTraceE("DXWND: KillTimer ERROR hWnd=%x IDEvent=%x err=%d\n", TimerEvent.t.hWnd, TimerEvent.t.nIDEvent, GetLastError());
 			uElapse = dxw.StretchTime(TimerEvent.t.uElapse);
 			res=(*pSetTimer)(TimerEvent.t.hWnd, TimerEvent.t.nIDEvent, uElapse, TimerEvent.t.lpTimerFunc);
 			TimerEvent.t.nIDEvent = res;
+			if(res)
 			OutTraceDW("DXWND: RenewTimers type=USER32 Elsapse=%d IDEvent=%x\n", uElapse, res);
+			else
+				OutTraceE("DXWND: SetTimer ERROR hWnd=%x Elapse=%d TimerFunc=%x err=%d\n", TimerEvent.t.hWnd, uElapse, TimerEvent.t.lpTimerFunc, GetLastError());
 		}
 		break;
 	case TIMER_TYPE_WINMM:
@@ -1463,7 +1469,35 @@ void dxwCore::RenewTimers()
 			OutTraceDW("DXWND: RenewTimers type=WINMM Delay=%d TimerId=%x\n", NewDelay, res);
 		}
 		break;
+	default:
+		OutTraceE("DXWND: RenewTimers type=%x(UNKNOWN)\n", TimerEvent.dwTimerType);
+		break;
 	}
+}
+
+LARGE_INTEGER dxwCore::StretchLargeCounter(LARGE_INTEGER CurrentInCount)
+{
+	LARGE_INTEGER CurrentOutPerfCount;
+	static LARGE_INTEGER LastInPerfCount;
+	static LARGE_INTEGER LastOutPerfCount;
+	static BOOL FirstTime = TRUE;
+	LARGE_INTEGER ElapsedCount;
+
+	if(FirstTime){
+		// first time through, initialize both inner and output per counters with real values
+		LastInPerfCount.QuadPart = CurrentInCount.QuadPart;
+		LastOutPerfCount.QuadPart = CurrentInCount.QuadPart;
+		FirstTime=FALSE;
+	}
+
+	ElapsedCount.QuadPart = CurrentInCount.QuadPart - LastInPerfCount.QuadPart;
+	ElapsedCount = dxw.StretchCounter(ElapsedCount);
+	CurrentOutPerfCount.QuadPart = LastOutPerfCount.QuadPart + ElapsedCount.QuadPart;
+	LastInPerfCount = CurrentInCount;
+	LastOutPerfCount = CurrentOutPerfCount;
+
+	OutTraceB("dxw::StretchCounter: Count=[%x-%x]\n", CurrentOutPerfCount.HighPart, CurrentOutPerfCount.LowPart);
+	return CurrentOutPerfCount;
 }
 
 BOOL dxwCore::CheckScreenResolution(unsigned int w, unsigned int h)

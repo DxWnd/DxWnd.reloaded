@@ -113,6 +113,7 @@ public: // methods
 	void PopTimer(HWND, UINT_PTR);
 	void RenewTimers();
 	BOOL CheckScreenResolution(unsigned int, unsigned int);
+	LARGE_INTEGER StretchLargeCounter(LARGE_INTEGER);
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;

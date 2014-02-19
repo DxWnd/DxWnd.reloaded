@@ -104,6 +104,7 @@ public:
 	BOOL	m_ShowFPSOverlay;
 	BOOL	m_ShowTimeStretch;
 	BOOL	m_TimeStretch;
+	BOOL	m_StretchTimers;
 	BOOL	m_InterceptRDTSC;
 	BOOL	m_HookOpenGL;
 	BOOL	m_ForceHookOpenGL;

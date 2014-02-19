@@ -351,17 +351,18 @@ void WINAPI extGetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
 {
 	BOOL ret;
-	LARGE_INTEGER myPerfCount;
+
 	if(dxw.dwFlags4 & NOPERFCOUNTER){
 		ret=0;
-		myPerfCount.QuadPart = 0;
+		(*lpPerformanceCount).QuadPart = 0;
 	}
 	else{
-		ret=(*pQueryPerformanceCounter)(&myPerfCount);
-		myPerfCount = dxw.StretchCounter(myPerfCount);
+		LARGE_INTEGER CurrentInCount;
+		ret=(*pQueryPerformanceCounter)(&CurrentInCount);
+		*lpPerformanceCount = dxw.StretchLargeCounter(CurrentInCount);
 	}
-	*lpPerformanceCount = myPerfCount;
-	OutTraceB("QueryPerformanceCounter: ret=%x Count=%x-%x\n", ret, lpPerformanceCount->HighPart, lpPerformanceCount->LowPart);
+
+	OutTraceB("QueryPerformanceCounter: ret=%x Count=[%x-%x]\n", ret, lpPerformanceCount->HighPart, lpPerformanceCount->LowPart);
 	return ret;
 }
 

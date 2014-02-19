@@ -317,8 +317,8 @@ static char *DumpPixelFormat(LPDDSURFACEDESC2 lpddsd)
 	static char sBuf[512];
 	char sItem[256];
 	DWORD flags=lpddsd->ddpfPixelFormat.dwFlags;
-	sprintf(sBuf, " PixelFormat size=%d flags=%x(%s) BPP=%d", 
-		lpddsd->dwSize, flags, ExplainPixelFormatFlags(flags), lpddsd->ddpfPixelFormat.dwRGBBitCount);
+	sprintf(sBuf, " PixelFormat flags=%x(%s) BPP=%d", 
+		flags, ExplainPixelFormatFlags(flags), lpddsd->ddpfPixelFormat.dwRGBBitCount);
 	if (flags & DDPF_RGB) {
 		if (flags & DDPF_ALPHAPIXELS) {
 			sprintf(sItem, " RGBA=(%x,%x,%x,%x)", 
@@ -1442,6 +1442,13 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 	OutTraceDDRAW("DirectDrawCreate: lpdd=%x guid=%s DDVersion=%d\n", *lplpdd, mode, dxw.dwDDVersion);
 
 	HookDDSession(lplpdd, dxw.dwDDVersion);
+
+	// beware: old ddraw games seem to reuse a closed ddraw handle. The theory is that maybe whenever
+	// you created a ddraw session, you got more than one reference count, so that releasing it once 
+	// did not destroy the object.... but why? when (I mean, in which situations? Maybe not always...)
+	// and for which releases? The fix here assumes that this fact is true and holds always for ddraw 1
+	// sessions. 
+	if(dxw.dwDDVersion==1) (*lplpdd)->AddRef(); // seems to fix problems in "Warhammer 40K Rites Of War"
 
 	if(IsDebug && (dxw.dwTFlags & OUTPROXYTRACE)){
 		DDCAPS DriverCaps, EmulCaps;
@@ -3438,6 +3445,7 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 
 	// v2.1.84: SUPPRESSCLIPPING flag - improves "Monopoly Edition 3D" where continuous
 	// clipping ON & OFF affects blitting on primary surface.
+	// Needed also to avoid "New Yourk Racer" intro movie clipping.
 	if(dxw.dwFlags1 & SUPPRESSCLIPPING) return 0;
 
 	if(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){

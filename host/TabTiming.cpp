@@ -35,6 +35,7 @@ void CTabTiming::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SHOWTIMESTRETCH, cTarget->m_ShowTimeStretch);
 	DDX_Check(pDX, IDC_TIMESTRETCH, cTarget->m_TimeStretch);
 	DDX_Check(pDX, IDC_INTERCEPTRDTSC, cTarget->m_InterceptRDTSC);
+	DDX_Check(pDX, IDC_STRETCHTIMERS, cTarget->m_StretchTimers);
 	DDX_Text(pDX, IDC_MAXFPS, cTarget->m_MaxFPS);
 	DDX_LBIndex(pDX, IDC_LISTTS, cTarget->m_InitTS);
 	//{{AFX_DATA_MAP(CTabTiming)

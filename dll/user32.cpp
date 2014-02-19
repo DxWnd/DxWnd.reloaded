@@ -149,7 +149,7 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 		if (addr=RemapLibrary(proc, hModule, MouseHooks2)) return addr;
 	if (dxw.dwFlags3 & PEEKALLMESSAGES)
 		if (addr=RemapLibrary(proc, hModule, PeekAllHooks)) return addr;
-	if(dxw.dwFlags2 & TIMESTRETCH)
+	if((dxw.dwFlags2 & TIMESTRETCH) && (dxw.dwFlags4 & STRETCHTIMERS)) 
 		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
 
 	return NULL;
@@ -2268,5 +2268,6 @@ BOOL WINAPI extKillTimer(HWND hWnd, UINT_PTR uIDEvent)
 	OutTraceDW("KillTimer: hwnd=%x IDEvent=%x\n", hWnd, uIDEvent); 
 	ret = (*pKillTimer)(hWnd, uIDEvent);
 	OutTraceDW("KillTimer: ret=%x\n", ret);
+	if(ret) dxw.PopTimer(hWnd, uIDEvent);
 	return ret;
 }
