@@ -1,15 +1,15 @@
 [target]
-title0=Black Thorn
-path0=D:\Games\Black Thorn\BlackThorn.exe
+title0=Jumpgate Classic
+path0=D:\Games\Jumpgate\Jumpgate\jumpgate.exe
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=687882276
-flagg0=134217728
-flagh0=20
-flagi0=131076
-tflag0=6210
+flag0=134234656
+flagg0=1207959568
+flagh0=84
+flagi0=2
+tflag0=6146
 initx0=0
 inity0=0
 minx0=0

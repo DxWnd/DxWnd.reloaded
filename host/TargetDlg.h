@@ -128,7 +128,6 @@ public:
 	BOOL	m_ZBufferAlways;
 	BOOL	m_NoPower2Fix;
 	BOOL	m_NoPerfCounter;
-	BOOL	m_AddProxyLibs;
 	BOOL	m_DisableFogging;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
@@ -144,6 +143,7 @@ public:
 	BOOL	m_SaveCaps;
 	BOOL	m_SingleProcAffinity;
 	BOOL	m_WireFrame;
+	BOOL	m_NoTextures;
 	BOOL	m_BlackWhite;
 	BOOL	m_SuppressD3DExt;
 	BOOL	m_Force16BPP;

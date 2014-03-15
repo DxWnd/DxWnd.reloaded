@@ -3264,8 +3264,21 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 		//DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[temp]" , __LINE__);
 		res=(*pCreateSurfaceMethod(lpdds))(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
 		if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		OutTrace("DEBUG: copied surface size=(%dx%d)\n", ddsd.dwWidth, ddsd.dwHeight);
 		// copy front buffer 
-		res= (*pBlt)(lpddsTmp, NULL, lpdds, NULL, DDBLT_WAIT, NULL);
+
+		if(dxw.dwFlags1 & EMULATESURFACE){
+			// in emulated mode, the primary surface is virtual and you can pick it all
+			// needed for "Gruntz"
+			res= (*pBlt)(lpddsTmp, NULL, lpdds, NULL, DDBLT_WAIT, NULL);
+		}
+		else {
+			// in no-emulated mode, the primary surface is the whole screen, so you have to pick...
+			// needed for "Black Thorn"
+			RECT clip;
+			clip=dxw.GetUnmappedScreenRect();
+			res= (*pBlt)(lpddsTmp, NULL, lpdds, &clip, DDBLT_WAIT, NULL);
+		}
 		if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 	}
 

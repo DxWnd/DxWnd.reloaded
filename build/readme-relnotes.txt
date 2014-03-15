@@ -412,5 +412,9 @@ v2.02.62
 fixed d3d7 CreateDevice hook and d3d7 rendering options (wireframe, disablefogging, zbufferalways)
 fixed doublebuffer emulation - avoid returning the backbuffer when zbuffer is requested. Fixes rendering problems of many games!
 
+v2.02.63
+fixed d3d hooking for Reset and GetDirect3D methods: now Jumpgate works at any available resolution, and the "Add proxy libs" option is no longer necessary
+fixed "Compensate Flip emulation" option for non emulated surface mode: fixes mouse artifacts for "Rogue Spear Black Thorn" 
+added preliminary handling for "Disable Textures" option
 
 

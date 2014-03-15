@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.62"
+#define VERSION "2.02.63"
 
 #define DDTHREADLOCK 1
 
@@ -154,7 +154,7 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 	// take care here: if anything stops or delays the execution logic, the whole
 	// operating system hangs, since it can't activate new windows!
 
-	// could use WM_NCCREATE insteas of WM_CREATE. Are there differences?
+	// could use WM_NCCREATE instead of WM_CREATE. Are there differences?
 	hwnd = ((CWPSTRUCT *)lparam)->hwnd;
 	if(((CWPSTRUCT *)lparam)->message == WM_CREATE){
 		GetModuleFileName(0, name, MAX_PATH);

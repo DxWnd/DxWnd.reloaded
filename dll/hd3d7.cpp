@@ -67,6 +67,8 @@ typedef HRESULT (WINAPI *GetCurrentViewport2_Type)(void *, LPDIRECT3DVIEWPORT2 *
 typedef HRESULT (WINAPI *SetCurrentViewport2_Type)(void *, LPDIRECT3DVIEWPORT2);
 typedef HRESULT (WINAPI *GetCurrentViewport3_Type)(void *, LPDIRECT3DVIEWPORT3 *);
 typedef HRESULT (WINAPI *SetCurrentViewport3_Type)(void *, LPDIRECT3DVIEWPORT3);
+typedef HRESULT (WINAPI *SetTexture3_Type)(void *, DWORD, LPDIRECT3DTEXTURE2);
+typedef HRESULT (WINAPI *SetTexture7_Type)(void *, DWORD, LPDIRECTDRAWSURFACE7);
 
 D3DInitialize_Type pD3DInitialize = NULL;
 D3DGetCaps_Type pD3DGetCaps = NULL;
@@ -92,6 +94,8 @@ GetCurrentViewport2_Type pGetCurrentViewport2 = NULL;
 SetCurrentViewport2_Type pSetCurrentViewport2 = NULL;
 GetCurrentViewport3_Type pGetCurrentViewport3 = NULL;
 SetCurrentViewport3_Type pSetCurrentViewport3 = NULL;
+SetTexture3_Type pSetTexture3 = NULL;
+SetTexture7_Type pSetTexture7 = NULL;
 
 // IDirect3DViewport-n interfaces
 
@@ -122,8 +126,6 @@ DeleteViewport1_Type pDeleteViewport1 = NULL;
 NextViewport1_Type pNextViewport1 = NULL;
 DeleteViewport2_Type pDeleteViewport2 = NULL;
 NextViewport2_Type pNextViewport2 = NULL;
-
-
 
 
 HRESULT WINAPI extInitialize(void *);
@@ -179,6 +181,8 @@ HRESULT WINAPI extSetCurrentViewport3(void *, LPDIRECT3DVIEWPORT3);
 HRESULT WINAPI extGetCurrentViewport3(void *, LPDIRECT3DVIEWPORT3 *);
 HRESULT WINAPI extSetViewport7(void *, LPD3DVIEWPORT7);
 HRESULT WINAPI extGetViewport7(void *, LPD3DVIEWPORT7);
+HRESULT WINAPI extSetTexture3(void *, DWORD, LPDIRECT3DTEXTURE2);
+HRESULT WINAPI extSetTexture7(void *, DWORD, LPDIRECTDRAWSURFACE7);
 
 extern char *ExplainDDError(DWORD);
 
@@ -308,7 +312,6 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
 			if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
-			//if(1) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
 		}		
 		break;
 	case 3:
@@ -320,11 +323,11 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  52), extGetCurrentViewport3, (void **)&pGetCurrentViewport3, "GetCurrentViewport(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  88), extSetRenderState3, (void **)&pSetRenderState3, "SetRenderState(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  96), extSetLightState3, (void **)&pSetLightState3, "SetLightState(3)");
+		if (dxw.dwFlags4 & NOTEXTURES) SetHook((void *)(**(DWORD **)lpd3ddev + 152), extSetTexture3, (void **)&pSetTexture3, "SetTexture(D3)");
 		if(pSetRenderState3){
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
 			if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
-			//if(1) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
 		}		
 		break;
 	case 7:
@@ -333,11 +336,11 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  60), extGetViewport7, (void **)&pGetViewport7, "GetViewport(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extSetRenderState7, (void **)&pSetRenderState7, "SetRenderState(7)");
+		if (dxw.dwFlags4 & NOTEXTURES) SetHook((void *)(**(DWORD **)lpd3ddev + 140), extSetTexture7, (void **)&pSetTexture7, "SetTexture(D7)");
 		if(pSetRenderState7){
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState7)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState7)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
 			if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState7)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
-			//if(1) (*pSetRenderState7)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
 		}		
 		break;
 	}
@@ -1198,4 +1201,14 @@ HRESULT WINAPI extNextViewport2(void *d3dd, LPDIRECT3DVIEWPORT2 lpd3dvp, LPDIREC
 	if(res) OutTraceE("NextViewport(D3DD2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("NextViewport(D3DD2): next=%x\n", *vpnext);
 	return res;
+}
+
+HRESULT WINAPI extSetTexture3(void *, DWORD, LPDIRECT3DTEXTURE2)
+{
+	return DD_OK;
+}
+
+HRESULT WINAPI extSetTexture7(void *, DWORD, LPDIRECTDRAWSURFACE7)
+{
+	return DD_OK;
 }

@@ -205,6 +205,7 @@
 #define IDC_HIDEDESKTOP                 1163
 #define IDC_STRETCHTIMERS               1164
 #define IDC_NOFLIPEMULATION             1165
+#define IDC_NOTEXTURES                  1166
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

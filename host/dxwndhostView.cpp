@@ -166,7 +166,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ZBufferAlways) t->flags4 |= ZBUFFERALWAYS;
 	if(dlg->m_NoPower2Fix) t->flags4 |= NOPOWER2FIX;
 	if(dlg->m_NoPerfCounter) t->flags4 |= NOPERFCOUNTER;
-	if(dlg->m_AddProxyLibs) t->flags4 |= ADDPROXYLIBS;
 	if(dlg->m_DisableFogging) t->flags4 |= DISABLEFOGGING;
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
@@ -238,6 +237,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
 	if(dlg->m_ForceHookOpenGL) t->flags3 |= FORCEHOOKOPENGL;
 	if(dlg->m_WireFrame) t->flags2 |= WIREFRAME;
+	if(dlg->m_NoTextures) t->flags4 |= NOTEXTURES;
 	if(dlg->m_BlackWhite) t->flags3 |= BLACKWHITE;
 	if(dlg->m_FakeVersion) t->flags2 |= FAKEVERSION;
 	if(dlg->m_FullRectBlt) t->flags2 |= FULLRECTBLT;
@@ -340,7 +340,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ZBufferAlways = t->flags4 & ZBUFFERALWAYS ? 1 : 0;
 	dlg->m_NoPower2Fix = t->flags4 & NOPOWER2FIX ? 1 : 0;
 	dlg->m_NoPerfCounter = t->flags4 & NOPERFCOUNTER ? 1 : 0;
-	dlg->m_AddProxyLibs = t->flags4 & ADDPROXYLIBS ? 1 : 0;
 	dlg->m_DisableFogging = t->flags4 & DISABLEFOGGING ? 1 : 0;
 	dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
@@ -395,6 +394,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;
 	dlg->m_ForceHookOpenGL = t->flags3 & FORCEHOOKOPENGL ? 1 : 0;
 	dlg->m_WireFrame = t->flags2 & WIREFRAME ? 1 : 0;
+	dlg->m_NoTextures = t->flags4 & NOTEXTURES ? 1 : 0;
 	dlg->m_BlackWhite = t->flags3 & BLACKWHITE ? 1 : 0;
 	dlg->m_FakeVersion = t->flags2 & FAKEVERSION ? 1 : 0;
 	dlg->m_FullRectBlt = t->flags2 & FULLRECTBLT ? 1 : 0;

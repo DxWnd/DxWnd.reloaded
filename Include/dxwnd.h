@@ -123,7 +123,7 @@
 #define DISABLEFOGGING		0x00000080 // Disable D3D fogging
 #define NOPOWER2FIX			0x00000100 // Handle textures whose size is not a power of 2 (32, 64, 128 ...)
 #define NOPERFCOUNTER		0x00000200 // Disables the GetPerfCounter performance metrics API,as if it was not supported....
-#define ADDPROXYLIBS		0x00000400 // Add proxy libs to otherwise hook-resilient system libraries (e.g. d3d9.dll)
+//#define ADDPROXYLIBS		0x00000400 // Add proxy libs to otherwise hook-resilient system libraries (e.g. d3d9.dll)
 #define INTERCEPTRDTSC		0x00000800 // Intercapts RDTSC opcodes to hook at assembly level
 #define LIMITSCREENRES		0x00001000 // Limit available screen resolution up to defined maximum
 #define NOFILLRECT			0x00002000 // Suppress FillRect calls
@@ -131,6 +131,7 @@
 #define HIDEDESKTOP			0x00008000 // Hide desktop background
 #define STRETCHTIMERS		0x00010000 // Enables timers stretching when TIMESTRETCH is on
 #define NOFLIPEMULATION		0x00020000 // Compensate the effect of Flip-ping through Blt operations
+#define NOTEXTURES			0x00040000 // Disabled (whitened) textures
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
