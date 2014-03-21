@@ -132,6 +132,7 @@
 #define STRETCHTIMERS		0x00010000 // Enables timers stretching when TIMESTRETCH is on
 #define NOFLIPEMULATION		0x00020000 // Compensate the effect of Flip-ping through Blt operations
 #define NOTEXTURES			0x00040000 // Disabled (whitened) textures
+#define RETURNNULLREF		0x00080000 // IDirectDraw::Release and IDDrawSurface::Release will always return 0 ref. counter
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -154,7 +155,7 @@
 // DxWnd host app data to be passed to the hook callback
 typedef struct TARGETMAP
 {
-	char path[MAX_PATH];
+	char path[MAX_PATH+1];
 	char module[60+1];
 	char OpenGLLib[20+1];
 	int dxversion;

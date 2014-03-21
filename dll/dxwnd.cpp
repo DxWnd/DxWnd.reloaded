@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.63"
+#define VERSION "2.02.64"
 
 #define DDTHREADLOCK 1
 
@@ -146,10 +146,13 @@ void SetFPS(int fps)
 
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 {
-	char name[MAX_PATH];
+	char name[MAX_PATH+1];
 	HWND hwnd;
 	int i;
 	static int DoOnce = FALSE;
+
+	// don't do more than once per process
+	if(DoOnce) return CallNextHookEx(hHook, ncode, wparam, lparam);
 
 	// take care here: if anything stops or delays the execution logic, the whole
 	// operating system hangs, since it can't activate new windows!
@@ -157,6 +160,7 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 	// could use WM_NCCREATE instead of WM_CREATE. Are there differences?
 	hwnd = ((CWPSTRUCT *)lparam)->hwnd;
 	if(((CWPSTRUCT *)lparam)->message == WM_CREATE){
+		name[MAX_PATH]=0; // string terminator
 		GetModuleFileName(0, name, MAX_PATH);
 		for(i = 0; name[i]; i ++) name[i] = tolower(name[i]);
 		WaitForSingleObject(hMutex, INFINITE);
@@ -168,7 +172,6 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 				// check for locking thread (and hook) just once per process.
 				// This callback is invoked per each process' thread.
 
-				if(DoOnce) break;
 				DoOnce = TRUE;
 
 				// V.68: concurrency check. One game at a time, or exiting.

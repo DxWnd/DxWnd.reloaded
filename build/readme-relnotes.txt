@@ -417,4 +417,19 @@ fixed d3d hooking for Reset and GetDirect3D methods: now Jumpgate works at any a
 fixed "Compensate Flip emulation" option for non emulated surface mode: fixes mouse artifacts for "Rogue Spear Black Thorn" 
 added preliminary handling for "Disable Textures" option
 
+v2.02.64
+GUI: implemented multiple file import
+DLL:
+fixed a ddraw session reference count error that prevented "Jet Moto" to start
+fixed "Compensate Flip emulation" for ddraw7 games: now "Empire Earth" supports this flag.
+fixed CloseWindow hook: now games that minimize/restore the main window on task switch can possibly recover (e.g. Hundred Swords)
+fixed process hook: now it should be a little more robust and efficient. Hopefully should fix some Macromedia Flash problems.
+fixed IDDrawSurface::Lock() prototype. Not gameplay improvements, though...
+added DirectX "Return 0 ref counter" option as quick & dirty solution to many reference counter problems!
+fixed DirectDrawCreateEx failing to register the main ddraw session handle
+fixed palette problem in emulated mode: palette must be applied to backbuffer surface as well. Now "Duckman" and "Total Soccer 2000" show perfect colors.
+
+
+
+
 

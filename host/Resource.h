@@ -185,8 +185,7 @@
 #define IDC_NOALPHACHANNEL              1143
 #define IDC_SUPPRESSCHILD               1144
 #define IDC_FIXREFCOUNTER               1145
-#define IDC_LIMITSCREENRES              1145
-#define IDC_SHOWTIMESTRETCH             1146
+#define IDC_RETURNNULLREF               1146
 #define IDC_ZBUFFERALWAYS               1147
 #define IDC_ZBUFFER0CLEAN               1148
 #define IDC_NOPOWER2FIX                 1149
@@ -206,6 +205,9 @@
 #define IDC_STRETCHTIMERS               1164
 #define IDC_NOFLIPEMULATION             1165
 #define IDC_NOTEXTURES                  1166
+#define IDC_LIMITSCREENRES              1167
+#define IDC_SHOWTIMESTRETCH             1168
+
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

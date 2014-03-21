@@ -1,14 +1,14 @@
 [target]
-title0=Grand Prix Legends
-path0=D:\Games\gpl\gpl.exe
+title0=Dark Planet: Battle for Natrolis
+path0=D:\Games\DarkPlanet\Dark.exe
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=679485472
-flagg0=1207959552
+flag0=671088673
+flagg0=1208025088
 flagh0=20
-flagi0=4
+flagi0=12
 tflag0=0
 initx0=0
 inity0=0
@@ -23,4 +23,4 @@ sizy0=600
 maxfps0=0
 initts0=0
 winver0=0
-maxres0=0
+maxres0=-1

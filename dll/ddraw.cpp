@@ -81,8 +81,8 @@ HRESULT WINAPI extGetSurfaceDesc1(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpd
 HRESULT WINAPI extGetSurfaceDesc2(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd);
 HRESULT WINAPI extGetSurfaceDesc7(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd);
 //    STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, LPDDSURFACEDESC2) PURE;
-HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, DWORD, HANDLE);
-HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, DWORD, HANDLE);
+HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE, LPRECT, LPDDSURFACEDESC, DWORD, HANDLE);
+HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE, LPRECT, LPDDSURFACEDESC, DWORD, HANDLE);
 HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE, HDC);
 HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE, LPDIRECTDRAWCLIPPER);
 HRESULT WINAPI extSetColorKey(LPDIRECTDRAWSURFACE, DWORD, LPDDCOLORKEY);
@@ -731,9 +731,9 @@ CreateSurface2_Type pCreateSurfaceMethod(LPDIRECTDRAWSURFACE lpdds)
 	void * extUnlock;
 	extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
 	if(extUnlock==(void *)extUnlock1) return (CreateSurface2_Type)pCreateSurface1;
-	if(extUnlock==(void *)extUnlock4) return (CreateSurface2_Type)pCreateSurface4;
+	if(extUnlock==(void *)extUnlock4) return pCreateSurface7 ? (CreateSurface2_Type)pCreateSurface7 : (CreateSurface2_Type)pCreateSurface4;
 	if(extUnlock==(void *)extUnlockDir1) return (CreateSurface2_Type)pCreateSurface1;
-	if(extUnlock==(void *)extUnlockDir4) return (CreateSurface2_Type)pCreateSurface4;
+	if(extUnlock==(void *)extUnlockDir4) return pCreateSurface7 ? (CreateSurface2_Type)pCreateSurface7 : (CreateSurface2_Type)pCreateSurface4;
 	sprintf_s(sMsg, 80, "pCreateSurfaceMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "pCreateSurfaceMethod", MB_OK | MB_ICONEXCLAMATION);
@@ -1481,7 +1481,10 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 	// did not destroy the object.... but why? when (I mean, in which situations? Maybe not always...)
 	// and for which releases? The fix here assumes that this fact is true and holds always for ddraw 1
 	// sessions. 
-	if(dxw.dwDDVersion==1) (*lplpdd)->AddRef(); // seems to fix problems in "Warhammer 40K Rites Of War"
+	// update: this is no good for "Jet Moto" that created a ddraw session and expects to Release it 
+	// with a refcount zero.
+
+	//if(dxw.dwDDVersion==1) (*lplpdd)->AddRef(); // seems to fix problems in "Warhammer 40K Rites Of War"
 
 	if(IsDebug && (dxw.dwTFlags & OUTPROXYTRACE)){
 		DDCAPS DriverCaps, EmulCaps;
@@ -1555,6 +1558,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	OutTraceDDRAW("DirectDrawCreateEx: lpdd=%x guid=%s DDVersion=%d\n", *lplpdd, mode, dxw.dwDDVersion);
 
 	HookDDSession(lplpdd, dxw.dwDDVersion);
+	lpPrimaryDD=*lplpdd;
 
 	return 0;
 }
@@ -2733,6 +2737,11 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
  
 		// rebuild the clipper area
 		if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
+
+		// v2.2.64: added extra ref needed to preserve ddraw session for later use. Is it a ddraw1 legacy?
+		// seems to fix problems in "Warhammer 40K Rites Of War" that uses a ddraw session after reaching 0 refcount.
+		if(dxw.dwDDVersion==1) lpdd->AddRef();
+
 		return DD_OK;
 	}
 
@@ -3474,6 +3483,13 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 			if(res2) OutTraceE("SetPalette: GetEntries ERROR res=%x(%s)\n", res2, ExplainDDError(res2));
 			//mySetPalette(0, 256, lpentries);
 		}
+		// Apply palette to backbuffer surface. This is necessary on some games: "Duckman private dick", "Total Soccer 2000", ...
+		if (lpDDSBack) { 
+			res=(*pSetPalette)(lpDDSBack, lpddp);
+			if(res) OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		}
+		// add a reference to simulate what would happen in reality....
+		lpdds->AddRef();
 		res=0;
 	}
 
@@ -3540,7 +3556,7 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 	return res;
 }
 
-HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSURFACE lpdds2, DWORD flags, HANDLE hEvent)
+HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -3549,22 +3565,22 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSUR
 	CleanRect(&lprect, __LINE__);
 
 	if(IsTraceDDRAW){
-		OutTrace("Lock: lpdds=%x%s flags=%x(%s) lpdds2=%x", 
-			lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpdds2);
+		OutTrace("Lock: lpdds=%x%s flags=%x(%s) lpDDSurfaceDesc=%x", 
+			lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc);
 		if (lprect) 
 			OutTrace(" rect=(%d,%d)-(%d,%d)\n", lprect->left, lprect->top, lprect->right, lprect->bottom);
 		else
 			OutTrace(" rect=(NULL)\n");
 	}
 
-	res=(*pLock)(lpdds, lprect, lpdds2, flags, hEvent);
+	res=(*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 	if(res==DDERR_SURFACEBUSY){ // v70: fix for "Ancient Evil"
 		(*pUnlockMethod(lpdds))(lpdds, NULL);
-		res = (*pLock)(lpdds, lprect, lpdds2, flags, hEvent);
+		res = (*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 		OutTraceDW("Lock RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
 	}
 	if(res) OutTraceE("Lock ERROR: ret=%x(%s)\n", res, ExplainDDError(res));
-	DumpSurfaceAttributes((LPDDSURFACEDESC)lpdds2, "[Locked]" , __LINE__);
+	DumpSurfaceAttributes(lpDDSurfaceDesc, "[Locked]" , __LINE__);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 
 	// shouldn't happen.... if hooked to non primary surface, just call regular method.
@@ -3574,7 +3590,7 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSUR
 
 LPDIRECTDRAWSURFACE2 lpDDSBuffer = NULL;
 
-HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSURFACE lpdds2, DWORD flags, HANDLE hEvent)
+HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 {
 	HRESULT res, res2;
 	static RECT client;
@@ -3586,8 +3602,8 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAW
 	// to find out whether it is the primary or not, using lpdds==lpPrimaryDD->GetGDISurface(&lpDDSPrim);
 
 	if(IsTraceDDRAW){
-		OutTrace("Lock: lpdds=%x flags=%x(%s) lpdds2=%x", 
-			lpdds, flags, ExplainLockFlags(flags), lpdds2);
+		OutTrace("Lock: lpdds=%x flags=%x(%s) lpDDSurfaceDesc=%x", 
+			lpdds, flags, ExplainLockFlags(flags), lpDDSurfaceDesc);
 		if (lprect) 
 			OutTrace(" rect=(%d,%d)-(%d,%d)\n", lprect->left, lprect->top, lprect->right, lprect->bottom);
 		else
@@ -3643,10 +3659,10 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAW
 		}
 	}
 
-	res=(*pLock)(lpdds, lprect, lpdds2, flags, hEvent);
+	res=(*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 
 	if(res) OutTraceE("Lock ERROR: ret=%x(%s)\n", res, ExplainDDError(res));
-	DumpSurfaceAttributes((LPDDSURFACEDESC)lpdds2, "[Locked]" , __LINE__);
+	DumpSurfaceAttributes((LPDDSURFACEDESC)lpDDSurfaceDesc, "[Locked]" , __LINE__);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 
 	return res;
@@ -4109,6 +4125,8 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 			lpDDSBack = NULL;
 		}
 	}
+
+	if(dxw.dwFlags4 & RETURNNULLREF) return 0;
 	return res;
 }
 
@@ -4373,6 +4391,8 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 	//if((ActualRef==0) && (dxw.dwFlags3 & FORCE16BPP)) SwitchTo16BPP();
 
 	OutTraceDDRAW("Release(D): lpdd=%x ref=%x\n", lpdd, VirtualRef);
+
+	if(dxw.dwFlags4 & RETURNNULLREF) return 0;
 	return (ULONG)VirtualRef;
 }
 

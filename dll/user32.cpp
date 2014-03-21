@@ -2092,11 +2092,12 @@ BOOL WINAPI extDestroyWindow(HWND hWnd)
 
 BOOL WINAPI extCloseWindow(HWND hWnd)
 {
+	// from MSDN: Minimizes (but does not destroy) the specified window.
 	BOOL res;
 	OutTraceB("CloseWindow: hwnd=%x\n", hWnd);
 	if (hWnd == dxw.GethWnd()) {
 		OutTraceDW("CloseWindow: close main hwnd=%x\n", hWnd);
-		dxw.SethWnd(NULL);
+		// do not delete the reference to main hWnd.
 	}
 	res=(*pCloseWindow)(hWnd);
 	if(!res)OutTraceE("CloseWindow: ERROR err=%d\n", GetLastError());

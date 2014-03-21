@@ -1,15 +1,15 @@
 [target]
-title0=JetMoto
-path0=D:\Games\Jet_Moto\JETMOTO.EXE
+title0=Abomination
+path0=D:\Games\Abomination\Abomb.exe
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=671088674
-flagg0=1207959552
+flag0=134218272
+flagg0=134217728
 flagh0=20
-flagi0=0
-tflag0=64
+flagi0=4
+tflag0=0
 initx0=0
 inity0=0
 minx0=0
@@ -22,3 +22,5 @@ sizx0=800
 sizy0=600
 maxfps0=0
 initts0=0
+winver0=0
+maxres0=-1

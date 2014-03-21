@@ -176,6 +176,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
 	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
 	if(dlg->m_FixRefCounter) t->flags4 |= FIXREFCOUNTER;
+	if(dlg->m_ReturnNullRef) t->flags4 |= RETURNNULLREF;
 	if(dlg->m_SuppressChild) t->flags4 |= SUPPRESSCHILD;
 	if(dlg->m_HideDesktop) t->flags4 |= HIDEDESKTOP;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
@@ -323,6 +324,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
 	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
 	dlg->m_FixRefCounter = t->flags4 & FIXREFCOUNTER ? 1 : 0;
+	dlg->m_ReturnNullRef = t->flags4 & RETURNNULLREF ? 1 : 0;
 	dlg->m_SuppressChild = t->flags4 & SUPPRESSCHILD ? 1 : 0;
 	dlg->m_HideDesktop = t->flags4 & HIDEDESKTOP ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
@@ -812,35 +814,59 @@ void CDxwndhostView::OnExport()
 
 void CDxwndhostView::OnImport()
 {
+	LV_ITEM listitem;
 	int i;
     char path[MAX_PATH];
 	for (i=0; strlen(TargetMaps[i].path) && i<MAXTARGETS; i++)
 		;
 	if (i==MAXTARGETS) return;
 	path[0]=0;
-	CFileDialog dlg( TRUE, "*.dxw", path, OFN_FILEMUSTEXIST,
-        "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
-	if( dlg.DoModal() == IDOK){
-		LV_ITEM listitem;
-		CListCtrl& listctrl = GetListCtrl();
-		
-		LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, 0, dlg.GetPathName().GetBuffer());
+	CListCtrl& listctrl = GetListCtrl();
+	
+	char buffer[4096] = {0};
+	char folder[MAX_PATH+1];
+	char pathname[MAX_PATH+1];
+	OPENFILENAME ofn = {0};
+	ofn.lStructSize = sizeof(ofn);
+	ofn.lpstrFile = (LPSTR)buffer;
+	ofn.nMaxFile = 4096;
+	ofn.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
+	ofn.lpstrDefExt = "dxw";
 
-		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
-		listitem.iItem = i;
-		listitem.iSubItem = 0;
-		listitem.iImage = SetTargetIcon(TargetMaps[i]);
-		if (strlen(TitleMaps[i].title)==0){
-			int len;
-			CString	FilePath;
-			FilePath=TargetMaps[i].path;
-			len=FilePath.ReverseFind('\\');	
-			FilePath=FilePath.Right(FilePath.GetLength()-len-1);
-			strncpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), FilePath.GetString(), sizeof(TitleMaps[i].title)-1);
+	if(GetOpenFileName(&ofn)){
+		if(buffer[ofn.nFileOffset - 1] != '\0'){
+			// Single-Select
+			// "buffer" - name of file
+			LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, 0, buffer);
+			listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+			listitem.iItem = i;
+			listitem.iSubItem = 0;
+			listitem.iImage = SetTargetIcon(TargetMaps[i]);
+			listitem.pszText = TitleMaps[i].title;
+			listctrl.InsertItem(&listitem);
 		}
-
-		listitem.pszText = TitleMaps[i].title;
-		listctrl.InsertItem(&listitem);
+		else{
+			// Multi-Select
+			char* p = buffer;
+			strcpy(folder, p);
+			strcat(folder, "\\");
+			p += lstrlen((LPSTR)p) + 1;
+			while(*p){
+				// "p" - name of each files, NULL to terminate
+				if(!*p)break;
+				strcpy(pathname, folder);
+				strcat(pathname, p);
+				LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, 0, pathname);
+				listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+				listitem.iItem = i;
+				listitem.iSubItem = 0;
+				listitem.iImage = SetTargetIcon(TargetMaps[i]);
+				listitem.pszText = TitleMaps[i].title;
+				listctrl.InsertItem(&listitem);
+				i++;
+				p += lstrlen((LPSTR)p) + 1;
+			}
+		}
 		Resize();
 		SetTarget(TargetMaps);	
 		this->isUpdated=TRUE;

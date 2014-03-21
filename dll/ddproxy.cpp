@@ -1512,7 +1512,7 @@ HRESULT WINAPI extSetPaletteProxy(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE
 	return res;
 }
 
-HRESULT WINAPI extLockProxy(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDIRECTDRAWSURFACE lpdds2, DWORD flags, HANDLE hEvent)
+HRESULT WINAPI extLockProxy(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpdds2, DWORD flags, HANDLE hEvent)
 {
 	HRESULT res;
 	OutTraceP("Lock(S): PROXED lpdds=%x flags=%x(%s) lpdds2=%x", lpdds, flags, ExplainLockFlags(flags), lpdds2);
