@@ -1,11 +1,11 @@
 [target]
-title0=Warcraft 2 Battlenet Ed
-path0=D:\Games\Warcraft 2 Battlenet Ed\Warcraft II BNE.exe
+title0=Warwind 2
+path0=D:\Games\Warwind 2\WARWIND2.EXE
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=134218400
+flag0=134234656
 flagg0=1207959552
 flagh0=20
 flagi0=4
@@ -23,4 +23,4 @@ sizy0=600
 maxfps0=0
 initts0=0
 winver0=0
-maxres0=0
+maxres0=-1

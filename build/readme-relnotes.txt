@@ -429,7 +429,7 @@ added DirectX "Return 0 ref counter" option as quick & dirty solution to many re
 fixed DirectDrawCreateEx failing to register the main ddraw session handle
 fixed palette problem in emulated mode: palette must be applied to backbuffer surface as well. Now "Duckman" and "Total Soccer 2000" show perfect colors.
 
-
-
-
-
+v2.02.65
+added "Fine time adjust" flag to finely set timeslider by 10% steps ranging from about :2 to x2
+fixed a bug in DWORD timers introduced in v2.02.60: now "Warcraft 2" timing works again
+revised logit to calculate delays to emulate VSync timing - now should be more accurate and depending on actual screen refresh rate

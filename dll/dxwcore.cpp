@@ -8,6 +8,21 @@
 #include "resource.h"
 
 /* ------------------------------------------------------------------ */
+// Internal function pointers
+/* ------------------------------------------------------------------ */
+
+typedef DWORD (*TimeShifter_Type)(DWORD, int);
+typedef LARGE_INTEGER (*TimeShifter64_Type)(LARGE_INTEGER, int);
+
+TimeShifter_Type pTimeShifter;
+TimeShifter64_Type pTimeShifter64;
+
+static DWORD TimeShifterFine(DWORD, int);
+static LARGE_INTEGER TimeShifter64Fine(LARGE_INTEGER, int);
+static DWORD TimeShifterCoarse(DWORD, int);
+static LARGE_INTEGER TimeShifter64Coarse(LARGE_INTEGER, int);
+
+/* ------------------------------------------------------------------ */
 // Constructor, destructor, initialization....
 /* ------------------------------------------------------------------ */
 
@@ -75,6 +90,14 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	MaxScreenRes = target->MaxScreenRes;
 	Coordinates = target->coordinates;
 	MustShowOverlay=((dwFlags2 & SHOWFPSOVERLAY) || (dwFlags4 & SHOWTIMESTRETCH));
+	if(dwFlags4 & FINETIMING){
+		pTimeShifter = TimeShifterFine;
+		pTimeShifter64 = TimeShifter64Fine;
+	}
+	else{
+		pTimeShifter = TimeShifterCoarse;
+		pTimeShifter64 = TimeShifter64Coarse;
+	}
 }
 
 void dxwCore::SetScreenSize(void) 
@@ -616,6 +639,23 @@ void dxwCore::UnmapClient(int *nXDest, int *nYDest)
 	if(h) *nYDest= *nYDest * (int)dwScreenHeight / h;
 }
 
+void dxwCore::UnmapClient(LPRECT lpRect)
+{
+	RECT client;
+	int w, h;
+	(*pGetClientRect)(hWnd, &client);
+	w = client.right ? client.right : iSizX;
+	h = client.bottom ? client.bottom : iSizY;
+	if(w) {
+		lpRect->left = (lpRect->left * (int)dwScreenWidth) / w;
+		lpRect->right = (lpRect->right * (int)dwScreenWidth) / w;
+	}
+	if(h) {
+		lpRect->top = (lpRect->top * (int)dwScreenHeight) / h;
+		lpRect->bottom = (lpRect->bottom * (int)dwScreenHeight) / h;
+	}
+}
+
 void dxwCore::MapWindow(LPRECT rect)
 {
 	RECT client;
@@ -746,7 +786,7 @@ void dxwCore::ScreenRefresh(void)
 	if (tn-t < DXWREFRESHINTERVAL) return;
 	t = tn;
 
-	// if not too early, refresh colors on primary surface ....
+	// if not too early, refresh primary surface ....
 	lpDDSPrim=dxw.GetPrimarySurface();
 	if (lpDDSPrim) extBlt(lpDDSPrim, NULL, lpDDSPrim, NULL, 0, NULL);
 
@@ -841,8 +881,18 @@ BOOL dxwCore::HandleFPS()
 	if(dwFlags2 & SKIPFPS) if(SkipFrameCount(dxw.MaxFPS)) return TRUE;
 	return FALSE;
 }
+	
+static float fMul[17]={2.14F, 1.95F, 1.77F, 1.61F, 1.46F, 1.33F, 1.21F, 1.10F, 1.00F, 0.91F, 0.83F, 0.75F, 0.68F, 0.62F, 0.56F, 0.51F, 0.46F};
+//static float fMul[17]={0.46F, 0.51F, 0.56F, 0.62F, 0.68F, 0.75F, 0.83F, 0.91F, 1.00F, 1.10F, 1.21F, 1.33F, 1.46F, 1.61F, 1.77F, 1.95F, 2.14F};
 
-static DWORD TimeShifter(DWORD val, int shift)
+static DWORD TimeShifterFine(DWORD val, int shift)
+{
+	float fVal;
+	fVal = (float)val * fMul[shift+8];
+	return (DWORD)fVal;
+}
+
+static DWORD TimeShifterCoarse(DWORD val, int shift)
 {
 	int exp, reminder;
 	if (shift > 0) {
@@ -860,7 +910,16 @@ static DWORD TimeShifter(DWORD val, int shift)
 	return val;
 }
 
-static LARGE_INTEGER TimeShifter64(LARGE_INTEGER val, int shift)
+static LARGE_INTEGER TimeShifter64Fine(LARGE_INTEGER val, int shift)
+{
+	float fVal;
+	fVal = (float)val.LowPart * fMul[shift+8];
+	val.HighPart = 0;
+	val.LowPart = (DWORD)fVal;
+	return val;	
+}
+
+static LARGE_INTEGER TimeShifter64Coarse(LARGE_INTEGER val, int shift)
 {
 	int exp, reminder;
 	if (shift > 0) {
@@ -884,7 +943,7 @@ DWORD dxwCore::GetTickCount(void)
 	static DWORD dwLastRealTick=0;
 	static DWORD dwLastFakeTick=0;
 	DWORD dwNextRealTick;
-	BOOL FirstTime = TRUE;
+	static BOOL FirstTime = TRUE;
 
 	if(FirstTime){
 		dwLastRealTick=(*pGetTickCount)();
@@ -894,7 +953,7 @@ DWORD dxwCore::GetTickCount(void)
 	dwNextRealTick=(*pGetTickCount)();
 	dwTick=(dwNextRealTick-dwLastRealTick);
 	TimeShift=GetHookInfo()->TimeShift;
-	dwTick = TimeShifter(dwTick, TimeShift);
+	dwTick = (*pTimeShifter)(dwTick, TimeShift);
 	dwLastFakeTick += dwTick;
 	dwLastRealTick = dwNextRealTick;
 	return dwLastFakeTick;
@@ -903,14 +962,14 @@ DWORD dxwCore::GetTickCount(void)
 DWORD dxwCore::StretchTime(DWORD dwTimer)
 {
 	TimeShift=GetHookInfo()->TimeShift;
-	dwTimer = TimeShifter(dwTimer, -TimeShift);
+	dwTimer = (*pTimeShifter)(dwTimer, -TimeShift);
 	return dwTimer;
 }
 
 DWORD dxwCore::StretchCounter(DWORD dwTimer)
 {
 	TimeShift=GetHookInfo()->TimeShift;
-	dwTimer = TimeShifter(dwTimer, TimeShift);
+	dwTimer = (*pTimeShifter)(dwTimer, TimeShift);
 	return dwTimer;
 }
 
@@ -920,7 +979,7 @@ LARGE_INTEGER dxwCore::StretchCounter(LARGE_INTEGER dwTimer)
 	LARGE_INTEGER ret;
 	TimeShift=GetHookInfo()->TimeShift;
 	dwTimer.QuadPart += Reminder;
-	ret = TimeShifter64(dwTimer, TimeShift);
+	ret = (*pTimeShifter64)(dwTimer, TimeShift);
 	Reminder = (ret.QuadPart==0) ? dwTimer.LowPart : 0;
 	return ret;
 }
@@ -947,7 +1006,7 @@ void dxwCore::GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 		dwCurrentTick=(*pGetTickCount)();
 		dwTick=(dwCurrentTick-dwStartTick);
 		TimeShift=GetHookInfo()->TimeShift;
-		dwTick = TimeShifter(dwTick, TimeShift);
+		dwTick = (*pTimeShifter)(dwTick, TimeShift);
 		// From MSDN: Contains a 64-bit value representing the number of 
 		// 100-nanosecond intervals since January 1, 1601 (UTC).
 		// So, since 1mSec = 10.000 * 100nSec, you still have to multiply by 10.000.
@@ -982,7 +1041,7 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 		dwCurrentTick=(*pGetTickCount)();
 		dwTick=(dwCurrentTick-dwStartTick);
 		TimeShift=GetHookInfo()->TimeShift;
-		dwTick = TimeShifter(dwTick, TimeShift);
+		dwTick = (*pTimeShifter)(dwTick, TimeShift);
 		// From MSDN: Contains a 64-bit value representing the number of 
 		// 100-nanosecond intervals since January 1, 1601 (UTC).
 		// So, since 1mSec = 10.000 * 100nSec, you still have to multiply by 10.000.
@@ -1108,20 +1167,27 @@ void dxwCore::ShowTimeStretching(HDC xdc)
 	SetTextColor(xdc,color);
 	//SetBkMode(xdc, TRANSPARENT);
 	SetBkMode(xdc, OPAQUE);
-	sprintf_s(sBuf, 80, "Time %s", dxw.GetTSCaption());
+	sprintf_s(sBuf, 80, "t%s", dxw.GetTSCaption());
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
 }
 
 char *dxwCore::GetTSCaption(int shift)
 {
-	static char *sTSCaption[17]={
+	static char *sTSCaptionCoarse[17]={
 		"x16","x12","x8","x6",
 		"x4","x3","x2","x1.5",
 		"x1",
 		":1.5",":2",":3",":4",
 		":6",":8",":12",":16"};
+	static char *sTSCaptionFine[17]={
+		"x2.14","x1.95","x1.77","x1.61",
+		"x1.46","x1.33","x1.21","x1.10",
+		"x1.00",
+		":1.10",":1.21",":1.33",":1.46",
+		":1.61",":1.77",":1.95",":2.14"};
 	if (shift<(-8) || shift>(+8)) return "???";
-	return sTSCaption[shift+8];
+	shift += 8;
+	return (dxw.dwFlags4 & FINETIMING) ? sTSCaptionFine[shift] : sTSCaptionCoarse[shift];
 }
 
 char *dxwCore::GetTSCaption(void)

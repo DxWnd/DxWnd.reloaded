@@ -207,7 +207,7 @@
 #define IDC_NOTEXTURES                  1166
 #define IDC_LIMITSCREENRES              1167
 #define IDC_SHOWTIMESTRETCH             1168
-
+#define IDC_FINETIMING                  1169
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

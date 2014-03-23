@@ -193,6 +193,7 @@ typedef HWND	(WINAPI *GetActiveWindow_Type)(void);
 typedef BOOL	(WINAPI *IsWindowVisible_Type)(HWND);
 typedef BOOL	(WINAPI *SystemParametersInfo_Type)(UINT, UINT, PVOID, UINT);
 typedef BOOL	(WINAPI *KillTimer_Type)(HWND, UINT_PTR);
+typedef BOOL	(WINAPI *GetUpdateRect_Type)(HWND, LPRECT, BOOL);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -392,6 +393,7 @@ DXWEXTERN GetActiveWindow_Type pGetActiveWindow DXWINITIALIZED;
 DXWEXTERN IsWindowVisible_Type pIsWindowVisible DXWINITIALIZED;
 DXWEXTERN SystemParametersInfo_Type pSystemParametersInfoA DXWINITIALIZED;
 DXWEXTERN KillTimer_Type pKillTimer DXWINITIALIZED;
+DXWEXTERN GetUpdateRect_Type pGetUpdateRect DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
@@ -591,6 +593,7 @@ extern HWND WINAPI extGetActiveWindow(void);
 extern BOOL WINAPI extIsWindowVisible(HWND);
 extern BOOL WINAPI extSystemParametersInfoA(UINT, UINT, PVOID, UINT);
 extern BOOL WINAPI extKillTimer(HWND, UINT_PTR);
+extern BOOL WINAPI extGetUpdateRect(HWND, LPRECT, BOOL);
 
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);

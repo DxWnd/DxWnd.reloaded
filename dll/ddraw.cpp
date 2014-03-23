@@ -283,6 +283,32 @@ FARPROC Remap_ddraw_ProcAddress(LPCSTR proc, HMODULE hModule)
 // auxiliary (static) functions
 /* ------------------------------------------------------------------------------ */
 
+DWORD gdwRefreshRate;
+#define MAXREFRESHDELAYCOUNT 20
+int iRefreshDelays[MAXREFRESHDELAYCOUNT]={16, 17};
+int iRefreshDelayCount=2;
+
+void SetVSyncDelays(LPDIRECTDRAW lpdd)
+{
+	DDSURFACEDESC ddsdRefreshRate;
+	int Reminder;
+	memset(&ddsdRefreshRate, 0, sizeof(ddsdRefreshRate));
+	ddsdRefreshRate.dwSize = sizeof(ddsdRefreshRate);
+	(*pGetDisplayMode)(lpdd, &ddsdRefreshRate);
+	gdwRefreshRate = ddsdRefreshRate.dwRefreshRate;
+	if(!gdwRefreshRate) return;
+	iRefreshDelayCount=0;
+	Reminder=0;
+	do{
+		iRefreshDelays[iRefreshDelayCount]=(1000+Reminder)/gdwRefreshRate;
+		Reminder=(1000+Reminder)-(iRefreshDelays[iRefreshDelayCount]*gdwRefreshRate);
+		iRefreshDelayCount++;
+	} while(Reminder && (iRefreshDelayCount<MAXREFRESHDELAYCOUNT));
+	OutTraceDW("Refresh rate=%d: delay=", gdwRefreshRate);
+	for(int i=0; i<iRefreshDelayCount; i++) OutTraceDW("%d ", iRefreshDelays[i]);
+	OutTraceDW("\n");
+}
+
 static void Stopper(char *s, int line)
 {
 	char sMsg[81];
@@ -1848,6 +1874,7 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	OutTraceDW("SetDisplayMode: fixing colordepth current=%d required=%d size=(%dx%d)\n",
 			ddsd.ddpfPixelFormat.dwRGBBitCount, dwbpp, ddsd.dwWidth, ddsd.dwHeight);
 
+	SetVSyncDelays(lpdd);
 	return 0;
 }
 
@@ -2671,6 +2698,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 
 	// creation of the primary surface....
 	if(ddsd.dwFlags & DDSD_CAPS && ddsd.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE){
+		SetVSyncDelays(lpdd);
 		GetHookInfo()->Height=(short)dxw.GetScreenHeight();
 		GetHookInfo()->Width=(short)dxw.GetScreenWidth();
 		GetHookInfo()->ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
@@ -3265,17 +3293,15 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 	if((dwflags & DDFLIP_WAIT) || (dxw.dwFlags1 & SAVELOAD)) lpPrimaryDD->WaitForVerticalBlank(DDWAITVB_BLOCKEND , 0);
 
 	if(dxw.dwFlags4 & NOFLIPEMULATION){
+		// create a temporary working surface
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = SurfaceDescrSize(lpdds);
-		//if(pGetSurfaceDesc1) (*pGetSurfaceDesc1)(lpDDSBack, (LPDDSURFACEDESC)&ddsd);
 		(*pGetSurfaceDescMethod(lpdds))((LPDIRECTDRAWSURFACE2)lpDDSBack, &ddsd);
 		ddsd.dwFlags &= ~DDSD_PITCH;	
-		//DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[temp]" , __LINE__);
 		res=(*pCreateSurfaceMethod(lpdds))(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
 		if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		OutTrace("DEBUG: copied surface size=(%dx%d)\n", ddsd.dwWidth, ddsd.dwHeight);
+		//OutTrace("DEBUG: copied surface size=(%dx%d)\n", ddsd.dwWidth, ddsd.dwHeight);
 		// copy front buffer 
-
 		if(dxw.dwFlags1 & EMULATESURFACE){
 			// in emulated mode, the primary surface is virtual and you can pick it all
 			// needed for "Gruntz"
@@ -3316,7 +3342,7 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 	}
 
 	if(dxw.dwFlags4 & NOFLIPEMULATION){
-		// restore flipped backbuffer
+		// restore flipped backbuffer and delete temporary surface
 		res= (*pBlt)(lpddssrc, NULL, lpddsTmp, NULL, DDBLT_WAIT, NULL);
 		if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 		(*pReleaseS)(lpddsTmp);
@@ -3417,9 +3443,8 @@ HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE 
 	tmp = (*pGetTickCount)();
 	if((time - tmp) > 32) time = tmp;
 	(*pSleep)(time - tmp);
-	if(step) time += 16;
-	else time += 17;
-	step ^= 1;
+	time += iRefreshDelays[step++];
+	if(step >= iRefreshDelayCount) step=0;
 	return 0;
 }
 
@@ -3469,9 +3494,9 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 	OutTraceDDRAW("SetPalette: lpdds=%x%s lpddp=%x\n", lpdds, isPrim?"(PRIM)":"", lpddp);
 
 	res=(*pSetPalette)(lpdds, lpddp);
-	res=DD_OK;
 	if(res)OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceDDRAW("SetPalette: OK\n");
+	res=DD_OK;
 
 	if((dxw.dwFlags1 & EMULATESURFACE) && isPrim){
 		OutTraceDW("SetPalette: register PRIMARY palette lpDDP=%x\n", lpddp);
@@ -3485,12 +3510,13 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 		}
 		// Apply palette to backbuffer surface. This is necessary on some games: "Duckman private dick", "Total Soccer 2000", ...
 		if (lpDDSBack) { 
+			OutTraceDW("SetPalette: apply PRIMARY palette lpDDP=%x to DDSBack=%x\n", lpddp, lpDDSBack);
 			res=(*pSetPalette)(lpDDSBack, lpddp);
 			if(res) OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		}
 		// add a reference to simulate what would happen in reality....
 		lpdds->AddRef();
-		res=0;
+		res=DD_OK;
 	}
 
 	return res;

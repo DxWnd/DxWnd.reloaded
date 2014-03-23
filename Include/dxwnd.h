@@ -133,6 +133,7 @@
 #define NOFLIPEMULATION		0x00020000 // Compensate the effect of Flip-ping through Blt operations
 #define NOTEXTURES			0x00040000 // Disabled (whitened) textures
 #define RETURNNULLREF		0x00080000 // IDirectDraw::Release and IDDrawSurface::Release will always return 0 ref. counter
+#define FINETIMING			0x00100000 // Fine timeslider coarse, by 10% steps ranging from about :2 to x2 
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

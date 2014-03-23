@@ -234,6 +234,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ShowTimeStretch) t->flags4 |= SHOWTIMESTRETCH;
 	if(dlg->m_TimeStretch) t->flags2 |= TIMESTRETCH;
 	if(dlg->m_StretchTimers) t->flags4 |= STRETCHTIMERS;
+	if(dlg->m_FineTiming) t->flags4 |= FINETIMING;
 	if(dlg->m_InterceptRDTSC) t->flags4 |= INTERCEPTRDTSC;
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
 	if(dlg->m_ForceHookOpenGL) t->flags3 |= FORCEHOOKOPENGL;
@@ -392,6 +393,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ShowTimeStretch = t->flags4 & SHOWTIMESTRETCH ? 1 : 0;
 	dlg->m_TimeStretch = t->flags2 & TIMESTRETCH ? 1 : 0;
 	dlg->m_StretchTimers = t->flags4 & STRETCHTIMERS ? 1 : 0;
+	dlg->m_FineTiming = t->flags4 & FINETIMING ? 1 : 0;
 	dlg->m_InterceptRDTSC = t->flags4 & INTERCEPTRDTSC ? 1 : 0;
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;
 	dlg->m_ForceHookOpenGL = t->flags3 & FORCEHOOKOPENGL ? 1 : 0;

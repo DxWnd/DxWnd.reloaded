@@ -1,11 +1,11 @@
 [target]
-title0=Warcraft 2 Battlenet Ed
-path0=D:\Games\Warcraft 2 Battlenet Ed\Warcraft II BNE.exe
+title0=DeathSpank: The Baconing
+path0=D:\Games\The Baconing\TheBaconing.exe
 module0=
 opengllib0=
-ver0=0
+ver0=9
 coord0=0
-flag0=134218400
+flag0=134218272
 flagg0=1207959552
 flagh0=20
 flagi0=4
@@ -23,4 +23,4 @@ sizy0=600
 maxfps0=0
 initts0=0
 winver0=0
-maxres0=0
+maxres0=-1

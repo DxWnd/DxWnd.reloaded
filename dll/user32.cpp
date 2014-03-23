@@ -91,6 +91,7 @@ static HookEntry_Type RemapHooks[]={
 	{"GetClientRect", (FARPROC)GetClientRect, (FARPROC *)&pGetClientRect, (FARPROC)extGetClientRect},
 	{"GetWindowRect", (FARPROC)GetWindowRect, (FARPROC *)&pGetWindowRect, (FARPROC)extGetWindowRect},
 	{"MapWindowPoints", (FARPROC)MapWindowPoints, (FARPROC *)&pMapWindowPoints, (FARPROC)extMapWindowPoints},
+	//{"GetUpdateRect", (FARPROC)GetUpdateRect, (FARPROC *)&pGetUpdateRect, (FARPROC)extGetUpdateRect},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -2270,5 +2271,22 @@ BOOL WINAPI extKillTimer(HWND hWnd, UINT_PTR uIDEvent)
 	ret = (*pKillTimer)(hWnd, uIDEvent);
 	OutTraceDW("KillTimer: ret=%x\n", ret);
 	if(ret) dxw.PopTimer(hWnd, uIDEvent);
+	return ret;
+}
+
+BOOL WINAPI extGetUpdateRect(HWND hWnd, LPRECT lpRect, BOOL bErase)
+{
+	BOOL ret;
+	OutTraceDW("GetUpdateRect: hwnd=%x Erase=%x\n", hWnd, bErase); 
+	ret = (*pGetUpdateRect)(hWnd, lpRect, bErase);
+	if(ret){
+		OutTraceDW("GetUpdateRect: rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+		if(dxw.IsFullScreen()){
+			dxw.UnmapClient(lpRect);
+			OutTraceDW("GetUpdateRect: FIXED rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+		}
+	}
+	else
+		OutTraceE("GetUpdateRect ERROR: err=%d\n", GetLastError());
 	return ret;
 }

@@ -106,6 +106,7 @@ public:
 	BOOL	m_ShowTimeStretch;
 	BOOL	m_TimeStretch;
 	BOOL	m_StretchTimers;
+	BOOL	m_FineTiming;
 	BOOL	m_InterceptRDTSC;
 	BOOL	m_HookOpenGL;
 	BOOL	m_ForceHookOpenGL;

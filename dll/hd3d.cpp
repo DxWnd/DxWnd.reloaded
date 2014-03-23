@@ -924,6 +924,8 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		(*pGetAdapterDisplayMode8)(lpd3d, 0, &mode);
 	param[2] = mode.Format;
 	OutTraceDW("    Current Format = 0x%x\n", mode.Format);
+	OutTraceDW("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
+	OutTraceDW("    Current Refresh Rate = %d\n", mode.RefreshRate);
 
 	//param[0]=param[1]=0;
 
@@ -1011,6 +1013,8 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
 	param[2] = mode.Format;
 	OutTraceDW("    Current Format = 0x%x\n", mode.Format);
+	OutTraceDW("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
+	OutTraceDW("    Current Refresh Rate = %d\n", mode.RefreshRate);
 
 	//param[7] = 0;			//hDeviceWindow
 	param[7] = (DWORD)dxw.GethWnd();			//hDeviceWindow
@@ -1128,6 +1132,8 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3d, D3DPRESENT_PARAMETERS *
 		(*pGetAdapterDisplayMode8)(lpd3d, 0, &mode);
 	param[2] = mode.Format;
 	OutTraceDW("    Current Format = 0x%x\n", mode.Format);
+	OutTraceDW("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
+	OutTraceDW("    Current Refresh Rate = %d\n", mode.RefreshRate);
 
 	if(dwD3DVersion == 9){
 		param[7] = 0;			//hDeviceWindow
