@@ -2601,6 +2601,17 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		
 	OutTraceDW("CreateSurface: created Emu_Generic dds=%x\n", *lplpdds);
 	if(IsDebug) DescribeSurface(*lplpdds, dxversion, "DDSEmu_Generic", __LINE__);
+
+	// v2.02.66: if 8BPP paletized surface and a primary palette exixts, apply.
+	// fixes "Virtua Fighter PC" palette bug
+	if(lpDDP && (ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8)){
+		res=(*pSetPalette)(*lplpdds, lpDDP);
+		if(res)
+			OutTraceE("SetPalette: ERROR on lpdds=%x(Emu_Generic) res=%x(%s) at %d\n", *lplpdds, res, ExplainDDError(res), __LINE__);
+		else
+			OutTraceDW("CreateSurface: applied lpddp=%x to lpdds=%x\n", lpDDP, *lplpdds);
+	}
+
 	// diagnostic hooks ....
 	HookDDSurfaceGeneric(lplpdds, dxversion);
 

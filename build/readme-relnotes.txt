@@ -433,3 +433,6 @@ v2.02.65
 added "Fine time adjust" flag to finely set timeslider by 10% steps ranging from about :2 to x2
 fixed a bug in DWORD timers introduced in v2.02.60: now "Warcraft 2" timing works again
 revised logit to calculate delays to emulate VSync timing - now should be more accurate and depending on actual screen refresh rate
+
+v2.02.66
+fixed palette bug: "Virtua Fighter PC" now shows correct colors.
