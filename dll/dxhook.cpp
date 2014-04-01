@@ -50,7 +50,7 @@ static char *Flag2Names[32]={
 	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "DIFFERENTIALMOUSE", "FIXNCHITTEST",
 	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
 	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
-	"HOOKGDI", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
+	"GDISTRETCHED", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
 	"NOPALETTEUPDATE", "SUPPRESSIME", "NOBANNER", "WINDOWIZE",
 	"LIMITRESOURCES", "STARTDEBUG", "SETCOMPATIBILITY", "WIREFRAME",
 };
@@ -59,7 +59,7 @@ static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
 	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
-	"NOWINDOWMOVE", "DISABLEHAL", "LOCKSYSCOLORS", "EMULATEDC",
+	"NOWINDOWMOVE", "DISABLEHAL", "LOCKSYSCOLORS", "GDIEMULATEDC",
 	"FULLSCREENONLY", "FONTBYPASS", "YUV2RGB", "RGB2YUV",
 	"BUFFEREDIOFIX", "FILTERMESSAGES", "PEEKALLMESSAGES", "SURFACEWARN",
 	"ANALYTICMODE", "FORCESHEL", "CAPMASK", "COLORFIX",
@@ -70,7 +70,7 @@ static char *Flag4Names[32]={
 	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
 	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
 	"NOPOWER2FIX", "NOPERFCOUNTER", "ADDPROXYLIBS", "INTERCEPTRDTSC",
-	"", "", "", "",
+	"LIMITSCREENRES", "NOFILLRECT", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -871,10 +871,12 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	extern LPRECT lpClipRegion;
 	static BOOL DoOnce = TRUE;
 	static BOOL IsToBeLocked;
+	static int LastTimeShift;
 
 	if(DoOnce){
 		DoOnce=FALSE;
 		IsToBeLocked=(dxw.dwFlags1 & LOCKWINPOS);
+		LastTimeShift=dxw.TimeShift;
 	}
 
 	// v2.1.93: adjust clipping region
@@ -917,6 +919,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			return ret;
 		}
 	}
+
+	if(LastTimeShift != dxw.TimeShift) dxw.RenewTimers();
+	LastTimeShift=dxw.TimeShift;
 
 	switch(message){
 	// v2.02.13: added WM_GETMINMAXINFO/WM_NCCALCSIZE interception - (see Actua Soccer 3 problems...)
@@ -1004,20 +1009,22 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_DISPLAYCHANGE:
 		if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
 			OutTraceDW("WindowProc: prevent WM_DISPLAYCHANGE depth=%d size=(%d,%d)\n",
-				wparam, HIWORD(lparam), LOWORD(lparam));
+				wparam, LOWORD(lparam), HIWORD(lparam));
 			// v2.02.43: unless EMULATESURFACE is set, lock the screen resolution only, but not the color depth!
 			if(dxw.dwFlags1 & EMULATESURFACE) return 0;
 			// let rparam (color depth) change, but override lparam (screen width & height.)
-			lparam = MAKELPARAM((LONG)dxw.GetScreenHeight(), (LONG)dxw.GetScreenWidth());
+			lparam = MAKELPARAM((LONG)dxw.GetScreenWidth(), (LONG)dxw.GetScreenHeight());
 			//return 0;
 		}
 		break;
 	case WM_WINDOWPOSCHANGING:
 	case WM_WINDOWPOSCHANGED:
-		LPWINDOWPOS wp;
-		wp = (LPWINDOWPOS)lparam;
-		dxwFixWindowPos("WindowProc", hwnd, lparam);
-		OutTraceDW("WindowProc: WM_WINDOWPOSCHANGING fixed size=(%d,%d)\n", wp->cx, wp->cy);
+		if(dxw.IsFullScreen()){
+			LPWINDOWPOS wp;
+			wp = (LPWINDOWPOS)lparam;
+			dxwFixWindowPos("WindowProc", hwnd, lparam);
+			OutTraceDW("WindowProc: WM_WINDOWPOSCHANGING fixed size=(%d,%d)\n", wp->cx, wp->cy);
+		}
 		break;
 	case WM_ENTERSIZEMOVE:
 		if(IsToBeLocked){
@@ -1352,8 +1359,7 @@ LONG CALLBACK Int3Handler(PEXCEPTION_POINTERS ExceptionInfo)
 		  mov myPerfCount.HighPart, edx
 	   }
 #endif
-		myPerfCount.HighPart = dxw.StretchCounter(myPerfCount.HighPart);
-		myPerfCount.LowPart = dxw.StretchCounter(myPerfCount.LowPart);
+		myPerfCount = dxw.StretchCounter(myPerfCount);
 		OutTraceDW("Int3Handler: INT3 at=%x tick=%x RDTSC=%x:%x\n", 
 			ExceptionInfo->ExceptionRecord->ExceptionAddress, (*pGetTickCount)(), myPerfCount.HighPart, myPerfCount.LowPart);
 
@@ -1500,6 +1506,7 @@ static void ReplaceRDTSC()
 	HMODULE psapilib;
 	GetModuleInformation_Type pGetModuleInformation;
 	DWORD dwSegSize;
+	DWORD oldprot;
 
 	dwAttrib = GetFileAttributes("dxwnd.dll");
 	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return;
@@ -1515,7 +1522,7 @@ static void ReplaceRDTSC()
 	pPreparedisasm=(Preparedisasm_Type)(*pGetProcAddress)(disasmlib, "Preparedisasm");
 	pFinishdisasm=(Finishdisasm_Type)(*pGetProcAddress)(disasmlib, "Finishdisasm");
 	pDisasm=(Disasm_Type)(*pGetProcAddress)(disasmlib, "Disasm");
-	OutTraceDW("DXWND: Load disasm.dll ptrs=%x,%x,%x,%x\n", pGeterrwarnmessage, pPreparedisasm, pFinishdisasm, pDisasm);
+	//OutTraceDW("DXWND: Load disasm.dll ptrs=%x,%x,%x,%x\n", pGeterrwarnmessage, pPreparedisasm, pFinishdisasm, pDisasm);
 
 	// getting segment size
 	psapilib=(*pLoadLibraryA)("psapi.dll");
@@ -1546,7 +1553,6 @@ static void ReplaceRDTSC()
 		if (cmdlen==0) break;
 		// search for RDTSC opcode 0x0F31
 		if((*(opcodes+offset) == 0x0F) && (*(opcodes+offset+1) == 0x31)){
-			DWORD oldprot;
 			OutTraceDW("DXWND: RDTSC opcode found at addr=%x\n", (opcodes+offset));
 			if(!VirtualProtect((LPVOID)(opcodes+offset), 4, PAGE_READWRITE, &oldprot)) {
 				OutTrace("VirtualProtect ERROR: target=%x err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
@@ -1554,6 +1560,21 @@ static void ReplaceRDTSC()
 			}
 			*(opcodes+offset) = 0xCC;	// __asm INT3
 			*(opcodes+offset+1) = 0x90; // __asm NOP
+			if(!VirtualProtect((LPVOID)(opcodes+offset), 4, oldprot, &oldprot)){
+				OutTrace("VirtualProtect ERROR; target=%x, err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
+				return; // error condition
+			}
+		}
+		// search for RDTSCP opcode 0x0F01F9
+		if((*(opcodes+offset) == 0x0F) && (*(opcodes+offset+1) == 0x01) && (*(opcodes+offset+2) == 0xF9)){
+			OutTraceDW("DXWND: RDTSC opcode found at addr=%x\n", (opcodes+offset));
+			if(!VirtualProtect((LPVOID)(opcodes+offset), 4, PAGE_READWRITE, &oldprot)) {
+				OutTrace("VirtualProtect ERROR: target=%x err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
+				return; // error condition
+			}
+			*(opcodes+offset) = 0xCC;	// __asm INT3
+			*(opcodes+offset+1) = 0x90; // __asm NOP
+			*(opcodes+offset+2) = 0x90; // __asm NOP
 			if(!VirtualProtect((LPVOID)(opcodes+offset), 4, oldprot, &oldprot)){
 				OutTrace("VirtualProtect ERROR; target=%x, err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
 				return; // error condition
@@ -1577,7 +1598,10 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		"Automatic", "DirectX1~6", "", "", "", "", "", 
 		"DirectX7", "DirectX8", "DirectX9", "DirectX10", "DirectX11", "None", ""
 	};
-
+	static char *Resolutions[]={
+		"unlimited", "320x200", "640x480", "800x600", "1024x768", "1280x960", "" // terminator
+	};
+	
 	dxw.InitTarget(target);
 
 	if(hwnd){ // v2/02.32: skip this when in code injection mode.
@@ -1593,8 +1617,10 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)", 
 			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
 			target->posx, target->posy, target->sizx, target->sizy);
-		if(hwnd) OutTrace(" hWnd=%x dxw.hParentWnd=%x desktop=%x\n", hwnd, dxw.hParentWnd, GetDesktopWindow());
+		if(hwnd) OutTrace(" hWnd=%x(hdc=%x) dxw.hParentWnd=%x(hdc=%x) desktop=%x(hdc=%x)\n", 
+			hwnd, GetDC(hwnd), dxw.hParentWnd, GetDC(dxw.hParentWnd), GetDesktopWindow(), GetDC(GetDesktopWindow()));
 		else OutTrace("\n");
+		if (dxw.dwFlags4 & LIMITSCREENRES) OutTrace("HookInit: max resolution=%s\n", (dxw.MaxScreenRes<6)?Resolutions[dxw.MaxScreenRes]:"unknown");
 	}
 
 	if (hwnd && IsDebug){
@@ -1605,6 +1631,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		dwStyle=GetWindowLong(dxw.hParentWnd, GWL_STYLE);
 		dwExStyle=GetWindowLong(dxw.hParentWnd, GWL_EXSTYLE);
 		OutTrace("HookInit: dxw.hParentWnd style=%x(%s) exstyle=%x(%s)\n", dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+		OutTrace("HookInit: target window pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY);
 	}
 
 	HookSysLibsInit(); // this just once...
@@ -1662,7 +1689,20 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	InitScreenParameters();
 	if(hwnd) HookWindowProc(hwnd);
 
-	if (IsDebug) OutTraceDW("MoveWindow: target pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY); //v2.02.09
+	// initialize window: if
+	// 1) not in injection mode (hwnd != 0) and
+	// 2) supposedly in fullscreen mode (dxw.IsFullScreen()) and
+	// 3) configuration ask for a overlapped bordered window (dxw.dwFlags1 & FIXWINFRAME) then
+	// update window styles: just this window or, when FIXPARENTWIN is set, the father one as well.
+
+	if (hwnd && dxw.IsFullScreen() && (dxw.dwFlags1 & FIXWINFRAME)) {
+		dxw.FixWindowFrame(dxw.hChildWnd);
+		AdjustWindowPos(dxw.hChildWnd, target->sizx, target->sizy);
+		if(dxw.dwFlags1 & FIXPARENTWIN) {
+			dxw.FixWindowFrame(dxw.hParentWnd);
+			AdjustWindowPos(dxw.hParentWnd, target->sizx, target->sizy);
+		}
+	}
 }
 
 LPCSTR ProcToString(LPCSTR proc)

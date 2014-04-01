@@ -54,15 +54,39 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
 	DDX_Check(pDX, IDC_LOCKSYSCOLORS, cTarget->m_LockSysColors);
 
+	// screen resolution management
+	DDX_Check(pDX, IDC_LIMITSCREENRES, cTarget->m_LimitScreenRes);
+	DDX_LBIndex(pDX, IDC_LISTRES, cTarget->m_MaxScreenRes);
+
 	// 3D management
 	DDX_Check(pDX, IDC_WIREFRAME, cTarget->m_WireFrame);
 	DDX_Check(pDX, IDC_DISABLEFOGGING, cTarget->m_DisableFogging);
 }
 
+static char *Resolutions[]={
+	"unlimited",
+	"320x200",
+	"400x300",
+	"640x480",
+	"800x600",
+	"1024x768",
+	"1280x960",
+	"" // terminator
+};
+
 BOOL CTabWindow::OnInitDialog()
 {
 
 	AfxEnableControlContainer();
+
+	CListBox *List;
+	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
+	int i;
+	List=(CListBox *)this->GetDlgItem(IDC_LISTRES);
+	List->ResetContent();
+	for(i=0; strlen(Resolutions[i]); i++) List->AddString(Resolutions[i]);
+	List->SetCurSel(cTarget->m_MaxScreenRes);
+
 	CDialog::OnInitDialog();
 	return TRUE;
 }
@@ -76,3 +100,5 @@ END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CTabWindow message handlers
+
+

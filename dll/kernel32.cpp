@@ -65,26 +65,6 @@ void HookKernel32(HMODULE module)
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
 	if(dxw.dwFlags4 & SUPPRESSCHILD) HookLibrary(module, SuppressChildHooks, libname);
-
-#if 0
-	if(dxw.dwFlags2 & TIMESTRETCH){
-		HINSTANCE hinst;
-		LARGE_INTEGER myPerfCount;
-		hinst = LoadLibrary("kernel32.dll");
-		pQueryPerformanceFrequency=(QueryPerformanceFrequency_Type)GetProcAddress(hinst, "QueryPerformanceFrequency");
-		pQueryPerformanceCounter=(QueryPerformanceCounter_Type)GetProcAddress(hinst, "QueryPerformanceCounter");
-		pGetTickCount=(GetTickCount_Type)GetProcAddress(hinst, "GetTickCount");
-		if(pQueryPerformanceFrequency){
-			HookAPI(hinst, "kernel32.dll", pQueryPerformanceFrequency, "QueryPerformanceFrequency", extQueryPerformanceFrequency);
-			HookAPI(hinst, "kernel32.dll", pQueryPerformanceCounter, "QueryPerformanceCounter", extQueryPerformanceCounter);
-			extQueryPerformanceFrequency(&myPerfCount);
-		}
-		if(pGetTickCount){
-			HookAPI(hinst, "kernel32.dll", pGetTickCount, "GetTickCount", extGetTickCount);
-			extGetTickCount();
-		}
-	}
-#endif
 }
 
 void HookKernel32Init()
@@ -376,7 +356,10 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=libhandle;
 	}
-	if (idx == -1) HookModule(libhandle, 0);
+	if (idx == -1) {
+		OutTraceDW("%s: hooking lib=\"%s\" handle=%x\n", api, lpFileName, libhandle);
+		HookModule(libhandle, 0);
+	}
 #if 0
 	switch(idx){
 		case SYSLIBIDX_DIRECTDRAW: HookDirectDraw(libhandle, 0); break;
@@ -747,13 +730,11 @@ BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
 	LARGE_INTEGER myPerfCount;
 	if(dxw.dwFlags4 & NOPERFCOUNTER){
 		ret=0;
-		myPerfCount.HighPart = 0;
-		myPerfCount.LowPart = 0;
+		myPerfCount.QuadPart = 0;
 	}
 	else{
 		ret=(*pQueryPerformanceCounter)(&myPerfCount);
-		myPerfCount.HighPart = dxw.StretchCounter(myPerfCount.HighPart);
-		myPerfCount.LowPart = dxw.StretchCounter(myPerfCount.LowPart);
+		myPerfCount = dxw.StretchCounter(myPerfCount);
 	}
 	*lpPerformanceCount = myPerfCount;
 	OutTraceB("QueryPerformanceCounter: ret=%x Count=%x-%x\n", ret, lpPerformanceCount->HighPart, lpPerformanceCount->LowPart);

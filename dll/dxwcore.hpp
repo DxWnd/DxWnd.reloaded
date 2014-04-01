@@ -3,6 +3,15 @@
 
 #define DDSQLEN 0x10
 
+typedef struct {
+	UINT uTimerId;
+	UINT uDelay;
+	UINT uResolution;
+	LPTIMECALLBACK lpTimeProc;
+	DWORD_PTR dwUser;
+	UINT fuEvent;
+} TimerEvent_Type;
+
 class dxwCore
 {
 // Construction/destruction
@@ -17,8 +26,8 @@ public: // methods
 	void SethWnd(HWND hwnd, HWND hwndfps) {hWnd=hwnd; hWndFPS=hwndfps;}
 	void InitWindowPos(int, int, int, int);
 	HWND GethWnd(void) {return hWnd;}
-	void SetScreenSize(void) {dwScreenWidth=800; dwScreenHeight=600;}
-	void SetScreenSize(int x, int y) {if(x)dwScreenWidth=x; if(y)dwScreenHeight=y;}
+	void SetScreenSize(void);
+	void SetScreenSize(int x, int y);
 	DWORD GetScreenWidth(void) {return dwScreenWidth;}
 	DWORD GetScreenHeight(void) {return dwScreenHeight;}
 	void SetFullScreen(BOOL);
@@ -61,10 +70,11 @@ public: // methods
 	void MarkRegularSurface(LPDIRECTDRAWSURFACE);
 	void SetPrimarySurface(void);
 	void ResetPrimarySurface(void);
-	void GetSystemTime(LPSYSTEMTIME lpSystemTime);
-	void GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime);
+	void GetSystemTime(LPSYSTEMTIME);
+	void GetSystemTimeAsFileTime(LPFILETIME);
 	DWORD StretchTime(DWORD);
 	DWORD StretchCounter(DWORD);
+	LARGE_INTEGER dxwCore::StretchCounter(LARGE_INTEGER);
 	void ShowOverlay();
 	void ShowOverlay(HDC);
 	void ShowOverlay(LPDIRECTDRAWSURFACE);
@@ -75,6 +85,7 @@ public: // methods
 	POINT ScreenToClient(POINT);
 	int GetDLLIndex(char *);
 	void FixStyle(char *, HWND, WPARAM, LPARAM);
+	void FixWindowFrame(HWND);
 	HDC AcquireEmulatedDC(HWND);
 	HDC AcquireEmulatedDC(HDC);
 	BOOL ReleaseEmulatedDC(HWND);
@@ -82,6 +93,9 @@ public: // methods
 	void ResetEmulatedDC();
 	int VirtualOffsetX, VirtualOffsetY;
 	void DumpPalette(DWORD, LPPALETTEENTRY);
+	void PushTimer(UINT, UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT);
+	void PopTimer(UINT);
+	void RenewTimers();
 
 public: // simple data variables
 	DDPIXELFORMAT ActualPixelFormat;
@@ -111,7 +125,10 @@ public: // simple data variables
     WORD palNumEntries;
     PALETTEENTRY palPalEntry[256];
 	short FakeVersionId;
-	int Coordinates;
+	short Coordinates;
+	short MaxScreenRes;
+	HDC RealHDC;
+	HDC VirtualHDC;
 
 // Implementation
 protected:
@@ -121,7 +138,6 @@ protected:
 	HWND hWnd, hWndFPS;
 	DWORD PrimSurfaces[DDSQLEN+1];
 	DWORD BackSurfaces[DDSQLEN+1];
-	HDC VirtualHDC;
 	HBITMAP VirtualPic;
 
 private:
@@ -130,6 +146,7 @@ private:
 	BOOL MustShowOverlay;
 	void ShowFPS(HDC);
 	void ShowTimeStretching(HDC);
+	TimerEvent_Type TimerEvent;
 };
 
 extern dxwCore dxw;

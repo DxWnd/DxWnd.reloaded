@@ -65,7 +65,7 @@
 #define HOOKOPENGL			0x00020000 // Hook OpenGL calls
 #define WALLPAPERMODE		0x00040000 // mouse events are discarded (good for screensaver-like)
 #define SHOWHWCURSOR		0x00080000 // enable hardware cursor
-#define HOOKGDI				0x00100000 // Hook GDI functions
+#define GDISTRETCHED		0x00100000 // Stretch GDI/user32 coordinates to adapt to window size
 #define SHOWFPSOVERLAY		0x00200000 // shows FPS value to status win / log / screen overlay
 #define FAKEVERSION			0x00400000 // pretends the platvorm is a given window version / subversion
 #define FULLRECTBLT			0x00800000 // blit to primary surface using NULL source & dest rect
@@ -94,7 +94,7 @@
 #define NOWINDOWMOVE		0x00001000 // Do not try to update window position & size on D3D rendering
 #define DISABLEHAL			0x00002000 // Disable HAL support (IID_IDirect3DHALDevice)
 #define LOCKSYSCOLORS		0x00004000 // Lock Sys Colors changes by SetSysColors() call
-#define EMULATEDC			0x00008000 // ........
+#define GDIEMULATEDC		0x00008000 // Map GDI/user32 calls to primary to a memory surface to be stretch-blitted to the primary
 #define FULLSCREENONLY		0x00010000 // assume that the program is always in fullscreen mode
 #define FONTBYPASS			0x00020000 // bypass font unsupported API
 #define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
@@ -125,6 +125,8 @@
 #define NOPERFCOUNTER		0x00000200 // Disables the GetPerfCounter performance metrics API,as if it was not supported....
 #define ADDPROXYLIBS		0x00000400 // Add proxy libs to otherwise hook-resilient system libraries (e.g. d3d9.dll)
 #define INTERCEPTRDTSC		0x00000800 // Intercapts RDTSC opcodes to hook at assembly level
+#define LIMITSCREENRES		0x00001000 // Limit available screen resolution up to defined maximum
+#define NOFILLRECT			0x00002000 // Suppress FillRect calls
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -170,6 +172,7 @@ typedef struct TARGETMAP
 	short MaxFPS;
 	short InitTS;
 	short FakeVersionId;
+	short MaxScreenRes;
 }TARGETMAP;
 
 typedef struct
@@ -244,3 +247,13 @@ typedef enum {
 	DXW_DESKTOP_WORKAREA,
 	DXW_DESKTOP_FULL
 } Coordinates_Types;
+
+typedef enum {
+	DXW_NO_LIMIT = 0,
+	DXW_LIMIT_320x200,
+	DXW_LIMIT_400x300,
+	DXW_LIMIT_640x480,
+	DXW_LIMIT_800x600,
+	DXW_LIMIT_1024x768,
+	DXW_LIMIT_1280x960
+} ResolutionLimits_Types;

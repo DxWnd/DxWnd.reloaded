@@ -45,6 +45,7 @@ typedef HPALETTE(WINAPI *GDICreatePalette_Type)(CONST LOGPALETTE *);
 typedef HDWP	(WINAPI *DeferWindowPos_Type)(HDWP, HWND, HWND, int, int, int, int, UINT);
 typedef BOOL	(WINAPI *DeleteDC_Type)(HDC);
 typedef int		(WINAPI *GetClipBox_Type)(HDC, LPRECT);
+typedef int		(WINAPI *GetRegionBox_Type)(HDC, LPRECT);
 typedef int		(WINAPI *GetDeviceCaps_Type)(HDC, int);
 typedef BOOL	(WINAPI *GetDeviceGammaRamp_Type)(HDC, LPVOID);
 typedef BOOL	(WINAPI *GetSystemPaletteEntries_Type)(HDC, UINT, UINT, LPPALETTEENTRY);
@@ -90,6 +91,12 @@ typedef BOOL	(WINAPI *SetWindowOrgEx_Type)(HDC, int, int, LPPOINT);
 typedef BOOL	(WINAPI *GetCurrentPositionEx_Type)(HDC, LPPOINT);
 typedef BOOL	(WINAPI *AnimatePalette_Type)(HPALETTE, UINT, UINT, const PALETTEENTRY *);
 typedef UINT	(WINAPI *SetSystemPaletteUse_Type)(HDC, UINT);
+typedef BOOL	(WINAPI *GDISetPixelFormat_Type)(HDC, int, const PIXELFORMATDESCRIPTOR *);
+typedef BOOL	(WINAPI *GDIGetPixelFormat_Type)(HDC);
+typedef int		(WINAPI *ChoosePixelFormat_Type)(HDC, const PIXELFORMATDESCRIPTOR *);
+typedef int		(WINAPI *DescribePixelFormat_Type)(HDC, int, UINT, LPPIXELFORMATDESCRIPTOR);
+typedef DWORD	(WINAPI *GetObjectType_Type)(HGDIOBJ);
+
 
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -235,6 +242,7 @@ DXWEXTERN GDICreatePalette_Type pGDICreatePalette DXWINITIALIZED;
 DXWEXTERN DeferWindowPos_Type pGDIDeferWindowPos DXWINITIALIZED;
 DXWEXTERN DeleteDC_Type pGDIDeleteDC DXWINITIALIZED;
 DXWEXTERN GetClipBox_Type pGDIGetClipBox DXWINITIALIZED;
+DXWEXTERN GetRegionBox_Type pGDIGetRegionBox DXWINITIALIZED;
 DXWEXTERN GetDeviceCaps_Type pGDIGetDeviceCaps DXWINITIALIZED;
 DXWEXTERN GetDeviceGammaRamp_Type pGDIGetDeviceGammaRamp DXWINITIALIZED;
 DXWEXTERN GetSystemPaletteEntries_Type pGDIGetSystemPaletteEntries DXWINITIALIZED;
@@ -284,6 +292,11 @@ DXWEXTERN CreateScalableFontResourceW_Type pCreateScalableFontResourceW DXWINITI
 DXWEXTERN AddFontResourceW_Type pAddFontResourceW DXWINITIALIZED;
 DXWEXTERN AnimatePalette_Type pAnimatePalette DXWINITIALIZED;
 DXWEXTERN SetSystemPaletteUse_Type pSetSystemPaletteUse DXWINITIALIZED;
+DXWEXTERN GDISetPixelFormat_Type pGDISetPixelFormat DXWINITIALIZED;
+DXWEXTERN GDIGetPixelFormat_Type pGDIGetPixelFormat DXWINITIALIZED;
+DXWEXTERN ChoosePixelFormat_Type pChoosePixelFormat DXWINITIALIZED;
+DXWEXTERN DescribePixelFormat_Type pDescribePixelFormat DXWINITIALIZED;
+DXWEXTERN GetObjectType_Type pGetObjectType DXWINITIALIZED;
 
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
@@ -405,6 +418,7 @@ extern BOOL WINAPI extImmGetOpenStatus(HIMC);
 // GDI32.dll:
 extern BOOL WINAPI extGDIBitBlt(HDC, int, int, int, int, HDC, int, int, DWORD);
 extern HDC WINAPI extGDICreateCompatibleDC(HDC);
+extern HDC WINAPI extEMUCreateCompatibleDC(HDC);
 extern HDC WINAPI extDDCreateCompatibleDC(HDC);
 extern HDC WINAPI extGDICreateDC(LPSTR, LPSTR, LPSTR, CONST DEVMODE *);
 extern HDC WINAPI extDDCreateDC(LPSTR, LPSTR, LPSTR, CONST DEVMODE *);
@@ -415,6 +429,7 @@ extern HDWP WINAPI extDeferWindowPos(HDWP, HWND, HWND, int, int, int, int, UINT)
 extern BOOL WINAPI extGDIDeleteDC(HDC);
 extern BOOL WINAPI extDDDeleteDC(HDC);
 extern int WINAPI extGetClipBox(HDC, LPRECT);
+extern int WINAPI extGetRegionBox(HDC, LPRECT);
 extern int WINAPI extGetDeviceCaps(HDC, int);
 extern BOOL WINAPI extGetDeviceGammaRamp(HDC, LPVOID);
 extern UINT WINAPI extGetSystemPaletteEntries(HDC, UINT, UINT, LPPALETTEENTRY);
@@ -466,6 +481,11 @@ extern BOOL WINAPI extCreateScalableFontResourceW(DWORD, LPCWSTR, LPCWSTR, LPCWS
 extern int WINAPI extAddFontResourceW(LPCWSTR);
 extern BOOL WINAPI extAnimatePalette(HPALETTE, UINT, UINT, const PALETTEENTRY *);
 extern UINT WINAPI extSetSystemPaletteUse(HDC, UINT);
+extern BOOL WINAPI extGDISetPixelFormat(HDC, int, const PIXELFORMATDESCRIPTOR *);
+extern int WINAPI extGDIGetPixelFormat(HDC);
+extern int WINAPI extChoosePixelFormat(HDC, const PIXELFORMATDESCRIPTOR *);
+extern int WINAPI extDescribePixelFormat(HDC, int, UINT, LPPIXELFORMATDESCRIPTOR);
+extern DWORD WINAPI extGetObjectType(HGDIOBJ);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -530,7 +550,7 @@ extern HDC WINAPI extDDGetWindowDC(HWND);
 extern LONG WINAPI extGetWindowLong(HWND, int);
 extern BOOL WINAPI extGetWindowRect(HWND, LPRECT);
 extern BOOL WINAPI extInvalidateRect(HWND, RECT *, BOOL);
-extern BOOL WINAPI extDDInvalidateRect(HWND, RECT *, BOOL);
+//extern BOOL WINAPI extDDInvalidateRect(HWND, RECT *, BOOL);
 extern int WINAPI extMapWindowPoints(HWND, HWND, LPPOINT, UINT);
 extern BOOL WINAPI extMoveWindow(HWND, int, int, int, int, BOOL);
 extern BOOL WINAPI extPeekMessage(LPMSG, HWND, UINT, UINT, UINT);

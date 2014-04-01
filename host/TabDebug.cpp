@@ -39,6 +39,7 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NODDRAWBLT, cTarget->m_NoDDRAWBlt);
 	DDX_Check(pDX, IDC_NODDRAWFLIP, cTarget->m_NoDDRAWFlip);
 	DDX_Check(pDX, IDC_NOGDIBLT, cTarget->m_NoGDIBlt);
+	DDX_Check(pDX, IDC_NOFILLRECT, cTarget->m_NoFillRect);
 	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
 	DDX_Check(pDX, IDC_ZBUFFERALWAYS, cTarget->m_ZBufferAlways);
 }
@@ -52,18 +53,4 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CTabCompat message handlers
 
-
-//BOOL CTabCompat::OnInitDialog()
-//{
-//	AfxEnableControlContainer();
-//	CListBox *List;
-//	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
-//	int i;
-//	List=(CListBox *)this->GetDlgItem(IDC_LISTFAKE);
-//	List->ResetContent();
-//	for(i=0; i<9; i++) List->AddString(WinVersions[i].sName);
-//	List->SetCurSel(cTarget->m_FakeVersion);
-//	CDialog::OnInitDialog();
-//	return TRUE;
-//}
 

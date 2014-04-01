@@ -23,8 +23,8 @@ static void Stopper(char *s, int line)
 
 /*
 	dlg->m_DCEmulationMode = 0;
-	if(t->flags2 & HOOKGDI) dlg->m_DCEmulationMode = 1;
-	if(t->flags3 & EMULATEDC) dlg->m_DCEmulationMode = 2;
+	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
+	if(t->flags3 & GDIEMULATEDC) dlg->m_DCEmulationMode = 2;
 	if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
 */
 
@@ -43,6 +43,10 @@ static HookEntry_Type Hooks[]={
 	//{"SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
 	//{"CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
 	//{"SetMapMode", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extSetMapMode},
+	{"SetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDISetPixelFormat, (FARPROC)extGDISetPixelFormat},
+	{"GetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDIGetPixelFormat, (FARPROC)extGDIGetPixelFormat},
+	{"ChoosePixelFormat", (FARPROC)NULL, (FARPROC *)&pChoosePixelFormat, (FARPROC)extChoosePixelFormat},
+	{"DescribePixelFormat", (FARPROC)NULL, (FARPROC *)&pDescribePixelFormat, (FARPROC)extDescribePixelFormat},
 	{0, NULL, 0, 0} // terminator
 }; 
 
@@ -62,6 +66,7 @@ static HookEntry_Type ScaledHooks[]={
 	{"Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
 	{"TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
 	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
+	{"GetRegionBox", (FARPROC)NULL, (FARPROC *)&pGDIGetRegionBox, (FARPROC)extGetRegionBox},
 	{"Polyline", (FARPROC)NULL, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
 	{"PolyBezierTo", (FARPROC)NULL, (FARPROC *)&pPolyBezierTo, (FARPROC)extPolyBezierTo},
 	{"PolylineTo", (FARPROC)NULL, (FARPROC *)&pPolylineTo, (FARPROC)extPolylineTo},
@@ -80,10 +85,35 @@ static HookEntry_Type ScaledHooks[]={
 	{"CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
 	{"DrawTextA", (FARPROC)NULL, (FARPROC *)&pDrawText, (FARPROC)extDrawText},
 	{"DrawTextExA", (FARPROC)NULL, (FARPROC *)&pDrawTextEx, (FARPROC)extDrawTextEx},
+
+	// same as emulated GDI ...
+	{"CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extGDICreateCompatibleDC},
+	{"DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC},
+	{"CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extGDICreateDC},
+	// CreateDCW .....
+	{"BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extGDIBitBlt},
+	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extGDIStretchBlt},
+	{"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extGDIPatBlt},
+	{"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
+
 	{0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type EmulateHooks[]={
+	// useless CreateCompatibleDC: it maps VirtualHDC on top of VirtualHDC, then does nothing....
+	//{"CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extEMUCreateCompatibleDC},
+	// useless DeleteDC: it's just a proxy 
+	//{"DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC},
+	{"CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extGDICreateDC},
+	// CreateDCW .....
+	{"BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extGDIBitBlt},
+	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extGDIStretchBlt},
+	{"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extGDIPatBlt},
+	{"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
+
+	{"GetObjectType", (FARPROC)GetObjectType, (FARPROC *)&pGetObjectType, (FARPROC)extGetObjectType},
+	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
+
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -95,21 +125,13 @@ static HookEntry_Type DDHooks[]={
 	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extDDStretchBlt},
 	// {"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extDDPatBlt}, // missing one ...
 	// {"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
+
+	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
+
 	{0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type GDIHooks[]={
-	{"CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extGDICreateCompatibleDC},
-	{"DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC},
-	{"CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extGDICreateDC},
-	{"BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extGDIBitBlt},
-	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extGDIStretchBlt},
-	{"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extGDIPatBlt},
-	{"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
-	{0, NULL, 0, 0} // terminator
-};
-
-static HookEntry_Type EmuHooks[]={
+static HookEntry_Type TextHooks[]={
 	{"CreateFontA", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
 	{"CreateFontIndirectA", (FARPROC)CreateFontIndirectA, (FARPROC *)&pGDICreateFontIndirect, (FARPROC)extCreateFontIndirect},
 	{0, NULL, 0, 0} // terminator
@@ -139,7 +161,8 @@ void HookGDI32Init()
 	HookLibInit(Hooks);
 	HookLibInit(RemapHooks);
 	HookLibInit(DDHooks);
-	HookLibInit(EmuHooks);
+	HookLibInit(EmulateHooks);
+	HookLibInit(TextHooks);
 	HookLibInit(GammaHooks);
 }
 
@@ -147,35 +170,14 @@ void HookGDI32(HMODULE module)
 {
 	HookLibrary(module, Hooks, libname);
 
-	if(dxw.dwFlags1 & CLIENTREMAPPING)
-		HookLibrary(module, RemapHooks, libname);
-
-	if(dxw.dwFlags3 & EMULATEDC){
-		HookLibrary(module, EmulateHooks, libname);
-		HookLibrary(module, ScaledHooks, libname);
-		HookLibrary(module, GDIHooks, libname);
-	}
-
-	if(dxw.dwFlags2 & HOOKGDI){
-		HookLibrary(module, EmulateHooks, libname);
-		HookLibrary(module, ScaledHooks, libname);
-		HookLibrary(module, GDIHooks, libname);
-	}
-
-	if(dxw.dwFlags1 & MAPGDITOPRIMARY){
-		HookLibrary(module, EmulateHooks, libname);
-		HookLibrary(module, ScaledHooks, libname);
-		HookLibrary(module, DDHooks, libname);
-	}
-
-	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC))
-		HookLibrary(module, EmuHooks, libname);
-
-	if(dxw.dwFlags2 & DISABLEGAMMARAMP)
-		HookLibrary(module, GammaHooks, libname);
-
-	if(dxw.dwFlags3 & FONTBYPASS) // v2.02.33 - for "Stratego" compatibility option
-		HookLibrary(module, FontHooks, libname);
+	if (dxw.dwFlags1 & CLIENTREMAPPING)		HookLibrary(module, RemapHooks, libname);
+	if (dxw.dwFlags2 & GDISTRETCHED)		HookLibrary(module, ScaledHooks, libname);
+	if (dxw.dwFlags3 & GDIEMULATEDC)		HookLibrary(module, EmulateHooks, libname);	
+	if (dxw.dwFlags1 & MAPGDITOPRIMARY)		HookLibrary(module, DDHooks, libname);
+	if (dxw.dwFlags1 & FIXTEXTOUT)			HookLibrary(module, TextHooks, libname);
+	if (dxw.dwFlags2 & DISABLEGAMMARAMP)	HookLibrary(module, GammaHooks, libname);
+	// v2.02.33 - for "Stratego" compatibility option
+	if(dxw.dwFlags3 & FONTBYPASS)			HookLibrary(module, FontHooks, libname);
 }
 
 FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -184,35 +186,14 @@ FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 
 	if(addr=RemapLibrary(proc, hModule, Hooks)) return addr;
 
-	if(dxw.dwFlags1 & CLIENTREMAPPING)
-		if(addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
-
-	if(dxw.dwFlags3 & EMULATEDC){
-		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr;
-		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;
-		if (addr=RemapLibrary(proc, hModule, GDIHooks)) return addr;
-	}
-
-	if(dxw.dwFlags2 & HOOKGDI){
-		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr;
-		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;
-		if (addr=RemapLibrary(proc, hModule, GDIHooks)) return addr;
-	}
-
-	if(dxw.dwFlags1 & MAPGDITOPRIMARY){
-		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr;
-		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;
-		if (addr=RemapLibrary(proc, hModule, DDHooks)) return addr;
-	}
-
-	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC))
-		if(addr=RemapLibrary(proc, hModule, EmuHooks)) return addr;
-
-	if(dxw.dwFlags2 & DISABLEGAMMARAMP)
-		if(addr=RemapLibrary(proc, hModule, GammaHooks)) return addr;
-
-	if(dxw.dwFlags3 & FONTBYPASS) // v2.02.33 - for "Stratego" compatibility option
-		if(addr=RemapLibrary(proc, hModule, FontHooks)) return addr;
+	if (dxw.dwFlags1 & CLIENTREMAPPING)		if(addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
+	if (dxw.dwFlags2 & GDISTRETCHED)		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;
+	if (dxw.dwFlags3 & GDIEMULATEDC)		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr;
+	if (dxw.dwFlags1 & MAPGDITOPRIMARY)		if (addr=RemapLibrary(proc, hModule, DDHooks)) return addr;
+	if (dxw.dwFlags1 & FIXTEXTOUT)			if(addr=RemapLibrary(proc, hModule, TextHooks)) return addr;
+	if (dxw.dwFlags2 & DISABLEGAMMARAMP)	if(addr=RemapLibrary(proc, hModule, GammaHooks)) return addr;
+	// v2.02.33 - for "Stratego" compatibility option
+	if (dxw.dwFlags3 & FONTBYPASS)			if(addr=RemapLibrary(proc, hModule, FontHooks)) return addr;
 
 	return NULL;
 }
@@ -417,7 +398,7 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 BOOL WINAPI extTextOutA(HDC hdc, int nXStart, int nYStart, LPCTSTR lpString, int cchString)
 {
 	BOOL ret;
-	OutTraceDW("TextOut: hdc=%x xy=(%d,%d) str=(%d)\"%s\"\n", hdc, nXStart, nYStart, cchString, lpString);
+	OutTraceDW("TextOut: hdc=%x xy=(%d,%d) str=(%d)\"%.*s\"\n", hdc, nXStart, nYStart, cchString, cchString, lpString);
 
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
 		dxw.MapClient(&nXStart, &nYStart);
@@ -500,6 +481,8 @@ HPALETTE hDesktopPalette=NULL;
 HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
 {
 	HPALETTE ret;
+
+	if(hdc==dxw.RealHDC) hdc= dxw.VirtualHDC;
 
 	ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
 	OutTraceDW("GDI.SelectPalette: hdc=%x hpal=%x ForceBackground=%x ret=%x\n", hdc, hpal, bForceBackground, ret);
@@ -841,23 +824,31 @@ BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHe
 	HRESULT res;
 	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
 
-	OutTraceDW("GDI.BitBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
+	OutTraceDW("GDI.BitBlt(PRIMARY): HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop, ExplainROP(dwRop));
 
 	ret=1; // OK
 
-	if(hdcDest==0) hdcDest=PrimHDC;
 	if(hdcDest==0) {
-		dxw.ResetPrimarySurface();
-		dxw.SetPrimarySurface();
-		res=extGetDC(dxw.lpDDSPrimHDC, &PrimHDC);
 		hdcDest=PrimHDC;
+		if(hdcDest==0) {
+			dxw.ResetPrimarySurface();
+			dxw.SetPrimarySurface();
+			res=extGetDC(dxw.lpDDSPrimHDC, &PrimHDC);
+			hdcDest=PrimHDC;
+		}
 	}
 
 	res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	res=(*pGDIBitBlt)(NULL, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-	if(!res) ret=0;
+
+	//dxw.SetPrimarySurface();
+	//OutTraceDW("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
+	//sBlt("GDI.BitBlt", dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL, 0);
+	//res=(*pUnlockMethod(dxw.lpDDSPrimHDC))(dxw.lpDDSPrimHDC, NULL);
+
+	//res=(*pGDIBitBlt)(NULL, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+	//if(!res) ret=0;
 	return ret;
 }
 
@@ -865,7 +856,6 @@ BOOL WINAPI extDDStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int
 							 HDC hdcSrc, int nXSrc, int nYSrc, int nWSrc, int nHSrc, DWORD dwRop)
 {
 	BOOL ret;
-	HRESULT res;
 	RECT ClientRect;
 
 	OutTraceDW("GDI.StretchBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d nWSrc=%x nHSrc=%x dwRop=%x\n", 
@@ -879,10 +869,10 @@ BOOL WINAPI extDDStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int
 			return ret;
 		}
 	}
-	dxw.SetPrimarySurface();
-	OutTraceDW("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
-	sBlt("GDI.StretchBlt", dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL, 0);
-	res=(*pUnlockMethod(dxw.lpDDSPrimHDC))(dxw.lpDDSPrimHDC, NULL);
+	//dxw.SetPrimarySurface();
+	//OutTraceDW("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
+	//sBlt("GDI.StretchBlt", dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL, 0);
+	//res=(*pUnlockMethod(dxw.lpDDSPrimHDC))(dxw.lpDDSPrimHDC, NULL);
 	return ret;
 }
 
@@ -897,6 +887,10 @@ HDC WINAPI extGDICreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMOD
 		WinHDC=(*pGDIGetDC)(dxw.GethWnd());
 		RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
 		(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
+
+		if(dxw.dwFlags3 & GDIEMULATEDC){
+			RetHDC=dxw.AcquireEmulatedDC(dxw.GethWnd());
+		}
 	}
 	else{
 		RetHDC=(*pGDICreateDC)(Driver, Device, Output, InitData);
@@ -911,8 +905,6 @@ HDC WINAPI extGDICreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMOD
 HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 {
 	HDC RetHdc, SrcHdc;
-	extern LPDIRECTDRAWSURFACE lpDDSHDC;
-	extern GetDC_Type pGetDC;
 	DWORD LastError;
 
 	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
@@ -932,6 +924,34 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	return RetHdc;
 }
 
+//HDC WINAPI extEMUCreateCompatibleDC(HDC hdc)
+//{
+//	HDC RetHdc, SrcHdc;
+//	DWORD LastError;
+//
+//	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
+//	if((hdc==0) || (hdc==dxw.RealHDC)){
+//		SrcHdc=dxw.AcquireEmulatedDC(dxw.GethWnd());
+//		OutTraceDW("GDI.CreateCompatibleDC: using emulated HDC hWnd=%x hdc=%x\n", dxw.GethWnd(), SrcHdc); 
+//	}
+//
+//	// eliminated error message for errorcode 0.
+//	SetLastError(0);
+//	RetHdc=(*pGDICreateCompatibleDC)(hdc);
+//	LastError=GetLastError();
+//	if(!LastError)
+//		OutTraceDW("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
+//	else
+//		OutTraceE("GDI.CreateCompatibleDC ERROR: err=%d at %d\n", LastError, __LINE__);
+//	return RetHdc;
+//}
+
+//BOOL WINAPI extEMUBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
+//{
+//	if (hdcDest==dxw.RealHDC) hdcDest=dxw.VirtualHDC;
+//	return (*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+//}
+
 BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
 {
 	BOOL res;
@@ -946,6 +966,11 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	// beware: HDC could refer to screen DC that are written directly on screen, or memory DC that will be scaled to
 	// the screen surface later on, on ReleaseDC or ddraw Blit / Flip operation. Scaling of rect coordinates is 
 	// needed only in the first case, and must be avoided on the second, otherwise the image would be scaled twice!
+
+	if(dxw.dwFlags3 & GDIEMULATEDC){
+		if (hdcDest==dxw.RealHDC) hdcDest=dxw.VirtualHDC;
+		//return (*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+	}
 
 	if (OBJ_DC == GetObjectType(hdcDest)){
 		//if(dxw.IsRealDesktop(WindowFromDC(hdcDest))) hdcDest=GetDC(dxw.GethWnd()); // ??????
@@ -1170,7 +1195,26 @@ int WINAPI extGetClipBox(HDC hdc, LPRECT lprc)
 		// virtual desktop area as the current clipbox...!!!
 		*lprc=dxw.GetScreenRect();
 	}
-	OutTraceDW("GetClipBox: ret=%x(%s)\n", ret, sRetCodes[ret]);
+	OutTraceDW("GetClipBox: ret=%x(%s) rect=(%d,%d)-(%d,%d)\n", 
+		ret, sRetCodes[ret], lprc->left, lprc->top, lprc->right, lprc->bottom);
+	return ret;
+}
+
+int WINAPI extGetRegionBox(HDC hdc, LPRECT lprc)
+{
+	int ret;
+	char *sRetCodes[4]={"ERROR", "NULLREGION", "SIMPLEREGION", "COMPLEXREGION"};
+	OutTraceDW("GetRegionBox: hdc=%x\n", hdc);
+	ret=(*pGDIGetRegionBox)(hdc, lprc);
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && (ret!=ERROR)){
+		OutTraceDW("GetRegionBox: scaling main win coordinates (%d,%d)-(%d,%d)\n",
+			lprc->left, lprc->top, lprc->right, lprc->bottom);
+		// current implementation is NOT accurate, since it always returns the whole
+		// virtual desktop area as the current regionbox...!!!
+		*lprc=dxw.GetScreenRect();
+	}
+	OutTraceDW("GetRegionBox: ret=%x(%s) rect=(%d,%d)-(%d,%d)\n", 
+		ret, sRetCodes[ret], lprc->left, lprc->top, lprc->right, lprc->bottom);
 	return ret;
 }
 
@@ -1798,15 +1842,106 @@ UINT WINAPI extSetSystemPaletteUse(HDC hdc, UINT uUsage)
 	return SYSPAL_NOSTATIC256;
 }
 
+//BEWARE: SetPixelFormat must be issued on the same hdc used by OpenGL wglCreateContext, otherwise 
+// a failure err=2000 ERROR INVALID PIXEL FORMAT occurs!!
+
+BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDESCRIPTOR *ppfd)
+{
+	BOOL res;
+	OutTraceDW("SetPixelFormat: hdc=%x PixelFormat=%d Flags=%x PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
+		hdc, iPixelFormat, 
+		ppfd->dwFlags, ppfd->iPixelType, ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
+		ppfd->cRedBits, ppfd->cGreenBits, ppfd->cBlueBits,
+		ppfd->cRedShift, ppfd->cGreenShift, ppfd->cBlueShift);
+	//if(dxw.dwFlags1 & EMULATESURFACE) {
+	//	OutTraceDW("SetPixelFormat: prevent pixelformat change\n");
+	//	return TRUE;
+	//}
+	if(dxw.IsDesktop(WindowFromDC(hdc))){
+		HDC oldhdc = hdc;
+		hdc=(*pGDIGetDC)(dxw.GethWnd());
+		OutTraceDW("SetPixelFormat: remapped desktop hdc=%x->%x hWnd=%x\n", oldhdc, hdc, dxw.GethWnd());
+	}	
+	res=(*pGDISetPixelFormat)(hdc, iPixelFormat, ppfd);
+	dxw.ActualPixelFormat.dwRGBBitCount = ppfd->cColorBits;
+	if(!res) OutTraceE("SetPixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return res;
+}
+
+int WINAPI extGDIGetPixelFormat(HDC hdc)
+{
+	int res;
+	OutTraceDW("GetPixelFormat: hdc=%x\n", hdc);
+	if(dxw.IsDesktop(WindowFromDC(hdc))){
+		HDC oldhdc = hdc;
+		hdc=(*pGDIGetDC)(dxw.GethWnd());
+		OutTraceDW("GetPixelFormat: remapped desktop hdc=%x->%x hWnd=%x\n", oldhdc, hdc, dxw.GethWnd());
+	}	
+	res=(*pGDIGetPixelFormat)(hdc);
+	if(!res) OutTraceE("GetPixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	else OutTraceDW("GetPixelFormat: res=%d\n", res);
+	return res;
+}
+
+int WINAPI extChoosePixelFormat(HDC hdc, const PIXELFORMATDESCRIPTOR *ppfd)
+{
+	int res;
+	OutTraceDW("ChoosePixelFormat: hdc=%x Flags=%x PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
+		hdc, 
+		ppfd->dwFlags, ppfd->iPixelType, ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
+		ppfd->cRedBits, ppfd->cGreenBits, ppfd->cBlueBits,
+		ppfd->cRedShift, ppfd->cGreenShift, ppfd->cBlueShift);
+	//PIXELFORMATDESCRIPTOR myppfd;
+	//memcpy(&myppfd, ppfd, sizeof(PIXELFORMATDESCRIPTOR));
+	//myppfd.dwFlags |= PFD_DRAW_TO_WINDOW;
+	//res=(*pChoosePixelFormat)(hdc, &myppfd);
+	res=(*pChoosePixelFormat)(hdc, ppfd);
+	if(!res) OutTraceE("ChoosePixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	else OutTraceDW("ChoosePixelFormat: res=%d\n", res);
+	return res;
+}
+
+int WINAPI extDescribePixelFormat(HDC hdc, int iPixelFormat, UINT nBytes, LPPIXELFORMATDESCRIPTOR ppfd)
+{
+	int res;
+	OutTraceDW("DescribePixelFormat: hdc=%x PixelFormat=%d Bytes=%d\n", hdc, iPixelFormat, nBytes);
+	res=(*pDescribePixelFormat)(hdc, iPixelFormat, nBytes, ppfd);
+	if(!res){
+		OutTraceE("DescribePixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		return res;
+	}
+	if (ppfd && nBytes==sizeof(PIXELFORMATDESCRIPTOR)){
+		OutTraceDW("DescribePixelFormat: res=%d Flags=%x PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
+			res, 
+			ppfd->dwFlags, ppfd->iPixelType, ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
+			ppfd->cRedBits, ppfd->cGreenBits, ppfd->cBlueBits,
+			ppfd->cRedShift, ppfd->cGreenShift, ppfd->cBlueShift);
+	}
+	else {
+		OutTraceDW("DescribePixelFormat: res=%d\n", res);
+	}
+	return res;
+}
+
+DWORD WINAPI extGetObjectType(HGDIOBJ h)
+{
+	DWORD res;
+	res=(*pGetObjectType)(h);
+	OutTraceDW("GetObjectType: h=%x type=%x", h, res);
+	if(h==dxw.VirtualHDC) {
+		OutTraceDW("GetObjectType: REMAP h=%x type=%x->%x", h, res, OBJ_DC);
+		res=OBJ_DC;
+	}
+	return res;
+}
+
 #if 0
 int WINAPI extSetMapMode(HDC hdc, int fnMapMode)
 {
 	OutTraceDW("SetMapMode: hdc=%x MapMode=%d\n", hdc, fnMapMode);
 	return TRUE;
 }
-#endif
 
-#if 0
 // to map:
 // GetCurrentPositionEx
 // GetViewportExtEx

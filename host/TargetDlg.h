@@ -113,6 +113,7 @@ public:
 	BOOL	m_NoDDRAWBlt;
 	BOOL	m_NoDDRAWFlip;
 	BOOL	m_NoGDIBlt;
+	BOOL	m_NoFillRect;
 	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
@@ -144,6 +145,7 @@ public:
 	BOOL	m_Force16BPP;
 	BOOL	m_ForceYUVtoRGB;
 	BOOL	m_ForceRGBtoYUV;
+	BOOL	m_LimitScreenRes;
 	int		m_InitX;
 	int		m_InitY;
 	int		m_MaxX;
@@ -157,6 +159,7 @@ public:
 	int		m_MaxFPS;
 	int		m_InitTS;
 	int		m_FakeVersionId;
+	int		m_MaxScreenRes;
 	//}}AFX_DATA
 
 

@@ -46,6 +46,7 @@
 #define IDC_DIRECTX11                   307
 #define IDC_FILE                        1000
 #define IDC_OPEN                        1001
+#define IDC_MODULE                      1002
 #define IDC_STATUSINFO                  1005
 #define IDC_VERSION                     1006
 #define IDC_UNNOTIFY                    1007
@@ -135,6 +136,7 @@
 #define IDC_FORCEWINRESIZE              1096
 #define IDC_FORCE16BPP                  1097
 #define IDC_FORCEHOOKOPENGL             1098
+#define IDC_LISTRES                     1098
 #define IDC_DESKTOPCENTER               1099
 #define IDC_COORDINATES                 1100
 #define IDC_SUPPRESSD3DEXT              1101
@@ -181,6 +183,7 @@
 #define IDC_NOALPHACHANNEL              1143
 #define IDC_SUPPRESSCHILD               1144
 #define IDC_FIXREFCOUNTER               1145
+#define IDC_LIMITSCREENRES              1145
 #define IDC_SHOWTIMESTRETCH             1146
 #define IDC_ZBUFFERALWAYS               1147
 #define IDC_ZBUFFER0CLEAN               1148
@@ -196,6 +199,7 @@
 #define IDC_OUTREGISTRY                 1159
 #define IDC_ADDPROXYLIBS                1160
 #define IDC_INTERCEPTRDTSC              1161
+#define IDC_NOFILLRECT                  1162
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -249,7 +253,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         32830
-#define _APS_NEXT_CONTROL_VALUE         1095
+#define _APS_NEXT_CONTROL_VALUE         1099
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

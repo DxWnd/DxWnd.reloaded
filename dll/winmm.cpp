@@ -49,9 +49,11 @@ DWORD WINAPI exttimeGetTime(void)
 MMRESULT WINAPI exttimeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK lpTimeProc, DWORD_PTR dwUser, UINT fuEvent)
 {
 	MMRESULT res;
-	//uDelay = uDelay * 8;
+	UINT NewDelay;
 	OutTraceDW("timeSetEvent: Delay=%d Resolution=%d Event=%x\n", uDelay, uResolution, fuEvent);
-	res=(*ptimeSetEvent)(uDelay, uResolution, lpTimeProc, dwUser, fuEvent);
+	NewDelay = dxw.StretchTime(uDelay);
+	res=(*ptimeSetEvent)(NewDelay, uResolution, lpTimeProc, dwUser, fuEvent);
+	if(res) dxw.PushTimer(res, uDelay, uResolution, lpTimeProc, dwUser, fuEvent);
 	OutTraceDW("timeSetEvent: ret=%x\n", res);
 	return res;
 }
@@ -61,6 +63,7 @@ MMRESULT WINAPI exttimeKillEvent(UINT uTimerID)
 	MMRESULT res;
 	OutTraceDW("timeKillEvent: TimerID=%x\n", uTimerID);
 	res=(*ptimeKillEvent)(uTimerID);
+	if(res==TIMERR_NOERROR) dxw.PopTimer(uTimerID);
 	OutTraceDW("timeKillEvent: ret=%x\n", res);
 	return res;
 }

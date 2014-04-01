@@ -167,11 +167,15 @@ void WINAPI extglViewport(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height
 {
 	RECT client;
 	POINT p={0,0};
+	HWND hwnd;
 	//if (dxw.dwFlags2 & HANDLEFPS) if(dxw.HandleFPS()) return;
-	(*pGetClientRect)(dxw.GethWnd(), &client);
+	hwnd=dxw.GethWnd();
+	(*pGetClientRect)(hwnd, &client);
 	OutTraceDW("glViewport: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
-	if(IsDebug) OutTrace("glViewport: DEBUG win=(%d,%d) screen=(%d,%d)\n",
-		client.right, client.bottom, dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	if(IsDebug) OutTrace("glViewport: DEBUG hwnd=%x win=(%d,%d) screen=(%d,%d)\n",
+		hwnd, client.right, client.bottom, dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	if(x==CW_USEDEFAULT) x=0;
+	if(y==CW_USEDEFAULT) y=0;
 	x = (x * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
 	y = (y * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
 	width = (width * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
@@ -244,6 +248,9 @@ void WINAPI extglClear(GLbitfield mask)
 	return;
 }
 
+//BEWARE: SetPixelFormat must be issued on the same hdc used by OpenGL wglCreateContext, otherwise 
+// a failure err=2000 ERROR INVALID PIXEL FORMAT occurs!!
+
 HGLRC WINAPI extwglCreateContext(HDC hdc)
 {
 	HGLRC ret;
@@ -252,7 +259,7 @@ HGLRC WINAPI extwglCreateContext(HDC hdc)
 	if(dxw.IsDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
-		OutTraceDW("wglCreateContext: remapped desktop hdc=%x->%x\n", oldhdc, hdc);
+		OutTraceDW("wglCreateContext: remapped desktop hdc=%x->%x hWnd=%x\n", oldhdc, hdc, dxw.GethWnd());
 	}
 	ret=(*pwglCreateContext)(hdc);
 	if(ret){
@@ -262,7 +269,7 @@ HGLRC WINAPI extwglCreateContext(HDC hdc)
 		OutTraceDW("wglCreateContext: SET hwnd=%x\n", hwnd);
 	}
 	else {
-		OutTraceDW("wglCreateContext: ERROR err=%x\n", GetLastError());
+		OutTraceDW("wglCreateContext: ERROR err=%d\n", GetLastError());
 	}
 	return ret;
 }
@@ -275,12 +282,6 @@ PROC WINAPI extwglGetProcAddress(LPCSTR proc)
 	procaddr=Remap_wgl_ProcAddress(proc);
 	if (!procaddr) procaddr=(*pwglGetProcAddress)(proc);
 	return procaddr;
-}
-
-int WINAPI extChoosePixelFormat(HDC hdc, const PIXELFORMATDESCRIPTOR *ppfd)
-{
-	// to do ....
-	return 0;
 }
 
 BOOL WINAPI extwglMakeCurrent(HDC hdc, HGLRC hglrc)

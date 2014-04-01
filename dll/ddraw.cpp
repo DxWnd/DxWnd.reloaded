@@ -846,7 +846,7 @@ int Set_dwSize_From_DDraw(LPDIRECTDRAW lpdd)
 	return (lpddHookedVersion(lpdd) < 4) ? sizeof(DDSURFACEDESC) : sizeof(DDSURFACEDESC2);
 }
 
-static void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
+void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 {
 	OutTraceDW("Hooking directdraw session dd=%x dxversion=%d thread_id=%x\n", 
 		*lplpdd, dxversion, GetCurrentThreadId());
@@ -907,11 +907,12 @@ static void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	// IDIrectDraw::GetAvailableVidMem
 	if (dxversion == 2)
 		SetHook((void *)(**(DWORD **)lplpdd + 92), extGetAvailableVidMem2, (void **)&pGetAvailableVidMem2, "GetAvailableVidMem(D2)");
-	if (dxversion == 4)
-		SetHook((void *)(**(DWORD **)lplpdd + 92), extGetAvailableVidMem4, (void **)&pGetAvailableVidMem4, "GetAvailableVidMem(D4)");
-	// IDIrectDraw::TestCooperativeLevel
-	if (dxversion >= 4)
-		SetHook((void *)(**(DWORD **)lplpdd + 104), extTestCooperativeLevel, (void **)&pTestCooperativeLevel, "TestCooperativeLevel(D)");
+	if (dxversion >= 4){
+		// IDIrectDraw::GetAvailableVidMem
+			SetHook((void *)(**(DWORD **)lplpdd + 92), extGetAvailableVidMem4, (void **)&pGetAvailableVidMem4, "GetAvailableVidMem(D4)");
+		// IDIrectDraw::TestCooperativeLevel
+			SetHook((void *)(**(DWORD **)lplpdd + 104), extTestCooperativeLevel, (void **)&pTestCooperativeLevel, "TestCooperativeLevel(D)");
+	}
 
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 	// Just proxed ...
@@ -1369,10 +1370,13 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 	if(!pDirectDrawCreate){ // not hooked yet....
 		HINSTANCE hinst;
 		hinst = LoadLibrary("ddraw.dll");
+		if(!hinst){
+			OutTraceE("LoadLibrary ERROR err=%d at %d\n", GetLastError(), __LINE__);
+		}
 		pDirectDrawCreate =
 			(DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
 		if(pDirectDrawCreate)
-			HookAPI(NULL, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
+			HookAPI(hinst, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate); // v2.02.52
 		else{
 			char sMsg[81];
 			sprintf_s(sMsg, 80, "DirectDrawCreate hook failed: error=%d\n", GetLastError());
@@ -1443,7 +1447,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 		pDirectDrawCreateEx =
 			(DirectDrawCreateEx_Type)GetProcAddress(hinst, "DirectDrawCreateEx");
 		if(pDirectDrawCreateEx)
-			HookAPI(NULL, "ddraw.dll", pDirectDrawCreateEx, "DirectDrawCreateEx", extDirectDrawCreateEx);
+			HookAPI(hinst, "ddraw.dll", pDirectDrawCreateEx, "DirectDrawCreateEx", extDirectDrawCreateEx); // v2.02.52
 		else{
 			char sMsg[81];
 			sprintf_s(sMsg, 80, "DirectDrawCreateEx hook failed: error=%d\n", GetLastError());
@@ -1481,7 +1485,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	}
 	OutTraceDDRAW("DirectDrawCreateEx: lpdd=%x guid=%s DDVersion=%d\n", *lplpdd, mode, dxw.dwDDVersion);
 
-	HookDDSession(lplpdd,dxw.dwDDVersion);
+	HookDDSession(lplpdd, dxw.dwDDVersion);
 
 	return 0;
 }
@@ -1543,7 +1547,7 @@ HRESULT WINAPI extQueryInterfaceD(void *lpdd, REFIID riid, LPVOID *obp)
 		dwLocalD3DVersion = 7;
 		break;
 	}
-	if (! *obp) {
+	if (! *obp){ 
 		OutTraceDDRAW("QueryInterface(D): Interface for DX version %d not found\n", dwLocalDDVersion);
 		return(0);
 	}
@@ -1806,35 +1810,6 @@ HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 	return 0;
 }
 
-void FixWindowFrame(HWND hwnd) 
-{
-	LONG nOldStyle;
-
-	OutTraceDW("FixWindowFrame: hwnd=%x\n", hwnd);
-
-	nOldStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
-	if (!nOldStyle){
-		OutTraceE("GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
-		return;
-	}
-
-	OutTraceDW("FixWindowFrame: style=%x(%s)\n",nOldStyle,ExplainStyle(nOldStyle));
-
-	// fix style
-	if (!(*pSetWindowLong)(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW)){
-		OutTraceE("SetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
-		return;
-	}
-	// fix exstyle
-	if (!(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0)){
-		OutTraceE("SetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
-		return;
-	}
-
-	// ShowWindow retcode means in no way an error code! Better ignore it.
-	(*pShowWindow)(hwnd, SW_RESTORE);
-	return;
-}
 
 HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 {
@@ -1863,7 +1838,7 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 		dwflags |= DDSCL_NORMAL;
 		res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
 		AdjustWindowFrame(hwnd, dxw.GetScreenWidth(), dxw.GetScreenHeight());
-		if (dxw.dwFlags1 & FIXWINFRAME) FixWindowFrame(hwnd);
+		if (dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(hwnd);
 	}
 	else{
 		RECT client;

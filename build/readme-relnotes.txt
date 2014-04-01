@@ -341,3 +341,18 @@ GUI: added desktop color setting
 v2.02.50
 Added "Intercept RDTSC" option: so far, tested on Unreal Tournament only.
 To implement RDTSC detection, I owe a big thank you to Olly who shared the disasm lib used to browse the assembly code.
+
+v2.02.51/52
+Hooked window timers: now "Ed Hunter" can be time stretched
+added NOFILLRECT debug option
+fixed WM_DISPLAYCHANGE handling (x,y swapped coordinates?)
+fixed int64 arithmetic for performance counters
+Added (untested !!!) handling for RDTSCP opcode with "Intercept RDTSC" option
+Added "Limit screen resolution" option: seems necessary for "Sid Meyer's Civilization III" to work
+Improved initial window coordinate & style handling
+fixed virtual screen size showing into status panel
+hooked SetPixelFormat, GetPixelFormat, ChoosePixelFormat and DescribePixelFormat to redirect desktop hwnd and make wglCreateContext work (needed for Civ III)
+fixed log message for TextOut parameters
+hooked DisableD3DSpy (invoked by The Bard's Tale)
+fixed extglViewport coordinate remapping when invoked with CW_USEDEFAULT values (Civ III)
+fixed bug in DirectDarawCreate/Ex hooking with wrong module handle

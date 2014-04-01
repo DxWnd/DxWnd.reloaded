@@ -24,11 +24,10 @@ dxwCore::dxwCore()
 	bDInputAbs = 0;
 	TimeShift = 0;
 	lpDDSPrimHDC = NULL;
-	//IsWithinDDraw = FALSE;
-	//IsGDIPalette = FALSE;
 	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
 	ResetEmulatedDC();
 	MustShowOverlay=FALSE;
+	TimerEvent.uTimerId = 0;
 }
 
 dxwCore::~dxwCore()
@@ -73,8 +72,27 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	if(TimeShift < -8) TimeShift = -8;
 	if(TimeShift >  8) TimeShift =  8;
 	FakeVersionId = target->FakeVersionId;
+	MaxScreenRes = target->MaxScreenRes;
 	Coordinates = target->coordinates;
 	MustShowOverlay=((dwFlags2 & SHOWFPSOVERLAY) || (dwFlags4 & SHOWTIMESTRETCH));
+}
+
+void dxwCore::SetScreenSize(void) 
+{
+	SetScreenSize(800, 600); // set to default screen resolution
+}
+
+void dxwCore::SetScreenSize(int x, int y)
+{
+	DXWNDSTATUS *p;
+	OutTraceDW("DXWND: set screen size=(%d,%d)\n", x, y);
+	if(x) dwScreenWidth=x; 
+	if(y) dwScreenHeight=y;
+	p = GetHookInfo();
+	if(p) {
+		p->Width = (short)dwScreenWidth;
+		p->Height = (short)dwScreenHeight;
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -389,16 +407,16 @@ void dxwCore::EraseClipCursor()
 void dxwCore::SethWnd(HWND hwnd) 
 {
 	RECT WinRect;
-	if (pGetWindowRect){
-		(*pGetWindowRect)(hwnd, &WinRect);
-		OutTraceDW("SethWnd: setting main win=%x pos=(%d,%d)-(%d,%d)\n", 
-			hwnd, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
-	}
-	else {
-		OutTraceDW("SethWnd: setting main win=%x\n", hwnd);
-	}
+	if(!pGetWindowRect) pGetWindowRect=::GetWindowRect;
+	if(!pGDIGetDC)		pGDIGetDC=::GetDC;
+
 	hWnd=hwnd; 
-	hWndFPS=hwnd;
+	hWndFPS=hwnd;	
+	RealHDC=(*pGDIGetDC)(hwnd);
+
+	(*pGetWindowRect)(hwnd, &WinRect);
+	OutTraceDW("SethWnd: setting main win=%x hdc=%x pos=(%d,%d)-(%d,%d)\n", 
+		hwnd, RealHDC, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
 }
 
 void dxwCore::FixWorkarea(LPRECT workarea)
@@ -827,6 +845,24 @@ static DWORD TimeShifter(DWORD val, int shift)
 	return val;
 }
 
+static LARGE_INTEGER TimeShifter64(LARGE_INTEGER val, int shift)
+{
+	int exp, reminder;
+	if (shift > 0) {
+		exp = shift >> 1;
+		reminder = shift & 0x1;
+		if (reminder) val.QuadPart -= (val.QuadPart >> 2); // val * (1-1/4) = val * 3/4
+		val.QuadPart >>= exp; // val * 2^exp
+	}
+	if (shift < 0) {
+		exp = (-shift) >> 1;
+		reminder = (-shift) & 0x1;
+		val.QuadPart <<= exp; // val / 2^exp
+		if (reminder) val.QuadPart += (val.QuadPart >> 1); // val * (1+1/2) = val * 3/2
+	}
+	return val;
+}
+
 DWORD dxwCore::GetTickCount(void)
 {
 	DWORD dwTick;
@@ -854,6 +890,13 @@ DWORD dxwCore::StretchCounter(DWORD dwTimer)
 {
 	TimeShift=GetHookInfo()->TimeShift;
 	dwTimer = TimeShifter(dwTimer, TimeShift);
+	return dwTimer;
+}
+
+LARGE_INTEGER dxwCore::StretchCounter(LARGE_INTEGER dwTimer)
+{
+	TimeShift=GetHookInfo()->TimeShift;
+	dwTimer = TimeShifter64(dwTimer, TimeShift);
 	return dwTimer;
 }
 
@@ -1169,6 +1212,36 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 	return idx;
 }
 
+void dxwCore::FixWindowFrame(HWND hwnd)
+{
+	LONG nOldStyle;
+
+	OutTraceDW("FixWindowFrame: hwnd=%x\n", hwnd);
+
+	nOldStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
+	if (!nOldStyle){
+		OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
+		return;
+	}
+
+	OutTraceDW("FixWindowFrame: style=%x(%s)\n",nOldStyle,ExplainStyle(nOldStyle));
+
+	// fix style
+	if (!(*pSetWindowLong)(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW)){
+		OutTraceE("FixWindowFrame: SetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
+		return;
+	}
+	// fix exstyle
+	if (!(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0)){
+		OutTraceE("FixWindowFrame: SetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
+		return;
+	}
+
+	// ShowWindow retcode means in no way an error code! Better ignore it.
+	(*pShowWindow)(hwnd, SW_RESTORE);
+	return;
+}
+
 void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
 	LPSTYLESTRUCT lpSS;
@@ -1222,6 +1295,7 @@ HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
 
 HDC dxwCore::AcquireEmulatedDC(HDC wdc)
 {
+	RealHDC=wdc;
 	//HDC wdc;
 	//if(!(wdc=(*pGDIGetDC)(hwnd)))
 	//OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
@@ -1254,7 +1328,7 @@ BOOL dxwCore::ReleaseEmulatedDC(HWND hwnd)
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	if(!(*pGDIStretchBlt)(wdc, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), SRCCOPY))
 		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	(*pInvalidateRect)(hwnd, NULL, 0);
+	//(*pInvalidateRect)(hwnd, NULL, 0);
 	ret=TRUE;
 	return ret;
 }
@@ -1269,5 +1343,46 @@ void dxwCore::ResetEmulatedDC()
 
 BOOL dxwCore::IsVirtual(HDC hdc)
 {
-	return (hdc==VirtualHDC) && (dwFlags3 & EMULATEDC);
+	return (hdc==VirtualHDC) && (dwFlags3 & GDIEMULATEDC);
+}
+
+void dxwCore::PushTimer(UINT uTimerId, UINT uDelay, UINT uResolution, LPTIMECALLBACK lpTimeProc, DWORD_PTR dwUser, UINT fuEvent)
+{
+		// save current timer
+		TimerEvent.uTimerId = uTimerId;
+		TimerEvent.uDelay = uDelay;
+		TimerEvent.uResolution = uResolution;
+		TimerEvent.lpTimeProc = lpTimeProc;
+		TimerEvent.dwUser = dwUser;
+		TimerEvent.fuEvent = fuEvent;
+}
+
+void dxwCore::PopTimer(UINT uTimerId)
+{
+		// clear current timer
+	if(uTimerId != TimerEvent.uTimerId){
+		// this should never happen, unless there are more than 1 timer!
+		char msg[256];
+		sprintf(msg,"PopTimer: TimerId=%x last=%x\n", uTimerId, TimerEvent.uTimerId);
+		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		return;
+	}
+	TimerEvent.uTimerId = 0;
+	TimerEvent.uDelay = 0;
+	TimerEvent.uResolution = 0;
+	TimerEvent.lpTimeProc = NULL;
+	TimerEvent.dwUser = 0;
+	TimerEvent.fuEvent = 0;
+}
+
+void dxwCore::RenewTimers()
+{
+	if(ptimeKillEvent && ptimeSetEvent && TimerEvent.uTimerId){
+		UINT NewDelay;
+		MMRESULT res;
+		(*ptimeKillEvent)(TimerEvent.uTimerId);
+		NewDelay = dxw.StretchTime(TimerEvent.uDelay);
+		res=(*ptimeSetEvent)(NewDelay, TimerEvent.uResolution, TimerEvent.lpTimeProc, TimerEvent.dwUser, TimerEvent.fuEvent);
+		TimerEvent.uTimerId = res;
+	}
 }

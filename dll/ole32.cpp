@@ -64,57 +64,6 @@ static void HookAdditionalModules()
 // utilized so far in a single game: Axiz & Allies
 // -------------------------------------------------------------------------------------
 
-static void HookDDSession(LPDIRECTDRAW *, int);
-static HRESULT STDAPICALLTYPE myCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID FAR* ppv)
-{
-	HRESULT res;
-
-	res=(*pCoCreateInstance)(rclsid, pUnkOuter, dwClsContext, riid, ppv);
-	if(res) 
-		OutTraceE("CoCreateInstance: ERROR res=%x\n", res);
-	else
-		OutTraceDW("CoCreateInstance: ppv=%x->%x\n", *ppv, *(DWORD *)*ppv);
-
-	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DirectDraw){
-		LPDIRECTDRAW lpOldDDraw;
-		OutTraceDW("CoCreateInstance: CLSID_DirectDraw object\n");
-		switch (*(DWORD *)&riid){
-		case 0x6C14DB80:
-			OutTraceDW("DirectDrawCreate: IID_DirectDraw RIID\n");
-			res=extDirectDrawCreate(NULL, (LPDIRECTDRAW *)&ppv, 0);
-			if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
-			break;
-		case 0xB3A6F3E0:
-			OutTraceDW("DirectDrawCreate: IID_DirectDraw2 RIID\n");
-			res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
-			if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
-			res=lpOldDDraw->QueryInterface(IID_IDirectDraw2, (LPVOID *)&ppv);
-			if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
-			lpOldDDraw->Release();
-			break;
-		case 0x9c59509a:
-			OutTraceDW("DirectDrawCreate: IID_DirectDraw4 RIID\n");
-			res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
-			if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
-			res=lpOldDDraw->QueryInterface(IID_IDirectDraw4, (LPVOID *)&ppv);
-			if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
-			lpOldDDraw->Release();
-		case 0x15e65ec0:
-			OutTraceDW("CoCreateInstance: IID_DirectDraw7 RIID\n");
-			res=extDirectDrawCreateEx(NULL, (LPDIRECTDRAW *)&ppv, IID_IDirectDraw7, 0);
-			if(res)OutTraceDW("DirectDrawCreateEx: res=%x(%s)\n", res, ExplainDDError(res));
-			break;
-		case 0xe436ebb3:
-			break;
-		}
-	}
-	else
-	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
-
-	HookAdditionalModules();
-	return res;
-}
-
 HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID FAR* ppv)
 {
 	HRESULT res;

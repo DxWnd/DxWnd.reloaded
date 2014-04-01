@@ -130,13 +130,13 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags |= LOCKEDSURFACE; break;
 		case 3: t->flags |= EMULATESURFACE; break;
 	}
-	t->flags2 &= ~HOOKGDI;
+	t->flags2 &= ~GDISTRETCHED;
 	t->flags &= ~MAPGDITOPRIMARY;
-	t->flags3 &= ~EMULATEDC;
+	t->flags3 &= ~GDIEMULATEDC;
 	switch(dlg->m_DCEmulationMode){
 		case 0: break;
-		case 1: t->flags2 |= HOOKGDI; break;
-		case 2: t->flags3 |= EMULATEDC; break;
+		case 1: t->flags2 |= GDISTRETCHED; break;
+		case 2: t->flags3 |= GDIEMULATEDC; break;
 		case 3: t->flags |= MAPGDITOPRIMARY; break;
 	}
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
@@ -180,6 +180,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
 	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
 	if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
+	if(dlg->m_LimitScreenRes) t->flags4 |= LIMITSCREENRES;
 	if(dlg->m_SaveCaps) t->flags3 |= SAVECAPS;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
@@ -241,6 +242,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoDDRAWBlt) t->flags3 |= NODDRAWBLT;
 	if(dlg->m_NoDDRAWFlip) t->flags3 |= NODDRAWFLIP;
 	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
+	if(dlg->m_NoFillRect) t->flags4 |= NOFILLRECT;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	t->initx = dlg->m_InitX;
 	t->inity = dlg->m_InitY;
@@ -255,6 +257,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	t->MaxFPS = dlg->m_MaxFPS;
 	t->InitTS = dlg->m_InitTS-8;
 	t->FakeVersionId = dlg->m_FakeVersionId;
+	t->MaxScreenRes = dlg->m_MaxScreenRes;
 	strcpy_s(t->module, sizeof(t->module), dlg->m_Module);
 	strcpy_s(t->OpenGLLib, sizeof(t->OpenGLLib), dlg->m_OpenGLLib);
 }
@@ -284,8 +287,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 3;
 
 	dlg->m_DCEmulationMode = 0;
-	if(t->flags2 & HOOKGDI) dlg->m_DCEmulationMode = 1;
-	if(t->flags3 & EMULATEDC) dlg->m_DCEmulationMode = 2;
+	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
+	if(t->flags3 & GDIEMULATEDC) dlg->m_DCEmulationMode = 2;
 	if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
@@ -318,6 +321,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
 	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
 	dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
+	dlg->m_LimitScreenRes = t->flags4 & LIMITSCREENRES ? 1 : 0;
 	dlg->m_SaveCaps = t->flags3 & SAVECAPS ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
@@ -390,6 +394,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoDDRAWBlt = t->flags3 & NODDRAWBLT ? 1 : 0;
 	dlg->m_NoDDRAWFlip = t->flags3 & NODDRAWFLIP ? 1 : 0;
 	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;
+	dlg->m_NoFillRect = t->flags4 & NOFILLRECT ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_InitX = t->initx;
 	dlg->m_InitY = t->inity;
@@ -404,6 +409,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_MaxFPS = t->MaxFPS;
 	dlg->m_InitTS = t->InitTS+8;
 	dlg->m_FakeVersionId = t->FakeVersionId;
+	dlg->m_MaxScreenRes = t->MaxScreenRes;
 }
 
 static void SaveConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPath)
@@ -474,6 +480,13 @@ static void SaveConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitP
 	sprintf_s(key, sizeof(key), "initts%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->InitTS);
 	WritePrivateProfileString("target", key, val, InitPath);
+
+	sprintf_s(key, sizeof(key), "winver%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->FakeVersionId);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "maxres%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->MaxScreenRes);
+	WritePrivateProfileString("target", key, val, InitPath);
 }
 
 static void ClearTarget(int i, char *InitPath)
@@ -518,6 +531,11 @@ static void ClearTarget(int i, char *InitPath)
 	sprintf_s(key, sizeof(key), "maxfps%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "initts%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+
+	sprintf_s(key, sizeof(key), "winver%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxres%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 }
 
@@ -584,12 +602,17 @@ static int LoadConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPa
 	sprintf_s(key, sizeof(key), "initts%i", i);
 	TargetMap->InitTS = GetPrivateProfileInt("target", key, 0, InitPath);
 
+	sprintf_s(key, sizeof(key), "winver%i", i);
+	TargetMap->FakeVersionId = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxres%i", i);
+	TargetMap->MaxScreenRes = GetPrivateProfileInt("target", key, 0, InitPath);
+	
 	if (!gbDebug){
 		// clear debug flags
 		TargetMap->flags &= ~(0);
 		TargetMap->flags2 &= ~(FULLRECTBLT);
 		TargetMap->flags3 &= ~(YUV2RGB|RGB2YUV|SURFACEWARN|ANALYTICMODE|NODDRAWBLT|NODDRAWFLIP|NOGDIBLT);
-		TargetMap->flags4 &= ~(0);
+		TargetMap->flags4 &= ~(NOFILLRECT);
 	}
 	return TRUE;
 }

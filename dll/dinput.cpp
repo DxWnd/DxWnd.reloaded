@@ -96,13 +96,14 @@ HRESULT WINAPI extDirectInputCreate(HINSTANCE hinst,
 {
 	HRESULT res;
 
-	OutTraceDW("DirectInputCreate: dwVersion = %x\n",
+	OutTraceDW("DirectInputCreate: dwVersion=%x\n",
 		dwversion);
 
 	res = (*pDirectInputCreate)(hinst, dwversion, lplpdi, pu);
 	if(res) return res;
-	SetHook((void *)(**(DWORD **)lplpdi + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
 	SetHook((void *)(**(DWORD **)lplpdi), extQueryInterfaceI, (void **)&pQueryInterfaceI, "QueryInterface(I)");
+	SetHook((void *)(**(DWORD **)lplpdi + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
+	//SetHook((void *)(**(DWORD **)lplpdi + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
 	return 0;
 }
 
@@ -111,12 +112,13 @@ HRESULT WINAPI extDirectInputCreateEx(HINSTANCE hinst,
 {
 	HRESULT res;
 
-	OutTraceDW("DirectInputCreateEx: dwVersion = %x REFIID = %x\n",
+	OutTraceDW("DirectInputCreateEx: dwVersion=%x REFIID=%x\n",
 		dwversion, riidltf.Data1);
 
 	res = (*pDirectInputCreateEx)(hinst, dwversion, riidltf, ppvout, pu);
 	if(res) return res;
 	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
+	//SetHook((void *)(**(DWORD **)lplpdi + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
 	SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceEx, (void **)pDICreateDeviceEx, "DICreateDeviceEx(I)");
 	return 0;
 }
@@ -125,7 +127,7 @@ HRESULT WINAPI extQueryInterfaceI(void * lpdi, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 
-	OutTraceDW("lpDI->QueryInterface: REFIID = %x\n",
+	OutTraceDW("QueryInterface(I): REFIID=%x\n",
 		riid.Data1);
 
 	res = (*pQueryInterfaceI)(lpdi, riid, obp);
@@ -145,11 +147,15 @@ HRESULT WINAPI extDirectInput8Create(HINSTANCE hinst,
 {
 	HRESULT res;
 
-	OutTraceDW("DirectInput8Create: dwVersion = %x REFIID = %x\n",
+	OutTraceDW("DirectInput8Create: dwVersion=%x REFIID=%x\n",
 		dwversion, riidltf.Data1);
 
 	res = (*pDirectInputCreateEx)(hinst, dwversion, riidltf, ppvout, pu);
-	if(res) return res;
+	if(res) {
+		OutTraceE("DirectInput8Create: ERROR res=%x\n", res);
+		return res;
+	}
+	OutTraceDW("DirectInput8Create: di=%x\n", *ppvout);
 	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I8)");
 	return 0;
 }
@@ -159,11 +165,14 @@ HRESULT WINAPI extDICreateDevice(LPDIRECTINPUT lpdi, REFGUID rguid,
 {
 	HRESULT res;
 
-	OutTraceDW("lpDI->CreateDevice: REFGUID = %x\n",
-		rguid.Data1);
+	OutTraceDW("CreateDevice(I): REFGUID=%x\n", rguid.Data1);
 
 	res = (*pDICreateDevice)(lpdi, rguid, lplpdid, pu);
-	if(res) return res;
+	if(res) {
+		OutTraceE("CreateDevice(I): ERROR res=%x\n", res);
+		return res;
+	}
+	OutTraceDW("CreateDevice(I): did=%x\n", *lplpdid);
 	SetHook((void *)(**(DWORD **)lplpdid + 36), extGetDeviceState, (void **)&pGetDeviceState, "GetDeviceState(I)");
 	SetHook((void *)(**(DWORD **)lplpdid + 40), extGetDeviceData, (void **)&pGetDeviceData, "GetDeviceData(I)");
 	SetHook((void *)(**(DWORD **)lplpdid + 44), extSetDataFormat, (void **)&pSetDataFormat, "SetDataFormat(I)");
@@ -176,11 +185,14 @@ HRESULT WINAPI extDICreateDeviceEx(LPDIRECTINPUT lpdi, REFGUID rguid,
 {
 	HRESULT res;
 
-	OutTraceDW("lpDI->CreateDeviceEx: GUID = %x REFIID = %x\n",
-		rguid.Data1, riid.Data1);
+	OutTraceDW("CreateDeviceEx(I): GUID=%x REFIID=%x\n", rguid.Data1, riid.Data1);
 
 	res = (*pDICreateDeviceEx)(lpdi, rguid, riid, pvout, pu);
-	if(res) return res;
+	if(res) {
+		OutTraceE("CreateDeviceEx(I): ERROR res=%x\n", res);
+		return res;
+	}
+	OutTraceDW("CreateDeviceEx(I): did=%x\n", *pvout);
 	SetHook((void *)(**(DWORD **)pvout + 36), extGetDeviceState, (void **)&pGetDeviceState, "GetDeviceState(I)");
 	SetHook((void *)(**(DWORD **)pvout + 40), extGetDeviceData, (void **)&pGetDeviceData, "GetDeviceData(I)");
 	SetHook((void *)(**(DWORD **)pvout + 44), extSetDataFormat, (void **)&pSetDataFormat, "SetDataFormat(I)");
@@ -195,7 +207,7 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 	unsigned int i;
 	POINT p;
 
-	OutTraceDW("GetDeviceData cbdata:%i\n", cbdata);
+	OutTraceDW("GetDeviceData(I): cbdata=%i\n", cbdata);
 
 	res = (*pGetDeviceData)(lpdid, cbdata, rgdod, pdwinout, dwflags);
 	if(res) return res;
@@ -235,7 +247,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	HRESULT res;
 	POINT p = {0, 0};
 
-	OutTraceDW("GetDeviceState cbData:%i %i\n", cbdata, dxw.bActive);
+	OutTraceDW("GetDeviceState(I): cbData=%i,%i\n", cbdata, dxw.bActive);
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
 	if(res) return res;
@@ -266,7 +278,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	
 HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 {
-	OutTraceDW("SetDataFormat: flags = 0x%x\n", lpdf->dwFlags);
+	OutTraceDW("SetDataFormat(I): flags=0x%x\n", lpdf->dwFlags);
 
 	if(lpdf->dwFlags & DIDF_ABSAXIS) dxw.bDInputAbs = 1;
 	if(lpdf->dwFlags & DIDF_RELAXIS) dxw.bDInputAbs = 0;
@@ -275,7 +287,7 @@ HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 
 HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE lpdid, HWND hwnd, DWORD dwflags)
 {
-	OutTraceDW("lpDI->SetCooperativeLevel\n");
+	OutTraceDW("SetCooperativeLevel(I)\n");
 
 	dwflags = DISCL_NONEXCLUSIVE | DISCL_BACKGROUND;
 	return (*pDISetCooperativeLevel)(lpdid, hwnd, dwflags);
@@ -290,7 +302,7 @@ void GetMousePosition(int *x, int *y)
 	extGetCursorPos(&p);
 	*x = p.x;
 	*y = p.y;
-	OutTraceDW("GetMousePosition: x,y=(%d,%d)\n", *x, *y);
+	OutTraceDW("GetMousePosition(I): x,y=(%d,%d)\n", *x, *y);
 }
 
 void InitPosition(int x, int y, int minx, int miny, int maxx, int maxy)
@@ -304,3 +316,13 @@ void InitPosition(int x, int y, int minx, int miny, int maxx, int maxy)
 	iCurMaxX = maxx;
 	iCurMaxY = maxy;
 }
+
+//HRESULT WINAPI extEnumDevices(void *lpdi, DWORD dwDevType, LPDIENUMDEVICESCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags)
+//{
+//	HRESULT res;
+//	OutTraceDW("EnumDevices(I): di=%x DevType=%x CallBack=%x Ref=%x Flags=%x\n", lpdi, dwDevType, lpCallback, pvRef, dwFlags);
+//	res=(*pEnumDevices)( lpdi, dwDevType, lpCallback, pvRef, dwFlags);
+//	OutTraceDW("EnumDevices(I): res=%x\n", res);
+//	return res;
+//}
+

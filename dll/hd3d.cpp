@@ -17,6 +17,7 @@ typedef void* (WINAPI *Direct3DCreate8_Type)(UINT);
 typedef void* (WINAPI *Direct3DCreate9_Type)(UINT);
 typedef HRESULT (WINAPI *Direct3DCreate9Ex_Type)(UINT, IDirect3D9Ex **);
 typedef HRESULT (WINAPI *CheckFullScreen_Type)(void);
+typedef BOOL (WINAPI * DisableD3DSpy_Type)(void);
 
 typedef UINT (WINAPI *GetAdapterCount_Type)(void *);
 typedef HRESULT (WINAPI *GetAdapterIdentifier_Type)(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
@@ -85,6 +86,8 @@ void	WINAPI extSetCursorPosition9(void *, int, int, DWORD);
 void	WINAPI extSetCursorPosition8(void *, int, int, DWORD);
 ULONG WINAPI extAddRef9(void *);
 ULONG WINAPI extRelease9(void *);
+BOOL  WINAPI voidDisableD3DSpy(void);
+
 
 
 HRESULT WINAPI extD3D10CreateDevice(IDXGIAdapter *, D3D10_DRIVER_TYPE, HMODULE, UINT, UINT, ID3D10Device **);
@@ -152,6 +155,11 @@ void dxwCopyProxyLib9()
 	char sSourcePath[MAX_FILE_PATH+1];
 	char *p;
 
+	// don't do this more than once per process activation
+	static BOOL DoOnce=FALSE;
+	if(DoOnce) return;
+	DoOnce=TRUE;
+
 	dwAttrib = GetFileAttributes("dxwnd.dll");
 	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return;
 	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_FILE_PATH);
@@ -188,6 +196,12 @@ void WINAPI voidDebugSetMute(void)
 	OutTraceDW("DebugSetMute: SUPPRESSED\n");
 }
 
+BOOL  WINAPI voidDisableD3DSpy(void)
+{
+	OutTraceD3D("DisableD3DSpy: SUPPRESSED\n");
+	return FALSE;
+}
+
 FARPROC Remap_d3d9_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	// NULL -> keep the original call address
@@ -215,17 +229,18 @@ FARPROC Remap_d3d9_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if (!strcmp(proc,"Direct3DShaderValidatorCreate9")){
 		OutTraceDW("GetProcAddress: suppressing Direct3DShaderValidatorCreate9\n");
 		return (FARPROC)voidDirect3DShaderValidatorCreate9;
-		//return (FARPROC)-1;
 	}
 	if (!strcmp(proc,"DebugSetLevel")){
 		OutTraceDW("GetProcAddress: suppressing DebugSetLevel\n");
 		return (FARPROC)voidDebugSetLevel;
-		//return (FARPROC)-1;
 	}
 	if (!strcmp(proc,"DebugSetMute")){
 		OutTraceDW("GetProcAddress: suppressing DebugSetMute\n");
 		return (FARPROC)voidDebugSetMute;
-		//return (FARPROC)-1;
+	}
+	if (!strcmp(proc,"DisableD3DSpy")){
+		OutTraceDW("GetProcAddress: suppressing DisableD3DSpy\n");
+		return (FARPROC)voidDisableD3DSpy;	
 	}
 	return NULL;
 }
@@ -1258,3 +1273,4 @@ ULONG WINAPI extRelease9(void *lpdd3dd)
 	OutTraceD3D("Device::Release(9): dd3dd=%x res=%x\n", lpdd3dd, res);
 	return res;
 }
+
