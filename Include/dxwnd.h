@@ -134,6 +134,9 @@
 #define NOTEXTURES			0x00040000 // Disabled (whitened) textures
 #define RETURNNULLREF		0x00080000 // IDirectDraw::Release and IDDrawSurface::Release will always return 0 ref. counter
 #define FINETIMING			0x00100000 // Fine timeslider coarse, by 10% steps ranging from about :2 to x2 
+#define NATIVERES			0x00200000 // Supports hardware native resolutions (depending on your PC)
+#define SUPPORTSVGA			0x00400000 // Supports SVGA standard resolutions
+#define SUPPORTHDTV			0x00800000 // Supports HDTV standard resolutions
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

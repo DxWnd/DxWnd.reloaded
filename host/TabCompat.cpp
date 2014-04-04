@@ -41,6 +41,11 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_ZBUFFER0CLEAN, cTarget->m_ZBuffer0Clean);
 	DDX_Check(pDX, IDC_NOPOWER2FIX, cTarget->m_NoPower2Fix);
 	DDX_Check(pDX, IDC_NOPERFCOUNTER, cTarget->m_NoPerfCounter);
+
+	// 3D management
+	DDX_Check(pDX, IDC_NOTEXTURES, cTarget->m_NoTextures);
+	DDX_Check(pDX, IDC_WIREFRAME, cTarget->m_WireFrame);
+	DDX_Check(pDX, IDC_DISABLEFOGGING, cTarget->m_DisableFogging);
 }
 
 BEGIN_MESSAGE_MAP(CTabCompat, CDialog)

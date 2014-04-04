@@ -3917,22 +3917,59 @@ typedef struct {
 	DWORD dwHeight;
 } NewContext_Type;
 
-static struct {
+typedef struct {
 	int w; 
 	int h;
-}SupportedRes[7]= {
+} SupportedRes_Type;
+
+static SupportedRes_Type SupportedSVGARes[9]= {
 	{320,200},
 	{320,240},
 	{640,400},
 	{640,480},
+	{720,480},
 	{800,600},
-	{1024,768},
+	{1024,768},		// XGA
+	{1280,800},		// WXGA
 	{0,0}
 };
+
+static SupportedRes_Type SupportedHDTVRes[10]= {
+	{640,360},		// nHD
+	{720,480},		// DVD
+	{720,576},		// DV-PAL
+	{960,540},		// qHD
+	{1176,1000},
+	{1280,720},		// HD
+	{1440,960},
+	{1600,900},		// HD+
+	{1920,1080},	// FHD
+	{0,0}
+};
+
+static BOOL CheckResolutionLimit(LPDDSURFACEDESC lpDDSurfaceDesc)
+{
+	#define HUGE 100000
+	DWORD maxw, maxh;
+	switch(dxw.MaxScreenRes){
+		case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
+		case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
+		case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
+		case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
+		case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
+		case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
+	}
+	if((lpDDSurfaceDesc->dwWidth > maxw) || (lpDDSurfaceDesc->dwHeight > maxh)){
+		OutTraceDW("EnumDisplaySettings: hide device mode=(%d,%d)\n", maxw, maxh);
+		return TRUE;
+	}
+	return FALSE;
+}
 
 HRESULT WINAPI myEnumModesFilterDirect(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
 {
 	HRESULT res;
+	SupportedRes_Type *SupportedRes;
 
 	if ((((NewContext_Type *)lpContext)->dwHeight != lpDDSurfaceDesc->dwHeight) ||
 		(((NewContext_Type *)lpContext)->dwWidth != lpDDSurfaceDesc->dwWidth)) return DDENUMRET_OK;
@@ -3951,25 +3988,12 @@ HRESULT WINAPI myEnumModesFilterDirect(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 	// tricky part: for each color depth related to current video resolution, fake each of the 
 	// supported resolutions, unless is greater than maximum allowed
 
+	SupportedRes = (dxw.dwFlags4 & SUPPORTHDTV) ? &SupportedHDTVRes[0] : &SupportedSVGARes[0];
+
 	for (int ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
 		lpDDSurfaceDesc->dwHeight=SupportedRes[ResIdx].h;
 		lpDDSurfaceDesc->dwWidth=SupportedRes[ResIdx].w;
-		if(dxw.dwFlags4 & LIMITSCREENRES){
-			#define HUGE 100000
-			DWORD maxw, maxh;
-			switch(dxw.MaxScreenRes){
-				case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
-				case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
-				case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
-				case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
-				case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
-				case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
-			}
-			if((lpDDSurfaceDesc->dwWidth > maxw) || (lpDDSurfaceDesc->dwHeight > maxh)){
-				OutTraceDW("EnumDisplaySettings: hide device mode=(%d,%d)\n", maxw, maxh);
-				return DDENUMRET_OK;
-			}
-		}
+		if((dxw.dwFlags4 & LIMITSCREENRES) && CheckResolutionLimit(lpDDSurfaceDesc)) return DDENUMRET_OK;
 		res=(*((NewContext_Type *)lpContext)->lpCallback)(lpDDSurfaceDesc, ((NewContext_Type *)lpContext)->lpContext);
 		OutTraceDW("EnumDisplayModes(D): proposed size[%d]=(%d,%d) res=%x\n", ResIdx, SupportedRes[ResIdx].w, SupportedRes[ResIdx].h, res);
 		if(res==DDENUMRET_CANCEL) break;
@@ -3977,15 +4001,47 @@ HRESULT WINAPI myEnumModesFilterDirect(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 	return res;
 }
 
+HRESULT WINAPI myEnumModesFilterNative(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
+{
+	HRESULT res;
+
+	if (IsDebug) EnumModesCallbackDumper(lpDDSurfaceDesc, NULL);
+
+	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
+		// if PREVENTMAXIMIZE is set, don't let the caller know about forbidden screen settings.
+		if((lpDDSurfaceDesc->dwHeight > dxw.GetScreenHeight()) ||
+			(lpDDSurfaceDesc->dwWidth > dxw.GetScreenWidth())){
+			OutTraceDW("EnumDisplayModes: skipping screen size=(%d,%d)\n", lpDDSurfaceDesc->dwHeight, lpDDSurfaceDesc->dwWidth);
+			return DDENUMRET_OK;
+		}
+	}
+
+	if((dxw.dwFlags4 & LIMITSCREENRES) && CheckResolutionLimit(lpDDSurfaceDesc)) return DDENUMRET_OK;
+	res=(*((NewContext_Type *)lpContext)->lpCallback)(lpDDSurfaceDesc, ((NewContext_Type *)lpContext)->lpContext);
+	OutTraceDW("EnumDisplayModes(D): proposed size=(%d,%d) res=%x\n", lpDDSurfaceDesc->dwWidth, lpDDSurfaceDesc->dwHeight, res);
+	return res;
+}
+
 HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPDIRECTDRAW lpdd, DWORD dwflags, LPDDSURFACEDESC lpddsd, LPVOID lpContext, LPDDENUMMODESCALLBACK cb)
 {
 	HRESULT res;
+	SupportedRes_Type *SupportedRes;
+	NewContext_Type NewContext;
 	OutTraceDDRAW("EnumDisplayModes(D): lpdd=%x flags=%x lpddsd=%x callback=%x\n", lpdd, dwflags, lpddsd, cb);
+
+	if((dxw.dwFlags4 & NATIVERES)){
+		NewContext.dwWidth = 0;
+		NewContext.dwHeight = 0;
+		NewContext.lpContext=lpContext;
+		NewContext.lpCallback=cb;
+		res=(*pEnumDisplayModes)(lpdd, dwflags, lpddsd, &NewContext, myEnumModesFilterNative);
+		if(res) OutTraceE("EnumDisplayModes(D): ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	}
 
 	// note: extEnumDisplayModes serves both the EnumDisplayModes and EnumDisplayModes2 interfaces:
 	// they differ for the lpddsd argument that should point to either DDSURFACEDESC or DDSURFACEDESC2
 	// structures, but unification is possible if the lpddsd->dwSize is properly set and is left untouched.
-
 
 	if((dxw.dwFlags1 & EMULATESURFACE)){
 		int SupportedDepths[5]={8,16,24,32,0};
@@ -3997,6 +4053,7 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 		if (lpddsd) EmuDesc.dwSize=lpddsd->dwSize; // sizeof either DDSURFACEDESC or DDSURFACEDESC2 !!!
 		else EmuDesc.dwSize = sizeof(DDSURFACEDESC2);
 		EmuDesc.dwFlags=DDSD_PIXELFORMAT|DDSD_REFRESHRATE|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH; 
+		SupportedRes = (dxw.dwFlags4 & SUPPORTHDTV) ? &SupportedHDTVRes[0] : &SupportedSVGARes[0];
 		for (ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
 			EmuDesc.dwHeight=SupportedRes[ResIdx].h;
 			EmuDesc.dwWidth=SupportedRes[ResIdx].w;

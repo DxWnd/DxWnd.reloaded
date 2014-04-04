@@ -208,6 +208,9 @@
 #define IDC_LIMITSCREENRES              1167
 #define IDC_SHOWTIMESTRETCH             1168
 #define IDC_FINETIMING                  1169
+#define IDC_SUPPORTSVGA                 1170
+#define IDC_SUPPORTHDMI                 1171
+#define IDC_NATIVERES                   1172
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -261,7 +264,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         32830
-#define _APS_NEXT_CONTROL_VALUE         1099
+#define _APS_NEXT_CONTROL_VALUE         1100
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

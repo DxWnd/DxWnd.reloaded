@@ -166,6 +166,7 @@ public:
 	int		m_InitTS;
 	int		m_FakeVersionId;
 	int		m_MaxScreenRes;
+	int		m_ResTypes;
 	//}}AFX_DATA
 
 

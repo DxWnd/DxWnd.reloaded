@@ -140,6 +140,11 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags3 |= GDIEMULATEDC; break;
 		case 3: t->flags |= MAPGDITOPRIMARY; break;
 	}
+	switch(dlg->m_ResTypes){
+		case 0: t->flags4 |= SUPPORTSVGA; break;
+		case 1: t->flags4 |= SUPPORTHDTV; break;
+		case 2: t->flags4 |= NATIVERES; break;
+	}	
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_OutProxyTrace) t->tflags |= OUTPROXYTRACE;
@@ -298,6 +303,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
 	if(t->flags3 & GDIEMULATEDC) dlg->m_DCEmulationMode = 2;
 	if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
+
+	dlg->m_ResTypes = 0;
+	if(t->flags4 & SUPPORTSVGA) dlg->m_ResTypes = 0;
+	if(t->flags4 & SUPPORTHDTV) dlg->m_ResTypes = 1;
+	if(t->flags4 & NATIVERES) dlg->m_ResTypes = 2;
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
