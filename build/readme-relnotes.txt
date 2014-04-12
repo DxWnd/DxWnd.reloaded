@@ -659,3 +659,14 @@ fix: AERO optimized mode with ddraw7 only surfaces: "Hoyle Casino Empire" works 
 fix: bilinear filters compiled with optimized and openmp flags - big speed improvement.
 fix: reduced the maximum amount of visible video card with "Limit available resources" flag: now "Breath of Fire IV" works.
 
+v2.3.02
+fix: when creating an IID_IDirectDrawGammaControl object through lpdds->QueryInterface redirect fake primary surface to real one to make the object working. Fixes "Might & Magic 7"
+fix: fixed logging of ddraw Set/GetGammaRamp methods. Added SUPPRESSDXERRORS error suppression
+add: texture extraction parameters (min & max x,y size) in dxwnd.ini config file
+add: texture extraction / hack made in DxWnd install folder, to allow usage also for games running from unwritable (CDRom) directory
+fix: in "prevent maximize" mode, set the main window in maximized state. Allow "Hoyle Casino Empire" to continue after the intro movie is terminated
+add: Process kill command now warns you about existence of task
+fix: DxWnd window position save now works on multiscreen desktop
+
+
+

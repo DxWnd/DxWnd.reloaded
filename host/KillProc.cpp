@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <tlhelp32.h>
 
-int KillProcByName(char *szToTerminate)
+int KillProcByName(char *szToTerminate, BOOL bKill)
 // Created: 6/23/2000  (RK)
 // Last modified: 3/10/2002  (RK)
 // Please report any problems or bugs to kochhar@physiology.wisc.edu
@@ -151,6 +151,12 @@ int KillProcByName(char *szToTerminate)
 			{
 				// Process found, now terminate it
 				iFound=1;
+
+				if(!bKill) {
+					FreeLibrary(hInstLib);
+					return 0; // just tell you found it.
+				}
+
 				// First open for termination
 				hProc=OpenProcess(PROCESS_TERMINATE,FALSE,aiPID[i]);
 				if(hProc)
@@ -259,6 +265,15 @@ int KillProcByName(char *szToTerminate)
 				{
 				    // Process found, now terminate it
 				    iFound=1;
+
+					if(!bKill) {
+					    // process terminated
+						CloseHandle(hSnapShotm);
+						CloseHandle(hSnapShot);
+						FreeLibrary(hInstLib);
+						return 0; // just tell you found it.
+					}
+
 				    // First open for termination
 				    hProc=OpenProcess(PROCESS_TERMINATE,FALSE,procentry.th32ProcessID);
 				    if(hProc)

@@ -28,7 +28,7 @@ extern UINT m_StartToTray;
 extern UINT m_InitialState;
 extern char m_ConfigFileName[20+1];
 extern BOOL Inject(DWORD, const char *);
-extern int KillProcByName(char *);
+extern int KillProcByName(char *, BOOL);
 
 PRIVATEMAP *pTitles; // global ptr: get rid of it!!
 TARGETMAP *pTargets; // idem.
@@ -1243,16 +1243,20 @@ void CDxwndhostView::OnProcessKill()
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
 
-	wchar_t *wcstring = new wchar_t[48+1];
-	mbstowcs_s(NULL, wcstring, 48, TitleMaps[i].title, _TRUNCATE);
-	res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
-	if(res!=IDYES) return;
-
 	strncpy(FilePath,TargetMaps[i].path,MAX_PATH);
 	lpProcName=FilePath;
 	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
 
-	KillProcByName(lpProcName);
+	if(!KillProcByName(lpProcName, FALSE)){
+		wchar_t *wcstring = new wchar_t[48+1];
+		mbstowcs_s(NULL, wcstring, 48, TitleMaps[i].title, _TRUNCATE);
+		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
+		if(res!=IDYES) return;
+		KillProcByName(lpProcName, TRUE);
+	}
+	else{
+		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
+	}
 
 	ClipCursor(NULL);
 	RevertScreenChanges(&this->InitDevMode);

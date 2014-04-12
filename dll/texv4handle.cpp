@@ -21,6 +21,26 @@ extern int Set_dwSize_From_Surface(LPDIRECTDRAWSURFACE);
 
 #define GRIDSIZE 16
 
+char *GetDxWndPath()
+{
+	static BOOL DoOnce = TRUE;
+	static char sFolderPath[MAX_PATH];
+
+	if(DoOnce){ // first time through, build the texture dir if not done yet
+		DWORD dwAttrib;		
+		dwAttrib = GetFileAttributes("dxwnd.dll");
+		if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
+			MessageBox(0, "DXWND: ERROR can't locate itself", "ERROR", MB_OK | MB_ICONEXCLAMATION);
+			exit(0);
+		}
+		GetModuleFileName(GetModuleHandle("dxwnd"), sFolderPath, MAX_PATH);
+		sFolderPath[strlen(sFolderPath)-strlen("dxwnd.dll")] = 0; // terminate the string just before "dxwnd.dll"
+		DoOnce = FALSE;
+	}
+
+	return sFolderPath;
+}
+
 /* RS Hash Function */
 
 static unsigned int Hash(BYTE *buf, int len)
@@ -128,10 +148,17 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 	DDSURFACEDESC2 ddsd;
 	int w, h, iSurfaceSize, iScanLineSize;
 	HRESULT res;
+	static int MinTexX, MinTexY, MaxTexX, MaxTexY;
 	static BOOL DoOnce = TRUE;
 
-	if(DoOnce){ // first time through, build the texture dir if not done yet
-		CreateDirectory("texture.out", NULL);
+	if(DoOnce){
+		char sProfilePath[MAX_PATH];
+		sprintf(sProfilePath, "%s\\dxwnd.ini", GetDxWndPath());
+		MinTexX=GetPrivateProfileInt("Texture", "MinTexX", 0, sProfilePath);
+		MaxTexX=GetPrivateProfileInt("Texture", "MaxTexX", 0, sProfilePath);
+		MinTexY=GetPrivateProfileInt("Texture", "MinTexY", 0, sProfilePath);
+		MaxTexY=GetPrivateProfileInt("Texture", "MaxTexY", 0, sProfilePath);
+		OutTrace("TextureDump: size min=(%dx%d) max=(%dx%d)\n", MinTexX, MinTexY, MaxTexX, MaxTexY);
 		DoOnce = FALSE;
 	}
 
@@ -149,8 +176,16 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
 		h = ddsd.dwHeight;
-		if((w<2) && (h<2)) {
+		if((MinTexX && (w<MinTexX)) || (MinTexY && (h<MinTexY))) {
 			OutTrace("TextureDump: SKIP small texture\n");
+			break;
+		}
+		if((MaxTexX && (w>MaxTexX)) || (MaxTexY && (h>MaxTexY))) {
+			OutTrace("TextureDump: SKIP big texture\n");
+			break;
+		}
+		if(ddsd.ddpfPixelFormat.dwRGBBitCount == 0) {
+			OutTrace("TextureDump: SKIP 0BPP texture\n");
 			break;
 		}
 
@@ -161,7 +196,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		BITMAPFILEHEADER hdr;       // bitmap file-header 
 		BITMAPV4HEADER pbi;			// bitmap info-header  
 		//DWORD dwTmp; 
-		char pszFile[81];
+		char pszFile[MAX_PATH];
 
 		//pbih = (PBITMAPINFOHEADER)&pbi; 
 		memset((void *)&pbi, 0, sizeof(BITMAPV4HEADER));
@@ -194,7 +229,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		}
 
 		// Create the .BMP file. 
-		sprintf_s(pszFile, 80, "texture.out/texture.%03d.%03d.%08X.bmp", ddsd.dwWidth, ddsd.dwHeight, hash);
+		sprintf_s(pszFile, 80, "%s\\texture.out\\texture.%03d.%03d.%08X.bmp", GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, hash);
 		hf = fopen(pszFile, "wb");
 		if(!hf) break;
 
@@ -267,7 +302,7 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 		if(!hash) break; // almost certainly, an empty black surface!
 
 		// Look for the .BMP file. 
-		sprintf_s(pszFile, 80, "texture.in/texture.%03d.%03d.%08X.bmp", ddsd.dwWidth, ddsd.dwHeight, hash);
+		sprintf_s(pszFile, 80, "%s\\texture.in\\texture.%03d.%03d.%08X.bmp", GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, hash);
 		hf = fopen(pszFile, "rb");
 		if(!hf) break; // no updated texture to load
 

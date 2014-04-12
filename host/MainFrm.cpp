@@ -31,6 +31,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 static char THIS_FILE[] = __FILE__;
 #endif
 
+#define MULTIMONITOR TRUE
+
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame
 
@@ -108,7 +110,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
 	char InitPath[MAX_PATH];
-	RECT DesktopRect;
+	int iMaxX, iMaxY;
 	GetCurrentDirectory(MAX_PATH, InitPath);
 	strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
 	cs.x = GetPrivateProfileInt("window", "posx", 50, InitPath);
@@ -116,15 +118,22 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	cs.cx = GetPrivateProfileInt("window", "sizx", 320, InitPath);
 	cs.cy = GetPrivateProfileInt("window", "sizy", 200, InitPath);
 
-
 	// keep window inside desktop boundaries
+#ifdef MULTIMONITOR
+	iMaxX = ::GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	iMaxY = ::GetSystemMetrics(SM_CYVIRTUALSCREEN);
+#else
+	RECT DesktopRect;
 	::GetWindowRect(::GetDesktopWindow(), &DesktopRect);
+	iMaxX = DesktopRect.right;
+	iMaxY = DesktopRect.bottom;
+#endif
 	if(cs.cx < 320) cs.cx = 320;
 	if(cs.cy < 200) cs.cy = 200;
-	if(cs.x < DesktopRect.left) cs.x = DesktopRect.left;
-	if(cs.y < DesktopRect.top) cs.y = DesktopRect.top;
-	if(cs.x+cs.cx > DesktopRect.right) cs.x = DesktopRect.right - cs.cx;
-	if(cs.y+cs.cy > DesktopRect.bottom) cs.y = DesktopRect.bottom - cs.cy;
+	if(cs.x < 0) cs.x = 0;
+	if(cs.y < 0) cs.y = 0;
+	if(cs.x+cs.cx > iMaxX) cs.x = iMaxX - cs.cx;
+	if(cs.y+cs.cy > iMaxY) cs.y = iMaxY - cs.cy;
 
 	if( !CFrameWnd::PreCreateWindow(cs) )
 		return FALSE;

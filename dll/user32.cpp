@@ -547,6 +547,7 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 	}	
 
 	res=(*pShowWindow)(hwnd, nCmdShow);
+	OutTraceDW("ShowWindow: res=%x\n", res);
 
 	return res;
 }
@@ -1403,6 +1404,13 @@ static HWND WINAPI extCreateWindowCommon(
 	if ((FIXCHILDSIZE) && (dwStyle & (WS_CHILD|WS_DLGFRAME)))
 		WinDBPutSize(hwnd, iOrigW, iOrigH);
 
+	// "Hoyle Casino Empire" needs to be in a maximized state to continue after the intro movie.
+	// Sending a SW_MAXIMIZE message intercepted by the PREVENTMAXIMIZE handling fixes the problem.
+	if (dxw.IsFullScreen() && (dxw.dwFlags1 & PREVENTMAXIMIZE)){
+		OutTraceDW("%s: entering maximized state\n", ApiName); 
+		(*pShowWindow)(hwnd, SW_MAXIMIZE);
+	}
+
 	OutTraceDW("%s: ret=%x\n", ApiName, hwnd);
 	return hwnd;
 }
@@ -2045,7 +2053,7 @@ HDC WINAPI extEMUBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	HDC hdc;
 	HDC EmuHDC; 
 
-	OutTraceDW("GDI.BeginPaint: hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, dxw.IsFullScreen());
+	OutTraceDW("GDI.BeginPaint(GDIEMULATEDC): hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, dxw.IsFullScreen());
 	hdc=(*pBeginPaint)(hwnd, lpPaint);
 
 	// avoid access to real desktop
@@ -2059,7 +2067,7 @@ HDC WINAPI extEMUBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 
 	EmuHDC = dxw.AcquireEmulatedDC(hwnd); 
 	lpPaint->hdc=EmuHDC;
-	OutTraceDW("GDI.BeginPaint: hdc=%x -> %x\n", hdc, EmuHDC);
+	OutTraceDW("GDI.BeginPaint(GDIEMULATEDC): hdc=%x -> %x\n", hdc, EmuHDC);
 	return EmuHDC;
 }
 
@@ -2129,12 +2137,15 @@ BOOL WINAPI extEMUEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x\n", hwnd, lpPaint, lpPaint->hdc);
 
 	if(dxw.IsFullScreen()){
+		// avoid access to real desktop
+		if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 		OutTraceDW("GDI.EndPaint(GDIEMULATEDC): hwnd=%x\n", hwnd);
 		ret=dxw.ReleaseEmulatedDC(hwnd);
 	}
-	else
+	else{
 	// proxy part ...
 	ret=(*pEndPaint)(hwnd, lpPaint);
+	}
 	OutTraceDW("GDI.EndPaint: hwnd=%x ret=%x\n", hwnd, ret);
 	if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 	return ret;

@@ -1851,6 +1851,9 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 		return(0);
 	}
 
+	// fix the target for gamma ramp creation: if it is a primary surface, use the real one!!
+	if(dxw.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds) && IsGammaRamp) lpdds = lpDDSEmu_Prim;
+
 	res = (*pQueryInterfaceS)(lpdds, riid, obp);
 
 	if(res) // added trace
@@ -3743,8 +3746,15 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC
 	OutTraceB("Lock: lPitch=%d lpSurface=%x\n", lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 
-	// shouldn't happen.... if hooked to non primary surface, just call regular method.
-	// it happens in "Deadlock 2" backbuffer surface!!!
+	// Pitch fix: some video cards require alignement to a wide boundary, e.g. 128 bytes.
+	// on "Risk II" (Microprose version) you get a 800x600 generic surface that has a wider 
+	// pitch (1664 bytes, that is the smaller 128 multiple of 800 * 2) that should be treated
+	// as if it were a smaller one (1600 = 800 * 2) to get a good blit.
+	// both fixes below are working (one is commented out).
+	if(dxw.dwFlags1 & EMULATESURFACE) 
+		lpDDSurfaceDesc->lPitch = (lpDDSurfaceDesc->dwWidth * lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount) >> 3;
+		//lpDDSurfaceDesc->lPitch = (lpDDSurfaceDesc->lPitch / lpDDSurfaceDesc->dwWidth) * lpDDSurfaceDesc->dwWidth;
+
 	return res;
 }
 
@@ -4848,19 +4858,41 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 {
 	HRESULT ret;
 	OutTraceDDRAW("GetGammaRamp: dds=%x dwFlags=%x\n", lpdds, dwFlags);
+
+	if(dxw.IsAPrimarySurface(lpdds)) lpdds=lpDDSEmu_Prim;
+	
 	ret=(*pDDGetGammaRamp)(lpdds, dwFlags, lpgr);
-	if(ret) OutTraceE("GetGammaRamp: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
-	else OutTraceDDRAW("GetGammaRamp: RGB=(%x,%x,%x)\n", lpgr->red, lpgr->green, lpgr->blue);
+	if(ret) {
+		OutTraceE("GetGammaRamp: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+		if(dxw.dwFlags1 & SUPPRESSDXERRORS) {
+			// clear the error code, and provide a reasonable gamma ramp array
+			for(int i=0; i<256; i++) lpgr->red[i]=lpgr->green[i]=lpgr->blue[i]=(i * 0x100);
+			ret=0;
+		}
+	}
+	else{
+		if(IsDebug){
+			OutTrace("GetGammaRamp: RGB="); 
+			for(int i=0; i<256; i++) OutTrace("(%x,%x,%x)", lpgr->red[i], lpgr->green[i], lpgr->blue[i]);
+			OutTrace("\n");
+		}
+	}
 	return ret;
 }
 
  HRESULT WINAPI extDDSetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDGAMMARAMP lpgr)
 {
 	HRESULT ret;
-	OutTraceDDRAW("SetGammaRamp: dds=%x dwFlags=%x RGB=(%x,%x,%x)\n", lpdds, dwFlags, lpgr->red, lpgr->green, lpgr->blue);
+	OutTraceDDRAW("SetGammaRamp: dds=%x dwFlags=%x\n", lpdds, dwFlags);
+	if(IsDebug){
+		OutTrace("GetGammaRamp: RGB="); 
+		for(int i=0; i<256; i++) OutTrace("(%x,%x,%x)", lpgr->red[i], lpgr->green[i], lpgr->blue[i]);
+		OutTrace("\n");
+	}
 	if (dxw.dwFlags2 & DISABLEGAMMARAMP) return DD_OK;
 	ret=(*pDDSetGammaRamp)(lpdds, dwFlags, lpgr);
 	if(ret) OutTraceE("SetGammaRamp: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) ret = DD_OK;
 	return ret;
 }
 
