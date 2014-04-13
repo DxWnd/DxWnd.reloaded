@@ -46,13 +46,15 @@ END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame class constructor / destructor
+HANDLE GlobalLocker;
 
 CMainFrame::CMainFrame()
 {
 	// form constructor starts the service thread responsible to mantain a fixed screen settings
 	// see above ....
 	// duplicate activation check
-	if(CreateSemaphore(NULL, 0, 1, "DxWnd LOCKER")==NULL){
+	GlobalLocker=CreateSemaphore(NULL, 0, 1, "DxWnd LOCKER");
+	if(GlobalLocker==NULL){
 		MessageBoxEx(0, "CreateSemaphore FAILED.\nExiting.", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
 		return;
 	}
@@ -68,6 +70,9 @@ CMainFrame::~CMainFrame()
 	char val[32];
 	GetCurrentDirectory(MAX_PATH, InitPath);
 	strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
+
+	// when in icon tray, skip...
+	if (!cx || !cy) return;
 
 	// adjust client win coordinates
 	RECT rect;
@@ -113,6 +118,8 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 
 	// keep window inside desktop boundaries
 	::GetWindowRect(::GetDesktopWindow(), &DesktopRect);
+	if(cs.cx < 320) cs.cx = 320;
+	if(cs.cy < 200) cs.cy = 200;
 	if(cs.x < DesktopRect.left) cs.x = DesktopRect.left;
 	if(cs.y < DesktopRect.top) cs.y = DesktopRect.top;
 	if(cs.x+cs.cx > DesktopRect.right) cs.x = DesktopRect.right - cs.cx;

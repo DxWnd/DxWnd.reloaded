@@ -1,4 +1,5 @@
 #define DIRECTINPUT_VERSION 0x800
+#define  _CRT_SECURE_NO_WARNINGS
 
 #include <windows.h>
 #include <dinput.h>
@@ -226,7 +227,7 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 
 	if(!dxw.bActive) *pdwinout = 0;
 	GetMousePosition((int *)&p.x, (int *)&p.y);
-	if(cbdata == 20 || cbdata == 24){
+	if(cbdata == 20 || cbdata == 24 || cbdata == 16){
 		tmp = (BYTE *)rgdod;
 		for(i = 0; i < *pdwinout; i ++){
 			if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_X){
@@ -259,7 +260,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	HRESULT res;
 	POINT p = {0, 0};
 
-	OutTraceDW("GetDeviceState(I): cbData=%i,%i\n", cbdata, dxw.bActive);
+	OutTraceDW("GetDeviceState(I): did=%x cbData=%i,%i\n", lpdid, cbdata, dxw.bActive);
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
 	if(res) return res;
@@ -290,7 +291,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	
 HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 {
-	OutTraceDW("SetDataFormat(I): flags=0x%x\n", lpdf->dwFlags);
+	OutTraceDW("SetDataFormat(I): did=%x flags=0x%x\n", lpdid, lpdf->dwFlags);
 
 	if(lpdf->dwFlags & DIDF_ABSAXIS) dxw.bDInputAbs = 1;
 	if(lpdf->dwFlags & DIDF_RELAXIS) dxw.bDInputAbs = 0;
@@ -299,8 +300,9 @@ HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 
 HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE lpdid, HWND hwnd, DWORD dwflags)
 {
-	OutTraceDW("SetCooperativeLevel(I)\n");
+	OutTraceDW("SetCooperativeLevel(I): did=%x hwnd=%x flags=%x\n", lpdid, hwnd, dwflags);
 
+	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 	dwflags = DISCL_NONEXCLUSIVE | DISCL_BACKGROUND;
 	return (*pDISetCooperativeLevel)(lpdid, hwnd, dwflags);
 }

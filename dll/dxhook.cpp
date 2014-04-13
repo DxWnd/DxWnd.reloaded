@@ -563,7 +563,9 @@ void HookWindowProc(HWND hwnd)
 {
 	WNDPROC pWindowProc;
 	pWindowProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
-	if (pWindowProc == extWindowProc){
+	if ((pWindowProc == extWindowProc) ||
+		(pWindowProc == extChildWindowProc) ||
+		(pWindowProc == extDialogWindowProc)){
 		// hooked already !!!
 		OutTraceDW("GetWindowLong: hwnd=%x WindowProc HOOK already in place\n", hwnd);
 	}
@@ -618,7 +620,7 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 	(*pInvalidateRect)(hwnd, NULL, TRUE);
 }
 
-INT_PTR CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
+LRESULT CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	static int i=0;
 	static WINDOWPOS *wp;
@@ -693,7 +695,9 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	}
 
 	pWindowProc=WhndGetWindowProc(hwnd);
+	
 	if(pWindowProc) return(*pWindowProc)(hwnd, message, wparam, lparam);
+
 	return DefWindowProc(hwnd, message, wparam, lparam);
 }
 

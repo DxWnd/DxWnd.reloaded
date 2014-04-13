@@ -449,3 +449,14 @@ added screen resolution choice: either a set of SVGA resolutions (mostly for 3:4
 v2.02.69
 improved exception catching to intercept memory violation exceptions and to neutralize offending code. Thank again to olly didasm lib, now the assembly instruction length is automatically determined so that the opcode can be replaced by the correct number of NOP instructions. If this doesn't mean much for you, just consider that this makes playable the Win95 (patched) release of "Star Wars Tie Fighter".
 fixed FillRect user32 call - brings some improvements to Imperialism (still far from being acceptable).
+
+v2.02.70
+GUI:
+fixed saving wrong coordinates when dxwnd is terminated while minimized
+added check for adminstrative capabilities on startup
+DLL:
+fix: moved DrawText/Ex api hooks into right library
+fix: corrected child window procedure handling - fixes "Imperialism" child window closing 
+fixed FillRect coordinate handling - fixes "Imperialism" menus
+fixed SetWindowPlacement handling
+

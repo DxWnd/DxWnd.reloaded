@@ -219,6 +219,8 @@ void OutTrace(const char *, ...);
 void *HookAPI(HMODULE, char *, void *, const char *, void *);
 void AdjustWindowFrame(HWND, DWORD, DWORD);
 LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK extChildWindowProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK extDialogWindowProc(HWND, UINT, WPARAM, LPARAM);
 
 // defines below to condition debug message handling
 

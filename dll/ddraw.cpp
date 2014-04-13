@@ -3951,8 +3951,8 @@ static BOOL CheckResolutionLimit(LPDDSURFACEDESC lpDDSurfaceDesc)
 {
 	#define HUGE 100000
 	DWORD maxw, maxh;
+	maxw=HUGE; maxh=HUGE;
 	switch(dxw.MaxScreenRes){
-		case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
 		case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
 		case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
 		case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
@@ -4018,7 +4018,7 @@ HRESULT WINAPI myEnumModesFilterNative(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 
 	if((dxw.dwFlags4 & LIMITSCREENRES) && CheckResolutionLimit(lpDDSurfaceDesc)) return DDENUMRET_OK;
 	res=(*((NewContext_Type *)lpContext)->lpCallback)(lpDDSurfaceDesc, ((NewContext_Type *)lpContext)->lpContext);
-	OutTraceDW("EnumDisplayModes(D): proposed size=(%d,%d) res=%x\n", lpDDSurfaceDesc->dwWidth, lpDDSurfaceDesc->dwHeight, res);
+	OutTraceDW("EnumDisplayModes(D): native size=(%d,%d) res=%x\n", lpDDSurfaceDesc->dwWidth, lpDDSurfaceDesc->dwHeight, res);
 	return res;
 }
 

@@ -127,6 +127,51 @@ BOOL CDxwndhostApp::InitInstance()
 	m_pMainWnd->ShowWindow(SW_SHOW);
 	m_pMainWnd->UpdateWindow();
 
+	extern BOOL IsProcessElevated();
+	extern BOOL IsUserInAdminGroup();
+    OSVERSIONINFO osver = { sizeof(osver) };
+    if (GetVersionEx(&osver) && osver.dwMajorVersion >= 6)
+    {
+		BOOL const fInAdminGroup = IsUserInAdminGroup();
+		if(!fInAdminGroup) return TRUE;
+
+        // Get and display the process elevation information.
+        BOOL const fIsElevated = IsProcessElevated();
+		BOOL MustRestart;
+		if(fIsElevated) return TRUE;
+		MustRestart=MessageBoxEx(0, 
+			"Administrator capability is missing.\n"
+			"It could be required to handle some programs.\n"
+			"Do you want to acquire it?", 
+			"Warning", MB_OKCANCEL | MB_ICONQUESTION, NULL);
+
+		if(MustRestart==IDOK){
+			extern HANDLE GlobalLocker;
+			CloseHandle(GlobalLocker);
+			char szPath[MAX_PATH];
+			if (GetModuleFileName(NULL, szPath, ARRAYSIZE(szPath)))
+			{
+				// Launch itself as administrator.
+				SHELLEXECUTEINFO sei = { sizeof(sei) };
+				sei.lpVerb = "runas";
+				sei.lpFile = szPath;
+				//sei.hwnd = (HWND)this->GetMainWnd();
+				sei.hwnd = (HWND)NULL; // set to NULL to force the confirmation dialog on top of everything...
+				sei.nShow = SW_NORMAL;
+				if (!ShellExecuteEx(&sei)){
+					DWORD dwError = GetLastError();
+					if (dwError == ERROR_CANCELLED){
+						// The user refused the elevation.
+						// Do nothing ...
+					}
+				}
+				else{
+					exit(0); // Quit itself
+				}
+			}
+		}
+	}
+
 	return TRUE;
 }
 

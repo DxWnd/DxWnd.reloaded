@@ -116,6 +116,23 @@ void dxwCore::SetScreenSize(int x, int y)
 		p->Width = (short)dwScreenWidth;
 		p->Height = (short)dwScreenHeight;
 	}
+	if(dwFlags4 & LIMITSCREENRES){
+		#define HUGE 100000
+		DWORD maxw, maxh;
+		maxw=HUGE; maxh=HUGE;
+		switch(dxw.MaxScreenRes){
+			case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
+			case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
+			case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
+			case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
+			case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
+		}
+		if(((DWORD)p->Width > maxw) || ((DWORD)p->Height > maxh)){
+			OutTraceDW("DXWND: limit device size=(%d,%d)\n", maxw, maxh);
+			p->Width = (short)maxw;
+			p->Height = (short)maxh;
+		}
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -1382,7 +1399,7 @@ HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
 {
 	HDC wdc;
 	if(!(wdc=(*pGDIGetDC)(hwnd)))
-	OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	return AcquireEmulatedDC(wdc);
 }
 

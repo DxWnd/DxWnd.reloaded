@@ -28,7 +28,17 @@ static void Stopper(char *s, int line)
 	if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
 */
 
+typedef BOOL	(WINAPI *ExtTextOutW_Type)(HDC, int, int, UINT, const RECT *, LPCWSTR, UINT, const INT *);
+typedef BOOL	(WINAPI *ExtTextOutA_Type)(HDC, int, int, UINT, const RECT *, LPCSTR, UINT, const INT *);
+BOOL WINAPI extExtTextOutW(HDC, int, int, UINT, const RECT *, LPCWSTR, UINT, const INT *);
+BOOL WINAPI extExtTextOutA(HDC, int, int, UINT, const RECT *, LPCSTR, UINT, const INT *);
+ExtTextOutW_Type pExtTextOutW = NULL;
+ExtTextOutA_Type pExtTextOutA = NULL;
+
 static HookEntry_Type Hooks[]={
+	{"ExtTextOutA", (FARPROC)ExtTextOutA, (FARPROC *)&pExtTextOutA, (FARPROC)extExtTextOutA},
+	{"ExtTextOutW", (FARPROC)ExtTextOutW, (FARPROC *)&pExtTextOutW, (FARPROC)extExtTextOutW},
+
 	{"GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
 	{"ScaleWindowExtEx", (FARPROC)ScaleWindowExtEx, (FARPROC *)&pGDIScaleWindowExtEx, (FARPROC)extScaleWindowExtEx},
 	{"SaveDC", (FARPROC)SaveDC, (FARPROC *)&pGDISaveDC, (FARPROC)extGDISaveDC},
@@ -84,9 +94,6 @@ static HookEntry_Type ScaledHooks[]={
 	//{"CreateRectRgn", (FARPROC)NULL, (FARPROC *)&pCreateRectRgn, (FARPROC)extCreateRectRgn},
 	//{"CreateRectRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateRectRgnIndirect, (FARPROC)extCreateRectRgnIndirect},
 	//{"CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
-	{"DrawTextA", (FARPROC)NULL, (FARPROC *)&pDrawText, (FARPROC)extDrawText},
-	{"DrawTextExA", (FARPROC)NULL, (FARPROC *)&pDrawTextEx, (FARPROC)extDrawTextEx},
-
 	// same as emulated GDI ...
 	{"CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extGDICreateCompatibleDC},
 	{"DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC},
@@ -114,7 +121,6 @@ static HookEntry_Type EmulateHooks[]={
 
 	{"GetObjectType", (FARPROC)GetObjectType, (FARPROC *)&pGetObjectType, (FARPROC)extGetObjectType},
 	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
-
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -1533,38 +1539,6 @@ HRGN WINAPI extCreatePolygonRgn(const POINT *lpPoints, int cPoints, int fnPolyFi
 	return ret;
 }
 
-int WINAPI extDrawText(HDC hdc, LPCTSTR lpchText, int nCount, LPRECT lpRect, UINT uFormat)
-{
-	int ret;
-	OutTraceDW("DrawText: hdc=%x rect=(%d,%d)-(%d,%d) Format=%x Text=(%d)\"%s\"\n", 
-		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, uFormat, nCount, lpchText);
-
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
-		dxw.MapClient((RECT *)lpRect);
-		OutTraceDW("DrawText: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-	}
-
-	ret=(*pDrawText)(hdc, lpchText, nCount, lpRect, uFormat);
-	if(!ret) OutTraceE("DrawText: ERROR ret=%x err=%d\n", ret, GetLastError()); 
-	return ret;
-}
-
-int WINAPI extDrawTextEx(HDC hdc, LPTSTR lpchText, int nCount, LPRECT lpRect, UINT dwDTFormat, LPDRAWTEXTPARAMS lpDTParams)
-{
-	int ret;
-	OutTraceDW("DrawTextEx: hdc=%x rect=(%d,%d)-(%d,%d) DTFormat=%x Text=(%d)\"%s\"\n", 
-		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, dwDTFormat, nCount, lpchText);
-
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
-		dxw.MapClient((RECT *)lpRect);
-		OutTraceDW("DrawTextEx: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-	}
-
-	ret=(*pDrawTextEx)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-	if(!ret) OutTraceE("DrawTextEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
-	return ret;
-}
-
 BOOL WINAPI extMaskBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc,
 					 int nXSrc, int nYSrc, HBITMAP hbmMask, int xMask, int yMask, DWORD dwRop)
 {
@@ -1895,3 +1869,43 @@ BOOL SetTextJustification(
   _In_  int nBreakCount
 );
 #endif
+
+BOOL WINAPI extExtTextOutA(HDC hdc, int X, int Y, UINT fuOptions, const RECT *lprc, LPCSTR lpString, UINT cbCount, const INT *lpDx)
+{
+	OutTrace("ExtTextOutA: pos=(%d,%d) String=\"%s\"\n", X, Y, lpString);
+	//if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+	//	dxw.MapClient(&X, &Y);
+	//	if(lprc) dxw.MapClient((LPRECT)lprc);
+	//	OutTraceDW("ExtTextOutA: fixed pos=(%d,%d)\n", X, Y);
+	//}
+	return (*pExtTextOutA)(hdc, X, Y, fuOptions, lprc, lpString, cbCount, lpDx);
+}
+
+extern BOOL gFixed;
+
+BOOL WINAPI extExtTextOutW(HDC hdc, int X, int Y, UINT fuOptions, const RECT *lprc, LPCWSTR lpString, UINT cbCount, const INT *lpDx)
+{
+	RECT rc;
+	if(IsTraceDW){
+		OutTrace("ExtTextOutW: hdc=%x pos=(%d,%d) String=\"%ls\" rect=", hdc, X, Y, lpString);
+		if(lprc) 
+			OutTrace("(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
+		else
+			OutTrace("NULL\n");
+	}
+	
+	//return (*pExtTextOutW)(hdc, X, Y, fuOptions, lprc, lpString, cbCount, lpDx);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && !gFixed){
+		//dxw.UnmapClient(&X, &Y);
+		//if(lprc) dxw.UnmapClient(&rc);
+		dxw.MapClient(&X, &Y);
+		if(lprc) dxw.MapClient(&rc);
+		OutTraceDW("ExtTextOutW: fixed pos=(%d,%d)\n", X, Y);
+	}
+	if(lprc)
+		return (*pExtTextOutW)(hdc, X, Y, fuOptions, &rc, lpString, cbCount, lpDx);
+	else
+		return (*pExtTextOutW)(hdc, X, Y, fuOptions, NULL, lpString, cbCount, lpDx);
+	
+}
