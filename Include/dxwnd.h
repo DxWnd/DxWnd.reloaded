@@ -137,6 +137,7 @@
 #define NATIVERES			0x00200000 // Supports hardware native resolutions (depending on your PC)
 #define SUPPORTSVGA			0x00400000 // Supports SVGA standard resolutions
 #define SUPPORTHDTV			0x00800000 // Supports HDTV standard resolutions
+#define RELEASEMOUSE		0x01000000 // GetCursorPos returns centered coordinates when the mouse cursor is moved outside the window
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

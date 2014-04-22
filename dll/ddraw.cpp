@@ -3851,7 +3851,7 @@ HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc)
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("ReleaseDC: lpdss=%x%s hdc=%x\n",lpdds, IsPrim?"(PRIM)":"", hdc);	
-	res=(*pReleaseDC)(lpdds,hdc);
+	res=(*pReleaseDC)(lpdds, hdc);
 	if((IsPrim) && (dxw.dwFlags1 & EMULATESURFACE)) sBlt("ReleaseDC", lpdds, NULL, lpdds, NULL, 0, NULL, FALSE);
 	if (res) OutTraceE("ReleaseDC: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;

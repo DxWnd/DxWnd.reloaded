@@ -1,12 +1,13 @@
 [target]
-title0=Microsotf Motocross Madness 2
-path0=D:\Games\motocross madness 2\mcm2.exe
+title0=Dune 2000
+path0=D:\Games\Dune 2000\DUNE2000.DAT
+launchpath0=D:\Games\Dune 2000\DUNE2000.EXE
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=134234144
-flagg0=1207959808
+flag0=671105312
+flagg0=1207959568
 flagh0=20
 flagi0=4194308
 tflag0=64

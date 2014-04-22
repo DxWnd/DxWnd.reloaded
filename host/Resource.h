@@ -47,6 +47,8 @@
 #define IDC_FILE                        1000
 #define IDC_OPEN                        1001
 #define IDC_MODULE                      1002
+#define IDC_LAUNCH                      1003
+#define IDC_OPENLAUNCH                  1004
 #define IDC_STATUSINFO                  1005
 #define IDC_VERSION                     1006
 #define IDC_UNNOTIFY                    1007
@@ -73,8 +75,6 @@
 #define IDC_VIDEOTOSYSTEMMEM            1030
 #define IDC_FIXTEXTOUT                  1031
 #define IDC_KEEPCURSORWITHIN            1032
-#define IDC_FIXTEXTOUT2                 1032
-#define IDC_HOOKGLIDE                   1032
 #define IDC_USERGB565                   1033
 #define IDC_SUPPRESSDXERRORS            1034
 #define IDC_PREVENTMAXIMIZE             1035
@@ -89,7 +89,6 @@
 #define IDC_POSY                        1047
 #define IDC_SIZX                        1048
 #define IDC_SIZY                        1049
-#define IDC_DISABLEFOGGING              1049
 #define IDC_HOOKCHILDWIN                1050
 #define IDC_MESSAGEPROC                 1051
 #define IDC_RECOVERSCREENMODE           1053
@@ -132,13 +131,11 @@
 #define IDC_WINDOWIZE                   1091
 #define IDC_NOBANNER                    1092
 #define IDC_STARTDEBUG                  1093
-#define IDC_PALETTECOLORS               1093
 #define IDC_WIREFRAME                   1094
 #define IDC_DISABLEGAMMARAMP            1095
 #define IDC_FORCEWINRESIZE              1096
 #define IDC_FORCE16BPP                  1097
 #define IDC_FORCEHOOKOPENGL             1098
-#define IDC_LISTRES                     1098
 #define IDC_DESKTOPCENTER               1099
 #define IDC_COORDINATES                 1100
 #define IDC_SUPPRESSD3DEXT              1101
@@ -211,6 +208,11 @@
 #define IDC_SUPPORTSVGA                 1170
 #define IDC_SUPPORTHDMI                 1171
 #define IDC_NATIVERES                   1172
+#define IDC_LISTRES                     1173
+#define IDC_PALETTECOLORS               1174
+#define IDC_DISABLEFOGGING              1175
+#define IDC_RELEASEMOUSE                1176
+#define IDC_HOOKGLIDE                   1177
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

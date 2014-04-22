@@ -1,15 +1,15 @@
 [target]
-title0=Microsotf Motocross Madness 2
-path0=D:\Games\motocross madness 2\mcm2.exe
+title0=Close Combat 5 Invasion Normandy
+path0=D:\Games\Close Combat 5\CC5.exe
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=134234144
-flagg0=1207959808
+flag0=134218272
+flagg0=1744830464
 flagh0=20
 flagi0=4194308
-tflag0=64
+tflag0=0
 initx0=0
 inity0=0
 minx0=0

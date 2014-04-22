@@ -1,9 +1,9 @@
-// TabDirectX.cpp : implementation file
+// TabInput.cpp : implementation file
 //
 
 #include "stdafx.h"
 #include "TargetDlg.h"
-#include "TabMouse.h"
+#include "TabInput.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -37,6 +37,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_MESSAGEPROC, cTarget->m_MessageProc);
 	DDX_Check(pDX, IDC_FIXNCHITTEST, cTarget->m_FixNCHITTEST);
 	DDX_Check(pDX, IDC_SLOW, cTarget->m_SlowDown);
+	DDX_Check(pDX, IDC_RELEASEMOUSE, cTarget->m_ReleaseMouse);
 	// DirectInput
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);
 	DDX_Text(pDX, IDC_INITX, cTarget->m_InitX);
@@ -45,6 +46,9 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_MAXY, cTarget->m_MaxY);
 	DDX_Text(pDX, IDC_MINX, cTarget->m_MinX);
 	DDX_Text(pDX, IDC_MINY, cTarget->m_MinY);
+	// Message processing
+	DDX_Check(pDX, IDC_FILTERMESSAGES, cTarget->m_FilterMessages);
+	DDX_Check(pDX, IDC_PEEKALLMESSAGES, cTarget->m_PeekAllMessages);
 }
 
 BEGIN_MESSAGE_MAP(CTabInput, CDialog)

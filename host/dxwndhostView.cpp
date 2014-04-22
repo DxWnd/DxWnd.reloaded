@@ -240,6 +240,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_TimeStretch) t->flags2 |= TIMESTRETCH;
 	if(dlg->m_StretchTimers) t->flags4 |= STRETCHTIMERS;
 	if(dlg->m_FineTiming) t->flags4 |= FINETIMING;
+	if(dlg->m_ReleaseMouse) t->flags4 |= RELEASEMOUSE;
 	if(dlg->m_InterceptRDTSC) t->flags4 |= INTERCEPTRDTSC;
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
 	if(dlg->m_ForceHookOpenGL) t->flags3 |= FORCEHOOKOPENGL;
@@ -404,6 +405,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_TimeStretch = t->flags2 & TIMESTRETCH ? 1 : 0;
 	dlg->m_StretchTimers = t->flags4 & STRETCHTIMERS ? 1 : 0;
 	dlg->m_FineTiming = t->flags4 & FINETIMING ? 1 : 0;
+	dlg->m_ReleaseMouse = t->flags4 & RELEASEMOUSE ? 1 : 0;
 	dlg->m_InterceptRDTSC = t->flags4 & INTERCEPTRDTSC ? 1 : 0;
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;
 	dlg->m_ForceHookOpenGL = t->flags3 & FORCEHOOKOPENGL ? 1 : 0;
@@ -436,13 +438,15 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_MaxScreenRes = t->MaxScreenRes;
 }
 
-static void SaveConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPath)
+static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, char *InitPath)
 {
 	char key[32], val[32];
 	sprintf_s(key, sizeof(key), "title%i", i);
-	WritePrivateProfileString("target", key, Title, InitPath);
+	WritePrivateProfileString("target", key, PrivateMap->title, InitPath);
 	sprintf_s(key, sizeof(key), "path%i", i);
 	WritePrivateProfileString("target", key, TargetMap->path, InitPath);
+	sprintf_s(key, sizeof(key), "launchpath%i", i);
+	WritePrivateProfileString("target", key, PrivateMap->launchpath, InitPath);
 	sprintf_s(key, sizeof(key), "module%i", i);
 	WritePrivateProfileString("target", key, TargetMap->module, InitPath);
 	sprintf_s(key, sizeof(key), "opengllib%i", i);
@@ -518,6 +522,8 @@ static void ClearTarget(int i, char *InitPath)
 	char key[32];
 	sprintf_s(key, sizeof(key), "path%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "launchpath%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "ver%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "coord%i", i);
@@ -563,7 +569,7 @@ static void ClearTarget(int i, char *InitPath)
 	WritePrivateProfileString("target", key, 0, InitPath);
 }
 
-static int LoadConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPath)
+static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, char *InitPath)
 {
 	char key[32];
 	DWORD flags;
@@ -571,8 +577,10 @@ static int LoadConfigItem(TARGETMAP *TargetMap, char *Title, int i, char *InitPa
 	sprintf_s(key, sizeof(key), "path%i", i);
 	GetPrivateProfileString("target", key, "", TargetMap->path, MAX_PATH, InitPath);
 	if(!TargetMap->path[0]) return FALSE;
+	sprintf_s(key, sizeof(key), "launchpath%i", i);
+	GetPrivateProfileString("target", key, "", PrivateMap->launchpath, MAX_PATH, InitPath);
 	sprintf_s(key, sizeof(key), "title%i", i);
-	GetPrivateProfileString("target", key, "", Title, sizeof(PRIVATEMAP)-1, InitPath);
+	GetPrivateProfileString("target", key, "", PrivateMap->title, sizeof(PRIVATEMAP)-1, InitPath);
 	sprintf_s(key, sizeof(key), "module%i", i);
 	GetPrivateProfileString("target", key, "", TargetMap->module, sizeof(TargetMap->module)-1, InitPath);
 	sprintf_s(key, sizeof(key), "opengllib%i", i);
@@ -665,7 +673,7 @@ void CDxwndhostView::SaveConfigFile()
 
 	for(i = 0; i < MAXTARGETS; i ++){
 		if(!TargetMaps[i].path[0]) break;
-		SaveConfigItem(&TargetMaps[i], TitleMaps[i].title, i, InitPath);
+		SaveConfigItem(&TargetMaps[i], &TitleMaps[i], i, InitPath);
 	}
 	for(; i < MAXTARGETS; i ++) ClearTarget(i, InitPath);
 	this->isUpdated=FALSE;
@@ -757,7 +765,7 @@ void CDxwndhostView::OnInitialUpdate()
 	listctrl.InsertColumn(0, &listcol);
 
 	for(i = 0; i < MAXTARGETS; i ++){
-		if (!LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, i, InitPath)) break;
+		if (!LoadConfigItem(&TargetMaps[i], &TitleMaps[i], i, InitPath)) break;
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
@@ -821,7 +829,7 @@ void CDxwndhostView::OnExport()
 	CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) 
-		SaveConfigItem(&TargetMaps[i], TitleMaps[i].title, 0, dlg.GetPathName().GetBuffer());
+		SaveConfigItem(&TargetMaps[i], &TitleMaps[i], 0, dlg.GetPathName().GetBuffer());
 }
 
 void CDxwndhostView::OnImport()
@@ -849,7 +857,7 @@ void CDxwndhostView::OnImport()
 		if(buffer[ofn.nFileOffset - 1] != '\0'){
 			// Single-Select
 			// "buffer" - name of file
-			LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, 0, buffer);
+			LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, buffer);
 			listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 			listitem.iItem = i;
 			listitem.iSubItem = 0;
@@ -868,7 +876,7 @@ void CDxwndhostView::OnImport()
 				if(!*p)break;
 				strcpy(pathname, folder);
 				strcat(pathname, p);
-				LoadConfigItem(&TargetMaps[i], TitleMaps[i].title, 0, pathname);
+				LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, pathname);
 				listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 				listitem.iItem = i;
 				listitem.iSubItem = 0;
@@ -897,9 +905,11 @@ void CDxwndhostView::OnModify()
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
 	dlg.m_Title = TitleMaps[i].title;
+	dlg.m_LaunchPath = TitleMaps[i].launchpath;
 	SetDlgFromTarget(&TargetMaps[i], &dlg);
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strncpy(TitleMaps[i].title, dlg.m_Title, 40);
+		strncpy(TitleMaps[i].launchpath, dlg.m_LaunchPath, MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
@@ -1203,6 +1213,7 @@ void CDxwndhostView::OnAdd()
 	memset(&TargetMaps[i],0,sizeof(TARGETMAP)); // clean up, just in case....
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strncpy(TitleMaps[i].title, dlg.m_Title, 40);
+		strncpy(TitleMaps[i].launchpath, dlg.m_LaunchPath, MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
@@ -1641,6 +1652,12 @@ void CDxwndhostView::OnRun()
 	if(!listctrl.GetSelectedCount()) return;
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
+
+	//if(strlen(TitleMaps[i].launchpath)>0){
+	//	system(TitleMaps[i].launchpath);
+	//	return;
+	//}
+
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo);
 	strcpy_s(path, sizeof(path), TargetMaps[i].path);
@@ -1650,7 +1667,9 @@ void CDxwndhostView::OnRun()
 		CreateThread( NULL, 0, StartDebug, &TargetMaps[i], 0, NULL); 
 	}
 	else{
-		CreateProcess(NULL, TargetMaps[i].path, 0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
+		CreateProcess(NULL, 
+			(strlen(TitleMaps[i].launchpath)>0) ? TitleMaps[i].launchpath: TargetMaps[i].path, 
+			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
 	}
 }
 

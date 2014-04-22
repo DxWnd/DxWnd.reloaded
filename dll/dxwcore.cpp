@@ -362,10 +362,21 @@ POINT dxwCore::FixCursorPos(POINT prev)
 			}
 		}
 
-		if (curr.x < 0) curr.x = 0;
-		if (curr.y < 0) curr.y = 0;
-		if (curr.x > w) curr.x = w;
-		if (curr.y > h) curr.y = h;
+		if(dxw.dwFlags4 & RELEASEMOUSE){
+			if ((curr.x < 0) ||
+				(curr.y < 0) ||
+				(curr.x > w) ||
+				(curr.y > h)){
+				curr.x = w / 2;
+				curr.y = h / 2;
+			}
+		}
+		else {
+			if (curr.x < 0) curr.x = 0;
+			if (curr.y < 0) curr.y = 0;
+			if (curr.x > w) curr.x = w;
+			if (curr.y > h) curr.y = h;
+		}
 
 		if (w) curr.x = (curr.x * dxw.GetScreenWidth()) / w;
 		if (h) curr.y = (curr.y * dxw.GetScreenHeight()) / h;
@@ -511,10 +522,9 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 
 	if (!(*pGetClientRect)(hWnd, &ClientRect)){
 		OutTraceE("GetClientRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
-		// v2.02.31: try....
-		ClientRect.top=ClientRect.left=0;
-		ClientRect.right=iRatioX;
-		ClientRect.bottom=iRatioY;
+		// v2.02.71: return a void area to prevent blitting to wrong area
+		ClientRect.top=ClientRect.left=ClientRect.right=ClientRect.bottom=0;
+		return ClientRect;
 	}
 	
 	RetRect=ClientRect;
@@ -768,6 +778,16 @@ POINT dxwCore::AddCoordinates(POINT p1, POINT p2)
 	ps.x = p1.x + p2.x;
 	ps.y = p1.y + p2.y;
 	return ps;
+}
+
+RECT dxwCore::AddCoordinates(RECT r1, POINT p2)
+{
+	RECT rs;
+	rs.left = r1.left + p2.x;
+	rs.right = r1.right + p2.x;
+	rs.top = r1.top + p2.y;
+	rs.bottom = r1.bottom + p2.y;
+	return rs;
 }
 
 POINT dxwCore::SubCoordinates(POINT p1, POINT p2)
@@ -1328,7 +1348,7 @@ void dxwCore::FixWindowFrame(HWND hwnd)
 
 	OutTraceDW("FixWindowFrame: hwnd=%x\n", hwnd);
 
-	nOldStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
+	nOldStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
 	if (!nOldStyle){
 		OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
 		return;
@@ -1337,12 +1357,12 @@ void dxwCore::FixWindowFrame(HWND hwnd)
 	OutTraceDW("FixWindowFrame: style=%x(%s)\n",nOldStyle,ExplainStyle(nOldStyle));
 
 	// fix style
-	if (!(*pSetWindowLong)(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW)){
+	if (!(*pSetWindowLongA)(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW)){
 		OutTraceE("FixWindowFrame: SetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
 		return;
 	}
 	// fix exstyle
-	if (!(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0)){
+	if (!(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0)){
 		OutTraceE("FixWindowFrame: SetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
 		return;
 	}
@@ -1365,7 +1385,7 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 			lpSS->styleNew= WS_OVERLAPPEDWINDOW;
 		}
 		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
-			lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_STYLE);
+			lpSS->styleNew= (*pGetWindowLongA)(hwnd, GWL_STYLE);
 		}
 		if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
 			if (lpSS->styleNew & WS_MAXIMIZE){
@@ -1381,7 +1401,7 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 			lpSS->styleNew= 0;
 		}
 		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
-				lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_EXSTYLE);
+				lpSS->styleNew= (*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
 		}
 		if ((dxw.dwFlags1 & PREVENTMAXIMIZE) && (hwnd==hWnd)){ // disable maximize settings
 			if (lpSS->styleNew & WS_EX_TOPMOST){
@@ -1398,8 +1418,10 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
 {
 	HDC wdc;
-	if(!(wdc=(*pGDIGetDC)(hwnd)))
+	if(!(wdc=(*pGDIGetDC)(hwnd))){
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		return NULL;
+	}
 	return AcquireEmulatedDC(wdc);
 }
 
@@ -1416,25 +1438,32 @@ HDC dxwCore::AcquireEmulatedDC(LPDIRECTDRAWSURFACE lpdds)
 HDC dxwCore::AcquireEmulatedDC(HDC wdc)
 {
 	RealHDC=wdc;
-	//HDC wdc;
-	//if(!(wdc=(*pGDIGetDC)(hwnd)))
-	//OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	if(!VirtualHDC){ // or resolution changed and you must rebuild a new one .... !!!!!
-		if(!(VirtualHDC=CreateCompatibleDC(wdc)))
-			OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-		if(!VirtualPic){
-			if(!(VirtualPic=CreateCompatibleBitmap(wdc, dxw.GetScreenWidth(), dxw.GetScreenHeight())))
-				OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-		}
-		if(!SelectObject(VirtualHDC, VirtualPic)){
-			if(!DeleteObject(VirtualPic))
-				OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-			if(!(VirtualPic=CreateCompatibleBitmap(wdc, dxw.GetScreenWidth(), dxw.GetScreenHeight())))
-				OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-			if(!SelectObject(VirtualHDC, VirtualPic))
-				OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-		}
+	HWND hwnd;
+	RECT WinRect;
+	if(!(hwnd=WindowFromDC(wdc)))
+		OutTraceE("WindowFromDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	(*pGetClientRect)(hwnd, &WinRect);
+	if(dxw.IsDesktop(hwnd)){
+		dxw.VirtualPicRect = dxw.GetScreenRect();
 	}
+	else {
+		VirtualPicRect = WinRect;
+		dxw.UnmapClient(&VirtualPicRect);
+	}
+	if(!(VirtualHDC=CreateCompatibleDC(wdc)))
+		OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	if(!(VirtualPic=CreateCompatibleBitmap(wdc, VirtualPicRect.right, VirtualPicRect.bottom)))
+		OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	if(!SelectObject(VirtualHDC, VirtualPic)){
+		if(!DeleteObject(VirtualPic))
+			OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		if(!(VirtualPic=CreateCompatibleBitmap(wdc, dxw.GetScreenWidth(), dxw.GetScreenHeight())))
+			OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		if(!SelectObject(VirtualHDC, VirtualPic))
+			OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	}
+	if(!(*pGDIStretchBlt)(VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, wdc, 0, 0, WinRect.right, WinRect.bottom, SRCCOPY))
+		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	return VirtualHDC;
 }
 
@@ -1446,10 +1475,14 @@ BOOL dxwCore::ReleaseEmulatedDC(HWND hwnd)
 	(*pGetClientRect)(hwnd, &client);
 	if(!(wdc=(*pGDIGetDC)(hwnd)))
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	//OutTrace("StretchBlt: destdc=%x destrect=(0,0)-(%d,%d) srcdc=%x srcrect=(0,0)-(%d,%d)\n", wdc, client.right, client.bottom, VirtualHDC, dxw.GetScreenWidth(), dxw.GetScreenHeight());
-	if(!(*pGDIStretchBlt)(wdc, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), SRCCOPY))
+	//OutTrace("StretchBlt: destdc=%x destrect=(0,0)-(%d,%d) srcdc=%x srcrect=(0,0)-(%d,%d)\n", wdc, client.right, client.bottom, VirtualHDC, VirtualPicRect.right, VirtualPicRect.bottom);
+	if(!(*pGDIStretchBlt)(wdc, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, SRCCOPY))
 		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	//(*pInvalidateRect)(hwnd, NULL, 0);
+	if(!DeleteObject(VirtualPic))
+		OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);	
+	if(!DeleteObject(VirtualHDC))
+		OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);	
 	ret=TRUE;
 	return ret;
 }

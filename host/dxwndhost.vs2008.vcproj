@@ -394,11 +394,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabLogs.cpp"
+				RelativePath=".\TabInput.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\TabMouse.cpp"
+				RelativePath=".\TabLogs.cpp"
 				>
 			</File>
 			<File
@@ -503,11 +503,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabLogs.h"
+				RelativePath=".\TabInput.h"
 				>
 			</File>
 			<File
-				RelativePath=".\TabMouse.h"
+				RelativePath=".\TabLogs.h"
 				>
 			</File>
 			<File

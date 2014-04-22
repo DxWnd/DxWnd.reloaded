@@ -24,7 +24,7 @@
 #include "TabProgram.h"
 #include "TabLogs.h"
 #include "TabDirectX.h"
-#include "TabMouse.h"
+#include "TabInput.h"
 #include "TabTiming.h"
 #include "TabWindow.h"
 #include "TabOpenGL.h"

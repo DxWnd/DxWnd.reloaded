@@ -23,6 +23,7 @@ public:
 	enum { IDD = IDD_TARGET };
 	CDXTabCtrl	m_tabdxTabCtrl;
 	CEdit	m_File;
+	CEdit	m_Launch;
 	int		m_DXVersion;
 	int		m_Coordinates;
 	int		m_DxEmulationMode;
@@ -54,6 +55,7 @@ public:
 	BOOL	m_StartDebug;
 	BOOL	m_HookEnabled;
 	CString	m_FilePath;
+	CString	m_LaunchPath;
 	CString	m_Module;
 	CString	m_Title;
 	CString	m_OpenGLLib;
@@ -107,6 +109,7 @@ public:
 	BOOL	m_TimeStretch;
 	BOOL	m_StretchTimers;
 	BOOL	m_FineTiming;
+	BOOL	m_ReleaseMouse;
 	BOOL	m_InterceptRDTSC;
 	BOOL	m_HookOpenGL;
 	BOOL	m_ForceHookOpenGL;

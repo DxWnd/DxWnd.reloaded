@@ -17,6 +17,7 @@ class CTabProgram : public CDialog
 public:
 	CTabProgram(CWnd* pParent = NULL);   // standard constructor
 	void OnOpen(void);
+	void OnOpenLaunch(void);
 
 // Dialog Data
 	//{{AFX_DATA(CTabProgram)

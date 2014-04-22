@@ -45,6 +45,7 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOWINDOWMOVE, cTarget->m_NoWindowMove);
 	DDX_Check(pDX, IDC_SUPPRESSCHILD, cTarget->m_SuppressChild);
 	DDX_Check(pDX, IDC_HIDEDESKTOP, cTarget->m_HideDesktop);
+	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);
 
 	// color management
 	DDX_Check(pDX, IDC_INIT8BPP, cTarget->m_Init8BPP);

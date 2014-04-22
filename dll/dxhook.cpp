@@ -84,7 +84,7 @@ static char *Flag4Names[32]={
 	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "HIDEDESKTOP",
 	"STRETCHTIMERS", "NOFLIPEMULATION", "NOTEXTURES", "RETURNNULLREF",
 	"FINETIMING", "NATIVERES", "SUPPORTSVGA", "SUPPORTHDTV",
-	"", "", "", "",
+	"RELEASEMOUSE", "", "", "",
 	"", "", "", "",
 };
 
@@ -505,8 +505,8 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 
 	RECT UnmappedRect;
 	UnmappedRect=rect;
-	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
-	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
+	dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
+	dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
 	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
 	hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 	AdjustWindowRectEx(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
@@ -562,7 +562,7 @@ void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 void HookWindowProc(HWND hwnd)
 {
 	WNDPROC pWindowProc;
-	pWindowProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
+	pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
 	if ((pWindowProc == extWindowProc) ||
 		(pWindowProc == extChildWindowProc) ||
 		(pWindowProc == extDialogWindowProc)){
@@ -572,7 +572,7 @@ void HookWindowProc(HWND hwnd)
 	else {// don't hook twice ....
 		long lres;
 		WhndStackPush(hwnd, pWindowProc);
-		lres=(*pSetWindowLong)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
+		lres=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
 		OutTraceDW("SetWindowLong: hwnd=%x HOOK WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
 	}
 }
@@ -599,8 +599,8 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 			break;
 	}
 
-	(*pSetWindowLong)(hwnd, GWL_STYLE, style);
-	(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0); 
+	(*pSetWindowLongA)(hwnd, GWL_STYLE, style);
+	(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0); 
 	(*pShowWindow)(hwnd, SW_SHOWNORMAL);
 	OutTraceDW("AdjustWindowFrame hwnd=%x, set style=%s extstyle=0\n", hwnd, (style == 0) ? "0" : "WS_OVERLAPPEDWINDOW"); 
 	AdjustWindowPos(hwnd, width, height);
@@ -978,11 +978,12 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
-	case WM_CLOSE:
-		OutTraceDW("WindowProc: WM_CLOSE - terminating process\n");
-		if(dxw.dwFlags3 & FORCE16BPP) RecoverScreenMode();
-		TerminateProcess(GetCurrentProcess(),0);
-		break;
+	// commented out: WM_CLOSE just issue a request to close the window, not the process! It should be WM_QUIT....
+	//case WM_CLOSE:
+	//	OutTraceDW("WindowProc: WM_CLOSE - terminating process\n");
+	//	if(dxw.dwFlags3 & FORCE16BPP) RecoverScreenMode();
+	//	TerminateProcess(GetCurrentProcess(),0);
+	//	break;
 	case WM_SYSKEYDOWN:
 		OutTraceW("event WM_SYSKEYDOWN wparam=%x lparam=%x\n", wparam, lparam);
 		switch (wparam){

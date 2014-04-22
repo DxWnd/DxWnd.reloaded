@@ -126,6 +126,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_TimeStretch = FALSE;
 	m_StretchTimers = FALSE;
 	m_FineTiming = FALSE;
+	m_ReleaseMouse = FALSE;
 	m_InterceptRDTSC = FALSE;
 	m_HookOpenGL = FALSE;
 	m_ForceHookOpenGL = FALSE;

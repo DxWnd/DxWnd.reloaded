@@ -22,6 +22,7 @@
 typedef struct PRIVATEMAP
 {
 	char title[40+1];
+	char launchpath[MAX_PATH+1];
 }PRIVATEMAP;
 
 /////////////////////////////////////////////////////////////////////////////

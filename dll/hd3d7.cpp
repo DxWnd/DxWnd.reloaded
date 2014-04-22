@@ -508,7 +508,8 @@ static void DumpD3DDevideDesc(LPD3DDEVICEDESC d3, char *label)
 			if(d3->dwFlags & D3DDD_DEVICEZBUFFERBITDEPTH) OutTrace("DeviceZBufferBitDepth=%d ", d3->dwDeviceZBufferBitDepth);
 			if(d3->dwFlags & D3DDD_MAXBUFFERSIZE) OutTrace("MaxBufferSize=%d ", d3->dwMaxBufferSize);
 			if(d3->dwFlags & D3DDD_MAXVERTEXCOUNT) OutTrace("MaxVertexCount=%d ", d3->dwMaxVertexCount);
-			OutTrace("\n");
+			OutTrace("Texture min=(%dx%d) max=(%dx%d)\n", d3->dwMinTextureWidth, d3->dwMinTextureHeight, d3->dwMaxTextureWidth, d3->dwMaxTextureHeight);
+			//OutTrace("\n");
 		}
 		else
 			OutTrace("EnumDevices: CALLBACK dev=%s ddesc=NULL\n", label);

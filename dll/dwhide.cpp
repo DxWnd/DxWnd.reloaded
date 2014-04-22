@@ -91,19 +91,19 @@ void dxwCore::HideDesktop(HWND hwnd)
 	HWND hParent = (*pGetDesktopWindow)();
 	if(!wleft) {
 		wleft=(*pCreateWindowExA)(0, "dxwnd:hider", "hider", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
-		(*pSetWindowLong)(wleft, GWL_STYLE, 0);
+		(*pSetWindowLongA)(wleft, GWL_STYLE, 0);
 	}
 	if(!wright) {
 		wright=(*pCreateWindowExA)(0, "dxwnd:hider", "hider", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
-		(*pSetWindowLong)(wright, GWL_STYLE, 0);
+		(*pSetWindowLongA)(wright, GWL_STYLE, 0);
 	}
 	if(!wtop) {
 		wtop=(*pCreateWindowExA)(0, "dxwnd:hider", "hider", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
-		(*pSetWindowLong)(wtop, GWL_STYLE, 0);
+		(*pSetWindowLongA)(wtop, GWL_STYLE, 0);
 	}
 	if(!wbottom) {
 		wbottom=(*pCreateWindowExA)(0, "dxwnd:hider", "hider", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
-		(*pSetWindowLong)(wbottom, GWL_STYLE, 0);
+		(*pSetWindowLongA)(wbottom, GWL_STYLE, 0);
 	}
 
 	(*pMoveWindow)(wleft, wDesktop.left, wDesktop.top, wRect.left, wDesktop.bottom, TRUE);
@@ -111,10 +111,10 @@ void dxwCore::HideDesktop(HWND hwnd)
 	(*pMoveWindow)(wtop, wDesktop.left, wDesktop.top, wDesktop.right, wRect.top-wDesktop.top, TRUE);
 	(*pMoveWindow)(wbottom, wDesktop.left, wRect.bottom, wDesktop.right, wDesktop.bottom-wRect.bottom, TRUE);
 
-	(*pSetWindowLong)(wleft, GWL_EXSTYLE, WS_EX_TOPMOST);
-	(*pSetWindowLong)(wright, GWL_EXSTYLE, WS_EX_TOPMOST);
-	(*pSetWindowLong)(wtop, GWL_EXSTYLE, WS_EX_TOPMOST);
-	(*pSetWindowLong)(wbottom, GWL_EXSTYLE, WS_EX_TOPMOST);
+	(*pSetWindowLongA)(wleft, GWL_EXSTYLE, WS_EX_TOPMOST);
+	(*pSetWindowLongA)(wright, GWL_EXSTYLE, WS_EX_TOPMOST);
+	(*pSetWindowLongA)(wtop, GWL_EXSTYLE, WS_EX_TOPMOST);
+	(*pSetWindowLongA)(wbottom, GWL_EXSTYLE, WS_EX_TOPMOST);
 
 	(*pShowWindow)(wleft, SW_SHOW);
 	(*pShowWindow)(wright, SW_SHOW);

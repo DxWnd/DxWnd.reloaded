@@ -460,3 +460,10 @@ fix: corrected child window procedure handling - fixes "Imperialism" child windo
 fixed FillRect coordinate handling - fixes "Imperialism" menus
 fixed SetWindowPlacement handling
 
+v2.02.71
+fix: Set/GetWindowLongA/W are always hooked.
+fix: added user32 GetDCEx hook for GDI Emulation & Directraw mode
+fix: hooked "FrameRect", "TabbedTextOutA", "DrawTextA", "DrawTextExA", "FillRect" in scaled mode only
+fix: FIXNCHITTEST mode
+fix: when main win is closed, blit area is made null to avoid messing with a wrong screen area
+added "Release mouse outside window" option. This option causes the get cursor position to detect a centered mouse position when the cursor is moved outside the window, allowing interaction with other windows without scrolling ot the windowed program. Mainly, this option is meant to help people with a physical disability to use other programs (e. g. the virtual keyboard) to play games.

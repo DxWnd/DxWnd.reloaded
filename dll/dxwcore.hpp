@@ -69,6 +69,7 @@ public: // methods
 	RECT GetWindowRect(RECT);
 	RECT GetClientRect(RECT);
 	POINT AddCoordinates(POINT, POINT);
+	RECT AddCoordinates(RECT, POINT);
 	POINT SubCoordinates(POINT, POINT);
 	POINT ClientOffset(HWND);
 	void ScreenRefresh(void);
@@ -158,6 +159,7 @@ protected:
 	DWORD PrimSurfaces[DDSQLEN+1];
 	DWORD BackSurfaces[DDSQLEN+1];
 	HBITMAP VirtualPic;
+	RECT VirtualPicRect;
 
 private:
 	void UnmarkPrimarySurface(LPDIRECTDRAWSURFACE);
