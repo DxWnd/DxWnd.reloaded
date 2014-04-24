@@ -1539,25 +1539,36 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 // For thread messaging
 #define DEBUG_EVENT_MESSAGE		WM_APP + 0x100
 
-HWND Ghwnd;
+typedef struct {
+	TARGETMAP *TM;
+	PRIVATEMAP *PM;
+} ThreadInfo_Type;
+ThreadInfo_Type ThreadInfo;
 
 DWORD WINAPI StartDebug(void *p)
 {
-	TARGETMAP *TargetMap;
+	ThreadInfo_Type *ThInfo;
 	STARTUPINFO sinfo;
 	PROCESS_INFORMATION pinfo, *pi;
 	CREATE_THREAD_DEBUG_INFO *ti;
 	LOAD_DLL_DEBUG_INFO *li;
+	UNLOAD_DLL_DEBUG_INFO *ui;
+	EXCEPTION_DEBUG_INFO *ei;
+	EXIT_PROCESS_DEBUG_INFO *xpi;
+	EXIT_THREAD_DEBUG_INFO *xti;
 	char path[MAX_PATH];
 	BOOL step=FALSE; // initialize to TRUE to enable
+	BOOL stepdll=FALSE; // initialize to TRUE to enable
 	extern char *GetFileNameFromHandle(HANDLE);
 
-	TargetMap=(TARGETMAP *)p;
+	ThInfo = (ThreadInfo_Type *)p;
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo);
-	strcpy_s(path, sizeof(path), TargetMap->path);
+	strcpy_s(path, sizeof(path), ThInfo->TM->path);
 	PathRemoveFileSpec(path);
-	CreateProcess(NULL, TargetMap->path, 0, 0, false, DEBUG_ONLY_THIS_PROCESS, NULL, path, &sinfo, &pinfo);
+	CreateProcess(NULL, 
+		(strlen(ThInfo->PM->launchpath)>0) ? ThInfo->PM->launchpath : ThInfo->TM->path, 
+		0, 0, false, DEBUG_ONLY_THIS_PROCESS, NULL, path, &sinfo, &pinfo);
 	CString strEventMessage;
 	DEBUG_EVENT debug_event ={0};
 	bool bContinueDebugging = true;
@@ -1566,13 +1577,25 @@ DWORD WINAPI StartDebug(void *p)
 	{ 
 		int res;
 		char DebugMessage[256+1];
+		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
 		if (!WaitForDebugEvent(&debug_event, INFINITE)) return TRUE;
 		switch(debug_event.dwDebugEventCode){
 		case EXIT_PROCESS_DEBUG_EVENT:
-			SetWindowText(Ghwnd, "EXIT PROCESS");
+			if(step){
+				xpi=(EXIT_PROCESS_DEBUG_INFO *)&debug_event.u;
+				sprintf(DebugMessage, "EXIT PROCESS RetCode=%x", xpi->dwExitCode);
+				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
+				if(res!=IDYES) step=FALSE;
+			}
 			bContinueDebugging=false;
 			break;
 		case CREATE_PROCESS_DEBUG_EVENT:
+			// wait for process to stabilize .... 
+			// ref: problems in setting default exception handler in Tomb Raider IV demo
+			if(ThInfo->TM->flags & HANDLEEXCEPTIONS) {
+				Sleep(500); 
+				MessageBoxEx(0, "Wait for exception handler ...\nPress OK button", "Pause", MB_OK, NULL);
+			}
 			if(step){
 				pi=(PROCESS_INFORMATION *)&debug_event.u;
 				sprintf(DebugMessage, "CREATE PROCESS hProcess=%x dwProcessId=%x path=%s", 
@@ -1596,45 +1619,52 @@ DWORD WINAPI StartDebug(void *p)
 			}
 			break;
 		case EXIT_THREAD_DEBUG_EVENT:
-			SetWindowText(Ghwnd, "EXIT THREAD");
+			if(step){
+				xti=(EXIT_THREAD_DEBUG_INFO *)&debug_event.u;
+				sprintf(DebugMessage, "EXIT THREAD RetCode=%x", xti->dwExitCode);
+				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
+				if(res!=IDYES) step=FALSE;
+			}
 			break;
 		case LOAD_DLL_DEBUG_EVENT:
-			if(step){
+			if(stepdll){
 				li=(LOAD_DLL_DEBUG_INFO *)&debug_event.u;
 				sprintf(DebugMessage, "LOAD DLL hFile=%x path=%s", 
 					li->hFile, GetFileNameFromHandle(li->hFile));
 				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
-				if(res!=IDYES) step=FALSE;
-
+				if(res!=IDYES) stepdll=FALSE;
 			}
-			//li=(LOAD_DLL_DEBUG_INFO *)&debug_event.u;
-			//if(strstr(GetFileNameFromHandle(li->hFile), "ddraw.dll")){
-			//	res=MessageBoxEx(0, GetFileNameFromHandle(li->hFile), "ddraw.dll intercepted", MB_OK, NULL);
-			//	GetFullPathName("dxwnd.dll", MAX_PATH, path, NULL);
-			//	if(!Inject(pinfo.dwProcessId, path)){
-			//		sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, path);
-			//		MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
-			//	}
-			//}
 			break;
 		case UNLOAD_DLL_DEBUG_EVENT:
-			SetWindowText(Ghwnd, "UNLOAD DLL");
+			if(stepdll){
+				ui=(UNLOAD_DLL_DEBUG_INFO *)&debug_event.u;
+				sprintf(DebugMessage, "UNLOAD DLL Base=%x", ui->lpBaseOfDll);
+				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
+				if(res!=IDYES) stepdll=FALSE;
+			}
 			break;
 		case OUTPUT_DEBUG_STRING_EVENT: 				
-			SetWindowText(Ghwnd, "OUT STRING");
 			break;
 		case EXCEPTION_DEBUG_EVENT:
-			SetWindowText(Ghwnd, "EXCEPTION");
+			ei=(EXCEPTION_DEBUG_INFO *)&debug_event.u;
+			if(step){
+				sprintf(DebugMessage, "EXCEPTION code=%x flags=%x addr=%x firstchance=%x", 
+					ei->ExceptionRecord.ExceptionCode, 
+					ei->ExceptionRecord.ExceptionFlags, 
+					ei->ExceptionRecord.ExceptionAddress,
+					debug_event.u.Exception.dwFirstChance);
+				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
+				if(res!=IDYES) step=FALSE;
+			}
+			//if(ei->ExceptionRecord.ExceptionCode==EXCEPTION_BREAKPOINT)
+			//	dwContinueStatus = DBG_CONTINUE; // skip initial breakpoint
 			break;
 		default:
 			break;
 		}
-		SendMessage(Ghwnd, DEBUG_EVENT_MESSAGE, (WPARAM) &strEventMessage, debug_event.dwDebugEventCode);
 		ContinueDebugEvent(debug_event.dwProcessId, 
 			debug_event.dwThreadId, 
 			dwContinueStatus);
-		// Reset
-		dwContinueStatus = DBG_CONTINUE;
 	}
 	return TRUE;
 }
@@ -1652,19 +1682,14 @@ void CDxwndhostView::OnRun()
 	if(!listctrl.GetSelectedCount()) return;
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
-
-	//if(strlen(TitleMaps[i].launchpath)>0){
-	//	system(TitleMaps[i].launchpath);
-	//	return;
-	//}
-
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo);
 	strcpy_s(path, sizeof(path), TargetMaps[i].path);
 	PathRemoveFileSpec(path);
 	if(TargetMaps[i].flags2 & STARTDEBUG){
-		Ghwnd=this->m_hWnd;
-		CreateThread( NULL, 0, StartDebug, &TargetMaps[i], 0, NULL); 
+		ThreadInfo.TM=&TargetMaps[i];
+		ThreadInfo.PM=&TitleMaps[i];
+		CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL); 
 	}
 	else{
 		CreateProcess(NULL, 

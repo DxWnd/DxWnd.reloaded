@@ -467,3 +467,8 @@ fix: hooked "FrameRect", "TabbedTextOutA", "DrawTextA", "DrawTextExA", "FillRect
 fix: FIXNCHITTEST mode
 fix: when main win is closed, blit area is made null to avoid messing with a wrong screen area
 added "Release mouse outside window" option. This option causes the get cursor position to detect a centered mouse position when the cursor is moved outside the window, allowing interaction with other windows without scrolling ot the windowed program. Mainly, this option is meant to help people with a physical disability to use other programs (e. g. the virtual keyboard) to play games.
+added "Launch" field (optional) to start the program with arguments or a separate task
+
+v2.02.72
+fix: fixed Launch field used with "Use DLL injection" flag
+fix: somehow improved "Use DLL injection" to avoid blocked tasks and allow exception handling

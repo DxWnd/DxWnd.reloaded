@@ -334,12 +334,10 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 		OutTrace("SetHook: VirtualProtect ERROR target=%x, err=%x\n", target, GetLastError());
 		return; // error condition
 	}
-#if 0
 	if(!FlushInstructionCache(GetCurrentProcess(), target, 4)){
 		OutTrace("SetHook: FlushInstructionCache ERROR target=%x, err=%x\n", target, GetLastError());
 		return; // error condition
 	}
-#endif
 	tmp=(void *)dwTmp;
 
 	if (*hookedproc && *hookedproc!=tmp) {
@@ -1164,8 +1162,9 @@ static HMODULE LoadDisasm()
 
 LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
-	OutTrace("UnhandledExceptionFilter: exception code=%x at=%x\n",
+	OutTrace("UnhandledExceptionFilter: exception code=%x flags=%x addr=%x\n",
 		ExceptionInfo->ExceptionRecord->ExceptionCode,
+		ExceptionInfo->ExceptionRecord->ExceptionFlags,
 		ExceptionInfo->ExceptionRecord->ExceptionAddress);
 	DWORD oldprot;
 	static HMODULE disasmlib = NULL;
@@ -1187,6 +1186,8 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 		OutTrace("UnhandledExceptionFilter: NOP opcode=%x len=%d\n", *(BYTE *)target, cmdlen);
 		memset((BYTE *)target, 0x90, cmdlen); 
 		VirtualProtect(target, 10, oldprot, &oldprot);
+		if(!FlushInstructionCache(GetCurrentProcess(), target, cmdlen))
+			OutTrace("UnhandledExceptionFilter: FlushInstructionCache ERROR target=%x, err=%x\n", target, GetLastError());
 		return EXCEPTION_CONTINUE_EXECUTION;
 		break;
 	default:

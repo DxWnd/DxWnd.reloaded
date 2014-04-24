@@ -1927,8 +1927,8 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 {
 	HRESULT res;
 
-	OutTraceDDRAW("SetCooperativeLevel: hwnd=%x dwFlags=%x(%s)\n",
-		hwnd, dwflags,ExplainCoopFlags(dwflags));
+	OutTraceDDRAW("SetCooperativeLevel: lpdd=%x hwnd=%x dwFlags=%x(%s)\n",
+		lpdd, hwnd, dwflags,ExplainCoopFlags(dwflags));
 
 	InitDDScreenParameters((LPDIRECTDRAW)lpdd);
 
