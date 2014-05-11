@@ -1781,25 +1781,6 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 		break;
 	case 0x84e63de0:
 		OutTraceDW("QueryInterface: IID_IDirect3DHALDevice\n");
-#ifdef COMMENTED_OUT
-		if (dxw.dwFlags3 & DISABLEHAL){ // IID_IDirect3DHALDevice - Dark Vengeance
-			// this is odd: this piece of code returns the very same error code returned by the actual 
-			// QueryInterface call, but avoid a memory corruption and makes the game working....
-			// there must be something wrong behind it.
-
-			// SEEMS FIXED NOW, NO MORE CRASHES, THIS OPTION IS USELESS
-
-			OutTraceDW("QueryInterface: suppress IID_IDirect3DHALDevice interface res=DDERR_GENERIC\n");
-			return DDERR_GENERIC;
-
-			//GUID IID_IDirect3DRGBDevice = {0xA4665C60,0x2673,0x11CF,0xA3,0x1A,0x00,0xAA,0x00,0xB9,0x33,0x56};
-			//res = (*pQueryInterfaceS)(lpdds, IID_IDirect3DRGBDevice, obp);
-			//OutTraceDW("QueryInterface: redirect IID_IDirect3DHALDevice to RGB interface res=%x(%s)\n", res, ExplainDDError(res));
-			//return res;
-
-			//return DD_OK;
-		}
-#endif
 		break;
 	case 0xA4665C60: //  IID_IDirect3DRGBDevice
 		OutTraceDW("QueryInterface: IID_IDirect3DRGBDevice\n");
@@ -2069,7 +2050,7 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 
 	return res;
 }
-
+#ifdef DXWND_ANALYTICMODE
 #define FIX_FLAGSMASK (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PITCH|DDSD_PIXELFORMAT|DDSD_ZBUFFERBITDEPTH|DDSD_TEXTURESTAGE)
 
 void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
@@ -2202,9 +2183,6 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			// Airline Tycoon Evolution
 			return;
 			break;
-		//case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE:
-		//	OutTrace("FixSurfaceCaps: ??? (Dungeon Keeper D3D)\n");
-		//	break;
 		}
 		break;
 	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT:
@@ -2337,6 +2315,7 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		MessageBox(0, sMsg, "FixSurfaceCaps unmanaged setting", MB_OK | MB_ICONEXCLAMATION);
 	}
 }
+#endif
 
 static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 {	
@@ -2359,7 +2338,9 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	OutTraceDW("FixSurfaceCaps: Flags=%x(%s) Caps=%x(%s)\n",
 		lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags), lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
 
+#ifdef DXWND_ANALYTICMODE
 	if(dxw.dwFlags3 & ANALYTICMODE) return FixSurfaceCapsAnalytic(lpddsd, dxversion);
+#endif
 
 	if((lpddsd->dwFlags & (DDSD_WIDTH|DDSD_HEIGHT)) == DDSD_WIDTH) { 
 		// buffer surface - no changes
@@ -2383,12 +2364,6 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		GetPixFmt(lpddsd);
 		return;
 	}
-	//// DDSCAPS_ALLOCONLOAD on VIDEOMEMORY can't be done when HAL is disabled - it returns DDERR_NODIRECTDRAWHW error
-	//if((lpddsd->dwFlags & DDSD_CAPS) && 
-	//	((lpddsd->ddsCaps.dwCaps & (DDSCAPS_TEXTURE|DDSCAPS_ALLOCONLOAD))==(DDSCAPS_TEXTURE|DDSCAPS_ALLOCONLOAD))) { 
-	//	if (dxw.dwFlags3 & FORCESHEL) lpddsd->ddsCaps.dwCaps = (DDSCAPS_TEXTURE|DDSCAPS_SYSTEMMEMORY|DDSCAPS_ALLOCONLOAD);
-	//	return;
-	//}
 	// DDSCAPS_TEXTURE surfaces must be left untouched, unless you set FORCESHEL: in this case switch VIDEOMEMORY to SYSTEMMEMORY
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_TEXTURE)){
 		if (dxw.dwFlags3 & FORCESHEL) {
@@ -3019,14 +2994,6 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 		OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
 	else
 		OutTraceDDRAW("GetAttachedSurface(%d): attached=%x\n", dxversion, *lplpddas); 
-
-#if 0
-	// beware: ddraw 7 surfaces can be created with FLIP capability, hence could have a backbuffer ???
-	if((res==DDERR_NOTFOUND) && (dxversion==7) && (!IsPrim) && (!IsBack)){
-		*lplpddas = lpdds;
-		res = DD_OK;
-	}
-#endif
 
 	return res;
 	
@@ -3907,7 +3874,7 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	CleanRect(&lprect, __LINE__);
 
-	if(IsTraceDDRAW){
+	if(IsTraceDW){
 		OutTrace("Lock: lpdds=%x%s flags=%x(%s) lpDDSurfaceDesc=%x", 
 			lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc);
 		if (lprect) 
@@ -4038,7 +4005,18 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	res=(*pUnlock)(lpdds, lprect);
 	if(res==DDERR_NOTLOCKED) res=DD_OK; // ignore not locked error
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-	if (IsPrim && res==DD_OK) sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
+	if (IsPrim && res==DD_OK) {
+		sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
+		// v2.02.97: set dirty rect to syncronize with gdi operations. See "Deadlock II" problems...
+		RECT dirty;
+		if(lprect){
+			dirty = *lprect;
+			dxw.MapClient(&dirty);
+			lprect = &dirty;
+		}
+		(*pInvalidateRect)(dxw.GethWnd(), lprect, FALSE);
+	}
+
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	return res;
 }
@@ -4869,32 +4847,6 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
 		}
 	}
-	
-#ifdef EXPERIMENTAL_1
-	if(1) {
-		IsFixed=TRUE;
-		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_BACKBUFFER){
-			lpddsd->dwSize = sizeof(DDSURFACEDESC2);
-			lpddsd->ddsCaps.dwCaps |= DDSCAPS_RESERVED2;
-			((LPDDSURFACEDESC2)lpddsd)->ddsCaps.dwCaps2 = DDSCAPS2_RESERVED2;
-			((LPDDSURFACEDESC2)lpddsd)->ddsCaps.dwCaps3 = 0;
-		}
-		else
-		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_BACKBUFFER){
-		}
-		else {
-			lpddsd->ddsCaps.dwCaps |= DDSCAPS_RESERVED2;
-			((LPDDSURFACEDESC2)lpddsd)->ddsCaps.dwCaps2 |= DDSCAPS2_RESERVED2;
-		}
-	}
-#endif
-#ifdef EXPERIMENTAL_2
-	if(1) {
-		IsFixed=TRUE;
-		lpddsd->ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-		lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
-	}
-#endif
 
 	if(IsFixed) LogSurfaceAttributes(lpddsd, "GetSurfaceDesc [FIXED]", __LINE__);
 

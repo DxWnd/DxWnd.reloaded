@@ -101,6 +101,8 @@ SetTexture7_Type pSetTexture7 = NULL;
 
 typedef HRESULT (WINAPI *InitializeVP_Type)(void *, LPDIRECT3D);
 typedef HRESULT (WINAPI *SetViewport_Type)(void *, LPD3DVIEWPORT);
+typedef HRESULT (WINAPI *SetMaterial_Type)(void *, LPD3DMATERIAL);
+typedef HRESULT (WINAPI *GetMaterial_Type)(void *, LPD3DMATERIAL);
 typedef HRESULT (WINAPI *GetViewport_Type)(void *, LPD3DVIEWPORT);
 typedef HRESULT (WINAPI *GetViewport2_Type)(void *, LPD3DVIEWPORT);
 typedef HRESULT (WINAPI *SetViewport2_Type)(void *, LPD3DVIEWPORT);
@@ -115,6 +117,8 @@ typedef HRESULT (WINAPI *NextViewport2_Type)(void *, LPDIRECT3DVIEWPORT2, LPDIRE
 
 InitializeVP_Type pInitializeVP = NULL;
 SetViewport_Type pSetViewport = NULL;
+SetMaterial_Type pSetMaterial = NULL;
+GetMaterial_Type pGetMaterial = NULL;
 GetViewport_Type pGetViewport = NULL;
 GetViewport2_Type pGetViewport2 = NULL;
 SetViewport2_Type pSetViewport2 = NULL;
@@ -148,6 +152,8 @@ HRESULT WINAPI extNextViewport2(void *, LPDIRECT3DVIEWPORT2, LPDIRECT3DVIEWPORT2
 HRESULT WINAPI extInitializeVP(void *, LPDIRECT3D);
 HRESULT WINAPI extSetViewport(void *, LPD3DVIEWPORT);
 HRESULT WINAPI extGetViewport(void *, LPD3DVIEWPORT);
+HRESULT WINAPI extSetMaterial(void *, LPD3DMATERIAL);
+HRESULT WINAPI extGetMaterial(void *, LPD3DMATERIAL);
 HRESULT WINAPI extQueryInterfaceD3(void *, REFIID, LPVOID *);
 
 HRESULT WINAPI extD3DInitialize(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
@@ -185,6 +191,7 @@ HRESULT WINAPI extSetTexture3(void *, DWORD, LPDIRECT3DTEXTURE2);
 HRESULT WINAPI extSetTexture7(void *, DWORD, LPDIRECTDRAWSURFACE7);
 
 extern char *ExplainDDError(DWORD);
+int GD3DDeviceVersion;
 
 int HookDirect3D7(HMODULE module, int version){
 	void *tmp;
@@ -288,6 +295,7 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 {
 	OutTraceD3D("HookDirect3DDevice: d3ddev=%x d3dversion=%d\n", lpd3ddev, d3dversion);
+	GD3DDeviceVersion = d3dversion;
 
 	switch(d3dversion){
 	case 1:
@@ -421,6 +429,22 @@ void HookViewport(LPDIRECT3DVIEWPORT *lpViewport, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpViewport +  68), extSetViewport2_3, (void **)&pSetViewport2_3, "SetViewport2(3)");
 		break;
 	case 7:
+		break;
+	}
+}
+
+void HookMaterial(LPDIRECT3DMATERIAL *lpMaterial, int d3dversion)
+{
+	OutTraceD3D("HookMaterial: Material=%x d3dversion=%d\n", *lpMaterial, d3dversion);
+
+ 	switch(d3dversion){
+	case 1:
+		SetHook((void *)(**(DWORD **)lpMaterial +  16), extSetMaterial, (void **)&pSetMaterial, "SetMaterial");
+		SetHook((void *)(**(DWORD **)lpMaterial +  20), extGetMaterial, (void **)&pGetMaterial, "GetMaterial");
+		break;
+	default:
+		SetHook((void *)(**(DWORD **)lpMaterial +  12), extSetMaterial, (void **)&pSetMaterial, "SetMaterial");
+		SetHook((void *)(**(DWORD **)lpMaterial +  16), extGetMaterial, (void **)&pGetMaterial, "GetMaterial");
 		break;
 	}
 }
@@ -605,6 +629,7 @@ HRESULT WINAPI extCreateMaterial(void *lpd3d, LPDIRECT3DMATERIAL *lpMaterial, IU
 	res=(*pCreateMaterial)(lpd3d, lpMaterial, p0);
 	if(res) OutTraceE("CreateMaterial ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("CreateMaterial: OK\n");
+	HookMaterial(lpMaterial, GD3DDeviceVersion);
 	return res;
 }
 
@@ -1238,5 +1263,44 @@ HRESULT WINAPI extSetTexture7(void *d3dd, DWORD flags, LPDIRECTDRAWSURFACE7 lpte
 
 	res=(*pSetTexture7)(d3dd, flags, lptex);
 	OutTraceD3D("SetTexture7: d3dd=%x, flags=%x, tex=%x res=%x\n", d3dd, flags, lptex, res);
+	return res;
+}
+
+HRESULT WINAPI extSetMaterial(void *d3dd, LPD3DMATERIAL lpMaterial)
+{
+	HRESULT res;
+
+	OutTraceD3D("SetMaterial: d3dd=%x, material=%x\n", d3dd, lpMaterial);
+	if(lpMaterial && IsDebug){
+		OutTraceD3D("Material: Size=%d Texture=%x diffuse=(%f,%f,%f,%f) ambient=(%f,%f,%f,%f) specular=(%f,%f,%f,%f) emissive=(%f,%f,%f,%f) power=%f\n", 
+			lpMaterial->dwSize, lpMaterial->hTexture, 
+			lpMaterial->diffuse.a, lpMaterial->diffuse.r, lpMaterial->diffuse.g, lpMaterial->diffuse.b,
+			lpMaterial->ambient.a, lpMaterial->ambient.r, lpMaterial->ambient.g, lpMaterial->ambient.b,
+			lpMaterial->specular.a, lpMaterial->specular.r, lpMaterial->specular.g, lpMaterial->specular.b,
+			lpMaterial->emissive.a, lpMaterial->emissive.r, lpMaterial->emissive.g, lpMaterial->emissive.b,
+			lpMaterial->power
+			);
+		}
+	res=(*pSetMaterial)(d3dd, lpMaterial);
+	if(res) OutTraceD3D("SetMaterial: ERROR res=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extGetMaterial(void *d3dd, LPD3DMATERIAL lpMaterial)
+{
+	HRESULT res;
+
+	res=(*pGetMaterial)(d3dd, lpMaterial);
+	OutTraceD3D("GetMaterial: d3dd=%x, material=%x res=%x\n", d3dd, lpMaterial, res);
+	if(lpMaterial && IsDebug && (res==DD_OK)){
+		OutTraceD3D("Material: Size=%d diffuse=(%f,%f,%f,%f) ambient=(%f,%f,%f,%f) specular=(%f,%f,%f,%f) emissive=(%f,%f,%f,%f) power=%f\n", 
+			lpMaterial->dwSize, 
+			lpMaterial->diffuse.a, lpMaterial->diffuse.r, lpMaterial->diffuse.g, lpMaterial->diffuse.b,
+			lpMaterial->ambient.a, lpMaterial->ambient.r, lpMaterial->ambient.g, lpMaterial->ambient.b,
+			lpMaterial->specular.a, lpMaterial->specular.r, lpMaterial->specular.g, lpMaterial->specular.b,
+			lpMaterial->emissive.a, lpMaterial->emissive.r, lpMaterial->emissive.g, lpMaterial->emissive.b,
+			lpMaterial->power
+			);
+		}
 	return res;
 }

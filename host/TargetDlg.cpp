@@ -23,6 +23,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_DXVersion = 0;
 	m_Coordinates = 0;
 	m_DxEmulationMode = 4; // default: AUTOMATIC
+	m_DxFilterMode = 0; // default: ddraw filtering
 	m_DCEmulationMode = 0; // default: no emulation
 	m_HookDI = FALSE;
 	m_ModifyMouse = TRUE; // default true !!

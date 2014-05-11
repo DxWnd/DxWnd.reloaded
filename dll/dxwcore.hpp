@@ -50,9 +50,9 @@ public: // methods
 	void FixNCHITCursorPos(LPPOINT);
 	void SetClipCursor(void);
 	void EraseClipCursor(void);
-	RECT MapWindowRect(LPRECT lpRect);
+	RECT MapWindowRect(LPRECT);
 	RECT MapWindowRect(void);
-	RECT MapClientRect(LPRECT lpRect);
+	RECT MapClientRect(LPRECT);
 	void MapClient(LPPOINT);
 	void MapClient(LPRECT);
 	void MapClient(int *, int *, int *, int *);

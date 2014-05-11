@@ -1776,7 +1776,6 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 			((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED))) // force hot patch and not already hooked
 			&&
 			Hooks->StoreAddress){							 // and save ptr available
-#if 1
 			// Hot Patch - beware! This way yo're likely to hook unneeded libraries.
 			if(!Hooks->OriginalAddress) {
 				if(!hDLL) {
@@ -1792,9 +1791,6 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 					continue;
 				}
 			}
-#else
-			if(!Hooks->OriginalAddress) continue;
-#endif
 			remapped_addr = HotPatch(Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
 			if(remapped_addr == (void *)1) { // should never go here ...
 				Hooks->HookStatus = HOOK_HOT_LINKED;

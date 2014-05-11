@@ -157,18 +157,6 @@ MCIERROR WINAPI extmciSendStringA(LPCTSTR lpszCommand, LPTSTR lpszReturnString, 
 	MCIERROR ret;
 	if(IsWithinMCICall) return(*pmciSendStringA)(lpszCommand, lpszReturnString, cchReturn, hwndCallback); // just proxy ...
 	OutTraceDW("mciSendStringA: Command=\"%s\" Return=%x Callback=%x\n", lpszCommand, cchReturn, hwndCallback);
-#ifdef WFSPONLY
-	char *target="put movie destination at ";
-	if(!strncmp(lpszCommand, target, strlen(target))) {
-		char NewCommand[256];
-		RECT rect;
-		sscanf(&lpszCommand[strlen(target)], "%ld %ld %ld %ld", &(rect.left), &(rect.top), &(rect.right), &(rect.bottom));
-		rect=dxw.MapClientRect(&rect);
-		sprintf(NewCommand, "put movie destination at %d %d %d %d", rect.left, rect.top, rect.right, rect.bottom);
-		lpszCommand=NewCommand;
-		OutTraceDW("mciSendStringA: replaced Command=\"%s\"\n", lpszCommand);
-	}
-#else
 	char sMovieNickName[81];
 	RECT rect;
 	if (sscanf(lpszCommand, "put %s destination at %ld %ld %ld %ld", 
@@ -179,7 +167,6 @@ MCIERROR WINAPI extmciSendStringA(LPCTSTR lpszCommand, LPTSTR lpszReturnString, 
 		lpszCommand=NewCommand;
 		OutTraceDW("mciSendStringA: replaced Command=\"%s\"\n", lpszCommand);
 	}
-#endif
 	IsWithinMCICall=TRUE;
 	ret=(*pmciSendStringA)(lpszCommand, lpszReturnString, cchReturn, hwndCallback);
 	IsWithinMCICall=FALSE;
@@ -194,17 +181,6 @@ MCIERROR WINAPI extmciSendStringW(LPCWSTR lpszCommand, LPWSTR lpszReturnString, 
 	WCHAR *target=L"put movie destination at ";
 	if(IsWithinMCICall) return(*pmciSendStringW)(lpszCommand, lpszReturnString, cchReturn, hwndCallback); // just proxy ...
 	OutTraceDW("mciSendStringW: Command=\"%ls\" Return=%x Callback=%x\n", lpszCommand, cchReturn, hwndCallback);
-#ifdef WFSPONLY
-	if(!wcsncmp(lpszCommand, target, wcslen(target))) {
-		WCHAR NewCommand[256];
-		RECT rect;
-		swscanf(&lpszCommand[wcslen(target)], L"%ld %ld %ld %ld", &(rect.left), &(rect.top), &(rect.right), &(rect.bottom));
-		rect=dxw.MapClientRect(&rect);
-		swprintf(NewCommand, L"put movie destination at %d %d %d %d", rect.left, rect.top, rect.right, rect.bottom);
-		lpszCommand=NewCommand;
-		OutTraceDW("mciSendStringA: replaced Command=\"%ls\"\n", lpszCommand);
-	}
-#else
 	WCHAR sMovieNickName[81];
 	RECT rect;
 	if (swscanf(lpszCommand, L"put %ls destination at %ld %ld %ld %ld", 
@@ -215,7 +191,6 @@ MCIERROR WINAPI extmciSendStringW(LPCWSTR lpszCommand, LPWSTR lpszReturnString, 
 		lpszCommand=NewCommand;
 		OutTraceDW("mciSendStringW: replaced Command=\"%ls\"\n", lpszCommand);
 	}
-#endif
 	IsWithinMCICall=TRUE;
 	ret=(*pmciSendStringW)(lpszCommand, lpszReturnString, cchReturn, hwndCallback);
 	IsWithinMCICall=FALSE;

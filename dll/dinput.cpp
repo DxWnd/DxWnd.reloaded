@@ -423,21 +423,6 @@ HRESULT WINAPI extDeviceProxy(LPCDIDEVICEINSTANCE dev, LPVOID arg)
 		dev->dwSize, p, dev->guidInstance.Data1, dev->guidInstance.Data2, dev->guidInstance.Data3, dev->guidInstance.Data4, 
 		dev->dwDevType, dev->tszInstanceName, dev->tszProductName);
 
-#if 0
-	if(0){
-		DIDEVICEINSTANCEW fixdev;
-		fixdev.dwSize=sizeof(DIDEVICEINSTANCEW);
-		fixdev.dwDevType=dev->dwDevType;
-		fixdev.guidInstance=dev->guidInstance;
-		fixdev.guidProduct=dev->guidProduct;
-		mbstowcs(fixdev.tszInstanceName, dev->tszInstanceName, strlen(dev->tszInstanceName));
-		mbstowcs(fixdev.tszProductName, dev->tszProductName, strlen(dev->tszProductName));
-		res = ((LPDIENUMDEVICESCALLBACKW)(((CallbackArg *)arg)->cb))(&fixdev, ((CallbackArg *)arg)->arg);
-		OutTraceDW("EnumDevices: CALLBACK ret=%x\n", res);
-		return res;
-	}
-#endif
-
 	res = (*(((CallbackArg *)arg)->cb))(dev, ((CallbackArg *)arg)->arg);
 	OutTraceDW("EnumDevices: CALLBACK ret=%x\n", res);
 	return res;

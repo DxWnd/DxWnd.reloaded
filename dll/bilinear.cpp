@@ -94,15 +94,9 @@ void Resize_HQ_4ch( unsigned char* src, RECT *srcrect, int srcpitch,
     //   *256 weight_y
     //   *256 (16*16) maximum # of input pixels (x,y) - unless we cut the weights down...
     int weight_shift = 0;
-    float source_texels_per_out_pixel = (   (w1/(float)w2 + 1) 
-                                          * (h1/(float)h2 + 1)
-                                        );
-    float weight_per_pixel = source_texels_per_out_pixel * 256 * 256;  //weight_x * weight_y
-    float accum_per_pixel = weight_per_pixel*256; //color value is 0-255
-    float weight_div = accum_per_pixel / 4294967000.0f;
-    if (weight_div > 1)
-        weight_shift = (int)ceilf( logf((float)weight_div)/logf(2.0f) );
-    weight_shift = min(15, weight_shift);  // this could go to 15 and still be ok.
+
+	//gsky916: weight_shift calculation in bUpsampleX && bUpsampleY cases are not necessary.
+	//Move to else block to reduce floating point calculations.
 
     float fh = 256*h1/(float)h2;
     float fw = 256*w1/(float)w2;
@@ -128,6 +122,8 @@ void Resize_HQ_4ch( unsigned char* src, RECT *srcrect, int srcpitch,
         }
 
         // FOR EVERY OUTPUT PIXEL
+		// gsky916: Use OpenMP to speed up nested for loops (Enable OpenMP support in compiler).
+		#pragma omp parallel for schedule(dynamic)
         for (int y2=0; y2<h2; y2++)
         {   
             // find the y-range of input pixels that will contribute:
@@ -178,6 +174,17 @@ void Resize_HQ_4ch( unsigned char* src, RECT *srcrect, int srcpitch,
     }
     else // either downscale on vertical or horizontal direction ...
     {
+		//gsky916: weight_shift calculation moved here.
+        float source_texels_per_out_pixel = (   (w1/(float)w2 + 1) 
+                                              * (h1/(float)h2 + 1)
+                                            );
+        float weight_per_pixel = source_texels_per_out_pixel * 256 * 256;  //weight_x * weight_y
+        float accum_per_pixel = weight_per_pixel*256; //color value is 0-255
+        float weight_div = accum_per_pixel / 4294967000.0f;
+        if (weight_div > 1)
+            weight_shift = (int)ceilf( logf((float)weight_div)/logf(2.0f) );
+        weight_shift = min(15, weight_shift);  // this could go to 15 and still be ok.
+
         // cache x1a, x1b for all the columns:
         // ...and your OS better have garbage collection on process exit :)
         if (g_px1ab_w < w2)

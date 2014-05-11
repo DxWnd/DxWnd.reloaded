@@ -632,3 +632,7 @@ fix: processing of mouse messages
 fix: GetSystemMetrics and LoadLibrary* calls hooked by hot patching to fix "Wind Fantasy SP" movie problems
 fix: completed winmm multimedia api hooking to fix "Wind Fantasy SP" movie problems, and not only....
 fix: revised FPS control to assure more stable fps when a FPS limit delay is set 
+
+v2.02.97
+fix: mouse black trails in "Deadlock II"
+fix: missing default value for filter mode

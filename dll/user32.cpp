@@ -590,17 +590,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		if(dxw.dwFlags1 & LOCKWINSTYLE){
 			if(nIndex==GWL_STYLE){
 				OutTraceDW("SetWindowLong: Lock GWL_STYLE=%x\n", dwNewLong);
-#if 1
 				return (*pGetWindowLongA)(hwnd, nIndex);
-#else
-				dwNewLong = (*pGetWindowLongA)(hwnd, nIndex);
-				if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwNewLong & WS_CHILD) /*&& dxw.IsDesktop(hwnd)*/){
-					OutTraceDW("SetWindowLong: GWL_STYLE %x force OVERLAPPEDWINDOW\n", dwNewLong);
-					dwNewLong |= WS_OVERLAPPEDWINDOW; 
-					dwNewLong &= ~WS_CLIPSIBLINGS; 
-				}
-				return dwNewLong;
-#endif
 			}
 			if(nIndex==GWL_EXSTYLE){
 				OutTraceDW("SetWindowLong: Lock GWL_EXSTYLE=%x\n", dwNewLong);
@@ -833,21 +823,6 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 	*lppoint=dxw.ScreenToClient(*lppoint);
 	*lppoint=dxw.FixCursorPos(*lppoint);
 
-#if 0
-	if(dxw.dwFlags4 & FRAMECOMPENSATION){
-		static int dx, dy, todo=TRUE;
-		if (todo){
-			POINT FrameOffset = dxw.GetFrameOffset();
-			dx=FrameOffset.x;
-			dy=FrameOffset.y;
-			OutTraceC("GetCursorPos: frame compensation=(%d,%d)\n", dx, dy);
-			todo=FALSE;
-		}
-		lppoint->x += dx;
-		lppoint->y += dy;
-	}
-#endif
-
 	GetHookInfo()->CursorX=(short)lppoint->x;
 	GetHookInfo()->CursorY=(short)lppoint->y;
 	OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", prev.x, prev.y, lppoint->x, lppoint->y);
@@ -919,46 +894,6 @@ BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsg
 {
 	BOOL res;
 
-#if 0
-	UINT bRemoveMsg = (wRemoveMsg & 0x000F);
-	UINT message;
-
-	do{
-		res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, bRemoveMsg);
-		if(!res) break; // no message available
-
-		OutTraceW("PeekMessage: GOT lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
-			lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
-			lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
-
-		message = lpMsg->message;
-		if(res &&(dxw.dwFlags3 & FILTERMESSAGES)){ // filter offending messages
-			switch(message){
-			case WM_NCMOUSEMOVE:
-			case WM_NCLBUTTONDOWN:
-			case WM_NCLBUTTONUP:
-			case WM_NCLBUTTONDBLCLK:
-			case WM_NCRBUTTONDOWN:
-			case WM_NCRBUTTONUP:
-			case WM_NCRBUTTONDBLCLK:
-			case WM_NCMBUTTONDOWN:
-			case WM_NCMBUTTONUP:
-			case WM_NCMBUTTONDBLCLK:
-				OutTraceDW("WindowProc[%x]: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), lpMsg->wParam, lpMsg->lParam);
-				if(!bRemoveMsg) (*pPeekMessage)(lpMsg, hwnd, message, message, TRUE);
-				continue;
-			}
-		}
-		if((wMsgFilterMin==0) && (wMsgFilterMax == 0)) break; // no filtering, everything is good
-		if((message < wMsgFilterMin) || (message > wMsgFilterMax)){
-			OutTraceDW("WindowProc[%x]: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), lpMsg->wParam, lpMsg->lParam);
-			if(!bRemoveMsg) (*pPeekMessage)(lpMsg, hwnd, message, message, TRUE);
-			continue; // skip this one ....	
-		}
-	} while(FALSE); 
-#endif
-
 	if((wMsgFilterMin==0) && (wMsgFilterMax == 0)){
 		// no filtering, everything is good
 		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
@@ -971,12 +906,6 @@ BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsg
 		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
 		if(wMsgFilterMax<WM_KEYFIRST)(*pPeekMessage)(&Dummy, hwnd, wMsgFilterMax+1, WM_KEYFIRST-1, TRUE); // don't touch above WM_KEYFIRST !!!!
 	}
-
-#if 0
-	MSG Dummy;
-	(*pPeekMessage)(&Dummy, hwnd, 0x0F, 0x100, TRUE);
-	res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
-#endif
 
 	if(res)
 		OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
