@@ -474,4 +474,22 @@ fix: fixed Launch field used with "Use DLL injection" flag
 fix: somehow improved "Use DLL injection" to avoid blocked tasks and allow exception handling
 
 v2.02.73
-to be written ....
+Add: preliminary support for (unchecked) "Run in window" flag. Now if the flag is unchecked, DxWnd does NOT force the program to run in a window. Still, some rendering modes are not working perfectly.
+add: support for Unicode DefWindowProcW API call
+fixed some differences in D3D CreateDevice vs. CreateDeviceEx handling
+added "Window frame compensation" input flag to set the cursor position properly in "Sub Commando"
+fix: properly handled the case of NULL WindowProc routine in CreateDialog/Indirect API calls. Makes "LEGO Stunt Rally" working.
+added support for Unicode SystemParametersInfoW API call
+
+v2.02.74
+Add: API hot patching, thank to aqrit precious support. Now Doom 3 is played in window.
+hooked GetCursorInfo call
+fix: recalculate vsync timers in case of time stretching
+fix: log failure for CreateWindowExW wchar api
+Add: configurable keyboard commands
+Add: timestretch toggle command
+Add: "Enable hotkeys" flag to enable/disable hotkeys
+fix: eliminated dialogs with timer warning messages (to be investigated...)
+fix: moved "no banner" flag to main tab again
+fix: potential string violation, possible cause for flash crash?
+

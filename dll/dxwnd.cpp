@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.73"
+#define VERSION "2.02.74"
 
 #define DDTHREADLOCK 1
 
@@ -212,9 +212,10 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 
 void InjectHook()
 {
-	char name[MAX_PATH];
+	char name[MAX_PATH+1];
 	int i;
 	GetModuleFileName(0, name, MAX_PATH);
+	name[MAX_PATH]=0; // terminator
 	for(i = 0; name[i]; i ++) name[i] = tolower(name[i]);
 	for(i = 0; pMapping[i].path[0]; i ++){
 		if(!strncmp(name, pMapping[i].path, strlen(name))){

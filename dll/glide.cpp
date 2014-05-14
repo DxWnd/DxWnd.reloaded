@@ -22,12 +22,12 @@ grSstWinOpen_Type pgrSstWinOpen = 0;
 grQueryResolutions_Type pgrQueryResolutions = 0;
 
 static HookEntry_Type Hooks[]={
-	{"_grGlideInit@0", (FARPROC)NULL, (FARPROC *)&pgrGlideInit, (FARPROC)extgrGlideInit},
-	{"_grGlideShutdown@0", (FARPROC)NULL, (FARPROC *)&pgrGlideShutdown, (FARPROC)extgrGlideShutdown},
-	{"_grClipWindow@16", (FARPROC)NULL, (FARPROC *)&pgrClipWindow, (FARPROC)extgrClipWindow},
-	{"_grSstWinOpen@28", (FARPROC)NULL, (FARPROC *)&pgrSstWinOpen, (FARPROC)extgrSstWinOpen},
-	{"_grQueryResolutions@8", (FARPROC)NULL, (FARPROC *)&pgrQueryResolutions, (FARPROC)extgrQueryResolutions},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "_grGlideInit@0", (FARPROC)NULL, (FARPROC *)&pgrGlideInit, (FARPROC)extgrGlideInit},
+	{HOOK_IAT_CANDIDATE, "_grGlideShutdown@0", (FARPROC)NULL, (FARPROC *)&pgrGlideShutdown, (FARPROC)extgrGlideShutdown},
+	{HOOK_IAT_CANDIDATE, "_grClipWindow@16", (FARPROC)NULL, (FARPROC *)&pgrClipWindow, (FARPROC)extgrClipWindow},
+	{HOOK_IAT_CANDIDATE, "_grSstWinOpen@28", (FARPROC)NULL, (FARPROC *)&pgrSstWinOpen, (FARPROC)extgrSstWinOpen},
+	{HOOK_IAT_CANDIDATE, "_grQueryResolutions@8", (FARPROC)NULL, (FARPROC *)&pgrQueryResolutions, (FARPROC)extgrQueryResolutions},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_Glide_ProcAddress(LPCSTR proc, HMODULE hModule)

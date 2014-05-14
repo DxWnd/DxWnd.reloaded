@@ -213,8 +213,10 @@
 #define IDC_DISABLEFOGGING              1175
 #define IDC_RELEASEMOUSE                1176
 #define IDC_HOOKGLIDE                   1177
-#define IDC_RELEASEMOUSE2               1177
-#define IDC_FRAMECOMPENSATION           1177
+#define IDC_FRAMECOMPENSATION           1178
+#define IDC_HOTPATCH                    1179
+#define IDC_ENABLEHOTKEYS               1180
+#define IDC_HOTPATCHALWAYS              1181
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

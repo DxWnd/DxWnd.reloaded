@@ -37,118 +37,118 @@ ExtTextOutA_Type pExtTextOutA = NULL;
 
 static HookEntry_Type Hooks[]={
 
-	{"GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
-	{"ScaleWindowExtEx", (FARPROC)ScaleWindowExtEx, (FARPROC *)&pGDIScaleWindowExtEx, (FARPROC)extScaleWindowExtEx},
-	{"SaveDC", (FARPROC)SaveDC, (FARPROC *)&pGDISaveDC, (FARPROC)extGDISaveDC},
-	{"RestoreDC", (FARPROC)RestoreDC, (FARPROC *)&pGDIRestoreDC, (FARPROC)extGDIRestoreDC},
-	{"AnimatePalette", (FARPROC)AnimatePalette, (FARPROC *)&pAnimatePalette, (FARPROC)extAnimatePalette},
-	{"CreatePalette", (FARPROC)CreatePalette, (FARPROC *)&pGDICreatePalette, (FARPROC)extGDICreatePalette},
-	{"SelectPalette", (FARPROC)SelectPalette, (FARPROC *)&pGDISelectPalette, (FARPROC)extSelectPalette},
-	{"RealizePalette", (FARPROC)RealizePalette, (FARPROC *)&pGDIRealizePalette, (FARPROC)extRealizePalette},
-	{"GetSystemPaletteEntries", (FARPROC)GetSystemPaletteEntries, (FARPROC *)&pGDIGetSystemPaletteEntries, (FARPROC)extGetSystemPaletteEntries},
-	{"SetSystemPaletteUse", (FARPROC)SetSystemPaletteUse, (FARPROC *)&pSetSystemPaletteUse, (FARPROC)extSetSystemPaletteUse},
-	{"StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits},
-	//{"SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
-	//{"CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
-	//{"SetMapMode", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extSetMapMode},
-	{"SetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDISetPixelFormat, (FARPROC)extGDISetPixelFormat},
-	{"GetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDIGetPixelFormat, (FARPROC)extGDIGetPixelFormat},
-	{"ChoosePixelFormat", (FARPROC)NULL, (FARPROC *)&pChoosePixelFormat, (FARPROC)extChoosePixelFormat},
-	{"DescribePixelFormat", (FARPROC)NULL, (FARPROC *)&pDescribePixelFormat, (FARPROC)extDescribePixelFormat},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
+	{HOOK_IAT_CANDIDATE, "ScaleWindowExtEx", (FARPROC)ScaleWindowExtEx, (FARPROC *)&pGDIScaleWindowExtEx, (FARPROC)extScaleWindowExtEx},
+	{HOOK_IAT_CANDIDATE, "SaveDC", (FARPROC)SaveDC, (FARPROC *)&pGDISaveDC, (FARPROC)extGDISaveDC},
+	{HOOK_IAT_CANDIDATE, "RestoreDC", (FARPROC)RestoreDC, (FARPROC *)&pGDIRestoreDC, (FARPROC)extGDIRestoreDC},
+	{HOOK_IAT_CANDIDATE, "AnimatePalette", (FARPROC)AnimatePalette, (FARPROC *)&pAnimatePalette, (FARPROC)extAnimatePalette},
+	{HOOK_IAT_CANDIDATE, "CreatePalette", (FARPROC)CreatePalette, (FARPROC *)&pGDICreatePalette, (FARPROC)extGDICreatePalette},
+	{HOOK_IAT_CANDIDATE, "SelectPalette", (FARPROC)SelectPalette, (FARPROC *)&pGDISelectPalette, (FARPROC)extSelectPalette},
+	{HOOK_IAT_CANDIDATE, "RealizePalette", (FARPROC)RealizePalette, (FARPROC *)&pGDIRealizePalette, (FARPROC)extRealizePalette},
+	{HOOK_IAT_CANDIDATE, "GetSystemPaletteEntries", (FARPROC)GetSystemPaletteEntries, (FARPROC *)&pGDIGetSystemPaletteEntries, (FARPROC)extGetSystemPaletteEntries},
+	{HOOK_IAT_CANDIDATE, "SetSystemPaletteUse", (FARPROC)SetSystemPaletteUse, (FARPROC *)&pSetSystemPaletteUse, (FARPROC)extSetSystemPaletteUse},
+	{HOOK_IAT_CANDIDATE, "StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits},
+	//{HOOK_IAT_CANDIDATE, "SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
+	//{HOOK_IAT_CANDIDATE, "CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
+	//{HOOK_IAT_CANDIDATE, "SetMapMode", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extSetMapMode},
+	{HOOK_IAT_CANDIDATE, "SetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDISetPixelFormat, (FARPROC)extGDISetPixelFormat},
+	{HOOK_IAT_CANDIDATE, "GetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDIGetPixelFormat, (FARPROC)extGDIGetPixelFormat},
+	{HOOK_IAT_CANDIDATE, "ChoosePixelFormat", (FARPROC)NULL, (FARPROC *)&pChoosePixelFormat, (FARPROC)extChoosePixelFormat},
+	{HOOK_IAT_CANDIDATE, "DescribePixelFormat", (FARPROC)NULL, (FARPROC *)&pDescribePixelFormat, (FARPROC)extDescribePixelFormat},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 }; 
 
 static HookEntry_Type RemapHooks[]={
-	{"SetViewportOrgEx", (FARPROC)SetViewportOrgEx, (FARPROC *)&pSetViewportOrgEx, (FARPROC)extSetViewportOrgEx}, // needed in ShowBanner
-	{"SetViewportExtEx", (FARPROC)NULL, (FARPROC *)&pSetViewportExtEx, (FARPROC)extSetViewportExtEx},
-	{"GetViewportOrgEx", (FARPROC)NULL, (FARPROC *)&pGetViewportOrgEx, (FARPROC)extGetViewportOrgEx},
-	{"GetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pGetWindowOrgEx, (FARPROC)extGetWindowOrgEx},
-	{"SetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pSetWindowOrgEx, (FARPROC)extSetWindowOrgEx},
-	{"GetCurrentPositionEx", (FARPROC)NULL, (FARPROC *)&pGetCurrentPositionEx, (FARPROC)extGetCurrentPositionEx},
-	{"SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice}, // does the stretching
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "SetViewportOrgEx", (FARPROC)SetViewportOrgEx, (FARPROC *)&pSetViewportOrgEx, (FARPROC)extSetViewportOrgEx}, // needed in ShowBanner
+	{HOOK_IAT_CANDIDATE, "SetViewportExtEx", (FARPROC)NULL, (FARPROC *)&pSetViewportExtEx, (FARPROC)extSetViewportExtEx},
+	{HOOK_IAT_CANDIDATE, "GetViewportOrgEx", (FARPROC)NULL, (FARPROC *)&pGetViewportOrgEx, (FARPROC)extGetViewportOrgEx},
+	{HOOK_IAT_CANDIDATE, "GetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pGetWindowOrgEx, (FARPROC)extGetWindowOrgEx},
+	{HOOK_IAT_CANDIDATE, "SetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pSetWindowOrgEx, (FARPROC)extSetWindowOrgEx},
+	{HOOK_IAT_CANDIDATE, "GetCurrentPositionEx", (FARPROC)NULL, (FARPROC *)&pGetCurrentPositionEx, (FARPROC)extGetCurrentPositionEx},
+	{HOOK_IAT_CANDIDATE, "SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice}, // does the stretching
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type ScaledHooks[]={
-	{"Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
-	{"TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
-	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
-	{"GetRegionBox", (FARPROC)NULL, (FARPROC *)&pGDIGetRegionBox, (FARPROC)extGetRegionBox},
-	{"Polyline", (FARPROC)NULL, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
-	{"PolyBezierTo", (FARPROC)NULL, (FARPROC *)&pPolyBezierTo, (FARPROC)extPolyBezierTo},
-	{"PolylineTo", (FARPROC)NULL, (FARPROC *)&pPolylineTo, (FARPROC)extPolylineTo},
-	{"PolyDraw", (FARPROC)NULL, (FARPROC *)&pPolyDraw, (FARPROC)extPolyDraw},
-	{"MoveToEx", (FARPROC)NULL, (FARPROC *)&pMoveToEx, (FARPROC)extMoveToEx},
-	{"ArcTo", (FARPROC)NULL, (FARPROC *)&pArcTo, (FARPROC)extArcTo},
-	{"LineTo", (FARPROC)NULL, (FARPROC *)&pLineTo, (FARPROC)extLineTo},
-	{"SetPixel", (FARPROC)NULL, (FARPROC *)&pSetPixel, (FARPROC)extSetPixel},
-	{"Ellipse", (FARPROC)NULL, (FARPROC *)&pEllipse, (FARPROC)extEllipse},
-	{"Polygon", (FARPROC)NULL, (FARPROC *)&pPolygon, (FARPROC)extPolygon},
-	{"Arc", (FARPROC)NULL, (FARPROC *)&pArc, (FARPROC)extArc},
+	{HOOK_IAT_CANDIDATE, "Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
+	{HOOK_IAT_CANDIDATE, "TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
+	{HOOK_IAT_CANDIDATE, "GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
+	{HOOK_IAT_CANDIDATE, "GetRegionBox", (FARPROC)NULL, (FARPROC *)&pGDIGetRegionBox, (FARPROC)extGetRegionBox},
+	{HOOK_IAT_CANDIDATE, "Polyline", (FARPROC)NULL, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
+	{HOOK_IAT_CANDIDATE, "PolyBezierTo", (FARPROC)NULL, (FARPROC *)&pPolyBezierTo, (FARPROC)extPolyBezierTo},
+	{HOOK_IAT_CANDIDATE, "PolylineTo", (FARPROC)NULL, (FARPROC *)&pPolylineTo, (FARPROC)extPolylineTo},
+	{HOOK_IAT_CANDIDATE, "PolyDraw", (FARPROC)NULL, (FARPROC *)&pPolyDraw, (FARPROC)extPolyDraw},
+	{HOOK_IAT_CANDIDATE, "MoveToEx", (FARPROC)NULL, (FARPROC *)&pMoveToEx, (FARPROC)extMoveToEx},
+	{HOOK_IAT_CANDIDATE, "ArcTo", (FARPROC)NULL, (FARPROC *)&pArcTo, (FARPROC)extArcTo},
+	{HOOK_IAT_CANDIDATE, "LineTo", (FARPROC)NULL, (FARPROC *)&pLineTo, (FARPROC)extLineTo},
+	{HOOK_IAT_CANDIDATE, "SetPixel", (FARPROC)NULL, (FARPROC *)&pSetPixel, (FARPROC)extSetPixel},
+	{HOOK_IAT_CANDIDATE, "Ellipse", (FARPROC)NULL, (FARPROC *)&pEllipse, (FARPROC)extEllipse},
+	{HOOK_IAT_CANDIDATE, "Polygon", (FARPROC)NULL, (FARPROC *)&pPolygon, (FARPROC)extPolygon},
+	{HOOK_IAT_CANDIDATE, "Arc", (FARPROC)NULL, (FARPROC *)&pArc, (FARPROC)extArc},
 	// commented out since they alter text on screen...... (see Imperialism II difficulty level menu)
-	//{"CreateEllipticRgn", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgn, (FARPROC)extCreateEllipticRgn},
-	//{"CreateEllipticRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgnIndirect, (FARPROC)extCreateEllipticRgnIndirect},
-	//{"CreateRectRgn", (FARPROC)NULL, (FARPROC *)&pCreateRectRgn, (FARPROC)extCreateRectRgn},
-	//{"CreateRectRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateRectRgnIndirect, (FARPROC)extCreateRectRgnIndirect},
-	//{"CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
+	//{HOOK_IAT_CANDIDATE, "CreateEllipticRgn", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgn, (FARPROC)extCreateEllipticRgn},
+	//{HOOK_IAT_CANDIDATE, "CreateEllipticRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgnIndirect, (FARPROC)extCreateEllipticRgnIndirect},
+	//{HOOK_IAT_CANDIDATE, "CreateRectRgn", (FARPROC)NULL, (FARPROC *)&pCreateRectRgn, (FARPROC)extCreateRectRgn},
+	//{HOOK_IAT_CANDIDATE, "CreateRectRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateRectRgnIndirect, (FARPROC)extCreateRectRgnIndirect},
+	//{HOOK_IAT_CANDIDATE, "CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
 	// same as emulated GDI ...
-	{"CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extGDICreateCompatibleDC},
-	{"DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC},
-	{"CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extGDICreateDC},
+	{HOOK_IAT_CANDIDATE, "CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extGDICreateCompatibleDC},
+	{HOOK_IAT_CANDIDATE, "DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC},
+	{HOOK_IAT_CANDIDATE, "CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extGDICreateDC},
 	// CreateDCW .....
-	{"BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extGDIBitBlt},
-	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extGDIStretchBlt},
-	{"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extGDIPatBlt},
-	{"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
-	{"ExtTextOutA", (FARPROC)ExtTextOutA, (FARPROC *)&pExtTextOutA, (FARPROC)extExtTextOutA},
-	{"ExtTextOutW", (FARPROC)ExtTextOutW, (FARPROC *)&pExtTextOutW, (FARPROC)extExtTextOutW},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extGDIBitBlt},
+	{HOOK_IAT_CANDIDATE, "StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extGDIStretchBlt},
+	{HOOK_IAT_CANDIDATE, "PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extGDIPatBlt},
+	{HOOK_IAT_CANDIDATE, "MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
+	{HOOK_IAT_CANDIDATE, "ExtTextOutA", (FARPROC)ExtTextOutA, (FARPROC *)&pExtTextOutA, (FARPROC)extExtTextOutA},
+	{HOOK_IAT_CANDIDATE, "ExtTextOutW", (FARPROC)ExtTextOutW, (FARPROC *)&pExtTextOutW, (FARPROC)extExtTextOutW},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type EmulateHooks[]={
 	// useless CreateCompatibleDC: it maps VirtualHDC on top of VirtualHDC, then does nothing, unless when asked to operate on 0!....
-	//{"CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extEMUCreateCompatibleDC},
+	//{HOOK_IAT_CANDIDATE, "CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extEMUCreateCompatibleDC},
 	// useless DeleteDC: it's just a proxy 
-	//{"DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC},
-	{"CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extGDICreateDC},
+	//{HOOK_IAT_CANDIDATE, "DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC},
+	{HOOK_IAT_CANDIDATE, "CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extGDICreateDC},
 	// CreateDCW .....
 
-	{"GetObjectType", (FARPROC)GetObjectType, (FARPROC *)&pGetObjectType, (FARPROC)extGetObjectType},
-	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "GetObjectType", (FARPROC)GetObjectType, (FARPROC *)&pGetObjectType, (FARPROC)extGetObjectType},
+	{HOOK_IAT_CANDIDATE, "GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type DDHooks[]={
-	{"CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extDDCreateCompatibleDC},
-	{"DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extDDDeleteDC},
-	{"CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extDDCreateDC},
-	{"BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extDDBitBlt},
-	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extDDStretchBlt},
-	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
+	{HOOK_IAT_CANDIDATE, "CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extDDCreateCompatibleDC},
+	{HOOK_IAT_CANDIDATE, "DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extDDDeleteDC},
+	{HOOK_IAT_CANDIDATE, "CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extDDCreateDC},
+	{HOOK_IAT_CANDIDATE, "BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extDDBitBlt},
+	{HOOK_IAT_CANDIDATE, "StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extDDStretchBlt},
+	{HOOK_IAT_CANDIDATE, "GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
 
-	// {"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extDDPatBlt}, // missing one ...
-	// {"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extDDMaskBlt}, // missing one ...
-	{0, NULL, 0, 0} // terminator
+	// {HOOK_IAT_CANDIDATE, "PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extDDPatBlt}, // missing one ...
+	// {HOOK_IAT_CANDIDATE, "MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extDDMaskBlt}, // missing one ...
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type TextHooks[]={
-	{"CreateFontA", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
-	{"CreateFontIndirectA", (FARPROC)CreateFontIndirectA, (FARPROC *)&pGDICreateFontIndirect, (FARPROC)extCreateFontIndirect},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "CreateFontA", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
+	{HOOK_IAT_CANDIDATE, "CreateFontIndirectA", (FARPROC)CreateFontIndirectA, (FARPROC *)&pGDICreateFontIndirect, (FARPROC)extCreateFontIndirect},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type GammaHooks[]={
-	{"SetDeviceGammaRamp", (FARPROC)SetDeviceGammaRamp, (FARPROC *)&pGDISetDeviceGammaRamp, (FARPROC)extSetDeviceGammaRamp},
-	{"GetDeviceGammaRamp", (FARPROC)GetDeviceGammaRamp, (FARPROC *)&pGDIGetDeviceGammaRamp, (FARPROC)extGetDeviceGammaRamp},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "SetDeviceGammaRamp", (FARPROC)SetDeviceGammaRamp, (FARPROC *)&pGDISetDeviceGammaRamp, (FARPROC)extSetDeviceGammaRamp},
+	{HOOK_IAT_CANDIDATE, "GetDeviceGammaRamp", (FARPROC)GetDeviceGammaRamp, (FARPROC *)&pGDIGetDeviceGammaRamp, (FARPROC)extGetDeviceGammaRamp},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type FontHooks[]={
-	{"CreateScalableFontResourceA", (FARPROC)NULL, (FARPROC *)&pCreateScalableFontResourceA, (FARPROC)extCreateScalableFontResourceA},
-	{"CreateScalableFontResourceW", (FARPROC)NULL, (FARPROC *)&pCreateScalableFontResourceW, (FARPROC)extCreateScalableFontResourceW},
-	{"AddFontResourceA", (FARPROC)NULL, (FARPROC *)&pAddFontResourceA, (FARPROC)extAddFontResourceA},
-	{"AddFontResourceW", (FARPROC)NULL, (FARPROC *)&pAddFontResourceW, (FARPROC)extAddFontResourceW},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "CreateScalableFontResourceA", (FARPROC)NULL, (FARPROC *)&pCreateScalableFontResourceA, (FARPROC)extCreateScalableFontResourceA},
+	{HOOK_IAT_CANDIDATE, "CreateScalableFontResourceW", (FARPROC)NULL, (FARPROC *)&pCreateScalableFontResourceW, (FARPROC)extCreateScalableFontResourceW},
+	{HOOK_IAT_CANDIDATE, "AddFontResourceA", (FARPROC)NULL, (FARPROC *)&pAddFontResourceA, (FARPROC)extAddFontResourceA},
+	{HOOK_IAT_CANDIDATE, "AddFontResourceW", (FARPROC)NULL, (FARPROC *)&pAddFontResourceW, (FARPROC)extAddFontResourceW},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);

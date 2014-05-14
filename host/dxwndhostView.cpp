@@ -119,6 +119,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookEnabled) t->flags3 |= HOOKENABLED;
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
+	if(dlg->m_HotPatch) t->flags4 |= HOTPATCH;
 	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
 	if(dlg->m_FilterMessages) t->flags3 |= FILTERMESSAGES;
 	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
@@ -169,6 +170,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ZBufferClean) t->flags4 |= ZBUFFERCLEAN;
 	if(dlg->m_ZBuffer0Clean) t->flags4 |= ZBUFFER0CLEAN;
 	if(dlg->m_ZBufferAlways) t->flags4 |= ZBUFFERALWAYS;
+	if(dlg->m_HotPatchAlways) t->flags4 |= HOTPATCHALWAYS;
 	if(dlg->m_NoPower2Fix) t->flags4 |= NOPOWER2FIX;
 	if(dlg->m_NoPerfCounter) t->flags4 |= NOPERFCOUNTER;
 	if(dlg->m_DisableFogging) t->flags4 |= DISABLEFOGGING;
@@ -242,6 +244,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FineTiming) t->flags4 |= FINETIMING;
 	if(dlg->m_ReleaseMouse) t->flags4 |= RELEASEMOUSE;
 	if(dlg->m_FrameCompensation) t->flags4 |= FRAMECOMPENSATION;
+	if(dlg->m_EnableHotKeys) t->flags4 |= ENABLEHOTKEYS;
 	if(dlg->m_InterceptRDTSC) t->flags4 |= INTERCEPTRDTSC;
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
 	if(dlg->m_ForceHookOpenGL) t->flags3 |= FORCEHOOKOPENGL;
@@ -286,6 +289,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_OpenGLLib = t->OpenGLLib;
 	dlg->m_UnNotify = t->flags & UNNOTIFY ? 1 : 0;
 	dlg->m_Windowize = t->flags2 & WINDOWIZE ? 1 : 0;
+	dlg->m_HotPatch = t->flags4 & HOTPATCH ? 1 : 0;
 	dlg->m_HookDLLs = t->flags3 & HOOKDLLS ? 1 : 0;
 	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
 	dlg->m_HookEnabled = t->flags3 & HOOKENABLED ? 1 : 0;
@@ -353,6 +357,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ZBufferClean = t->flags4 & ZBUFFERCLEAN ? 1 : 0;
 	dlg->m_ZBuffer0Clean = t->flags4 & ZBUFFER0CLEAN ? 1 : 0;
 	dlg->m_ZBufferAlways = t->flags4 & ZBUFFERALWAYS ? 1 : 0;
+	dlg->m_HotPatchAlways = t->flags4 & HOTPATCHALWAYS ? 1 : 0;
 	dlg->m_NoPower2Fix = t->flags4 & NOPOWER2FIX ? 1 : 0;
 	dlg->m_NoPerfCounter = t->flags4 & NOPERFCOUNTER ? 1 : 0;
 	dlg->m_DisableFogging = t->flags4 & DISABLEFOGGING ? 1 : 0;
@@ -408,6 +413,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FineTiming = t->flags4 & FINETIMING ? 1 : 0;
 	dlg->m_ReleaseMouse = t->flags4 & RELEASEMOUSE ? 1 : 0;
 	dlg->m_FrameCompensation = t->flags4 & FRAMECOMPENSATION ? 1 : 0;
+	dlg->m_EnableHotKeys = t->flags4 & ENABLEHOTKEYS ? 1 : 0;
 	dlg->m_InterceptRDTSC = t->flags4 & INTERCEPTRDTSC ? 1 : 0;
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;
 	dlg->m_ForceHookOpenGL = t->flags3 & FORCEHOOKOPENGL ? 1 : 0;

@@ -48,3 +48,4 @@ extern char *ExplainPaletteUse(UINT);
 extern char *ExplainRasterCaps(DWORD);
 extern char *ExplainD3DRenderState(DWORD);
 extern char *ExplainRenderstateValue(DWORD);
+extern char *ExplainWfPFlags(DWORD);

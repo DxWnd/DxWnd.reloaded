@@ -35,7 +35,16 @@ extern FARPROC Remap_vfw_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_AdvApi32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_Glide_ProcAddress(LPCSTR, HMODULE);
 
+typedef enum {
+	HOOK_IAT_CANDIDATE = 0,
+	HOOK_HOT_CANDIDATE,
+	HOOK_IAT_LINKED,
+	HOOK_HOT_LINKED
+} HookEntry_Status;
+
+
 typedef struct {
+	HookEntry_Status HookStatus;
 	char *APIName;
 	FARPROC OriginalAddress;
 	FARPROC *StoreAddress;
@@ -45,3 +54,4 @@ typedef struct {
 extern FARPROC RemapLibrary(LPCSTR, HMODULE, HookEntry_Type *);
 extern void HookLibrary(HMODULE, HookEntry_Type *, char *);
 extern void HookLibInit(HookEntry_Type *);
+extern BOOL IsHotPatched(HookEntry_Type *, char *);

@@ -194,6 +194,10 @@ typedef BOOL	(WINAPI *IsWindowVisible_Type)(HWND);
 typedef BOOL	(WINAPI *SystemParametersInfo_Type)(UINT, UINT, PVOID, UINT);
 typedef BOOL	(WINAPI *KillTimer_Type)(HWND, UINT_PTR);
 typedef BOOL	(WINAPI *GetUpdateRect_Type)(HWND, LPRECT, BOOL);
+typedef BOOL	(WINAPI *GetCursorInfo_Type)(PCURSORINFO);
+typedef HWND	(WINAPI *WindowFromPoint_Type)(POINT);
+typedef HWND	(WINAPI *ChildWindowFromPoint_Type)(HWND, POINT);
+typedef HWND	(WINAPI *ChildWindowFromPointEx_Type)(HWND, POINT, UINT);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -398,6 +402,10 @@ DXWEXTERN SystemParametersInfo_Type pSystemParametersInfoA DXWINITIALIZED;
 DXWEXTERN SystemParametersInfo_Type pSystemParametersInfoW DXWINITIALIZED;
 DXWEXTERN KillTimer_Type pKillTimer DXWINITIALIZED;
 DXWEXTERN GetUpdateRect_Type pGetUpdateRect DXWINITIALIZED;
+DXWEXTERN GetCursorInfo_Type pGetCursorInfo DXWINITIALIZED;
+DXWEXTERN WindowFromPoint_Type pWindowFromPoint DXWINITIALIZED;
+DXWEXTERN ChildWindowFromPoint_Type pChildWindowFromPoint DXWINITIALIZED;
+DXWEXTERN ChildWindowFromPointEx_Type pChildWindowFromPointEx DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
@@ -609,6 +617,11 @@ extern BOOL WINAPI extSystemParametersInfoA(UINT, UINT, PVOID, UINT);
 extern BOOL WINAPI extSystemParametersInfoW(UINT, UINT, PVOID, UINT);
 extern BOOL WINAPI extKillTimer(HWND, UINT_PTR);
 extern BOOL WINAPI extGetUpdateRect(HWND, LPRECT, BOOL);
+extern BOOL WINAPI extGetCursorInfo(PCURSORINFO);
+extern HWND WINAPI extWindowFromPoint(POINT);
+extern HWND WINAPI extChildWindowFromPoint(HWND, POINT);
+extern HWND WINAPI extChildWindowFromPointEx(HWND, POINT, UINT);
+
 
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);

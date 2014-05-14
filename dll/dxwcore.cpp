@@ -100,6 +100,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 		pTimeShifter = TimeShifterCoarse;
 		pTimeShifter64 = TimeShifter64Coarse;
 	}
+	if(dwFlags4 & ENABLEHOTKEYS) MapKeysInit();
 }
 
 void dxwCore::SetScreenSize(void) 
@@ -1531,14 +1532,16 @@ void dxwCore::PopTimer(UINT uTimerId)
 		// this should never happen, unless there are more than 1 timer!
 		char msg[256];
 		sprintf(msg,"PopTimer: TimerType=%x last=%x\n", TIMER_TYPE_WINMM, TimerEvent.dwTimerType);
-		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		//MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		OutTraceE(msg);
 		return;
 	}
 	if(uTimerId != TimerEvent.t.uTimerId){
 		// this should never happen, unless there are more than 1 timer!
 		char msg[256];
 		sprintf(msg,"PopTimer: TimerId=%x last=%x\n", uTimerId, TimerEvent.t.uTimerId);
-		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		//MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		OutTraceE(msg);
 		return;
 	}
 	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
@@ -1551,14 +1554,16 @@ void dxwCore::PopTimer(HWND hWnd, UINT_PTR nIDEvent)
 		// this should never happen, unless there are more than 1 timer!
 		char msg[256];
 		sprintf(msg,"PopTimer: TimerType=%x last=%x\n", TIMER_TYPE_WINMM, TimerEvent.dwTimerType);
-		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		//MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		OutTraceE(msg);
 		return;
 	}
 	if(nIDEvent != TimerEvent.t.nIDEvent){
 		// this should never happen, unless there are more than 1 timer!
 		char msg[256];
 		sprintf(msg,"PopTimer: TimerId=%x last=%x\n", nIDEvent, TimerEvent.t.nIDEvent);
-		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		//MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		OutTraceE(msg);
 		return;
 	}
 	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
@@ -1645,3 +1650,69 @@ BOOL dxwCore::CheckScreenResolution(unsigned int w, unsigned int h)
 	}
 	return TRUE;
 }
+
+#ifdef COMPATIBLEMODE
+void dxwCore::MapKeysInit(){}
+
+UINT dxwCore::MapKeysConfig(UINT message, LPARAM lparam, WPARAM wparam)
+{
+	int vkey;
+	char *caption;
+	if(message!=WM_SYSKEYDOWN) return DXVK_NONE;
+	switch(wparam){
+		case VK_F12: vkey=DXVK_CLIPTOGGLE; caption="CLIPCURSORTOGGLE"; break;
+		case VK_F11: vkey=DXVK_REFRESH; caption="REFRESH"; break;
+		case VK_F10: vkey=DXVK_LOGTOGGLE; caption="LOGTOGGLE"; break;
+		case VK_F9:  vkey=DXVK_PLOCKTOGGLE; caption="POSITIONLOCKTOGGLE"; break;
+		case VK_F7:  vkey=DXVK_FPSTOGGLE; caption="FPSTOGGLE"; break;
+		case VK_F6:  vkey=DXVK_TIMEFAST; caption="TIMESTRETCHFAST"; break;
+		case VK_F5:  vkey=DXVK_TIMESLOW; caption="TIMESTRETCHSLOW"; break;
+		case VK_F4:  vkey=DXVK_ALTF4; caption="ALTF4"; break;
+		default:	 vkey=DXVK_NONE; break;
+	}
+	if(vkey) OutTraceDW("MapKeysConfig: ret=%x(%s)\n", vkey);
+	return vkey;
+}
+#else
+UINT VKeyConfig[DXVK_SIZE];
+
+void dxwCore::MapKeysInit()
+
+{
+	char InitPath[MAX_PATH];
+	char *p;
+	DWORD dwAttrib;	
+
+	dwAttrib = GetFileAttributes("dxwnd.dll");
+	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return;
+	GetModuleFileName(GetModuleHandle("dxwnd"), InitPath, MAX_PATH);
+	p=&InitPath[strlen(InitPath)-strlen("dxwnd.dll")];
+	strcpy(p, "dxwnd.ini");
+	VKeyConfig[DXVK_NONE]=DXVK_NONE;
+	VKeyConfig[DXVK_CLIPTOGGLE]=	GetPrivateProfileInt("keymapping", "cliptoggle", 0, InitPath);
+	VKeyConfig[DXVK_REFRESH]=		GetPrivateProfileInt("keymapping", "refresh", 0, InitPath);
+	VKeyConfig[DXVK_LOGTOGGLE]=		GetPrivateProfileInt("keymapping", "logtoggle", 0, InitPath);
+	VKeyConfig[DXVK_PLOCKTOGGLE]=	GetPrivateProfileInt("keymapping", "plocktoggle", 0, InitPath);
+	VKeyConfig[DXVK_FPSTOGGLE]=		GetPrivateProfileInt("keymapping", "fpstoggle", 0, InitPath);
+	VKeyConfig[DXVK_TIMEFAST]=		GetPrivateProfileInt("keymapping", "timefast", 0, InitPath);
+	VKeyConfig[DXVK_TIMESLOW]=		GetPrivateProfileInt("keymapping", "timeslow", 0, InitPath);
+	VKeyConfig[DXVK_TIMETOGGLE]=	GetPrivateProfileInt("keymapping", "timetoggle", 0, InitPath);
+	VKeyConfig[DXVK_ALTF4]=			GetPrivateProfileInt("keymapping", "altf4", 0x73, InitPath); 
+
+	int idx;
+	for(idx=1; idx<DXVK_SIZE; idx++) OutTrace("keymapping %d=%x\n", idx, VKeyConfig[idx]);
+	OutTrace("\n");
+
+}
+
+UINT dxwCore::MapKeysConfig(UINT message, LPARAM lparam, WPARAM wparam)
+{
+	if(message!=WM_SYSKEYDOWN) return DXVK_NONE;
+	for(int idx=1; idx<DXVK_SIZE; idx++)
+		if(VKeyConfig[idx]==wparam) {
+			OutTrace("keymapping GOT=%d\n", idx);
+			return idx;
+		}
+	return DXVK_NONE;
+}
+#endif

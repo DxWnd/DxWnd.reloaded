@@ -10,8 +10,8 @@ WinVerifyTrust_Type pWinVerifyTrust;
 extern LONG WINAPI extWinVerifyTrust(HWND, GUID *, LPVOID);
 
 static HookEntry_Type Hooks[]={
-	{"WinVerifyTrust", NULL, (FARPROC *)&pWinVerifyTrust, (FARPROC)extWinVerifyTrust},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "WinVerifyTrust", NULL, (FARPROC *)&pWinVerifyTrust, (FARPROC)extWinVerifyTrust},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 void HookTrust(HMODULE module)

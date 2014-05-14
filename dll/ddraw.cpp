@@ -16,6 +16,8 @@
 #include "dxhelper.h"
 #include "syslibs.h"
 
+extern BOOL IsChangeDisplaySettingsHotPatched;
+
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
@@ -263,13 +265,13 @@ static void SetPixFmt(LPDDSURFACEDESC2);
 static void GetPixFmt(LPDDSURFACEDESC2);
 
 static HookEntry_Type ddHooks[]={
-	{"DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
-	{"DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
-	{"DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
-	{"DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
-	//{"DirectDrawEnumerateW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateW, (FARPROC)extDirectDrawCreate},
-	//{"DirectDrawEnumerateExW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateExW, (FARPROC)extDirectDrawCreate},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
+	{HOOK_IAT_CANDIDATE, "DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
+	{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
+	{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
+	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateW, (FARPROC)extDirectDrawCreate},
+	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateExW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateExW, (FARPROC)extDirectDrawCreate},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_ddraw_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -1871,8 +1873,10 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
 	
 	if(dxw.Windowize){
-		dwwidth = ddsd.dwWidth;
-		dwheight = ddsd.dwHeight;
+		if(!IsChangeDisplaySettingsHotPatched){
+			dwwidth = ddsd.dwWidth;
+			dwheight = ddsd.dwHeight;
+		}
 		OutTraceDW("SetDisplayMode: fixing colordepth current=%d required=%d size=(%dx%d)\n",
 				ddsd.ddpfPixelFormat.dwRGBBitCount, dwbpp, dwwidth, dwheight);
 	}

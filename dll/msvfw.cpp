@@ -11,7 +11,7 @@
 static HookEntry_Type Hooks[]={
 	//{"ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
 	//{"ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_vfw_ProcAddress(LPCSTR proc, HMODULE hModule)

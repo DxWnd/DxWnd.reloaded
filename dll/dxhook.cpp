@@ -34,6 +34,8 @@ Finishdisasm_Type pFinishdisasm;
 Disasm_Type pDisasm;
 
 extern void InitScreenParameters();
+extern void *HotPatch(void *, const char *, void *);
+extern void *IATPatch(HMODULE, char *, void *, const char *, void *);
 void HookModule(HMODULE, int);
 static void RecoverScreenMode();
 static void LockScreenMode(DWORD, DWORD, DWORD);
@@ -84,8 +86,8 @@ static char *Flag4Names[32]={
 	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "HIDEDESKTOP",
 	"STRETCHTIMERS", "NOFLIPEMULATION", "NOTEXTURES", "RETURNNULLREF",
 	"FINETIMING", "NATIVERES", "SUPPORTSVGA", "SUPPORTHDTV",
-	"RELEASEMOUSE", "", "", "",
-	"", "", "", "",
+	"RELEASEMOUSE", "FRAMECOMPENSATION", "HOTPATCH", "ENABLEHOTKEYS",
+	"HOTPATCHALWAYS", "", "", "",
 };
 
 static char *TFlagNames[32]={
@@ -354,16 +356,6 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 
 void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, void *hookproc)
 {
-	PIMAGE_NT_HEADERS pnth;
-	PIMAGE_IMPORT_DESCRIPTOR pidesc;
-	DWORD base, rva;
-	PSTR impmodule;
-	PIMAGE_THUNK_DATA ptaddr;
-	PIMAGE_THUNK_DATA ptname;
-	PIMAGE_IMPORT_BY_NAME piname;
-	DWORD oldprotect;
-	void *org;
-
 	if(dxw.dwTFlags & OUTIMPORTTABLE) OutTrace("HookAPI: module=%x dll=%s apiproc=%x apiname=%s hookproc=%x\n", 
 		module, dll, apiproc, apiname, hookproc);
 
@@ -374,87 +366,13 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 		return 0;
 	}
 
-	base = (DWORD)module;
-	org = 0; // by default, ret = 0 => API not found
-
-	__try{
-		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
-		if(!pnth) {
-			OutTraceH("HookAPI: ERROR no PNTH at %d\n", __LINE__);
-			return 0;
-		}
-		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-		if(!rva) {
-			OutTraceH("HookAPI: ERROR no RVA at %d\n", __LINE__);
-			return 0;
-		}
-		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
-
-		while(pidesc->FirstThunk){
-			impmodule = (PSTR)(base + pidesc->Name);
-			if(!lstrcmpi(dll, impmodule)) {
-				//OutTraceH("HookAPI: dll=%s found at %x\n", dll, impmodule);
-
-				ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
-				ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
-
-				//if((apiproc==NULL) && (ptname==NULL)){
-				//	OutTraceH("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
-				//	return 0;
-				//}
-
-				while(ptaddr->u1.Function){
-					if (ptname){
-						if(!IMAGE_SNAP_BY_ORDINAL(ptname->u1.Ordinal)){
-							piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
-							//OutTrace("examining by ptname name=%s\n", (char *)piname->Name);
-							if(!lstrcmpi(apiname, (char *)piname->Name)) break;
-						}
-					}
-					if (apiproc){
-						// log not working !!!
-						//piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptaddr->u1.AddressOfData);
-						//OutTrace("examining by addr name=%s\n", (char *)piname->Name);
-						if(ptaddr->u1.Function == (DWORD)apiproc) break;
-					}
-					ptaddr ++;
-					if (ptname) ptname ++;
-				}
-
-				if(ptaddr->u1.Function) {
-					org = (void *)ptaddr->u1.Function;
-					if(org == hookproc) return 0; // already hooked
-						
-					if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
-						OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-						return 0;
-					}
-					ptaddr->u1.Function = (DWORD)hookproc;
-					if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
-						OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-						return 0;
-					}
-					if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
-						OutTraceDW("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
-						return 0;
-					}
-					OutTraceH("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
-
-					return org;
-				}
-			}
-			pidesc ++;
-		}
-		if(!pidesc->FirstThunk) {
-			OutTraceH("HookAPI: PE unreferenced function %s:%s\n", dll, apiname);
-			return 0;
-		}
+	if(dxw.dwFlags4 & HOTPATCHALWAYS) {
+		void *orig;
+		orig=HotPatch(apiproc, apiname, hookproc);
+		if(orig) return orig;
 	}
-	__except(EXCEPTION_EXECUTE_HANDLER)
-	{       
-		OutTraceDW("HookAPI: EXCEPTION hook=%s:%s Hook Failed.\n", dll, apiname);
-	}
-	return org;
+
+	return IATPatch(module, dll, apiproc, apiname, hookproc);
 }
 
 // v.2.1.80: unified positioning logic into CalculateWindowPos routine
@@ -751,11 +669,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	static BOOL DoOnce = TRUE;
 	static BOOL IsToBeLocked;
 	static int LastTimeShift;
+	static int SaveTimeShift;
+	static BOOL TimeShiftToggle=TRUE;
 
 	if(DoOnce){
 		DoOnce=FALSE;
 		IsToBeLocked=(dxw.dwFlags1 & LOCKWINPOS);
-		LastTimeShift=dxw.TimeShift;
+		LastTimeShift=SaveTimeShift=dxw.TimeShift;
 	}
 
 	// v2.1.93: adjust clipping region
@@ -799,8 +719,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 	}
 
-	if(dxw.dwFlags4 & STRETCHTIMERS){
-		if(LastTimeShift != dxw.TimeShift) dxw.RenewTimers();
+	if(LastTimeShift != dxw.TimeShift){
+		extern void SetVSyncDelays(LPDIRECTDRAW);
+		extern LPDIRECTDRAW lpPrimaryDD;
+		if(dxw.dwFlags4 & STRETCHTIMERS) dxw.RenewTimers();
+		SetVSyncDelays(lpPrimaryDD);
 		LastTimeShift=dxw.TimeShift;
 	}
 
@@ -987,39 +910,54 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	//	TerminateProcess(GetCurrentProcess(),0);
 	//	break;
 	case WM_SYSKEYDOWN:
-		OutTraceW("event WM_SYSKEYDOWN wparam=%x lparam=%x\n", wparam, lparam);
-		switch (wparam){
-		case VK_F12:
+	case WM_KEYDOWN:
+		if(!(dxw.dwFlags4 & ENABLEHOTKEYS)) break;
+		OutTraceW("event %s wparam=%x lparam=%x\n", (message==WM_SYSKEYDOWN)?"WM_SYSKEYDOWN":"WM_KEYDOWN", wparam, lparam);
+		UINT DxWndKey;
+		DxWndKey=dxw.MapKeysConfig(message, lparam, wparam);
+		switch (DxWndKey){
+		case DXVK_CLIPTOGGLE:
 			if(dxw.dwFlags1 & CLIPCURSOR){
 				OutTraceDW("WindowProc: WM_SYSKEYDOWN key=%x ToggleState=%x\n",wparam,ClipCursorToggleState);
 				ClipCursorToggleState = !ClipCursorToggleState;
 				ClipCursorToggleState ? dxw.SetClipCursor() : dxw.EraseClipCursor();
 			}
-		case VK_F11:
+			break;
+		case DXVK_REFRESH:
 			dxw.ScreenRefresh();
 			break;
-		case VK_F10:
+		case DXVK_LOGTOGGLE:
 			dx_ToggleLogging();
 			break;
-		case VK_F9:
+		case DXVK_PLOCKTOGGLE:
 			dx_TogglePositionLock(hwnd);
 			break;
-		//case VK_F8:
-		//	dx_ToggleDC();
-		//	break;
-		case VK_F7:
+		case DXVK_FPSTOGGLE:
 			dx_ToggleFPS();
 			break;
-		case VK_F6:
-		case VK_F5:
+		case DXVK_TIMEFAST:
+		case DXVK_TIMESLOW:
 			if (dxw.dwFlags2 & TIMESTRETCH) {
-				if (wparam == VK_F5 && (dxw.TimeShift <  8)) dxw.TimeShift++;
-				if (wparam == VK_F6 && (dxw.TimeShift > -8)) dxw.TimeShift--;
-				OutTrace("Time Stretch: shift=%d speed=%s\n", dxw.TimeShift, dxw.GetTSCaption());
+				if (DxWndKey == DXVK_TIMESLOW && (dxw.TimeShift <  8)) dxw.TimeShift++;
+				if (DxWndKey == DXVK_TIMEFAST && (dxw.TimeShift > -8)) dxw.TimeShift--;
 				GetHookInfo()->TimeShift=dxw.TimeShift;
+				OutTrace("Time Stretch: shift=%d speed=%s\n", dxw.TimeShift, dxw.GetTSCaption());
 			}
 			break;
-		case VK_F4:
+		case DXVK_TIMETOGGLE:
+			if (dxw.dwFlags2 & TIMESTRETCH) {
+				if(TimeShiftToggle){
+					SaveTimeShift=dxw.TimeShift;
+					dxw.TimeShift=0;
+				}
+				else{
+					dxw.TimeShift=SaveTimeShift;
+				}
+				TimeShiftToggle = !TimeShiftToggle;
+				GetHookInfo()->TimeShift=dxw.TimeShift;
+		}
+			break;
+		case DXVK_ALTF4:
 			if (dxw.dwFlags1 & HANDLEALTF4) {
 				OutTraceDW("WindowProc: WM_SYSKEYDOWN(ALT-F4) - terminating process\n");
 				TerminateProcess(GetCurrentProcess(),0);
@@ -1105,7 +1043,7 @@ static void RecoverScreenMode()
 		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel,
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
 	InitDevMode.dmFields = (DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT);
-	res=(*pChangeDisplaySettingsA)(&InitDevMode, 0);
+	res=(*pChangeDisplaySettingsExA)(NULL, &InitDevMode, NULL, 0, NULL);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
 
@@ -1118,7 +1056,7 @@ void SwitchTo16BPP()
 		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel);
 	CurrentDevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 	CurrentDevMode.dmBitsPerPel = 16;
-	res=(*pChangeDisplaySettingsA)(&CurrentDevMode, CDS_UPDATEREGISTRY);
+	res=(*pChangeDisplaySettingsExA)(NULL, &CurrentDevMode, NULL, CDS_UPDATEREGISTRY, NULL);
 	if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 }
 
@@ -1132,7 +1070,7 @@ static void LockScreenMode(DWORD dmPelsWidth, DWORD dmPelsHeight, DWORD dmBitsPe
 	if( (dmPelsWidth != InitDevMode.dmPelsWidth) ||
 		(dmPelsHeight !=InitDevMode.dmPelsHeight) ||
 		(dmBitsPerPel != InitDevMode.dmBitsPerPel)){
-		res=(*pChangeDisplaySettingsA)(&InitDevMode, 0);
+		res=(*pChangeDisplaySettingsExA)(NULL, &InitDevMode, NULL, 0, NULL);
 		if(res) OutTraceE("ChangeDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 }
@@ -1615,11 +1553,55 @@ FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
 
 void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 {
-	void *tmp;
 	for(; Hooks->APIName; Hooks++){
-		tmp = HookAPI(hModule, DLLName, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
-		if(tmp && Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)tmp;
+		//tmp = HookAPI(hModule, DLLName, Hooks->HookStatus, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
+		//if(tmp && Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)tmp;
+
+		void *remapped_addr;
+
+		if(Hooks->HookStatus == HOOK_HOT_LINKED) continue; // skip any hot-linked entry
+
+		//if(dxw.dwTFlags & OUTIMPORTTABLE) OutTrace("HookAPI: module=%x dll=%s apiproc=%x apiname=%s hookproc=%x\n", 
+		//	module, dll, apiproc, apiname, hookproc);
+
+		//if(!*apiname) { // check
+		//	char *sMsg="HookAPI: NULL api name\n";
+		//	OutTraceE(sMsg);
+		//	if (IsAssertEnabled) MessageBox(0, sMsg, "HookAPI", MB_OK | MB_ICONEXCLAMATION);
+		//	continue;
+		//}
+
+		if((((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
+			((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED))) // force hot patch and not already hooked
+			&&
+			(Hooks->OriginalAddress && Hooks->StoreAddress)){							 // API address and save ptr available
+			// Hot Patch
+			remapped_addr = HotPatch(Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
+			if(remapped_addr == (void *)1) { // should never go here ...
+				Hooks->HookStatus = HOOK_HOT_LINKED;
+				continue; // already hooked
+			}
+			if(remapped_addr) {
+				Hooks->HookStatus = HOOK_HOT_LINKED;
+				*(Hooks->StoreAddress) = (FARPROC)remapped_addr;
+				continue;
+			}
+		}
+
+		remapped_addr = IATPatch(hModule, DLLName, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
+		if(remapped_addr)  {
+			Hooks->HookStatus = HOOK_IAT_LINKED;
+			if (Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)remapped_addr;
+		}
 	}
+}
+
+BOOL IsHotPatched(HookEntry_Type *Hooks, char *ApiName)
+{
+	for(; Hooks->APIName; Hooks++){
+		if(!strcmp(Hooks->APIName, ApiName)) return (Hooks->HookStatus == HOOK_HOT_LINKED);
+	}
+	return FALSE;
 }
 
 void HookLibInit(HookEntry_Type *Hooks)

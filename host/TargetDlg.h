@@ -46,6 +46,7 @@ public:
 	//BOOL	m_HandleDC;
 	BOOL	m_UnNotify;
 	BOOL	m_Windowize;
+	BOOL	m_HotPatch;
 	BOOL	m_HookDLLs;
 	BOOL	m_EmulateRegistry;
 	BOOL	m_FullScreenOnly;
@@ -111,6 +112,7 @@ public:
 	BOOL	m_FineTiming;
 	BOOL	m_ReleaseMouse;
 	BOOL	m_FrameCompensation;
+	BOOL	m_EnableHotKeys;
 	BOOL	m_InterceptRDTSC;
 	BOOL	m_HookOpenGL;
 	BOOL	m_ForceHookOpenGL;
@@ -131,6 +133,7 @@ public:
 	BOOL	m_ZBufferClean;
 	BOOL	m_ZBuffer0Clean;
 	BOOL	m_ZBufferAlways;
+	BOOL	m_HotPatchAlways;
 	BOOL	m_NoPower2Fix;
 	BOOL	m_NoPerfCounter;
 	BOOL	m_DisableFogging;

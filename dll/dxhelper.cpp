@@ -1680,3 +1680,17 @@ char *ExplainRenderstateValue(DWORD Value)
 	}
 	return p;
 }
+
+char *ExplainWfPFlags(DWORD c)
+{
+	static char eb[128];
+	unsigned int l;
+	strcpy(eb,"CWP_");
+	if(c & CWP_SKIPDISABLED) strcat(eb, "SKIPDISABLED+");
+	if(c & CWP_SKIPINVISIBLE) strcat(eb, "SKIPINVISIBLE+");
+	if(c & CWP_SKIPTRANSPARENT) strcat(eb, "SKIPTRANSPARENT+");
+	l=strlen(eb);
+	if (l>strlen("CWP_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"CWP_ALL");
+	return(eb);
+}

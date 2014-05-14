@@ -8,28 +8,28 @@
 #undef DXWDECLARATIONS
 
 static HookEntry_Type Hooks[]={
-	{"glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
-	{"glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
-	{"glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
-	{"glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
-	{"glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
-	{"glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
-	{"glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
-	{"wglCreateContext", NULL, (FARPROC *)&pwglCreateContext, (FARPROC)extwglCreateContext},
-	{"wglMakeCurrent", NULL, (FARPROC *)&pwglMakeCurrent, (FARPROC)extwglMakeCurrent},
-	{"wglGetProcAddress", NULL, (FARPROC *)&pwglGetProcAddress, (FARPROC)extwglGetProcAddress},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
+	{HOOK_IAT_CANDIDATE, "glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
+	{HOOK_IAT_CANDIDATE, "glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
+	{HOOK_IAT_CANDIDATE, "glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
+	{HOOK_IAT_CANDIDATE, "glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
+	{HOOK_IAT_CANDIDATE, "glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
+	{HOOK_IAT_CANDIDATE, "glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
+	{HOOK_IAT_CANDIDATE, "wglCreateContext", NULL, (FARPROC *)&pwglCreateContext, (FARPROC)extwglCreateContext},
+	{HOOK_IAT_CANDIDATE, "wglMakeCurrent", NULL, (FARPROC *)&pwglMakeCurrent, (FARPROC)extwglMakeCurrent},
+	{HOOK_IAT_CANDIDATE, "wglGetProcAddress", NULL, (FARPROC *)&pwglGetProcAddress, (FARPROC)extwglGetProcAddress},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type wglHooks[]={
-	{"glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
-	{"glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
-	{"glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
-	{"glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
-	{"glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
-	{"glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
-	{"glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
-	{0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
+	{HOOK_IAT_CANDIDATE, "glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
+	{HOOK_IAT_CANDIDATE, "glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
+	{HOOK_IAT_CANDIDATE, "glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
+	{HOOK_IAT_CANDIDATE, "glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
+	{HOOK_IAT_CANDIDATE, "glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
+	{HOOK_IAT_CANDIDATE, "glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)

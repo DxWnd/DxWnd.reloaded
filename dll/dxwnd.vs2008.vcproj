@@ -365,6 +365,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hotpatch.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\iatpatch.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\imelib.cpp"
 				>
 			</File>

@@ -116,6 +116,7 @@ public: // methods
 	void RenewTimers();
 	BOOL CheckScreenResolution(unsigned int, unsigned int);
 	LARGE_INTEGER StretchLargeCounter(LARGE_INTEGER);
+	UINT MapKeysConfig(UINT, LPARAM, WPARAM);
 
 public: // simple data variables
 	BOOL Windowize;
@@ -169,6 +170,7 @@ private:
 	void ShowFPS(HDC);
 	void ShowTimeStretching(HDC);
 	TimerEvent_Type TimerEvent;
+	void MapKeysInit();
 };
 
 extern dxwCore dxw;
@@ -211,3 +213,16 @@ typedef enum {
 	SYSLIBIDX_MAX } 
 enum_syslibraries;
 
+typedef enum {
+	DXVK_NONE=0,
+	DXVK_CLIPTOGGLE,
+	DXVK_REFRESH,
+	DXVK_LOGTOGGLE,
+	DXVK_PLOCKTOGGLE,
+	DXVK_FPSTOGGLE,
+	DXVK_TIMEFAST,
+	DXVK_TIMESLOW,
+	DXVK_TIMETOGGLE,
+	DXVK_ALTF4,
+	DXVK_SIZE
+};
