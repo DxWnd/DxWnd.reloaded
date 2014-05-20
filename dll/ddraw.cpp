@@ -1524,7 +1524,8 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 		//OutTrace("DirectDrawCreate: drivercaps=%x(%s) emulcaps=%x(%s)\n", DriverCaps.ddsCaps, "???", EmulCaps.ddsCaps, "???");
 	}
 
-	return 0;
+	lpPrimaryDD=*lplpdd;
+	return DD_OK;
 }
 
 HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
@@ -1586,9 +1587,19 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	OutTraceDDRAW("DirectDrawCreateEx: lpdd=%x guid=%s DDVersion=%d\n", *lplpdd, mode, dxw.dwDDVersion);
 
 	HookDDSession(lplpdd, dxw.dwDDVersion);
-	lpPrimaryDD=*lplpdd;
 
-	return 0;
+	if(IsDebug && (dxw.dwTFlags & OUTPROXYTRACE)){
+		DDCAPS DriverCaps, EmulCaps;
+		memset(&DriverCaps, 0, sizeof(DriverCaps));
+		DriverCaps.dwSize=sizeof(DriverCaps);
+		memset(&EmulCaps, 0, sizeof(EmulCaps));
+		EmulCaps.dwSize=sizeof(EmulCaps);
+		(LPDIRECTDRAW)(*lplpdd)->GetCaps(&DriverCaps, &EmulCaps);
+		//OutTrace("DirectDrawCreate: drivercaps=%x(%s) emulcaps=%x(%s)\n", DriverCaps.ddsCaps, "???", EmulCaps.ddsCaps, "???");
+	}
+
+	lpPrimaryDD=*lplpdd;
+	return DD_OK;
 }
 
 HRESULT WINAPI extInitialize(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
@@ -3766,9 +3777,10 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	}
 
 	res=(*pUnlock)(lpdds, lprect);
+	if(res==DDERR_NOTLOCKED) res=DD_OK; // ignore not locked error
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
 	if (IsPrim && res==DD_OK) sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
-	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	return res;
 }
 
@@ -3807,23 +3819,24 @@ HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSUR
 	}
 
 	if(dxw.dwFlags1 & LOCKEDSURFACE){
-	(*pGetGDISurface)(lpPrimaryDD, &lpDDSPrim);
-		if(lpdds==lpDDSPrim){
-		RECT client;
-		POINT upleft={0,0};
-		(*pGetClientRect)(dxw.GethWnd(), &client);
-		(*pClientToScreen)(dxw.GethWnd(), &upleft);
-		if (!lprect) lprect=&client;
-		OffsetRect(lprect, upleft.x, upleft.y);
-		res=(*pUnlock)((LPDIRECTDRAWSURFACE)lpDDSBuffer, lprect);
-		(*pBlt)(lpdds, lprect, (LPDIRECTDRAWSURFACE)lpDDSBuffer, NULL, DDBLT_WAIT, 0);
-		if(lpDDSBuffer) (*pReleaseS)((LPDIRECTDRAWSURFACE)lpDDSBuffer);
-		lpDDSBuffer = NULL;
-	}
+		(*pGetGDISurface)(lpPrimaryDD, &lpDDSPrim);
+		if(lpdds==lpDDSPrim && lpDDSBuffer){
+			RECT client;
+			POINT upleft={0,0};
+			(*pGetClientRect)(dxw.GethWnd(), &client);
+			(*pClientToScreen)(dxw.GethWnd(), &upleft);
+			if (!lprect) lprect=&client;
+			OffsetRect(lprect, upleft.x, upleft.y);
+			res=(*pUnlock)((LPDIRECTDRAWSURFACE)lpDDSBuffer, lprect);
+			(*pBlt)(lpdds, lprect, (LPDIRECTDRAWSURFACE)lpDDSBuffer, NULL, DDBLT_WAIT, 0);
+			(*pReleaseS)((LPDIRECTDRAWSURFACE)lpDDSBuffer);
+			lpDDSBuffer = NULL;
+		}
 		(*pReleaseS)(lpDDSPrim); // to leave a correct refcount 
 	}
 
 	res=(*pUnlock)(lpdds, lprect);
+	if(res==DDERR_NOTLOCKED) res=DD_OK; // ignore not locked error
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
 	if (IsPrim && res==DD_OK) sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;

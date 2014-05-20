@@ -146,6 +146,7 @@ public:
 	BOOL	m_NoAlphaChannel;
 	BOOL	m_FixRefCounter;
 	BOOL	m_ReturnNullRef;
+	BOOL	m_NoD3DReset;
 	BOOL	m_SuppressChild;
 	BOOL	m_HideDesktop;
 	BOOL	m_LockSysColors;

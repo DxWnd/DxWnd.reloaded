@@ -46,6 +46,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_NoAlphaChannel = FALSE;
 	m_FixRefCounter = TRUE;
 	m_ReturnNullRef = FALSE;
+	m_NoD3DReset = FALSE;
 	m_SuppressChild = FALSE;
 	m_HideDesktop = FALSE;
 	m_LockSysColors = FALSE;

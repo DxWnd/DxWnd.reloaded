@@ -19,16 +19,25 @@ typedef struct {
 
 #define MAXWNDHSTACK 256
 
-wndstack_entry WhndStack[MAXWNDHSTACK];
+wndstack_entry *WhndStack;
 static int WhndTOS = 0;
+static int WhndSize = 0;
 
 void WhndStackInit()
 {
+	WhndSize = MAXWNDHSTACK;
+	WhndStack = (wndstack_entry *)malloc(WhndSize * sizeof(wndstack_entry));
 }
 
 void WhndStackPush(HWND hwnd, WNDPROC wndproc)
 {
 	int StackIdx;
+
+	if(WhndTOS == WhndSize){
+		WhndSize += MAXWNDHSTACK;
+		WhndStack = (wndstack_entry *)realloc(WhndStack, WhndSize * sizeof(wndstack_entry));
+		//OutTraceDW("DEBUG: WNDPROC STACK new size=%d\n", WhndSize);
+	}
 	// wndproc values of 0xFFFFxxxx type seems to be error codes rather than valid callback addresses ....
 	// v2.02.36 using CallWindowProc you can pass WinProc handles, so you don't need to eliminate them!
 	//if (((DWORD)wndproc & 0xFFFF0000) == 0xFFFF0000) return;
@@ -40,12 +49,6 @@ void WhndStackPush(HWND hwnd, WNDPROC wndproc)
 			return;
 		}
 	// push if not already there.
-		if(WhndTOS>=MAXWNDHSTACK) {
-			char sMsg[80];
-			sprintf(sMsg, "Table overflow: %d entries used", MAXWNDHSTACK);
-			MessageBox(0, sMsg, "WhndStackPush", MB_OK | MB_ICONEXCLAMATION);
-			return;
-		}
 	WhndStack[WhndTOS].hwnd=hwnd;
 	WhndStack[WhndTOS].wndproc=wndproc;
 	WhndTOS++;
@@ -54,7 +57,7 @@ void WhndStackPush(HWND hwnd, WNDPROC wndproc)
 WNDPROC WhndGetWindowProc(HWND hwnd)
 {
 	int StackIdx;
-	for(StackIdx=0; StackIdx<MAXWNDHSTACK; StackIdx++) if (WhndStack[StackIdx].hwnd==hwnd) {
+	for(StackIdx=0; StackIdx<WhndTOS; StackIdx++) if (WhndStack[StackIdx].hwnd==hwnd) {
 		//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=%x\n", hwnd, WhndStack[StackIdx].wndproc);
 		return WhndStack[StackIdx].wndproc;
 	}

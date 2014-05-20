@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.74"
+#define VERSION "2.02.75"
 
 #define DDTHREADLOCK 1
 
@@ -64,7 +64,11 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
 	DisableThreadLibraryCalls((HMODULE)hmodule);
 	hMapping = CreateFileMapping((HANDLE)0xffffffff, NULL, PAGE_READWRITE,
 		0, sizeof(DxWndStatus)+sizeof(TARGETMAP)*MAXTARGETS, "UniWind_TargetList");
+	if(!hMapping) return false;
+	// v2.0.2.75: beware: some tasks (namely, Flash player) get dxwnd.dll loaded, but can't create the file mapping
+	// this situation has to be intercepted, or it can cause the dll to cause faults that may crash the program.
 	pStatus = (DXWNDSTATUS *)MapViewOfFile(hMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(DXWNDSTATUS)+sizeof(TARGETMAP)*MAXTARGETS);
+	if(!pStatus) return false;
 	pMapping = (TARGETMAP *)((char *)pStatus + sizeof(DXWNDSTATUS));
 	hMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, "UniWind_Mutex");
 	if(!hMutex) hMutex = CreateMutex(0, FALSE, "UniWind_Mutex");

@@ -184,6 +184,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
 	if(dlg->m_FixRefCounter) t->flags4 |= FIXREFCOUNTER;
 	if(dlg->m_ReturnNullRef) t->flags4 |= RETURNNULLREF;
+	if(dlg->m_NoD3DReset) t->flags4 |= NOD3DRESET;
 	if(dlg->m_SuppressChild) t->flags4 |= SUPPRESSCHILD;
 	if(dlg->m_HideDesktop) t->flags4 |= HIDEDESKTOP;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
@@ -342,6 +343,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
 	dlg->m_FixRefCounter = t->flags4 & FIXREFCOUNTER ? 1 : 0;
 	dlg->m_ReturnNullRef = t->flags4 & RETURNNULLREF ? 1 : 0;
+	dlg->m_NoD3DReset = t->flags4 & NOD3DRESET ? 1 : 0;
 	dlg->m_SuppressChild = t->flags4 & SUPPRESSCHILD ? 1 : 0;
 	dlg->m_HideDesktop = t->flags4 & HIDEDESKTOP ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
@@ -823,6 +825,8 @@ void CDxwndhostView::OnDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
+static char ImportExportPath[4096] = {0};
+
 void CDxwndhostView::OnExport()
 {
 	int i;
@@ -851,21 +855,23 @@ void CDxwndhostView::OnImport()
 	path[0]=0;
 	CListCtrl& listctrl = GetListCtrl();
 	
-	char buffer[4096] = {0};
+	//static char buffer[4096] = {0};
+	//static char dirbuffer[4096] = {0};
 	char folder[MAX_PATH+1];
 	char pathname[MAX_PATH+1];
 	OPENFILENAME ofn = {0};
 	ofn.lStructSize = sizeof(ofn);
-	ofn.lpstrFile = (LPSTR)buffer;
+	ofn.lpstrFile = (LPSTR)ImportExportPath;
+	//ofn.lpstrInitialDir = (LPSTR)dirbuffer;
 	ofn.nMaxFile = 4096;
 	ofn.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 	ofn.lpstrDefExt = "dxw";
 
 	if(GetOpenFileName(&ofn)){
-		if(buffer[ofn.nFileOffset - 1] != '\0'){
+		if(ImportExportPath[ofn.nFileOffset - 1] != '\0'){
 			// Single-Select
 			// "buffer" - name of file
-			LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, buffer);
+			LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, ImportExportPath);
 			listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 			listitem.iItem = i;
 			listitem.iSubItem = 0;
@@ -875,7 +881,7 @@ void CDxwndhostView::OnImport()
 		}
 		else{
 			// Multi-Select
-			char* p = buffer;
+			char* p = ImportExportPath;
 			strcpy(folder, p);
 			strcat(folder, "\\");
 			p += lstrlen((LPSTR)p) + 1;

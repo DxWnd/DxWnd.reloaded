@@ -806,7 +806,7 @@ HRESULT WINAPI extD3DGetCaps(void *d3dd, LPD3DDEVICEDESC lpd3dd ,LPD3DDEVICEDESC
 HRESULT WINAPI extSetRenderState(SetRenderState3_Type pSetRenderState, int version, void *d3dd, D3DRENDERSTATETYPE State, DWORD Value)
 {
 	HRESULT res;
-	OutTraceD3D("SetRenderState(%d): d3dd=%x State=%x(%s) Value=%x\n", version, d3dd, State, ExplainD3DRenderState(State), Value);
+	OutTraceB("SetRenderState(%d): d3dd=%x State=%x(%s) Value=%x\n", version, d3dd, State, ExplainD3DRenderState(State), Value);
 
 	if((dxw.dwFlags4 & ZBUFFERALWAYS) && (State == D3DRENDERSTATE_ZFUNC)) {
 		OutTraceD3D("SetRenderState: FIXED State=ZFUNC Value=%s->D3DCMP_ALWAYS\n", ExplainRenderstateValue(Value));

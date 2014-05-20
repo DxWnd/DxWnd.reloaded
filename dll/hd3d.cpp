@@ -41,6 +41,8 @@ typedef void	(WINAPI *SetGammaRamp_Type)(void *, UINT, DWORD, D3DGAMMARAMP *);
 typedef void	(WINAPI *GetGammaRamp_Type)(void *, UINT, D3DGAMMARAMP *);
 typedef void	(WINAPI *SetCursorPosition9_Type)(void *, int, int, DWORD);
 typedef void	(WINAPI *SetCursorPosition8_Type)(void *, int, int, DWORD);
+typedef BOOL	(WINAPI *ShowCursor8_Type)(void *, BOOL);
+typedef BOOL	(WINAPI *ShowCursor9_Type)(void *, BOOL);
 typedef HRESULT (WINAPI *SetTexture8_Type)(void *, DWORD, void *);
 typedef HRESULT (WINAPI *SetTexture9_Type)(void *, DWORD, void *);
 
@@ -95,6 +97,8 @@ void	WINAPI extSetGammaRamp(void *, UINT, DWORD, D3DGAMMARAMP *);
 void	WINAPI extGetGammaRamp(void *, UINT, D3DGAMMARAMP *);
 void	WINAPI extSetCursorPosition9(void *, int, int, DWORD);
 void	WINAPI extSetCursorPosition8(void *, int, int, DWORD);
+BOOL	WINAPI extShowCursor8(void *, BOOL);
+BOOL	WINAPI extShowCursor9(void *, BOOL);
 ULONG WINAPI extAddRef9(void *);
 ULONG WINAPI extRelease9(void *);
 BOOL  WINAPI voidDisableD3DSpy(void);
@@ -154,6 +158,8 @@ SetGammaRamp_Type pSetGammaRamp = 0;
 GetGammaRamp_Type pGetGammaRamp = 0;
 SetCursorPosition9_Type pSetCursorPosition9 = 0;
 SetCursorPosition8_Type pSetCursorPosition8 = 0;
+ShowCursor8_Type pShowCursor8 = 0;
+ShowCursor9_Type pShowCursor9 = 0;
 
 CreateRenderTarget8_Type pCreateRenderTarget8 = 0;
 BeginScene_Type pBeginScene8 = 0;
@@ -460,6 +466,7 @@ void HookD3DDevice8(void** ppD3Ddev8)
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 24), extGetDirect3D8, (void **)&pGetDirect3D8, "GetDirect3D(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 32), extGetDisplayMode8, (void **)&pGetDisplayMode8, "GetDisplayMode(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 44), extSetCursorPosition8, (void **)&pSetCursorPosition8, "SetCursorPosition(D8)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 48), extShowCursor8, (void **)&pShowCursor8, "ShowCursor(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 56), extReset, (void **)&pReset, "Reset(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 60), extPresent, (void **)&pPresent, "Present(D8)");
@@ -491,6 +498,7 @@ void HookD3DDevice9(void** ppD3Ddev9)
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 24), extGetDirect3D9, (void **)&pGetDirect3D9, "GetDirect3D(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 32), extGetDisplayMode9, (void **)&pGetDisplayMode9, "GetDisplayMode(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 44), extSetCursorPosition9, (void **)&pSetCursorPosition9, "SetCursorPosition(D9)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 48), extShowCursor9, (void **)&pShowCursor9, "ShowCursor(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 52), extCreateAdditionalSwapChain, (void **)&pCreateAdditionalSwapChain, "CreateAdditionalSwapChain(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 64), extReset, (void **)&pReset, "Reset(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 68), extPresent, (void **)&pPresent, "Present(D9)");
@@ -711,18 +719,22 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 		}
 	}
 
-	res = (*pReset)(pd3dd, (D3DPRESENT_PARAMETERS *)param);
-	if(res){
-		OutTraceDW("FAILED! %x\n", res);
-		return res;
+	if(!(dxw.dwFlags4 & NOD3DRESET)){ 
+		res = (*pReset)(pd3dd, (D3DPRESENT_PARAMETERS *)param);
+		if(res == D3DERR_INVALIDCALL){
+			OutTraceDW("FAILED! D3DERR_INVALIDCALL\n", res);
+			return D3DERR_INVALIDCALL;
+		}
+		if(res){
+			OutTraceDW("FAILED! %x\n", res);
+			return res;
+		}
+		OutTraceDW("SUCCESS!\n");
+		(dwD3DVersion == 8) ? HookD3DDevice8(&pd3dd) : HookD3DDevice9(&pd3dd);
 	}
-	OutTraceDW("SUCCESS!\n");
-
-	if(dwD3DVersion == 8){ 
-		HookD3DDevice8(&pd3dd);
-	}
-	else {
-		HookD3DDevice9(&pd3dd);
+	else{
+		OutTraceDW("SKIPPED!\n");
+		res=D3D_OK;
 	}
 
 	dxw.SetScreenSize(pPresParam->BackBufferWidth, pPresParam->BackBufferHeight);
@@ -1520,4 +1532,32 @@ ULONG WINAPI extSetTexture9(void *lpd3dd, DWORD Stage, void* pTexture)
 	(*pSetTexture9)(lpd3dd, Stage, NULL);
 	OutTraceD3D("Device::SetTexture(9): d3dd=%x stage=%x\n", lpd3dd, Stage);
 	return DD_OK;
+}
+
+BOOL WINAPI extShowCursor8(void *lpd3dd, BOOL bShow)
+{
+	BOOL res, bNew;
+	bNew=bShow;
+	if(dxw.dwFlags2 & SHOWHWCURSOR) bNew=TRUE;
+	if(dxw.dwFlags1 & HIDEHWCURSOR) bNew=FALSE;
+	res=(*pShowCursor8)(lpd3dd, bNew);
+	if(bNew==bShow)
+		OutTraceD3D("Device::ShowCursor(8): d3dd=%x show=%x res=%x\n", lpd3dd, bNew, res);
+	else
+		OutTraceD3D("Device::ShowCursor(8): d3dd=%x show=%x->%x res=%x\n", lpd3dd, bShow, bNew, res);
+	return res;
+}
+
+BOOL WINAPI extShowCursor9(void *lpd3dd, BOOL bShow)
+{
+	BOOL res, bNew;
+	bNew=bShow;
+	if(dxw.dwFlags2 & SHOWHWCURSOR) bNew=TRUE;
+	if(dxw.dwFlags1 & HIDEHWCURSOR) bNew=FALSE;
+	res=(*pShowCursor9)(lpd3dd, bNew);
+	if(bNew==bShow)
+		OutTraceD3D("Device::ShowCursor(9): d3dd=%x show=%x res=%x\n", lpd3dd, bNew, res);
+	else
+		OutTraceD3D("Device::ShowCursor(9): d3dd=%x show=%x->%x res=%x\n", lpd3dd, bShow, bNew, res);
+	return res;
 }

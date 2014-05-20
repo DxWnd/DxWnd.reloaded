@@ -29,6 +29,7 @@ static LARGE_INTEGER TimeShifter64Coarse(LARGE_INTEGER, int);
 dxwCore::dxwCore()
 {
 	// initialization stuff ....
+	extern void WhndStackInit();
 	FullScreen=FALSE;
 	SethWnd(NULL);
 	SetScreenSize();
@@ -43,6 +44,7 @@ dxwCore::dxwCore()
 	ResetEmulatedDC();
 	MustShowOverlay=FALSE;
 	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
+	WhndStackInit();
 }
 
 dxwCore::~dxwCore()
@@ -1130,6 +1132,10 @@ void dxwCore::ShowOverlay(HDC hdc)
 //	lpdds->ReleaseDC(hdc);
 //}
 
+// nasty global to ensure that the corner is picked semi-random, but never overlapped
+// between FPS and TimeStretch (and, as a side effect, never twice the same!)
+static int LastCorner;
+
 void dxwCore::ShowFPS(HDC xdc)
 {
 	char sBuf[81];
@@ -1142,6 +1148,8 @@ void dxwCore::ShowFPS(HDC xdc)
 		RECT rect;
 		dwTimer = (*pGetTickCount)();
 		corner = dwTimer % 4;
+		if(corner==LastCorner) corner = (corner+1) % 4;
+		LastCorner = corner;
 		color=0xFF0000; // blue
 		(*pGetClientRect)(hWnd, &rect);
 		switch (corner) {
@@ -1194,6 +1202,8 @@ void dxwCore::ShowTimeStretching(HDC xdc)
 		dwTimer = (*pGetTickCount)();
 		LastTimeShift=TimeShift;
 		corner = dwTimer % 4;
+		if(corner==LastCorner) corner = (corner+1) % 4;
+		LastCorner = corner;
 		color=0x0000FF; // red
 		(*pGetClientRect)(hWnd, &rect);
 		switch (corner) {
@@ -1651,58 +1661,37 @@ BOOL dxwCore::CheckScreenResolution(unsigned int w, unsigned int h)
 	return TRUE;
 }
 
-#ifdef COMPATIBLEMODE
-void dxwCore::MapKeysInit(){}
-
-UINT dxwCore::MapKeysConfig(UINT message, LPARAM lparam, WPARAM wparam)
-{
-	int vkey;
-	char *caption;
-	if(message!=WM_SYSKEYDOWN) return DXVK_NONE;
-	switch(wparam){
-		case VK_F12: vkey=DXVK_CLIPTOGGLE; caption="CLIPCURSORTOGGLE"; break;
-		case VK_F11: vkey=DXVK_REFRESH; caption="REFRESH"; break;
-		case VK_F10: vkey=DXVK_LOGTOGGLE; caption="LOGTOGGLE"; break;
-		case VK_F9:  vkey=DXVK_PLOCKTOGGLE; caption="POSITIONLOCKTOGGLE"; break;
-		case VK_F7:  vkey=DXVK_FPSTOGGLE; caption="FPSTOGGLE"; break;
-		case VK_F6:  vkey=DXVK_TIMEFAST; caption="TIMESTRETCHFAST"; break;
-		case VK_F5:  vkey=DXVK_TIMESLOW; caption="TIMESTRETCHSLOW"; break;
-		case VK_F4:  vkey=DXVK_ALTF4; caption="ALTF4"; break;
-		default:	 vkey=DXVK_NONE; break;
-	}
-	if(vkey) OutTraceDW("MapKeysConfig: ret=%x(%s)\n", vkey);
-	return vkey;
-}
-#else
 UINT VKeyConfig[DXVK_SIZE];
 
-void dxwCore::MapKeysInit()
+static char *VKeyLabels[DXVK_SIZE]={
+	"none",
+	"cliptoggle", 
+	"refresh", 
+	"logtoggle", 
+	"plocktoggle",
+	"fpstoggle", 
+	"timefast", 
+	"timeslow", 
+	"timetoggle", 
+	"altf4"
+};
 
+void dxwCore::MapKeysInit()
 {
 	char InitPath[MAX_PATH];
 	char *p;
 	DWORD dwAttrib;	
-
+	int KeyIdx;
 	dwAttrib = GetFileAttributes("dxwnd.dll");
 	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return;
 	GetModuleFileName(GetModuleHandle("dxwnd"), InitPath, MAX_PATH);
 	p=&InitPath[strlen(InitPath)-strlen("dxwnd.dll")];
 	strcpy(p, "dxwnd.ini");
 	VKeyConfig[DXVK_NONE]=DXVK_NONE;
-	VKeyConfig[DXVK_CLIPTOGGLE]=	GetPrivateProfileInt("keymapping", "cliptoggle", 0, InitPath);
-	VKeyConfig[DXVK_REFRESH]=		GetPrivateProfileInt("keymapping", "refresh", 0, InitPath);
-	VKeyConfig[DXVK_LOGTOGGLE]=		GetPrivateProfileInt("keymapping", "logtoggle", 0, InitPath);
-	VKeyConfig[DXVK_PLOCKTOGGLE]=	GetPrivateProfileInt("keymapping", "plocktoggle", 0, InitPath);
-	VKeyConfig[DXVK_FPSTOGGLE]=		GetPrivateProfileInt("keymapping", "fpstoggle", 0, InitPath);
-	VKeyConfig[DXVK_TIMEFAST]=		GetPrivateProfileInt("keymapping", "timefast", 0, InitPath);
-	VKeyConfig[DXVK_TIMESLOW]=		GetPrivateProfileInt("keymapping", "timeslow", 0, InitPath);
-	VKeyConfig[DXVK_TIMETOGGLE]=	GetPrivateProfileInt("keymapping", "timetoggle", 0, InitPath);
-	VKeyConfig[DXVK_ALTF4]=			GetPrivateProfileInt("keymapping", "altf4", 0x73, InitPath); 
-
-	int idx;
-	for(idx=1; idx<DXVK_SIZE; idx++) OutTrace("keymapping %d=%x\n", idx, VKeyConfig[idx]);
-	OutTrace("\n");
-
+	for(KeyIdx=1; KeyIdx<DXVK_SIZE; KeyIdx++){
+		VKeyConfig[KeyIdx]=GetPrivateProfileInt("keymapping", VKeyLabels[KeyIdx], KeyIdx==DXVK_ALTF4 ? 0x73 : 0x00, InitPath);
+		OutTrace("keymapping[%d](%s)=%x\n", KeyIdx, VKeyLabels[KeyIdx], VKeyConfig[KeyIdx]);
+	}
 }
 
 UINT dxwCore::MapKeysConfig(UINT message, LPARAM lparam, WPARAM wparam)
@@ -1715,4 +1704,3 @@ UINT dxwCore::MapKeysConfig(UINT message, LPARAM lparam, WPARAM wparam)
 		}
 	return DXVK_NONE;
 }
-#endif

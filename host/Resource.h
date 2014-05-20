@@ -217,6 +217,7 @@
 #define IDC_HOTPATCH                    1179
 #define IDC_ENABLEHOTKEYS               1180
 #define IDC_HOTPATCHALWAYS              1181
+#define IDC_NOD3DRESET                  1182
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773

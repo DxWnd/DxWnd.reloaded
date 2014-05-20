@@ -15,9 +15,9 @@ static HookEntry_Type Hooks[]={
 };
 
 static HookEntry_Type TimeHooks[]={
-	{HOOK_IAT_CANDIDATE, "timeGetTime", NULL, (FARPROC *)&ptimeGetTime, (FARPROC)exttimeGetTime},
-	{HOOK_IAT_CANDIDATE, "timeKillEvent", NULL, (FARPROC *)&ptimeKillEvent, (FARPROC)exttimeKillEvent},
-	{HOOK_IAT_CANDIDATE, "timeSetEvent", NULL, (FARPROC *)&ptimeSetEvent, (FARPROC)exttimeSetEvent},
+	{HOOK_HOT_CANDIDATE, "timeGetTime", NULL, (FARPROC *)&ptimeGetTime, (FARPROC)exttimeGetTime},
+	{HOOK_HOT_CANDIDATE, "timeKillEvent", NULL, (FARPROC *)&ptimeKillEvent, (FARPROC)exttimeKillEvent},
+	{HOOK_HOT_CANDIDATE, "timeSetEvent", NULL, (FARPROC *)&ptimeSetEvent, (FARPROC)exttimeSetEvent},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 

@@ -493,3 +493,10 @@ fix: eliminated dialogs with timer warning messages (to be investigated...)
 fix: moved "no banner" flag to main tab again
 fix: potential string violation, possible cause for flash crash?
 
+v2.02.75
+Hooked D3DDevice::ShowCursor method to apply force show/hide cursor (preliminary...)
+fix: dynamic allocation for WndProc stack to eliminate predefined limit of 256 entries. Star Wars Rebellion uses more than 256.
+added: "Suppress D3D8/9 Reset" flag
+fix: improved show FPS and Time Stretch overlay so that the two overlays won't overlap each other
+fix: bug in ddraw "Locked surface" mode preventing output on screen
+fix: fixed bug in critical common portion of the code that was crashing even unhooked programs (namely, Flash Player, ...)
