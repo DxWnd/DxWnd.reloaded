@@ -49,6 +49,7 @@ public:
 	BOOL	m_HotPatch;
 	BOOL	m_HookDLLs;
 	BOOL	m_EmulateRegistry;
+	BOOL	m_OverrideRegistry;
 	BOOL	m_FullScreenOnly;
 	BOOL	m_FilterMessages;
 	BOOL	m_PeekAllMessages;

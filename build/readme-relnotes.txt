@@ -500,3 +500,7 @@ added: "Suppress D3D8/9 Reset" flag
 fix: improved show FPS and Time Stretch overlay so that the two overlays won't overlap each other
 fix: bug in ddraw "Locked surface" mode preventing output on screen
 fix: fixed bug in critical common portion of the code that was crashing even unhooked programs (namely, Flash Player, ...)
+
+v2.02.76
+fixed and enhanced several features about registry emulation: added flags "Emulate registry" (to add missing entries) and "Override registry" (to fake existing entries with different values). Fixed "Requiem Avenging Angel" DirectX bogus check bug.
+fixed bug in emulate surface palette handling affecting "Requiem Avenging Angel" colors

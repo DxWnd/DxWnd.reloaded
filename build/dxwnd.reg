@@ -1,0 +1,10 @@
+# Requiem Avenging Angel: DirectX version patch
+
+[HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\DirectX]
+"Version"="4.07.00.0704"
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\DirectX]
+"Version"="4.07.00.0704"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\DirectX]
+"Version"="4.07.00.0704"

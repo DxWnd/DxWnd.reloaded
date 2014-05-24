@@ -102,7 +102,6 @@ void dxwCore::InitTarget(TARGETMAP *target)
 		pTimeShifter = TimeShifterCoarse;
 		pTimeShifter64 = TimeShifter64Coarse;
 	}
-	if(dwFlags4 & ENABLEHOTKEYS) MapKeysInit();
 }
 
 void dxwCore::SetScreenSize(void) 

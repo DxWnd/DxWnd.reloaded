@@ -49,7 +49,55 @@ static char *hKey2String(HKEY hKey)
 	return skey;
 }
 
+static FILE *OpenFakeRegistry()
+{
+	DWORD dwAttrib;	
+	char sSourcePath[MAX_PATH+1];
+	char *p;
+	dwAttrib = GetFileAttributes("dxwnd.dll");
+	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return NULL;
+	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_PATH);
+	p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
+	strcpy(p, "dxwnd.reg");
+	return fopen(sSourcePath,"r");
+}
+
 // ---------------------------------------------------------------------------------
+
+static LONG myRegOpenKeyEx(
+				HKEY hKey,
+				LPCTSTR lpSubKey,
+				PHKEY phkResult)
+{
+	FILE *regf;
+	char sKey[MAX_PATH+1];
+	char RegBuf[MAX_PATH+1];
+
+	sprintf(sKey,"%s\\%s", hKey2String(hKey), lpSubKey);
+	OutTraceDW("RegOpenKeyEx: searching for key=\"%s\"\n", sKey);
+
+	regf=OpenFakeRegistry();
+	if(regf!=NULL){
+		if(phkResult) *phkResult=HKEY_FAKE;
+		fgets(RegBuf, 256, regf);
+		while (!feof(regf)){
+			if(RegBuf[0]=='['){
+				if((!strncmp(&RegBuf[1],sKey,strlen(sKey))) && (RegBuf[strlen(sKey)+1]==']')){
+					OutTrace("RegOpenKeyEx: found fake Key=\"%s\" hkResult=%x\n", sKey, phkResult ? *phkResult : 0);
+					fclose(regf);
+					return ERROR_SUCCESS;
+				}
+				else {
+					if(phkResult) (*phkResult)--;
+				}
+			}
+			fgets(RegBuf, 256, regf);
+		}
+		fclose(regf);
+	}
+	return ERROR_FILE_NOT_FOUND;
+}
+
 
 LONG WINAPI extRegOpenKeyEx(
 				HKEY hKey,
@@ -59,36 +107,21 @@ LONG WINAPI extRegOpenKeyEx(
 				PHKEY phkResult)
 {
 	LONG res;
-	char RegBuf[256+1];
 
 	OutTraceR("RegOpenKeyEx: hKey=%x(%s) SubKey=\"%s\" Options=%x\n", 
 		hKey, hKey2String(hKey), lpSubKey, ulOptions);
-	res=(*pRegOpenKeyEx)(hKey, lpSubKey, ulOptions, samDesired, phkResult);
-	OutTraceR("RegOpenKeyEx: res=%x\n", res); 
 
-	if((res==ERROR_SUCCESS) || !(dxw.dwFlags3 & EMULATEREGISTRY)) return res;
-	
-	if(phkResult) *phkResult=HKEY_FAKE;
-	FILE *regf;
-	char sKey[256+1];
-	sprintf(sKey,"%s\\%s", hKey2String(hKey), lpSubKey);
-	OutTraceDW("RegOpenKeyEx: searching for key=\"%s\"\n", sKey);
-	regf=fopen("dxwnd.reg","r");
-	if(regf==NULL) return ERROR_FILE_NOT_FOUND;
-	fgets(RegBuf, 256, regf);
-	while (!feof(regf)){
-		if(RegBuf[0]=='['){
-			if((!strncmp(&RegBuf[1],sKey,strlen(sKey))) && (RegBuf[strlen(sKey)+1]==']')){
-				OutTrace("RegOpenKeyEx: found fake Key=\"%s\" hkResult=%x\n", sKey, *phkResult);
-				fclose(regf);
-				return ERROR_SUCCESS;
-			}
-			else (*phkResult)--;
-		}
-		fgets(RegBuf, 256, regf);
+	if(dxw.dwFlags4 & OVERRIDEREGISTRY){
+		res = myRegOpenKeyEx(hKey, lpSubKey, phkResult);
+		if(res == ERROR_SUCCESS) return res;
 	}
-	fclose(regf);
-	return ERROR_FILE_NOT_FOUND;
+
+	res=(*pRegOpenKeyEx)(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+	OutTraceR("RegOpenKeyEx: res=%x phkResult=%x\n", res, phkResult ? *phkResult : 0); 
+
+	if((res==ERROR_SUCCESS) || !(dxw.dwFlags3 & EMULATEREGISTRY) || (dxw.dwFlags4 & OVERRIDEREGISTRY)) return res;
+	
+	return myRegOpenKeyEx(hKey, lpSubKey, phkResult);
 }
 
 LONG WINAPI extRegQueryValueEx(
@@ -132,14 +165,12 @@ LONG WINAPI extRegQueryValueEx(
 		return res;
 	}
 
-	//if(!(dxw.dwFlags3 & EMULATEREGISTRY)) return res;
-
 	// try emulated registry
 	FILE *regf;
-	char RegBuf[256+1];
+	char RegBuf[MAX_PATH+1];
 	char *pData;
 	HKEY hCurKey=HKEY_FAKE+1;
-	regf=fopen("dxwnd.reg","r");
+	regf=OpenFakeRegistry();
 	if(regf==NULL) return ERROR_FILE_NOT_FOUND;
 	if(!lpValueName)lpValueName="";
 	fgets(RegBuf, 256, regf);
@@ -159,17 +190,16 @@ LONG WINAPI extRegQueryValueEx(
 					res=ERROR_FILE_NOT_FOUND;
 					pData=&RegBuf[strlen(lpValueName)+3];
 					if(*pData=='"'){ // string value
-						//strcpy((char *)lpData, &RegBuf[strlen(lpValueName)+4]);
-						//lpData[strlen((char *)lpData)-2]=0; // eliminates " and \n
-						//if(lpType) *lpType=REG_SZ;
-						//*lpcbData=strlen((char *)lpData)+1;
+						LPBYTE lpb;
+						lpb = lpData;
 						*lpcbData=0;
 						pData++;
 						while(*pData && (*pData != '"')){
 							if(*pData=='\\') pData++;
-							*lpData++=*pData++;
+							*lpb++=*pData++;
 							*lpcbData++;
 						}
+						*lpb = 0; // string terminator
 						if(lpType) *lpType=REG_SZ;
 						//
 						OutTraceDW("RegQueryValueEx: Data=\"%s\" type=REG_SZ\n", lpData);

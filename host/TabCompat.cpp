@@ -46,6 +46,10 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOTEXTURES, cTarget->m_NoTextures);
 	DDX_Check(pDX, IDC_WIREFRAME, cTarget->m_WireFrame);
 	DDX_Check(pDX, IDC_DISABLEFOGGING, cTarget->m_DisableFogging);
+
+	// Registry management
+	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
+	DDX_Check(pDX, IDC_OVERRIDEREGISTRY, cTarget->m_OverrideRegistry);
 }
 
 BEGIN_MESSAGE_MAP(CTabCompat, CDialog)

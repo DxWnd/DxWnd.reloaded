@@ -3565,7 +3565,7 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 			lpentries = (LPPALETTEENTRY)PaletteEntries;
 			res2=lpddp->GetEntries(0, 0, 256, lpentries);
 			if(res2) OutTraceE("SetPalette: GetEntries ERROR res=%x(%s)\n", res2, ExplainDDError(res2));
-			//mySetPalette(0, 256, lpentries);
+			mySetPalette(0, 256, lpentries); // v2.02.76: necessary for "Requiem Avenging Angel" in SURFACEEMULATION mode
 		}
 		// Apply palette to backbuffer surface. This is necessary on some games: "Duckman private dick", "Total Soccer 2000", ...
 		if (lpDDSBack) { 

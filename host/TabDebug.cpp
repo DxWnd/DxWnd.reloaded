@@ -40,7 +40,6 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NODDRAWFLIP, cTarget->m_NoDDRAWFlip);
 	DDX_Check(pDX, IDC_NOGDIBLT, cTarget->m_NoGDIBlt);
 	DDX_Check(pDX, IDC_NOFILLRECT, cTarget->m_NoFillRect);
-	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
 	DDX_Check(pDX, IDC_ZBUFFERALWAYS, cTarget->m_ZBufferAlways);
 	DDX_Check(pDX, IDC_HOTPATCHALWAYS, cTarget->m_HotPatchAlways);
 }

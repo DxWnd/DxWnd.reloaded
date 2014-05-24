@@ -117,6 +117,7 @@ public: // methods
 	BOOL CheckScreenResolution(unsigned int, unsigned int);
 	LARGE_INTEGER StretchLargeCounter(LARGE_INTEGER);
 	UINT MapKeysConfig(UINT, LPARAM, WPARAM);
+	void MapKeysInit();
 
 public: // simple data variables
 	BOOL Windowize;
@@ -170,7 +171,6 @@ private:
 	void ShowFPS(HDC);
 	void ShowTimeStretching(HDC);
 	TimerEvent_Type TimerEvent;
-	void MapKeysInit();
 };
 
 extern dxwCore dxw;

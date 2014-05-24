@@ -319,7 +319,7 @@ DWORD CDib::Save(CFile& file) const
 DWORD CDib::Read(CFile& file, BOOL bFromResource)
 {
 	DWORD dwReadBytes = 0;
-	DWORD dwLength = file.GetLength();
+	DWORD dwLength = (DWORD)file.GetLength();
 	
 	// Ensures no memory leaks will occur
 	Free();

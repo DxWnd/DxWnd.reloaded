@@ -72,6 +72,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HookDLLs = TRUE; // default true !!
 	m_HookEnabled = TRUE; // default true !!
 	m_EmulateRegistry = FALSE; 
+	m_OverrideRegistry = FALSE; 
 	m_FullScreenOnly = FALSE; 
 	m_FilterMessages = FALSE; 
 	m_PeekAllMessages = FALSE; 

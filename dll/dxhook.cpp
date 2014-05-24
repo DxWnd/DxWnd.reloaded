@@ -87,7 +87,7 @@ static char *Flag4Names[32]={
 	"STRETCHTIMERS", "NOFLIPEMULATION", "NOTEXTURES", "RETURNNULLREF",
 	"FINETIMING", "NATIVERES", "SUPPORTSVGA", "SUPPORTHDTV",
 	"RELEASEMOUSE", "FRAMECOMPENSATION", "HOTPATCH", "ENABLEHOTKEYS",
-	"HOTPATCHALWAYS", "", "", "",
+	"HOTPATCHALWAYS", "NOD3DRESET", "OVERRIDEREGISTRY", "",
 };
 
 static char *TFlagNames[32]={
@@ -1222,7 +1222,9 @@ void HookModule(HMODULE base, int dxversion)
 	HookDirect3D7(base, dxversion);
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
 	if(dxw.dwFlags4 & HOOKGLIDE) HookGlideLibs(base); 
-	if((dxw.dwFlags3 & EMULATEREGISTRY) || (dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
+	if( (dxw.dwFlags3 & EMULATEREGISTRY) || 
+		(dxw.dwFlags4 & OVERRIDEREGISTRY) || 
+		(dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 }
 
@@ -1428,6 +1430,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		dxw.hChildWnd=hwnd;
 		// v2.02.31: set main win either this one or the parent!
 		dxw.SethWnd((dxw.dwFlags1 & FIXPARENTWIN) ? GetParent(hwnd) : hwnd);
+		if(dxw.dwFlags4 & ENABLEHOTKEYS) dxw.MapKeysInit();
 	}
 
 	if(IsTraceDW){

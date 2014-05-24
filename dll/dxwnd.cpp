@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.75"
+#define VERSION "2.02.76"
 
 #define DDTHREADLOCK 1
 
@@ -224,8 +224,9 @@ void InjectHook()
 	for(i = 0; pMapping[i].path[0]; i ++){
 		if(!strncmp(name, pMapping[i].path, strlen(name))){
 			if (pMapping[i].flags2 & STARTDEBUG){
-				OutTrace("InjectHook: task[%d]=\"%s\" hooked\n", i, pMapping[i].path);
-				HookInit(&pMapping[i],NULL);
+					HookInit(&pMapping[i],NULL);
+					// beware: logging is possible only AFTER HookInit execution
+					OutTrace("InjectHook: task[%d]=\"%s\" hooked\n", i, pMapping[i].path);
 			}
 			break;
 		}

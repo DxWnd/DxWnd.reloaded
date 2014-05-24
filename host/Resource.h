@@ -152,6 +152,7 @@
 #define IDC_HOOKDI                      1112
 #define IDC_EMULATEREGISTRY             1113
 #define IDC_CDROMDRIVETYPE              1114
+#define IDC_OVERRIDEREGISTRY            1115
 #define IDC_NOWINDOWMOVE                1116
 #define IDC_DISABLEHAL                  1117
 #define IDC_LOCKSYSCOLORS               1118

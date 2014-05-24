@@ -36,7 +36,6 @@ void WhndStackPush(HWND hwnd, WNDPROC wndproc)
 	if(WhndTOS == WhndSize){
 		WhndSize += MAXWNDHSTACK;
 		WhndStack = (wndstack_entry *)realloc(WhndStack, WhndSize * sizeof(wndstack_entry));
-		//OutTraceDW("DEBUG: WNDPROC STACK new size=%d\n", WhndSize);
 	}
 	// wndproc values of 0xFFFFxxxx type seems to be error codes rather than valid callback addresses ....
 	// v2.02.36 using CallWindowProc you can pass WinProc handles, so you don't need to eliminate them!
