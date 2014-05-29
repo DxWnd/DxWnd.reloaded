@@ -24,14 +24,25 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 
 	// entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
 	//if(!VirtualProtect(patch_address, 7, PAGE_EXECUTE_READWRITE, &dwPrevProtect)){
-	if(!VirtualProtect(patch_address, 7, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect)){
+	if(!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect)){
 		OutTraceH("HotPatch: access denied. err=%x\n", GetLastError());
 		return (void *)0; // access denied
 	}
 
+	// some calls (QueryPerformanceCounter) are sort of hot patched already....
+	if(!memcmp( "\x90\x90\x90\x90\x90\xEB\x05\x90\x90\x90\x90\x90", patch_address, 12)){
+		*patch_address = 0xE9; // jmp (4-byte relative)
+		*((DWORD *)(patch_address + 1)) = (DWORD)hookproc - (DWORD)patch_address - 5; // relative address
+		*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
+		
+		VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
+		OutTrace("HotPatch: api=%s addr=%x->%x hook=%x\n", apiname, apiproc, orig_address, hookproc);
+		return orig_address;
+	}
+
 	// make sure it is a hotpatchable image... check for 5 nops followed by mov edi,edi
 	if(memcmp( "\x90\x90\x90\x90\x90\x8B\xFF", patch_address, 7) && memcmp( "\x90\x90\x90\x90\x90\x89\xFF", patch_address, 7)){
-		VirtualProtect( patch_address, 7, dwPrevProtect, &dwPrevProtect ); // restore protection
+		VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
 		// check it wasn't patched already
 		if((*patch_address==0xE9) && (*(WORD *)apiproc == 0xF9EB)){
 			// should never go through here ...
@@ -48,7 +59,7 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	*((DWORD *)(patch_address + 1)) = (DWORD)hookproc - (DWORD)patch_address - 5; // relative address
 	*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
 	
-	VirtualProtect( patch_address, 7, dwPrevProtect, &dwPrevProtect ); // restore protection
+	VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
 	OutTrace("HotPatch: api=%s addr=%x->%x hook=%x\n", apiname, apiproc, orig_address, hookproc);
 	return orig_address;
 }

@@ -58,9 +58,6 @@ BEGIN_MESSAGE_MAP(CTabProgram, CDialog)
 	ON_BN_CLICKED(IDC_OPEN, OnOpen)
 	ON_BN_CLICKED(IDC_OPENLAUNCH, OnOpenLaunch)
 	//}}AFX_MSG_MAP
-	//ON_BN_CLICKED(IDC_COORDINATES, &CTabProgram::OnBnClickedCoordinates)
-	//ON_BN_CLICKED(IDC_DESKTOPWORKAREA, &CTabProgram::OnBnClickedDesktopworkarea)
-	//ON_BN_CLICKED(IDC_DESKTOPCENTER, &CTabProgram::OnBnClickedDesktopcenter)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -88,19 +85,22 @@ void CTabProgram::OnOpenLaunch()
     if( dlg.DoModal() == IDOK) cTarget->m_Launch.SetWindowText(dlg.GetPathName());
 }
 
-void CTabProgram::OnBnClickedCoordinates()
+BOOL CTabProgram::OnInitDialog()
 {
-	// TODO: Add your control notification handler code here
-	//CWnd *cTarget = ((CTargetDlg *)(this->GetParent());
-	//(CButton*)(cTarget->GetDlgItem(IDC_POSX))
-}
+	HINSTANCE Hinst;
+	HICON Icon, PrevIcon;
+	CStatic *IconBox;
 
-void CTabProgram::OnBnClickedDesktopworkarea()
-{
-	// TODO: Add your control notification handler code here
-}
-
-void CTabProgram::OnBnClickedDesktopcenter()
-{
-	// TODO: Add your control notification handler code here
+	CDialog::OnInitDialog();
+	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
+	Hinst = ::LoadLibrary(cTarget->m_FilePath);
+	if(!Hinst) return TRUE;
+	Icon = ::ExtractIcon(Hinst, cTarget->m_FilePath, 0);
+	IconBox=(CStatic *)this->GetDlgItem(IDC_STATIC_ICON);
+	PrevIcon = IconBox->SetIcon(Icon);
+	if (IconBox->GetIcon() == NULL)
+		IconBox->SetIcon(::LoadIcon(NULL, IDI_ERROR));  
+	::FreeLibrary(Hinst);
+	if(PrevIcon) ::DestroyIcon(PrevIcon);
+	return TRUE;
 }

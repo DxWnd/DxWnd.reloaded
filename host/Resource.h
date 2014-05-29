@@ -219,6 +219,7 @@
 #define IDC_ENABLEHOTKEYS               1180
 #define IDC_HOTPATCHALWAYS              1181
 #define IDC_NOD3DRESET                  1182
+#define IDC_STATIC_ICON                 1183
 #define ID_MODIFY                       32771
 #define ID_DELETE                       32772
 #define ID_ADD                          32773
@@ -272,7 +273,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         32830
-#define _APS_NEXT_CONTROL_VALUE         1172
+#define _APS_NEXT_CONTROL_VALUE         1184
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

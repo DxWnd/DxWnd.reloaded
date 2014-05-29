@@ -39,9 +39,7 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnBnClickedCoordinates();
-	afx_msg void OnBnClickedDesktopworkarea();
-	afx_msg void OnBnClickedDesktopcenter();
+	BOOL OnInitDialog();
 };
 
 //{{AFX_INSERT_LOCATION}}

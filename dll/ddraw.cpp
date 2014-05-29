@@ -3021,7 +3021,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	ToPrim=dxw.IsAPrimarySurface(lpdds);
 	FromPrim=dxw.IsAPrimarySurface(lpddssrc);
 	ToScreen=ToPrim && !(dxw.dwFlags1 & EMULATESURFACE);
-	FromScreen=FromPrim && !(dxw.dwFlags1 & EMULATESURFACE);
+	FromScreen=FromPrim && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
 
 	CleanRect(&lpdestrect,__LINE__);
 	CleanRect(&lpsrcrect,__LINE__);
@@ -3365,15 +3365,19 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 			// in emulated mode, the primary surface is virtual and you can pick it all
 			// needed for "Gruntz"
 			res= (*pBlt)(lpddsTmp, NULL, lpdds, NULL, DDBLT_WAIT, NULL);
+			if(res) BlitError(res, NULL, NULL,  __LINE__);
 		}
 		else {
 			// in no-emulated mode, the primary surface is the whole screen, so you have to pick...
 			// needed for "Black Thorn"
 			RECT clip;
+			if(dxw.dwFlags1 & EMULATEBUFFER) 
+				clip=dxw.GetScreenRect();
+			else
 			clip=dxw.GetUnmappedScreenRect();
 			res= (*pBlt)(lpddsTmp, NULL, lpdds, &clip, DDBLT_WAIT, NULL);
+			if(res) BlitError(res, &clip, NULL,  __LINE__);
 		}
-		if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 	}
 
 	if(lpddssrc){

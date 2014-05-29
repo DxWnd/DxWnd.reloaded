@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.76"
+#define VERSION "2.02.77"
 
 #define DDTHREADLOCK 1
 

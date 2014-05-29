@@ -218,18 +218,18 @@ BOOL  WINAPI voidDisableD3DSpy(void)
 
 FARPROC Remap_d3d9_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
-	if (!strcmp(proc,"Direct3DCreate9") && !pDirect3DCreate9){
-		pDirect3DCreate9=(Direct3DCreate9_Type)(*pGetProcAddress)(hModule, proc);
+	if (!strcmp(proc,"Direct3DCreate9")){
+		if(!pDirect3DCreate9) pDirect3DCreate9=(Direct3DCreate9_Type)(*pGetProcAddress)(hModule, proc);
 		OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirect3DCreate9);
 		return (FARPROC)extDirect3DCreate9;
 	}
-	if (!strcmp(proc,"Direct3DCreate9Ex") && !pDirect3DCreate9Ex){
-		pDirect3DCreate9Ex=(Direct3DCreate9Ex_Type)(*pGetProcAddress)(hModule, proc);
+	if (!strcmp(proc,"Direct3DCreate9Ex")){
+		if(!pDirect3DCreate9Ex) pDirect3DCreate9Ex=(Direct3DCreate9Ex_Type)(*pGetProcAddress)(hModule, proc);
 		OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirect3DCreate9Ex);
 		return (FARPROC)extDirect3DCreate9Ex;
 	}
-	if (!strcmp(proc,"CheckFullScreen") && !pCheckFullScreen){
-		pCheckFullScreen=(CheckFullScreen_Type)(*pGetProcAddress)(hModule, proc);
+	if (!strcmp(proc,"CheckFullScreen")){
+		if(!pCheckFullScreen) pCheckFullScreen=(CheckFullScreen_Type)(*pGetProcAddress)(hModule, proc);
 		OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pCheckFullScreen);
 		return (FARPROC)extCheckFullScreen;
 	}
@@ -628,6 +628,12 @@ HRESULT WINAPI extGetAdapterIdentifier8(void *pd3dd, UINT Adapter, DWORD Flags, 
 	OutTraceD3D("GetAdapterIdentifier(8): Adapter=%d flags=%x\n", Adapter, Flags);
 	res=pGetAdapterIdentifier8(pd3dd, Adapter, Flags, pIdentifier);
 	OutTraceD3D("GetAdapterIdentifier(8): ret=%x\n", res);
+	//if(pIdentifier){
+	//	OutTraceD3D("\tDriver=%s\n", pIdentifier->Driver);
+	//	OutTraceD3D("\tDescription=%s\n", pIdentifier->Description);
+	//	OutTraceD3D("\tDeviceName=%s\n", pIdentifier->DeviceName);
+	//	OutTraceD3D("\tVersion=%x\n", pIdentifier->DriverVersion);
+	//}
 	return res;
 }
 
@@ -637,6 +643,16 @@ HRESULT WINAPI extGetAdapterIdentifier9(void *pd3dd, UINT Adapter, DWORD Flags, 
 	OutTraceD3D("GetAdapterIdentifier(9): Adapter=%d flags=%x\n", Adapter, Flags);
 	res=pGetAdapterIdentifier9(pd3dd, Adapter, Flags, pIdentifier);
 	OutTraceD3D("GetAdapterIdentifier(9): ret=%x\n", res);
+	if(pIdentifier){
+		OutTraceD3D("\tDriver=%s\n", pIdentifier->Driver);
+		OutTraceD3D("\tDescription=%s\n", pIdentifier->Description);
+		OutTraceD3D("\tDeviceName=%s\n", pIdentifier->DeviceName);
+		OutTraceD3D("\tVersion=%x\n", pIdentifier->DriverVersion);
+		OutTraceD3D("\tVendorId=%x\n", pIdentifier->VendorId);
+		OutTraceD3D("\tDeviceId=%x\n", pIdentifier->DeviceId);
+		OutTraceD3D("\tSubSysId=%x\n", pIdentifier->SubSysId);
+		OutTraceD3D("\tWHQLLevel=%x\n", pIdentifier->WHQLLevel);
+	}
 	return res;
 }
 

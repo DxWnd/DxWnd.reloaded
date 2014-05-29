@@ -504,3 +504,11 @@ fix: fixed bug in critical common portion of the code that was crashing even unh
 v2.02.76
 fixed and enhanced several features about registry emulation: added flags "Emulate registry" (to add missing entries) and "Override registry" (to fake existing entries with different values). Fixed "Requiem Avenging Angel" DirectX bogus check bug.
 fixed bug in emulate surface palette handling affecting "Requiem Avenging Angel" colors
+
+v2.02.77
+GUI: added program icon display
+fix: some log messages
+fix: handling of GetProcAddress D3D9 api 
+fix: handling of EMULATEBUFFER option - fixes "Star Trek Birth of the Federation" 
+fix: expanded hot patching scope - now can handle QueryPerformanceCounter and fix time stretching on obfuscated version of "Wind Fantasy SP"
+added logging in D3DDevice9::GetAdapterIdentifier 
