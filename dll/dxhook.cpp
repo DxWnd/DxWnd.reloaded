@@ -71,7 +71,7 @@ static char *Flag4Names[32]={
 	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
 	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
 	"NOPOWER2FIX", "NOPERFCOUNTER", "ADDPROXYLIBS", "INTERCEPTRDTSC",
-	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "",
+	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "HIDEDESKTOP",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -814,37 +814,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_NCCALCSIZE:
-		if((dxw.dwFlags1 & LOCKWINPOS) && (hwnd == dxw.GethWnd())){ // v2.02.30: don't alter child and other windows....
-			OutTraceDW("WindowProc: WS_NCCALCSIZE wparam=%x\n", wparam);
-			if(wparam){
-				// nothing so far ....
-				if (IsDebug){
-					NCCALCSIZE_PARAMS *ncp;
-					ncp = (NCCALCSIZE_PARAMS *) lparam;
-					OutTraceDW("WindowProc: WS_NCCALCSIZE rect[0]=(%d,%d)-(%d,%d)\n", 
-						ncp->rgrc[0].left, ncp->rgrc[0].top, ncp->rgrc[0].right, ncp->rgrc[0].bottom);
-					OutTraceDW("WindowProc: WS_NCCALCSIZE rect[1]=(%d,%d)-(%d,%d)\n", 
-						ncp->rgrc[1].left, ncp->rgrc[1].top, ncp->rgrc[1].right, ncp->rgrc[1].bottom);
-					OutTraceDW("WindowProc: WS_NCCALCSIZE rect[2]=(%d,%d)-(%d,%d)\n", 
-						ncp->rgrc[2].left, ncp->rgrc[2].top, ncp->rgrc[2].right, ncp->rgrc[2].bottom);
-					OutTraceDW("WindowProc: WS_NCCALCSIZE winrect=(%d,%d)-(%d,%d)\n", 
-						ncp->lppos->x, ncp->lppos->y, ncp->lppos->cx, ncp->lppos->cy);
-				}
-			}
-			else {
-				// enforce win coordinates and return 0xF0 = WVR_ALIGNTOP|WVR_ALIGNLEFT|WVR_ALIGNBOTTOM|WVR_ALIGNRIGHT;
-				LPRECT rect; 
-				rect=(LPRECT)lparam;
-				OutTraceB("WindowProc: WS_NCCALCSIZE proposed rect=(%d,%d)-(%d,%d)\n", 
-					rect->left, rect->top, rect->right, rect->bottom);
-				rect->left=dxw.iPosX;
-				rect->top=dxw.iPosY;
-				rect->right=dxw.iPosX+dxw.iSizX;
-				rect->bottom=dxw.iPosY+dxw.iSizY;
-				OutTraceB("WindowProc: WS_NCCALCSIZE fixed rect=(%d,%d)-(%d,%d)\n", 
-					rect->left, rect->top, rect->right, rect->bottom);
-				return WVR_ALIGNTOP|WVR_ALIGNLEFT|WVR_ALIGNBOTTOM|WVR_ALIGNRIGHT;
-			}
+	case WM_NCPAINT:
+		if((dxw.dwFlags1 & LOCKWINPOS) && (hwnd == dxw.GethWnd()) && dxw.IsFullScreen()){ // v2.02.30: don't alter child and other windows....
+			OutTraceDW("WindowProc: %s wparam=%x\n", ExplainWinMessage(message), wparam);
+			return (*pDefWindowProc)(hwnd, message, wparam, lparam);
 		}
 		break;
 	case WM_NCCREATE:

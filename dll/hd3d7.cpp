@@ -618,6 +618,17 @@ HRESULT WINAPI extCreateViewport3(void *lpd3d, LPDIRECT3DVIEWPORT3 *lpViewport, 
 	if(res) OutTraceE("CreateViewport(3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("CreateViewport(3): Viewport=%x\n", *lpViewport);
 	HookViewport((LPDIRECT3DVIEWPORT *)lpViewport, 3);
+	if(IsDebug){
+		HRESULT res2;
+		D3DVIEWPORT2 vpdesc;
+		vpdesc.dwSize = sizeof(D3DVIEWPORT2);
+		res2=(*pGetViewport2_3)(*lpViewport, &vpdesc);
+		if(res) 
+			OutTraceE("CreateViewport(3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		else
+			OutTraceD3D("CreateViewport(3): size=%d pos=(%d,%d) dim=(%dx%d)\n",
+				vpdesc.dwSize, vpdesc.dwX, vpdesc.dwY, vpdesc.dwWidth, vpdesc.dwHeight);
+	}
 	return res;
 }
 
@@ -1115,17 +1126,39 @@ HRESULT WINAPI extGetCurrentViewport3(void *d3dd, LPDIRECT3DVIEWPORT3 *lpd3dvp)
 		return res;
 	}
 	HookViewport((LPDIRECT3DVIEWPORT *)lpd3dvp, 3);
+	if(IsDebug){
+		HRESULT res2;
+		D3DVIEWPORT2 vpdesc;
+		vpdesc.dwSize = sizeof(D3DVIEWPORT2);
+		res2=(*pGetViewport2_3)(lpd3dvp, &vpdesc);
+		if(res) 
+			OutTraceE("GetCurrentViewport(D3DD3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		else
+			OutTraceD3D("GetCurrentViewport(D3DD3): size=%d pos=(%d,%d) dim=(%dx%d)\n",
+				vpdesc.dwSize, vpdesc.dwX, vpdesc.dwY, vpdesc.dwWidth, vpdesc.dwHeight);
+	}
 	return res;
 }
 
-HRESULT WINAPI extSetCurrentViewport3(void *lpvp, LPDIRECT3DVIEWPORT3 vpd)
+HRESULT WINAPI extSetCurrentViewport3(void *lpvp, LPDIRECT3DVIEWPORT3 lpd3dvp)
 {
 	HRESULT res;
 
-	OutTraceD3D("SetCurrentViewport(D3DD3): viewport=%x\n", lpvp, vpd);
-	res=(*pSetCurrentViewport3)(lpvp, vpd);
+	OutTraceD3D("SetCurrentViewport(D3DD3): viewport=%x\n", lpvp, lpd3dvp);
+	res=(*pSetCurrentViewport3)(lpvp, lpd3dvp);
 	if(res) OutTraceE("SetCurrentViewport(D3DD3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("SetCurrentViewport(D3DD3): OK\n");
+	if(IsDebug){
+		HRESULT res2;
+		D3DVIEWPORT2 vpdesc;
+		vpdesc.dwSize = sizeof(D3DVIEWPORT2);
+		res2=(*pGetViewport2_3)(lpd3dvp, &vpdesc);
+		if(res) 
+			OutTraceE("SetCurrentViewport(D3DD3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		else
+			OutTraceD3D("SetCurrentViewport(D3DD3): size=%d pos=(%d,%d) dim=(%dx%d)\n",
+				vpdesc.dwSize, vpdesc.dwX, vpdesc.dwY, vpdesc.dwWidth, vpdesc.dwHeight);
+	}
 	return res;
 }
 

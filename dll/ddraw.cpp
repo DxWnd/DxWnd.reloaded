@@ -453,7 +453,7 @@ static void DescribeSurface(LPDIRECTDRAWSURFACE lpdds, int dxversion, char *labe
 		break;
 	}
 	if(res)return;
-	OutTrace("Surface %s: ddsd=%x dxversion=%d ", label, lpdds, dxversion);
+	OutTraceDW("Surface %s: ddsd=%x dxversion=%d ", label, lpdds, dxversion);
 	LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, label, line);
 }
 

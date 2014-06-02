@@ -386,4 +386,9 @@ fixed several d3d1-7 hooks: prevented some d3d games to properly work, i.e. "Thi
 fixed d3d GetDisplayMode to return virtual desktop size - fixed "Affari Tuoi", an italian game.
 fixed some log messages
 
+v2.02.57
+fixed WS_NCCALCSIZE & WM_NCPAINT messages to ensure a proper window's border and size - fixed Black Thorn window problems
+fixed "Hide desktop background" flag 
+
+
 

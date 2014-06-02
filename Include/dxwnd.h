@@ -128,7 +128,7 @@
 #define LIMITSCREENRES		0x00001000 // Limit available screen resolution up to defined maximum
 #define NOFILLRECT			0x00002000 // Suppress FillRect calls
 #define HOOKGLIDE			0x00004000 // Hook glide calls
-#define HIDEDESKTOP			0x00004000 // Hide desktop background
+#define HIDEDESKTOP			0x00008000 // Hide desktop background
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
