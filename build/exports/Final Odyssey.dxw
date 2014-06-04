@@ -1,15 +1,15 @@
 [target]
-title0=Vangers
-path0=D:\Games\Vangers\road.exe
+title0=Final Odyssey
+path0=D:\Games\Final odyssey\FinalOdy.exe
 module0=
 opengllib0=
-ver0=1
+ver0=0
 coord0=0
-flag0=136315424
-flagg0=1207959552
+flag0=134267425
+flagg0=134217728
 flagh0=20
-flagi0=524288
-tflag0=0
+flagi0=4
+tflag0=6146
 initx0=0
 inity0=0
 minx0=0

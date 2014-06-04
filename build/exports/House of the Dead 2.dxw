@@ -1,14 +1,14 @@
 [target]
-title0=Vangers
-path0=D:\Games\Vangers\road.exe
+title0=House of the Dead 2
+path0=D:\Games\HOD2\Hod2.exe
 module0=
 opengllib0=
-ver0=1
+ver0=0
 coord0=0
-flag0=136315424
+flag0=738197536
 flagg0=1207959552
 flagh0=20
-flagi0=524288
+flagi0=4
 tflag0=0
 initx0=0
 inity0=0

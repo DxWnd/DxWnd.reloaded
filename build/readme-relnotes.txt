@@ -445,3 +445,7 @@ fixed logic for EnumDisplayModes implementation: now screen resolutions and, for
 
 v2.02.68
 added screen resolution choice: either a set of SVGA resolutions (mostly for 3:4 monitors), HDTV resolutions (mostly for 16:9 monitors) or the native set of resolutions offered by your monitor / video card.
+
+v2.02.69
+improved exception catching to intercept memory violation exceptions and to neutralize offending code. Thank again to olly didasm lib, now the assembly instruction length is automatically determined so that the opcode can be replaced by the correct number of NOP instructions. If this doesn't mean much for you, just consider that this makes playable the Win95 (patched) release of "Star Wars Tie Fighter".
+fixed FillRect user32 call - brings some improvements to Imperialism (still far from being acceptable).

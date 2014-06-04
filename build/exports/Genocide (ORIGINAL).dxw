@@ -1,14 +1,14 @@
 [target]
-title0=Vangers
-path0=D:\Games\Vangers\road.exe
+title0=Genocide (ORIGINAL)
+path0=D:\Games\genocide\original vanilla (1998)\Genocide\genocide.exe
 module0=
 opengllib0=
-ver0=1
+ver0=0
 coord0=0
-flag0=136315424
+flag0=134218272
 flagg0=1207959552
 flagh0=20
-flagi0=524288
+flagi0=4
 tflag0=0
 initx0=0
 inity0=0

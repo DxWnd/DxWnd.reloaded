@@ -573,7 +573,7 @@ void dxwCore::MapClient(LPRECT rect)
 {
 	RECT client;
 	int w, h;
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
 	rect->left= rect->left * w / (int)dwScreenWidth;
@@ -586,7 +586,7 @@ void dxwCore::MapClient(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 {
 	RECT client;
 	int w, h;
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
 	*nXDest= *nXDest * w / (int)dwScreenWidth;
@@ -599,7 +599,7 @@ void dxwCore::MapClient(LPPOINT lppoint)
 {
 	RECT client;
 	int w, h;
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
 	lppoint->x = (lppoint->x * w) / (int)dwScreenWidth;
@@ -610,7 +610,7 @@ void dxwCore::MapClient(int *nXDest, int *nYDest)
 {
 	RECT client;
 	int w, h;
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
 	*nXDest= *nXDest * w / (int)dwScreenWidth;
@@ -621,7 +621,7 @@ void dxwCore::UnmapClient(LPPOINT lppoint)
 {
 	RECT client;
 	int w, h;
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
 	if(w) lppoint->x = (lppoint->x * (int)dwScreenWidth) / w;
@@ -632,7 +632,7 @@ void dxwCore::UnmapClient(int *nXDest, int *nYDest)
 {
 	RECT client;
 	int w, h;
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
 	if(w) *nXDest= *nXDest * (int)dwScreenWidth / w;
@@ -643,7 +643,7 @@ void dxwCore::UnmapClient(LPRECT lpRect)
 {
 	RECT client;
 	int w, h;
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	w = client.right ? client.right : iSizX;
 	h = client.bottom ? client.bottom : iSizY;
 	if(w) {
@@ -660,7 +660,7 @@ void dxwCore::MapWindow(LPRECT rect)
 {
 	RECT client;
 	POINT upleft = {0,0};
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	(*pClientToScreen)(hWnd, &upleft);
 	rect->left= upleft.x + ((rect->left * client.right) / (int)dwScreenWidth);
 	rect->top= upleft.y + ((rect->top * client.bottom) / (int)dwScreenHeight);
@@ -672,7 +672,7 @@ void dxwCore::MapWindow(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 {
 	RECT client;
 	POINT upleft = {0,0};
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	(*pClientToScreen)(hWnd, &upleft);
 	*nXDest= upleft.x + ((*nXDest * client.right) / (int)dwScreenWidth);
 	*nYDest= upleft.y + ((*nYDest * client.bottom) / (int)dwScreenHeight);
@@ -684,7 +684,7 @@ void dxwCore::MapWindow(LPPOINT lppoint)
 {
 	RECT client;
 	POINT upleft = {0,0};
-	(*pGetClientRect)(hWnd, &client);
+	if(!(*pGetClientRect)(hWnd, &client)) return;
 	(*pClientToScreen)(hWnd, &upleft);
 	lppoint->x = upleft.x + ((lppoint->x * client.right) / dwScreenWidth);
 	lppoint->y = upleft.y + ((lppoint->y * client.bottom) / dwScreenHeight);

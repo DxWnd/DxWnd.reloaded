@@ -23,6 +23,16 @@
 
 dxwCore dxw;
 
+typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
+typedef int (*Preparedisasm_Type)(void);
+typedef void (*Finishdisasm_Type)(void);
+typedef unsigned long (*Disasm_Type)(const unsigned char *, unsigned long, unsigned long, t_disasm *, int, t_config *, int (*)(tchar *, unsigned long));
+
+Geterrwarnmessage_Type pGeterrwarnmessage;
+Preparedisasm_Type pPreparedisasm;
+Finishdisasm_Type pFinishdisasm;
+Disasm_Type pDisasm;
+
 extern void InitScreenParameters();
 void HookModule(HMODULE, int);
 static void RecoverScreenMode();
@@ -1120,9 +1130,32 @@ static void LockScreenMode(DWORD dmPelsWidth, DWORD dmPelsHeight, DWORD dmBitsPe
 	}
 }
 
-// to do: find a logic in the exception codes (0xc0000095 impies a bitmask ?)
-// idem for ExceptionFlags
-// generalize, find OPCODE length and set number of NOPs accordingly!
+static HMODULE LoadDisasm()
+{
+	HMODULE disasmlib;
+	#define MAX_FILE_PATH 512
+	char sSourcePath[MAX_FILE_PATH+1];
+	char *p;
+	DWORD dwAttrib;	
+	
+	dwAttrib = GetFileAttributes("dxwnd.dll");
+	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return NULL;
+	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_FILE_PATH);
+	p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
+	strcpy(p, "disasm.dll");
+	disasmlib=(*pLoadLibraryA)(sSourcePath);
+	if(!disasmlib) {
+		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", sSourcePath, GetLastError());
+		return NULL;
+	}
+	pGeterrwarnmessage=(Geterrwarnmessage_Type)(*pGetProcAddress)(disasmlib, "Geterrwarnmessage");
+	pPreparedisasm=(Preparedisasm_Type)(*pGetProcAddress)(disasmlib, "Preparedisasm");
+	pFinishdisasm=(Finishdisasm_Type)(*pGetProcAddress)(disasmlib, "Finishdisasm");
+	pDisasm=(Disasm_Type)(*pGetProcAddress)(disasmlib, "Disasm");
+	//OutTraceDW("DXWND: Load disasm.dll ptrs=%x,%x,%x,%x\n", pGeterrwarnmessage, pPreparedisasm, pFinishdisasm, pDisasm);
+
+	return disasmlib;
+}
 
 LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
@@ -1130,33 +1163,25 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 		ExceptionInfo->ExceptionRecord->ExceptionCode,
 		ExceptionInfo->ExceptionRecord->ExceptionAddress);
 	DWORD oldprot;
+	static HMODULE disasmlib = NULL;
 	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
 	switch(ExceptionInfo->ExceptionRecord->ExceptionCode){
-	case 0xc0000094: // ??? 
-		if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) return EXCEPTION_CONTINUE_SEARCH; // error condition
-		//if (*(char *)target==0xF7) // ????
-		*(USHORT *)target = (USHORT)0x9090; // IDIV reg -> NOP, NOP (Ultim@te Race Pro)
-		VirtualProtect(target, 4, oldprot, &oldprot);
-		return EXCEPTION_CONTINUE_EXECUTION;
-		break;
-	case 0xc0000095: // DIV by 0 (divide overflow) exception 
-		if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) return EXCEPTION_CONTINUE_SEARCH; // error condition
-		//if (*(char *)target==0xF7) // ????
-		*(USHORT *)target = (USHORT)0x9090; // IDIV reg -> NOP, NOP (SonicR)
-		VirtualProtect(target, 4, oldprot, &oldprot);
-		return EXCEPTION_CONTINUE_EXECUTION;
-		break;
-	case 0xc0000096: // Priviliged instruction exception
-		if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) return EXCEPTION_CONTINUE_SEARCH; // error condition
-		//if (*(char *)target==0xFA) // ????
-		*(char *)target = (char)0x90; // CLI -> NOP (Resident Evil)
-		VirtualProtect(target, 4, oldprot, &oldprot);
-		return EXCEPTION_CONTINUE_EXECUTION;
-		break;
-	case 0xc000001d: // eXpendable (instruction FEMMS)
-		if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) return EXCEPTION_CONTINUE_SEARCH; // error condition
-		*(USHORT *)target = (USHORT)0x9090; // FEMMS -> NOP, NOP (eXpendable)
-		VirtualProtect(target, 4, oldprot, &oldprot);
+	case 0xc0000094: // IDIV reg (Ultim@te Race Pro)
+	case 0xc0000095: // DIV by 0 (divide overflow) exception (SonicR)
+	case 0xc0000096: // CLI Priviliged instruction exception (Resident Evil)
+	case 0xc000001d: // FEMMS (eXpendable)
+	case 0xc0000005: // Memory exception (Tie Fighter)
+		int cmdlen;
+		t_disasm da;
+		if(!disasmlib){
+			if (!(disasmlib=LoadDisasm())) return EXCEPTION_CONTINUE_SEARCH;
+			(*pPreparedisasm)();
+		}
+		if(!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot)) return EXCEPTION_CONTINUE_SEARCH; // error condition
+		cmdlen=(*pDisasm)((BYTE *)target, 10, 0, &da, 0, NULL, NULL);
+		OutTrace("UnhandledExceptionFilter: NOP opcode=%x len=%d\n", *(BYTE *)target, cmdlen);
+		memset((BYTE *)target, 0x90, cmdlen); 
+		VirtualProtect(target, 10, oldprot, &oldprot);
 		return EXCEPTION_CONTINUE_EXECUTION;
 		break;
 	default:
@@ -1354,21 +1379,8 @@ LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 
 static void ReplaceRDTSC()
 {
-	typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
-	typedef int (*Preparedisasm_Type)(void);
-	typedef void (*Finishdisasm_Type)(void);
-	typedef unsigned long (*Disasm_Type)(const unsigned char *, unsigned long, unsigned long, t_disasm *, int, t_config *, int (*)(tchar *, unsigned long));
 	typedef BOOL (WINAPI *GetModuleInformation_Type)(HANDLE, HMODULE, LPMODULEINFO, DWORD);
-
 	HMODULE disasmlib;
-	#define MAX_FILE_PATH 512
-	char sSourcePath[MAX_FILE_PATH+1];
-	char *p;
-	Geterrwarnmessage_Type pGeterrwarnmessage;
-	Preparedisasm_Type pPreparedisasm;
-	Finishdisasm_Type pFinishdisasm;
-	Disasm_Type pDisasm;
-	DWORD dwAttrib;
 	unsigned char *opcodes;
 	t_disasm da;
 	MODULEINFO mi;
@@ -1377,21 +1389,7 @@ static void ReplaceRDTSC()
 	DWORD dwSegSize;
 	DWORD oldprot;
 
-	dwAttrib = GetFileAttributes("dxwnd.dll");
-	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return;
-	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_FILE_PATH);
-	p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
-	strcpy(p, "disasm.dll");
-	disasmlib=(*pLoadLibraryA)(sSourcePath);
-	if(!disasmlib) {
-		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", sSourcePath, GetLastError());
-		return;
-	}
-	pGeterrwarnmessage=(Geterrwarnmessage_Type)(*pGetProcAddress)(disasmlib, "Geterrwarnmessage");
-	pPreparedisasm=(Preparedisasm_Type)(*pGetProcAddress)(disasmlib, "Preparedisasm");
-	pFinishdisasm=(Finishdisasm_Type)(*pGetProcAddress)(disasmlib, "Finishdisasm");
-	pDisasm=(Disasm_Type)(*pGetProcAddress)(disasmlib, "Disasm");
-	//OutTraceDW("DXWND: Load disasm.dll ptrs=%x,%x,%x,%x\n", pGeterrwarnmessage, pPreparedisasm, pFinishdisasm, pDisasm);
+	if (!(disasmlib=LoadDisasm())) return;
 
 	// getting segment size
 	psapilib=(*pLoadLibraryA)("psapi.dll");

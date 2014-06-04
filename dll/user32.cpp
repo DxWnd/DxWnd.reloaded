@@ -1091,10 +1091,16 @@ static HWND WINAPI extCreateWindowCommon(
 	// v2.02.30: fix (Fable - lost chapters) Fable creates a bigger win with negative x,y coordinates. 
 	if	(
 			(
-				((x<=0)&&(y<=0)) || ((x==CW_USEDEFAULT)&&(y==CW_USEDEFAULT))
+				((x<=0)&&(y<=0)) 
+				|| 
+				((x==CW_USEDEFAULT)&&(y==CW_USEDEFAULT))
 			)
 		&&
-			((nWidth>=(int)dxw.GetScreenWidth())&&(nHeight>=(int)dxw.GetScreenHeight())) 
+			(
+				((nWidth>=(int)dxw.GetScreenWidth())&&(nHeight>=(int)dxw.GetScreenHeight()))
+				||
+				((nWidth==CW_USEDEFAULT)&&(nHeight==CW_USEDEFAULT)) // good for Imperialism, but is it general? 
+			) 
 		&&
 			!(dwExStyle & WS_EX_CONTROLPARENT) // Diablo fix
 		&&
@@ -1350,21 +1356,21 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 
 	// when not in fullscreen mode, just proxy the call
 	// better not: some games may use excessive coordinates: see "Premier Manager 98"
-	// if(!dxw.IsFullScreen()) return (*pFillRect)(hdc, lprc, hbr);
+	// if(!dxw.IsFullScreen() && !dxw.IsDesktop(WindowFromDC(hdc))) return (*pFillRect)(hdc, lprc, hbr);
 
 	memcpy(&rc, lprc, sizeof(rc));
-	if(rc.left < 0) rc.left = 0;
-	if(rc.top < 0) rc.top = 0;
-	if((DWORD)rc.right > dxw.GetScreenWidth()) rc.right = dxw.GetScreenWidth();
-	if((DWORD)rc.bottom > dxw.GetScreenHeight()) rc.bottom = dxw.GetScreenHeight();
-	if(dxw.IsFullScreen()){
-		// ???? how to handle FillRect for primary window ???
-		//if(hdc==(*pGDIGetDC)(dxw.GethWnd())) {
-		//	dxw.MapClient(&rc);
-		//}
-		//else
-		if(OBJ_DC == GetObjectType(hdc)) dxw.MapWindow(&rc);
-		//else dxw.MapClient(&rc);
+
+	if(dxw.IsRealDesktop(WindowFromDC(hdc))) {
+		OutTraceDW("FillRect: remapped hdc to virtual desktop\n");
+		hdc=(*pGDIGetDC)(dxw.GethWnd());
+	}
+
+	if(OBJ_DC == GetObjectType(hdc)){
+		if(rc.left < 0) rc.left = 0;
+		if(rc.top < 0) rc.top = 0;
+		if((DWORD)rc.right > dxw.GetScreenWidth()) rc.right = dxw.GetScreenWidth();
+		if((DWORD)rc.bottom > dxw.GetScreenHeight()) rc.bottom = dxw.GetScreenHeight();
+		dxw.MapClient(&rc);
 		OutTraceDW("FillRect: fixed rect=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
 	}
 
