@@ -17,6 +17,7 @@
 #include "syslibs.h"
 
 extern BOOL IsChangeDisplaySettingsHotPatched;
+BOOL bDontReleaseBackBuffer = FALSE;
 
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -751,6 +752,30 @@ Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE lpdds)
 	if (pUnlock4) return pUnlock4;
 	return (Unlock4_Type)pUnlock1;
 }
+
+#if 0
+Lock_Type pLockMethod(LPDIRECTDRAWSURFACE lpdds)
+{
+	char sMsg[81];
+	void * extUnlock;
+	__try{ // v2.02.31: catch some possible exception (i.e. Abomination in EMULATION mode)
+		extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER){
+		OutTraceE("Exception at %d\n",__LINE__);
+		return (Unlock4_Type)pUnlock1;
+	};
+	if(extUnlock==(void *)extUnlock1) return pLock1;
+	if(extUnlock==(void *)extUnlock4) return pLock4;
+	if(extUnlock==(void *)extUnlockDir1) return pLock1;
+	if(extUnlock==(void *)extUnlockDir4) return pLock4;
+	sprintf_s(sMsg, 80, "pLockMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
+	OutTraceDW(sMsg);
+	if (IsAssertEnabled) MessageBox(0, sMsg, "pLockMethod", MB_OK | MB_ICONEXCLAMATION);
+	if (pLock4) return pLock4;
+	return pLock1;
+}
+#endif
 
 CreateSurface2_Type pCreateSurfaceMethod(LPDIRECTDRAWSURFACE lpdds)
 {
@@ -3783,7 +3808,7 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	if ((dxversion == 4) && lprect) CleanRect(&lprect,__LINE__);
 
 	if(IsTraceDDRAW){
-		OutTrace("Unlock: lpdds=%x%s ", lpdds, (IsPrim ? "(PRIM)":""));
+		OutTrace("Unlock(%d): lpdds=%x%s ", dxversion, lpdds, (IsPrim ? "(PRIM)":""));
 		if (dxversion == 4){
 			if (lprect){
 				OutTrace("rect=(%d,%d)-(%d,%d)\n", lprect->left, lprect->top, lprect->right, lprect->bottom);
@@ -4253,8 +4278,13 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	IsBack=dxw.IsABackBufferSurface(lpdds);
-	
-	res = (*pReleaseS)(lpdds);
+
+	if(IsBack && bDontReleaseBackBuffer){
+		OutTraceDDRAW("Release(S): SKIP RELEASE on lpdds=%x\n", lpdds);
+		res = 0;
+	}
+	else
+		res = (*pReleaseS)(lpdds);
 
 	OutTraceDDRAW("Release(S): lpdds=%x%s refcount=%d\n", lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), res);
 	if (res==0) { // common precondition

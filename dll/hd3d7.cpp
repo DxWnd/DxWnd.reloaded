@@ -759,16 +759,25 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 
 HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7 lpdds, LPDIRECT3DDEVICE7 *lplpd3dd)
 {
+	// v2.02.83: D3D CreateDevice (version 7? all versions?) internally calls the Release method upon th ebackbuffer
+	// surface, and this has to be avoided since it causes a crash. 
+	// The bDontReleaseBackBuffer boolean tells extReleaseS NOT to perform an actual release operation.
+
 	HRESULT res;
+	extern BOOL bDontReleaseBackBuffer;
 
 	OutTraceD3D("CreateDevice(D3D7): d3d=%x GUID=%x(%s) lpdds=%x\n", lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds);
+	bDontReleaseBackBuffer = TRUE;
 	res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
+	bDontReleaseBackBuffer = FALSE;
 	if(res) {
 		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
 			dxw.dwFlags1 &= ~EMULATESURFACE;
 			dxw.dwFlags1 |= LOCKEDSURFACE;
+			bDontReleaseBackBuffer = TRUE;
 			res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
+			bDontReleaseBackBuffer = FALSE;
 		}
 		if (res) {
 			OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);

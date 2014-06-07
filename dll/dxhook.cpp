@@ -154,6 +154,47 @@ void OutTrace(const char *format, ...)
 	fflush(fp); 
 }
 
+static BOOL CheckCompatibilityFlags()
+{
+	typedef DWORD (WINAPI *GetFileVersionInfoSizeA_Type)(LPCSTR, LPDWORD);
+	typedef BOOL (WINAPI *GetFileVersionInfoA_Type)(LPCSTR, DWORD, DWORD, LPVOID);
+	typedef BOOL (WINAPI *VerQueryValueA_Type)(LPCVOID, LPCSTR, LPVOID, PUINT);
+	VerQueryValueA_Type pVerQueryValueA;
+	GetFileVersionInfoA_Type pGetFileVersionInfoA;
+	GetFileVersionInfoSizeA_Type pGetFileVersionInfoSizeA;
+
+	HMODULE VersionLib;
+	DWORD dwMajorVersion, dwMinorVersion;
+	DWORD dwHandle = 0;
+	int size;
+	UINT len = 0;
+    VS_FIXEDFILEINFO*   vsfi = NULL;
+	OSVERSIONINFO vi;
+
+	if(!(VersionLib=LoadLibrary("Version.dll"))) return FALSE;
+	pGetFileVersionInfoA=(GetFileVersionInfoA_Type)GetProcAddress(VersionLib, "GetFileVersionInfoA");
+	if(!pGetFileVersionInfoA) return FALSE;
+	pGetFileVersionInfoSizeA=(GetFileVersionInfoSizeA_Type)GetProcAddress(VersionLib, "GetFileVersionInfoSizeA");
+	if(!pGetFileVersionInfoSizeA) return FALSE;
+	pVerQueryValueA=(VerQueryValueA_Type)GetProcAddress(VersionLib, "VerQueryValueA");
+	if(!pVerQueryValueA) return FALSE;
+
+	size = (*pGetFileVersionInfoSizeA)("kernel32.dll", &dwHandle);	
+	BYTE* VersionInfo = new BYTE[size];
+	(*pGetFileVersionInfoA)("kernel32.dll", dwHandle, size, VersionInfo);
+    (*pVerQueryValueA)(VersionInfo, "\\", (void**)&vsfi, &len);
+	dwMajorVersion=HIWORD(vsfi->dwProductVersionMS);
+	dwMinorVersion=LOWORD(vsfi->dwProductVersionMS);
+    delete[] VersionInfo;	
+	vi.dwOSVersionInfoSize=sizeof(vi);
+	GetVersionExA(&vi);
+	if((vi.dwMajorVersion!=dwMajorVersion) || (vi.dwMinorVersion!=dwMinorVersion)) {
+		MessageBox(NULL, "Compatibility settings detected!", "DxWnd", MB_OK);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static void dx_ToggleLogging()
 {
 	// toggle LOGGING
@@ -1457,6 +1498,8 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		OutTrace("HookInit: dxw.hParentWnd style=%x(%s) exstyle=%x(%s)\n", dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 		OutTrace("HookInit: target window pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY);
 	}
+
+	CheckCompatibilityFlags(); // v2.02.83 Check for change of OS release
 
 	HookSysLibsInit(); // this just once...
 

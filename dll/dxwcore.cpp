@@ -756,7 +756,7 @@ RECT dxwCore::GetWindowRect(RECT win)
 	win.left = ((win.left - desk0.x) * (LONG)dwScreenWidth) / desktop.right;
 	win.top = ((win.top - desk0.y) * (LONG)dwScreenHeight) / desktop.bottom;
 	win.right = ((win.right - desk0.x) * (LONG)dwScreenWidth) / desktop.right;
-	win.bottom = ((win.bottom - desk0.y) * (LONG)dwScreenWidth) / desktop.right;
+	win.bottom = ((win.bottom - desk0.y) * (LONG)dwScreenHeight) / desktop.bottom;
 
 	return win;
 }

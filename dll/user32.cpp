@@ -609,11 +609,10 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 	}
 
 	if (((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)) && dxw.IsFullScreen()){ // v2.02.51 - see A10 Cuba....
-	//if (nIndex==GWL_WNDPROC){ 
 		WNDPROC lres;
 		WNDPROC OldProc;
 		// GPL fix
-		if(dxw.IsRealDesktop(hwnd)) {
+		if(dxw.IsRealDesktop(hwnd) && dxw.Windowize) {
 			hwnd=dxw.GethWnd();
 			OutTraceDW("SetWindowLong: DESKTOP hwnd, FIXING hwnd=%x\n",hwnd);
 		}

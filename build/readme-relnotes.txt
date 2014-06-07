@@ -539,3 +539,10 @@ fix: hooked GetMonitorInfoA/W that is a possible way to get the screen resolutio
 v2.02.82
 fix: completed chinese translation and language selection through dxwnd.ini file.
 added very preliminary (and incomplete) italian translation for debugging.
+
+v2.02.83
+fix: small error in one coordinate scaling procedure
+fix: completed translation in italian (just for testing....)
+fix: added palette window activation in icon tray menu
+fix: supppressed BackBuffer release within D3D7:CreateDevice: this makes "Tetris Worlds" fully playable
+add: build-in check for compatibility modes set!
