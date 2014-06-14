@@ -326,6 +326,12 @@ FARPROC Remap_d3d11_ProcAddress(LPCSTR proc, HMODULE hModule)
 }
 
 int HookDirect3D(HMODULE module, int version){
+	LPDIRECT3D9 lpd3d;
+	ID3D10Device *lpd3d10;
+	ID3D11Device *lpd3d11;
+	HRESULT res;
+
+	OutTrace("HookDirect3D: module=%x version=%d\n", module, version);
 	switch(version){
 	case 0:
 		HookLibrary(module, d3d8Hooks, "d3d8.dll");
@@ -337,18 +343,57 @@ int HookDirect3D(HMODULE module, int version){
 #endif
 		break;
 	case 8:
+		PinLibrary(d3d8Hooks, "d3d8.dll"); // pin for "Port Royale 2"
 		HookLibrary(module, d3d8Hooks, "d3d8.dll");
+		if(pDirect3DCreate8){
+			lpd3d = (LPDIRECT3D9)extDirect3DCreate8(220);
+			if(lpd3d) lpd3d->Release();
+		}
 		break;
 	case 9:
+		PinLibrary(d3d9Hooks, "d3d9.dll");// pin for "Affari tuoi"
 		HookLibrary(module, d3d9Hooks, "d3d9.dll");
+		if(pDirect3DCreate9){ 
+			lpd3d = (LPDIRECT3D9)extDirect3DCreate9(31);
+			if(lpd3d) lpd3d->Release();
+		}
 		break;
 #ifdef HOOKD3D10ANDLATER
 	case 10:
+		PinLibrary(d3d10Hooks, "d3d10.dll");
+		PinLibrary(d3d10_1Hooks, "d3d10_1.dll");
 		HookLibrary(module, d3d10Hooks, "d3d10.dll");
 		HookLibrary(module, d3d10_1Hooks, "d3d10_1.dll");
+		if(pD3D10CreateDevice){
+			res = extD3D10CreateDevice(
+				NULL,
+				D3D10_DRIVER_TYPE_HARDWARE,
+				NULL,
+				0,
+				D3D10_SDK_VERSION,
+				&lpd3d10);
+			if(res==DD_OK) lpd3d10->Release();
+		}
 	break;
 	case 11:
+		PinLibrary(d3d11Hooks, "d3d11.dll");
 		HookLibrary(module, d3d11Hooks, "d3d11.dll");
+		if(pD3D11CreateDevice){
+			D3D_FEATURE_LEVEL FeatureLevel;
+			ID3D11DeviceContext *pImmediateContext;
+			res = extD3D11CreateDevice(
+				NULL,
+				D3D_DRIVER_TYPE_HARDWARE,
+				NULL,
+				0, // flags
+				NULL, // FeatureLevels
+				0,
+				D3D11_SDK_VERSION,
+				&lpd3d11,
+				&FeatureLevel,
+				&pImmediateContext);
+			if(res==DD_OK) lpd3d11->Release();
+		}
 #endif
 	}
 	if(pDirect3DCreate8 || pDirect3DCreate9) return 1;

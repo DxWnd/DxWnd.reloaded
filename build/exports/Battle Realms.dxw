@@ -1,13 +1,13 @@
 [target]
-title0=Rollcage 2 (D3D)
-path0=D:\Games\Rollcage 2\BIN\Rollcage D3D.exe
-launchpath0=D:\Games\Rollcage 2\Rollcage.exe
+title0=Battle Realms
+path0=D:\Games\Battle Realms\Battle_Realms_F.exe
+launchpath0=
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=134217760
-flagg0=134217728
+flag0=150994976
+flagg0=1207959552
 flagh0=20
 flagi0=138412036
 tflag0=0

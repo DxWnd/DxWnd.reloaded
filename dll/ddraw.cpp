@@ -662,23 +662,19 @@ int HookDirectDraw(HMODULE module, int version)
 {
 	if(dxw.dwFlags2 & SETCOMPATIBILITY) ddSetCompatibility();
 
+	if(dxw.dwFlags4 & HOTPATCH) {
+		// hot-patch all APIs and that's all folks!
+		HookLibrary(module, ddHooks, "ddraw.dll");
+		return TRUE;
+	}
 
-#if 0
-	//void *tmp;
-	//const GUID dd7 = {0x15e65ec0,0x3b9c,0x11d2,0xb9,0x2f,0x00,0x60,0x97,0x97,0xea,0x5b};
+	const GUID dd7 = {0x15e65ec0,0x3b9c,0x11d2,0xb9,0x2f,0x00,0x60,0x97,0x97,0xea,0x5b};
+	HMODULE hinst;
 
 	OutTraceB("HookDirectDraw version=%d\n", version); //GHO
 	switch(version){
 	case 0: // automatic
 		HookLibrary(module, ddHooks, "ddraw.dll");
-		//tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreate", extDirectDrawCreate);
-		//if(tmp) pDirectDrawCreate = (DirectDrawCreate_Type)tmp;
-		//tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreateEx", extDirectDrawCreateEx);
-		//if(tmp) pDirectDrawCreateEx = (DirectDrawCreateEx_Type)tmp;
-		//tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateA", extDirectDrawEnumerate);
-		//if(tmp) pDirectDrawEnumerate = (DirectDrawEnumerate_Type)tmp;
-		//tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateExA", extDirectDrawEnumerateEx);
-		//if(tmp) pDirectDrawEnumerateEx = (DirectDrawEnumerateEx_Type)tmp;
 		break;
 	case 1:
 	case 2:
@@ -686,55 +682,43 @@ int HookDirectDraw(HMODULE module, int version)
 	case 5:
 	case 6:
 		HookLibrary(module, ddHooks, "ddraw.dll");
-		//hinst = LoadLibrary("ddraw.dll");
-		//pDirectDrawEnumerate = 
-		//	(DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
-		//pDirectDrawCreate =
-		//	(DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
-		//if(dxw.dwFlags4 & HOTPATCH){
-		//	extern void *HotPatch(void *, const char *, void *);
-		//	pDirectDrawEnumerate = (DirectDrawEnumerate_Type)HotPatch(pDirectDrawEnumerate, "DirectDrawEnumerate", extDirectDrawEnumerate);
-		//	pDirectDrawCreate = (DirectDrawCreate_Type)HotPatch(pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
-		//}
-		//else {
-		//	if(pDirectDrawCreate){
-		//		LPDIRECTDRAW lpdd;
-		//		BOOL res;
-		//		HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
-		//		HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerate);
-		//		res=extDirectDrawCreate(0, &lpdd, 0);
-		//		if (res){
-		//			OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		//		}
-		//		lpdd->Release();
-		//	}
-		//}
-		//break;
+		if(!pDirectDrawCreate){ // required for IAT patching 
+			hinst = LoadLibrary("ddraw.dll");
+			pDirectDrawCreate = (DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
+			pDirectDrawEnumerate = (DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");		
+		}
+		if(pDirectDrawCreate){
+			LPDIRECTDRAW lpdd;
+			BOOL res;
+			HookLibrary(module, ddHooks, "ddraw.dll");
+			res=extDirectDrawCreate(0, &lpdd, 0);
+			if (res){
+				OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+			}
+			lpdd->Release();
+		}
+		break;
 	case 7:
-		HookLibrary(module, ddHooks, "ddraw.dll");
 		//hinst = LoadLibrary("ddraw.dll");
-		//pDirectDrawEnumerate = 
-		//	(DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
-		//pDirectDrawEnumerateEx = 
-		//	(DirectDrawEnumerateEx_Type)GetProcAddress(hinst, "DirectDrawEnumerateExA");
-		//pDirectDrawCreate =
-		//	(DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
-		//if(pDirectDrawCreate){
-		//	LPDIRECTDRAW lpdd;
-		//	BOOL res;
-		//	HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
-		//	HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerate);
-		//	HookAPI(module, "ddraw.dll", pDirectDrawEnumerateEx, "DirectDrawEnumerateExA", extDirectDrawEnumerateEx);
-		//	res=extDirectDrawCreate(0, &lpdd, 0);
-		//	if (res) OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		//	lpdd->Release();
-		//}
-		//pDirectDrawCreateEx =
-		//	(DirectDrawCreateEx_Type)GetProcAddress(hinst, "DirectDrawCreateEx");
+		HookLibrary(module, ddHooks, "ddraw.dll");
+		if(!pDirectDrawCreate){ // required for IAT patching in "Crimson skies"
+			hinst = LoadLibrary("ddraw.dll");
+			pDirectDrawEnumerate = (DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
+			pDirectDrawEnumerateEx = (DirectDrawEnumerateEx_Type)GetProcAddress(hinst, "DirectDrawEnumerateExA");
+			pDirectDrawCreate = (DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
+			pDirectDrawCreateEx = (DirectDrawCreateEx_Type)GetProcAddress(hinst, "DirectDrawCreateEx");
+		}		
+		if(pDirectDrawCreate){
+			LPDIRECTDRAW lpdd;
+			BOOL res;
+			res=extDirectDrawCreate(0, &lpdd, 0);
+			if (res) OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+			lpdd->Release();
+		}
 		//if(pDirectDrawCreateEx){
 		//	LPDIRECTDRAW lpdd;
 		//	BOOL res;
-		//	HookAPI(module, "ddraw.dll", pDirectDrawCreateEx, "DirectDrawCreateEx", extDirectDrawCreateEx);
+		//	HookLibrary(module, ddHooks, "ddraw.dll");
 		//	res=extDirectDrawCreateEx(0, &lpdd, dd7, 0);
 		//	if (res) OutTraceE("DirectDrawCreateEx: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 		//	lpdd->Release();
@@ -743,9 +727,6 @@ int HookDirectDraw(HMODULE module, int version)
 	}
 
 	if(pDirectDrawCreate || pDirectDrawCreateEx) return 1;
-#else
-	HookLibrary(module, ddHooks, "ddraw.dll");
-#endif
 	return 0;
 }
 

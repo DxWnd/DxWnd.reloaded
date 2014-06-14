@@ -1642,6 +1642,19 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 	}
 }
 
+void PinLibrary(HookEntry_Type *Hooks, char *DLLName)
+{
+	HMODULE hModule = NULL;
+	hModule = (*pLoadLibraryA)(DLLName);
+	if(!hModule) {
+		OutTrace("PinLibrary: LoadLibrary failed on DLL=%s err=%x\n", DLLName, GetLastError());
+		return;
+	}
+	for(; Hooks->APIName; Hooks++){
+		if (Hooks->StoreAddress) *(Hooks->StoreAddress) = (*pGetProcAddress)(hModule, Hooks->APIName);
+	}
+}
+
 BOOL IsHotPatched(HookEntry_Type *Hooks, char *ApiName)
 {
 	for(; Hooks->APIName; Hooks++){

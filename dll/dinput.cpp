@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <dinput.h>
 #include "dxwnd.h"
+#include "dxhook.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
 #include "dxhelper.h"
@@ -19,7 +20,8 @@ typedef HRESULT (WINAPI *DISetCooperativeLevel_Type)(LPDIRECTINPUTDEVICE, HWND, 
 typedef HRESULT (WINAPI *SetDataFormat_Type)(LPDIRECTINPUTDEVICE, LPCDIDATAFORMAT);
 typedef HRESULT (WINAPI *DIEnumDevices_Type)(void *, DWORD, LPDIENUMDEVICESCALLBACK, LPVOID, DWORD);
 
-HRESULT WINAPI extDirectInputCreate(HINSTANCE, DWORD, LPDIRECTINPUT *, LPUNKNOWN);
+HRESULT WINAPI extDirectInputCreateA(HINSTANCE, DWORD, LPDIRECTINPUT *, LPUNKNOWN);
+HRESULT WINAPI extDirectInputCreateW(HINSTANCE, DWORD, LPDIRECTINPUT *, LPUNKNOWN);
 HRESULT WINAPI extDirectInputCreateEx(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
 HRESULT WINAPI extDirectInput8Create(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
 HRESULT WINAPI extDICreateDevice(LPDIRECTINPUT, REFGUID, LPDIRECTINPUTDEVICE *, LPUNKNOWN);
@@ -28,21 +30,32 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE, DWORD, LPVOID, LPDWORD, DWO
 HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE, DWORD, LPDIMOUSESTATE);
 HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE, HWND, DWORD);
 HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE, LPCDIDATAFORMAT);
-HRESULT WINAPI extQueryInterfaceI(void *, REFIID, LPVOID *);
+HRESULT WINAPI extDIQueryInterface(void *, REFIID, LPVOID *);
 HRESULT WINAPI extDIEnumDevices(void *, DWORD, LPDIENUMDEVICESCALLBACK, LPVOID, DWORD);
-void GetMousePosition(int *, int *);
-void InitPosition(int, int, int, int, int, int);
-	
-DirectInputCreate_Type pDirectInputCreate = 0;
+
+DirectInputCreate_Type pDirectInputCreateA = 0;
+DirectInputCreate_Type pDirectInputCreateW = 0;
 DirectInputCreateEx_Type pDirectInputCreateEx = 0;
 DICreateDevice_Type pDICreateDevice = 0;
 DICreateDeviceEx_Type pDICreateDeviceEx = 0;
-GetDeviceData_Type pGetDeviceData;
-GetDeviceState_Type pGetDeviceState;
-DISetCooperativeLevel_Type pDISetCooperativeLevel;
-SetDataFormat_Type pSetDataFormat;
-QueryInterface_Type pQueryInterfaceI;
-DIEnumDevices_Type pDIEnumDevices;
+GetDeviceData_Type pGetDeviceData = 0;
+GetDeviceState_Type pGetDeviceState = 0;
+DISetCooperativeLevel_Type pDISetCooperativeLevel = 0;
+SetDataFormat_Type pSetDataFormat = 0;
+QueryInterface_Type pDIQueryInterface = 0;
+DIEnumDevices_Type pDIEnumDevices = 0;
+
+//static HookEntry_Type diHooks[]={
+//	{HOOK_HOT_CANDIDATE, "DirectInputCreateA", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateA, (FARPROC)extDirectInputCreateA},
+//	{HOOK_HOT_CANDIDATE, "DirectInputCreateW", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateW, (FARPROC)extDirectInputCreateW},
+//	{HOOK_HOT_CANDIDATE, "DirectInputCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateEx, (FARPROC)extDirectInputCreateEx},
+//	{HOOK_HOT_CANDIDATE, "DirectInput8Create", (FARPROC)NULL, (FARPROC *)&pDirectInput8Create, (FARPROC)extDirectInput8Create},
+//	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+//};
+
+void GetMousePosition(int *, int *);
+void InitPosition(int, int, int, int, int, int);
+	
 
 int iCursorX;
 int iCursorY;
@@ -61,21 +74,21 @@ int HookDirectInput(HMODULE module, int version)
 	const GUID di7 = {0x9A4CB684,0x236D,0x11D3,0x8E,0x9D,0x00,0xC0,0x4F,0x68,0x44,0xAE};
 	const GUID di8 = {0xBF798030,0x483A,0x4DA2,0xAA,0x99,0x5D,0x64,0xED,0x36,0x97,0x00};
 
-	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateA", extDirectInputCreate);
-	if(tmp) pDirectInputCreate = (DirectInputCreate_Type)tmp;
-	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateW", extDirectInputCreate);
-	if(tmp) pDirectInputCreate = (DirectInputCreate_Type)tmp;
+	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateA", extDirectInputCreateA);
+	if(tmp) pDirectInputCreateA = (DirectInputCreate_Type)tmp;
+	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateW", extDirectInputCreateW);
+	if(tmp) pDirectInputCreateW = (DirectInputCreate_Type)tmp;
 	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateEx", extDirectInputCreateEx);
 	if(tmp) pDirectInputCreateEx = (DirectInputCreateEx_Type)tmp;
 	tmp = HookAPI(module, "dinput8.dll", NULL, "DirectInput8Create", extDirectInput8Create);
 	if(tmp) pDirectInputCreateEx = (DirectInputCreateEx_Type)tmp;
-	if(!pDirectInputCreate && !pDirectInputCreateEx){
+	if(!pDirectInputCreateA && !pDirectInputCreateW && !pDirectInputCreateEx){
 		if(version < 8){
 			hinst = LoadLibrary("dinput.dll");
-			pDirectInputCreate =
+			pDirectInputCreateA =
 				(DirectInputCreate_Type)GetProcAddress(hinst, "DirectInputCreateA");
-			if(pDirectInputCreate)
-				if(!extDirectInputCreate(GetModuleHandle(0), DIRECTINPUT_VERSION,
+			if(pDirectInputCreateA)
+				if(!extDirectInputCreateA(GetModuleHandle(0), DIRECTINPUT_VERSION,
 					&lpdi, 0)) lpdi->Release();
 			pDirectInputCreateEx =
 				(DirectInputCreateEx_Type)GetProcAddress(hinst, "DirectInputCreateEx");
@@ -92,27 +105,36 @@ int HookDirectInput(HMODULE module, int version)
 					di8, (void **)&lpdi, 0)) lpdi->Release();
 		}
 	}
-	if(pDirectInputCreate || pDirectInputCreateEx) return 1;
+	if(pDirectInputCreateA || pDirectInputCreateW || pDirectInputCreateEx) return 1;
 	return 0;
 }
 
 HRESULT WINAPI extDirectInputCreate(HINSTANCE hinst,
-	DWORD dwversion, LPDIRECTINPUT *lplpdi, LPUNKNOWN pu)
+	DWORD dwversion, LPDIRECTINPUT *lplpdi, LPUNKNOWN pu, DirectInputCreate_Type pDirectInputCreate, char *apiname)
 {
 	HRESULT res;
 
-	OutTraceDW("DirectInputCreate: dwVersion=%x\n",
-		dwversion);
+	OutTraceDW("%s: dwVersion=%x\n", apiname, dwversion);
 
 	res = (*pDirectInputCreate)(hinst, dwversion, lplpdi, pu);
 	if(res) {
-		OutTraceE("DirectInputCreate: ERROR err=%x(%s)\n", res, ExplainDDError(res));
+		OutTraceE("%s: ERROR err=%x(%s)\n", apiname, res, ExplainDDError(res));
 		return res;
 	}
-	SetHook((void *)(**(DWORD **)lplpdi), extQueryInterfaceI, (void **)&pQueryInterfaceI, "QueryInterface(I)");
+	SetHook((void *)(**(DWORD **)lplpdi), extDIQueryInterface, (void **)&pDIQueryInterface, "QueryInterface(I)");
 	SetHook((void *)(**(DWORD **)lplpdi + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
 	SetHook((void *)(**(DWORD **)lplpdi + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
 	return 0;
+}
+
+HRESULT WINAPI extDirectInputCreateA(HINSTANCE hinst, DWORD dwversion, LPDIRECTINPUT *lplpdi, LPUNKNOWN pu)
+{
+	return extDirectInputCreate(hinst, dwversion, lplpdi, pu, pDirectInputCreateA, "DirectInputCreateA");
+}
+
+HRESULT WINAPI extDirectInputCreateW(HINSTANCE hinst, DWORD dwversion, LPDIRECTINPUT *lplpdi, LPUNKNOWN pu)
+{
+	return extDirectInputCreate(hinst, dwversion, lplpdi, pu, pDirectInputCreateW, "DirectInputCreateW");
 }
 
 HRESULT WINAPI extDirectInputCreateEx(HINSTANCE hinst,
@@ -135,14 +157,14 @@ HRESULT WINAPI extDirectInputCreateEx(HINSTANCE hinst,
 	return 0;
 }
 
-HRESULT WINAPI extQueryInterfaceI(void * lpdi, REFIID riid, LPVOID *obp)
+HRESULT WINAPI extDIQueryInterface(void * lpdi, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 
 	OutTraceDW("QueryInterface(I): REFIID=%x\n",
 		riid.Data1);
 
-	res = (*pQueryInterfaceI)(lpdi, riid, obp);
+	res = (*pDIQueryInterface)(lpdi, riid, obp);
 	if(res) return res;
 
 	switch(riid.Data1){
@@ -380,6 +402,7 @@ HRESULT WINAPI extDIEnumDevices(void *lpdi, DWORD dwDevType, LPDIENUMDEVICESCALL
 	Arg.cb= lpCallback;
 	Arg.arg=pvRef;
 	res=(*pDIEnumDevices)( lpdi, dwDevType, (LPDIENUMDEVICESCALLBACK)extDeviceProxy, pvRef, dwFlags);
+	//res=(*pDIEnumDevices)( lpdi, dwDevType, lpCallback, pvRef, dwFlags);
 	OutTraceDW("EnumDevices(I): res=%x\n", res);
 	return res;
 }

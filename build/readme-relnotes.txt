@@ -522,3 +522,6 @@ log: fixed some messages with no line ending for GetObjectType()
 d3d begin of code reorganization and cleaning
 ole32, user32 API hot patched
 handling of DWL_DLGPROC message 
+
+v2.02.79
+fix: recovered capability to "pin" ddraw and d3d calls

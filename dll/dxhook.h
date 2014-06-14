@@ -53,5 +53,6 @@ typedef struct {
 
 extern FARPROC RemapLibrary(LPCSTR, HMODULE, HookEntry_Type *);
 extern void HookLibrary(HMODULE, HookEntry_Type *, char *);
+extern void PinLibrary(HookEntry_Type *, char *);
 extern void HookLibInit(HookEntry_Type *);
 extern BOOL IsHotPatched(HookEntry_Type *, char *);
