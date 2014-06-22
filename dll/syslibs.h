@@ -99,6 +99,7 @@ typedef DWORD	(WINAPI *GetObjectType_Type)(HGDIOBJ);
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
 typedef UINT	(WINAPI *GetDriveType_Type)(LPCSTR);
+typedef DWORD	(WINAPI *GetLogicalDrives_Type)(void);
 typedef void	(WINAPI *GetLocalTime_Type)(LPSYSTEMTIME);
 typedef FARPROC (WINAPI *GetProcAddress_Type)(HMODULE, LPCSTR);
 typedef void	(WINAPI *GetSystemTime_Type)(LPSYSTEMTIME);
@@ -308,6 +309,7 @@ DXWEXTERN GetObjectType_Type pGetObjectType DXWINITIALIZED;
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
 DXWEXTERN GetDriveType_Type pGetDriveType DXWINITIALIZED;
+DXWEXTERN GetLogicalDrives_Type pGetLogicalDrives DXWINITIALIZED;
 DXWEXTERN GetLocalTime_Type pGetLocalTime DXWINITIALIZED;
 DXWEXTERN GetProcAddress_Type pGetProcAddress DXWINITIALIZED;
 DXWEXTERN GetSystemTime_Type pGetSystemTime DXWINITIALIZED;
@@ -508,6 +510,7 @@ extern DWORD WINAPI extGetObjectType(HGDIOBJ);
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
 extern UINT WINAPI extGetDriveType(LPCSTR);
+extern DWORD WINAPI extGetLogicalDrives(void);
 extern void WINAPI extGetLocalTime(LPSYSTEMTIME);
 extern FARPROC WINAPI extGetProcAddress(HMODULE, LPCSTR);
 extern void WINAPI extGetSystemTime(LPSYSTEMTIME);

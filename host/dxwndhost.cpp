@@ -61,6 +61,15 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 			gbDebug = TRUE;
 			return;
 		}
+		if (sParam.MakeLower().Left(5) == "lang="){
+			HMODULE ResLib;
+			CString Lang;
+			Lang = sParam.MakeLower().Right(2);
+			ResLib=LoadLibrary("Resources_"+Lang+".dll");
+			if(ResLib) AfxSetResourceHandle(ResLib);
+			else MessageBoxEx(NULL, "Missing language \""+Lang+"\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
+			return;
+		}
 		if (sParam.Left(2).MakeLower() == "c:"){
 			strcpy_s(m_ConfigFileName, sizeof(m_ConfigFileName)-1, sParam.Mid(2,sizeof(m_ConfigFileName)-1));
 			return;
@@ -139,12 +148,7 @@ BOOL CDxwndhostApp::InitInstance()
         BOOL const fIsElevated = IsProcessElevated();
 		BOOL MustRestart;
 		if(fIsElevated) return TRUE;
-		MustRestart=MessageBoxEx(0, 
-			"Administrator capability is missing.\n"
-			"It could be required to handle some programs.\n"
-			"Do you want to acquire it?", 
-			"Warning", MB_OKCANCEL | MB_ICONQUESTION, NULL);
-
+		MustRestart=MessageBoxLang(DXW_STRING_ADMINCAP, DXW_STRING_WARNING, MB_OKCANCEL | MB_ICONQUESTION);
 		if(MustRestart==IDOK){
 			extern HANDLE GlobalLocker;
 			CloseHandle(GlobalLocker);
@@ -153,11 +157,18 @@ BOOL CDxwndhostApp::InitInstance()
 			{
 				// Launch itself as administrator.
 				SHELLEXECUTEINFO sei = { sizeof(sei) };
+				CString args;
 				sei.lpVerb = "runas";
 				sei.lpFile = szPath;
 				//sei.hwnd = (HWND)this->GetMainWnd();
 				sei.hwnd = (HWND)NULL; // set to NULL to force the confirmation dialog on top of everything...
 				sei.nShow = SW_NORMAL;
+				args = "";
+				for(int i=1; i<=__argc; i++) {
+					args += (LPCSTR)(__argv[i]);
+					args += " ";
+				}
+				sei.lpParameters = args;
 				if (!ShellExecuteEx(&sei)){
 					DWORD dwError = GetLastError();
 					if (dwError == ERROR_CANCELLED){
@@ -235,15 +246,6 @@ void CDxwndhostApp::OnAppAbout()
 	aboutDlg.m_Version = ver;
 	aboutDlg.DoModal();
 }
-
-//void CDxwndhostApp::OnAppExit()
-//{
-//	MessageBoxEx(0, 
-//			"A hooked task is still running.\n"
-//			"Exiting now may crash it.\n"
-//			"Do you still want to exit?", 
-//		"Warning", MB_OKCANCEL | MB_ICONQUESTION, NULL);
-//}
 
 /////////////////////////////////////////////////////////////////////////////
 // CDxwndhostApp Message Handler

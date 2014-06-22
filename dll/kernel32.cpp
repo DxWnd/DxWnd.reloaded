@@ -5,6 +5,7 @@
 #include "dxhelper.h"
 #include "hddraw.h"
 #include "ddproxy.h"
+#include "stdio.h"
 
 //#undef IsTraceDW
 //#define IsTraceDW TRUE
@@ -17,6 +18,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "LoadLibraryW", (FARPROC)LoadLibraryW, (FARPROC *)&pLoadLibraryW, (FARPROC)extLoadLibraryW},
 	{HOOK_IAT_CANDIDATE, "LoadLibraryExW", (FARPROC)LoadLibraryExW, (FARPROC *)&pLoadLibraryExW, (FARPROC)extLoadLibraryExW},
 	{HOOK_IAT_CANDIDATE, "GetDriveTypeA", (FARPROC)NULL, (FARPROC *)&pGetDriveType, (FARPROC)extGetDriveType},
+	{HOOK_IAT_CANDIDATE, "GetLogicalDrives", (FARPROC)NULL, (FARPROC *)&pGetLogicalDrives, (FARPROC)extGetLogicalDrives},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -29,8 +31,8 @@ static HookEntry_Type FixIOHooks[]={
 };
 
 static HookEntry_Type LimitHooks[]={
-	{HOOK_IAT_CANDIDATE, "GetDiskFreeSpaceA", (FARPROC)GetDiskFreeSpaceA, (FARPROC *)&pGetDiskFreeSpaceA, (FARPROC)extGetDiskFreeSpaceA},
-	{HOOK_IAT_CANDIDATE, "GlobalMemoryStatus", (FARPROC)GlobalMemoryStatus, (FARPROC *)&pGlobalMemoryStatus, (FARPROC)extGlobalMemoryStatus},
+	{HOOK_HOT_CANDIDATE, "GetDiskFreeSpaceA", (FARPROC)GetDiskFreeSpaceA, (FARPROC *)&pGetDiskFreeSpaceA, (FARPROC)extGetDiskFreeSpaceA},
+	{HOOK_HOT_CANDIDATE, "GlobalMemoryStatus", (FARPROC)GlobalMemoryStatus, (FARPROC *)&pGlobalMemoryStatus, (FARPROC)extGlobalMemoryStatus},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -316,12 +318,9 @@ VOID WINAPI extSleep(DWORD dwMilliseconds)
 {
 	DWORD dwNewDelay;
 	dwNewDelay=dwMilliseconds;
-	if (dwMilliseconds!=INFINITE && dwMilliseconds!=0){
+	if ((dwMilliseconds!=INFINITE) && (dwMilliseconds!=0)){
 		dwNewDelay = dxw.StretchTime(dwMilliseconds);
-		if (dwNewDelay==0){ // oh oh! troubles...
-			if (dxw.TimeShift > 0) dwNewDelay=1; // minimum allowed...
-			else dwNewDelay = INFINITE-1; // maximum allowed !!!
-		}
+		if (dwNewDelay==0) dwNewDelay=1; // minimum allowed...
 	}
 	if (IsDebug) OutTrace("Sleep: msec=%d->%d timeshift=%d\n", dwMilliseconds, dwNewDelay, dxw.TimeShift);
 	(*pSleep)(dwNewDelay);
@@ -331,12 +330,9 @@ DWORD WINAPI extSleepEx(DWORD dwMilliseconds, BOOL bAlertable)
 {
 	DWORD dwNewDelay;
 	dwNewDelay=dwMilliseconds;
-	if (dwMilliseconds!=INFINITE && dwMilliseconds!=0){
+	if ((dwMilliseconds!=INFINITE) && (dwMilliseconds!=0)){
 		dwNewDelay = dxw.StretchTime(dwMilliseconds);
-		if (dwNewDelay==0){ // oh oh! troubles...
-			if (dxw.TimeShift > 0) dwNewDelay=1; // minimum allowed...
-			else dwNewDelay = INFINITE-1; // maximum allowed !!!
-		}
+		if (dwNewDelay==0) dwNewDelay=1; // minimum allowed...
 	}
 	if (IsDebug) OutTrace("SleepEx: msec=%d->%d alertable=%x, timeshift=%d\n", dwMilliseconds, dwNewDelay, bAlertable, dxw.TimeShift);
 	return (*pSleepEx)(dwNewDelay, bAlertable);
@@ -611,7 +607,35 @@ UINT WINAPI extGetDriveType(LPCTSTR lpRootPathName)
 {
 	OutTraceDW("GetDriveType: path=\"%s\"\n", lpRootPathName);
 	if (dxw.dwFlags3 & CDROMDRIVETYPE) return DRIVE_CDROM;
+	if (dxw.dwFlags4 & HIDECDROMEMPTY){ 
+		BOOL Vol;
+		Vol = GetVolumeInformation(lpRootPathName, NULL, NULL, NULL, 0, 0, 0, 0);
+		OutTrace("Vol=%x\n", Vol);
+		if(!Vol) return DRIVE_UNKNOWN;
+	}
 	return (*pGetDriveType)(lpRootPathName);
+}
+
+DWORD WINAPI extGetLogicalDrives(void)
+{
+	DWORD DevMask;
+	OutTraceDW("GetLogicalDrives:\n");
+	DevMask = (*pGetLogicalDrives)();
+	if (dxw.dwFlags4 & HIDECDROMEMPTY){ 
+		for(int i=0; i<32; i++){
+			DWORD DevBit;
+			BOOL Vol;
+			DevBit = 0x1 << i;
+			if(DevMask & DevBit){
+				char RootPathName[10];
+				sprintf(RootPathName, "%c:\\", 'A'+i);
+				Vol = GetVolumeInformation(RootPathName, NULL, NULL, NULL, 0, 0, 0, 0);
+				OutTrace("Vol=%s status=%x\n", RootPathName, Vol);
+				if(!Vol) DevMask &= ~DevBit;
+			}
+		}
+	}
+	return DevMask;
 }
 
 BOOL WINAPI extReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped)

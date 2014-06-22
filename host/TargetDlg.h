@@ -129,6 +129,7 @@ public:
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
 	BOOL	m_CDROMDriveType;
+	BOOL	m_HideCDROMEmpty;
 	BOOL	m_FontBypass;
 	BOOL	m_BufferedIOFix;
 	BOOL	m_ZBufferClean;

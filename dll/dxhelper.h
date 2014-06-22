@@ -50,3 +50,4 @@ extern char *ExplainD3DRenderState(DWORD);
 extern char *ExplainRenderstateValue(DWORD);
 extern char *ExplainWfPFlags(DWORD);
 extern char *ExplainChangeDisplaySettingsFlags(DWORD);
+extern char *ExplainDICooperativeFlags(DWORD);

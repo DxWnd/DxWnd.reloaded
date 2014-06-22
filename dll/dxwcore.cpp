@@ -1143,7 +1143,7 @@ void dxwCore::ShowFPS(HDC xdc)
 	static int x, y;
 	static DWORD color;
 
-	if((*pGetTickCount)()-dwTimer > 4000){
+	if((*pGetTickCount)()-dwTimer > 6000){
 		RECT rect;
 		dwTimer = (*pGetTickCount)();
 		corner = dwTimer % 4;

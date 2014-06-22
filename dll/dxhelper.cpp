@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <ddraw.h>
 #include <d3d.h>
+#include <dinput.h>
 #include "dxwnd.h"
 
 
@@ -1716,3 +1717,18 @@ char *ExplainChangeDisplaySettingsFlags(DWORD c)
 	return(eb);
 }
 
+char *ExplainDICooperativeFlags(DWORD c)
+{
+	static char eb[128];
+	unsigned int l;
+	strcpy(eb,"DISCL_");
+	if(c & DISCL_EXCLUSIVE) strcat(eb, "EXCLUSIVE+");
+	if(c & DISCL_NONEXCLUSIVE) strcat(eb, "NONEXCLUSIVE+");
+	if(c & DISCL_FOREGROUND) strcat(eb, "FOREGROUND+");
+	if(c & DISCL_BACKGROUND) strcat(eb, "BACKGROUND+");
+	if(c & DISCL_NOWINKEY) strcat(eb, "NOWINKEY+");
+	l=strlen(eb);
+	if (l>strlen("DISCL_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}

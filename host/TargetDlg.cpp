@@ -57,6 +57,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SingleProcAffinity = FALSE;
 	m_LimitResources = FALSE;
 	m_CDROMDriveType = FALSE;
+	m_HideCDROMEmpty = FALSE;
 	m_FontBypass = FALSE;
 	m_BufferedIOFix = FALSE;
 	m_ZBufferClean = FALSE;

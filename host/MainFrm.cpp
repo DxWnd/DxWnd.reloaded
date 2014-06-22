@@ -55,11 +55,11 @@ CMainFrame::CMainFrame()
 	// duplicate activation check
 	GlobalLocker=CreateSemaphore(NULL, 0, 1, "DxWnd LOCKER");
 	if(GlobalLocker==NULL){
-		MessageBoxEx(0, "CreateSemaphore FAILED.\nExiting.", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
+		MessageBoxLang(DXW_STRING_SEMAPHORE, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
 		return;
 	}
 	if(GetLastError()==ERROR_ALREADY_EXISTS){
-		MessageBoxEx(0, "DxWnd is already running.\nExiting.", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
+		MessageBoxLang(DXW_STRING_DXWRUNNING, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
 		exit(1);
 	}
 }

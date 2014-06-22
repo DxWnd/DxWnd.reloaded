@@ -144,6 +144,7 @@
 #define HOTPATCHALWAYS		0x10000000 // Force hot patching to every call
 #define NOD3DRESET			0x20000000 // Disables D3D8/9 D3DDevice::Reset method
 #define OVERRIDEREGISTRY	0x40000000 // same as EMULATEREGISTRY, but fake keys takeprecedence
+#define HIDECDROMEMPTY		0x80000000 // hide empty CDROM drivers
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

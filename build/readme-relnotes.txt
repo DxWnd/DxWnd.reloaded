@@ -525,3 +525,10 @@ handling of DWL_DLGPROC message
 
 v2.02.79
 fix: recovered capability to "pin" ddraw and d3d calls
+
+v2.02.80
+Preliminary multilanguage release, english and chinese, many thanks to gsky916 support
+fixed Sleep bug for small delays and accelerated timeshift: fixes "Wind Fantasy SP" reported bug
+added log for DirectInput::SetCooperativeLevel flags
+fixed flip emulation mode when backbuffer is lost: fixes cursor problems in "HellCopter"
+fixed Pitch setting in DirectDraw::EnumDisplayModes when in SVGA emulation mode. Let "Outlive" use this setting

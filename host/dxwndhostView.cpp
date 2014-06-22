@@ -74,10 +74,9 @@ END_MESSAGE_MAP()
 
 // v2.1.68: dialog box for status check.
 static BOOL CheckStatus()
-{
+{ 
 	if(GetHookStatus(NULL)==DXW_RUNNING){
-		MessageBoxEx(0, "A hooked task is still running.\nWait its termination.", 
-			"Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
+		MessageBoxLang(DXW_STRING_WAITTASK, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
 		return TRUE;
 	}
 	return FALSE;
@@ -91,11 +90,8 @@ static void RevertScreenChanges(DEVMODE *InitDevMode)
 	if ((CurDevMode.dmPelsHeight != InitDevMode->dmPelsHeight) ||
 		(CurDevMode.dmPelsWidth != InitDevMode->dmPelsWidth) ||
 		(CurDevMode.dmBitsPerPel != InitDevMode->dmBitsPerPel)){
-		if (MessageBoxEx(0, 
-		"Desktop setting has changed.\n"
-		"Do you want to restore the previous ones?", 
-		"Warning", MB_YESNO | MB_ICONQUESTION, NULL)==IDYES) 
-		ChangeDisplaySettings(InitDevMode, 0);
+		if (MessageBoxLang(DXW_STRING_RESTORE, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION)==IDYES) 
+			ChangeDisplaySettings(InitDevMode, 0);
 	}
 }
 
@@ -166,6 +162,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HandleExceptions) t->flags |= HANDLEEXCEPTIONS;
 	if(dlg->m_LimitResources) t->flags2 |= LIMITRESOURCES;
 	if(dlg->m_CDROMDriveType) t->flags3 |= CDROMDRIVETYPE;
+	if(dlg->m_HideCDROMEmpty) t->flags4 |= HIDECDROMEMPTY;
 	if(dlg->m_FontBypass) t->flags3 |= FONTBYPASS;
 	if(dlg->m_BufferedIOFix) t->flags3 |= BUFFEREDIOFIX;
 	if(dlg->m_ZBufferClean) t->flags4 |= ZBUFFERCLEAN;
@@ -356,6 +353,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg->m_CDROMDriveType = t->flags3 & CDROMDRIVETYPE ? 1 : 0;
+	dlg->m_HideCDROMEmpty = t->flags4 & HIDECDROMEMPTY ? 1 : 0;
 	dlg->m_FontBypass = t->flags3 & FONTBYPASS ? 1 : 0;
 	dlg->m_BufferedIOFix = t->flags3 & BUFFEREDIOFIX ? 1 : 0;
 	dlg->m_ZBufferClean = t->flags4 & ZBUFFERCLEAN ? 1 : 0;
@@ -697,12 +695,10 @@ CDxwndhostView::~CDxwndhostView()
 
 	RevertScreenChanges(&this->InitDevMode);
 
-	if (this->isUpdated)
-	if (MessageBoxEx(0, 
-		"Task list has changed.\n"
-		"Do you want to save it?", 
-		"Warning", MB_YESNO | MB_ICONQUESTION, NULL)==IDYES) 
-	this->SaveConfigFile();
+	if (this->isUpdated){
+		if (MessageBoxLang(DXW_STRING_LISTUPDATE, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION)==IDYES) 
+			this->SaveConfigFile();
+	}
 
 	if(this->SystemTray.Enabled()){
 		this->SystemTray.StopAnimation();
@@ -714,11 +710,8 @@ void CDxwndhostView::OnExit()
 {
 	// check for running apps ....
 	if (GetHookStatus(NULL)==DXW_RUNNING){
-		if (MessageBoxEx(0, 
-			"A hooked task is still running.\n"
-			"Exiting now may crash it.\n"
-			"Do you still want to exit?", 
-		"Warning", MB_OKCANCEL | MB_ICONQUESTION, NULL)==IDCANCEL) return;
+		if (MessageBoxLang(DXW_STRING_EXIT, DXW_STRING_WARNING, MB_OKCANCEL | MB_ICONQUESTION)==IDCANCEL) 
+			return;
 	}
 	delete(this->GetParent());
 }
@@ -853,18 +846,19 @@ void CDxwndhostView::OnImport()
     char path[MAX_PATH];
 	for (i=0; strlen(TargetMaps[i].path) && i<MAXTARGETS; i++)
 		;
-	if (i==MAXTARGETS) return;
+	if (i==MAXTARGETS) {
+		MessageBoxLang(DXW_STRING_MAXENTRIES, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
+		return;
+	}
 	path[0]=0;
 	CListCtrl& listctrl = GetListCtrl();
 	
-	//static char buffer[4096] = {0};
-	//static char dirbuffer[4096] = {0};
 	char folder[MAX_PATH+1];
 	char pathname[MAX_PATH+1];
 	OPENFILENAME ofn = {0};
 	ofn.lStructSize = sizeof(ofn);
+	ofn.lpstrFilter = "DxWnd export file\0*.dxw\0\0";
 	ofn.lpstrFile = (LPSTR)ImportExportPath;
-	//ofn.lpstrInitialDir = (LPSTR)dirbuffer;
 	ofn.nMaxFile = 4096;
 	ofn.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 	ofn.lpstrDefExt = "dxw";
@@ -873,13 +867,14 @@ void CDxwndhostView::OnImport()
 		if(ImportExportPath[ofn.nFileOffset - 1] != '\0'){
 			// Single-Select
 			// "buffer" - name of file
-			LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, ImportExportPath);
-			listitem.mask = LVIF_TEXT | LVIF_IMAGE;
-			listitem.iItem = i;
-			listitem.iSubItem = 0;
-			listitem.iImage = SetTargetIcon(TargetMaps[i]);
-			listitem.pszText = TitleMaps[i].title;
-			listctrl.InsertItem(&listitem);
+			if(LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, ImportExportPath)){
+				listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+				listitem.iItem = i;
+				listitem.iSubItem = 0;
+				listitem.iImage = SetTargetIcon(TargetMaps[i]);
+				listitem.pszText = TitleMaps[i].title;
+				listctrl.InsertItem(&listitem);
+			}
 		}
 		else{
 			// Multi-Select
@@ -887,19 +882,21 @@ void CDxwndhostView::OnImport()
 			strcpy(folder, p);
 			strcat(folder, "\\");
 			p += lstrlen((LPSTR)p) + 1;
-			while(*p){
+			while(*p && (i<MAXTARGETS)){
 				// "p" - name of each files, NULL to terminate
-				if(!*p)break;
+				if(!*p) break;
+				if(i==MAXTARGETS) break;
 				strcpy(pathname, folder);
 				strcat(pathname, p);
-				LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, pathname);
-				listitem.mask = LVIF_TEXT | LVIF_IMAGE;
-				listitem.iItem = i;
-				listitem.iSubItem = 0;
-				listitem.iImage = SetTargetIcon(TargetMaps[i]);
-				listitem.pszText = TitleMaps[i].title;
-				listctrl.InsertItem(&listitem);
-				i++;
+				if (LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, pathname)){
+					listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+					listitem.iItem = i;
+					listitem.iSubItem = 0;
+					listitem.iImage = SetTargetIcon(TargetMaps[i]);
+					listitem.pszText = TitleMaps[i].title;
+					listctrl.InsertItem(&listitem);
+					i++;
+				}
 				p += lstrlen((LPSTR)p) + 1;
 			}
 		}
@@ -1007,8 +1004,7 @@ void CDxwndhostView::OnDeleteLog()
 	if((logfp=fopen(FilePath,"rb"))!=NULL){ // if the file exists ....
 		fclose(logfp);
 		// ... ask confirmation.
-		res=MessageBoxEx(0, "Clear log file?", 
-			"Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+		res=MessageBoxLang(DXW_STRING_CLEARLOG, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION);
 		if(res!=IDYES) return;
 	}
 
@@ -1032,8 +1028,7 @@ void CDxwndhostView::OnSort()
 	if (itemcount<2) return;
 
 	// ask for confirmation
-	res=MessageBoxEx(0, "Sort the application list?", 
-		"Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+	res=MessageBoxLang(DXW_STRING_SORTLIST, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION);
 	if(res!=IDYES) return;
 
 	// bubble sort the list
@@ -1117,14 +1112,14 @@ void CDxwndhostView::OnPause()
 {
 	CTargetDlg dlg;
 	HRESULT res;
-	char sMsg[128+1];
 	DXWNDSTATUS DxWndStatus;
 	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
-		MessageBoxEx(0, "No active task to pause.", "Info", MB_ICONEXCLAMATION, NULL);
+		MessageBoxLang(DXW_STRING_NOPAUSETASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
 	}
 	else {
-		sprintf_s(sMsg, 128, "Do you want to pause \nthe \"%s\" task?", TitleMaps[DxWndStatus.TaskIdx].title);
-		res=MessageBoxEx(0, sMsg, "Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+		wchar_t *wcstring = new wchar_t[48+1];
+		mbstowcs_s(NULL, wcstring, 48, TitleMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		res=MessageBoxLangArg(DXW_STRING_PAUSETASK, DXW_STRING_INFO, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		PauseResumeThreadList(DxWndStatus.dwPid, FALSE);
 	}
@@ -1134,14 +1129,14 @@ void CDxwndhostView::OnResume()
 {
 	CTargetDlg dlg;
 	HRESULT res;
-	char sMsg[128+1];
 	DXWNDSTATUS DxWndStatus;
 	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
-		MessageBoxEx(0, "No active task to resume.", "Info", MB_ICONEXCLAMATION, NULL);
+		MessageBoxLang(DXW_STRING_NORESUMETASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
 	}
 	else {
-		sprintf_s(sMsg, 128, "Do you want to resume \nthe \"%s\" task?", TitleMaps[DxWndStatus.TaskIdx].title);
-		res=MessageBoxEx(0, sMsg, "Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+		wchar_t *wcstring = new wchar_t[48+1];
+		mbstowcs_s(NULL, wcstring, 48, TitleMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		res=MessageBoxLangArg(DXW_STRING_RESUMETASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		PauseResumeThreadList(DxWndStatus.dwPid, TRUE);
 	}
@@ -1152,26 +1147,24 @@ void CDxwndhostView::OnKill()
 	CTargetDlg dlg;
 	HRESULT res;
 	HANDLE TargetHandle;
-	char sMsg[128+1];
 	DXWNDSTATUS DxWndStatus;
 	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
-		MessageBoxEx(0, "No active task to kill.", "Info", MB_ICONEXCLAMATION, NULL);
+		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
 	}
 	else {
-		sprintf_s(sMsg, 128, "Do you want to kill \nthe \"%s\" task?", TitleMaps[DxWndStatus.TaskIdx].title);
-		res=MessageBoxEx(0, sMsg, "Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+		wchar_t *wcstring = new wchar_t[48+1];
+		mbstowcs_s(NULL, wcstring, 48, TitleMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		DxWndStatus.dwPid;
 
 		TargetHandle = OpenProcess(PROCESS_TERMINATE, FALSE, DxWndStatus.dwPid);
 		if(!TargetHandle){
-			sprintf_s(sMsg, 128, "OpenProcess(%x) error %d, operation failed.", DxWndStatus.dwPid, GetLastError());
-			MessageBoxEx(0, sMsg, "Error", MB_ICONEXCLAMATION, NULL);
+			MessageBoxLangArg(DXW_STRING_OPENPROCESS, DXW_STRING_ERROR, MB_ICONEXCLAMATION, DxWndStatus.dwPid, GetLastError());
 			return;
 		}
 		if(!TerminateProcess(TargetHandle, 0)){
-			sprintf_s(sMsg, 128, "TerminateProcess(%x) error %d, operation failed.", TargetHandle, GetLastError());
-			MessageBoxEx(0, sMsg, "Error", MB_ICONEXCLAMATION, NULL);
+			MessageBoxLangArg(DXW_STRING_TERMINATE, DXW_STRING_ERROR, MB_ICONEXCLAMATION, TargetHandle, GetLastError());
 			return;
 		}
 		CloseHandle(TargetHandle); 
@@ -1189,17 +1182,17 @@ void CDxwndhostView::OnProcessKill()
 	char FilePath[MAX_PATH+1];
 	char *lpProcName, *lpNext;
 	HRESULT res;
-	char sMsg[128+1];
 
 	if(!listctrl.GetSelectedCount()) return ;
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
 
-	strncpy(FilePath,TargetMaps[i].path,MAX_PATH);
-	sprintf_s(sMsg, 128, "Do you want to kill \nthe \"%s\" task?", TitleMaps[i].title);
-	res=MessageBoxEx(0, sMsg, "Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+	wchar_t *wcstring = new wchar_t[48+1];
+	mbstowcs_s(NULL, wcstring, 48, TitleMaps[i].title, _TRUNCATE);
+	res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 	if(res!=IDYES) return;
 
+	strncpy(FilePath,TargetMaps[i].path,MAX_PATH);
 	lpProcName=FilePath;
 	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
 
@@ -1216,14 +1209,9 @@ void CDxwndhostView::OnAdd()
 	CTargetDlg dlg;
 	LV_ITEM listitem;
 
-	//dlg.m_DXVersion = 0;
-	//dlg.m_Coordinates = 0;
-	//dlg.m_MaxX = 0; //639;
-	//dlg.m_MaxY = 0; //479;
-	//dlg.m_DxEmulationMode = 4; // defaulting to AUTOMATIC
 	for(i = 0; i < MAXTARGETS; i ++) if(!TargetMaps[i].path[0]) break;
 	if(i>=MAXTARGETS){
-		MessageBoxEx(0, "Maximum entries number reached.\nDelete some entry to add a new one.", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);
+		MessageBoxLang(DXW_STRING_MAXENTRIES, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
 		return;
 	}
 	memset(&TargetMaps[i],0,sizeof(TARGETMAP)); // clean up, just in case....
@@ -1272,8 +1260,9 @@ void CDxwndhostView::OnDelete()
 		FilePath=FilePath.Right(FilePath.GetLength()-len-1);
 	}
 
-	res=MessageBoxEx(0, "Delete \""+FilePath+"\" ?", 
-		"Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+	wchar_t *wcstring = new wchar_t[MAX_PATH+1];
+	mbstowcs_s(NULL, wcstring, MAX_PATH, FilePath, _TRUNCATE);
+	res=MessageBoxLangArg(DXW_STRING_DELENTRY, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 	if(res!=IDYES) return;
 	listctrl.DeleteItem(i);
 	for(; i < MAXTARGETS  - 1; i ++) {
@@ -1324,8 +1313,7 @@ void CDxwndhostView::OnClearAllLogs()
 	CString	FilePath;
 	HRESULT res;
 
-	res=MessageBoxEx(0, "Clear ALL logs?", 
-		"Warning", MB_YESNO | MB_ICONQUESTION, NULL);
+	res=MessageBoxLang(DXW_STRING_CLEARALL, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION);
 	if(res!=IDYES) return;
 
 	for(i = 0; i < MAXTARGETS; i ++) {
@@ -1419,12 +1407,12 @@ void CDxwndhostView::OnGoToTrayIcon()
 			m_StartToTray ? NULL : "DxWnd DirectDraw windowizer", // NULL inhibits the Tray banner
 			"DxWnd", 
 			NIIF_INFO, 10)){
-			MessageBox(0, "SystemTray.Create failed", MB_OK);
+			MessageBoxLang(DXW_STRING_TRAYFAIL, DXW_STRING_ERROR, MB_OK);
 			return;
 		}
 		IconId=(menu->GetMenuState(ID_HOOK_START, MF_BYCOMMAND)==MF_CHECKED)?IDI_DXWAIT:IDI_DXIDLE;
 		if(!this->SystemTray.SetIcon(IconId)){
-			MessageBox(0, "SystemTray.LoadIcon failed", MB_OK);
+			MessageBoxLang(DXW_STRING_ICONFAIL, DXW_STRING_ERROR, MB_OK);
 			return;
 		}
 		StatusThread= CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)TrayIconUpdate, (LPVOID)&this->SystemTray, 0, &dwThrdId);
@@ -1438,11 +1426,8 @@ void CDxwndhostView::OnGoToTrayIcon()
 void CDxwndhostView::OnSaveFile() 
 {
 	if (this->isUpdated) 
-	if (MessageBoxEx(0, 
-		"Task list has changed.\n"
-		"Do you want to save it?", 
-		"Warning", MB_YESNO | MB_ICONQUESTION, NULL)==IDYES) 
-	this->SaveConfigFile();
+	if (MessageBoxLang(DXW_STRING_SAVELIST, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION)==IDYES) 
+		this->SaveConfigFile();
 }
 
 void CDxwndhostView::OnTrayRestore() 
@@ -1598,6 +1583,7 @@ DWORD WINAPI StartDebug(void *p)
 		switch(debug_event.dwDebugEventCode){
 		case EXIT_PROCESS_DEBUG_EVENT:
 			if(step){
+				// DXW_STRING_STEPPING
 				xpi=(EXIT_PROCESS_DEBUG_INFO *)&debug_event.u;
 				sprintf(DebugMessage, "EXIT PROCESS RetCode=%x", xpi->dwExitCode);
 				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
@@ -1610,7 +1596,7 @@ DWORD WINAPI StartDebug(void *p)
 			// ref: problems in setting default exception handler in Tomb Raider IV demo
 			if(ThInfo->TM->flags & HANDLEEXCEPTIONS) {
 				Sleep(500); 
-				MessageBoxEx(0, "Wait for exception handler ...\nPress OK button", "Pause", MB_OK, NULL);
+				MessageBoxLang(DXW_STRING_EXCEPTION, DXW_STRING_WAIT, MB_OK);
 			}
 			if(step){
 				pi=(PROCESS_INFORMATION *)&debug_event.u;
@@ -1621,6 +1607,7 @@ DWORD WINAPI StartDebug(void *p)
 			}
 			GetFullPathName("dxwnd.dll", MAX_PATH, path, NULL);
 			if(!Inject(pinfo.dwProcessId, path)){
+				// DXW_STRING_INJECTION
 				sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, path);
 				MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 			}
@@ -1718,29 +1705,29 @@ void SwitchToColorDepth(int bpp)
 {
 	DEVMODE CurrentDevMode;
 	BOOL res;
-	char MsgBuf[256+1];
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
-	sprintf(MsgBuf, "ChangeDisplaySettings: color depth %d -> %d BPP\n", CurrentDevMode.dmBitsPerPel, bpp);
-	if(MessageBoxEx(0, MsgBuf, "Warning", MB_OKCANCEL | MB_ICONQUESTION, NULL)!=IDOK) return;
+
+	if(MessageBoxLangArg(DXW_STRING_NEWCOLOR, DXW_STRING_WARNING, MB_OKCANCEL | MB_ICONQUESTION, CurrentDevMode.dmBitsPerPel, bpp)!=IDOK) 
+		return;
+
 	//OutTraceDW("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> 16\n", 
 	//	CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel);
 	CurrentDevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 	CurrentDevMode.dmBitsPerPel = bpp;
 	res=ChangeDisplaySettings(&CurrentDevMode, CDS_UPDATEREGISTRY);
 	if(res!=DISP_CHANGE_SUCCESSFUL) {
-		char *err;
+		WCHAR *err;
 		switch(res){
-			case DISP_CHANGE_BADDUALVIEW: err="BADDUALVIEW"; break;
-			case DISP_CHANGE_BADFLAGS: err="BADFLAGS"; break;
-			case DISP_CHANGE_BADMODE: err="BADMODE"; break;
-			case DISP_CHANGE_BADPARAM: err="BADPARAM"; break;
-			case DISP_CHANGE_FAILED: err="FAILED"; break;
-			case DISP_CHANGE_NOTUPDATED: err="NOTUPDATED"; break;
-			case DISP_CHANGE_RESTART: err="RESTART"; break;
-			default: err="???"; break;
+			case DISP_CHANGE_BADDUALVIEW: err=L"BADDUALVIEW"; break;
+			case DISP_CHANGE_BADFLAGS: err=L"BADFLAGS"; break;
+			case DISP_CHANGE_BADMODE: err=L"BADMODE"; break;
+			case DISP_CHANGE_BADPARAM: err=L"BADPARAM"; break;
+			case DISP_CHANGE_FAILED: err=L"FAILED"; break;
+			case DISP_CHANGE_NOTUPDATED: err=L"NOTUPDATED"; break;
+			case DISP_CHANGE_RESTART: err=L"RESTART"; break;
+			default: err=L"???"; break;
 		}
-		sprintf(MsgBuf, "ChangeDisplaySettings ERROR res=%s err=%d\n", err, GetLastError());
-		MessageBoxEx(0, MsgBuf, "Error", MB_OKCANCEL | MB_ICONQUESTION, NULL);
+		MessageBoxLangArg(DXW_STRING_ERRCOLOR, DXW_STRING_ERROR, MB_OK | MB_ICONEXCLAMATION, err, GetLastError());
 	}
 }
 

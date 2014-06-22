@@ -168,7 +168,7 @@
 			<Tool
 				Name="VCResourceCompilerTool"
 				PreprocessorDefinitions="_DEBUG"
-				Culture="1041"
+				Culture="0"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -342,6 +342,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\MessageBox.cpp"
+				>
 			</File>
 			<File
 				RelativePath=".\PaletteDialog.cpp"

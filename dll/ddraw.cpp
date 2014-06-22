@@ -3351,20 +3351,35 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 	if((dwflags & DDFLIP_WAIT) || (dxw.dwFlags1 & SAVELOAD)) lpPrimaryDD->WaitForVerticalBlank(DDWAITVB_BLOCKEND , 0);
 
 	if(dxw.dwFlags4 & NOFLIPEMULATION){
+		HRESULT res2;
 		// create a temporary working surface
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = SurfaceDescrSize(lpdds);
-		(*pGetSurfaceDescMethod(lpdds))((LPDIRECTDRAWSURFACE2)lpDDSBack, &ddsd);
-		ddsd.dwFlags &= ~DDSD_PITCH;	
-		res=(*pCreateSurfaceMethod(lpdds))(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
-		if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		// v2.02.80: the BackBuffer may not exist? see "HellCopter"
+		if(lpDDSBack){
+			(*pGetSurfaceDescMethod(lpdds))((LPDIRECTDRAWSURFACE2)lpDDSBack, &ddsd);
+			ddsd.dwFlags &= ~DDSD_PITCH;
+		}
+		else{
+			ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
+			ddsd.ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN);
+			ddsd.dwHeight = dxw.GetScreenHeight();
+			ddsd.dwWidth = dxw.GetScreenWidth();
+		}
+		res2=(*pCreateSurfaceMethod(lpdds))(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
+		if(res2) {
+			OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
+			OutTrace("Size=%d lpPrimaryDD=%x lpDDSBack=%x\n", ddsd.dwSize, lpPrimaryDD, lpDDSBack);
+			LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[FlipBuf]", __LINE__);
+			//dxw.dwFlags4 &= ~NOFLIPEMULATION;
+		}
 		//OutTrace("DEBUG: copied surface size=(%dx%d)\n", ddsd.dwWidth, ddsd.dwHeight);
 		// copy front buffer 
 		if(dxw.dwFlags1 & EMULATESURFACE){
 			// in emulated mode, the primary surface is virtual and you can pick it all
 			// needed for "Gruntz"
-			res= (*pBlt)(lpddsTmp, NULL, lpdds, NULL, DDBLT_WAIT, NULL);
-			if(res) BlitError(res, NULL, NULL,  __LINE__);
+			res2= (*pBlt)(lpddsTmp, NULL, lpdds, NULL, DDBLT_WAIT, NULL);
+			if(res2) BlitError(res2, NULL, NULL,  __LINE__);
 		}
 		else {
 			// in no-emulated mode, the primary surface is the whole screen, so you have to pick...
@@ -3374,8 +3389,8 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 				clip=dxw.GetScreenRect();
 			else
 			clip=dxw.GetUnmappedScreenRect();
-			res= (*pBlt)(lpddsTmp, NULL, lpdds, &clip, DDBLT_WAIT, NULL);
-			if(res) BlitError(res, &clip, NULL,  __LINE__);
+			res2= (*pBlt)(lpddsTmp, NULL, lpdds, &clip, DDBLT_WAIT, NULL);
+			if(res2) BlitError(res2, &clip, NULL,  __LINE__);
 		}
 	}
 
@@ -3404,9 +3419,10 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 	}
 
 	if(dxw.dwFlags4 & NOFLIPEMULATION){
+		HRESULT res2;
 		// restore flipped backbuffer and delete temporary surface
-		res= (*pBlt)(lpddssrc, NULL, lpddsTmp, NULL, DDBLT_WAIT, NULL);
-		if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
+		res2= (*pBlt)(lpddssrc, NULL, lpddsTmp, NULL, DDBLT_WAIT, NULL);
+		if(res2) OutTraceE("Blt: ERROR %x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
 		(*pReleaseS)(lpddsTmp);
 	}
 
@@ -4114,6 +4130,7 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 			EmuDesc.ddpfPixelFormat.dwFlags=DDPF_RGB;
 			for (DepthIdx=0; SupportedDepths[DepthIdx]; DepthIdx++) {
 				EmuDesc.ddpfPixelFormat.dwRGBBitCount=SupportedDepths[DepthIdx];
+				EmuDesc.lPitch=SupportedRes[ResIdx].w * SupportedDepths[DepthIdx] / 8;
 				FixPixelFormat(EmuDesc.ddpfPixelFormat.dwRGBBitCount, &(EmuDesc.ddpfPixelFormat));
 				res=(*cb)((LPDDSURFACEDESC)&EmuDesc, lpContext);
 				OutTraceDW("EnumDisplayModes(D): proposed depth[%d]=%d size[%d]=(%d,%d) res=%x\n", 

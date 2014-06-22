@@ -286,7 +286,9 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
 	if(res) return res;
-	if(cbdata == sizeof(DIMOUSESTATE) || cbdata == sizeof(DIMOUSESTATE2)){
+	if(	cbdata == sizeof(DIMOUSESTATE) || cbdata == sizeof(DIMOUSESTATE2) 
+	//	|| cbdata == sizeof(DIJOYSTATE) || cbdata == sizeof(DIJOYSTATE2) 
+	){
 		GetMousePosition((int *)&p.x, (int *)&p.y);
 		lpvdata->lX = p.x;
 		lpvdata->lY = p.y;
@@ -304,16 +306,65 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 			lpvdata->lZ = 0;
 			*(DWORD *)lpvdata->rgbButtons = 0;
 		}
-		OutTraceDW("DEBUG: directinput mousestate=(%d,%d)\n", p.x, p.y);
+		OutTraceB("GetDeviceState(I): DEBUG mousestate=(%d,%d)\n", p.x, p.y);
 	}
 	
 	if(cbdata == 256 && !dxw.bActive) ZeroMemory(lpvdata, 256);
 	return 0;
 }
-	
+
+//static char *dftype(LPCDIDATAFORMAT lpdf)
+//{
+//	if(lpdf == &c_dfDIMouse)		return "mouse";
+//	if(lpdf == &c_dfDIKeyboard)		return "keyboard";
+//	if(lpdf == &c_dfDIMouse2)		return "mouse2";
+//	if(lpdf == &c_dfDIJoystick)		return "joy";
+//	if(lpdf == &c_dfDIJoystick2)	return "joy2";
+//	return "custom";
+//}
+
+static char *didftype(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"DIDFT_");
+	switch (c & 0x00000003){
+		case DIDFT_RELAXIS: strcat(eb, "RELAXIS+"); break;
+		case DIDFT_ABSAXIS: strcat(eb, "ABSAXIS+"); break;
+		case DIDFT_AXIS: strcat(eb, "AXIS+"); break;
+	}
+	switch (c & 0x0000000C){
+		case DIDFT_PSHBUTTON: strcat(eb, "PSHBUTTON+"); break;
+		case DIDFT_TGLBUTTON: strcat(eb, "TGLBUTTON+"); break;
+		case DIDFT_BUTTON: strcat(eb, "BUTTON+"); break;
+	}
+	if (c & DIDFT_POV) strcat(eb, "POV+");
+	if (c & DIDFT_COLLECTION) strcat(eb, "COLLECTION+");
+	if (c & DIDFT_NODATA) strcat(eb, "NODATA+");
+	if (c & DIDFT_FFACTUATOR) strcat(eb, "FFACTUATOR+");
+	if (c & DIDFT_FFEFFECTTRIGGER) strcat(eb, "FFEFFECTTRIGGER+");
+	if (c & DIDFT_VENDORDEFINED) strcat(eb, "VENDORDEFINED+");
+	if (c & DIDFT_OUTPUT) strcat(eb, "OUTPUT+");
+	if (c & DIDFT_ALIAS) strcat(eb, "ALIAS+");
+	if (c & DIDFT_OPTIONAL) strcat(eb, "OPTIONAL+");
+	l=strlen(eb);
+	if (l>strlen("DIDFT_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
 HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 {
-	OutTraceDW("SetDataFormat(I): did=%x flags=0x%x\n", lpdid, lpdf->dwFlags);
+	OutTraceDW("SetDataFormat(I): did=%x lpdf=%x size=%d objsize=%d flags=0x%x datasize=%d numobjects=%d\n", 
+		lpdid, lpdf, lpdf->dwSize, lpdf->dwObjSize, lpdf->dwFlags, lpdf->dwDataSize, lpdf->dwNumObjs);
+	if(IsDebug){
+		DIOBJECTDATAFORMAT *df;
+		df = lpdf->rgodf;
+		for(DWORD i=0; i<lpdf->dwNumObjs; i++){
+			OutTrace("SetDataFormat(I): DataFormat[%d] ofs=%x flags=%x type=%x(%s)\n", 
+				i, df[i].dwOfs, df[i].dwFlags, df[i].dwType, didftype(df[i].dwType));
+		}
+	}
 
 	if(lpdf->dwFlags & DIDF_ABSAXIS) dxw.bDInputAbs = 1;
 	if(lpdf->dwFlags & DIDF_RELAXIS) dxw.bDInputAbs = 0;
@@ -322,7 +373,8 @@ HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 
 HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE lpdid, HWND hwnd, DWORD dwflags)
 {
-	OutTraceDW("SetCooperativeLevel(I): did=%x hwnd=%x flags=%x\n", lpdid, hwnd, dwflags);
+	OutTraceDW("SetCooperativeLevel(I): did=%x hwnd=%x flags=%x(%s)\n", 
+		lpdid, hwnd, dwflags, ExplainDICooperativeFlags(dwflags));
 
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 	dwflags = DISCL_NONEXCLUSIVE | DISCL_BACKGROUND;
@@ -371,6 +423,7 @@ HRESULT WINAPI extDeviceProxy(LPCDIDEVICEINSTANCE dev, LPVOID arg)
 		dev->dwSize, p, dev->guidInstance.Data1, dev->guidInstance.Data2, dev->guidInstance.Data3, dev->guidInstance.Data4, 
 		dev->dwDevType, dev->tszInstanceName, dev->tszProductName);
 
+#if 0
 	if(0){
 		DIDEVICEINSTANCEW fixdev;
 		fixdev.dwSize=sizeof(DIDEVICEINSTANCEW);
@@ -383,13 +436,9 @@ HRESULT WINAPI extDeviceProxy(LPCDIDEVICEINSTANCE dev, LPVOID arg)
 		OutTraceDW("EnumDevices: CALLBACK ret=%x\n", res);
 		return res;
 	}
+#endif
 
-	__try{
-		res = ((((CallbackArg *)arg)->cb))(dev, ((CallbackArg *)arg)->arg);
-	}
-	__except(EXCEPTION_EXECUTE_HANDLER){
-		res=TRUE;
-	}
+	res = (*(((CallbackArg *)arg)->cb))(dev, ((CallbackArg *)arg)->arg);
 	OutTraceDW("EnumDevices: CALLBACK ret=%x\n", res);
 	return res;
 }
@@ -401,7 +450,7 @@ HRESULT WINAPI extDIEnumDevices(void *lpdi, DWORD dwDevType, LPDIENUMDEVICESCALL
 	OutTraceDW("EnumDevices(I): di=%x DevType=%x CallBack=%x Ref=%x Flags=%x\n", lpdi, dwDevType, lpCallback, pvRef, dwFlags);
 	Arg.cb= lpCallback;
 	Arg.arg=pvRef;
-	res=(*pDIEnumDevices)( lpdi, dwDevType, (LPDIENUMDEVICESCALLBACK)extDeviceProxy, pvRef, dwFlags);
+	res=(*pDIEnumDevices)( lpdi, dwDevType, (LPDIENUMDEVICESCALLBACK)extDeviceProxy, &Arg, dwFlags); // V2.02.80 fix
 	//res=(*pDIEnumDevices)( lpdi, dwDevType, lpCallback, pvRef, dwFlags);
 	OutTraceDW("EnumDevices(I): res=%x\n", res);
 	return res;
