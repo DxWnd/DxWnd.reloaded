@@ -12,6 +12,8 @@
 #include "hddraw.h"
 #include "dxhelper.h"
 
+#define FIXCHILDSIZE TRUE
+
 BOOL IsChangeDisplaySettingsHotPatched = FALSE;
 
 static HookEntry_Type Hooks[]={
@@ -543,7 +545,7 @@ LONG WINAPI extGetWindowLong(HWND hwnd, int nIndex, GetWindowLong_Type pGetWindo
 
 	if((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)){
 		WNDPROC wp;
-		wp=WhndGetWindowProc(hwnd);
+		wp=WinDBGetProc(hwnd);
 		OutTraceDW("GetWindowLong: remapping WindowProc res=%x -> %x\n", res, (LONG)wp);
 		if(wp) res=(LONG)wp; // if not found, don't alter the value.
 	}
@@ -623,8 +625,8 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		if((OldProc==extWindowProc) || 
 			(OldProc==extChildWindowProc)||
 			(OldProc==extDialogWindowProc)) 
-			OldProc=WhndGetWindowProc(hwnd);
-		WhndStackPush(hwnd, (WNDPROC)dwNewLong);
+			OldProc=WinDBGetProc(hwnd);
+		WinDBPutProc(hwnd, (WNDPROC)dwNewLong);
 		res=(LONG)OldProc;
 		SetLastError(0);
 		lres=(WNDPROC)(*pSetWindowLongA)(hwnd, nIndex, (LONG)extWindowProc);
@@ -973,6 +975,16 @@ BOOL WINAPI extGetClientRect(HWND hwnd, LPRECT lpRect)
 	}
 	else 
 	if (dxw.IsFullScreen()){
+		int w, h;
+		if(FIXCHILDSIZE){
+			if(WinDBGetSize(hwnd, &w, &h)){
+				lpRect->top=lpRect->left=0;
+				lpRect->right=w;
+				lpRect->bottom=h;
+				OutTraceB("GetClientRect: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+				return TRUE;
+			}
+		}
 		*lpRect=dxw.GetClientRect(*lpRect);
 		OutTraceB("GetClientRect: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 	}
@@ -1127,7 +1139,7 @@ static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
 {
 	// child window inherit the father's windproc, so if it's redirected to
 	// a hooker (either extWindowProc or extChildWindowProc) you have to retrieve
-	// the correct value (WhndGetWindowProc) before saving it (WhndStackPush).
+	// the correct value (WinDBGetProc) before saving it (WinDBPutProc).
 	long res;
 	WNDPROC pWindowProc;
 
@@ -1138,13 +1150,13 @@ static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
 		HWND Father;
 		WNDPROC pFatherProc;
 		Father=GetParent(hwnd);
-		pFatherProc=WhndGetWindowProc(Father);
+		pFatherProc=WinDBGetProc(Father);
 		OutTraceDW("%s: WndProc=%s father=%x WndProc=%x\n", ApiName, 
 			(pWindowProc == extWindowProc) ? "extWindowProc" : ((pWindowProc == extChildWindowProc) ? "extChildWindowProc" : "extDialogWindowProc"), 
 			Father, pFatherProc);
 		pWindowProc = pFatherProc;
 	}
-	WhndStackPush(hwnd, pWindowProc);
+	WinDBPutProc(hwnd, pWindowProc);
 	if(dwStyle & WS_CHILD){
 		OutTraceDW("%s: Hooking CHILD hwnd=%x father WindowProc %x->%x\n", ApiName, hwnd, pWindowProc, extChildWindowProc);
 		res=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extChildWindowProc);
@@ -1174,7 +1186,10 @@ static HWND WINAPI extCreateWindowCommon(
 {
 	HWND hwnd;
 	BOOL isValidHandle=TRUE;
+	int iOrigW, iOrigH;
 
+	iOrigW=nWidth;
+	iOrigH=nHeight;
 	if(!dxw.Windowize){
 		if(WideChar)
 			hwnd= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
@@ -1335,6 +1350,9 @@ static HWND WINAPI extCreateWindowCommon(
 
 	if ((dxw.dwFlags1 & HOOKCHILDWIN) && (dwStyle & (WS_CHILD|WS_DLGFRAME)))
 		HookChildWndProc(hwnd, dwStyle, ApiName);
+
+	if ((FIXCHILDSIZE) && (dwStyle & (WS_CHILD|WS_DLGFRAME)))
+		WinDBPutSize(hwnd, iOrigW, iOrigH);
 
 	OutTraceDW("%s: ret=%x\n", ApiName, hwnd);
 	return hwnd;
@@ -2123,7 +2141,7 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL
 	if(lpDialogFunc) {	
-		WhndStackPush(RetHWND, (WNDPROC)lpDialogFunc);
+		WinDBPutProc(RetHWND, (WNDPROC)lpDialogFunc);
 		if(!(*pSetWindowLongA)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 			OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
@@ -2145,7 +2163,7 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL: fix for "LEGO Stunt Rally"
 	if(lpDialogFunc) {
-		WhndStackPush(RetHWND, (WNDPROC)lpDialogFunc);
+		WinDBPutProc(RetHWND, (WNDPROC)lpDialogFunc);
 		if(!(*pSetWindowLongA)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 			OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}

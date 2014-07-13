@@ -258,8 +258,11 @@ LRESULT CALLBACK extDialogWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define IsAssertEnabled (dxw.dwTFlags & ASSERTDIALOG)
 #define STEP OutTrace("STEP at %s:%d\n", __FILE__, __LINE__)
 
-extern void WhndStackPush(HWND, WNDPROC);
-extern WNDPROC WhndGetWindowProc(HWND );
+extern void WinDBPut(HWND, WNDPROC, int, int);
+extern BOOL WinDBGetSize(HWND, int *, int *);
+extern WNDPROC WinDBGetProc(HWND);
+extern void WinDBPutProc(HWND, WNDPROC);
+extern void WinDBPutSize(HWND, int, int);
 
 typedef enum {
 	DXW_SET_COORDINATES = 0,

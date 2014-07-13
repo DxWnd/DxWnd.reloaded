@@ -549,3 +549,7 @@ add: build-in check for compatibility modes set!
 
 v2.02.84
 fix: removed extra reference to ddraw session causing window movements on fullscreen game exit: fixes another "Wind Fantasy SP" reported bug
+
+v2.02.85
+fix: revised handling of d3d D3DFORMAT field: fixes "Call of Cthulhu DCotE" color problems
+fix: added recovery for rounded child win coordinates: fixes blitting problems in Diablo when win size is not an exact multiple of native resolution.

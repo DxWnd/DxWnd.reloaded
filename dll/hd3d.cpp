@@ -9,6 +9,7 @@
 #include "dxhook.h"
 #include "dxhelper.h"
 #include "syslibs.h"
+#include "hd3d.doc.hpp" // fake include to hold documentation
 
 #define HOOKD3D10ANDLATER 1
 #define TRACEALLMETHODS 1
@@ -668,7 +669,6 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 				OutTraceD3D("GetAdapterDisplayMode FAILED! %x\n", res);
 				return(DD_OK);
 			}
-			param[2] = mode.Format;
 			param[7] = 0;			//hDeviceWindow
 			dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
 			param[8] = 1;			//Windowed
@@ -688,7 +688,6 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 				OutTraceD3D("GetAdapterDisplayMode FAILED! %x\n", res);
 				return(DD_OK);
 			}
-			param[2] = mode.Format;
 			param[6] = 0;			//hDeviceWindow
 			dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
 			param[7] = 1;			//Windowed
@@ -700,6 +699,16 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 
 	if(!(dxw.dwFlags4 & NOD3DRESET)){ 
 		res = (*pReset)(pd3dd, (D3DPRESENT_PARAMETERS *)param);
+		if(res){
+			OutTraceD3D("switching to mode=%x\n", mode.Format);
+			param[2] = mode.Format; // first attempt: current screen mode
+			res = (*pReset)(pd3dd, (D3DPRESENT_PARAMETERS *)param);
+		}
+		if(res){
+			OutTraceD3D("switching to mode=D3DFMT_UNKNOWN\n");
+			param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
+			res = (*pReset)(pd3dd, (D3DPRESENT_PARAMETERS *)param);
+		}
 		if(res == D3DERR_INVALIDCALL){
 			OutTraceD3D("FAILED! D3DERR_INVALIDCALL\n", res);
 			return D3DERR_INVALIDCALL;
@@ -898,7 +907,6 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
 	else
 		(*pGetAdapterDisplayMode8)(lpd3d, 0, &mode);
-	param[2] = mode.Format;
 	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
@@ -913,6 +921,16 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 			param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 		}
 		res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
+		if(res){
+			OutTraceD3D("switching to mode=%x\n", mode.Format);
+			param[2] = mode.Format; // first attempt: current screen mode
+			res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
+		}
+		if(res){
+			OutTraceD3D("switching to mode=D3DFMT_UNKNOWN\n");
+			param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
+			res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
+		}
 	}
 	else{
 		if(dxw.Windowize){
@@ -924,6 +942,16 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 			param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 		}
 		res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
+		if(res){
+			OutTraceD3D("switching to mode=%x\n", mode.Format);
+			param[2] = mode.Format; // first attempt: current screen mode
+			res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
+		}
+		if(res){
+			OutTraceD3D("switching to mode=D3DFMT_UNKNOWN\n");
+			param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
+			res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
+		}
 	}
 
 	if(res){
@@ -989,7 +1017,6 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 
 	//((LPDIRECT3D9)lpd3d)->GetAdapterDisplayMode(0, &mode);
 	(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
-	param[2] = mode.Format;
 	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
@@ -1004,6 +1031,16 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	}
 
 	res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
+	if(res){
+		OutTraceD3D("switching to mode=%x\n", mode.Format);
+		param[2] = mode.Format; // first attempt: current screen mode
+		res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
+	}
+	if(res){
+		OutTraceD3D("switching to mode=D3DFMT_UNKNOWN\n");
+		param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
+		res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
+	}
 	if(res){
 		OutTraceD3D("FAILED! %x\n", res);
 		return res;
@@ -1109,7 +1146,6 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 		(*pGetAdapterDisplayMode9)(lpd3dd, 0, &mode);
 	else
 		(*pGetAdapterDisplayMode8)(lpd3dd, 0, &mode);
-	param[2] = mode.Format;
 	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
@@ -1131,7 +1167,20 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 		}
 	}
 	res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
-	if(res) OutTraceE("CreateAdditionalSwapChain ERROR: res=%x\n", res);
+	if(res){
+		OutTraceD3D("switching to mode=%x\n", mode.Format);
+		param[2] = mode.Format; // first attempt: current screen mode
+		res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
+	}
+	if(res){
+		OutTraceD3D("switching to mode=D3DFMT_UNKNOWN\n");
+		param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
+		res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
+	}
+	if(res) {
+		OutTraceE("CreateAdditionalSwapChain ERROR: res=%x\n", res);
+	}
+
 	(dwD3DVersion == 9) ? HookD3DDevice9(&lpd3dd) : HookD3DDevice8(&lpd3dd);
 	return res;
 }

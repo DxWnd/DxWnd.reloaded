@@ -528,7 +528,7 @@ void HookWindowProc(HWND hwnd)
 	}
 	else {// don't hook twice ....
 		long lres;
-		WhndStackPush(hwnd, pWindowProc);
+		WinDBPutProc(hwnd, pWindowProc);
 		lres=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
 		OutTraceDW("SetWindowLong: hwnd=%x HOOK WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
 	}
@@ -597,7 +597,7 @@ LRESULT CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPA
 		t=tn;
 	}
 
-	pWindowProc=WhndGetWindowProc(hwnd);
+	pWindowProc=WinDBGetProc(hwnd);
 	if(pWindowProc) return(*pCallWindowProc)(pWindowProc, hwnd, message, wparam, lparam);
 	char *sMsg="ASSERT: DialogWinMsg pWindowProc=NULL !!!\n";
 	OutTraceDW(sMsg);
@@ -653,7 +653,7 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 		}
 	}
 
-	pWindowProc=WhndGetWindowProc(hwnd);
+	pWindowProc=WinDBGetProc(hwnd);
 	
 	// v2.02.82: use CallWindowProc that handles WinProc handles
 	if(pWindowProc) return(*pCallWindowProc)(pWindowProc, hwnd, message, wparam, lparam);
@@ -1016,7 +1016,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	}
 	if (dxw.dwFlags1 & AUTOREFRESH) dxw.ScreenRefresh();
 
-	pWindowProc=WhndGetWindowProc(hwnd);
+	pWindowProc=WinDBGetProc(hwnd);
 	//OutTraceB("WindowProc: pWindowProc=%x extWindowProc=%x message=%x(%s) wparam=%x lparam=%x\n", 
 	//	(*pWindowProc), extWindowProc, message, ExplainWinMessage(message), wparam, lparam);
 	if(pWindowProc) {

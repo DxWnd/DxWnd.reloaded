@@ -29,7 +29,7 @@ static LARGE_INTEGER TimeShifter64Coarse(LARGE_INTEGER, int);
 dxwCore::dxwCore()
 {
 	// initialization stuff ....
-	extern void WhndStackInit();
+	extern void WinDBInit();
 	FullScreen=FALSE;
 	SethWnd(NULL);
 	SetScreenSize();
@@ -44,7 +44,7 @@ dxwCore::dxwCore()
 	ResetEmulatedDC();
 	MustShowOverlay=FALSE;
 	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
-	WhndStackInit();
+	WinDBInit();
 }
 
 dxwCore::~dxwCore()
