@@ -21,6 +21,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 {
 	//{{AFX_DATA_INIT(CTargetDlg)
 	m_DXVersion = 0;
+	m_BilinearFilter = 0;
 	m_Coordinates = 0;
 	m_DxEmulationMode = 4; // default: AUTOMATIC
 	m_DCEmulationMode = 0; // default: no emulation

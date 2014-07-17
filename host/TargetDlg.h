@@ -28,6 +28,7 @@ public:
 	int		m_Coordinates;
 	int		m_DxEmulationMode;
 	int		m_DCEmulationMode;
+	BOOL	m_BilinearFilter;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
 	BOOL	m_OutProxyTrace;

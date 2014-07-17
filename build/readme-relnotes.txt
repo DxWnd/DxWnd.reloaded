@@ -553,3 +553,7 @@ fix: removed extra reference to ddraw session causing window movements on fullsc
 v2.02.85
 fix: revised handling of d3d D3DFORMAT field: fixes "Call of Cthulhu DCotE" color problems
 fix: added recovery for rounded child win coordinates: fixes blitting problems in Diablo when win size is not an exact multiple of native resolution.
+
+v2.02.86
+fix: thank to aqrit's research, hooked and hanlded user32.dll GetUpdateRgn API. This fixes refresh and crash problems in Diablo & Hellfire.
+added bilinear filtering to directdraw palettized 8BPP emulated mode (where it is mostly needed!). A must try is "Genocide" !

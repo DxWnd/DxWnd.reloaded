@@ -128,6 +128,10 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags |= LOCKEDSURFACE; break;
 		case 3: t->flags |= EMULATESURFACE; break;
 		case 4: t->flags |= AUTOMATIC; break;
+		case 5: 
+			t->flags |= EMULATESURFACE;
+			t->flags4 |= BILINEARFILTER; 
+			break;
 	}
 	t->flags2 &= ~GDISTRETCHED;
 	t->flags &= ~MAPGDITOPRIMARY;
@@ -300,10 +304,15 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_PeekAllMessages = t->flags3 & PEEKALLMESSAGES ? 1 : 0;
 
 	dlg->m_DxEmulationMode = 0;
+	dlg->m_BilinearFilter = FALSE;
 	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;
 	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 2;
 	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 3;
 	if(t->flags & AUTOMATIC) dlg->m_DxEmulationMode = 4;
+	if(t->flags4 & BILINEARFILTER) {
+		dlg->m_DxEmulationMode = 5;
+		dlg->m_BilinearFilter = TRUE;
+	}
 
 	dlg->m_DCEmulationMode = 0;
 	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;

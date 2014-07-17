@@ -126,36 +126,117 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	}
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
-#if 0
-	if(1 && IsTraceDDRAW) {
-		DWORD dwStats[256];
-		src8 = (BYTE *)lpsurface;
-		src8 += lpsrcrect->top*ddsd_src.lPitch;
-		src8 += lpsrcrect->left;
-		for(x = 0; x < 256; x ++) dwStats[x]=0;
-		for(y = 0; y < h; y ++){
-			for(x = 0; x < w; x ++){
-				dwStats[*(src8 ++)]++;
-			}
-			src8 += srcpitch;
-		}
-		OutTrace("Colors: ");
-		for(x = 0; x < 256; x ++) {
-			char sElement[8];
-			if (dwStats[x]) 
-				sprintf(sElement,"%x,", dwStats[x]);
-			else
-				strcpy(sElement, "_,");
-			OutTrace(sElement);
-		}
-		OutTrace("\n");
-	}
-#endif
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
 	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
+	return res;
+}
+
+static DWORD Melt(DWORD c1, DWORD c2)
+{
+	DWORD ret;
+	register BYTE *b1 = (BYTE *)&c1;
+	register BYTE *b2 = (BYTE *)&c2;
+	register BYTE *br = (BYTE *)&ret;
+	//for(int i=0; i<4; i++)
+	*br++ = (*(b1++)>>1) + (*(b2++)>>1);
+	*br++ = (*(b1++)>>1) + (*(b2++)>>1);
+	*br++ = (*(b1++)>>1) + (*(b2++)>>1);
+	return ret;
+}
+
+static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
+{
+	HRESULT res;
+	BYTE *src8;
+	DWORD *dest, *dest0;
+	DDSURFACEDESC2 ddsd_src, ddsd_dst;
+	long srcpitch, destpitch;
+	DWORD x, y, w, h;
+
+	w = lpdestrect->right - lpdestrect->left; 
+	h = lpdestrect->bottom - lpdestrect->top; 
+
+	lpdestrect->left <<= 1;
+	lpdestrect->top <<= 1;
+	lpdestrect->right <<= 1;
+	lpdestrect->bottom <<= 1;
+
+	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
+	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+		OutTraceE("BilBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	}
+
+	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
+	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if (lpsurface) { // already locked, just get info ....
+		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
+			OutTraceE("BilBlt8_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			return 0;
+		}
+	}
+	else {
+		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+			OutTraceE("BilBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return 0;
+		}
+		lpsurface=ddsd_src.lpSurface;
+	}
+
+	ddsd_dst.lPitch >>= 2;
+	dest = (DWORD *)ddsd_dst.lpSurface;
+	dest += lpdestrect->top*ddsd_dst.lPitch;
+	dest += lpdestrect->left;
+	destpitch = ddsd_dst.lPitch - (2 * w);
+	dest0 = dest;
+
+	src8 = (BYTE *)lpsurface;
+	src8 += lpsrcrect->top*ddsd_src.lPitch;
+	src8 += lpsrcrect->left;
+	srcpitch = ddsd_src.lPitch - w;
+
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+	for(y = 0; y < h; y ++){
+		BYTE *begin = src8;
+		for(x = 0; x < w; x ++){
+			*(dest ++) = PaletteEntries[*(src8)];
+			*(dest ++) = Melt(PaletteEntries[*(src8)], PaletteEntries[*(src8+1)]);
+			src8++;
+		}
+		src8 = begin;
+		dest += destpitch;
+		if(y+1 == h)
+		for(x = 0; x < w; x ++){ // last line, duplicate the line above
+			*(dest ++) = PaletteEntries[*(src8)];
+			*(dest ++) = Melt(PaletteEntries[*(src8)], PaletteEntries[*(src8+1)]);
+			src8++;
+		}
+		else
+		for(x = 0; x < w; x ++){
+			*(dest ++) = Melt(PaletteEntries[*(src8)], PaletteEntries[*(src8+w)]);
+			*(dest ++) = Melt(PaletteEntries[*(src8+1)], PaletteEntries[*(src8+w)]);
+			src8++;
+		}
+		src8 += srcpitch;
+		dest += destpitch;
+	}
+
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
+
+	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	if (res) OutTraceE("BilBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
+	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	if (res) OutTraceE("BilBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
@@ -999,6 +1080,7 @@ void SetBltTransformations()
 		case 8:
 			pRevBlt=RevBlt_32_to_8; 
 			pEmuBlt=EmuBlt_8_to_32;
+			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_8_to_32;
 			OutTraceDW("set color transformation 8<->32\n");
 			break;
 		case 16: 

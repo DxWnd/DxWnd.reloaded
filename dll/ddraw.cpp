@@ -2488,6 +2488,11 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
 		ddsd.dwWidth = dxw.GetScreenWidth();
 		ddsd.dwHeight = dxw.GetScreenHeight();
+		if(dxw.dwFlags4 & BILINEARFILTER){
+			// double backbuffer size
+			ddsd.dwWidth = dxw.GetScreenWidth() << 1;
+			ddsd.dwHeight = dxw.GetScreenHeight() << 1;
+		}
 		DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuBack]" , __LINE__);
 
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Back, 0);
@@ -3709,6 +3714,7 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC
 	}
 	if(res) OutTraceE("Lock ERROR: ret=%x(%s)\n", res, ExplainDDError(res));
 	DumpSurfaceAttributes(lpDDSurfaceDesc, "[Locked]" , __LINE__);
+	OutTraceB("Lock: lPitch=%d lpSurface=%x\n", lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 
 	// shouldn't happen.... if hooked to non primary surface, just call regular method.

@@ -123,7 +123,7 @@
 #define DISABLEFOGGING		0x00000080 // Disable D3D fogging
 #define NOPOWER2FIX			0x00000100 // Handle textures whose size is not a power of 2 (32, 64, 128 ...)
 #define NOPERFCOUNTER		0x00000200 // Disables the GetPerfCounter performance metrics API,as if it was not supported....
-//#define ADDPROXYLIBS		0x00000400 // Add proxy libs to otherwise hook-resilient system libraries (e.g. d3d9.dll)
+#define BILINEARFILTER		0x00000400 // attempt to smooth low-res graphic by applying biulinear filtering in emulation mode
 #define INTERCEPTRDTSC		0x00000800 // Intercapts RDTSC opcodes to hook at assembly level
 #define LIMITSCREENRES		0x00001000 // Limit available screen resolution up to defined maximum
 #define NOFILLRECT			0x00002000 // Suppress FillRect calls
@@ -258,7 +258,6 @@ LRESULT CALLBACK extDialogWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define IsAssertEnabled (dxw.dwTFlags & ASSERTDIALOG)
 #define STEP OutTrace("STEP at %s:%d\n", __FILE__, __LINE__)
 
-extern void WinDBPut(HWND, WNDPROC, int, int);
 extern BOOL WinDBGetSize(HWND, int *, int *);
 extern WNDPROC WinDBGetProc(HWND);
 extern void WinDBPutProc(HWND, WNDPROC);

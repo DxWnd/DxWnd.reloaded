@@ -108,7 +108,9 @@ static HookEntry_Type RemapHooks[]={
 	{HOOK_IAT_CANDIDATE, "GetClientRect", (FARPROC)GetClientRect, (FARPROC *)&pGetClientRect, (FARPROC)extGetClientRect},
 	{HOOK_IAT_CANDIDATE, "GetWindowRect", (FARPROC)GetWindowRect, (FARPROC *)&pGetWindowRect, (FARPROC)extGetWindowRect},
 	{HOOK_IAT_CANDIDATE, "MapWindowPoints", (FARPROC)MapWindowPoints, (FARPROC *)&pMapWindowPoints, (FARPROC)extMapWindowPoints},
+	{HOOK_IAT_CANDIDATE, "GetUpdateRgn", (FARPROC)GetUpdateRgn, (FARPROC *)&pGetUpdateRgn, (FARPROC)extGetUpdateRgn},
 	//{HOOK_IAT_CANDIDATE, "GetUpdateRect", (FARPROC)GetUpdateRect, (FARPROC *)&pGetUpdateRect, (FARPROC)extGetUpdateRect},
+	//{HOOK_IAT_CANDIDATE, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -1016,8 +1018,12 @@ BOOL WINAPI extGetWindowRect(HWND hwnd, LPRECT lpRect)
 
 		// Diablo fix: it retrieves coordinates for the explorer window, that are as big as the real desktop!!!
 		if(lpRect->left < 0) lpRect->left=0;
+//		if(lpRect->left > (LONG)dxw.GetScreenWidth()) lpRect->left=dxw.GetScreenWidth();
+//		if(lpRect->right < 0) lpRect->right=0;
 		if(lpRect->right > (LONG)dxw.GetScreenWidth()) lpRect->right=dxw.GetScreenWidth();
 		if(lpRect->top < 0) lpRect->top=0;
+//		if(lpRect->top > (LONG)dxw.GetScreenHeight()) lpRect->top=dxw.GetScreenHeight();
+//		if(lpRect->bottom < 0) lpRect->bottom=0;
 		if(lpRect->bottom > (LONG)dxw.GetScreenHeight()) lpRect->bottom=dxw.GetScreenHeight();
 
 		OutTraceB("GetWindowRect: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
@@ -1983,7 +1989,8 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	// on CLIENTREMAPPING, resize the paint area to virtual screen size
 	if(dxw.dwFlags1 & CLIENTREMAPPING) lpPaint->rcPaint=dxw.GetScreenRect();
 
-	OutTraceDW("GDI.BeginPaint: hdc=%x\n", hdc);
+	OutTraceDW("GDI.BeginPaint: hdc=%x rcPaint=(%d,%d)-(%d,%d)\n", 
+		hdc, lpPaint->rcPaint.left, lpPaint->rcPaint.top, lpPaint->rcPaint.right, lpPaint->rcPaint.bottom);
 	return hdc;
 }
 
@@ -2434,6 +2441,13 @@ BOOL WINAPI extUpdateWindow(HWND hwnd)
 	return ret;
 }
 
+BOOL WINAPI extRedrawWindow(HWND hWnd, const RECT *lprcUpdate, HRGN hrgnUpdate, UINT flags)
+{
+	OutTraceDW("RedrawWindow: hwnd=%x flags=%x\n", hWnd, flags);
+	return (*pRedrawWindow)(hWnd, lprcUpdate, hrgnUpdate, flags);
+}
+
+
 BOOL WINAPI extGetWindowPlacement(HWND hwnd, WINDOWPLACEMENT *lpwndpl)
 {
 	BOOL ret;
@@ -2690,4 +2704,21 @@ BOOL WINAPI extGetMonitorInfoA(HMONITOR hMonitor, LPMONITORINFO lpmi)
 BOOL WINAPI extGetMonitorInfoW(HMONITOR hMonitor, LPMONITORINFO lpmi)
 {
 	return extGetMonitorInfo(hMonitor, lpmi, pGetMonitorInfoW);
+}
+
+int WINAPI extGetUpdateRgn(HWND hWnd, HRGN hRgn, BOOL bErase)
+{
+	int regionType;
+	RECT rc;
+	regionType=(*pGetUpdateRgn)(hWnd, hRgn, bErase);
+    if( regionType == SIMPLEREGION ){
+        regionType = GetRgnBox( hRgn, &rc );
+        if( regionType == SIMPLEREGION ){
+            dxw.UnmapClient(&rc);
+            if( SetRectRgn( hRgn, rc.left, rc.top, rc.right, rc.bottom ) ){
+                ; // success
+            }
+        }
+    }
+    return regionType;
 }
