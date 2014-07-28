@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.86"
+#define VERSION "2.02.87"
 
 #define DDTHREADLOCK 1
 
@@ -184,6 +184,8 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 				// This callback is invoked per each process' thread.
 
 				DoOnce = TRUE;
+				extern HHOOK hHook;
+				UnhookWindowsHookEx(hHook);
 
 				// V.68: concurrency check. One game at a time, or exiting.
 				// no good trying to insert fancy dialog boxes: the window

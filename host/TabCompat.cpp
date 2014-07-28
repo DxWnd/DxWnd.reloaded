@@ -42,6 +42,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOPOWER2FIX, cTarget->m_NoPower2Fix);
 	DDX_Check(pDX, IDC_NOPERFCOUNTER, cTarget->m_NoPerfCounter);
 	DDX_Check(pDX, IDC_HIDECDROMEMPTY, cTarget->m_HideCDROMEmpty);
+	DDX_Check(pDX, IDC_DIABLOTWEAK, cTarget->m_DiabloTweak);
 
 	// 3D management
 	DDX_Check(pDX, IDC_NOTEXTURES, cTarget->m_NoTextures);

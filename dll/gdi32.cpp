@@ -871,6 +871,12 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 	if(hdc==0){
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
+#ifdef CREATEDESKTOP
+		if(CREATEDESKTOP){
+			extern HWND hDesktopWindow;
+			hdc=(*pGDIGetDC)(hDesktopWindow);
+		}
+#endif
 		OutTraceDW("GDI.CreateCompatibleDC: duplicating win HDC hWnd=%x\n", dxw.GethWnd()); 
 	}
 

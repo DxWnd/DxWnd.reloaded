@@ -40,6 +40,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SuppressIME = FALSE;
 	m_SuppressD3DExt = FALSE;
 	m_SetCompatibility = TRUE;
+	m_DiabloTweak = TRUE;
 	m_DisableHAL = FALSE;
 	m_ForcesHEL = FALSE;
 	m_ColorFix = FALSE;

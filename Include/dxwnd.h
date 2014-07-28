@@ -146,6 +146,9 @@
 #define OVERRIDEREGISTRY	0x40000000 // same as EMULATEREGISTRY, but fake keys takeprecedence
 #define HIDECDROMEMPTY		0x80000000 // hide empty CDROM drivers
 
+// fifth flags DWORD dxw.dwFlags5:
+#define DIABLOTWEAK			0x00000001 // ... ??? ...
+
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
 #define OUTDDRAWTRACE		0x00000002 // traces DxWnd directdraw screen handling
@@ -176,6 +179,7 @@ typedef struct TARGETMAP
 	int flags2;
 	int flags3;
 	int flags4;
+	int flags5;
 	int tflags;
 	short initx;
 	short inity;
@@ -285,3 +289,5 @@ typedef enum {
 	TIMER_TYPE_USER32,
 	TIMER_TYPE_WINMM
 } Timer_Types;
+
+#define CREATEDESKTOP FALSE

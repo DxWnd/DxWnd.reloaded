@@ -142,6 +142,7 @@ public:
 	BOOL	m_DisableFogging;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
+	BOOL	m_DiabloTweak;
 	BOOL	m_DisableHAL;
 	BOOL	m_ForcesHEL;
 	BOOL	m_ColorFix;

@@ -557,3 +557,15 @@ fix: added recovery for rounded child win coordinates: fixes blitting problems i
 v2.02.86
 fix: thank to aqrit's research, hooked and hanlded user32.dll GetUpdateRgn API. This fixes refresh and crash problems in Diablo & Hellfire.
 added bilinear filtering to directdraw palettized 8BPP emulated mode (where it is mostly needed!). A must try is "Genocide" !
+
+v2.02.87
+attempt to fix Win8 missing support for earlier ddraw releases (Croc legend of the Gobbos, Project I.G.I., ...)
+fix: optimized bilinear filtering with no horizontal / vertical sawtooth artifacts
+added support for 16BPP and 32BPP desktop bilinear filtering
+suppressed compatibility checking
+fix: doubled default window size when bilinear filtering is active
+added repositioning of control parent window when main win is moved 
+added debug messages about hooked window class and name
+fix: ignore IME window when hooking main win, destroy it when requested
+fix: ignore HWND_MESSAGE type windows
+added "Diablo tweak" compatibility flag for Diablo proper screen update handling. It is a temporary tweak waiting to understand better how to properly manage it.

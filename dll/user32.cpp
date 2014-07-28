@@ -816,14 +816,11 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 	if(dxw.dwFlags4 & FRAMECOMPENSATION){
 		static int dx, dy, todo=TRUE;
 		if (todo){
-			RECT wrect;
-			POINT upleft={0, 0};
-			todo=FALSE;
-			(*pGetWindowRect)(dxw.GethWnd(), &wrect);
-			(*pClientToScreen)(dxw.GethWnd(), &upleft);
-			dx=upleft.x - wrect.left;
-			dy=upleft.y - wrect.top;
+			POINT FrameOffset = dxw.GetFrameOffset();
+			dx=FrameOffset.x;
+			dy=FrameOffset.y;
 			OutTraceC("GetCursorPos: frame compensation=(%d,%d)\n", dx, dy);
+			todo=FALSE;
 		}
 		lppoint->x += dx;
 		lppoint->y += dy;
@@ -1062,11 +1059,19 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 
 HWND WINAPI extGetDesktopWindow(void)
 {
-	// V2.1.73: correct ???
 	HWND res;
+
+	if((!dxw.Windowize) || (dxw.dwFlags5 & DIABLOTWEAK)) return (*pGetDesktopWindow)();
 
 	OutTraceDW("GetDesktopWindow: FullScreen=%x\n", dxw.IsFullScreen());
 	if (dxw.IsFullScreen()){ 
+#ifdef CREATEDESKTOP
+		if(CREATEDESKTOP){
+			extern HWND hDesktopWindow;
+			OutTraceDW("GetDesktopWindow: returning desktop emulated hwnd=%x\n", hDesktopWindow);
+			return hDesktopWindow;
+		}
+#endif
 		OutTraceDW("GetDesktopWindow: returning main window hwnd=%x\n", dxw.GethWnd());
 		return dxw.GethWnd();
 	}
@@ -1174,6 +1179,8 @@ static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
 	if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
 }
 
+HWND hControlParentWnd = NULL;
+
 static HWND WINAPI extCreateWindowCommon(
   LPCTSTR ApiName,
   BOOL WideChar,
@@ -1196,7 +1203,7 @@ static HWND WINAPI extCreateWindowCommon(
 
 	iOrigW=nWidth;
 	iOrigH=nHeight;
-	if(!dxw.Windowize){
+	if(!dxw.Windowize || (hWndParent == HWND_MESSAGE)){ // v2.02.87: don't process message windows (hWndParent == HWND_MESSAGE)
 		if(WideChar)
 			hwnd= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 		else
@@ -1214,6 +1221,16 @@ static HWND WINAPI extCreateWindowCommon(
 		OutTraceDW("%s: handling PREVENTMAXIMIZE mode\n", ApiName);
 		dwStyle &= ~WS_MAXIMIZE;
 	}
+
+#ifdef CREATEDESKTOP
+	if(CREATEDESKTOP){
+		extern HWND hDesktopWindow;
+		if (dxw.IsRealDesktop(hWndParent)){
+			OutTraceE("%s: new parent win %x->%x\n", ApiName, hWndParent, hDesktopWindow);
+			hWndParent=hDesktopWindow;
+		}
+	}
+#endif
 
 	// v2.1.92: fixes size & position for auxiliary big window, often used
 	// for intro movies etc. : needed for ......
@@ -1240,7 +1257,7 @@ static HWND WINAPI extCreateWindowCommon(
 		&&
 			!(dwStyle & WS_CHILD) // Diablo fix
 		) 
-		{
+	{
 		RECT screen;
 		POINT upleft = {0,0};
 
@@ -1340,6 +1357,8 @@ static HWND WINAPI extCreateWindowCommon(
 		return hwnd;
 	}
 
+	if (dwExStyle & WS_EX_CONTROLPARENT) hControlParentWnd=hwnd;
+
 	if ((!isValidHandle) && dxw.IsFullScreen()){
 		dxw.SethWnd(hwnd);
 		extern void AdjustWindowPos(HWND, DWORD, DWORD);
@@ -1409,9 +1428,10 @@ HWND WINAPI extCreateWindowExW(
 		else sprintf(wString,"%d", nWidth);
 		if (nHeight==CW_USEDEFAULT) strcpy(hString,"CW_USEDEFAULT"); 
 		else sprintf(hString,"%d", nHeight);
-		OutTrace("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s)\n",
+		OutTrace("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s) hWndParent=%x%s hMenu=%x\n",
 			ClassToWStr(lpClassName), lpWindowName, xString, yString, wString, hString, 
-			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle),
+			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu);
 	}
 	if(IsDebug) OutTrace("CreateWindowExW: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
@@ -1443,9 +1463,10 @@ HWND WINAPI extCreateWindowExA(
 		else sprintf(wString,"%d", nWidth);
 		if (nHeight==CW_USEDEFAULT) strcpy(hString,"CW_USEDEFAULT"); 
 		else sprintf(hString,"%d", nHeight);
-		OutTrace("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s)\n",
+		OutTrace("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s) hWndParent=%x%s hMenu=%x\n",
 			ClassToStr(lpClassName), lpWindowName, xString, yString, wString, hString, 
-			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle),
+			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu);
 	}
 	if(IsDebug) OutTrace("CreateWindowExA: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
@@ -2317,6 +2338,10 @@ BOOL WINAPI extDestroyWindow(HWND hWnd)
 		OutTraceDW("DestroyWindow: destroy main hwnd=%x\n", hWnd);
 		dxw.SethWnd(NULL);
 	}
+	if (hControlParentWnd && (hWnd == hControlParentWnd)) {
+		OutTraceDW("DestroyWindow: destroy control parent hwnd=%x\n", hWnd);
+		hControlParentWnd = NULL;
+	}
 	res=(*pDestroyWindow)(hWnd);
 	if(!res)OutTraceE("DestroyWindow: ERROR err=%d\n", GetLastError());
 	return res;
@@ -2716,7 +2741,9 @@ int WINAPI extGetUpdateRgn(HWND hWnd, HRGN hRgn, BOOL bErase)
         if( regionType == SIMPLEREGION ){
             dxw.UnmapClient(&rc);
             if( SetRectRgn( hRgn, rc.left, rc.top, rc.right, rc.bottom ) ){
-                ; // success
+				// success
+				OutTraceDW("GetUpdateRgn: hwnd=%x hrgn=%x update rgn=(%d,%d)-(%d,%d) erase=%x\n", 
+					hWnd, hRgn, rc.left, rc.top, rc.right, rc.bottom, bErase);
             }
         }
     }

@@ -107,6 +107,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	t->flags2 = 0;
 	t->flags3 = 0;
 	t->flags4 = 0;
+	t->flags5 = 0;
 	t->tflags = 0;
 	if(dlg->m_UnNotify) t->flags |= UNNOTIFY;
 	if(dlg->m_Windowize) t->flags2 |= WINDOWIZE;
@@ -179,6 +180,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
+	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
 	if(dlg->m_DisableHAL) t->flags3 |= DISABLEHAL;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
@@ -344,6 +346,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
+	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
 	dlg->m_DisableHAL = t->flags3 & DISABLEHAL ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
@@ -488,6 +491,9 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(key, sizeof(key), "flagi%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags4);
 	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagj%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags5);
+	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
 	WritePrivateProfileString("target", key, val, InitPath);
@@ -554,6 +560,8 @@ static void ClearTarget(int i, char *InitPath)
 	sprintf_s(key, sizeof(key), "flagh%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "flagi%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagj%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
@@ -626,6 +634,8 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	TargetMap->flags3 = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "flagi%i", i);
 	TargetMap->flags4 = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagj%i", i);
+	TargetMap->flags5 = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	TargetMap->tflags = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "initx%i", i);

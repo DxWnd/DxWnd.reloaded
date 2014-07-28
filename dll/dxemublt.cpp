@@ -63,6 +63,74 @@ static void MarkRect16(SHORT *dest, int w, int h, int destpitch)
 	return;
 }
 
+static DWORD Melt32(DWORD c1, DWORD c2)
+{
+	DWORD ret;
+	ret = 
+		((((c1 & 0x0000FF) + (c2 & 0x0000FF)) >> 1) & 0x0000FF) |
+		((((c1 & 0x00FF00) + (c2 & 0x00FF00)) >> 1) & 0x00FF00) |
+		((((c1 & 0xFF0000) + (c2 & 0xFF0000)) >> 1) & 0xFF0000);
+	return ret;
+}
+
+static DWORD Melt16_555(DWORD c1, DWORD c2)
+{
+	DWORD ret;
+	ret = 
+		((((c1 & 0x00001F) + (c2 & 0x00001F)) >> 1) & 0x00001F) |
+		((((c1 & 0x0003E0) + (c2 & 0x0003E0)) >> 1) & 0x0003E0) |
+		((((c1 & 0x007C00) + (c2 & 0x007C00)) >> 1) & 0x007C00);
+	return ret;
+}
+
+static DWORD Melt16_565(DWORD c1, DWORD c2)
+{
+	DWORD ret;
+	ret = 
+		((((c1 & 0x00001F) + (c2 & 0x00001F)) >> 1) & 0x00001F) |
+		((((c1 & 0x0007E0) + (c2 & 0x0007E0)) >> 1) & 0x0007E0) |
+		((((c1 & 0x00F800) + (c2 & 0x00F800)) >> 1) & 0x00F800);
+	return ret;
+}
+
+static void SetPalette16BPP()
+{
+// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src16,dest,srcpitch,destpitch);
+	unsigned int pi;
+	Palette16BPP = (DWORD *)malloc(0x10000 * sizeof(DWORD));
+	if (dxw.dwFlags3 & BLACKWHITE){
+		// actually, it should be like this: R/G/B = (red * 0.30) + (green * 0.59) + (blue * 0.11) 
+		// (http://www.codeproject.com/Articles/66253/Converting-Colors-to-Gray-Shades)
+		DWORD grey;
+		if (dxw.dwFlags1 & USERGB565){
+			for (pi=0; pi<0x10000; pi++) {
+				//grey = ((((pi & 0x1F)<<3) + ((pi & 0x7E0)>>3) + ((pi & 0xF800)>>8)) / 3) & 0xFF;
+				grey = (((((pi & 0x1F)<<3) * 30) + (((pi & 0x7E0)>>3) * 59) + (((pi & 0xF800)>>8) * 11)) / 100) & 0xFF;
+				Palette16BPP[pi] = (grey) + (grey<<8) + (grey<<16);				
+			}
+		}
+		else {
+			for (pi=0; pi<0x10000; pi++) {
+				//grey = ((((pi & 0x1F)<<3) + ((pi & 0x3E0)>>2) + ((pi & 0x7C00)>>7)) / 3) & 0xFF;
+				grey = (((((pi & 0x1F)<<3) * 30) + (((pi & 0x3E0)>>2) * 59) + (((pi & 0x7C00)>>7) * 11)) / 100) & 0xFF;
+				Palette16BPP[pi] = grey + (grey<<8) + (grey<<16);
+			}
+		}
+	}
+	else {
+		if (dxw.dwFlags1 & USERGB565){
+			for (pi=0; pi<0x10000; pi++) {
+				Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x7E0)<<5 | (pi & 0xF800)<<8; // RGB565
+			}
+		}
+		else {
+			for (pi=0; pi<0x10000; pi++) {
+				Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x3E0)<<6 | (pi & 0x7C00)<<9; // RGB555
+			}
+		}
+	}
+}
+
 static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
@@ -134,19 +202,6 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	return res;
 }
 
-static DWORD Melt(DWORD c1, DWORD c2)
-{
-	DWORD ret;
-	register BYTE *b1 = (BYTE *)&c1;
-	register BYTE *b2 = (BYTE *)&c2;
-	register BYTE *br = (BYTE *)&ret;
-	//for(int i=0; i<4; i++)
-	*br++ = (*(b1++)>>1) + (*(b2++)>>1);
-	*br++ = (*(b1++)>>1) + (*(b2++)>>1);
-	*br++ = (*(b1++)>>1) + (*(b2++)>>1);
-	return ret;
-}
-
 static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
@@ -206,30 +261,38 @@ static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 	srcpitch = ddsd_src.lPitch - w;
 
 	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
-	for(y = 0; y < h; y ++){
-		BYTE *begin = src8;
-		for(x = 0; x < w; x ++){
-			*(dest ++) = PaletteEntries[*(src8)];
-			*(dest ++) = Melt(PaletteEntries[*(src8)], PaletteEntries[*(src8+1)]);
+    for(y = 0; y < h-1; y ++){ // first h-1 lines ....
+		register DWORD Q1, Q2, Q3, Q4, Q5;
+		Q5 = Melt32(PaletteEntries[*(src8)], PaletteEntries[*(src8+ddsd_src.lPitch)]);
+        for(x = 0; x < w; x ++){
+			Q1 = PaletteEntries[*(src8)];
+			Q2 = Melt32(Q1, PaletteEntries[*(src8+1)]);
+			Q3 = Q5;
+			Q5 = Melt32(PaletteEntries[*(src8+1)], PaletteEntries[*(src8+ddsd_src.lPitch+1)]); // to be used in next for cycle
+			Q4 = Melt32(Q3, Q5);
+
+			*(dest) = Q1;
+			*(dest+1) = Q2;
+			*(dest+ddsd_dst.lPitch) = Q3;
+			*(dest+ddsd_dst.lPitch+1) = Q4;
 			src8++;
-		}
-		src8 = begin;
-		dest += destpitch;
-		if(y+1 == h)
-		for(x = 0; x < w; x ++){ // last line, duplicate the line above
-			*(dest ++) = PaletteEntries[*(src8)];
-			*(dest ++) = Melt(PaletteEntries[*(src8)], PaletteEntries[*(src8+1)]);
-			src8++;
-		}
-		else
-		for(x = 0; x < w; x ++){
-			*(dest ++) = Melt(PaletteEntries[*(src8)], PaletteEntries[*(src8+w)]);
-			*(dest ++) = Melt(PaletteEntries[*(src8+1)], PaletteEntries[*(src8+w)]);
-			src8++;
-		}
-		src8 += srcpitch;
-		dest += destpitch;
+			dest+=2;
+        }
+        src8 += srcpitch;
+        dest += (ddsd_dst.lPitch + destpitch);
 	}
+	for(x = 0; x < w; x ++){ // last line (there's no next line to melt...)
+		register DWORD Q1, Q2;
+		Q1 = PaletteEntries[*(src8)];
+		Q2 = Melt32(Q1, PaletteEntries[*(src8+1)]);
+
+		*(dest) = Q1;
+		*(dest+1) = Q2;
+		*(dest+ddsd_dst.lPitch) = Q1;
+		*(dest+ddsd_dst.lPitch+1) = Q2;
+		src8++;
+		dest+=2;
+    }
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
 
@@ -294,42 +357,8 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	src16 += lpsrcrect->left;
 	srcpitch = ddsd_src.lPitch - w;
 
-	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src16,dest,srcpitch,destpitch);
-	if (!Palette16BPP) { // first time through .....
-		unsigned int pi;
-		Palette16BPP = (DWORD *)malloc(0x10000 * sizeof(DWORD));
-		if (dxw.dwFlags3 & BLACKWHITE){
-			// actually, it should be like this: R/G/B = (red * 0.30) + (green * 0.59) + (blue * 0.11) 
-			// (http://www.codeproject.com/Articles/66253/Converting-Colors-to-Gray-Shades)
-			DWORD grey;
-			if (dxw.dwFlags1 & USERGB565){
-				for (pi=0; pi<0x10000; pi++) {
-					//grey = ((((pi & 0x1F)<<3) + ((pi & 0x7E0)>>3) + ((pi & 0xF800)>>8)) / 3) & 0xFF;
-					grey = (((((pi & 0x1F)<<3) * 30) + (((pi & 0x7E0)>>3) * 59) + (((pi & 0xF800)>>8) * 11)) / 100) & 0xFF;
-					Palette16BPP[pi] = (grey) + (grey<<8) + (grey<<16);				
-				}
-			}
-			else {
-				for (pi=0; pi<0x10000; pi++) {
-					//grey = ((((pi & 0x1F)<<3) + ((pi & 0x3E0)>>2) + ((pi & 0x7C00)>>7)) / 3) & 0xFF;
-					grey = (((((pi & 0x1F)<<3) * 30) + (((pi & 0x3E0)>>2) * 59) + (((pi & 0x7C00)>>7) * 11)) / 100) & 0xFF;
-					Palette16BPP[pi] = grey + (grey<<8) + (grey<<16);
-				}
-			}
-		}
-		else {
-			if (dxw.dwFlags1 & USERGB565){
-				for (pi=0; pi<0x10000; pi++) {
-					Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x7E0)<<5 | (pi & 0xF800)<<8; // RGB565
-				}
-			}
-			else {
-				for (pi=0; pi<0x10000; pi++) {
-					Palette16BPP[pi]=(pi & 0x1F)<<3 | (pi & 0x3E0)<<6 | (pi & 0x7C00)<<9; // RGB555
-				}
-			}
-		}
-	}
+	if (!Palette16BPP) SetPalette16BPP();
+
 	for(y = 0; y < h; y ++){
 		for(x = 0; x < w; x ++){
 			//if (!(*src16 & 0x8000)) // try implement alpha bit
@@ -345,6 +374,110 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	if (res) OutTraceE("EmuBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
 	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
+	return res;
+}
+
+static HRESULT WINAPI BilinearBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
+{
+	HRESULT res;
+	WORD *src16;
+	DWORD *dest, *dest0;
+	DDSURFACEDESC2 ddsd_src, ddsd_dst;
+	long srcpitch, destpitch;
+	DWORD x, y, w, h;
+
+	w = lpdestrect->right - lpdestrect->left; 
+	h = lpdestrect->bottom - lpdestrect->top; 
+
+	lpdestrect->left <<= 1;
+	lpdestrect->top <<= 1;
+	lpdestrect->right <<= 1;
+	lpdestrect->bottom <<= 1;
+
+	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
+	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+		OutTraceE("BilBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	}
+
+	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
+	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if (lpsurface) { // already locked, just get info ....
+		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
+			OutTraceE("BilBlt16_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			return 0;
+		}
+	}
+	else {
+		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+			OutTraceE("BilBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
+		lpsurface=ddsd_src.lpSurface;
+	}
+
+	ddsd_dst.lPitch >>= 2;
+	dest = (DWORD *)ddsd_dst.lpSurface;
+	dest += lpdestrect->top*ddsd_dst.lPitch;
+	dest += lpdestrect->left;
+	destpitch = ddsd_dst.lPitch - (2 * w);
+	dest0 = dest;
+
+	ddsd_src.lPitch >>= 1;
+	src16 = (WORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
+	src16 += lpsrcrect->top*ddsd_src.lPitch;
+	src16 += lpsrcrect->left;
+	srcpitch = ddsd_src.lPitch - w;
+
+	if (!Palette16BPP) SetPalette16BPP();
+
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+    for(y = 0; y < h-1; y ++){ // first h-1 lines ....
+		register DWORD Q1, Q2, Q3, Q4, Q5;
+		Q5 = Melt32(Palette16BPP[*(src16)], Palette16BPP[*(src16+ddsd_src.lPitch)]);
+        for(x = 0; x < w; x ++){
+			Q1 = Palette16BPP[*(src16)];
+			Q2 = Melt32(Q1, Palette16BPP[*(src16+1)]);
+			Q3 = Q5;
+			Q5 = Melt32(Palette16BPP[*(src16+1)], Palette16BPP[*(src16+ddsd_src.lPitch+1)]); // to be used in next for cycle
+			Q4 = Melt32(Q3, Q5);
+
+			*(dest) = Q1;
+			*(dest+1) = Q2;
+			*(dest+ddsd_dst.lPitch) = Q3;
+			*(dest+ddsd_dst.lPitch+1) = Q4;
+			src16++;
+			dest+=2;
+        }
+        src16 += srcpitch;
+        dest += (ddsd_dst.lPitch + destpitch);
+	}
+	for(x = 0; x < w; x ++){ // last line (there's no next line to melt...)
+		register DWORD Q1, Q2;
+		Q1 = Palette16BPP[*(src16)];
+		Q2 = Melt32(Q1, Palette16BPP[*(src16+1)]);
+
+		*(dest) = Q1;
+		*(dest+1) = Q2;
+		*(dest+ddsd_dst.lPitch) = Q1;
+		*(dest+ddsd_dst.lPitch+1) = Q2;
+		src16++;
+		dest+=2;
+    }
+
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
+
+	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	if (res) OutTraceE("BilBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
+	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	if (res) OutTraceE("BilBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
@@ -569,6 +702,110 @@ static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	return res;
 }
 
+static HRESULT WINAPI BilinearBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
+{
+	HRESULT res;
+	BYTE *src8;
+	SHORT *dest, *dest0;
+	DDSURFACEDESC2 ddsd_src, ddsd_dst;
+	long srcpitch, destpitch;
+	DWORD x, y, w, h;
+	typedef DWORD (*Melt16_Type)(DWORD, DWORD);
+	Melt16_Type Melt16;
+
+	w = lpdestrect->right - lpdestrect->left; 
+	h = lpdestrect->bottom - lpdestrect->top; 
+
+	lpdestrect->left <<= 1;
+	lpdestrect->top <<= 1;
+	lpdestrect->right <<= 1;
+	lpdestrect->bottom <<= 1;
+
+	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
+	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+		OutTraceE("BilBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	}
+
+	Melt16 = (ddsd_dst.ddpfPixelFormat.dwGBitMask == 0x3E0) ? Melt16_555 : Melt16_565;
+
+	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
+	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if (lpsurface) { // already locked, just get info ....
+		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
+			OutTraceE("BilBlt8_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			return 0;
+		}
+	}
+	else {
+		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+			OutTraceE("BilBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return 0;
+		}
+		lpsurface=ddsd_src.lpSurface;
+	}
+
+	ddsd_dst.lPitch >>= 1;
+	dest = (SHORT *)ddsd_dst.lpSurface;
+	dest += lpdestrect->top*ddsd_dst.lPitch;
+	dest += lpdestrect->left;
+	destpitch = ddsd_dst.lPitch - (2 * w);
+	dest0 = dest;
+
+	src8 = (BYTE *)lpsurface;
+	src8 += lpsrcrect->top*ddsd_src.lPitch;
+	src8 += lpsrcrect->left;
+	srcpitch = ddsd_src.lPitch - w;
+
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+    for(y = 0; y < h-1; y ++){ // first h-1 lines ....
+		register DWORD Q1, Q2, Q3, Q4, Q5;
+		Q5 = Melt16(PaletteEntries[*(src8)], PaletteEntries[*(src8+ddsd_src.lPitch)]);
+        for(x = 0; x < w; x ++){
+			Q1 = PaletteEntries[*(src8)];
+			Q2 = Melt16(Q1, PaletteEntries[*(src8+1)]);
+			Q3 = Q5;
+			Q5 = Melt16(PaletteEntries[*(src8+1)], PaletteEntries[*(src8+ddsd_src.lPitch+1)]); // to be used in next for cycle
+			Q4 = Melt16(Q3, Q5);
+
+			*(dest) = (SHORT)Q1;
+			*(dest+1) = (SHORT)Q2;
+			*(dest+ddsd_dst.lPitch) = (SHORT)Q3;
+			*(dest+ddsd_dst.lPitch+1) = (SHORT)Q4;
+			src8++;
+			dest+=2;
+        }
+        src8 += srcpitch;
+        dest += (ddsd_dst.lPitch + destpitch);
+	}
+	for(x = 0; x < w; x ++){ // last line (there's no next line to melt...)
+		register DWORD Q1, Q2;
+		Q1 = PaletteEntries[*(src8)];
+		Q2 = Melt16(Q1, PaletteEntries[*(src8+1)]);
+
+		*(dest) = (SHORT)Q1;
+		*(dest+1) = (SHORT)Q2;
+		*(dest+ddsd_dst.lPitch) = (SHORT)Q1;
+		*(dest+ddsd_dst.lPitch+1) = (SHORT)Q2;
+		src8++;
+		dest+=2;
+    }
+
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
+
+	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	if (res) OutTraceE("BilBlt8_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
+	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	if (res) OutTraceE("BilBlt8_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
+	return res;
+}
 
 static HRESULT WINAPI EmuBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
@@ -580,6 +817,113 @@ static HRESULT WINAPI EmuBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	return -1;
 #endif
 }
+
+static HRESULT WINAPI BilinearBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
+{
+	HRESULT res;
+	WORD *src16;
+	WORD *dest, *dest0;
+	DDSURFACEDESC2 ddsd_src, ddsd_dst;
+	long srcpitch, destpitch;
+	DWORD x, y, w, h;
+	typedef DWORD (*Melt16_Type)(DWORD, DWORD);
+	Melt16_Type Melt16;
+
+	w = lpdestrect->right - lpdestrect->left; 
+	h = lpdestrect->bottom - lpdestrect->top; 
+
+	lpdestrect->left <<= 1;
+	lpdestrect->top <<= 1;
+	lpdestrect->right <<= 1;
+	lpdestrect->bottom <<= 1;
+
+	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
+	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+		OutTraceE("BilBlt16_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	}
+
+	Melt16 = (ddsd_dst.ddpfPixelFormat.dwGBitMask == 0x3E0) ? Melt16_555 : Melt16_565;
+
+	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
+	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if (lpsurface) { // already locked, just get info ....
+		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
+			OutTraceE("BilBlt16_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			return 0;
+		}
+	}
+	else {
+		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+			OutTraceE("BilBlt16_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
+		lpsurface=ddsd_src.lpSurface;
+	}
+
+	ddsd_dst.lPitch >>= 1;
+	dest = (WORD *)ddsd_dst.lpSurface;
+	dest += lpdestrect->top*ddsd_dst.lPitch;
+	dest += lpdestrect->left;
+	destpitch = ddsd_dst.lPitch - (2 * w);
+	dest0 = dest;
+
+	ddsd_src.lPitch >>= 1;
+	src16 = (WORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
+	src16 += lpsrcrect->top*ddsd_src.lPitch;
+	src16 += lpsrcrect->left;
+	srcpitch = ddsd_src.lPitch - w;
+
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+    for(y = 0; y < h-1; y ++){ // first h-1 lines ....
+		register DWORD Q1, Q2, Q3, Q4, Q5;
+		Q5 = Melt16(*(src16), *(src16+ddsd_src.lPitch));
+        for(x = 0; x < w; x ++){
+			Q1 = *(src16);
+			Q2 = Melt16(Q1, *(src16+1));
+			Q3 = Q5;
+			Q5 = Melt16(*(src16+1), *(src16+ddsd_src.lPitch+1)); // to be used in next for cycle
+			Q4 = Melt16(Q3, Q5);
+
+			*(dest) = (WORD)Q1;
+			*(dest+1) = (WORD)Q2;
+			*(dest+ddsd_dst.lPitch) = (WORD)Q3;
+			*(dest+ddsd_dst.lPitch+1) = (WORD)Q4;
+			src16++;
+			dest+=2;
+        }
+        src16 += srcpitch;
+        dest += (ddsd_dst.lPitch + destpitch);
+	}
+	for(x = 0; x < w; x ++){ // last line (there's no next line to melt...)
+		register DWORD Q1, Q2;
+		Q1 = *(src16);
+		Q2 = Melt16(Q1, *(src16+1));
+
+		*(dest) = (WORD)Q1;
+		*(dest+1) = (WORD)Q2;
+		*(dest+ddsd_dst.lPitch) = (WORD)Q1;
+		*(dest+ddsd_dst.lPitch+1) = (WORD)Q2;
+		src16++;
+		dest+=2;
+    }
+
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect16((SHORT *)dest0, w, h, destpitch);
+
+	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	if (res) OutTraceE("BilBlt16_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
+	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	if (res) OutTraceE("BilBlt16_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
+	return res;
+}
+
 
 static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
@@ -720,6 +1064,108 @@ static HRESULT WINAPI EmuBlt_32_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	if (res) OutTraceE("EmuBlt32_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
 	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt32_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
+	return res;
+}
+
+static HRESULT WINAPI BilinearBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
+{
+	HRESULT res;
+	DWORD *src32;
+	DWORD *dest, *dest0;
+	DDSURFACEDESC2 ddsd_src, ddsd_dst;
+	long srcpitch, destpitch;
+	DWORD x, y, w, h;
+
+	w = lpdestrect->right - lpdestrect->left; 
+	h = lpdestrect->bottom - lpdestrect->top; 
+
+	lpdestrect->left <<= 1;
+	lpdestrect->top <<= 1;
+	lpdestrect->right <<= 1;
+	lpdestrect->bottom <<= 1;
+
+	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
+	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+		OutTraceE("BilBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	}
+
+	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
+	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	if (lpsurface) { // already locked, just get info ....
+		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
+			OutTraceE("BilBlt32_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			return 0;
+		}
+	}
+	else {
+		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+			OutTraceE("BilBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			return res;
+		}
+		lpsurface=ddsd_src.lpSurface;
+	}
+
+	ddsd_dst.lPitch >>= 2;
+	dest = (DWORD *)ddsd_dst.lpSurface;
+	dest += lpdestrect->top*ddsd_dst.lPitch;
+	dest += lpdestrect->left;
+	destpitch = ddsd_dst.lPitch - (2 * w);
+	dest0 = dest;
+
+	ddsd_src.lPitch >>= 2;
+	src32 = (DWORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
+	src32 += lpsrcrect->top*ddsd_src.lPitch;
+	src32 += lpsrcrect->left;
+	srcpitch = ddsd_src.lPitch - w;
+
+	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+    for(y = 0; y < h-1; y ++){ // first h-1 lines ....
+		register DWORD Q1, Q2, Q3, Q4, Q5;
+		Q5 = Melt32(*(src32), *(src32+ddsd_src.lPitch));
+        for(x = 0; x < w; x ++){
+			Q1 = *(src32);
+			Q2 = Melt32(Q1, *(src32+1));
+			Q3 = Q5;
+			Q5 = Melt32(*(src32+1), *(src32+ddsd_src.lPitch+1)); // to be used in next for cycle
+			Q4 = Melt32(Q3, Q5);
+
+			*(dest) = (WORD)Q1;
+			*(dest+1) = (WORD)Q2;
+			*(dest+ddsd_dst.lPitch) = (WORD)Q3;
+			*(dest+ddsd_dst.lPitch+1) = (WORD)Q4;
+			src32++;
+			dest+=2;
+        }
+        src32 += srcpitch;
+        dest += (ddsd_dst.lPitch + destpitch);
+	}
+	for(x = 0; x < w; x ++){ // last line (there's no next line to melt...)
+		register DWORD Q1, Q2;
+		Q1 = *(src32);
+		Q2 = Melt32(Q1, *(src32+1));
+
+		*(dest) = (WORD)Q1;
+		*(dest+1) = (WORD)Q2;
+		*(dest+ddsd_dst.lPitch) = (WORD)Q1;
+		*(dest+ddsd_dst.lPitch+1) = (WORD)Q2;
+		src32++;
+		dest+=2;
+    }
+
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect16((SHORT *)dest0, w, h, destpitch);
+
+	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	if (res) OutTraceE("BilBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
+	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	if (res) OutTraceE("BilBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
@@ -1086,6 +1532,7 @@ void SetBltTransformations()
 		case 16: 
 			pRevBlt=RevBlt_32_to_16;
 			pEmuBlt=EmuBlt_16_to_32;
+			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_16_to_32;
 			OutTraceDW("set color transformation 16<->32\n");
 			break;
 		case 24: 
@@ -1095,6 +1542,7 @@ void SetBltTransformations()
 			break;
 		case 32: 
 			pEmuBlt=EmuBlt_32_to_32;
+			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_32_to_32;
 			OutTraceDW("set color transformation 32->32\n");
 			break;
 		default:
@@ -1107,11 +1555,13 @@ void SetBltTransformations()
 		case 8:
 			pRevBlt=RevBlt_16_to_8;
 			pEmuBlt=EmuBlt_8_to_16;
+			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_8_to_16;
 			OutTraceDW("set color transformation 8<->16\n");
 			break;
 		case 16:
 			pRevBlt=RevBlt_16_to_16;
 			pEmuBlt=EmuBlt_16_to_16;
+			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_16_to_16;
 			OutTraceDW("set color transformation 16<->16\n");
 			break;
 		case 24: 

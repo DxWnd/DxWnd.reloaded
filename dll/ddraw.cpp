@@ -293,11 +293,18 @@ int iRefreshDelayCount=2;
 
 void SetVSyncDelays(LPDIRECTDRAW lpdd)
 {
-	DDSURFACEDESC ddsdRefreshRate;
+	DDSURFACEDESC2 ddsdRefreshRate;
 	int Reminder;
+	HRESULT res;
+
 	memset(&ddsdRefreshRate, 0, sizeof(ddsdRefreshRate));
-	ddsdRefreshRate.dwSize = sizeof(ddsdRefreshRate);
-	(*pGetDisplayMode)(lpdd, &ddsdRefreshRate);
+	ddsdRefreshRate.dwSize = sizeof(DDSURFACEDESC);
+	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsdRefreshRate);
+	if(res==DDERR_GENERIC){ // handling Win8 missing support for old ddraw interface
+		ddsdRefreshRate.dwSize = sizeof(DDSURFACEDESC2);
+		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsdRefreshRate);
+	}
+	if(res) return;
 	gdwRefreshRate = ddsdRefreshRate.dwRefreshRate;
 	if(!gdwRefreshRate) return;
 	iRefreshDelayCount=0;
@@ -533,9 +540,14 @@ void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries)
 void InitDDScreenParameters(LPDIRECTDRAW lpdd)
 {
 	HRESULT res;
-	DDSURFACEDESC ddsd;
+	DDSURFACEDESC2 ddsd;
 	ddsd.dwSize=sizeof(DDSURFACEDESC);
-	if(res=(*pGetDisplayMode)(lpdd, &ddsd)){
+	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
+	if(res==DDERR_GENERIC){ // Win8 missing support for old ddraw interfaces
+		ddsd.dwSize=sizeof(DDSURFACEDESC2);
+		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
+	}
+	if(res){
 		OutTraceE("GetDisplayMode: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
@@ -1905,7 +1917,11 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT | DDSD_REFRESHRATE;
 	ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ddsd.ddpfPixelFormat.dwFlags = DDPF_RGB; 
-	(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
+	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
+	if(res==DDERR_GENERIC){ // handling Win8 missing support for old ddraw interface
+		ddsd.dwSize = sizeof(DDSURFACEDESC2);
+		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
+	}
 	
 	if(dxw.Windowize){
 		if(!IsChangeDisplaySettingsHotPatched){
@@ -4176,6 +4192,10 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 		memset(&EmuDesc, 0, sizeof(EmuDesc));
 		EmuDesc.dwSize = sizeof(DDSURFACEDESC); // using release 1 type ....
 	 	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&EmuDesc);
+		if(res==DDERR_GENERIC){ // Win8 missing support for old ddraw interface
+			EmuDesc.dwSize = sizeof(DDSURFACEDESC2); // using release 2 type ....
+	 		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&EmuDesc);
+		}
 		if(res){
 			OutTraceE("GetDisplayMode(D): ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;

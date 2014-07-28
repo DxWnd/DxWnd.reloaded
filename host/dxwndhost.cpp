@@ -104,6 +104,8 @@ CDxwndhostApp theApp;
 
 BOOL CDxwndhostApp::InitInstance()
 {
+	char InitPath[MAX_PATH];
+	int CompatibilityMinLevel;
 	AfxEnableControlContainer();
 
 	// standard initialization
@@ -130,13 +132,15 @@ BOOL CDxwndhostApp::InitInstance()
 	// and user-defined flags. The CCommandLine class has been replaced
 	CNewCommandLineInfo cmdInfo;
 	ParseCommandLine(cmdInfo);
+	
+	GetCurrentDirectory(MAX_PATH, InitPath);
+	strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
+	
+	//CompatibilityMinLevel = GetPrivateProfileInt("window", "compatminlevel", 0, InitPath);
 
 	if(!LangSelected){
 		LANGID LangId;
 		char LangString[20+1];
-		char InitPath[MAX_PATH];
-		GetCurrentDirectory(MAX_PATH, InitPath);
-		strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
 		GetPrivateProfileString("window", "lang", "", LangString, 20+1, InitPath);
 		if(!strcmp(LangString, "default") || !strlen(LangString)){ // if no specification, or lang=default
 			// do nothing

@@ -68,6 +68,7 @@ public: // methods
 	RECT GetUnmappedScreenRect();
 	RECT GetWindowRect(RECT);
 	RECT GetClientRect(RECT);
+	POINT GetFrameOffset();
 	POINT AddCoordinates(POINT, POINT);
 	RECT AddCoordinates(RECT, POINT);
 	POINT SubCoordinates(POINT, POINT);
@@ -130,6 +131,7 @@ public: // simple data variables
 	DWORD dwFlags2;
 	DWORD dwFlags3;
 	DWORD dwFlags4;
+	DWORD dwFlags5;
 	DWORD dwTFlags;
 	HWND hParentWnd;
 	HWND hChildWnd;

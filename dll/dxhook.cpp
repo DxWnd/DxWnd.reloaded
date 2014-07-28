@@ -21,6 +21,8 @@
 #include "Mmsystem.h"
 #include "disasm.h"
 
+#define SKIPIMEWINDOW TRUE
+
 dxwCore dxw;
 
 typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
@@ -90,6 +92,17 @@ static char *Flag4Names[32]={
 	"HOTPATCHALWAYS", "NOD3DRESET", "OVERRIDEREGISTRY", "HIDECDROMEMPTY",
 };
 
+static char *Flag5Names[32]={
+	"DIABLOCHEAT", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+};
+
 static char *TFlagNames[32]={
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
 	"OUTPROXYTRACE", "DXPROXED", "ASSERTDIALOG", "OUTIMPORTTABLE",
@@ -116,6 +129,7 @@ static void OutTraceHeader(FILE *fp)
 	for(i=0, dword=dxw.dwFlags2; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag2Names[i]);
 	for(i=0, dword=dxw.dwFlags3; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag3Names[i]);
 	for(i=0, dword=dxw.dwFlags4; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag4Names[i]);
+	for(i=0, dword=dxw.dwFlags5; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag5Names[i]);
 	for(i=0, dword=dxw.dwTFlags; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", TFlagNames[i]);
 	fprintf(fp, "***\n");
 }
@@ -154,6 +168,7 @@ void OutTrace(const char *format, ...)
 	fflush(fp); 
 }
 
+#ifdef CHECKFORCOMPATIBILITYFLAGS
 static BOOL CheckCompatibilityFlags()
 {
 	typedef DWORD (WINAPI *GetFileVersionInfoSizeA_Type)(LPCSTR, LPDWORD);
@@ -194,6 +209,7 @@ static BOOL CheckCompatibilityFlags()
 	}
 	return FALSE;
 }
+#endif
 
 static void dx_ToggleLogging()
 {
@@ -430,8 +446,14 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	case DXW_DESKTOP_CENTER:
 		MaxX = dxw.iSizX;
 		MaxY = dxw.iSizY;
-		if (!MaxX) MaxX = width;
-		if (!MaxY) MaxY = height;
+		if (!MaxX) {
+			MaxX = width;
+			if(dxw.dwFlags4 & BILINEARFILTER) MaxX <<= 1; // double
+		}
+		if (!MaxY) {
+			MaxY = height;
+			if(dxw.dwFlags4 & BILINEARFILTER) MaxY <<= 1; // double
+		}
 		//GetClientRect(0, &desktop);
 		(*pGetClientRect)(GetDesktopWindow(), &desktop);
 		rect.left =  (desktop.right - MaxX) / 2;
@@ -842,10 +864,18 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_WINDOWPOSCHANGING:
 	case WM_WINDOWPOSCHANGED:
 		if(dxw.Windowize && dxw.IsFullScreen()){
+			extern HWND hControlParentWnd;
 			LPWINDOWPOS wp;
 			wp = (LPWINDOWPOS)lparam;
 			dxwFixWindowPos("WindowProc", hwnd, lparam);
 			OutTraceDW("WindowProc: WM_WINDOWPOSCHANGING fixed size=(%d,%d)\n", wp->cx, wp->cy);
+			// try to lock main wind & control parent together
+			if((message==WM_WINDOWPOSCHANGED) && hControlParentWnd){
+				if(dxw.IsDesktop(hwnd)) {
+					POINT fo = dxw.GetFrameOffset();
+					(*pMoveWindow)(hControlParentWnd, wp->x+fo.x, wp->y+fo.y, wp->cx, wp->cy, TRUE);
+				}
+			}
 		}
 		break;
 	case WM_ENTERSIZEMOVE:
@@ -1451,6 +1481,10 @@ static void ReplaceRDTSC()
 	FreeLibrary(disasmlib);
 }
 
+#ifdef CREATEDESKTOP
+HWND hDesktopWindow = NULL;
+#endif
+
 void HookInit(TARGETMAP *target, HWND hwnd)
 {
 	HMODULE base;
@@ -1468,7 +1502,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if(dxw.dwFlags1 & AUTOMATIC) dxw.dwFlags1 |= EMULATESURFACE; // if AUTOMATIC, try this first!
 
-	if(hwnd){ // v2/02.32: skip this when in code injection mode.
+	if(hwnd){ // v2.02.32: skip this when in code injection mode.
 		// v2.1.75: is it correct to set hWnd here?
 		//dxw.SethWnd(hwnd);
 		dxw.hParentWnd=GetParent(hwnd);
@@ -1477,6 +1511,22 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		dxw.SethWnd((dxw.dwFlags1 & FIXPARENTWIN) ? GetParent(hwnd) : hwnd);
 		if(dxw.dwFlags4 & ENABLEHOTKEYS) dxw.MapKeysInit();
 	}
+
+#ifdef CREATEDESKTOP
+	if(CREATEDESKTOP){
+		if (!hDesktopWindow){
+			//hDesktopWindow=CreateWindowEx(0, "STATIC", "DxWnd Desktop", 0, 
+			hDesktopWindow=CreateWindowEx(WS_EX_CONTROLPARENT, "STATIC", "DxWnd Desktop", 0, 
+				target->posx, target->posy, target->sizx, target->sizy, NULL, NULL, NULL, NULL);
+			if(hDesktopWindow){
+				OutTraceDW("created desktop emulation: hwnd=%x\n", hDesktopWindow);
+			}
+			else{
+				OutTraceE("CreateWindowEx ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+			}
+		}
+	}
+#endif
 
 	if(IsTraceDW){
 		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)", 
@@ -1490,16 +1540,51 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if (hwnd && IsDebug){
 		DWORD dwStyle, dwExStyle;
+		char ClassName[81];
+		char WinText[81];
 		dwStyle=GetWindowLong(dxw.GethWnd(), GWL_STYLE);
 		dwExStyle=GetWindowLong(dxw.GethWnd(), GWL_EXSTYLE);
-		OutTrace("HookInit: hWnd style=%x(%s) exstyle=%x(%s)\n", dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+		GetClassName(dxw.GethWnd(), ClassName, sizeof(ClassName));
+		GetWindowText(dxw.GethWnd(), WinText, sizeof(WinText));
+		OutTrace("HookInit: dxw.hChildWnd=%x class=\"%s\" text=\"%s\" style=%x(%s) exstyle=%x(%s)\n", 
+			dxw.hChildWnd, ClassName, WinText, dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 		dwStyle=GetWindowLong(dxw.hParentWnd, GWL_STYLE);
 		dwExStyle=GetWindowLong(dxw.hParentWnd, GWL_EXSTYLE);
-		OutTrace("HookInit: dxw.hParentWnd style=%x(%s) exstyle=%x(%s)\n", dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
+		GetClassName(dxw.hParentWnd, ClassName, sizeof(ClassName));
+		GetWindowText(dxw.hParentWnd, WinText, sizeof(WinText));
+		OutTrace("HookInit: dxw.hParentWnd=%x class=\"%s\" text=\"%s\" style=%x(%s) exstyle=%x(%s)\n", 
+			dxw.hParentWnd, ClassName, WinText, dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 		OutTrace("HookInit: target window pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY);
 	}
 
+	if (SKIPIMEWINDOW) {
+		char ClassName[8+1];
+		GetClassName(hwnd, ClassName, sizeof(ClassName));
+		if(!strcmp(ClassName, "IME")){
+			dxw.hChildWnd=GetParent(hwnd);
+			dxw.hParentWnd=GetParent(dxw.hChildWnd);
+			if (dxw.dwFlags2 & SUPPRESSIME) DestroyWindow(hwnd);
+			// v2.02.31: set main win either this one or the parent!
+			dxw.SethWnd((dxw.dwFlags1 & FIXPARENTWIN) ? dxw.hParentWnd : dxw.hChildWnd);
+			hwnd = dxw.GethWnd();
+			if(hwnd) OutTraceDW("HookInit: skipped IME window. current hWnd=%x(hdc=%x) dxw.hParentWnd=%x(hdc=%x)\n", 
+				hwnd, GetDC(hwnd), dxw.hParentWnd, GetDC(dxw.hParentWnd));		
+		}
+	}
+
+#ifdef CREATEDESKTOP
+	if(CREATEDESKTOP){
+		if (hDesktopWindow){
+			OutTraceDW("HookInit: set new parent=%x\n", hDesktopWindow);
+			SetParent(dxw.hChildWnd, hDesktopWindow);
+			dxw.hParentWnd = hDesktopWindow;
+		}
+	}
+#endif
+
+#ifdef CHECKFORCOMPATIBILITYFLAGS
 	CheckCompatibilityFlags(); // v2.02.83 Check for change of OS release
+#endif
 
 	HookSysLibsInit(); // this just once...
 
@@ -1558,7 +1643,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	InitScreenParameters();
 	if(hwnd) HookWindowProc(hwnd);
 	// in fullscreen mode, messages seem to reach and get processed by the parent window
-	if(!dxw.Windowize && hwnd) HookWindowProc(GetParent(hwnd));
+	if((!dxw.Windowize) && hwnd) HookWindowProc(GetParent(hwnd));
 
 	// initialize window: if
 	// 1) not in injection mode (hwnd != 0) and

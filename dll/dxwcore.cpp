@@ -76,6 +76,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags2 = target->flags2;
 	dwFlags3 = target->flags3;
 	dwFlags4 = target->flags4;
+	dwFlags5 = target->flags5;
 	dwTFlags = target->tflags;
 	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
 	if(dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
@@ -302,6 +303,17 @@ RECT dxwCore::GetUnmappedScreenRect()
 	return Screen;
 }
 
+POINT dxwCore::GetFrameOffset()
+{
+	RECT wrect;
+	POINT FrameOffset={0, 0};
+	(*pGetWindowRect)(hWnd, &wrect);
+	(*pClientToScreen)(hWnd, &FrameOffset);
+	FrameOffset.x -= wrect.left;
+	FrameOffset.y -= wrect.top;
+	OutTraceB("GetFrameOffset: offset=(%d,%d)\n", FrameOffset.x, FrameOffset.y);
+	return FrameOffset;
+}
 
 BOOL dxwCore::IsDesktop(HWND hwnd)
 {

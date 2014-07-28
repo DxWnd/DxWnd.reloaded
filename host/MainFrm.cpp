@@ -116,6 +116,7 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	cs.cx = GetPrivateProfileInt("window", "sizx", 320, InitPath);
 	cs.cy = GetPrivateProfileInt("window", "sizy", 200, InitPath);
 
+
 	// keep window inside desktop boundaries
 	::GetWindowRect(::GetDesktopWindow(), &DesktopRect);
 	if(cs.cx < 320) cs.cx = 320;
