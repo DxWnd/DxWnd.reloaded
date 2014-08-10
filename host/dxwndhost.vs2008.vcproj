@@ -320,6 +320,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\host.rc"
+				>
+			</File>
+			<File
 				RelativePath=".\Inject.cpp"
 				>
 			</File>
@@ -488,6 +492,10 @@
 			</File>
 			<File
 				RelativePath="Resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\resource1.h"
 				>
 			</File>
 			<File

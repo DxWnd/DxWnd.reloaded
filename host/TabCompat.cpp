@@ -43,12 +43,14 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOPERFCOUNTER, cTarget->m_NoPerfCounter);
 	DDX_Check(pDX, IDC_HIDECDROMEMPTY, cTarget->m_HideCDROMEmpty);
 	DDX_Check(pDX, IDC_DIABLOTWEAK, cTarget->m_DiabloTweak);
+	DDX_Check(pDX, IDC_NOIMAGEHLP, cTarget->m_NoImagehlp);
 
 	// 3D management
 	DDX_Check(pDX, IDC_NOTEXTURES, cTarget->m_NoTextures);
 	DDX_Check(pDX, IDC_WIREFRAME, cTarget->m_WireFrame);
 	DDX_Check(pDX, IDC_DISABLEFOGGING, cTarget->m_DisableFogging);
 	DDX_Check(pDX, IDC_CLEARTARGET, cTarget->m_ClearTarget);
+	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 
 	// Registry management
 	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);

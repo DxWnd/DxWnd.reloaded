@@ -127,16 +127,22 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 
 	t->flags &= ~EMULATEFLAGS;
 	switch(dlg->m_DxEmulationMode){
-		case 0: break;
-		case 1: t->flags |= EMULATEBUFFER; break;
-		case 2: t->flags |= LOCKEDSURFACE; break;
-		case 3: t->flags |= EMULATESURFACE; break;
-		case 4: t->flags |= AUTOMATIC; break;
-		case 5: 
-			t->flags |= EMULATESURFACE;
-			t->flags4 |= BILINEARFILTER; 
+		case 0: t->flags |= AUTOMATIC; break;
+		case 1: break;
+		case 2: t->flags |= EMULATEBUFFER; break;
+		case 3: t->flags |= LOCKEDSURFACE; break;
+		case 4: t->flags |= EMULATESURFACE; break;
 			break;
 	}
+
+	t->flags4 &= ~BILINEAR2XFILTER;
+	t->flags5 &= ~BILINEARFILTER;
+	switch(dlg->m_DxFilterMode){
+		case 0: break;
+		case 1: t->flags4 |= BILINEAR2XFILTER; break;
+		case 2: t->flags5 |= BILINEARFILTER; break;
+	}
+
 	t->flags2 &= ~GDISTRETCHED;
 	t->flags &= ~MAPGDITOPRIMARY;
 	t->flags3 &= ~GDIEMULATEDC;
@@ -186,6 +192,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
+	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
 	if(dlg->m_DisableHAL) t->flags3 |= DISABLEHAL;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
@@ -222,9 +229,10 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_UseRGB565) t->flags |= USERGB565;
 	if(dlg->m_SuppressDXErrors) t->flags |= SUPPRESSDXERRORS;
 	if(dlg->m_MarkBlit) t->flags3 |= MARKBLIT;
-	if(dlg->m_SystemMemory) t->flags5 |= SYSTEMMEMORY;
+	if(dlg->m_NoSystemMemory) t->flags5 |= NOSYSTEMMEMORY;
+	if(dlg->m_NoSystemEmulated) t->flags5 |= NOSYSTEMEMULATED;
 	if(dlg->m_NoBlt) t->flags5 |= NOBLT;
-	//if(dlg->m_StretchBlt) t->flags5 |= DOSTRETCHBLT;
+	//if(dlg->m_BilinearBlt) t->flags5 |= BILINEARFILTER;
 	if(dlg->m_FastBlt) t->flags5 |= DOFASTBLT;
 	if(dlg->m_PreventMaximize) t->flags |= PREVENTMAXIMIZE;
 	if(dlg->m_ClientRemapping) t->flags |= CLIENTREMAPPING;
@@ -255,6 +263,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ShowTimeStretch) t->flags4 |= SHOWTIMESTRETCH;
 	if(dlg->m_TimeStretch) t->flags2 |= TIMESTRETCH;
 	if(dlg->m_StretchTimers) t->flags4 |= STRETCHTIMERS;
+	if(dlg->m_QuarterBlt) t->flags5 |= QUARTERBLT;
 	if(dlg->m_FineTiming) t->flags4 |= FINETIMING;
 	if(dlg->m_ReleaseMouse) t->flags4 |= RELEASEMOUSE;
 	if(dlg->m_FrameCompensation) t->flags4 |= FRAMECOMPENSATION;
@@ -315,16 +324,15 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_PeekAllMessages = t->flags3 & PEEKALLMESSAGES ? 1 : 0;
 	dlg->m_NoWinPosChanges = t->flags5 & NOWINPOSCHANGES ? 1 : 0;
 
-	dlg->m_DxEmulationMode = 0;
-	dlg->m_BilinearFilter = FALSE;
-	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;
-	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 2;
-	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 3;
-	if(t->flags & AUTOMATIC) dlg->m_DxEmulationMode = 4;
-	if(t->flags4 & BILINEARFILTER) {
-		dlg->m_DxEmulationMode = 5;
-		dlg->m_BilinearFilter = TRUE;
-	}
+	dlg->m_DxEmulationMode = 1; // none
+	if(t->flags & AUTOMATIC) dlg->m_DxEmulationMode = 0;
+	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 2;
+	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 3;
+	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 4;
+
+	dlg->m_DxFilterMode = 0;
+	if(t->flags4 & BILINEAR2XFILTER) dlg->m_DxFilterMode = 1;
+	if(t->flags5 & BILINEARFILTER) dlg->m_DxFilterMode = 2;
 
 	dlg->m_DCEmulationMode = 0;
 	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
@@ -358,6 +366,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
+	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
 	dlg->m_DisableHAL = t->flags3 & DISABLEHAL ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
@@ -407,9 +416,10 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_UseRGB565 = t->flags & USERGB565 ? 1 : 0;
 	dlg->m_SuppressDXErrors = t->flags & SUPPRESSDXERRORS ? 1 : 0;
 	dlg->m_MarkBlit = t->flags3 & MARKBLIT ? 1 : 0;
-	dlg->m_SystemMemory = t->flags5 & SYSTEMMEMORY ? 1 : 0;
+	dlg->m_NoSystemMemory = t->flags5 & NOSYSTEMMEMORY ? 1 : 0;
+	dlg->m_NoSystemEmulated = t->flags5 & NOSYSTEMEMULATED ? 1 : 0;
 	dlg->m_NoBlt = t->flags5 & NOBLT ? 1 : 0;
-	//dlg->m_StretchBlt = t->flags5 & DOSTRETCHBLT ? 1 : 0;
+	//dlg->m_BilinearBlt = t->flags5 & BILINEARFILTER ? 1 : 0;
 	dlg->m_FastBlt = t->flags5 & DOFASTBLT ? 1 : 0;
 	dlg->m_PreventMaximize = t->flags & PREVENTMAXIMIZE ? 1 : 0;
 	dlg->m_ClientRemapping = t->flags & CLIENTREMAPPING ? 1 : 0;
@@ -440,6 +450,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ShowTimeStretch = t->flags4 & SHOWTIMESTRETCH ? 1 : 0;
 	dlg->m_TimeStretch = t->flags2 & TIMESTRETCH ? 1 : 0;
 	dlg->m_StretchTimers = t->flags4 & STRETCHTIMERS ? 1 : 0;
+	dlg->m_QuarterBlt = t->flags5 & QUARTERBLT ? 1 : 0;
 	dlg->m_FineTiming = t->flags4 & FINETIMING ? 1 : 0;
 	dlg->m_ReleaseMouse = t->flags4 & RELEASEMOUSE ? 1 : 0;
 	dlg->m_FrameCompensation = t->flags4 & FRAMECOMPENSATION ? 1 : 0;

@@ -84,7 +84,7 @@ static char *Flag3Names[32]={
 static char *Flag4Names[32]={
 	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
 	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
-	"NOPOWER2FIX", "NOPERFCOUNTER", "BILINEARFILTER", "INTERCEPTRDTSC",
+	"NOPOWER2FIX", "NOPERFCOUNTER", "BILINEAR2XFILTER", "INTERCEPTRDTSC",
 	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "HIDEDESKTOP",
 	"STRETCHTIMERS", "NOFLIPEMULATION", "NOTEXTURES", "RETURNNULLREF",
 	"FINETIMING", "NATIVERES", "SUPPORTSVGA", "SUPPORTHDTV",
@@ -93,9 +93,9 @@ static char *Flag4Names[32]={
 };
 
 static char *Flag5Names[32]={
-	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "SYSTEMMEMORY",
-	"NOBLT", "--DOSTRETCHBLT---", "DOFASTBLT", "AEROBOOST",
-	"", "", "", "",
+	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "NOSYSTEMMEMORY",
+	"NOBLT", "NOSYSTEMEMULATED", "DOFASTBLT", "AEROBOOST",
+	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -454,11 +454,11 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 		MaxY = dxw.iSizY;
 		if (!MaxX) {
 			MaxX = width;
-			if(dxw.dwFlags4 & BILINEARFILTER) MaxX <<= 1; // double
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxX <<= 1; // double
 		}
 		if (!MaxY) {
 			MaxY = height;
-			if(dxw.dwFlags4 & BILINEARFILTER) MaxY <<= 1; // double
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
 		}
 		//GetClientRect(0, &desktop);
 		(*pGetClientRect)(GetDesktopWindow(), &desktop);
@@ -495,7 +495,7 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
 	hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 	AdjustWindowRectEx(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
-	if (hMenu) CloseHandle(hMenu);
+	if (hMenu) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
 	switch(dxw.Coordinates){
 	case DXW_DESKTOP_WORKAREA:
 	case DXW_DESKTOP_FULL:
@@ -772,24 +772,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		OutTrace("\n");
 	}
-
-#if 0
-	if(dxw.dwFlags2 & WALLPAPERMODE) {
-		static int t=0;
-		if ((*pGetTickCount)() - t > 100){
-			//if (GetTopWindow(NULL)==hwnd){
-			{
-				(*pSetWindowPos)(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE);
-				t = (*pGetTickCount)();
-			}
-		}
-		//if ((message >= WM_MOUSEFIRST) && (message <= WM_MOUSELAST)) return 0;
-		//if (message == WM_WINDOWPOSCHANGED) {
-		//	t=0;
-		//	return 0;
-		//}
-	}
-#endif
 
 	if(dxw.dwFlags3 & FILTERMESSAGES){
 		switch(message){
@@ -1122,6 +1104,7 @@ void HookSysLibsInit()
 	HookKernel32Init();
 	HookUser32Init();
 	HookGDI32Init();
+	HookImagehlpInit();
 }
 
 DEVMODE InitDevMode;
@@ -1529,7 +1512,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		"DirectX7", "DirectX8", "DirectX9", "DirectX10", "DirectX11", "None", ""
 	};
 	static char *Resolutions[]={
-		"unlimited", "320x200", "640x480", "800x600", "1024x768", "1280x960", "" // terminator
+		"unlimited", "320x200", "400x300", "640x480", "800x600", "1024x768", "1280x960", "" // terminator
 	};
 	
 	dxw.InitTarget(target);

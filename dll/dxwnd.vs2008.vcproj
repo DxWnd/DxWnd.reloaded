@@ -221,6 +221,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\bilinear.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ddproxy.cpp"
 				>
 			</File>
@@ -370,6 +374,10 @@
 			</File>
 			<File
 				RelativePath=".\iatpatch.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\imagehlp.cpp"
 				>
 			</File>
 			<File

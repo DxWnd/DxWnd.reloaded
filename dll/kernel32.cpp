@@ -420,13 +420,6 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 		OutTraceDW("%s: hooking lib=\"%s\" handle=%x\n", api, lpFileName, libhandle);
 		HookModule(libhandle, 0);
 	}
-#if 0
-	switch(idx){
-		case SYSLIBIDX_DIRECTDRAW: HookDirectDraw(libhandle, 0); break;
-		case SYSLIBIDX_DIRECT3D8: HookDirect3D(libhandle, 8); break;
-		case SYSLIBIDX_DIRECT3D9: HookDirect3D(libhandle, 9); break;
-	}
-#endif
 	return libhandle;
 }
 
@@ -545,8 +538,11 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_DIRECT3D700:
 			if (remap=Remap_d3d7_ProcAddress(proc, hModule)) return remap;
 			break;
-		default:
+		case SYSLIBIDX_IMAGEHLP:
+			if (remap=Remap_Imagehlp_ProcAddress(proc, hModule)) return remap;
 			break;
+		default:
+			break;			
 		}
 	}
 	else {

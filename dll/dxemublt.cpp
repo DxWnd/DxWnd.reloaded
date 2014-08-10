@@ -37,7 +37,8 @@ static void MarkRect32(DWORD *dest, int w, int h, int destpitch)
 {
 	int x, y;
 
-	for(x = 0; x < w; x ++) *(dest ++) = MARKBLITCOLOR32;	
+	for(x = 0; x < w; x ++) *(dest ++) = MARKBLITCOLOR32;
+	if (h<3) return;
 	dest += destpitch;
 	for(y = 0; y < h-2; y ++){
 		*dest = MARKBLITCOLOR32;
@@ -54,6 +55,7 @@ static void MarkRect16(SHORT *dest, int w, int h, int destpitch)
 	int x, y;
 
 	for(x = 0; x < w; x ++) *(dest ++) = MARKBLITCOLOR16;	
+	if (h<3) return;
 	dest += destpitch;
 	for(y = 0; y < h-2; y ++){
 		*dest = MARKBLITCOLOR16;
@@ -1528,13 +1530,13 @@ void SetBltTransformations()
 		case 8:
 			pRevBlt=RevBlt_32_to_8; 
 			pEmuBlt=EmuBlt_8_to_32;
-			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_8_to_32;
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) pEmuBlt=BilinearBlt_8_to_32;
 			OutTraceDW("set color transformation 8<->32\n");
 			break;
 		case 16: 
 			pRevBlt=RevBlt_32_to_16;
 			pEmuBlt=EmuBlt_16_to_32;
-			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_16_to_32;
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) pEmuBlt=BilinearBlt_16_to_32;
 			OutTraceDW("set color transformation 16<->32\n");
 			break;
 		case 24: 
@@ -1544,7 +1546,7 @@ void SetBltTransformations()
 			break;
 		case 32: 
 			pEmuBlt=EmuBlt_32_to_32;
-			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_32_to_32;
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) pEmuBlt=BilinearBlt_32_to_32;
 			OutTraceDW("set color transformation 32->32\n");
 			break;
 		default:
@@ -1557,13 +1559,13 @@ void SetBltTransformations()
 		case 8:
 			pRevBlt=RevBlt_16_to_8;
 			pEmuBlt=EmuBlt_8_to_16;
-			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_8_to_16;
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) pEmuBlt=BilinearBlt_8_to_16;
 			OutTraceDW("set color transformation 8<->16\n");
 			break;
 		case 16:
 			pRevBlt=RevBlt_16_to_16;
 			pEmuBlt=EmuBlt_16_to_16;
-			if(dxw.dwFlags4 & BILINEARFILTER) pEmuBlt=BilinearBlt_16_to_16;
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) pEmuBlt=BilinearBlt_16_to_16;
 			OutTraceDW("set color transformation 16<->16\n");
 			break;
 		case 24: 
@@ -1588,6 +1590,7 @@ void SetBltTransformations()
 
 	pPrimaryBlt = PrimaryBlt;
 	if(dxw.dwFlags5 & AEROBOOST) pPrimaryBlt = PrimaryStretchBlt;
+	if(dxw.dwFlags5 & BILINEARFILTER) pPrimaryBlt = PrimaryBilinearBlt; 
 	if(dxw.dwFlags5 & DOFASTBLT) pPrimaryBlt = PrimaryFastBlt; // debug opt
 	if(dxw.dwFlags5 & NOBLT) pPrimaryBlt = PrimaryNoBlt; // debug opt
 	return;

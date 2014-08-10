@@ -603,3 +603,16 @@ fix: Skip / Limit FPS now acting on full scren blits only. For instance, they no
 
 v2.02.93
 fix: handling of primary / backbuffer surfaces when DDSCAPS_3DDEVICE is set (es. Fifa 99 in Direct3D mode)
+
+v2.02.94
+fix: handling of "Keep aspect ratio" for aspect ratios different from 4:3
+fix: missing resolution 400x300 in "Limit resolution" handling
+fix: surface handling switch in automatic mode. 
+added two flags for DDSCAPS_SYSTEMMEMORY handling on different contexts. Added extra performances and compatibility with D3D in emulated mode.
+added "Updated bigger than 1/4 screen size" flag, to perform FPS counting or limitations upon substantial screen updated (heuristic: bigger than 1/4 of the total size...)
+added true bilinear filter. Previous one was renamed as fast 2x filter (BILINEAR2XFILTER).
+fix: when the window was minimized & the "do not notify on task switch" flag was on, the game crashed. Now the blitting operations to invalid rect coordinates are suppressed.
+fix: debug option "highlight blit to primary" was causing game crashes when the updated rect was too little. 
+fix: trapped sporadic CloseHandle(hMenu) crashes in a try/catch clause.
+fix: attempt to fix FIXD3DFRAME option
+fix: added SetStretchBltMode(hdc,HALFTONE) to SetDIBitsToDevice hooker to improve stretching: fixes "Celtic Kings Rage of War"

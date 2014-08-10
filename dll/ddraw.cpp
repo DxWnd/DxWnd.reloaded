@@ -1499,8 +1499,6 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 
 	OutTraceDDRAW("DirectDrawCreate: guid=%x(%s)\n", lpguid, ExplainGUID(lpguid));
 
-	if (dxw.dwFlags1 & AUTOMATIC) dxw.dwFlags1 |= EMULATESURFACE;
-
 	if(!pDirectDrawCreate){ // not hooked yet....
 		HINSTANCE hinst;
 		hinst = LoadLibrary("ddraw.dll");
@@ -1581,8 +1579,6 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	GUID FAR *lpPrivGuid = lpguid;
 
 	OutTraceDDRAW("DirectDrawCreateEx: guid=%x(%s) refiid=%x\n", lpguid, ExplainGUID(lpguid), iid);
-
-	if (dxw.dwFlags1 & AUTOMATIC) dxw.dwFlags1 |= EMULATESURFACE;
 
 	// v2.1.70: auto-hooking (just in case...)
 	if(!pDirectDrawCreateEx){ // not hooked yet....
@@ -2408,25 +2404,6 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	// v2.02.50: don't alter surfaces with different color depth
 	if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwRGBBitCount != dxw.VirtualPixelFormat.dwRGBBitCount)) return;
 
-#if 0
-	// v2.02.43: don't alter MIPMAP surfaces
-	if((lpddsd->dwFlags & DDSD_MIPMAPCOUNT) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_MIPMAP)) {
-		//GetPixFmt(lpddsd);
-		return;
-	}
-#endif
-
-#if 0
-	// HoM&M3/4 fix....
-	if(((lpddsd->dwFlags & (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT)) == (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) &&
-		((lpddsd->ddsCaps.dwCaps & ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_VIDEOMEMORY) == DDSCAPS_OFFSCREENPLAIN)){
-		//lpddsd->ddsCaps.dwCaps = 0;
-		lpddsd->dwFlags = (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT);
-		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-		GetPixFmt(lpddsd);
-		return;
-	}
-#endif
 	// default case: adjust pixel format
 	OutTraceB("FixSurfaceCaps: suppress DDSCAPS_VIDEOMEMORY case\n");
 	lpddsd->dwFlags |= (DDSD_CAPS|DDSD_PIXELFORMAT); 
@@ -2463,7 +2440,9 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
-	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
+	if(dxw.dwFlags5 & NOSYSTEMEMULATED) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 
@@ -2528,10 +2507,13 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	if(lpDDSEmu_Back==NULL){
 		ClearSurfaceDesc((void *)&ddsd, dxversion);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
+		// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
+		ddsd.ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+		// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
+		if(dxw.dwFlags5 & NOSYSTEMEMULATED) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 		ddsd.dwWidth = dxw.GetScreenWidth();
 		ddsd.dwHeight = dxw.GetScreenHeight();
-		if(dxw.dwFlags4 & BILINEARFILTER){
+		if(dxw.dwFlags4 & BILINEAR2XFILTER){
 			// double backbuffer size
 			ddsd.dwWidth = dxw.GetScreenWidth() << 1;
 			ddsd.dwHeight = dxw.GetScreenHeight() << 1;
@@ -2630,6 +2612,8 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_BACKBUFFER|DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
+	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	GetPixFmt(&ddsd);
@@ -2713,6 +2697,8 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	memcpy(&ddsd, lpddsd, lpddsd->dwSize); // Copy over ....
 	FixSurfaceCaps(&ddsd, dxversion);
+	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
+	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]" , __LINE__);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
@@ -2977,13 +2963,6 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	OutTraceDDRAW("GetAttachedSurface(%d): lpdds=%x%s caps=%x(%s)\n", 
 		dxversion, lpdds, (IsPrim?"(PRIM)":(IsBack ? "(BACK)":"")), lpddsc->dwCaps, ExplainDDSCaps(lpddsc->dwCaps));
 
-#if 0
-	if(lpddsc->dwCaps & DDSCAPS_MIPMAP){
-		OutTraceDW("GetAttachedSurface: emulate MIPMAP capability\n");
-		lpddsc->dwCaps &= ~DDSCAPS_MIPMAP;
-	}
-#endif
-
 	// this is yet to be proven utility.....
 	// v2.02.45: No - it prevents "Praetorians" to work!!! -> commented out.
 	//
@@ -3138,6 +3117,88 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	if(res) OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	if (res) BlitError(res, lpsrcrect, lpdestrect, __LINE__);
 	(*pReleaseS)(lpddsTmp);
+	return res;
+}
+
+HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
+{
+	HRESULT res;
+	extern void Resize_HQ_4ch( unsigned char*, RECT *, int, unsigned char*, RECT *, int);
+	/* to be implemented .... */
+	DDSURFACEDESC ddsd; 
+	RECT TmpRect, SrcRect;
+	LPDIRECTDRAWSURFACE lpddsTmp;
+	LPDIRECTDRAWSURFACE lpddsBak;
+	LPDIRECTDRAWSURFACE lpddsCopy=NULL;
+	DDSCAPS caps;
+	BYTE *bSourceBuf, *bDestBuf;
+	LONG dwWidth, dwHeight;
+	int SrcPitch, DestPitch;
+	caps.dwCaps = DDSCAPS_BACKBUFFER;
+	memset(&ddsd, 0, sizeof(DDSURFACEDESC));
+	ddsd.dwSize = sizeof(DDSURFACEDESC);
+	if(lpddssrc==NULL){
+		// blit from backbuffer
+		lpdds->GetAttachedSurface(&caps, &lpddsBak);
+		if(lpddsBak) lpddsBak->GetSurfaceDesc(&ddsd);
+	}
+	else{
+		// blit from surface
+		lpddssrc->GetSurfaceDesc(&ddsd);
+	}
+	
+	// assign source RECT values anyway....
+	if(!lpsrcrect){
+		lpsrcrect = &SrcRect;
+		lpsrcrect->left = lpsrcrect->top = 0;
+		lpsrcrect->right = dxw.GetScreenWidth();
+		lpsrcrect->bottom = dxw.GetScreenHeight();
+	}
+
+	dwWidth = lpdestrect->right  - lpdestrect->left;
+	dwHeight = lpdestrect->bottom - lpdestrect->top;
+	TmpRect.left = TmpRect.top = 0;
+	TmpRect.bottom = ddsd.dwHeight = dwHeight;
+	TmpRect.right  = ddsd.dwWidth  = dwWidth;
+	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
+	// work only on even width surfaces, or you'd have to take in account proper pitch!
+	// dwWidth = ddsd.dwWidth = ((dwWidth + 1) >> 1) << 1; 
+	// capabilities must cope with primary / backbuffer surface capabilities to get speedy operations
+	ddsd.ddsCaps.dwCaps = bIs3DPrimarySurfaceDevice ? DDSCAPS_OFFSCREENPLAIN : (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+	res=(*pCreateSurface1)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
+	if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+
+	// get informations
+	memset(&ddsd,0,sizeof(DDSURFACEDESC));
+	ddsd.dwSize = sizeof(DDSURFACEDESC);
+	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0);
+	if(res) OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	bSourceBuf = (BYTE *)ddsd.lpSurface;
+	SrcPitch = ddsd.lPitch;
+	memset(&ddsd,0,sizeof(DDSURFACEDESC));
+	ddsd.dwSize = sizeof(DDSURFACEDESC);
+	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	res=(*pLock)(lpddsTmp, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0);
+	if(res) OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	bDestBuf = (BYTE *)ddsd.lpSurface;
+	DestPitch = ddsd.lPitch;
+
+	// do the filtering
+	Resize_HQ_4ch( 
+		bSourceBuf, lpsrcrect, SrcPitch, 
+		bDestBuf, lpdestrect, DestPitch);
+
+	// fast-blit to primary
+	//(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
+	//(*pUnlockMethod(lpddsTmp))(lpddsTmp, NULL);	
+	(*pUnlock1)(lpddssrc, NULL);
+	//(*pUnlock1)(lpddsTmp, NULL);
+	lpddsTmp->Unlock(NULL); // this surface is unhooked!!!	
+	res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
+	if(res) OutTraceE("BltFast: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	(*pReleaseS)(lpddsTmp);	
+	if(lpddsCopy) (*pReleaseS)(lpddsCopy);
 	return res;
 }
 
@@ -3300,8 +3361,15 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	// Blit to primary surface
 	// =========================
 
-	if(!lpdestrect ||
-		(lpdestrect && (lpdestrect->bottom == dxw.GetScreenHeight()) && (lpdestrect->right == dxw.GetScreenWidth())))
+	if(dxw.dwFlags5 & QUARTERBLT){
+		BOOL QuarterUpdate;
+		QuarterUpdate = lpdestrect ? 
+			(((lpdestrect->bottom - lpdestrect->top) * (lpdestrect->right - lpdestrect->left)) > ((LONG)(dxw.GetScreenHeight() * dxw.GetScreenWidth()) >> 2)) 
+			: 
+			TRUE;
+		if(QuarterUpdate) if(dxw.HandleFPS()) return DD_OK;
+	}
+	else
 		if(dxw.HandleFPS()) return DD_OK;
 	if(dxw.dwFlags5 & NOBLT) return DD_OK;
 	
@@ -3393,6 +3461,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 	if (lpdds != lpddssrc){
 		if (IsDebug) BlitTrace("SRC2EMU", &emurect, &destrect, __LINE__);
+		if(destrect.top == -32000) return DD_OK; // happens when window is minimized & do not notify on task switch ...
 		res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 	}
 
@@ -4385,33 +4454,14 @@ HRESULT WINAPI extGetPixelFormat(LPDIRECTDRAWSURFACE lpdds, LPDDPIXELFORMAT p)
 	return res;
 }
 
-#if 0
-static HRESULT WINAPI RestoreAll(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
-{
-	HRESULT res;
-	//res=lpDDSurface->Restore();
-	res=(*pRestore)((LPDIRECTDRAWSURFACE)lpDDSurface);
-	OutTraceB("TestCooperativeLevel: Restore lpdds=%x res=%x(%s)\n", lpDDSurface, res, ExplainDDError(res));
-	(*pReleaseS)((LPDIRECTDRAWSURFACE)lpDDSurface);
-	if(res) return DDENUMRET_CANCEL;
-	return DDENUMRET_OK;
-}
-#endif
-
 HRESULT WINAPI extTestCooperativeLevel(LPDIRECTDRAW lpdd)
 {
 	HRESULT res;
 	res=(*pTestCooperativeLevel)(lpdd);
 	OutTraceB("TestCooperativeLevel: lpdd=%x res=%x(%s)\n", lpdd, res, ExplainDDError(res));
 	if(res==DDERR_WRONGMODE) {
-#if 0
-		(*pEnumSurfaces4)(lpdd, DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, (LPDDENUMSURFACESCALLBACK2)RestoreAll);
-		//lpDDSEmu_Prim->Restore();
-		//res=(*pEnumSurfaces4)(lpdd, dwflags, lpddsd, lpContext, cb);
-#else
 		res=((LPDIRECTDRAW7)lpdd)->RestoreAllSurfaces();
 		if(res) OutTraceE("TestCooperativeLevel: RestoreAllSurfaces ERROR res=%x(%s)\n", res, ExplainDDError(res));
-#endif
 	}
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	return res;

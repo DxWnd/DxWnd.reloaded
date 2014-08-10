@@ -149,6 +149,8 @@ public: // simple data variables
 	short iPosY;
 	short iSizX;
 	short iSizY;
+	int iRatioX;
+	int iRatioY;
 	char *CustomOpenGLLib;
     WORD palVersion;
     WORD palNumEntries;
@@ -217,6 +219,8 @@ typedef enum {
 	SYSLIBIDX_WINTRUST,
 	SYSLIBIDX_DIRECT3D,
 	SYSLIBIDX_DIRECT3D700,
+//	SYSLIBIDX_DBGHELP,
+	SYSLIBIDX_IMAGEHLP,
 //	SYSLIBIDX_GLIDE,
 //	SYSLIBIDX_GLIDE2X,
 //	SYSLIBIDX_GLIDE3X,

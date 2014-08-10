@@ -10,6 +10,7 @@ extern void HookKernel32(HMODULE);
 extern void HookUser32(HMODULE);
 extern void HookWinMM(HMODULE);
 extern void HookAdvApi32(HMODULE);
+extern void HookImagehlp(HMODULE);
 
 extern void InitPosition(int, int, int, int, int, int);
 //void InitWindowPos(int, int, int, int);
@@ -35,6 +36,7 @@ extern FARPROC Remap_ImeLib_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_vfw_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_AdvApi32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_Glide_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_Imagehlp_ProcAddress(LPCSTR, HMODULE);
 
 typedef enum {
 	HOOK_IAT_CANDIDATE = 0,

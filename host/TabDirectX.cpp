@@ -27,8 +27,10 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	DDX_Radio(pDX, IDC_AUTO, cTarget->m_DXVersion);
-	DDX_Radio(pDX, IDC_NOEMULATESURFACE, cTarget->m_DxEmulationMode);
+	//DDX_Radio(pDX, IDC_NOEMULATESURFACE, cTarget->m_DxEmulationMode);
+	DDX_Radio(pDX, IDC_AUTOMATIC, cTarget->m_DxEmulationMode);
 	//DDX_Check(pDX, IDC_HANDLEDC, cTarget->m_HandleDC);
+	DDX_Radio(pDX, IDC_DDRAWFILTER, cTarget->m_DxFilterMode);
 	DDX_Check(pDX, IDC_SUPPRESSCLIPPING, cTarget->m_SuppressClipping);
 	DDX_Check(pDX, IDC_BLITFROMBACKBUFFER, cTarget->m_BlitFromBackBuffer);
 	DDX_Check(pDX, IDC_AUTOREFRESH, cTarget->m_AutoRefresh);
@@ -42,11 +44,12 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOALPHACHANNEL, cTarget->m_NoAlphaChannel);
 	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
 	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
-	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_NOFLIPEMULATION, cTarget->m_NoFlipEmulation);
 	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
 	DDX_Check(pDX, IDC_SETCOMPATIBILITY, cTarget->m_SetCompatibility);
 	DDX_Check(pDX, IDC_AEROBOOST, cTarget->m_AEROBoost);
+	DDX_Check(pDX, IDC_NOSYSTEMMEMORY, cTarget->m_NoSystemMemory);
+	DDX_Check(pDX, IDC_NOSYSTEMEMULATED, cTarget->m_NoSystemEmulated);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirectX, CDialog)

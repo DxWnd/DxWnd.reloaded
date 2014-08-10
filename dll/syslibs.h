@@ -654,5 +654,6 @@ extern MMRESULT WINAPI exttimeKillEvent(UINT);
 extern void	HookKernel32Init();
 extern void	HookUser32Init();
 extern void	HookGDI32Init();
+extern void HookImagehlpInit();
 
 /* eof */

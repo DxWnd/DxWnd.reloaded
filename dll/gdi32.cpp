@@ -1334,6 +1334,8 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 			OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 		if(!(*pSetDIBitsToDevice)(hTempDc, 0, 0, OrigWidth, OrigHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse))
 			OutTraceE("SetDIBitsToDevice: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		// v2.02.94: set HALFTONE stretching. Fixes "Celtic Kings Rage of War"
+		SetStretchBltMode(hdc,HALFTONE);
 		if(!(ret=(*pGDIStretchBlt)(hdc, XDest, YDest, dwWidth, dwHeight, hTempDc, 0, 0, OrigWidth, OrigHeight, SRCCOPY)))
 			OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 		if(!(DeleteObject(hbmPic))) // v2.02.32 - avoid resource leakage

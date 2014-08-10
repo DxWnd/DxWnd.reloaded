@@ -844,30 +844,39 @@ HRESULT WINAPI extGetAdapterDisplayMode9(void *lpd3d, UINT Adapter, D3DDISPLAYMO
 	return res;
 }
 
-void FixD3DWindowFrame(HWND hfocuswindow)
+HWND FixD3DWindowFrame(HWND hFocusWin)
 {
+	extern void HookWindowProc(HWND);
+	HWND hRetWnd = hFocusWin;
+
 	if(!(dxw.dwFlags3 & NOWINDOWMOVE)) 
 		AdjustWindowFrame(dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	if(dxw.dwFlags3 & FIXD3DFRAME){
 		char ClassName[81];
 		RECT workarea;
+		HWND hChildWin;
 		GetClassName(dxw.GethWnd(), ClassName, 80);
 		(*pGetClientRect)(dxw.GethWnd(), &workarea);
 		if (dxw.dwFlags2 & KEEPASPECTRATIO) dxw.FixWorkarea(&workarea);
-		hfocuswindow=(*pCreateWindowExA)(
+		hChildWin=(*pCreateWindowExA)(
 			0, ClassName, "child", 
 			WS_CHILD|WS_VISIBLE, 
 			//GetSystemMetrics(SM_CXSIZEFRAME), GetSystemMetrics(SM_CYSIZEFRAME)+GetSystemMetrics(SM_CYCAPTION), 
 			workarea.left, workarea.top, workarea.right-workarea.left, workarea.bottom-workarea.top, 
+			//workarea.left+20, workarea.top+20, workarea.right-workarea.left-40, workarea.bottom-workarea.top-40, 
 			dxw.GethWnd(), NULL, NULL, NULL);
-		if (hfocuswindow) 
-			OutTraceD3D("CreateDevice: updated hfocuswindow=%x pos=(%d,%d) size=(%d,%d)\n", 
-				hfocuswindow, workarea.left, workarea.top, workarea.right-workarea.left, workarea.bottom-workarea.top);
+		if (hChildWin) 
+			OutTraceD3D("CreateDevice: ChildWin=%x pos=(%d,%d) size=(%d,%d)\n", 
+				hChildWin, workarea.left, workarea.top, workarea.right-workarea.left, workarea.bottom-workarea.top);
 		else
 			OutTraceE("CreateDevice: CreateWindowEx ERROR err=%d\n", GetLastError());
-		dxw.SethWnd(hfocuswindow, dxw.GethWnd());
+		dxw.SethWnd(hChildWin, dxw.GethWnd());
+		HookWindowProc(hChildWin);
+		hRetWnd = hChildWin;
 	}
+
+	return hRetWnd;
 }
 
 HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
@@ -884,7 +893,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	dxw.SethWnd(hfocuswindow);
 	dxw.SetScreenSize(param[0], param[1]);
 
-	if(dxw.Windowize) FixD3DWindowFrame(hfocuswindow);
+	if(dxw.Windowize) hfocuswindow=FixD3DWindowFrame(hfocuswindow);
 
 	if(IsTraceD3D){
 		tmp = param;
@@ -998,7 +1007,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	dxw.SethWnd(hfocuswindow);
 	dxw.SetScreenSize(param[0], param[1]);
 
-	if(dxw.Windowize) FixD3DWindowFrame(hfocuswindow);
+	if(dxw.Windowize) hfocuswindow=FixD3DWindowFrame(hfocuswindow);
 
 	tmp = param;
 	if(IsTraceD3D){

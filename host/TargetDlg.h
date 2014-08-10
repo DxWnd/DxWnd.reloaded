@@ -27,8 +27,8 @@ public:
 	int		m_DXVersion;
 	int		m_Coordinates;
 	int		m_DxEmulationMode;
+	int		m_DxFilterMode;
 	int		m_DCEmulationMode;
-	BOOL	m_BilinearFilter;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
 	BOOL	m_OutProxyTrace;
@@ -83,9 +83,10 @@ public:
 	BOOL	m_UseRGB565;
 	BOOL	m_SuppressDXErrors;
 	BOOL	m_MarkBlit;
-	BOOL	m_SystemMemory;
+	BOOL	m_NoSystemMemory;
+	BOOL	m_NoSystemEmulated;
 	BOOL	m_NoBlt;
-//	BOOL	m_StretchBlt;
+	BOOL	m_BilinearBlt;
 	BOOL	m_FastBlt;
 	BOOL	m_PreventMaximize;
 	BOOL	m_ClientRemapping;
@@ -116,6 +117,7 @@ public:
 	BOOL	m_ShowTimeStretch;
 	BOOL	m_TimeStretch;
 	BOOL	m_StretchTimers;
+	BOOL	m_QuarterBlt;
 	BOOL	m_FineTiming;
 	BOOL	m_ReleaseMouse;
 	BOOL	m_FrameCompensation;
@@ -150,6 +152,7 @@ public:
 	BOOL	m_SetCompatibility;
 	BOOL	m_AEROBoost;
 	BOOL	m_DiabloTweak;
+	BOOL	m_NoImagehlp;
 	BOOL	m_DisableHAL;
 	BOOL	m_ForcesHEL;
 	BOOL	m_ColorFix;

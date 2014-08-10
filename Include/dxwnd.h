@@ -123,7 +123,7 @@
 #define DISABLEFOGGING		0x00000080 // Disable D3D fogging
 #define NOPOWER2FIX			0x00000100 // Handle textures whose size is not a power of 2 (32, 64, 128 ...)
 #define NOPERFCOUNTER		0x00000200 // Disables the GetPerfCounter performance metrics API,as if it was not supported....
-#define BILINEARFILTER		0x00000400 // attempt to smooth low-res graphic by applying biulinear filtering in emulation mode
+#define BILINEAR2XFILTER	0x00000400 // attempt to smooth low-res graphic by applying biulinear filtering in emulation mode
 #define INTERCEPTRDTSC		0x00000800 // Intercapts RDTSC opcodes to hook at assembly level
 #define LIMITSCREENRES		0x00001000 // Limit available screen resolution up to defined maximum
 #define NOFILLRECT			0x00002000 // Suppress FillRect calls
@@ -150,12 +150,14 @@
 #define DIABLOTWEAK			0x00000001 // ... ??? ...
 #define CLEARTARGET			0x00000002 // forces a D3D clean on target surface upon each BeginScene invocation
 #define NOWINPOSCHANGES		0x00000004 // suppress WM_WINDOWPOSCHANGING/CHANGED messages (RollerCoaster Tycoon...)
-#define SYSTEMMEMORY		0x00000008 // forces usage of DDSCAPS_SYSTEMMEMORY capability on front & backbuffer surfaces
+#define NOSYSTEMMEMORY		0x00000008 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on surfaces
 #define NOBLT				0x00000010 // suppress blit to primary surface
-#define UNUSEDFLAG1			0x00000020 // unused - mapped to AEROBOOST
+#define NOSYSTEMEMULATED	0x00000020 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated front & backbuffer surfaces
 #define DOFASTBLT			0x00000040 // use FastBlt to primary surface
 #define AEROBOOST			0x00000080 // Optimize for AERO environment: does all stretching in sysmemory surfaces
-#define LIMITFULLBLT		0x00000100 // Limit FPS only for blt operation of the whole primary surface
+#define QUARTERBLT			0x00000100 // Consider a screen update (to count or limit FPS) only  blt operations bigger than a quarter of the whole primary surface
+#define NOIMAGEHLP			0x00000200 // Interceptd Imagehlp.dll unsupported calls (used by "the 5th element")
+#define BILINEARFILTER		0x00000400 // experimental bilinear filtering
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

@@ -107,6 +107,13 @@ void dxwCore::InitTarget(TARGETMAP *target)
 		pTimeShifter = TimeShifterCoarse;
 		pTimeShifter64 = TimeShifter64Coarse;
 	}
+	iSizX = target->sizx;
+	iSizY = target->sizy;
+	iPosX = target->posx;
+	iPosY = target->posy;
+	// Aspect Ratio from window size, or traditional 4:3 by default
+	iRatioX = iSizX ? iSizX : 800;
+	iRatioY = iSizY ? iSizY : 600;
 }
 
 void dxwCore::SetScreenSize(void) 
@@ -132,6 +139,7 @@ void dxwCore::SetScreenSize(int x, int y)
 		maxw=HUGE; maxh=HUGE;
 		switch(dxw.MaxScreenRes){
 			case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
+			case DXW_LIMIT_400x300: maxw=400; maxh=300; break;
 			case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
 			case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
 			case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
@@ -412,11 +420,6 @@ POINT dxwCore::FixCursorPos(POINT prev)
 	// remember: rect from GetClientRect always start at 0,0!
 	if(dxw.dwFlags1 & MODIFYMOUSE){
 		int w, h, b; // width, height and border
-		int iRatioX, iRatioY;
-
-		// ratio is the configured one, unless the values are 0. Then, it's the standard 4:3 ratio.
-		iRatioX = iSizX ? iSizX : 4;
-		iRatioY = iSizY ? iSizY : 3;
 
 		if (!(*pGetClientRect)(hWnd, &rect)) { // v2.02.30: always use desktop win
 			OutTraceDW("GetClientRect ERROR %d at %d\n", GetLastError(),__LINE__);
@@ -564,11 +567,6 @@ void dxwCore::SethWnd(HWND hwnd)
 void dxwCore::FixWorkarea(LPRECT workarea)
 {
 	int w, h, b; // width, height and border
-	int iRatioX, iRatioY;
-
-	// ratio is the configured one, unless the values are 0. Then, it's the standard 4:3 ratio.
-	iRatioX = iSizX ? iSizX : 4;
-	iRatioY = iSizY ? iSizY : 3;
 
 	w = workarea->right - workarea->left;
 	h = workarea->bottom - workarea->top;
@@ -590,11 +588,6 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	RECT RetRect;
 	RECT ClientRect;
 	int w, h, bx, by; // width, height and x,y borders
-	int iRatioX, iRatioY;
-
-	// ratio is the configured one, unless the values are 0. Then, it's the standard 4:3 ratio.
-	iRatioX = iSizX ? iSizX : 4;
-	iRatioY = iSizY ? iSizY : 3;
 
 	if (!(*pGetClientRect)(hWnd, &ClientRect)){
 		OutTraceE("GetClientRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
@@ -1231,7 +1224,7 @@ void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
 		if (FAILED(lpdds->GetDC(&hdc))) return;
 		w = this->GetScreenWidth();
 		h = this->GetScreenHeight();
-		if(this->dwFlags4 & BILINEARFILTER) {
+		if(this->dwFlags4 & BILINEAR2XFILTER) {
 			w <<=1;
 			h <<=1;
 		}
@@ -1443,6 +1436,7 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 		"wintrust",
 		"d3dim",
 		"d3dim700",
+		"imagehlp",
 //		"+glide",
 //		"+glide2x",
 //		"+glide3x",
@@ -1601,6 +1595,8 @@ BOOL dxwCore::ReleaseEmulatedDC(HWND hwnd)
 	if(!(wdc=(*pGDIGetDC)(hwnd)))
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	//OutTrace("StretchBlt: destdc=%x destrect=(0,0)-(%d,%d) srcdc=%x srcrect=(0,0)-(%d,%d)\n", wdc, client.right, client.bottom, VirtualHDC, VirtualPicRect.right, VirtualPicRect.bottom);
+	// v2.02.94: set HALFTONE stretching. But causes problems with Imperialism II
+	// SetStretchBltMode(wdc,HALFTONE);
 	if(!(*pGDIStretchBlt)(wdc, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, SRCCOPY))
 		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	//(*pInvalidateRect)(hwnd, NULL, 0);

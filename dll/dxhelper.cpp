@@ -1,4 +1,6 @@
 #define _CRT_SECURE_NO_DEPRECATE 1
+#define DIRECTINPUT_VERSION 0x0800
+
 #include <windows.h>
 #include <stdio.h>
 #include <ddraw.h>
