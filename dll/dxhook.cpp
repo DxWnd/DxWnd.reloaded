@@ -1303,11 +1303,17 @@ void HookModule(HMODULE base, int dxversion)
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 }
 
+#define USEWINNLSENABLE
+
 void DisableIME()
 {
 	BOOL res;
 	HMODULE hm;
 	hm=GetModuleHandle("User32");
+	if(hm==NULL){
+		OutTrace("DisableIME: GetModuleHandle(User32) ERROR err=%d\n", GetLastError());
+		return;
+	}
 	// here, GetProcAddress may be not hooked yet!
 	if(!pGetProcAddress) pGetProcAddress=GetProcAddress;
 #ifdef USEWINNLSENABLE
@@ -1322,7 +1328,8 @@ void DisableIME()
 #else
 	typedef LRESULT (WINAPI *SendIMEMessage_Type)(HWND, LPARAM);
 	SendIMEMessage_Type pSendIMEMessage;
-	pSendIMEMessage=(SendIMEMessage_Type)(*pGetProcAddress)(hm, "SendIMEMessage");
+	//pSendIMEMessage=(SendIMEMessage_Type)(*pGetProcAddress)(hm, "SendIMEMessage");
+	pSendIMEMessage=(SendIMEMessage_Type)(*pGetProcAddress)(hm, "SendIMEMessageExA");
 	OutTrace("DisableIME: GetProcAddress(SendIMEMessage)=%x\n", pSendIMEMessage);
 	if(!pSendIMEMessage) return;
 	HGLOBAL imeh;

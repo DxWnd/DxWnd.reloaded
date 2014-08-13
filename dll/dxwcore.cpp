@@ -151,7 +151,7 @@ void dxwCore::DumpDesktopStatus()
 	RECT desktop;
 	PIXELFORMATDESCRIPTOR pfd;
 	int  iPixelFormat, iBPP;
-	char ColorMask[65]; // are there 64BPP cards? I bet no....
+	char ColorMask[32+1]; 
 
 	// get the current pixel format index
 	hDesktop = GetDesktopWindow();
@@ -165,12 +165,19 @@ void dxwCore::DumpDesktopStatus()
 		OutTrace("DescribePixelFormat ERROR: err=%d\n", GetLastError());
 		return;
 	}
-	memset(ColorMask, ' ', 64); // blank fill
-	ColorMask[64] = 0; // terminate
-	for (int i=pfd.cRedShift; i<pfd.cRedShift+pfd.cRedBits; i++) ColorMask[i]='R';
-	for (int i=pfd.cGreenShift; i<pfd.cGreenShift+pfd.cGreenBits; i++) ColorMask[i]='G';
-	for (int i=pfd.cBlueShift; i<pfd.cBlueShift+pfd.cBlueBits; i++) ColorMask[i]='B';
-	for (int i=pfd.cAlphaShift; i<pfd.cAlphaShift+pfd.cAlphaBits; i++) ColorMask[i]='A';
+	memset(ColorMask, ' ', 32); // blank fill
+	ColorMask[32] = 0; // terminate
+	if ((pfd.cRedShift+pfd.cRedBits <= 32) &&
+		(pfd.cGreenShift+pfd.cGreenBits <= 32) &&
+		(pfd.cBlueShift+pfd.cBlueBits <= 32) &&
+		(pfd.cAlphaShift+pfd.cAlphaBits <= 32)){ // everything within the 32 bits ...
+		for (int i=pfd.cRedShift; i<pfd.cRedShift+pfd.cRedBits; i++) ColorMask[i]='R';
+		for (int i=pfd.cGreenShift; i<pfd.cGreenShift+pfd.cGreenBits; i++) ColorMask[i]='G';
+		for (int i=pfd.cBlueShift; i<pfd.cBlueShift+pfd.cBlueBits; i++) ColorMask[i]='B';
+		for (int i=pfd.cAlphaShift; i<pfd.cAlphaShift+pfd.cAlphaBits; i++) ColorMask[i]='A';
+	}
+	else
+		strcpy(ColorMask, "???");
 	OutTrace( 
 		"Desktop"
 		"\tSize (W x H)=(%d x %d)\n" 

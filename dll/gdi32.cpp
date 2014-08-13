@@ -73,7 +73,7 @@ static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
 	{HOOK_IAT_CANDIDATE, "TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
 	{HOOK_IAT_CANDIDATE, "GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
-	{HOOK_IAT_CANDIDATE, "GetRegionBox", (FARPROC)NULL, (FARPROC *)&pGDIGetRegionBox, (FARPROC)extGetRegionBox},
+	{HOOK_IAT_CANDIDATE, "GetRgnBox", (FARPROC)NULL, (FARPROC *)&pGDIGetRgnBox, (FARPROC)extGetRgnBox},
 	{HOOK_IAT_CANDIDATE, "Polyline", (FARPROC)NULL, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
 	{HOOK_IAT_CANDIDATE, "PolyBezierTo", (FARPROC)NULL, (FARPROC *)&pPolyBezierTo, (FARPROC)extPolyBezierTo},
 	{HOOK_IAT_CANDIDATE, "PolylineTo", (FARPROC)NULL, (FARPROC *)&pPolylineTo, (FARPROC)extPolylineTo},
@@ -1115,20 +1115,20 @@ int WINAPI extGetClipBox(HDC hdc, LPRECT lprc)
 	return ret;
 }
 
-int WINAPI extGetRegionBox(HDC hdc, LPRECT lprc)
+int WINAPI extGetRgnBox(HDC hdc, LPRECT lprc)
 {
 	int ret;
 	char *sRetCodes[4]={"ERROR", "NULLREGION", "SIMPLEREGION", "COMPLEXREGION"};
-	OutTraceDW("GetRegionBox: hdc=%x\n", hdc);
-	ret=(*pGDIGetRegionBox)(hdc, lprc);
+	OutTraceDW("GetRgnBox: hdc=%x\n", hdc);
+	ret=(*pGDIGetRgnBox)(hdc, lprc);
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && (ret!=ERROR)){
-		OutTraceDW("GetRegionBox: scaling main win coordinates (%d,%d)-(%d,%d)\n",
+		OutTraceDW("GetRgnBox: scaling main win coordinates (%d,%d)-(%d,%d)\n",
 			lprc->left, lprc->top, lprc->right, lprc->bottom);
 		// current implementation is NOT accurate, since it always returns the whole
 		// virtual desktop area as the current regionbox...!!!
 		*lprc=dxw.GetScreenRect();
 	}
-	OutTraceDW("GetRegionBox: ret=%x(%s) rect=(%d,%d)-(%d,%d)\n", 
+	OutTraceDW("GetRgnBox: ret=%x(%s) rect=(%d,%d)-(%d,%d)\n", 
 		ret, sRetCodes[ret], lprc->left, lprc->top, lprc->right, lprc->bottom);
 	return ret;
 }
@@ -1321,7 +1321,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 		OrigXDest=XDest;
 		OrigYDest=YDest;
 		dxw.MapClient(&XDest, &YDest, (int *)&dwWidth, (int *)&dwHeight);
-		OutTraceDW("SetDIBitsToDevice: fixed dest=(%d,%d)-(%d,%d)\n", XDest, YDest, dwWidth, dwHeight);
+		OutTraceDW("SetDIBitsToDevice: fixed dest=(%d,%d)-(%dx%d)\n", XDest, YDest, dwWidth, dwHeight);
 		HDC hTempDc;
 		HBITMAP hbmPic;
 		if(!(hTempDc=CreateCompatibleDC(hdc)))

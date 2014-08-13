@@ -4037,9 +4037,10 @@ typedef struct {
 	int h;
 } SupportedRes_Type;
 
-static SupportedRes_Type SupportedSVGARes[9]= {
+static SupportedRes_Type SupportedSVGARes[10]= {
 	{320,200},
 	{320,240},
+	{512,384},		// needed by "Outcast" loading screen
 	{640,400},
 	{640,480},
 	{720,480},

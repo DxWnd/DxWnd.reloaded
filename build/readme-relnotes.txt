@@ -579,4 +579,7 @@ cleaned up GUI project: no more japanese and localized resources, no more unrefe
 GUI: added Desktop status window
 GUI: added pixel format descriptor to DxWnd status
 
-
+v2.02.89
+fix: added SVGA 512x384 video mode. Necessary for "Outcast" loading screen.
+fix: using WINNLSEnableIME call to suppress IME window. 
+fix: improved some logging

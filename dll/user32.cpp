@@ -45,10 +45,10 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "DestroyWindow", (FARPROC)NULL, (FARPROC *)&pDestroyWindow, (FARPROC)extDestroyWindow},
 	{HOOK_IAT_CANDIDATE, "SetSysColors", (FARPROC)NULL, (FARPROC *)&pSetSysColors, (FARPROC)extSetSysColors},
 	{HOOK_IAT_CANDIDATE, "SetCapture", (FARPROC)NULL, (FARPROC *)&pSetCapture, (FARPROC)extSetCapture},
-	{HOOK_IAT_CANDIDATE, "SetWindowLongA", (FARPROC)SetWindowLongA, (FARPROC *)&pSetWindowLongA, (FARPROC)extSetWindowLongA},
-	{HOOK_IAT_CANDIDATE, "GetWindowLongA", (FARPROC)GetWindowLongA, (FARPROC *)&pGetWindowLongA, (FARPROC)extGetWindowLongA}, 
-	{HOOK_IAT_CANDIDATE, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
-	{HOOK_IAT_CANDIDATE, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
+	{HOOK_HOT_CANDIDATE, "SetWindowLongA", (FARPROC)SetWindowLongA, (FARPROC *)&pSetWindowLongA, (FARPROC)extSetWindowLongA},
+	{HOOK_HOT_CANDIDATE, "GetWindowLongA", (FARPROC)GetWindowLongA, (FARPROC *)&pGetWindowLongA, (FARPROC)extGetWindowLongA}, 
+	{HOOK_HOT_CANDIDATE, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
+	{HOOK_HOT_CANDIDATE, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
 
 	//{HOOK_IAT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
 	//{HOOK_IAT_CANDIDATE, "GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
@@ -727,14 +727,12 @@ HDWP WINAPI extDeferWindowPos(HDWP hWinPosInfo, HWND hwnd, HWND hWndInsertAfter,
 	return res;
 }
 
-LRESULT WINAPI extSendMessage(SendMessage_Type pSendMessage, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+LRESULT WINAPI extSendMessage(char *apiname, SendMessage_Type pSendMessage, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT ret;
-	OutTraceW("SendMessage: hwnd=%x WinMsg=[0x%x]%s(%x,%x)\n", 
-		hwnd, Msg, ExplainWinMessage(Msg), wParam, lParam);
+	OutTraceW("%s: hwnd=%x WinMsg=[0x%x]%s(%x,%x)\n", 
+		apiname, hwnd, Msg, ExplainWinMessage(Msg), wParam, lParam);
 
-	//if(Msg==WM_NCDESTROY) return 1;
-	
 	if(dxw.dwFlags1 & MODIFYMOUSE){
 		switch (Msg){
 		case WM_MOUSEMOVE:
@@ -762,25 +760,25 @@ LRESULT WINAPI extSendMessage(SendMessage_Type pSendMessage, HWND hwnd, UINT Msg
 				curr = dxw.AddCoordinates(curr, upleft);
 			}
 			lParam = MAKELPARAM(curr.x, curr.y); 
-			OutTraceC("SendMessage: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", hwnd, prev.x, prev.y, curr.x, curr.y);
+			OutTraceC("%s: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", apiname, hwnd, prev.x, prev.y, curr.x, curr.y);
 			break;
 		default:
 			break;
 		}
 	}
 	ret=(*pSendMessage)(hwnd, Msg, wParam, lParam);
-	OutTraceW("SendMessage: lresult=%x\n", ret); 
+	OutTraceW("%s: lresult=%x\n", apiname, ret); 
 	return ret;
 }
 
 LRESULT WINAPI extSendMessageA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-	return extSendMessage(pSendMessageA, hwnd, Msg, wParam, lParam);
+	return extSendMessage("SendMessageA", pSendMessageA, hwnd, Msg, wParam, lParam);
 }
 
 LRESULT WINAPI extSendMessageW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-	return extSendMessage(pSendMessageW, hwnd, Msg, wParam, lParam);
+	return extSendMessage("SendMessageW", pSendMessageW, hwnd, Msg, wParam, lParam);
 }
 
 HCURSOR WINAPI extSetCursor(HCURSOR hCursor)
