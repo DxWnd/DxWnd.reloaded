@@ -22,6 +22,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "LoadLibraryExW", (FARPROC)LoadLibraryExW, (FARPROC *)&pLoadLibraryExW, (FARPROC)extLoadLibraryExW},
 	{HOOK_IAT_CANDIDATE, "GetDriveTypeA", (FARPROC)NULL, (FARPROC *)&pGetDriveType, (FARPROC)extGetDriveType},
 	{HOOK_IAT_CANDIDATE, "GetLogicalDrives", (FARPROC)NULL, (FARPROC *)&pGetLogicalDrives, (FARPROC)extGetLogicalDrives},
+	{HOOK_IAT_CANDIDATE, "GetTempFileNameA", (FARPROC)GetTempFileNameA, (FARPROC *)&pGetTempFileName, (FARPROC)extGetTempFileName},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -488,6 +489,9 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_USER32:
 			if (remap=Remap_user32_ProcAddress(proc, hModule)) return remap;
 			break;
+		case SYSLIBIDX_GDI32:
+			if (remap=Remap_GDI32_ProcAddress(proc, hModule)) return remap;
+			break;
 		case SYSLIBIDX_KERNEL32:
 			if (remap=Remap_kernel32_ProcAddress(proc, hModule)) return remap;
 			break;
@@ -732,5 +736,24 @@ BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL pbDebuggerPrese
 	if(pbDebuggerPresent) *pbDebuggerPresent = FALSE;
 	ret= (hProcess==(HANDLE)0xFFFFFFFF) ? FALSE : TRUE;
 	OutTraceDW("CheckRemoteDebuggerPresent: hProcess=%x ret=%x\n", hProcess, ret);
+	return ret;
+}
+
+UINT WINAPI extGetTempFileName(LPCTSTR lpPathName, LPCTSTR lpPrefixString, UINT uUnique, LPTSTR lpTempFileName)
+{
+	UINT ret;
+	OutTraceDW("GetTempFileName: PathName=\"%s\" PrefixString=%s Unique=%d\n", lpPathName, lpPrefixString, uUnique);
+	ret = (*pGetTempFileName)(lpPathName, lpPrefixString, uUnique, lpTempFileName);
+	if(ret == 0){
+		// GetTempFileName patch to make "Powerslide" working
+		OutTraceDW("GetTempFileName FAILED: error=%d at %d\n", GetLastError(), __LINE__);
+		char sTmpDir[MAX_PATH+1];
+		GetTempPath(sizeof(sTmpDir), sTmpDir);
+		ret = (*pGetTempFileName)(sTmpDir, lpPrefixString, uUnique, lpTempFileName);
+		if(ret == 0) OutTraceDW("GetTempFileName FAILED: PathName=\"%s\" error=%d line %d\n", sTmpDir, GetLastError(), __LINE__);
+	}
+	if(ret){
+		OutTraceDW("GetTempFileName: TempFileName=\"%s\" ret=%d\n", lpTempFileName, ret);
+	}
 	return ret;
 }

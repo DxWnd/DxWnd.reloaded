@@ -1732,3 +1732,10 @@ char *ExplainDICooperativeFlags(DWORD c)
 	else strcpy(eb,"NULL");
 	return(eb);
 }
+
+char *ExplainRegionType(DWORD c)
+{
+	static char *sRetCodes[4]={"ERROR", "NULLREGION", "SIMPLEREGION", "COMPLEXREGION"};
+	if(c<4) return sRetCodes[c];
+	return "unknown";
+}

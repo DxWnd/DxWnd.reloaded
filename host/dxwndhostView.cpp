@@ -123,6 +123,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
 	if(dlg->m_FilterMessages) t->flags3 |= FILTERMESSAGES;
 	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
+	if(dlg->m_NoWinPosChanges) t->flags5 |= NOWINPOSCHANGES;
 
 	t->flags &= ~EMULATEFLAGS;
 	switch(dlg->m_DxEmulationMode){
@@ -307,6 +308,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FullScreenOnly = t->flags3 & FULLSCREENONLY ? 1 : 0;
 	dlg->m_FilterMessages = t->flags3 & FILTERMESSAGES ? 1 : 0;
 	dlg->m_PeekAllMessages = t->flags3 & PEEKALLMESSAGES ? 1 : 0;
+	dlg->m_NoWinPosChanges = t->flags5 & NOWINPOSCHANGES ? 1 : 0;
 
 	dlg->m_DxEmulationMode = 0;
 	dlg->m_BilinearFilter = FALSE;
@@ -675,7 +677,6 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	if (!gbDebug){
 		// clear debug flags
 		TargetMap->flags &= ~(0);
-		TargetMap->flags2 &= ~(FULLRECTBLT);
 		TargetMap->flags3 &= ~(YUV2RGB|RGB2YUV|SURFACEWARN|ANALYTICMODE|NODDRAWBLT|NODDRAWFLIP|NOGDIBLT);
 		TargetMap->flags4 &= ~(NOFILLRECT);
 	}

@@ -112,6 +112,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 void dxwCore::SetScreenSize(void) 
 {
 	SetScreenSize(800, 600); // set to default screen resolution
+	//SetScreenSize(640, 480); // set to default screen resolution
 }
 
 void dxwCore::SetScreenSize(int x, int y)
@@ -165,6 +166,7 @@ void dxwCore::DumpDesktopStatus()
 		OutTrace("DescribePixelFormat ERROR: err=%d\n", GetLastError());
 		return;
 	}
+
 	memset(ColorMask, ' ', 32); // blank fill
 	ColorMask[32] = 0; // terminate
 	if ((pfd.cRedShift+pfd.cRedBits <= 32) &&
@@ -599,6 +601,17 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 		// v2.02.71: return a void area to prevent blitting to wrong area
 		ClientRect.top=ClientRect.left=ClientRect.right=ClientRect.bottom=0;
 		return ClientRect;
+	}
+
+	if(!Windowize){
+		if(lpRect) 
+			RetRect=*lpRect;
+		else{
+			RetRect.left = RetRect.top = 0;
+			RetRect.right = dwScreenWidth;
+			RetRect.bottom = dwScreenHeight;
+		}
+		return RetRect;
 	}
 	
 	RetRect=ClientRect;

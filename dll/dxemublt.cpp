@@ -294,7 +294,7 @@ static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 		dest+=2;
     }
 
-	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, 2*w, 2*h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
@@ -472,7 +472,7 @@ static HRESULT WINAPI BilinearBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 		dest+=2;
     }
 
-	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, 2*w, 2*h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
@@ -798,7 +798,7 @@ static HRESULT WINAPI BilinearBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 		dest+=2;
     }
 
-	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, 2*w, 2*h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt8_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
@@ -915,7 +915,7 @@ static HRESULT WINAPI BilinearBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 		dest+=2;
     }
 
-	if(dxw.dwFlags3 & MARKBLIT) MarkRect16((SHORT *)dest0, w, h, destpitch);
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect16((SHORT *)dest0, 2*w, 2*h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt16_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
@@ -1160,7 +1160,7 @@ static HRESULT WINAPI BilinearBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 		dest+=2;
     }
 
-	if(dxw.dwFlags3 & MARKBLIT) MarkRect16((SHORT *)dest0, w, h, destpitch);
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect16((SHORT *)dest0, 2*w, 2*h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);

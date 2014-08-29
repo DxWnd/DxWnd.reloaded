@@ -66,14 +66,16 @@ static HookEntry_Type RemapHooks[]={
 	{HOOK_IAT_CANDIDATE, "SetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pSetWindowOrgEx, (FARPROC)extSetWindowOrgEx},
 	{HOOK_IAT_CANDIDATE, "GetCurrentPositionEx", (FARPROC)NULL, (FARPROC *)&pGetCurrentPositionEx, (FARPROC)extGetCurrentPositionEx},
 	{HOOK_IAT_CANDIDATE, "SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice}, // does the stretching
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, "GetRgnBox", (FARPROC)NULL, (FARPROC *)&pGetRgnBox, (FARPROC)extGetRgnBox},
+	//{HOOK_IAT_CANDIDATE, "GetRegionData", (FARPROC)NULL, (FARPROC *)&pGetRegionData, (FARPROC)extGetRegionData},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator 
 };
 
 static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
 	{HOOK_IAT_CANDIDATE, "TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
 	{HOOK_IAT_CANDIDATE, "GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
-	{HOOK_IAT_CANDIDATE, "GetRgnBox", (FARPROC)NULL, (FARPROC *)&pGDIGetRgnBox, (FARPROC)extGetRgnBox},
+	//{HOOK_IAT_CANDIDATE, "GetRgnBox", (FARPROC)NULL, (FARPROC *)&pGetRgnBox, (FARPROC)extGetRgnBox},
 	{HOOK_IAT_CANDIDATE, "Polyline", (FARPROC)NULL, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
 	{HOOK_IAT_CANDIDATE, "PolyBezierTo", (FARPROC)NULL, (FARPROC *)&pPolyBezierTo, (FARPROC)extPolyBezierTo},
 	{HOOK_IAT_CANDIDATE, "PolylineTo", (FARPROC)NULL, (FARPROC *)&pPolylineTo, (FARPROC)extPolylineTo},
@@ -1115,21 +1117,18 @@ int WINAPI extGetClipBox(HDC hdc, LPRECT lprc)
 	return ret;
 }
 
-int WINAPI extGetRgnBox(HDC hdc, LPRECT lprc)
+int WINAPI extGetRgnBox(HRGN hrgn, LPRECT lprc)
 {
 	int ret;
-	char *sRetCodes[4]={"ERROR", "NULLREGION", "SIMPLEREGION", "COMPLEXREGION"};
-	OutTraceDW("GetRgnBox: hdc=%x\n", hdc);
-	ret=(*pGDIGetRgnBox)(hdc, lprc);
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && (ret!=ERROR)){
+	OutTraceDW("GetRgnBox: hrgn=%x\n", hrgn);
+	ret=(*pGetRgnBox)(hrgn, lprc);
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hrgn)) && (ret!=ERROR)){
 		OutTraceDW("GetRgnBox: scaling main win coordinates (%d,%d)-(%d,%d)\n",
 			lprc->left, lprc->top, lprc->right, lprc->bottom);
-		// current implementation is NOT accurate, since it always returns the whole
-		// virtual desktop area as the current regionbox...!!!
-		*lprc=dxw.GetScreenRect();
+        dxw.UnmapClient(lprc);
 	}
 	OutTraceDW("GetRgnBox: ret=%x(%s) rect=(%d,%d)-(%d,%d)\n", 
-		ret, sRetCodes[ret], lprc->left, lprc->top, lprc->right, lprc->bottom);
+		ret, ExplainRegionType(ret), lprc->left, lprc->top, lprc->right, lprc->bottom);
 	return ret;
 }
 
@@ -1864,3 +1863,41 @@ BOOL WINAPI extExtTextOutW(HDC hdc, int X, int Y, UINT fuOptions, const RECT *lp
 		return (*pExtTextOutW)(hdc, X, Y, fuOptions, NULL, lpString, cbCount, lpDx);
 	
 }
+
+#if 0
+// unhooked, since quite surprisingly all rectangles showed properly scaled already in RollerCoaster Tycoon !!
+DWORD WINAPI extGetRegionData(HRGN hRgn, DWORD dwCount, LPRGNDATA lpRgnData)
+{
+	DWORD ret;
+	RECT *data;
+	ret=(*pGetRegionData)(hRgn, dwCount, lpRgnData);
+	if(IsDebug){
+		OutTrace("GetRegionData: hRgn=%x count=%d RgnData=%x ret=%d\n", hRgn, dwCount, lpRgnData, ret);
+		if(lpRgnData && dwCount){
+			OutTrace("GetRegionData: size=%d type=%x(%s) count=%d size=%d rect=(%d,%d)-(%d,%d)\n", 
+				lpRgnData->rdh.dwSize, lpRgnData->rdh.iType, (lpRgnData->rdh.iType==RDH_RECTANGLES ? "RDH_RECTANGLES" : "unknown"), 
+				lpRgnData->rdh.nCount, lpRgnData->rdh.nRgnSize, 
+				lpRgnData->rdh.rcBound.left, lpRgnData->rdh.rcBound.top, lpRgnData->rdh.rcBound.right, lpRgnData->rdh.rcBound.bottom);
+			data=(RECT *)lpRgnData->Buffer;
+			for(DWORD i=0; i<lpRgnData->rdh.nCount; i++)
+				OutTrace("GetRegionData: item=%i rect=(%d,%d)-(%d,%d)\n", i, data[i].left, data[i].top, data[i].right, data[i].bottom);
+		}
+	}
+
+	if(dxw.IsFullScreen() && lpRgnData && dwCount){
+        dxw.UnmapClient(&(lpRgnData->rdh.rcBound));
+		data=(RECT *)lpRgnData->Buffer;
+		for(DWORD i=0; i<lpRgnData->rdh.nCount; i++) dxw.UnmapClient(&(data[i]));
+		if(IsDebug){
+			OutTrace("GetRegionData: FIXED rect=(%d,%d)-(%d,%d)\n", 
+				lpRgnData->rdh.rcBound.left, lpRgnData->rdh.rcBound.top, lpRgnData->rdh.rcBound.right, lpRgnData->rdh.rcBound.bottom);
+			data=(RECT *)lpRgnData->Buffer;
+			for(DWORD i=0; i<lpRgnData->rdh.nCount; i++)
+				OutTrace("GetRegionData: FIXED item=%i rect=(%d,%d)-(%d,%d)\n", 
+					i, data[i].left, data[i].top, data[i].right, data[i].bottom);
+		}
+	}
+
+	return ret;
+}
+#endif

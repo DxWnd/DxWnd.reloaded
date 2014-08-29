@@ -93,7 +93,7 @@ static char *Flag4Names[32]={
 };
 
 static char *Flag5Names[32]={
-	"DIABLOTWEAK", "CLEARTARGET", "", "",
+	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -747,7 +747,25 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 	// v2.1.93: adjust clipping region
 
-	OutTraceW("WindowProc[%x]: WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
+	if(IsTraceW){
+		OutTrace("WindowProc[%x]: WinMsg=[0x%x]%s(%x,%x)", hwnd, message, ExplainWinMessage(message), wparam, lparam);
+		switch(message){
+		case WM_WINDOWPOSCHANGING:
+		case WM_WINDOWPOSCHANGED:
+			LPWINDOWPOS wp;
+			wp = (LPWINDOWPOS)lparam;
+			OutTrace(" pos=(%d,%d) size=(%dx%d) flags=%x(%s)", wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
+			break;
+		case WM_MOVE:
+			OutTrace(" pos=(%d,%d)", HIWORD(lparam), LOWORD(lparam));
+			break;
+		case WM_SIZE:
+			static char *modes[5]={"RESTORED", "MINIMIZED", "MAXIMIZED", "MAXSHOW", "MAXHIDE"};
+			OutTrace(" mode=SIZE_%s size=(%dx%d)", modes[wparam % 5], HIWORD(lparam), LOWORD(lparam));
+			break;		
+		}
+		OutTrace("\n");
+	}
 
 #if 0
 	if(dxw.dwFlags2 & WALLPAPERMODE) {
@@ -768,7 +786,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 #endif
 
 	if(dxw.dwFlags3 & FILTERMESSAGES){
-		LRESULT ret;
 		switch(message){
 		case WM_NCMOUSEMOVE:
 		case WM_NCLBUTTONDOWN:
@@ -780,9 +797,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		case WM_NCMBUTTONDOWN:
 		case WM_NCMBUTTONUP:
 		case WM_NCMBUTTONDBLCLK:
-			OutTraceW("WindowProc[%x]: WinMsg=%x filtered message=%x(%s)\n", hwnd, message, ExplainWinMessage(message));
-			ret=0;
-			return ret;
+			OutTraceDW("WindowProc[%x]: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
+			return 0;
 		}
 	}
 
@@ -825,7 +841,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_IME_KEYDOWN:
 	case WM_IME_KEYUP:
 		if(dxw.dwFlags2 & SUPPRESSIME){
-			OutTraceDW("WindowProc: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
+			OutTraceDW("WindowProc[%x]: SUPPRESS IME WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
 			return 0;
 		}
 		break;
@@ -864,11 +880,16 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_WINDOWPOSCHANGING:
 	case WM_WINDOWPOSCHANGED:
 		if(dxw.Windowize && dxw.IsFullScreen()){
+			if(dxw.dwFlags5 & NOWINPOSCHANGES){
+				OutTraceDW("WindowProc: %s - suppressed\n", message==WM_WINDOWPOSCHANGED ? "WM_WINDOWPOSCHANGED" : "WM_WINDOWPOSCHANGING");
+				return 0;
+			}
 			extern HWND hControlParentWnd;
 			LPWINDOWPOS wp;
 			wp = (LPWINDOWPOS)lparam;
 			dxwFixWindowPos("WindowProc", hwnd, lparam);
-			OutTraceDW("WindowProc: WM_WINDOWPOSCHANGING fixed size=(%d,%d)\n", wp->cx, wp->cy);
+			OutTraceDW("WindowProc: %s fixed size=(%d,%d)\n", 
+				(message == WM_WINDOWPOSCHANGED) ? "WM_WINDOWPOSCHANGED" : "WM_WINDOWPOSCHANGING", wp->cx, wp->cy);
 			// try to lock main wind & control parent together
 			if((message==WM_WINDOWPOSCHANGED) && hControlParentWnd){
 				if(dxw.IsDesktop(hwnd)) {
@@ -1104,7 +1125,7 @@ static void SaveScreenMode()
 	static BOOL DoOnce=FALSE;
 	if(DoOnce) return;
 	DoOnce=TRUE;
-	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &InitDevMode);
+	(*pEnumDisplaySettings)(NULL, ENUM_CURRENT_SETTINGS, &InitDevMode);
 	OutTraceDW("DXWND: Initial display mode WxH=(%dx%d) BitsPerPel=%d\n", 
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
 }
@@ -1113,7 +1134,7 @@ static void RecoverScreenMode()
 {
 	DEVMODE CurrentDevMode;
 	BOOL res;
-	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
+	(*pEnumDisplaySettings)(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
 	OutTraceDW("ChangeDisplaySettings: recover CURRENT WxH=(%dx%d) BitsPerPel=%d TARGET WxH=(%dx%d) BitsPerPel=%d\n", 
 		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel,
 		InitDevMode.dmPelsWidth, InitDevMode.dmPelsHeight, InitDevMode.dmBitsPerPel);
@@ -1126,7 +1147,7 @@ void SwitchTo16BPP()
 {
 	DEVMODE CurrentDevMode;
 	BOOL res;
-	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
+	(*pEnumDisplaySettings)(NULL, ENUM_CURRENT_SETTINGS, &CurrentDevMode);
 	OutTraceDW("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> 16\n", 
 		CurrentDevMode.dmPelsWidth, CurrentDevMode.dmPelsHeight, CurrentDevMode.dmBitsPerPel);
 	CurrentDevMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;

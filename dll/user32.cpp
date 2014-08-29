@@ -16,6 +16,10 @@
 
 BOOL IsChangeDisplaySettingsHotPatched = FALSE;
 
+//typedef BOOL (WINAPI *ValidateRect_Type)(HWND, const RECT *);
+//BOOL WINAPI extValidateRect(HWND, const RECT *);
+//ValidateRect_Type pValidateRect = NULL;
+
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
 	//{HOOK_IAT_CANDIDATE, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
@@ -99,6 +103,7 @@ static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC},
 	{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
 	{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
+	//{HOOK_IAT_CANDIDATE, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -479,7 +484,7 @@ static LRESULT WINAPI FixWindowProc(char *ApiName, HWND hwnd, UINT Msg, WPARAM w
 	default:
 		break;
 	}
-	
+
 	// marker to run hooked function
 	return(-1);
 }
@@ -537,18 +542,18 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 	return res;
 }
 
-LONG WINAPI extGetWindowLong(HWND hwnd, int nIndex, GetWindowLong_Type pGetWindowLong)
+LONG WINAPI extGetWindowLong(GetWindowLong_Type pGetWindowLong, char *ApiName, HWND hwnd, int nIndex)
 {
 	LONG res;
 
-	res=(*pGetWindowLongA)(hwnd, nIndex);
+	res=(*pGetWindowLong)(hwnd, nIndex);
 
-	OutTraceDW("GetWindowLong: hwnd=%x, Index=%x(%s) res=%x\n", hwnd, nIndex, ExplainSetWindowIndex(nIndex), res);
+	OutTraceDW("%s: hwnd=%x, Index=%x(%s) res=%x\n", ApiName, hwnd, nIndex, ExplainSetWindowIndex(nIndex), res);
 
 	if((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)){
 		WNDPROC wp;
 		wp=WinDBGetProc(hwnd);
-		OutTraceDW("GetWindowLong: remapping WindowProc res=%x -> %x\n", res, (LONG)wp);
+		OutTraceDW("%s: remapping WindowProc res=%x -> %x\n", ApiName, res, (LONG)wp);
 		if(wp) res=(LONG)wp; // if not found, don't alter the value.
 	}
 
@@ -557,12 +562,12 @@ LONG WINAPI extGetWindowLong(HWND hwnd, int nIndex, GetWindowLong_Type pGetWindo
 
 LONG WINAPI extGetWindowLongA(HWND hwnd, int nIndex)
 {
-	return extGetWindowLong(hwnd, nIndex, pGetWindowLongA);
+	return extGetWindowLong(pGetWindowLongA, "GetWindowLongA", hwnd, nIndex);
 }
 
 LONG WINAPI extGetWindowLongW(HWND hwnd, int nIndex)
 {
-	return extGetWindowLong(hwnd, nIndex, pGetWindowLongW);
+	return extGetWindowLong(pGetWindowLongW, "GetWindowLongW", hwnd, nIndex);
 }
 
 LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLong_Type pSetWindowLong)
@@ -917,8 +922,8 @@ BOOL WINAPI extClientToScreen(HWND hwnd, LPPOINT lppoint)
 		// should always keep the same values inaltered
 		if(hwnd != dxw.GethWnd()){
 			*lppoint = dxw.AddCoordinates(*lppoint, dxw.ClientOffset(hwnd));
-			OutTraceB("ClientToScreen: FIXED point=(%d,%d)\n", lppoint->x, lppoint->y);
 		}
+		OutTraceB("ClientToScreen: FIXED point=(%d,%d)\n", lppoint->x, lppoint->y);
 		res=TRUE;
 	}
 	else {
@@ -1490,8 +1495,8 @@ LRESULT WINAPI extDefWindowProcA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPar
 	// v2.02.30: fix (Imperialism II): apply to main window only !!!
 	HRESULT res;
 
-	res = -1;
-	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProc", hwnd, Msg, wParam, &lParam);
+	res = (HRESULT)-1;
+	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcA", hwnd, Msg, wParam, &lParam);
 
 	if (res==(HRESULT)-1)
 		return (*pDefWindowProcA)(hwnd, Msg, wParam, lParam);
@@ -1504,8 +1509,8 @@ LRESULT WINAPI extDefWindowProcW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPar
 	// v2.02.30: fix (Imperialism II): apply to main window only !!!
 	HRESULT res;
 
-	res = -1;
-	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProc", hwnd, Msg, wParam, &lParam);
+	res = (HRESULT)-1;
+	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcW", hwnd, Msg, wParam, &lParam);
 
 	if (res==(HRESULT)-1)
 		return (*pDefWindowProcW)(hwnd, Msg, wParam, lParam);
@@ -2732,18 +2737,59 @@ BOOL WINAPI extGetMonitorInfoW(HMONITOR hMonitor, LPMONITORINFO lpmi)
 int WINAPI extGetUpdateRgn(HWND hWnd, HRGN hRgn, BOOL bErase)
 {
 	int regionType;
-	RECT rc;
 	regionType=(*pGetUpdateRgn)(hWnd, hRgn, bErase);
-    if( regionType == SIMPLEREGION ){
-        regionType = GetRgnBox( hRgn, &rc );
-        if( regionType == SIMPLEREGION ){
-            dxw.UnmapClient(&rc);
-            if( SetRectRgn( hRgn, rc.left, rc.top, rc.right, rc.bottom ) ){
-				// success
-				OutTraceDW("GetUpdateRgn: hwnd=%x hrgn=%x update rgn=(%d,%d)-(%d,%d) erase=%x\n", 
-					hWnd, hRgn, rc.left, rc.top, rc.right, rc.bottom, bErase);
-            }
-        }
-    }
-    return regionType;
+	OutTraceDW("GetUpdateRgn: hwnd=%x hrgn=%x erase=%x regionType=%x(%s)\n", 
+		hWnd, hRgn, bErase, regionType, ExplainRegionType(regionType));    
+
+	if(dxw.Windowize && dxw.IsFullScreen()){
+		if(regionType == SIMPLEREGION){
+			RECT rc;
+			if(!pGetRgnBox) pGetRgnBox=GetRgnBox;
+			regionType = (*pGetRgnBox)(hRgn, &rc);
+			OutTraceDW("GetUpdateRgn: regionType=%x(%s) box=(%d,%d)-(%d,%d)\n", 
+				regionType, ExplainRegionType(regionType), rc.left, rc.top, rc.right, rc.bottom);
+			if(regionType == SIMPLEREGION){
+				dxw.UnmapClient(&rc);
+				if(SetRectRgn(hRgn, rc.left, rc.top, rc.right, rc.bottom )){
+					// success
+					OutTraceDW("GetUpdateRgn: FIXED box=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
+				}
+			}
+		}
+#if 0
+		if(regionType == COMPLEXREGION){
+			RECT rc;
+			if(!pGetRgnBox) pGetRgnBox=GetRgnBox;
+			regionType = (*pGetRgnBox)(hRgn, &rc);
+			OutTraceDW("GetUpdateRgn: regionType=%x(%s) box=(%d,%d)-(%d,%d)\n", 
+				regionType, ExplainRegionType(regionType), rc.left, rc.top, rc.right, rc.bottom);
+			if(regionType == COMPLEXREGION){
+				//dxw.UnmapClient(&rc);
+				//if(SetRectRgn(hRgn, rc.left, rc.top, rc.right, rc.bottom )){
+				if(SetRectRgn(hRgn, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight())){
+					// success
+					OutTraceDW("GetUpdateRgn: FIXED box=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
+				}
+			}
+		}
+#endif
+   } 
+
+    return regionType; 
 }
+
+#ifdef NOUNHOOKED
+BOOL WINAPI extValidateRect(HWND hWnd, const RECT *lpRect)
+{
+	BOOL ret;
+	if(IsTraceDW){
+		if(lpRect)
+			OutTrace("ValidateRect: hwnd=%x rect=(%d,%d)-(%d,%d)\n", 
+				hWnd, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+		else
+			OutTrace("ValidateRect: hwnd=%x rect=NULL\n", hWnd);
+	}
+	ret = (*pValidateRect)(hWnd, lpRect);
+	return ret;
+}
+#endif

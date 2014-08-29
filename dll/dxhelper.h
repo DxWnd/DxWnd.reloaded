@@ -51,3 +51,4 @@ extern char *ExplainRenderstateValue(DWORD);
 extern char *ExplainWfPFlags(DWORD);
 extern char *ExplainChangeDisplaySettingsFlags(DWORD);
 extern char *ExplainDICooperativeFlags(DWORD);
+extern char *ExplainRegionType(DWORD);

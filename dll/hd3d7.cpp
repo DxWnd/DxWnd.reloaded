@@ -1224,12 +1224,22 @@ HRESULT WINAPI extNextViewport2(void *d3dd, LPDIRECT3DVIEWPORT2 lpd3dvp, LPDIREC
 	return res;
 }
 
-HRESULT WINAPI extSetTexture3(void *, DWORD, LPDIRECT3DTEXTURE2)
+HRESULT WINAPI extSetTexture3(void *d3dd, DWORD flags, LPDIRECT3DTEXTURE2 lptex)
 {
-	return DD_OK;
+	HRESULT res;
+	if (dxw.dwFlags4 & NOTEXTURES) return DD_OK;
+
+	res=(*pSetTexture3)(d3dd, flags, lptex);
+	OutTraceD3D("SetTexture3: d3dd=%x, flags=%x, tex=%x res=%x\n", d3dd, flags, lptex, res);
+	return res;
 }
 
-HRESULT WINAPI extSetTexture7(void *, DWORD, LPDIRECTDRAWSURFACE7)
+HRESULT WINAPI extSetTexture7(void *d3dd, DWORD flags, LPDIRECTDRAWSURFACE7 lptex)
 {
-	return DD_OK;
+	HRESULT res;
+	if (dxw.dwFlags4 & NOTEXTURES) return DD_OK;
+
+	res=(*pSetTexture7)(d3dd, flags, lptex);
+	OutTraceD3D("SetTexture7: d3dd=%x, flags=%x, tex=%x res=%x\n", d3dd, flags, lptex, res);
+	return res;
 }

@@ -582,7 +582,7 @@ void InitScreenParameters()
 	GetHookInfo()->DXVersion=0; // unknown
 	GetHookInfo()->isLogging=(dxw.dwTFlags & OUTTRACE);
 
-	if(!EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &CurrDevMode)){
+	if(!(*pEnumDisplaySettings)(NULL, ENUM_CURRENT_SETTINGS, &CurrDevMode)){
 		OutTraceE("EnumDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return;
 	}
@@ -865,6 +865,17 @@ int lpddHookedVersion(LPDIRECTDRAW lpdd)
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "lpddHookedVersion", MB_OK | MB_ICONEXCLAMATION);
 	return 0;
+}
+
+void RegisterPixelFormat(LPDIRECTDRAWSURFACE lpdds)
+{
+	DDSURFACEDESC2 ddsdpix;
+	memset((void *)&ddsdpix, 0, sizeof(DDSURFACEDESC2));
+	ddsdpix.dwSize = SurfaceDescrSize(lpdds);
+	ddsdpix.dwFlags = DDSD_PIXELFORMAT;
+	(*pGetSurfaceDescMethod(lpdds))((LPDIRECTDRAWSURFACE2)lpdds, &ddsdpix);
+	GetHookInfo()->pfd=ddsdpix.ddpfPixelFormat; // v2.02.88
+	OutTraceB("RegisterPixelFormat: lpdds=%x %s\n", lpdds, DumpPixelFormat(&ddsdpix));
 }
 
 /* ------------------------------------------------------------------ */
@@ -2186,6 +2197,17 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		break;
 	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT:
 		switch (lpddsd->ddsCaps.dwCaps){
+		case DDSCAPS_COMPLEX|DDSCAPS_SYSTEMMEMORY|DDSCAPS_TEXTURE|DDSCAPS_MIPMAP: // Powerslide
+		case DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_TEXTURE|DDSCAPS_MIPMAP: // Powerslide
+			return;
+			break;
+		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_TEXTURE|DDSCAPS_3DDEVICE:
+		case DDSCAPS_OVERLAY|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
+		case DDSCAPS_COMPLEX|DDSCAPS_FLIP|DDSCAPS_OVERLAY|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
+		case DDSCAPS_COMPLEX|DDSCAPS_FLIP|DDSCAPS_OVERLAY|DDSCAPS_VIDEOMEMORY:
+			// Zoo Tycoon
+			return;
+			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
 			// Empire Earth
 			// tbd
@@ -2221,7 +2243,8 @@ void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			break;
 		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
 			// Empire Earth
-			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+			// Zoo Tycoon: better leave as it is....
+			// lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); ????
 			return;
 			break;
 		case DDSCAPS_COMPLEX|DDSCAPS_TEXTURE|DDSCAPS_MIPMAP:
@@ -2339,7 +2362,10 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER); 
 		return;
 	}
-	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) { // 3DDEVICE: enforce PIXELFORMAT on MEMORY
+	if((lpddsd->dwFlags & DDSD_CAPS) && 
+		(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) &&
+		!(lpddsd->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) // v2.02.90: added for "Zoo Tycoon" textures
+		{ // 3DDEVICE no TEXTURE: enforce PIXELFORMAT on MEMORY
 		lpddsd->dwFlags |= DDSD_PIXELFORMAT;
 		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE); 
 		GetPixFmt(lpddsd);
@@ -2831,13 +2857,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		if(res) return res;
 		lpDDSPrim = *lplpdds;
 		dxw.MarkPrimarySurface(lpDDSPrim);
-
-		DDSURFACEDESC2 ddsdpix;
-		memset((void *)&ddsdpix, 0, sizeof(DDSURFACEDESC));
-		ddsdpix.dwSize = sizeof(DDSURFACEDESC);
-		ddsdpix.dwFlags = DDSD_PIXELFORMAT;
-		(*pGetSurfaceDescMethod(lpDDSPrim))((LPDIRECTDRAWSURFACE2)lpDDSPrim, &ddsdpix);
-		GetHookInfo()->pfd=ddsdpix.ddpfPixelFormat; // v2.02.88
+		RegisterPixelFormat(lpDDSPrim);
 
 		if (BBCount){
 			// build emulated backbuffer surface
@@ -3204,7 +3224,8 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	if(dxw.HandleFPS()) return DD_OK;
 	
 	destrect=dxw.MapWindowRect(lpdestrect);
-	//OutTrace("DESTRECT=(%d,%d)-(%d,%d)\n", destrect.left, destrect.top, destrect.right, destrect.bottom);
+
+	//OutTraceB("DESTRECT=(%d,%d)-(%d,%d)\n", destrect.left, destrect.top, destrect.right, destrect.bottom);
 
 	if(!(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER))){ 
 		res=0;
@@ -4868,7 +4889,7 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 
  HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree, GetAvailableVidMem_Type pGetAvailableVidMem)
 {
-	HRESULT res;
+	HRESULT res; 
 	const DWORD dwMaxMem = 0x7FFFF000;
 	OutTraceDDRAW("GetAvailableVidMem(D): lpdd=%x\n", lpdd);
 	res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree);
@@ -4876,7 +4897,7 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 		if((dxw.dwFlags3 & FORCESHEL) && (res==DDERR_NODIRECTDRAWHW)){
 			// fake some video memory....
 			OutTraceDW("GetAvailableVidMem(D): FORCESHEL mode Total=Free=%x\n", dwMaxMem);
-			*lpdwTotal = dwMaxMem;
+			*lpdwTotal = dwMaxMem; 
 			*lpdwFree = dwMaxMem;
 			return DD_OK;
 		}

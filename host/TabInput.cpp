@@ -50,6 +50,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	// Message processing
 	DDX_Check(pDX, IDC_FILTERMESSAGES, cTarget->m_FilterMessages);
 	DDX_Check(pDX, IDC_PEEKALLMESSAGES, cTarget->m_PeekAllMessages);
+	DDX_Check(pDX, IDC_NOWINPOSCHANGES, cTarget->m_NoWinPosChanges);
 	// Keyboard handling
 	DDX_Check(pDX, IDC_ENABLEHOTKEYS, cTarget->m_EnableHotKeys);
 	DDX_Check(pDX, IDC_HANDLEALTF4, cTarget->m_HandleAltF4);

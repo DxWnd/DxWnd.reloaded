@@ -46,6 +46,7 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_NOFLIPEMULATION, cTarget->m_NoFlipEmulation);
+	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirectX, CDialog)

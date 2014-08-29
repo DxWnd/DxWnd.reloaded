@@ -149,6 +149,7 @@
 // fifth flags DWORD dxw.dwFlags5:
 #define DIABLOTWEAK			0x00000001 // ... ??? ...
 #define CLEARTARGET			0x00000002 // forces a D3D clean on target surface upon each BeginScene invocation
+#define NOWINPOSCHANGES		0x00000004 // suppress WM_WINDOWPOSCHANGING/CHANGED messages (RollerCoaster Tycoon...)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

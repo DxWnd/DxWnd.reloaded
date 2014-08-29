@@ -31,7 +31,6 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_YUV2RGB, cTarget->m_ForceYUVtoRGB);
 	DDX_Check(pDX, IDC_DXPROXED, cTarget->m_DXProxed);
 	DDX_Check(pDX, IDC_ASSERT, cTarget->m_AssertDialog);
-	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
 	DDX_Check(pDX, IDC_MARKBLIT, cTarget->m_MarkBlit);
 	DDX_Check(pDX, IDC_ANALYTICMODE, cTarget->m_AnalyticMode);
 	DDX_Check(pDX, IDC_SURFACEWARN, cTarget->m_SurfaceWarn);

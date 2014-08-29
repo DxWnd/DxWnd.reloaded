@@ -54,6 +54,7 @@ public:
 	BOOL	m_FullScreenOnly;
 	BOOL	m_FilterMessages;
 	BOOL	m_PeekAllMessages;
+	BOOL	m_NoWinPosChanges;
 	BOOL	m_NoBanner;
 	BOOL	m_StartDebug;
 	BOOL	m_HookEnabled;

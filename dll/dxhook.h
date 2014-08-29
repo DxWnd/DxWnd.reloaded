@@ -26,6 +26,7 @@ extern FARPROC Remap_d3d11_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_gl_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_smack_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_user32_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_GDI32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_kernel32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_ole32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_trust_ProcAddress(LPCSTR, HMODULE);
