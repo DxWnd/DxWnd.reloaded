@@ -42,7 +42,7 @@ public:
 	BOOL	m_ImportTable;
 	BOOL	m_RegistryOp;
 	BOOL	m_TraceHooks;
-	BOOL	m_HandleDC;
+	//BOOL	m_HandleDC;
 	BOOL	m_UnNotify;
 	BOOL	m_Windowize;
 	BOOL	m_HookDLLs;

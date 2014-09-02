@@ -54,8 +54,9 @@
 #define IDC_EMULATEBUFFER               1009
 #define IDC_LOCKEDSURFACE               1010
 #define IDC_EMULATESURFACE              1011
-#define IDC_MODIFYMOUSE                 1012
-#define IDC_HANDLEDC                    1014
+#define IDC_AUTOMATIC                   1012
+#define IDC_MODIFYMOUSE                 1013
+//#define IDC_HANDLEDC                    1014
 #define IDC_SAVELOAD                    1015
 #define IDC_INITX                       1016
 #define IDC_INITY                       1017

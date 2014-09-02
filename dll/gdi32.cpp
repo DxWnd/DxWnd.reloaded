@@ -1042,30 +1042,6 @@ BOOL WINAPI extGDIDeleteDC(HDC hdc)
 	return res;
 }
 
-COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor)
-{
-	COLORREF res;
-
-	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC) && (dxw.VirtualPixelFormat.dwRGBBitCount==8))
-		crColor=GetMatchingColor(crColor);
-
-	res=(*pGDISetTextColor)(hdc, crColor);
-	OutTraceDW("SetTextColor: color=%x res=%x%s\n", crColor, res, (res==CLR_INVALID)?"(CLR_INVALID)":"");
-	return res;
-}
-
-COLORREF WINAPI extSetBkColor(HDC hdc, COLORREF crColor)
-{
-	COLORREF res;
-
-	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags1 & HANDLEDC) && (dxw.VirtualPixelFormat.dwRGBBitCount==8))
-		crColor=GetMatchingColor(crColor);
-
-	res=(*pGDISetBkColor)(hdc, crColor);
-	OutTraceDW("SetBkColor: color=%x res=%x%s\n", crColor, res, (res==CLR_INVALID)?"(CLR_INVALID)":"");
-	return res;
-}
-
 HFONT WINAPI extCreateFont(int nHeight, int nWidth, int nEscapement, int nOrientation, int fnWeight,
 				 DWORD fdwItalic, DWORD fdwUnderline, DWORD fdwStrikeOut, DWORD fdwCharSet,
 				 DWORD fdwOutputPrecision, DWORD fdwClipPrecision, DWORD fdwQuality,

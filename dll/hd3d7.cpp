@@ -693,7 +693,12 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 	res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
 	if(res) {
 		OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		return res;
+		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
+			dxw.dwFlags1 &= ~EMULATESURFACE;
+			dxw.dwFlags1 |= LOCKEDSURFACE;
+			res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
+		}
+		if (res) return res;
 	}
 	else 
 		OutTraceD3D("CreateDevice(D3D2): lpd3dd=%x\n", lpd3d, *lplpd3dd);
@@ -702,33 +707,20 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 	return res;
 }
 
-const GUID IID_IDirect3DRampDevice;
-const GUID IID_IDirect3DRGBDevice;
-
 HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4 lpdds, LPDIRECT3DDEVICE3 *lplpd3dd, LPUNKNOWN unk)
 {
 	HRESULT res;
-	GUID IID_IDirect3DRGBDevice = {0xA4665C60,0x2673,0x11CF,0xA3,0x1A,0x00,0xAA,0x00,0xB9,0x33,0x56};
-	GUID IID_IDirect3DRampDevice = {0xF2086B20,0x259F,0x11CF,0xA3,0x1A,0x00,0xAA,0x00,0xB9,0x33,0x56};
-	GUID IID_IDirect3DMMXDevice = {0x881949a1,0xd6f3,0x11d0,0x89,0xab,0x00,0xa0,0xc9,0x05,0x41,0x29};
 
 	OutTraceD3D("CreateDevice(D3D3): d3d=%x GUID=%x(%s) lpdds=%x\n", lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds);
 	res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
-	//res=(*pCreateDevice3)(lpd3d, IID_IDirect3DMMXDevice, lpdds, lplpd3dd, unk);
 	if(res) {
 		OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		//if(1) {
-		//	GUID IID_IDirect3DRGBDevice = {0xA4665C60,0x2673,0x11CF,0xA3,0x1A,0x00,0xAA,0x00,0xB9,0x33,0x56};
-		//	GUID IID_IDirect3DRampDevice = {0xF2086B20,0x259F,0x11CF,0xA3,0x1A,0x00,0xAA,0x00,0xB9,0x33,0x56};
-		//	GUID IID_IDirect3DMMXDevice = {0x881949a1,0xd6f3,0x11d0,0x89,0xab,0x00,0xa0,0xc9,0x05,0x41,0x29};
-		//	res=(*pCreateDevice3)(lpd3d, IID_IDirect3DRGBDevice, lpdds, lplpd3dd, unk);
-		//	if(res) OutTraceE("CreateDevice(IID_IDirect3DRGBDevice) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		//	res=(*pCreateDevice3)(lpd3d, IID_IDirect3DRampDevice, lpdds, lplpd3dd, unk);
-		//	if(res) OutTraceE("CreateDevice(IID_IDirect3DRampDevice) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		//	res=(*pCreateDevice3)(lpd3d, IID_IDirect3DMMXDevice, lpdds, lplpd3dd, unk);
-		//	if(res) OutTraceE("CreateDevice(IID_IDirect3DMMXDevice) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		//}
-		return res;
+		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
+			dxw.dwFlags1 &= ~EMULATESURFACE;
+			dxw.dwFlags1 |= LOCKEDSURFACE;
+			res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
+		}
+		if (res) return res;
 	}
 
 	HookDirect3DDevice((void **)lplpd3dd, 3); 
@@ -744,6 +736,12 @@ HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7
 	res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
 	if(res) {
 		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
+			dxw.dwFlags1 &= ~EMULATESURFACE;
+			dxw.dwFlags1 |= LOCKEDSURFACE;
+			res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
+		}
+		if (res) return res;
 		return res;
 	}
 
@@ -772,26 +770,6 @@ HRESULT WINAPI extD3DGetCaps(void *d3dd, LPD3DDEVICEDESC lpd3dd ,LPD3DDEVICEDESC
 	DumpD3DDevideDesc(lpd3dd2, "SWDEV");
 	return res;
 }
-
-#if 0
-//HRESULT WINAPI extSwapTextureHandles(void *d3dd, LPDIRECT3DTEXTURE,LPDIRECT3DTEXTURE)
-//HRESULT WINAPI extCreateExecuteBuffer(void *d3dd, LPD3DEXECUTEBUFFERDESC,LPDIRECT3DEXECUTEBUFFER*,IUnknown*)
-//HRESULT WINAPI extGetStats(void *d3dd, LPD3DSTATS)
-HRESULT WINAPI extExecute(void *d3dd, LPDIRECT3DEXECUTEBUFFER lpd3dEB, LPDIRECT3DVIEWPORT lpd3dVP, DWORD dwFlags)
-HRESULT WINAPI extAddViewport(void *d3dd, LPDIRECT3DVIEWPORT)
-HRESULT WINAPI extDeleteViewport(void *d3dd,HIS_ LPDIRECT3DVIEWPORT)
-HRESULT WINAPI extNextViewport(void *d3dd, LPDIRECT3DVIEWPORT,LPDIRECT3DVIEWPORT*,DWORD)
-HRESULT WINAPI extPick(void *d3dd, LPDIRECT3DEXECUTEBUFFER,LPDIRECT3DVIEWPORT,DWORD,LPD3DRECT)
-HRESULT WINAPI extGetPickRecords(void *d3dd, LPDWORD,LPD3DPICKRECORD)
-HRESULT WINAPI extEnumTextureFormats(void *d3dd, LPD3DENUMTEXTUREFORMATSCALLBACK,LPVOID)
-HRESULT WINAPI extCreateMatrix(void *d3dd, LPD3DMATRIXHANDLE)
-HRESULT WINAPI extSetMatrix(void *d3dd, D3DMATRIXHANDLE,const LPD3DMATRIX)
-HRESULT WINAPI extGetMatrix(void *d3dd, D3DMATRIXHANDLE,LPD3DMATRIX)
-HRESULT WINAPI extDeleteMatrix(void *d3dd, D3DMATRIXHANDLE)
-HRESULT WINAPI extBeginScene(void *d3dd)
-HRESULT WINAPI extEndScene(void *d3dd)
-HRESULT WINAPI extGetDirect3D(void *d3dd, LPDIRECT3D*)
-#endif
 
 char *ExplainRenderstateValue(DWORD Value)
 {

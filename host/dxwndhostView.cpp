@@ -129,6 +129,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 1: t->flags |= EMULATEBUFFER; break;
 		case 2: t->flags |= LOCKEDSURFACE; break;
 		case 3: t->flags |= EMULATESURFACE; break;
+		case 4: t->flags |= AUTOMATIC; break;
 	}
 	t->flags2 &= ~GDISTRETCHED;
 	t->flags &= ~MAPGDITOPRIMARY;
@@ -154,7 +155,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ImportTable) t->tflags |= OUTIMPORTTABLE;
 	if(dlg->m_RegistryOp) t->tflags |= OUTREGISTRY;
 	if(dlg->m_TraceHooks) t->tflags |= TRACEHOOKS;
-	if(dlg->m_HandleDC) t->flags |= HANDLEDC;
+	//if(dlg->m_HandleDC) t->flags |= HANDLEDC;
 	if(dlg->m_HandleExceptions) t->flags |= HANDLEEXCEPTIONS;
 	if(dlg->m_LimitResources) t->flags2 |= LIMITRESOURCES;
 	if(dlg->m_CDROMDriveType) t->flags3 |= CDROMDRIVETYPE;
@@ -287,6 +288,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;
 	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 2;
 	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 3;
+	if(t->flags & AUTOMATIC) dlg->m_DxEmulationMode = 4;
 
 	dlg->m_DCEmulationMode = 0;
 	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
@@ -308,7 +310,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ImportTable = t->tflags & OUTIMPORTTABLE ? 1 : 0;
 	dlg->m_RegistryOp = t->tflags & OUTREGISTRY ? 1 : 0;
 	dlg->m_TraceHooks = t->tflags & TRACEHOOKS ? 1 : 0;
-	dlg->m_HandleDC = t->flags & HANDLEDC ? 1 : 0;
+	//dlg->m_HandleDC = t->flags & HANDLEDC ? 1 : 0;
 	dlg->m_HandleExceptions = t->flags & HANDLEEXCEPTIONS ? 1 : 0;
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
@@ -1150,7 +1152,7 @@ void CDxwndhostView::OnAdd()
 	//dlg.m_Coordinates = 0;
 	//dlg.m_MaxX = 0; //639;
 	//dlg.m_MaxY = 0; //479;
-	//dlg.m_DxEmulationMode = 3; // defaulting to EMULATIONMODE
+	//dlg.m_DxEmulationMode = 4; // defaulting to AUTOMATIC
 	for(i = 0; i < MAXTARGETS; i ++) if(!TargetMaps[i].path[0]) break;
 	if(i>=MAXTARGETS){
 		MessageBoxEx(0, "Maximum entries number reached.\nDelete some entry to add a new one.", "Warning", MB_OK | MB_ICONEXCLAMATION, NULL);

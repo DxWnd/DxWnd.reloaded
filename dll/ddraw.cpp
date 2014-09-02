@@ -16,7 +16,6 @@
 #include "dxhelper.h"
 #include "syslibs.h"
 
-
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
@@ -1393,6 +1392,8 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 
 	OutTraceDDRAW("DirectDrawCreate: guid=%x(%s)\n", lpguid, ExplainGUID(lpguid));
 
+	if (dxw.dwFlags1 & AUTOMATIC) dxw.dwFlags1 |= EMULATESURFACE;
+
 	if(!pDirectDrawCreate){ // not hooked yet....
 		HINSTANCE hinst;
 		hinst = LoadLibrary("ddraw.dll");
@@ -1462,6 +1463,8 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	GUID FAR *lpPrivGuid = lpguid;
 
 	OutTraceDDRAW("DirectDrawCreateEx: guid=%x(%s) refiid=%x\n", lpguid, ExplainGUID(lpguid), iid);
+
+	if (dxw.dwFlags1 & AUTOMATIC) dxw.dwFlags1 |= EMULATESURFACE;
 
 	// v2.1.70: auto-hooking (just in case...)
 	if(!pDirectDrawCreateEx){ // not hooked yet....
@@ -3031,6 +3034,10 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		}
 		if(res){
 			BlitError(res, lpsrcrect, &destrect, __LINE__);
+			if(IsDebug) {
+				DescribeSurface(lpdds, 0, "[DST]" , __LINE__);
+				if (lpddssrc) DescribeSurface(lpddssrc, 0, "[SRC]" , __LINE__); // lpddssrc could be NULL!!!
+			}
 			// Try to handle HDC lock concurrency....		
 			if(res==DDERR_SURFACEBUSY){
 				(*pUnlockMethod(lpdds))(lpdds, NULL);
@@ -3038,8 +3045,30 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 				res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 			}
-
-			if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+			// Try to handle DDBLT_KEYSRC on primary surface
+			if((res==DDERR_INVALIDPARAMS) && (dwflags & DDBLT_KEYSRC)){
+				// to do: handle possible situations with surface 2 / 4 / 7 types
+				DDSURFACEDESC ddsd;
+				LPDIRECTDRAWSURFACE lpddsTmp;
+				if (IsDebug) BlitTrace("KEYSRC", lpsrcrect, &destrect, __LINE__);
+				memset(&ddsd, 0, sizeof(ddsd));
+				ddsd.dwSize = sizeof(ddsd);
+				lpddssrc->GetSurfaceDesc(&ddsd);
+				res=(*pCreateSurface1)(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
+				if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
+				// copy background
+				res= (*pBlt)(lpddsTmp, lpsrcrect, lpdds, &destrect, DDBLT_WAIT, NULL);
+				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
+				// overlay texture
+				res= (*pBlt)(lpddsTmp, lpsrcrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
+				// copy back to destination
+				res= (*pBlt)(lpdds, &destrect, lpddsTmp, lpsrcrect, DDBLT_WAIT, lpddbltfx);
+				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
+				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
+				(*pReleaseS)(lpddsTmp);
+			}
+			if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 		}
 
 		return res;
@@ -3252,12 +3281,13 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 			return 0;
 		}
 
+	flags = 0;
 	if(dwtrans & DDBLTFAST_WAIT) flags = DDBLT_WAIT;
 	if(dwtrans & DDBLTFAST_DESTCOLORKEY) flags |= DDBLT_KEYDEST;
 	if(dwtrans & DDBLTFAST_SRCCOLORKEY) flags |= DDBLT_KEYSRC;
 
 	if ((dxw.dwFlags2 & FULLRECTBLT) && ToPrim){
-		 return sBlt("BltFast", lpdds, NULL, lpddssrc, lpsrcrect, flags, 0, FALSE);
+		 return sBlt("BltFast", lpdds, NULL, lpddssrc, lpsrcrect, flags, NULL, FALSE);
 	}
 
 	destrect.left = dwx;
@@ -3267,8 +3297,7 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 		destrect.bottom = destrect.top + lpsrcrect->bottom - lpsrcrect->top;
 		// avoid altering pointed values....
 		srcrect=*lpsrcrect;
-		//ret=lpdds->Blt(&destrect, lpddssrc, &srcrect, flags, 0);
-		ret=sBlt("BltFast", lpdds, &destrect, lpddssrc, &srcrect, flags, 0, FALSE);
+		ret=sBlt("BltFast", lpdds, &destrect, lpddssrc, &srcrect, flags, NULL, FALSE);
 	}
 	else{
 		// does it EVER goes through here? NULL is not a valid rect value for BltFast call....
@@ -3282,7 +3311,7 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 		}
 		destrect.right = destrect.left + ddsd.dwWidth;
 		destrect.bottom = destrect.top + ddsd.dwHeight;
-		ret=sBlt("BltFast", lpdds, &destrect, lpddssrc, NULL, flags, 0, FALSE);
+		ret=sBlt("BltFast", lpdds, &destrect, lpddssrc, NULL, flags, NULL, FALSE);
 	}
 
 	return ret;
@@ -4032,7 +4061,7 @@ HRESULT WINAPI extGetColorKey(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORK
 		OutTraceE("GetColorKey: ERROR lpdds=%x flags=%x res=%x(%s)\n", lpdds, flags, res, ExplainDDError(res));
 	else
 		OutTraceDDRAW("GetColorKey: colors=(L:%x,H:%x)\n", 
-			lpdds, lpDDColorKey->dwColorSpaceLowValue, lpDDColorKey->dwColorSpaceHighValue);
+			lpDDColorKey->dwColorSpaceLowValue, lpDDColorKey->dwColorSpaceHighValue);
 	return res;
 }
 

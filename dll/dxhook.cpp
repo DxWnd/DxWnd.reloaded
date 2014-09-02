@@ -37,7 +37,7 @@ CRITICAL_SECTION TraceCS;
 static char *FlagNames[32]={
 	"UNNOTIFY", "EMULATESURFACE", "CLIPCURSOR", "RESETPRIMARY",
 	"HOOKDI", "MODIFYMOUSE", "HANDLEEXCEPTIONS", "SAVELOAD",
-	"EMULATEBUFFER", "HANDLEDC", "BLITFROMBACKBUFFER", "SUPPRESSCLIPPING",
+	"EMULATEBUFFER", "AUTOMATIC", "BLITFROMBACKBUFFER", "SUPPRESSCLIPPING",
 	"AUTOREFRESH", "FIXWINFRAME", "HIDEHWCURSOR", "SLOWDOWN",
 	"ENABLECLIPPING", "LOCKWINSTYLE", "MAPGDITOPRIMARY", "FIXTEXTOUT",
 	"KEEPCURSORWITHIN", "USERGB565", "SUPPRESSDXERRORS", "PREVENTMAXIMIZE",
@@ -713,18 +713,6 @@ static void dx_TogglePositionLock(HWND hwnd)
 	}
 }
 
-static void dx_ToggleDC()
-{
-	if(dxw.dwFlags1 & HANDLEDC){
-		dxw.dwFlags1 &= ~HANDLEDC;
-		OutTrace("ToggleDC: HANDLEDC mode OFF\n");
-	}
-	else {
-		dxw.dwFlags1 |= HANDLEDC;
-		OutTrace("ToggleDC: HANDLEDC mode ON\n");
-	}
-}
-
 static void dx_ToggleFPS()
 {
 	if(dxw.dwFlags2 & SHOWFPS){
@@ -997,9 +985,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		case VK_F9:
 			dx_TogglePositionLock(hwnd);
 			break;
-		case VK_F8:
-			dx_ToggleDC();
-			break;
+		//case VK_F8:
+		//	dx_ToggleDC();
+		//	break;
 		case VK_F7:
 			dx_ToggleFPS();
 			break;
@@ -1481,6 +1469,8 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	};
 	
 	dxw.InitTarget(target);
+
+	if(dxw.dwFlags1 & AUTOMATIC) dxw.dwFlags1 |= EMULATESURFACE; // if AUTOMATIC, try this first!
 
 	if(hwnd){ // v2/02.32: skip this when in code injection mode.
 		// v2.1.75: is it correct to set hWnd here?

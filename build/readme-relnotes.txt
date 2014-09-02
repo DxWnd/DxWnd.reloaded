@@ -390,5 +390,11 @@ v2.02.57
 fixed WS_NCCALCSIZE & WM_NCPAINT messages to ensure a proper window's border and size - fixed Black Thorn window problems
 fixed "Hide desktop background" flag 
 
+v2.02.58
+Added Automatic DirectX mode: not workink always, but should make it much easier to guess a proper surface setting.
+Automatic mode allows dynamic mode change depending on the situation: it is necessary for Populous 3 D3D version.
+fixed BltFast operation with SRC color key (often used to draw cursor from texures) directly to primary surface: this makes the cursor visible in Populous 3.
+minor fixes on logging
+
 
 

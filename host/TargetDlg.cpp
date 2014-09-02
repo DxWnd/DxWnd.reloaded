@@ -22,7 +22,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	//{{AFX_DATA_INIT(CTargetDlg)
 	m_DXVersion = 0;
 	m_Coordinates = 0;
-	m_DxEmulationMode = 3; // default: EMULATESURFACE
+	m_DxEmulationMode = 4; // default: AUTOMATIC
 	m_DCEmulationMode = 0; // default: no emulation
 	m_HookDI = FALSE;
 	m_ModifyMouse = TRUE; // default true !!
@@ -34,7 +34,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_OutD3DTrace = FALSE;
 	m_OutDDRAWTrace = FALSE;
 	m_DXProxed = FALSE;
-	m_HandleDC = FALSE;
+	//m_HandleDC = FALSE;
 	m_HandleExceptions = FALSE;
 	m_SuppressIME = FALSE;
 	m_SuppressD3DExt = FALSE;
