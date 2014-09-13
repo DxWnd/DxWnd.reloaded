@@ -137,6 +137,8 @@ BOOL CDxwndhostApp::InitInstance()
 	
 	//CompatibilityMinLevel = GetPrivateProfileInt("window", "compatminlevel", 0, InitPath);
 
+	if(!gbDebug) gbDebug = GetPrivateProfileInt("window", "debug", 0, InitPath); // debug fleg set from config file
+
 	if(!LangSelected){
 		LANGID LangId;
 		char LangString[20+1];

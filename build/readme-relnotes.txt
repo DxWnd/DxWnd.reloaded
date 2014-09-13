@@ -592,4 +592,6 @@ fix: improved logging
 fix: GetRgnBox hooking moved to normal window processing, to handle RollerCoaster Tycoon series.
 added: GetTempFileName fix to handle Win95 differences. This makes "Powerslide" playable.
 
-
+v2.02.91
+fix: bug in bilinear filtering mode causing possible game crashes when blitting partial rectangles (es. Age of Empires II cursor)
+added: AERO friendly mode - brings AERO compatibility and incredible performance boost for ddraw games in surface emulation mode

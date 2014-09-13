@@ -93,8 +93,8 @@ static char *Flag4Names[32]={
 };
 
 static char *Flag5Names[32]={
-	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "",
-	"", "", "", "",
+	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "SYSTEMMEMORY",
+	"NOBLT", "DOSTRETCHBLT", "DOFASTBLT", "AEROBOOST",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",

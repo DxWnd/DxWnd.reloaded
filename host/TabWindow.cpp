@@ -54,6 +54,7 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_BLACKWHITE, cTarget->m_BlackWhite);
 	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
 	DDX_Check(pDX, IDC_LOCKSYSCOLORS, cTarget->m_LockSysColors);
+	DDX_Check(pDX, IDC_COLORFIX, cTarget->m_ColorFix);
 
 	// screen resolution management
 	DDX_Check(pDX, IDC_LIMITSCREENRES, cTarget->m_LimitScreenRes);

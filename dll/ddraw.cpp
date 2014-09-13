@@ -2381,7 +2381,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_TEXTURE)){
 		if (dxw.dwFlags3 & FORCESHEL) {
 			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-			lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+			if(dxw.dwFlags5 & SYSTEMMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 		}
 		// no further changes...
 		return;
@@ -2452,7 +2452,8 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
-	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+	if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 
@@ -2517,7 +2518,8 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	if(lpDDSEmu_Back==NULL){
 		ClearSurfaceDesc((void *)&ddsd, dxversion);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
+		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+		if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 		ddsd.dwWidth = dxw.GetScreenWidth();
 		ddsd.dwHeight = dxw.GetScreenHeight();
 		if(dxw.dwFlags4 & BILINEARFILTER){
@@ -2611,7 +2613,8 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_BACKBUFFER|DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
-	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+	if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	GetPixFmt(&ddsd);
@@ -2644,7 +2647,7 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE|DDSD_PIXELFORMAT);
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX);
-	//ddsd.ddsCaps.dwCaps|=DDSCAPS_SYSTEMMEMORY;
+	if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
 	if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
@@ -2665,8 +2668,8 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	if(res) {
 		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res==DDERR_OUTOFVIDEOMEMORY)){
 			OutTraceDW("CreateSurface: CreateSurface DDERR_OUTOFVIDEOMEMORY ERROR at %d, retry in SYSTEMMEMORY\n", __LINE__);
-			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY; // try ...
-			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; // try ...
+			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY; 
+			if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 			res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 		}
 		if(res){
@@ -2691,13 +2694,14 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	memcpy(&ddsd, lpddsd, lpddsd->dwSize); // Copy over ....
 	FixSurfaceCaps(&ddsd, dxversion);
+	if(!(dxw.dwFlags5 & SYSTEMMEMORY)) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]" , __LINE__);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
 	if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res==DDERR_OUTOFVIDEOMEMORY)){
 		OutTraceDW("CreateSurface ERROR: res=%x(%s) at %d, retry\n", res, ExplainDDError(res), __LINE__);
 		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+		if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 		res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
 	}
 	if (res) {
@@ -2736,7 +2740,7 @@ static HRESULT BuildGenericDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && ((res==DDERR_OUTOFVIDEOMEMORY)||(res==DDERR_UNSUPPORTED))){
 			OutTraceDW("CreateSurface ERROR: res=%x(%s) at %d, retry\n", res, ExplainDDError(res), __LINE__);
 			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-			lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+			if(dxw.dwFlags5 & SYSTEMMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 			res = (*pCreateSurface)(lpdd, lpddsd, lplpdds, 0); 
 		}
 		if(res){
@@ -3070,6 +3074,49 @@ static void BlitTrace(char *label, LPRECT lps, LPRECT lpd, int line)
 	return;
 }
 
+HRESULT WINAPI PrimaryBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
+{
+	return (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect, DDBLT_WAIT, 0);
+}
+
+HRESULT WINAPI PrimaryFastBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
+{
+	return (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddssrc, lpsrcrect, DDBLTFAST_WAIT);
+}
+
+HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
+{
+	HRESULT res;
+	DDSURFACEDESC ddsd; 
+	RECT TmpRect;
+	LPDIRECTDRAWSURFACE lpddsTmp;
+	memset(&ddsd, 0, sizeof(ddsd));
+	ddsd.dwSize = sizeof(ddsd);
+	lpddssrc->GetSurfaceDesc(&ddsd);
+	TmpRect.left = TmpRect.top = 0;
+	TmpRect.bottom = ddsd.dwHeight = lpdestrect->bottom - lpdestrect->top;
+	TmpRect.right  = ddsd.dwWidth  = lpdestrect->right  - lpdestrect->left;
+	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
+	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+	if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+	res=(*pCreateSurface1)(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
+	if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	// stretch-blit to target size on OFFSCREENPLAIN temp surface
+	res= (*pBlt)(lpddsTmp, &TmpRect, lpddssrc, lpsrcrect, DDBLT_WAIT, 0);
+	if(res) OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	// fast-blit to primary
+	res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
+	if(res) OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	if (res) BlitError(res, lpsrcrect, lpdestrect, __LINE__);
+	(*pReleaseS)(lpddsTmp);
+	return res;
+}
+
+HRESULT WINAPI PrimaryNoBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
+{
+	return DD_OK;
+}
+
 HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx, BOOL isFlipping)
 {
@@ -3077,6 +3124,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	POINT p = {0, 0};
 	HRESULT res;
 	BOOL ToPrim, FromPrim, ToScreen, FromScreen;
+	extern PrimaryBlt_Type pPrimaryBlt;
 	//CkArg arg;
 
 	ToPrim=dxw.IsAPrimarySurface(lpdds);
@@ -3219,21 +3267,30 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		return res;
 	}
 
+	// =========================
 	// Blit to primary surface
+	// =========================
 
 	if(dxw.HandleFPS()) return DD_OK;
+	if(dxw.dwFlags5 & NOBLT) return DD_OK;
 	
 	destrect=dxw.MapWindowRect(lpdestrect);
 
 	//OutTraceB("DESTRECT=(%d,%d)-(%d,%d)\n", destrect.left, destrect.top, destrect.right, destrect.bottom);
 
+	// =========================
+	// Blit to primary direct surface 
+	// =========================
+
 	if(!(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER))){ 
-		res=0;
+		res=DD_OK;
+
 		// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 		if (lpdds != lpddssrc) {
 			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
-			res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+			//res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+			res=(*pPrimaryBlt)(lpdds, &destrect, lpddssrc, lpsrcrect);
 		}
 		if(res){
 			BlitError(res, lpsrcrect, &destrect, __LINE__);
@@ -3278,7 +3335,10 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	}
 
 	// ... else blitting on emulated surface
+	
+	// =========================
 	// Blit/Flip to emulated primary surface
+	// =========================
 
 	if(!lpddssrc) {
 		if (isFlipping){
@@ -3332,7 +3392,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
 
-		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 		return res;
 	}
 
@@ -3357,10 +3417,10 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 
 	dxw.ShowOverlay(lpDDSSource);
 	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
-	res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, DDBLT_WAIT, 0);
+	res=(*pPrimaryBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect);
 
 	if (res) BlitError(res, &emurect, &destrect, __LINE__);
-	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	if (IsDebug) OutTrace("%s: done ret=%x at %d\n", api, res, __LINE__);
 	return res;
 }

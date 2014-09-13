@@ -83,6 +83,10 @@ public:
 	BOOL	m_UseRGB565;
 	BOOL	m_SuppressDXErrors;
 	BOOL	m_MarkBlit;
+	BOOL	m_SystemMemory;
+	BOOL	m_NoBlt;
+	BOOL	m_StretchBlt;
+	BOOL	m_FastBlt;
 	BOOL	m_PreventMaximize;
 	BOOL	m_ClientRemapping;
 	BOOL	m_LockWinPos;
@@ -144,6 +148,7 @@ public:
 	BOOL	m_ClearTarget;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
+	BOOL	m_AEROBoost;
 	BOOL	m_DiabloTweak;
 	BOOL	m_DisableHAL;
 	BOOL	m_ForcesHEL;

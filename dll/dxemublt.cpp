@@ -23,9 +23,11 @@ extern int Set_dwSize_From_Surface(LPDIRECTDRAWSURFACE);
 #define DXWNDDIRECTBLITTING 1
 #define MARKBLITCOLOR32 0x00FFFF00
 #define MARKBLITCOLOR16 0x0FF0
-extern Blt_Type pBlt;
 EmuBlt_Type pEmuBlt;
 RevBlt_Type pRevBlt;
+PrimaryBlt_Type pPrimaryBlt;
+
+extern Blt_Type pBlt;
 
 //--------------------------------------------------------------------------------------------//
 // Emulated blitting procedures: fills a 32BPP surface from the content of 8BPP or 16BPP ones.
@@ -256,8 +258,8 @@ static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 	dest0 = dest;
 
 	src8 = (BYTE *)lpsurface;
-	src8 += lpsrcrect->top*ddsd_src.lPitch;
-	src8 += lpsrcrect->left;
+	src8 += (lpsrcrect->top >> 1)*ddsd_src.lPitch;
+	src8 += (lpsrcrect->left >> 1);
 	srcpitch = ddsd_src.lPitch - w;
 
 	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
@@ -432,8 +434,8 @@ static HRESULT WINAPI BilinearBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 
 	ddsd_src.lPitch >>= 1;
 	src16 = (WORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
-	src16 += lpsrcrect->top*ddsd_src.lPitch;
-	src16 += lpsrcrect->left;
+	src16 += (lpsrcrect->top >> 1)*ddsd_src.lPitch;
+	src16 += (lpsrcrect->left >> 1);
 	srcpitch = ddsd_src.lPitch - w;
 
 	if (!Palette16BPP) SetPalette16BPP();
@@ -760,8 +762,8 @@ static HRESULT WINAPI BilinearBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 	dest0 = dest;
 
 	src8 = (BYTE *)lpsurface;
-	src8 += lpsrcrect->top*ddsd_src.lPitch;
-	src8 += lpsrcrect->left;
+	src8 += (lpsrcrect->top >> 1)*ddsd_src.lPitch;
+	src8 += (lpsrcrect->left >> 1);
 	srcpitch = ddsd_src.lPitch - w;
 
 	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
@@ -877,8 +879,8 @@ static HRESULT WINAPI BilinearBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 
 	ddsd_src.lPitch >>= 1;
 	src16 = (WORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
-	src16 += lpsrcrect->top*ddsd_src.lPitch;
-	src16 += lpsrcrect->left;
+	src16 += (lpsrcrect->top >> 1)*ddsd_src.lPitch;
+	src16 += (lpsrcrect->left >> 1);
 	srcpitch = ddsd_src.lPitch - w;
 
 	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
@@ -1122,8 +1124,8 @@ static HRESULT WINAPI BilinearBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 
 	ddsd_src.lPitch >>= 2;
 	src32 = (DWORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
-	src32 += lpsrcrect->top*ddsd_src.lPitch;
-	src32 += lpsrcrect->left;
+	src32 += (lpsrcrect->top >> 1)*ddsd_src.lPitch;
+	src32 += (lpsrcrect->left >> 1);
 	srcpitch = ddsd_src.lPitch - w;
 
 	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
@@ -1583,5 +1585,10 @@ void SetBltTransformations()
 			dxw.ActualPixelFormat.dwRGBBitCount);
 		break;
 	}
+
+	pPrimaryBlt = PrimaryBlt;
+	if(dxw.dwFlags5 & DOFASTBLT) pPrimaryBlt = PrimaryFastBlt;
+	if(dxw.dwFlags5 & DOSTRETCHBLT) pPrimaryBlt = PrimaryStretchBlt;
+	if(dxw.dwFlags5 & NOBLT) pPrimaryBlt = PrimaryNoBlt;
 	return;
 }

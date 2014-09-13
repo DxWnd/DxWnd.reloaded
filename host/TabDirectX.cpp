@@ -36,10 +36,8 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SUPPRESSDXERRORS, cTarget->m_SuppressDXErrors);
 	DDX_Check(pDX, IDC_BACKBUFATTACH, cTarget->m_BackBufAttach);
 	DDX_Check(pDX, IDC_NOPALETTEUPDATE, cTarget->m_NoPaletteUpdate);
-	DDX_Check(pDX, IDC_SETCOMPATIBILITY, cTarget->m_SetCompatibility);
-	DDX_Check(pDX, IDC_DISABLEHAL, cTarget->m_DisableHAL);
+	//DDX_Check(pDX, IDC_DISABLEHAL, cTarget->m_DisableHAL);
 	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
-	DDX_Check(pDX, IDC_COLORFIX, cTarget->m_ColorFix);
 	DDX_Check(pDX, IDC_NOPIXELFORMAT, cTarget->m_NoPixelFormat);
 	DDX_Check(pDX, IDC_NOALPHACHANNEL, cTarget->m_NoAlphaChannel);
 	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
@@ -47,6 +45,8 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_NOFLIPEMULATION, cTarget->m_NoFlipEmulation);
 	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
+	DDX_Check(pDX, IDC_SETCOMPATIBILITY, cTarget->m_SetCompatibility);
+	DDX_Check(pDX, IDC_AEROBOOST, cTarget->m_AEROBoost);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirectX, CDialog)
