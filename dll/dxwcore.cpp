@@ -82,7 +82,6 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags4 = target->flags4;
 	dwFlags5 = target->flags5;
 	dwTFlags = target->tflags;
-	if(dwFlags5 & AEROBOOST) dwFlags5 |= (SYSTEMMEMORY|DOSTRETCHBLT);
 	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
 	if(dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
 	gsModules = target->module;

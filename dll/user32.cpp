@@ -357,11 +357,28 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 		// note: v2.1.93: compensation must refer to the client area, not the wp
 		// window dimensions that include the window borders.
 		if(BorderX==-1){
+#if 0
 			RECT client, full;
 			(*pGetClientRect)(hwnd, &client);
 			(*pGetWindowRect)(hwnd, &full);
 			BorderX= full.right - full.left - client.right;
 			BorderY= full.bottom - full.top - client.bottom;
+#else
+			// v2.02.92: Fixed for AERO mode, where GetWindowRect substantially LIES!
+			RECT client, full;
+			LONG dwStyle, dwExStyle;
+			HMENU hMenu;
+			extern GetWindowLong_Type pGetWindowLongA;
+			(*pGetClientRect)(hwnd, &client);
+			full=client;
+			dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
+			dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
+			hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
+			AdjustWindowRectEx(&full, dwStyle, (hMenu!=NULL), dwExStyle);
+			if (hMenu) CloseHandle(hMenu);
+			BorderX= full.right - full.left - client.right;
+			BorderY= full.bottom - full.top - client.bottom;
+#endif
 			OutTraceDW("%s: KEEPASPECTRATIO window borders=(%d,%d)\n", ApiName, BorderX, BorderY);
 		}
 		extern LRESULT LastCursorPos;

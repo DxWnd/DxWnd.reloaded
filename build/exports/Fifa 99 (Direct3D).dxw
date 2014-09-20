@@ -1,15 +1,16 @@
 [target]
-title0=Rollcage 2 (D3D)
-path0=D:\Games\Rollcage 2\BIN\Rollcage D3D.exe
-launchpath0=D:\Games\Rollcage 2\Rollcage.exe
+title0=Fifa 99 (Direct3D)
+path0=D:\Games\Fifa 99\fifa99.exe
+launchpath0=
 module0=
 opengllib0=
-ver0=0
+ver0=7
 coord0=0
-flag0=134217760
-flagg0=134217728
+flag0=671105312
+flagg0=-937410560
 flagh0=20
 flagi0=138412036
+flagj0=128
 tflag0=0
 initx0=0
 inity0=0

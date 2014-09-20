@@ -94,7 +94,7 @@ static char *Flag4Names[32]={
 
 static char *Flag5Names[32]={
 	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "SYSTEMMEMORY",
-	"NOBLT", "DOSTRETCHBLT", "DOFASTBLT", "AEROBOOST",
+	"NOBLT", "-----", "DOFASTBLT", "AEROBOOST",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -210,6 +210,12 @@ static BOOL CheckCompatibilityFlags()
 	return FALSE;
 }
 #endif
+
+void OutTraceHex(BYTE *bBuf, int iLen)
+{
+	for(int i=0; i<iLen; i++) OutTrace("%02X ", *(bBuf++));
+	OutTrace("\n");
+}
 
 static void dx_ToggleLogging()
 {

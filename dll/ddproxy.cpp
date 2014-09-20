@@ -3,7 +3,7 @@
 #define _CRT_SECURE_NO_DEPRECATE 1
 
 // comment defines to get rid of some proxy logs....
-#define TRACECOMMETHODS YES
+//#define TRACECOMMETHODS YES
 #define HOOKDDRAW   YES
 #define HOOKCLIPPER YES
 #define HOOKSURFACE YES

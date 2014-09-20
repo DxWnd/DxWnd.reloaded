@@ -1587,8 +1587,8 @@ void SetBltTransformations()
 	}
 
 	pPrimaryBlt = PrimaryBlt;
-	if(dxw.dwFlags5 & DOFASTBLT) pPrimaryBlt = PrimaryFastBlt;
-	if(dxw.dwFlags5 & DOSTRETCHBLT) pPrimaryBlt = PrimaryStretchBlt;
-	if(dxw.dwFlags5 & NOBLT) pPrimaryBlt = PrimaryNoBlt;
+	if(dxw.dwFlags5 & AEROBOOST) pPrimaryBlt = PrimaryStretchBlt;
+	if(dxw.dwFlags5 & DOFASTBLT) pPrimaryBlt = PrimaryFastBlt; // debug opt
+	if(dxw.dwFlags5 & NOBLT) pPrimaryBlt = PrimaryNoBlt; // debug opt
 	return;
 }

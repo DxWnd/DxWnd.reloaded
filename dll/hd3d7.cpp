@@ -720,11 +720,10 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 			dxw.dwFlags1 &= ~EMULATESURFACE;
 			dxw.dwFlags1 |= LOCKEDSURFACE;
 			res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
+			if (res) OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			else OutTraceD3D("CreateDevice(D3D2): Emulation OFF\n");
 		}
-		if (res) {
-			OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			return res;
-		}
+		if(res) return res;
 	}
 		
 	OutTraceD3D("CreateDevice(D3D2): lpd3dd=%x\n", lpd3d, *lplpd3dd);
@@ -744,11 +743,10 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 			dxw.dwFlags1 &= ~EMULATESURFACE;
 			dxw.dwFlags1 |= LOCKEDSURFACE;
 			res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
+			if (res) OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			else OutTraceD3D("CreateDevice(D3D3): Emulation OFF\n");
 		}
-		if (res) {
-			OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			return res;
-		}
+		if(res) return res;
 	}
 		
 	OutTraceD3D("CreateDevice(D3D3): lpd3dd=%x\n", lpd3d, *lplpd3dd);
@@ -778,11 +776,10 @@ HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7
 			bDontReleaseBackBuffer = TRUE;
 			res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
 			bDontReleaseBackBuffer = FALSE;
+			if (res) OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			else OutTraceD3D("CreateDevice(D3D7): Emulation OFF\n");
 		}
-		if (res) {
-			OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			return res;
-		}
+		if(res) return res;
 	}
 
 	OutTraceD3D("CreateDevice(D3D7): lpd3dd=%x\n", lpd3d, *lplpd3dd);

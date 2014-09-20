@@ -3,6 +3,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define INITGUID
+#define FULLHEXDUMP
 
 #include <windows.h>
 #include <ddraw.h>
@@ -429,6 +430,13 @@ static void LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 	if (lpddsd->dwFlags & DDSD_CKSRCOVERLAY ) OutTrace(" CKSrcOverlay=(%x,%x)", lpddsd->ddckCKSrcOverlay.dwColorSpaceLowValue, lpddsd->ddckCKSrcOverlay.dwColorSpaceHighValue);
 	if (lpddsd->dwFlags & DDSD_PIXELFORMAT ) OutTrace("%s", DumpPixelFormat((LPDDSURFACEDESC2)lpddsd));
 	if (lpddsd->dwFlags & DDSD_LPSURFACE) OutTrace(" Surface=%x", lpddsd->lpSurface);
+	if (lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH) OutTrace(" ZBufferBitDepth=%d", lpddsd->dwZBufferBitDepth);
+	if (lpddsd->dwFlags & DDSD_ALPHABITDEPTH) OutTrace(" AlphaBitDepth=%d", lpddsd->dwAlphaBitDepth);
+	if (lpddsd->dwFlags & DDSD_REFRESHRATE) OutTrace(" RefreshRate=%d", lpddsd->dwRefreshRate);
+	if (lpddsd->dwFlags & DDSD_LINEARSIZE) OutTrace(" LinearSize=%d", lpddsd->dwLinearSize);
+	//if (lpddsd->dwFlags & DDSD_TEXTURESTAGE) OutTrace(" TextureStage=%x", lpddsd->dwTextureStage);
+	//if (lpddsd->dwFlags & DDSD_FVF) OutTrace(" FVF=%x", lpddsd->dwFVF);
+	
 	OutTrace("\n");
 }
 
@@ -656,6 +664,8 @@ static void ddSetCompatibility()
 		res=(*pSetAppCompatData)(2, 0);
 		OutTraceDW("HookDirectDraw: SetAppCompatData(2,0) ret=%x(%s)\n", res, ExplainDDError(res));
 	}
+	else
+		OutTraceDW("HookDirectDraw: missing SetAppCompatData call\n");
 	FreeLibrary(hinst);
 }
 
@@ -2381,7 +2391,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_TEXTURE)){
 		if (dxw.dwFlags3 & FORCESHEL) {
 			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-			if(dxw.dwFlags5 & SYSTEMMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+			lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 		}
 		// no further changes...
 		return;
@@ -2452,8 +2462,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
-	ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
-	if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 
@@ -2518,8 +2527,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	if(lpDDSEmu_Back==NULL){
 		ClearSurfaceDesc((void *)&ddsd, dxversion);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-		if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
 		ddsd.dwWidth = dxw.GetScreenWidth();
 		ddsd.dwHeight = dxw.GetScreenHeight();
 		if(dxw.dwFlags4 & BILINEARFILTER){
@@ -2548,6 +2556,9 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 {
 	DDSURFACEDESC2 ddsd;
 	HRESULT res;
+
+	// v2.02.92: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
+	// if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) dxw.dwFlags5 &= ~SYSTEMMEMORY;
 
 	// genuine primary surface
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
@@ -2613,8 +2624,7 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_BACKBUFFER|DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
-	ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
-	if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	GetPixFmt(&ddsd);
@@ -2647,7 +2657,7 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE|DDSD_PIXELFORMAT);
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX);
-	if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
+	ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
 	if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
@@ -2669,7 +2679,7 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res==DDERR_OUTOFVIDEOMEMORY)){
 			OutTraceDW("CreateSurface: CreateSurface DDERR_OUTOFVIDEOMEMORY ERROR at %d, retry in SYSTEMMEMORY\n", __LINE__);
 			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY; 
-			if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
 			res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 		}
 		if(res){
@@ -2694,14 +2704,13 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	memcpy(&ddsd, lpddsd, lpddsd->dwSize); // Copy over ....
 	FixSurfaceCaps(&ddsd, dxversion);
-	if(!(dxw.dwFlags5 & SYSTEMMEMORY)) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]" , __LINE__);
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
 	if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res==DDERR_OUTOFVIDEOMEMORY)){
 		OutTraceDW("CreateSurface ERROR: res=%x(%s) at %d, retry\n", res, ExplainDDError(res), __LINE__);
 		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-		if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 		res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
 	}
 	if (res) {
@@ -2740,7 +2749,7 @@ static HRESULT BuildGenericDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && ((res==DDERR_OUTOFVIDEOMEMORY)||(res==DDERR_UNSUPPORTED))){
 			OutTraceDW("CreateSurface ERROR: res=%x(%s) at %d, retry\n", res, ExplainDDError(res), __LINE__);
 			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
-			if(dxw.dwFlags5 & SYSTEMMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+			lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 			res = (*pCreateSurface)(lpdd, lpddsd, lplpdds, 0); 
 		}
 		if(res){
@@ -3090,15 +3099,25 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	DDSURFACEDESC ddsd; 
 	RECT TmpRect;
 	LPDIRECTDRAWSURFACE lpddsTmp;
+	LPDIRECTDRAWSURFACE lpddsBak;
+	DDSCAPS caps;
+	caps.dwCaps = DDSCAPS_BACKBUFFER;
 	memset(&ddsd, 0, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd);
-	lpddssrc->GetSurfaceDesc(&ddsd);
+	if(lpddssrc==NULL){
+		// blit from backbuffer
+		lpdds->GetAttachedSurface(&caps, &lpddsBak);
+		if(lpddsBak) lpddsBak->GetSurfaceDesc(&ddsd);
+	}
+	else{
+		// blit from surface
+		lpddssrc->GetSurfaceDesc(&ddsd);
+	}
 	TmpRect.left = TmpRect.top = 0;
 	TmpRect.bottom = ddsd.dwHeight = lpdestrect->bottom - lpdestrect->top;
 	TmpRect.right  = ddsd.dwWidth  = lpdestrect->right  - lpdestrect->left;
 	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
-	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-	if(dxw.dwFlags5 & SYSTEMMEMORY) ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+	ddsd.ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 	res=(*pCreateSurface1)(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
 	if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	// stretch-blit to target size on OFFSCREENPLAIN temp surface
@@ -3271,7 +3290,9 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	// Blit to primary surface
 	// =========================
 
-	if(dxw.HandleFPS()) return DD_OK;
+	if(!lpdestrect ||
+		(lpdestrect && (lpdestrect->bottom == dxw.GetScreenHeight()) && (lpdestrect->right == dxw.GetScreenWidth())))
+		if(dxw.HandleFPS()) return DD_OK;
 	if(dxw.dwFlags5 & NOBLT) return DD_OK;
 	
 	destrect=dxw.MapWindowRect(lpdestrect);
@@ -3289,7 +3310,6 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		if (lpdds != lpddssrc) {
 			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
-			//res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			res=(*pPrimaryBlt)(lpdds, &destrect, lpddssrc, lpsrcrect);
 		}
 		if(res){
@@ -4102,6 +4122,12 @@ HRESULT WINAPI EnumModesCallbackDumper(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 	OutTrace("\tdwRefreshRate=%d\n", lpDDSurfaceDesc->dwRefreshRate);
 	OutTrace("\tlpSurface=%x\n", lpDDSurfaceDesc->lpSurface);
 	OutTrace("\tddpfPixelFormat %s\n", DumpPixelFormat((LPDDSURFACEDESC2)lpDDSurfaceDesc));
+
+#ifdef FULLHEXDUMP
+	OutTrace("DDSurfaceDesc=");
+	OutTraceHex((BYTE *)lpDDSurfaceDesc, sizeof(DDSURFACEDESC));
+#endif
+
 	return DDENUMRET_OK;
 }
 
@@ -4224,9 +4250,10 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 	HRESULT res;
 	SupportedRes_Type *SupportedRes;
 	NewContext_Type NewContext;
+
 	OutTraceDDRAW("EnumDisplayModes(D): lpdd=%x flags=%x lpddsd=%x callback=%x\n", lpdd, dwflags, lpddsd, cb);
 
-	if((dxw.dwFlags4 & NATIVERES)){
+	if(dxw.dwFlags4 & NATIVERES){
 		NewContext.dwWidth = 0;
 		NewContext.dwHeight = 0;
 		NewContext.lpContext=lpContext;
@@ -4244,11 +4271,15 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 		int SupportedDepths[5]={8,16,24,32,0};
 		int ResIdx, DepthIdx;
 		DDSURFACEDESC2 EmuDesc;
+		DWORD dwSize;
 
 		EmuDesc.dwRefreshRate = 0; 
 		EmuDesc.ddpfPixelFormat.dwFlags = DDPF_RGB;
-		if (lpddsd) EmuDesc.dwSize=lpddsd->dwSize; // sizeof either DDSURFACEDESC or DDSURFACEDESC2 !!!
-		else EmuDesc.dwSize = sizeof(DDSURFACEDESC2);
+		if (lpddsd) dwSize=lpddsd->dwSize; // sizeof either DDSURFACEDESC or DDSURFACEDESC2 !!!
+		else dwSize = sizeof(DDSURFACEDESC2);
+		if(dwSize > sizeof(DDSURFACEDESC2)) dwSize=sizeof(DDSURFACEDESC2);
+		memset(&EmuDesc, 0, dwSize);
+		EmuDesc.dwSize=dwSize;
 		EmuDesc.dwFlags=DDSD_PIXELFORMAT|DDSD_REFRESHRATE|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH; 
 		SupportedRes = (dxw.dwFlags4 & SUPPORTHDTV) ? &SupportedHDTVRes[0] : &SupportedSVGARes[0];
 		for (ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
@@ -4260,9 +4291,8 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 				EmuDesc.ddpfPixelFormat.dwRGBBitCount=SupportedDepths[DepthIdx];
 				EmuDesc.lPitch=SupportedRes[ResIdx].w * SupportedDepths[DepthIdx] / 8;
 				FixPixelFormat(EmuDesc.ddpfPixelFormat.dwRGBBitCount, &(EmuDesc.ddpfPixelFormat));
+				EnumModesCallbackDumper((LPDDSURFACEDESC)&EmuDesc, lpContext);
 				res=(*cb)((LPDDSURFACEDESC)&EmuDesc, lpContext);
-				OutTraceDW("EnumDisplayModes(D): proposed depth[%d]=%d size[%d]=(%d,%d) res=%x\n", 
-					DepthIdx, SupportedDepths[DepthIdx], ResIdx, SupportedRes[ResIdx].w, SupportedRes[ResIdx].h, res);
 				if(res==DDENUMRET_CANCEL) break;
 			}
 			if(res==DDENUMRET_CANCEL) break;
@@ -4782,6 +4812,13 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 			lpddsd->ddsCaps.dwCaps |= DDSCAPS_RESERVED2;
 			((LPDDSURFACEDESC2)lpddsd)->ddsCaps.dwCaps2 |= DDSCAPS2_RESERVED2;
 		}
+	}
+#endif
+#ifdef EXPERIMENTAL_2
+	if(1) {
+		IsFixed=TRUE;
+		lpddsd->ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		lpddsd->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 	}
 #endif
 

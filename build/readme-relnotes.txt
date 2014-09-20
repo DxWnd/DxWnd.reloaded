@@ -595,3 +595,8 @@ added: GetTempFileName fix to handle Win95 differences. This makes "Powerslide" 
 v2.02.91
 fix: bug in bilinear filtering mode causing possible game crashes when blitting partial rectangles (es. Age of Empires II cursor)
 added: AERO friendly mode - brings AERO compatibility and incredible performance boost for ddraw games in surface emulation mode
+
+v2.02.92
+fix: "Keep aspect ratio" fixed for AERO environment
+fix: improved "Oprtimized for AERO mode" compatibility, both when set / unset.
+fix: Skip / Limit FPS now acting on full scren blits only. For instance, they no longer slow cursor sprite.

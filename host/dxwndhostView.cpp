@@ -224,7 +224,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_MarkBlit) t->flags3 |= MARKBLIT;
 	if(dlg->m_SystemMemory) t->flags5 |= SYSTEMMEMORY;
 	if(dlg->m_NoBlt) t->flags5 |= NOBLT;
-	if(dlg->m_StretchBlt) t->flags5 |= DOSTRETCHBLT;
+	//if(dlg->m_StretchBlt) t->flags5 |= DOSTRETCHBLT;
 	if(dlg->m_FastBlt) t->flags5 |= DOFASTBLT;
 	if(dlg->m_PreventMaximize) t->flags |= PREVENTMAXIMIZE;
 	if(dlg->m_ClientRemapping) t->flags |= CLIENTREMAPPING;
@@ -409,7 +409,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_MarkBlit = t->flags3 & MARKBLIT ? 1 : 0;
 	dlg->m_SystemMemory = t->flags5 & SYSTEMMEMORY ? 1 : 0;
 	dlg->m_NoBlt = t->flags5 & NOBLT ? 1 : 0;
-	dlg->m_StretchBlt = t->flags5 & DOSTRETCHBLT ? 1 : 0;
+	//dlg->m_StretchBlt = t->flags5 & DOSTRETCHBLT ? 1 : 0;
 	dlg->m_FastBlt = t->flags5 & DOFASTBLT ? 1 : 0;
 	dlg->m_PreventMaximize = t->flags & PREVENTMAXIMIZE ? 1 : 0;
 	dlg->m_ClientRemapping = t->flags & CLIENTREMAPPING ? 1 : 0;

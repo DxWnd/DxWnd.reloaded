@@ -152,9 +152,10 @@
 #define NOWINPOSCHANGES		0x00000004 // suppress WM_WINDOWPOSCHANGING/CHANGED messages (RollerCoaster Tycoon...)
 #define SYSTEMMEMORY		0x00000008 // forces usage of DDSCAPS_SYSTEMMEMORY capability on front & backbuffer surfaces
 #define NOBLT				0x00000010 // suppress blit to primary surface
-#define DOSTRETCHBLT		0x00000020 // use StretchBlt to primary surface
+#define UNUSEDFLAG1			0x00000020 // unused - mapped to AEROBOOST
 #define DOFASTBLT			0x00000040 // use FastBlt to primary surface
-#define AEROBOOST			0x00000080 // Optimize for AERO environment: set DOSTRETCHBLT + SYSTEMMEMORY
+#define AEROBOOST			0x00000080 // Optimize for AERO environment: does all stretching in sysmemory surfaces
+#define LIMITFULLBLT		0x00000100 // Limit FPS only for blt operation of the whole primary surface
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -235,6 +236,7 @@ void HookInit(TARGETMAP *, HWND);
 void *SetHook(void *, void *);
 void SetHook(void *, void *, void **, char *);
 void OutTrace(const char *, ...);
+void OutTraceHex(BYTE *, int);
 void *HookAPI(HMODULE, char *, void *, const char *, void *);
 void AdjustWindowFrame(HWND, DWORD, DWORD);
 LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);

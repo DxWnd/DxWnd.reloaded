@@ -85,7 +85,7 @@ public:
 	BOOL	m_MarkBlit;
 	BOOL	m_SystemMemory;
 	BOOL	m_NoBlt;
-	BOOL	m_StretchBlt;
+//	BOOL	m_StretchBlt;
 	BOOL	m_FastBlt;
 	BOOL	m_PreventMaximize;
 	BOOL	m_ClientRemapping;
