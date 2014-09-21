@@ -3,7 +3,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define INITGUID
-#define FULLHEXDUMP
+//#define FULLHEXDUMP
 
 #include <windows.h>
 #include <ddraw.h>
@@ -19,6 +19,7 @@
 
 extern BOOL IsChangeDisplaySettingsHotPatched;
 BOOL bDontReleaseBackBuffer = FALSE;
+BOOL bIs3DPrimarySurfaceDevice = FALSE;
 
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -2557,13 +2558,17 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	DDSURFACEDESC2 ddsd;
 	HRESULT res;
 
-	// v2.02.92: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
-	// if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) dxw.dwFlags5 &= ~SYSTEMMEMORY;
-
 	// genuine primary surface
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
 	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_FLIP|DDSCAPS_COMPLEX);
+	// v2.02.93: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
+	// this impact also on capabilities for temporary surfaces for AERO optimized handling
+	bIs3DPrimarySurfaceDevice = FALSE;
+	if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) {
+		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+		bIs3DPrimarySurfaceDevice = TRUE;
+	}
 
 	// create Primary surface
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]" , __LINE__);
@@ -2657,7 +2662,11 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE|DDSD_PIXELFORMAT);
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX);
-	ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
+	// v2.02.93: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
+	if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) 
+		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	else
+		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
 	if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
@@ -3117,7 +3126,8 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	TmpRect.bottom = ddsd.dwHeight = lpdestrect->bottom - lpdestrect->top;
 	TmpRect.right  = ddsd.dwWidth  = lpdestrect->right  - lpdestrect->left;
 	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
-	ddsd.ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+	// capabilities must cope with primary / backbuffer surface capabilities to get speedy operations
+	ddsd.ddsCaps.dwCaps = bIs3DPrimarySurfaceDevice ? DDSCAPS_OFFSCREENPLAIN : (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 	res=(*pCreateSurface1)(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
 	if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	// stretch-blit to target size on OFFSCREENPLAIN temp surface

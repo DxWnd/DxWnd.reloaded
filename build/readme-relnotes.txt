@@ -600,3 +600,6 @@ v2.02.92
 fix: "Keep aspect ratio" fixed for AERO environment
 fix: improved "Oprtimized for AERO mode" compatibility, both when set / unset.
 fix: Skip / Limit FPS now acting on full scren blits only. For instance, they no longer slow cursor sprite.
+
+v2.02.93
+fix: handling of primary / backbuffer surfaces when DDSCAPS_3DDEVICE is set (es. Fifa 99 in Direct3D mode)
