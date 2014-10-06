@@ -1804,9 +1804,9 @@ DWORD WINAPI extGetObjectType(HGDIOBJ h)
 {
 	DWORD res;
 	res=(*pGetObjectType)(h);
-	OutTraceDW("GetObjectType: h=%x type=%x", h, res);
+	OutTraceDW("GetObjectType: h=%x type=%x\n", h, res);
 	if(h==dxw.VirtualHDC) {
-		OutTraceDW("GetObjectType: REMAP h=%x type=%x->%x", h, res, OBJ_DC);
+		OutTraceDW("GetObjectType: REMAP h=%x type=%x->%x\n", h, res, OBJ_DC);
 		res=OBJ_DC;
 	}
 	return res;

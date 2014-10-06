@@ -1694,3 +1694,25 @@ char *ExplainWfPFlags(DWORD c)
 	else strcpy(eb,"CWP_ALL");
 	return(eb);
 }
+
+char *ExplainChangeDisplaySettingsFlags(DWORD c)
+{
+	static char eb[128];
+	unsigned int l;
+	strcpy(eb,"CDS_");
+	if(c & CDS_UPDATEREGISTRY) strcat(eb, "UPDATEREGISTRY+");
+	if(c & CDS_TEST) strcat(eb, "TEST+");
+	if(c & CDS_FULLSCREEN) strcat(eb, "FULLSCREEN+");
+	if(c & CDS_GLOBAL) strcat(eb, "GLOBAL+");
+	if(c & CDS_SET_PRIMARY) strcat(eb, "SET_PRIMARY+");
+	if(c & CDS_VIDEOPARAMETERS) strcat(eb, "VIDEOPARAMETERS+");
+	if(c & CDS_ENABLE_UNSAFE_MODES) strcat(eb, "ENABLE_UNSAFE_MODES+");
+	if(c & CDS_DISABLE_UNSAFE_MODES) strcat(eb, "DISABLE_UNSAFE_MODES+");
+	if(c & CDS_RESET) strcat(eb, "RESET+");
+	if(c & CDS_NORESET) strcat(eb, "NORESET+");
+	l=strlen(eb);
+	if (l>strlen("CDS_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}
+

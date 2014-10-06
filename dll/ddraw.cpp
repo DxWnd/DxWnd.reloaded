@@ -265,10 +265,10 @@ static void SetPixFmt(LPDDSURFACEDESC2);
 static void GetPixFmt(LPDDSURFACEDESC2);
 
 static HookEntry_Type ddHooks[]={
-	{HOOK_IAT_CANDIDATE, "DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
-	{HOOK_IAT_CANDIDATE, "DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
-	{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
-	{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
+	{HOOK_HOT_CANDIDATE, "DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
+	{HOOK_HOT_CANDIDATE, "DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
+	{HOOK_HOT_CANDIDATE, "DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
+	{HOOK_HOT_CANDIDATE, "DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
 	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateW, (FARPROC)extDirectDrawCreate},
 	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateExW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateExW, (FARPROC)extDirectDrawCreate},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
@@ -642,92 +642,110 @@ void FixPixelFormat(int ColorDepth, DDPIXELFORMAT *pf)
 	}
 }
 
+static void ddSetCompatibility()
+{
+	typedef HRESULT (WINAPI *SetAppCompatData_Type)(DWORD, DWORD);
+	SetAppCompatData_Type pSetAppCompatData;
+	HRESULT res;
+	HINSTANCE hinst;
+
+	hinst=LoadLibrary("ddraw.dll");
+	pSetAppCompatData=(SetAppCompatData_Type)(*pGetProcAddress)(hinst, "SetAppCompatData");
+	if(pSetAppCompatData) {
+		res=(*pSetAppCompatData)(2, 0);
+		OutTraceDW("HookDirectDraw: SetAppCompatData(2,0) ret=%x(%s)\n", res, ExplainDDError(res));
+	}
+	FreeLibrary(hinst);
+}
+
 int HookDirectDraw(HMODULE module, int version)
 {
-	HINSTANCE hinst;
-	void *tmp;
-	const GUID dd7 = {0x15e65ec0,0x3b9c,0x11d2,0xb9,0x2f,0x00,0x60,0x97,0x97,0xea,0x5b};
+	if(dxw.dwFlags2 & SETCOMPATIBILITY) ddSetCompatibility();
 
-	if(dxw.dwFlags2 & SETCOMPATIBILITY){
-		typedef HRESULT (WINAPI *SetAppCompatData_Type)(DWORD, DWORD);
-		SetAppCompatData_Type pSetAppCompatData;
-		HRESULT res;
 
-		hinst=LoadLibrary("ddraw.dll");
-		pSetAppCompatData=(SetAppCompatData_Type)(*pGetProcAddress)(hinst, "SetAppCompatData");
-		if(pSetAppCompatData) {
-			res=(*pSetAppCompatData)(2, 0);
-			OutTraceDW("HookDirectDraw: SetAppCompatData(2,0) ret=%x(%s)\n", res, ExplainDDError(res));
-		}
-		FreeLibrary(hinst);
-	}
+#if 0
+	//void *tmp;
+	//const GUID dd7 = {0x15e65ec0,0x3b9c,0x11d2,0xb9,0x2f,0x00,0x60,0x97,0x97,0xea,0x5b};
 
 	OutTraceB("HookDirectDraw version=%d\n", version); //GHO
 	switch(version){
 	case 0: // automatic
-		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreate", extDirectDrawCreate);
-		if(tmp) pDirectDrawCreate = (DirectDrawCreate_Type)tmp;
-		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreateEx", extDirectDrawCreateEx);
-		if(tmp) pDirectDrawCreateEx = (DirectDrawCreateEx_Type)tmp;
-		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateA", extDirectDrawEnumerate);
-		if(tmp) pDirectDrawEnumerate = (DirectDrawEnumerate_Type)tmp;
-		tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateExA", extDirectDrawEnumerateEx);
-		if(tmp) pDirectDrawEnumerateEx = (DirectDrawEnumerateEx_Type)tmp;
+		HookLibrary(module, ddHooks, "ddraw.dll");
+		//tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreate", extDirectDrawCreate);
+		//if(tmp) pDirectDrawCreate = (DirectDrawCreate_Type)tmp;
+		//tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawCreateEx", extDirectDrawCreateEx);
+		//if(tmp) pDirectDrawCreateEx = (DirectDrawCreateEx_Type)tmp;
+		//tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateA", extDirectDrawEnumerate);
+		//if(tmp) pDirectDrawEnumerate = (DirectDrawEnumerate_Type)tmp;
+		//tmp = HookAPI(module, "ddraw.dll", NULL, "DirectDrawEnumerateExA", extDirectDrawEnumerateEx);
+		//if(tmp) pDirectDrawEnumerateEx = (DirectDrawEnumerateEx_Type)tmp;
 		break;
 	case 1:
 	case 2:
 	case 3:
 	case 5:
 	case 6:
-		hinst = LoadLibrary("ddraw.dll");
-		pDirectDrawEnumerate = 
-			(DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
-		pDirectDrawCreate =
-			(DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
-		if(pDirectDrawCreate){
-			LPDIRECTDRAW lpdd;
-			BOOL res;
-			HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
-			HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerate);
-			res=extDirectDrawCreate(0, &lpdd, 0);
-			if (res){
-				OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-			}
-			lpdd->Release();
-		}
-		break;
+		HookLibrary(module, ddHooks, "ddraw.dll");
+		//hinst = LoadLibrary("ddraw.dll");
+		//pDirectDrawEnumerate = 
+		//	(DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
+		//pDirectDrawCreate =
+		//	(DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
+		//if(dxw.dwFlags4 & HOTPATCH){
+		//	extern void *HotPatch(void *, const char *, void *);
+		//	pDirectDrawEnumerate = (DirectDrawEnumerate_Type)HotPatch(pDirectDrawEnumerate, "DirectDrawEnumerate", extDirectDrawEnumerate);
+		//	pDirectDrawCreate = (DirectDrawCreate_Type)HotPatch(pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
+		//}
+		//else {
+		//	if(pDirectDrawCreate){
+		//		LPDIRECTDRAW lpdd;
+		//		BOOL res;
+		//		HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
+		//		HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerate);
+		//		res=extDirectDrawCreate(0, &lpdd, 0);
+		//		if (res){
+		//			OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		//		}
+		//		lpdd->Release();
+		//	}
+		//}
+		//break;
 	case 7:
-		hinst = LoadLibrary("ddraw.dll");
-		pDirectDrawEnumerate = 
-			(DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
-		pDirectDrawEnumerateEx = 
-			(DirectDrawEnumerateEx_Type)GetProcAddress(hinst, "DirectDrawEnumerateExA");
-		pDirectDrawCreate =
-			(DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
-		if(pDirectDrawCreate){
-			LPDIRECTDRAW lpdd;
-			BOOL res;
-			HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
-			HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerate);
-			HookAPI(module, "ddraw.dll", pDirectDrawEnumerateEx, "DirectDrawEnumerateExA", extDirectDrawEnumerateEx);
-			res=extDirectDrawCreate(0, &lpdd, 0);
-			if (res) OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-			lpdd->Release();
-		}
-		pDirectDrawCreateEx =
-			(DirectDrawCreateEx_Type)GetProcAddress(hinst, "DirectDrawCreateEx");
-		if(pDirectDrawCreateEx){
-			LPDIRECTDRAW lpdd;
-			BOOL res;
-			HookAPI(module, "ddraw.dll", pDirectDrawCreateEx, "DirectDrawCreateEx", extDirectDrawCreateEx);
-			res=extDirectDrawCreateEx(0, &lpdd, dd7, 0);
-			if (res) OutTraceE("DirectDrawCreateEx: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-			lpdd->Release();
-		}
+		HookLibrary(module, ddHooks, "ddraw.dll");
+		//hinst = LoadLibrary("ddraw.dll");
+		//pDirectDrawEnumerate = 
+		//	(DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
+		//pDirectDrawEnumerateEx = 
+		//	(DirectDrawEnumerateEx_Type)GetProcAddress(hinst, "DirectDrawEnumerateExA");
+		//pDirectDrawCreate =
+		//	(DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
+		//if(pDirectDrawCreate){
+		//	LPDIRECTDRAW lpdd;
+		//	BOOL res;
+		//	HookAPI(module, "ddraw.dll", pDirectDrawCreate, "DirectDrawCreate", extDirectDrawCreate);
+		//	HookAPI(module, "ddraw.dll", pDirectDrawEnumerate, "DirectDrawEnumerateA", extDirectDrawEnumerate);
+		//	HookAPI(module, "ddraw.dll", pDirectDrawEnumerateEx, "DirectDrawEnumerateExA", extDirectDrawEnumerateEx);
+		//	res=extDirectDrawCreate(0, &lpdd, 0);
+		//	if (res) OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		//	lpdd->Release();
+		//}
+		//pDirectDrawCreateEx =
+		//	(DirectDrawCreateEx_Type)GetProcAddress(hinst, "DirectDrawCreateEx");
+		//if(pDirectDrawCreateEx){
+		//	LPDIRECTDRAW lpdd;
+		//	BOOL res;
+		//	HookAPI(module, "ddraw.dll", pDirectDrawCreateEx, "DirectDrawCreateEx", extDirectDrawCreateEx);
+		//	res=extDirectDrawCreateEx(0, &lpdd, dd7, 0);
+		//	if (res) OutTraceE("DirectDrawCreateEx: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		//	lpdd->Release();
+		//}
 		break;
 	}
 
 	if(pDirectDrawCreate || pDirectDrawCreateEx) return 1;
+#else
+	HookLibrary(module, ddHooks, "ddraw.dll");
+#endif
 	return 0;
 }
 

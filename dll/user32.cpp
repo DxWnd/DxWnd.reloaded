@@ -125,10 +125,10 @@ static HookEntry_Type MouseHooks[]={
 };
 
 static HookEntry_Type WinHooks[]={
-	{HOOK_IAT_CANDIDATE, "ShowWindow", (FARPROC)ShowWindow, (FARPROC *)&pShowWindow, (FARPROC)extShowWindow},
-	{HOOK_IAT_CANDIDATE, "SetWindowPos", (FARPROC)SetWindowPos, (FARPROC *)&pSetWindowPos, (FARPROC)extSetWindowPos},
-	{HOOK_IAT_CANDIDATE, "DeferWindowPos", (FARPROC)DeferWindowPos, (FARPROC *)&pGDIDeferWindowPos, (FARPROC)extDeferWindowPos},
-	{HOOK_IAT_CANDIDATE, "CallWindowProcA", (FARPROC)CallWindowProcA, (FARPROC *)&pCallWindowProc, (FARPROC)extCallWindowProc},
+	{HOOK_HOT_CANDIDATE, "ShowWindow", (FARPROC)ShowWindow, (FARPROC *)&pShowWindow, (FARPROC)extShowWindow},
+	{HOOK_HOT_CANDIDATE, "SetWindowPos", (FARPROC)SetWindowPos, (FARPROC *)&pSetWindowPos, (FARPROC)extSetWindowPos},
+	{HOOK_HOT_CANDIDATE, "DeferWindowPos", (FARPROC)DeferWindowPos, (FARPROC *)&pGDIDeferWindowPos, (FARPROC)extDeferWindowPos},
+	{HOOK_HOT_CANDIDATE, "CallWindowProcA", (FARPROC)CallWindowProcA, (FARPROC *)&pCallWindowProc, (FARPROC)extCallWindowProc},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -277,7 +277,7 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, BOOL WideChar, void *lpDevMode,
 			dxw.SetFullScreen(TRUE);
 		}
 	}
-
+	
 	if ((dwflags==0 || dwflags==CDS_FULLSCREEN) && lpDevMode){
 		if (dxw.dwFlags1 & EMULATESURFACE || !(dmFields & DM_BITSPERPEL)){
 			OutTraceDW("%s: BYPASS res=DISP_CHANGE_SUCCESSFUL\n", fname);
@@ -286,7 +286,7 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, BOOL WideChar, void *lpDevMode,
 		else{
 			DEVMODEA NewMode;
 			if(dwflags==CDS_FULLSCREEN) dwflags=0; // no FULLSCREEN
-			EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &NewMode);
+			(*pEnumDisplaySettings)(NULL, ENUM_CURRENT_SETTINGS, &NewMode);
 			OutTraceDW("ChangeDisplaySettings: CURRENT wxh=(%dx%d) BitsPerPel=%d -> %d\n", 
 				NewMode.dmPelsWidth, NewMode.dmPelsHeight, NewMode.dmBitsPerPel, dmBitsPerPel);
 			NewMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
@@ -298,7 +298,7 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, BOOL WideChar, void *lpDevMode,
 	}
 	else{
 		if(WideChar)
-			return (*pChangeDisplaySettingsW)((LPDEVMODEW)lpDevMode, dwflags);
+			return (*pChangeDisplaySettingsExW)(NULL, (LPDEVMODEW)lpDevMode, NULL, dwflags, NULL);
 		else
 			return (*pChangeDisplaySettingsExA)(NULL, (LPDEVMODEA)lpDevMode, NULL, dwflags, NULL);
 	}
@@ -539,7 +539,7 @@ LONG WINAPI extGetWindowLong(HWND hwnd, int nIndex, GetWindowLong_Type pGetWindo
 
 	OutTraceDW("GetWindowLong: hwnd=%x, Index=%x(%s) res=%x\n", hwnd, nIndex, ExplainSetWindowIndex(nIndex), res);
 
-	if(nIndex==GWL_WNDPROC){
+	if((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)){
 		WNDPROC wp;
 		wp=WhndGetWindowProc(hwnd);
 		OutTraceDW("GetWindowLong: remapping WindowProc res=%x -> %x\n", res, (LONG)wp);
@@ -606,7 +606,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		}
 	}
 
-	if ((nIndex==GWL_WNDPROC) && dxw.IsFullScreen()){ // v2.02.51 - see A10 Cuba....
+	if (((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)) && dxw.IsFullScreen()){ // v2.02.51 - see A10 Cuba....
 	//if (nIndex==GWL_WNDPROC){ 
 		WNDPROC lres;
 		WNDPROC OldProc;
@@ -617,7 +617,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		}
 		// end of GPL fix
 
-		OldProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
+		OldProc = (WNDPROC)(*pGetWindowLongA)(hwnd, nIndex);
 		// v2.02.70 fix
 		if((OldProc==extWindowProc) || 
 			(OldProc==extChildWindowProc)||
@@ -626,7 +626,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		WhndStackPush(hwnd, (WNDPROC)dwNewLong);
 		res=(LONG)OldProc;
 		SetLastError(0);
-		lres=(WNDPROC)(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
+		lres=(WNDPROC)(*pSetWindowLongA)(hwnd, nIndex, (LONG)extWindowProc);
 		if(!lres && GetLastError())OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 	else {
@@ -1165,6 +1165,24 @@ static HWND WINAPI extCreateWindowCommon(
 			if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
 			WhndStackPush(hwnd, pWindowProc);
 		}
+		if ((dwStyle & WS_DLGFRAME) && (dxw.dwFlags1 & HOOKCHILDWIN)){
+			// child window inherit the father's windproc, so if it's redirected to
+			// a hooker (either extWindowProc or extChildWindowProc) you have to retrieve
+			// the correct value (WhndGetWindowProc) before saving it (WhndStackPush).
+			long res;
+			pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, DWL_DLGPROC);
+			if((pWindowProc == extWindowProc) || 
+				(pWindowProc == extChildWindowProc) ||
+				(pWindowProc == extDialogWindowProc)){ // avoid recursions 
+				HWND Father;
+				Father=GetParent(hwnd);
+				pWindowProc=WhndGetWindowProc(Father);
+			}
+			OutTraceDW("Hooking CHILD hwnd=%x father WindowProc %x->%x\n", hwnd, pWindowProc, extChildWindowProc);
+			res=(*pSetWindowLongA)(hwnd, DWL_DLGPROC, (LONG)extDialogWindowProc);
+			if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
+			WhndStackPush(hwnd, pWindowProc);
+		}
 		OutTraceDW("%s: ret=%x\n", ApiName, hwnd);
 		return hwnd;	
 	}
@@ -1330,6 +1348,24 @@ static HWND WINAPI extCreateWindowCommon(
 		}
 		OutTraceDW("Hooking CHILD hwnd=%x father WindowProc %x->%x\n", hwnd, pWindowProc, extChildWindowProc);
 		res=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extChildWindowProc);
+		if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
+		WhndStackPush(hwnd, pWindowProc);
+	}
+	if ((dwStyle & WS_DLGFRAME) && (dxw.dwFlags1 & HOOKCHILDWIN)){
+		// child window inherit the father's windproc, so if it's redirected to
+		// a hooker (either extWindowProc or extChildWindowProc) you have to retrieve
+		// the correct value (WhndGetWindowProc) before saving it (WhndStackPush).
+		long res;
+		pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, DWL_DLGPROC);
+		if((pWindowProc == extWindowProc) || 
+			(pWindowProc == extChildWindowProc) ||
+			(pWindowProc == extDialogWindowProc)){ // avoid recursions 
+			HWND Father;
+			Father=GetParent(hwnd);
+			pWindowProc=WhndGetWindowProc(Father);
+		}
+		OutTraceDW("Hooking CHILD hwnd=%x father WindowProc %x->%x\n", hwnd, pWindowProc, extChildWindowProc);
+		res=(*pSetWindowLongA)(hwnd, DWL_DLGPROC, (LONG)extDialogWindowProc);
 		if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
 		WhndStackPush(hwnd, pWindowProc);
 	}
@@ -1649,7 +1685,7 @@ LONG WINAPI extEnumDisplaySettings(LPCTSTR lpszDeviceName, DWORD iModeNum, DEVMO
 LONG WINAPI extChangeDisplaySettingsA(DEVMODEA *lpDevMode, DWORD dwflags)
 {
 	if(IsTraceDDRAW){
-		OutTrace("ChangeDisplaySettingsA: lpDevMode=%x flags=%x", lpDevMode, dwflags);
+		OutTrace("ChangeDisplaySettingsA: lpDevMode=%x flags=%x(%s)", lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags));
 		if (lpDevMode) OutTrace(" DeviceName=%s fields=%x(%s) size=(%d x %d) bpp=%d", 
 			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
@@ -1665,7 +1701,7 @@ LONG WINAPI extChangeDisplaySettingsA(DEVMODEA *lpDevMode, DWORD dwflags)
 LONG WINAPI extChangeDisplaySettingsW(DEVMODEW *lpDevMode, DWORD dwflags)
 {
 	if(IsTraceDDRAW){
-		OutTrace("ChangeDisplaySettingsW: lpDevMode=%x flags=%x", lpDevMode, dwflags);
+		OutTrace("ChangeDisplaySettingsW: lpDevMode=%x flags=%x(%s)", lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags));
 		if (lpDevMode) OutTrace(" DeviceName=%ls fields=%x(%s) size=(%d x %d) bpp=%d", 
 			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
@@ -1681,7 +1717,7 @@ LONG WINAPI extChangeDisplaySettingsW(DEVMODEW *lpDevMode, DWORD dwflags)
 LONG WINAPI extChangeDisplaySettingsExA(LPCTSTR lpszDeviceName, DEVMODEA *lpDevMode, HWND hwnd, DWORD dwflags, LPVOID lParam)
 {
 	if(IsTraceDDRAW){
-		OutTrace("ChangeDisplaySettingsExA: DeviceName=%s lpDevMode=%x flags=%x", lpszDeviceName, lpDevMode, dwflags);
+		OutTrace("ChangeDisplaySettingsExA: DeviceName=%s lpDevMode=%x flags=%x(%s)", lpszDeviceName, lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags));
 		if (lpDevMode) OutTrace(" DeviceName=%s fields=%x(%s) size=(%d x %d) bpp=%d", 
 			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
@@ -1697,7 +1733,7 @@ LONG WINAPI extChangeDisplaySettingsExA(LPCTSTR lpszDeviceName, DEVMODEA *lpDevM
 LONG WINAPI extChangeDisplaySettingsExW(LPCTSTR lpszDeviceName, DEVMODEW *lpDevMode, HWND hwnd, DWORD dwflags, LPVOID lParam)
 {
 	if(IsTraceDDRAW){
-		OutTrace("ChangeDisplaySettingsExW: DeviceName=%ls lpDevMode=%x flags=%x", lpszDeviceName, lpDevMode, dwflags);
+		OutTrace("ChangeDisplaySettingsExW: DeviceName=%ls lpDevMode=%x flags=%x(%s)", lpszDeviceName, lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags));
 		if (lpDevMode) OutTrace(" DeviceName=%ls fields=%x(%s) size=(%d x %d) bpp=%d", 
 			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);

@@ -1543,8 +1543,31 @@ LPCSTR ProcToString(LPCSTR proc)
 
 FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
 {
+	void *remapped_addr;
 	for(; Hooks->APIName; Hooks++){
 		if (!strcmp(proc,Hooks->APIName)){
+			if((((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
+				((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED)))){ // force hot patch and not already hooked
+											 
+				if(!Hooks->OriginalAddress) {
+					Hooks->OriginalAddress=(*pGetProcAddress)(hModule, Hooks->APIName);
+					if(!Hooks->OriginalAddress) continue;
+				}
+
+				remapped_addr = HotPatch(Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
+				if(remapped_addr == (void *)1) { // should never go here ...
+					Hooks->HookStatus = HOOK_HOT_LINKED;
+					continue; // already hooked
+				}
+				if(remapped_addr) {
+					Hooks->HookStatus = HOOK_HOT_LINKED;
+					if(Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)remapped_addr;
+				}			
+			}
+			if(Hooks->HookStatus == HOOK_HOT_LINKED) {
+				OutTraceDW("GetProcAddress: hot patched proc=%s addr=%x\n", ProcToString(proc), Hooks->HookerAddress);
+				return Hooks->HookerAddress;
+			}
 			if (Hooks->StoreAddress) *(Hooks->StoreAddress)=(*pGetProcAddress)(hModule, proc);
 			OutTraceDW("GetProcAddress: hooking proc=%s addr=%x->%x\n", 
 				ProcToString(proc), (Hooks->StoreAddress) ? *(Hooks->StoreAddress) : 0, Hooks->HookerAddress);
@@ -1556,6 +1579,8 @@ FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
 
 void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 {
+	HMODULE hDLL = NULL;
+	//OutTrace("HookLibrary: hModule=%x dll=%s\n", hModule, DLLName);
 	for(; Hooks->APIName; Hooks++){
 		//tmp = HookAPI(hModule, DLLName, Hooks->HookStatus, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
 		//if(tmp && Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)tmp;
@@ -1577,8 +1602,26 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 		if((((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
 			((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED))) // force hot patch and not already hooked
 			&&
-			(Hooks->OriginalAddress && Hooks->StoreAddress)){							 // API address and save ptr available
-			// Hot Patch
+			Hooks->StoreAddress){							 // and save ptr available
+#if 1
+			// Hot Patch - beware! This way yo're likely to hook unneeded libraries.
+			if(!Hooks->OriginalAddress) {
+				if(!hDLL) {
+					hDLL = (*pLoadLibraryA)(DLLName);
+					if(!hDLL) {
+						OutTrace("HookLibrary: LoadLibrary failed on DLL=%s err=%x\n", DLLName, GetLastError());
+						continue;
+					}
+				}
+				Hooks->OriginalAddress=(*pGetProcAddress)(hDLL, Hooks->APIName);
+				if(!Hooks->OriginalAddress) {
+					OutTrace("HookLibrary: GetProcAddress failed on API=%s err=%x\n", Hooks->APIName, GetLastError());
+					continue;
+				}
+			}
+#else
+			if(!Hooks->OriginalAddress) continue;
+#endif
 			remapped_addr = HotPatch(Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
 			if(remapped_addr == (void *)1) { // should never go here ...
 				Hooks->HookStatus = HOOK_HOT_LINKED;

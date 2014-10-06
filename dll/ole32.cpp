@@ -8,9 +8,9 @@
 extern void HookModule(HMODULE, int);
 
 static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "CoCreateInstance", NULL, (FARPROC *)&pCoCreateInstance, (FARPROC)extCoCreateInstance},
-	{HOOK_IAT_CANDIDATE, "CoCreateInstanceEx", NULL, (FARPROC *)&pCoCreateInstanceEx, (FARPROC)extCoCreateInstanceEx}, 
-	{HOOK_IAT_CANDIDATE, "CoInitialize", NULL, (FARPROC *)&pCoInitialize, (FARPROC)extCoInitialize}, 
+	{HOOK_HOT_CANDIDATE, "CoCreateInstance", NULL, (FARPROC *)&pCoCreateInstance, (FARPROC)extCoCreateInstance},
+	{HOOK_HOT_CANDIDATE, "CoCreateInstanceEx", NULL, (FARPROC *)&pCoCreateInstanceEx, (FARPROC)extCoCreateInstanceEx}, 
+	{HOOK_HOT_CANDIDATE, "CoInitialize", NULL, (FARPROC *)&pCoInitialize, (FARPROC)extCoInitialize}, 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 

@@ -512,3 +512,13 @@ fix: handling of GetProcAddress D3D9 api
 fix: handling of EMULATEBUFFER option - fixes "Star Trek Birth of the Federation" 
 fix: expanded hot patching scope - now can handle QueryPerformanceCounter and fix time stretching on obfuscated version of "Wind Fantasy SP"
 added logging in D3DDevice9::GetAdapterIdentifier 
+
+v2.02.78
+fix: hooked D3D8/9Device::BeginStateBlock
+ddraw API hot swappable
+log: helper for ChangeDisplaySettings() flags
+fix: hot patch handling of loaded modules
+log: fixed some messages with no line ending for GetObjectType()
+d3d begin of code reorganization and cleaning
+ole32, user32 API hot patched
+handling of DWL_DLGPROC message 
