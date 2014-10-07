@@ -669,7 +669,7 @@ int HookDirectDraw(HMODULE module, int version)
 		return TRUE;
 	}
 
-	const GUID dd7 = {0x15e65ec0,0x3b9c,0x11d2,0xb9,0x2f,0x00,0x60,0x97,0x97,0xea,0x5b};
+	//const GUID dd7 = {0x15e65ec0,0x3b9c,0x11d2,0xb9,0x2f,0x00,0x60,0x97,0x97,0xea,0x5b};
 	HMODULE hinst;
 
 	OutTraceB("HookDirectDraw version=%d\n", version); //GHO
@@ -2732,9 +2732,6 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 	BuildSurface_Type BuildBackBuffer;
 	BuildSurface_Type BuildGeneric;
 
-	if(!dxw.Windowize){
-	}
-
 	if (dxw.dwFlags1 & EMULATESURFACE){
 		BuildPrimary = BuildPrimaryEmu;
 		BuildBackBuffer = BuildBackBufferEmu;
@@ -2851,7 +2848,9 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 
 		// v2.2.64: added extra ref needed to preserve ddraw session for later use. Is it a ddraw1 legacy?
 		// seems to fix problems in "Warhammer 40K Rites Of War" that uses a ddraw session after reaching 0 refcount.
-		if(dxw.dwDDVersion==1) lpdd->AddRef();
+		// v2.2.84: avoid the extra referenced in non windowed mode since it causes the window shift reported by gsky916
+		// for Wind Fantasy SP.
+		if((dxw.dwDDVersion==1) && dxw.Windowize) lpdd->AddRef();
 
 		return DD_OK;
 	}

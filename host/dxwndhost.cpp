@@ -156,7 +156,7 @@ BOOL CDxwndhostApp::InitInstance()
 				case 0x10: // 410 - italian, 810 - switzerland italian
 					ResLib=LoadLibrary("Resources_IT.dll");
 					if(ResLib) AfxSetResourceHandle(ResLib);
-					else MessageBoxEx(NULL, "Missing language \"CN\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
+					else MessageBoxEx(NULL, "Missing language \"IT\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
 					break;
 				default: 
 					//char sBuf[81];

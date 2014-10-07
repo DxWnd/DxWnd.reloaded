@@ -546,3 +546,6 @@ fix: completed translation in italian (just for testing....)
 fix: added palette window activation in icon tray menu
 fix: supppressed BackBuffer release within D3D7:CreateDevice: this makes "Tetris Worlds" fully playable
 add: build-in check for compatibility modes set!
+
+v2.02.84
+fix: removed extra reference to ddraw session causing window movements on fullscreen game exit: fixes another "Wind Fantasy SP" reported bug
