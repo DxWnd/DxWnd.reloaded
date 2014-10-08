@@ -39,7 +39,6 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 	LPCSTR Status;
 	char sMsg[1024];
 	char sMsg2[1024];
-	char sMsgBuf[80+1];
 	char DllVersion[21];
 	DXWNDSTATUS DxWndStatus;
 	extern PRIVATEMAP *pTitles; 
@@ -78,14 +77,43 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 			DxWndStatus.isLogging?"ON":"OFF",
 			DxWndStatus.CursorX, DxWndStatus.CursorY);
 		strcat(sMsg, sMsg2);
+		if(DxWndStatus.pfd.dwFlags & DDPF_FOURCC){
+			char *fcc;
+			fcc = (char *)&(DxWndStatus.pfd.dwFourCC);
+			sprintf_s(sMsg2, 1024, 			
+				"\nFourCC = %x (%c%c%c%c)", 
+				DxWndStatus.pfd.dwFourCC, 
+				isprint(fcc[0])?fcc[0]:'.', isprint(fcc[1])?fcc[1]:'.', isprint(fcc[2])?fcc[2]:'.', isprint(fcc[3])?fcc[3]:'.'	
+			);
+			strcat(sMsg, sMsg2);
+		}
+		if(DxWndStatus.pfd.dwSize){
+			sprintf_s(sMsg2, 1024, 
+				"\nPixel format=%s%s%s%s%s%s",
+				(DxWndStatus.pfd.dwFlags & DDPF_ALPHAPIXELS) ? "ALPHAPIXELS ":"",
+				(DxWndStatus.pfd.dwFlags & DDPF_ALPHA) ? "ALPHA ":"",
+				(DxWndStatus.pfd.dwFlags & DDPF_FOURCC) ? "FOURCC ":"",
+				(DxWndStatus.pfd.dwFlags & (DDPF_PALETTEINDEXED4|DDPF_PALETTEINDEXEDTO8|DDPF_PALETTEINDEXED8)) ? "PALETTEINDEXED ":"",
+				(DxWndStatus.pfd.dwFlags & DDPF_RGB) ? "RGB ":"",
+				(DxWndStatus.pfd.dwFlags & DDPF_YUV) ? "YUV ":""
+				);
+			strcat(sMsg, sMsg2);
+		}
+		if(DxWndStatus.pfd.dwFlags & DDPF_RGB){
+			sprintf_s(sMsg2, 1024, 
+				"\nColor mask (RGBA)=(%x,%x,%x,%x)",
+				DxWndStatus.pfd.dwRBitMask, DxWndStatus.pfd.dwGBitMask, DxWndStatus.pfd.dwBBitMask, DxWndStatus.pfd.dwRGBAlphaBitMask
+			);
+			strcat(sMsg, sMsg2);
+		}
 		if(Target->flags2 & (SHOWFPS|SHOWFPSOVERLAY)){
-			sprintf(sMsgBuf, "\nFPS = %d", DxWndStatus.FPSCount);   
-			strcat(sMsg, sMsgBuf);
+			sprintf(sMsg2, "\nFPS = %d", DxWndStatus.FPSCount);   
+			strcat(sMsg, sMsg2);
 		}
 		if(Target->flags2 & TIMESTRETCH){
 			if(DxWndStatus.TimeShift>=-8 && DxWndStatus.TimeShift<=8){
-				sprintf(sMsgBuf, "\nTime speed %s", GetTSCaption(DxWndStatus.TimeShift));
-				strcat(sMsg, sMsgBuf);
+				sprintf(sMsg2, "\nTime speed %s", GetTSCaption(DxWndStatus.TimeShift));
+				strcat(sMsg, sMsg2);
 			}
 		}
 	}

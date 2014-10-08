@@ -105,7 +105,6 @@ CDxwndhostApp theApp;
 BOOL CDxwndhostApp::InitInstance()
 {
 	char InitPath[MAX_PATH];
-	int CompatibilityMinLevel;
 	AfxEnableControlContainer();
 
 	// standard initialization

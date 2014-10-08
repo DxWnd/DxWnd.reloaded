@@ -140,6 +140,7 @@ public:
 	BOOL	m_NoPower2Fix;
 	BOOL	m_NoPerfCounter;
 	BOOL	m_DisableFogging;
+	BOOL	m_ClearTarget;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_DiabloTweak;

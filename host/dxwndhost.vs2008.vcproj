@@ -224,6 +224,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DesktopDialog.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dib.cpp"
 				>
 			</File>
@@ -455,6 +459,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DesktopDialog.h"
+				>
+			</File>
+			<File
 				RelativePath=".\dxTabCtrl.h"
 				>
 			</File>
@@ -545,6 +553,10 @@
 			>
 			<File
 				RelativePath=".\res\bigicons.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\res\bitmap1.bmp"
 				>
 			</File>
 			<File

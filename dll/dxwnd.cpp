@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.87"
+#define VERSION "2.02.88"
 
 #define DDTHREADLOCK 1
 
@@ -93,6 +93,7 @@ int SetTarget(TARGETMAP *targets){
 	pStatus->TaskIdx=0;
 	pStatus->hWnd=NULL;
 	pStatus->ColorDepth=0;
+	memset((void *)&(pStatus->pfd), 0, sizeof(DDPIXELFORMAT));
 	pStatus->Height = pStatus->Width = 0;
 	pStatus->DXVersion = 0;
 	for(i = 0; targets[i].path[0]; i ++){
@@ -207,6 +208,7 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 				pStatus->dwPid=GetProcessId(GetCurrentProcess());
 				pStatus->TimeShift=pMapping[i].InitTS;
 				pStatus->CursorX = pStatus->CursorY = 0;
+				memset((void *)&(pStatus->pfd), 0, sizeof(DDPIXELFORMAT));
 				DxWndStatus = *pStatus;
 				HookInit(&pMapping[i], hwnd);
 			}

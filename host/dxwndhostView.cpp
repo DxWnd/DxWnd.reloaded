@@ -12,6 +12,7 @@
 #include "TargetDlg.h"
 #include "SystemTray.h"
 #include "StatusDialog.h"
+#include "DesktopDialog.h"
 #include "PaletteDialog.h"
 #include "TimeSliderDialog.h"
 
@@ -63,6 +64,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_RUN, OnRun)
 	ON_COMMAND(ID_TRAY_RESTORE, OnTrayRestore)
 	ON_COMMAND(ID_VIEW_STATUS, OnViewStatus)
+	ON_COMMAND(ID_VIEW_DESKTOP, OnViewDesktop)
 	ON_COMMAND(ID_VIEW_PALETTE, OnViewPalette)
 	ON_COMMAND(ID_VIEW_TIMESLIDER, OnViewTimeSlider)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_8BPP, OnDesktopcolordepth8bpp)
@@ -177,6 +179,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoPower2Fix) t->flags4 |= NOPOWER2FIX;
 	if(dlg->m_NoPerfCounter) t->flags4 |= NOPERFCOUNTER;
 	if(dlg->m_DisableFogging) t->flags4 |= DISABLEFOGGING;
+	if(dlg->m_ClearTarget) t->flags5 |= CLEARTARGET;
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
@@ -375,6 +378,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoPower2Fix = t->flags4 & NOPOWER2FIX ? 1 : 0;
 	dlg->m_NoPerfCounter = t->flags4 & NOPERFCOUNTER ? 1 : 0;
 	dlg->m_DisableFogging = t->flags4 & DISABLEFOGGING ? 1 : 0;
+	dlg->m_ClearTarget = t->flags5 & CLEARTARGET ? 1 : 0;
 	dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
@@ -1459,6 +1463,13 @@ void CDxwndhostView::OnViewStatus()
 {
 	CStatusDialog *pDlg = new CStatusDialog();
 	BOOL ret = pDlg->Create(CStatusDialog::IDD, this); 
+	pDlg->ShowWindow(SW_SHOW);
+}
+
+void CDxwndhostView::OnViewDesktop()
+{
+	CDesktopDialog *pDlg = new CDesktopDialog();
+	BOOL ret = pDlg->Create(CDesktopDialog::IDD, this); 
 	pDlg->ShowWindow(SW_SHOW);
 }
 

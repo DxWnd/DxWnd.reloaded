@@ -294,7 +294,6 @@ int iRefreshDelayCount=2;
 void SetVSyncDelays(LPDIRECTDRAW lpdd)
 {
 	DDSURFACEDESC2 ddsdRefreshRate;
-	int Reminder;
 	HRESULT res;
 
 	memset(&ddsdRefreshRate, 0, sizeof(ddsdRefreshRate));
@@ -305,18 +304,7 @@ void SetVSyncDelays(LPDIRECTDRAW lpdd)
 		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsdRefreshRate);
 	}
 	if(res) return;
-	gdwRefreshRate = ddsdRefreshRate.dwRefreshRate;
-	if(!gdwRefreshRate) return;
-	iRefreshDelayCount=0;
-	Reminder=0;
-	do{
-		iRefreshDelays[iRefreshDelayCount]=(1000+Reminder)/gdwRefreshRate;
-		Reminder=(1000+Reminder)-(iRefreshDelays[iRefreshDelayCount]*gdwRefreshRate);
-		iRefreshDelayCount++;
-	} while(Reminder && (iRefreshDelayCount<MAXREFRESHDELAYCOUNT));
-	OutTraceDW("Refresh rate=%d: delay=", gdwRefreshRate);
-	for(int i=0; i<iRefreshDelayCount; i++) OutTraceDW("%d ", iRefreshDelays[i]);
-	OutTraceDW("\n");
+	dxw.SetVSyncDelays(ddsdRefreshRate.dwRefreshRate);
 }
 
 static void Stopper(char *s, int line)
@@ -1892,6 +1880,7 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	dxw.SetScreenSize(dwwidth, dwheight);
 	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
 	GetHookInfo()->Width=(short)dxw.GetScreenWidth();
+	GetHookInfo()->ColorDepth=(short)dwbpp;
 	if(dxw.Windowize) AdjustWindowFrame(dxw.GethWnd(), dwwidth, dwheight);
 
 	if(dxw.dwFlags1 & EMULATESURFACE){
@@ -1909,6 +1898,7 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	}
 	else{
 		OutTraceDW("SetDisplayMode: mode=STANDARD BPP=%d\n", dwbpp);
+		dxw.VirtualPixelFormat.dwRGBBitCount = dwbpp;
 		dxw.ActualPixelFormat.dwRGBBitCount = dwbpp;
 	}
 
@@ -2501,7 +2491,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	if(lpDDSEmu_Back==NULL){
 		ClearSurfaceDesc((void *)&ddsd, dxversion);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
 		ddsd.dwWidth = dxw.GetScreenWidth();
 		ddsd.dwHeight = dxw.GetScreenHeight();
 		if(dxw.dwFlags4 & BILINEARFILTER){
@@ -2841,6 +2831,13 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		if(res) return res;
 		lpDDSPrim = *lplpdds;
 		dxw.MarkPrimarySurface(lpDDSPrim);
+
+		DDSURFACEDESC2 ddsdpix;
+		memset((void *)&ddsdpix, 0, sizeof(DDSURFACEDESC));
+		ddsdpix.dwSize = sizeof(DDSURFACEDESC);
+		ddsdpix.dwFlags = DDSD_PIXELFORMAT;
+		(*pGetSurfaceDescMethod(lpDDSPrim))((LPDIRECTDRAWSURFACE2)lpDDSPrim, &ddsdpix);
+		GetHookInfo()->pfd=ddsdpix.ddpfPixelFormat; // v2.02.88
 
 		if (BBCount){
 			// build emulated backbuffer surface
@@ -3525,6 +3522,7 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 	if(dwtrans & DDBLTFAST_WAIT) flags = DDBLT_WAIT;
 	if(dwtrans & DDBLTFAST_DESTCOLORKEY) flags |= DDBLT_KEYDEST;
 	if(dwtrans & DDBLTFAST_SRCCOLORKEY) flags |= DDBLT_KEYSRC;
+	//if(dwtrans & DDBLTFAST_SRCCOLORKEY) flags |= DDBLT_COLORFILL;
 
 	if ((dxw.dwFlags2 & FULLRECTBLT) && ToPrim){
 		 return sBlt("BltFast", lpdds, NULL, lpddssrc, lpsrcrect, flags, NULL, FALSE);
@@ -3542,16 +3540,23 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 	else{
 		// does it EVER goes through here? NULL is not a valid rect value for BltFast call....
 		// yes, forced in FULLRECTBLT mode!
-		ddsd.dwSize=Set_dwSize_From_Surface(lpddssrc);
-		ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT;
-		ret=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
-		if (ret){
-			OutTraceE("BltFast: GetSurfaceDesc ERROR %x at %d\n", ret, __LINE__);
-			return 0;
+		// yes, when BltFast on DDBLTFAST_SRCCOLORKEY!! (Pax Corpus)
+		if(lpddssrc){
+			ddsd.dwSize=Set_dwSize_From_Surface(lpddssrc);
+			ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT;
+			ret=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
+			if (ret){
+				OutTraceE("BltFast: GetSurfaceDesc ERROR %x at %d\n", ret, __LINE__);
+				return 0;
+			}
+			destrect.right = destrect.left + ddsd.dwWidth;
+			destrect.bottom = destrect.top + ddsd.dwHeight;
+			ret=sBlt("BltFast", lpdds, &destrect, lpddssrc, NULL, flags, NULL, FALSE);
 		}
-		destrect.right = destrect.left + ddsd.dwWidth;
-		destrect.bottom = destrect.top + ddsd.dwHeight;
-		ret=sBlt("BltFast", lpdds, &destrect, lpddssrc, NULL, flags, NULL, FALSE);
+		else{
+			//ret=sBlt("BltFast", lpdds, NULL, lpddssrc, NULL, flags, NULL, FALSE);
+			ret=DD_OK;
+		}
 	}
 
 	return ret;
@@ -3559,16 +3564,11 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 
 HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE hevent)
 {
-	static DWORD time = 0;
-	static BOOL step = 0;
-	DWORD tmp;
-	if(!(dxw.dwFlags1 & SAVELOAD)) return (*pWaitForVerticalBlank)(lpdd, dwflags, hevent);
-	tmp = (*pGetTickCount)();
-	if((time - tmp) > 32) time = tmp;
-	(*pSleep)(time - tmp);
-	time += iRefreshDelays[step++];
-	if(step >= iRefreshDelayCount) step=0;
-	return 0;
+	if(dxw.dwFlags1 & SAVELOAD){
+		dxw.VSyncWait();
+		return 0;
+	}
+	return (*pWaitForVerticalBlank)(lpdd, dwflags, hevent);
 }
 
 #define DDPCAPS_INITIALIZE_LEGACY 0x00000008l

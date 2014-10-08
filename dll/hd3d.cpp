@@ -726,6 +726,7 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 	}
 
 	dxw.SetScreenSize(pPresParam->BackBufferWidth, pPresParam->BackBufferHeight);
+	dxw.SetVSyncDelays(mode.RefreshRate);
 
 	GetHookInfo()->IsFullScreen = dxw.IsFullScreen();
 	GetHookInfo()->DXVersion=(short)dwD3DVersion;
@@ -742,6 +743,7 @@ HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDes
 	OutTraceB("Present\n");
 	// frame counter handling....
 	if (dxw.HandleFPS()) return D3D_OK;
+	if (dxw.dwFlags1 & SAVELOAD) dxw.VSyncWait();
 	// proxy ....
 	res=(*pPresent)(pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 	dxw.ShowOverlay();
@@ -763,6 +765,7 @@ HRESULT WINAPI extGetDisplayMode8(void *lpd3d, D3DDISPLAYMODE *pMode)
 		pMode->Height = dxw.GetScreenHeight();
 	}
 	OutTraceD3D("GetDisplayMode(8): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+	dxw.SetVSyncDelays(pMode->RefreshRate);
 	return res;
 }
 
@@ -781,6 +784,7 @@ HRESULT WINAPI extGetDisplayMode9(void *lpd3d, UINT iSwapChain, D3DDISPLAYMODE *
 		pMode->Height = dxw.GetScreenHeight();
 	}
 	OutTraceD3D("GetDisplayMode(9): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+	dxw.SetVSyncDelays(pMode->RefreshRate);
 	return res;
 }
 
@@ -817,6 +821,7 @@ HRESULT WINAPI extGetAdapterDisplayMode8(void *lpd3d, UINT Adapter, D3DDISPLAYMO
 		pMode->Height = dxw.GetScreenHeight();
 	}
 	OutTraceD3D("GetAdapterDisplayMode(8): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+	dxw.SetVSyncDelays(pMode->RefreshRate);
 	return res;
 }
 
@@ -835,6 +840,7 @@ HRESULT WINAPI extGetAdapterDisplayMode9(void *lpd3d, UINT Adapter, D3DDISPLAYMO
 		pMode->Height = dxw.GetScreenHeight();
 	}
 	OutTraceD3D("GetAdapterDisplayMode(9): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+	dxw.SetVSyncDelays(pMode->RefreshRate);
 	return res;
 }
 
@@ -967,6 +973,8 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		HookD3DDevice9(ppd3dd);
 	}
 
+	dxw.SetVSyncDelays(mode.RefreshRate);
+
 	GetHookInfo()->IsFullScreen = dxw.IsFullScreen();
 	GetHookInfo()->DXVersion=(short)dwD3DVersion;
 	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
@@ -1048,6 +1056,8 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	OutTraceD3D("SUCCESS!\n"); 
 
 	HookD3DDevice9(ppd3dd);
+
+	dxw.SetVSyncDelays(mode.RefreshRate);
 
 	GetHookInfo()->IsFullScreen = dxw.IsFullScreen();
 	GetHookInfo()->DXVersion=(short)dwD3DVersion;
@@ -1182,6 +1192,7 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 	}
 
 	(dwD3DVersion == 9) ? HookD3DDevice9(&lpd3dd) : HookD3DDevice8(&lpd3dd);
+	dxw.SetVSyncDelays(mode.RefreshRate);
 	return res;
 }
 

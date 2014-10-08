@@ -10,8 +10,11 @@
 //#undef IsTraceDW
 //#define IsTraceDW TRUE
 
+BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
+
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "IsDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extIsDebuggerPresent},
+	{HOOK_IAT_CANDIDATE, "CheckRemoteDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extCheckRemoteDebuggerPresent},
 	{HOOK_IAT_CANDIDATE, "GetProcAddress", (FARPROC)GetProcAddress, (FARPROC *)&pGetProcAddress, (FARPROC)extGetProcAddress},
 	{HOOK_IAT_CANDIDATE, "LoadLibraryA", (FARPROC)LoadLibraryA, (FARPROC *)&pLoadLibraryA, (FARPROC)extLoadLibraryA},
 	{HOOK_IAT_CANDIDATE, "LoadLibraryExA", (FARPROC)LoadLibraryExA, (FARPROC *)&pLoadLibraryExA, (FARPROC)extLoadLibraryExA},
@@ -628,7 +631,7 @@ DWORD WINAPI extGetLogicalDrives(void)
 			DevBit = 0x1 << i;
 			if(DevMask & DevBit){
 				char RootPathName[10];
-				sprintf(RootPathName, "%c:\\", 'A'+i);
+				sprintf_s(RootPathName, 4, "%c:\\", 'A'+i);
 				Vol = GetVolumeInformation(RootPathName, NULL, NULL, NULL, 0, 0, 0, 0);
 				OutTrace("Vol=%s status=%x\n", RootPathName, Vol);
 				if(!Vol) DevMask &= ~DevBit;
@@ -721,4 +724,13 @@ BOOL WINAPI extCreateProcessA(
 {
 	OutTraceDW("CreateProcess: SUPPRESS ApplicationName=%s CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
 	return TRUE;
+}
+
+BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL pbDebuggerPresent)
+{
+	BOOL ret;
+	if(pbDebuggerPresent) *pbDebuggerPresent = FALSE;
+	ret= (hProcess==(HANDLE)0xFFFFFFFF) ? FALSE : TRUE;
+	OutTraceDW("CheckRemoteDebuggerPresent: hProcess=%x ret=%x\n", hProcess, ret);
+	return ret;
 }

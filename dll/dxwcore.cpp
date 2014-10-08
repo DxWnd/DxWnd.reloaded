@@ -45,6 +45,10 @@ dxwCore::dxwCore()
 	MustShowOverlay=FALSE;
 	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
 	WinDBInit();
+	// initialization of default vsync emulation array
+	iRefreshDelays[0]=16;
+	iRefreshDelays[1]=17;
+	iRefreshDelayCount=2;
 }
 
 dxwCore::~dxwCore()
@@ -139,6 +143,53 @@ void dxwCore::SetScreenSize(int x, int y)
 		}
 	}
 }
+
+void dxwCore::DumpDesktopStatus()
+{
+	HDC hDC;
+	HWND hDesktop;
+	RECT desktop;
+	PIXELFORMATDESCRIPTOR pfd;
+	int  iPixelFormat, iBPP;
+	char ColorMask[65]; // are there 64BPP cards? I bet no....
+
+	// get the current pixel format index
+	hDesktop = GetDesktopWindow();
+	hDC = GetDC(hDesktop);
+	::GetWindowRect(hDesktop, &desktop);
+	iBPP = GetDeviceCaps(hDC, BITSPIXEL);
+	iPixelFormat = GetPixelFormat(hDC); 
+	if(!iPixelFormat) iPixelFormat=1; // why returns 0???
+	// obtain a detailed description of that pixel format  
+	if(!DescribePixelFormat(hDC, iPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd)){
+		OutTrace("DescribePixelFormat ERROR: err=%d\n", GetLastError());
+		return;
+	}
+	memset(ColorMask, ' ', 64); // blank fill
+	ColorMask[64] = 0; // terminate
+	for (int i=pfd.cRedShift; i<pfd.cRedShift+pfd.cRedBits; i++) ColorMask[i]='R';
+	for (int i=pfd.cGreenShift; i<pfd.cGreenShift+pfd.cGreenBits; i++) ColorMask[i]='G';
+	for (int i=pfd.cBlueShift; i<pfd.cBlueShift+pfd.cBlueBits; i++) ColorMask[i]='B';
+	for (int i=pfd.cAlphaShift; i<pfd.cAlphaShift+pfd.cAlphaBits; i++) ColorMask[i]='A';
+	OutTrace( 
+		"Desktop"
+		"\tSize (W x H)=(%d x %d)\n" 
+		"\tColor depth = %d (color bits = %d)\n"
+		"\tPixel format = %d\n"
+		"\tColor mask  (RGBA)= (%d,%d,%d,%d)\n" 
+		"\tColor shift (RGBA)= (%d,%d,%d,%d)\n"
+		"\tColor mask = \"%s\"\n"
+		, 
+		desktop.right, desktop.bottom, 
+		iBPP, pfd.cColorBits,
+		iPixelFormat,
+		pfd.cRedBits, pfd.cGreenBits, pfd.cBlueBits, pfd.cAlphaBits,
+		pfd.cRedShift, pfd.cGreenShift, pfd.cBlueShift, pfd.cAlphaShift,
+		ColorMask
+	);
+}
+
+
 
 /* ------------------------------------------------------------------ */
 // Primary surfaces auxiliary functions
@@ -934,7 +985,42 @@ BOOL dxwCore::HandleFPS()
 	if(dwFlags2 & SKIPFPS) if(SkipFrameCount(dxw.MaxFPS)) return TRUE;
 	return FALSE;
 }
-	
+
+// auxiliary functions ...
+
+void dxwCore::SetVSyncDelays(UINT RefreshRate)
+{
+	int Reminder;
+
+	if((RefreshRate < 10) || (RefreshRate > 100)) return; 
+
+	gdwRefreshRate = RefreshRate;
+	if(!gdwRefreshRate) return;
+	iRefreshDelayCount=0;
+	Reminder=0;
+	do{
+		iRefreshDelays[iRefreshDelayCount]=(1000+Reminder)/gdwRefreshRate;
+		Reminder=(1000+Reminder)-(iRefreshDelays[iRefreshDelayCount]*gdwRefreshRate);
+		iRefreshDelayCount++;
+	} while(Reminder && (iRefreshDelayCount<MAXREFRESHDELAYCOUNT));
+	OutTraceDW("Refresh rate=%d: delay=", gdwRefreshRate);
+	for(int i=0; i<iRefreshDelayCount; i++) OutTraceDW("%d ", iRefreshDelays[i]);
+	OutTraceDW("\n");
+}
+
+void dxwCore::VSyncWait()
+{
+	static DWORD time = 0;
+	static BOOL step = 0;
+	DWORD tmp;
+	tmp = (*pGetTickCount)();
+	if((time - tmp) > 32) time = tmp;
+	(*pSleep)(time - tmp);
+	time += iRefreshDelays[step++];
+	if(step >= iRefreshDelayCount) step=0;
+}
+
+
 static float fMul[17]={2.14F, 1.95F, 1.77F, 1.61F, 1.46F, 1.33F, 1.21F, 1.10F, 1.00F, 0.91F, 0.83F, 0.75F, 0.68F, 0.62F, 0.56F, 0.51F, 0.46F};
 //static float fMul[17]={0.46F, 0.51F, 0.56F, 0.62F, 0.68F, 0.75F, 0.83F, 0.91F, 1.00F, 1.10F, 1.21F, 1.33F, 1.46F, 1.61F, 1.77F, 1.95F, 2.14F};
 
@@ -1045,7 +1131,7 @@ void dxwCore::GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 	static DWORD dwStartTick=0;
 	static DWORD dwUpdateTick=0;
 	static FILETIME StartFileTime;
-	extern DXWNDSTATUS *pStatus;
+//	extern DXWNDSTATUS *pStatus;
 
 	if(dwStartTick==0) {
 		SYSTEMTIME StartingTime;
@@ -1080,7 +1166,7 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	static DWORD dwStartTick=0;
 	static DWORD dwUpdateTick=0;
 	static FILETIME StartFileTime;
-	extern DXWNDSTATUS *pStatus;
+//	extern DXWNDSTATUS *pStatus;
 
 	if(dwStartTick==0) {
 		SYSTEMTIME StartingTime;
@@ -1109,16 +1195,27 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 
 void dxwCore::ShowOverlay()
 {
-	if (MustShowOverlay) this->ShowOverlay(GetDC(hWnd));
+	if (MustShowOverlay) {
+		RECT rect;
+		(*pGetClientRect)(hWnd, &rect);
+		this->ShowOverlay(GetDC(hWnd), rect.right, rect.bottom);
+	}
 }
 
 void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
 {
-	HDC hdc; // the working dc
 	if (MustShowOverlay) {
+		HDC hdc; // the working dc
+		int h, w;
 		if(!lpdds) return;
 		if (FAILED(lpdds->GetDC(&hdc))) return;
-		this->ShowOverlay(hdc);
+		w = this->GetScreenWidth();
+		h = this->GetScreenHeight();
+		if(this->dwFlags4 & BILINEARFILTER) {
+			w <<=1;
+			h <<=1;
+		}
+		this->ShowOverlay(hdc, w, h);
 		lpdds->ReleaseDC(hdc);
 	}
 }
@@ -1126,28 +1223,23 @@ void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
 void dxwCore::ShowOverlay(HDC hdc)
 {
 	if(!hdc) return;
-	if (dwFlags2 & SHOWFPSOVERLAY) ShowFPS(hdc);
-	if (dwFlags4 & SHOWTIMESTRETCH) ShowTimeStretching(hdc);
+	RECT rect;
+	(*pGetClientRect)(hWnd, &rect);
+	this->ShowOverlay(GetDC(hWnd), rect.right, rect.bottom);
 }
 
-//void dxwCore::ShowFPS()
-//{
-//	this->ShowFPS(GetDC(hWnd));
-//}
-//
-//void dxwCore::ShowFPS(LPDIRECTDRAWSURFACE lpdds)
-//{
-//	HDC hdc; // the working dc
-//	if (FAILED(lpdds->GetDC(&hdc))) return;
-//	this->ShowFPS(hdc);
-//	lpdds->ReleaseDC(hdc);
-//}
+void dxwCore::ShowOverlay(HDC hdc, int w, int h)
+{
+	if(!hdc) return;
+	if (dwFlags2 & SHOWFPSOVERLAY) ShowFPS(hdc, w, h);
+	if (dwFlags4 & SHOWTIMESTRETCH) ShowTimeStretching(hdc, w, h);
+}
 
 // nasty global to ensure that the corner is picked semi-random, but never overlapped
 // between FPS and TimeStretch (and, as a side effect, never twice the same!)
 static int LastCorner;
 
-void dxwCore::ShowFPS(HDC xdc)
+void dxwCore::ShowFPS(HDC xdc, int w, int h)
 {
 	char sBuf[81];
 	static DWORD dwTimer = 0;
@@ -1156,18 +1248,23 @@ void dxwCore::ShowFPS(HDC xdc)
 	static DWORD color;
 
 	if((*pGetTickCount)()-dwTimer > 6000){
-		RECT rect;
 		dwTimer = (*pGetTickCount)();
 		corner = dwTimer % 4;
 		if(corner==LastCorner) corner = (corner+1) % 4;
 		LastCorner = corner;
 		color=0xFF0000; // blue
-		(*pGetClientRect)(hWnd, &rect);
+		//(*pGetClientRect)(hWnd, &rect);
+		//switch (corner) {
+		//case 0: x=10; y=10; break;
+		//case 1: x=rect.right-60; y=10; break;
+		//case 2: x=rect.right-60; y=rect.bottom-20; break;
+		//case 3: x=10; y=rect.bottom-20; break;
+		//}
 		switch (corner) {
 		case 0: x=10; y=10; break;
-		case 1: x=rect.right-60; y=10; break;
-		case 2: x=rect.right-60; y=rect.bottom-20; break;
-		case 3: x=10; y=rect.bottom-20; break;
+		case 1: x=w-60; y=10; break;
+		case 2: x=w-60; y=h-20; break;
+		case 3: x=10; y=h-20; break;
 		}
 	} 
 
@@ -1178,27 +1275,7 @@ void dxwCore::ShowFPS(HDC xdc)
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
 }
 
-//void dxwCore::ShowTimeStretching()
-//{
-//	HDC hdc;
-//	hdc=GetDC(hWnd);
-//	if(hdc)this->ShowTimeStretching(hdc);
-//}
-//
-//void dxwCore::ShowTimeStretching(LPDIRECTDRAWSURFACE lpdds)
-//{
-//	HDC hdc; // the working dc
-//	__try {
-//		if (FAILED(lpdds->GetDC(&hdc))) return;
-//	}
-//	__except(EXCEPTION_EXECUTE_HANDLER){
-//		return;
-//	}
-//	if(hdc)this->ShowTimeStretching(hdc);
-//	lpdds->ReleaseDC(hdc);
-//}
-
-void dxwCore::ShowTimeStretching(HDC xdc)
+void dxwCore::ShowTimeStretching(HDC xdc, int w, int h)
 {
 	char sBuf[81];
 	static DWORD dwTimer = 0;
@@ -1208,7 +1285,6 @@ void dxwCore::ShowTimeStretching(HDC xdc)
 	static int LastTimeShift = 1000; // any initial number different from -8 .. +8
 
 	if((*pGetTickCount)()-dwTimer > 4000){
-		RECT rect;
 		if(LastTimeShift==TimeShift) return; // after a while, stop the show
 		dwTimer = (*pGetTickCount)();
 		LastTimeShift=TimeShift;
@@ -1216,12 +1292,17 @@ void dxwCore::ShowTimeStretching(HDC xdc)
 		if(corner==LastCorner) corner = (corner+1) % 4;
 		LastCorner = corner;
 		color=0x0000FF; // red
-		(*pGetClientRect)(hWnd, &rect);
+		//(*pGetClientRect)(hWnd, &rect);
+		//switch (corner) {
+		//case 0: x=10; y=10; break;
+		//case 1: x=rect.right-60; y=10; break;
+		//case 2: x=rect.right-60; y=rect.bottom-20; break;
+		//case 3: x=10; y=rect.bottom-20; break;
 		switch (corner) {
 		case 0: x=10; y=10; break;
-		case 1: x=rect.right-60; y=10; break;
-		case 2: x=rect.right-60; y=rect.bottom-20; break;
-		case 3: x=10; y=rect.bottom-20; break;
+		case 1: x=w-60; y=10; break;
+		case 2: x=w-60; y=h-20; break;
+		case 3: x=10; y=h-20; break;
 		}
 	} 
 

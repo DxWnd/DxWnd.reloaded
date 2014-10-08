@@ -92,6 +92,7 @@ public: // methods
 	LARGE_INTEGER dxwCore::StretchCounter(LARGE_INTEGER);
 	void ShowOverlay();
 	void ShowOverlay(HDC);
+	void ShowOverlay(HDC, int, int);
 	void ShowOverlay(LPDIRECTDRAWSURFACE);
 	char *GetTSCaption(void);
 	char *GetTSCaption(int);
@@ -119,6 +120,9 @@ public: // methods
 	LARGE_INTEGER StretchLargeCounter(LARGE_INTEGER);
 	UINT MapKeysConfig(UINT, LPARAM, WPARAM);
 	void MapKeysInit();
+	void SetVSyncDelays(UINT);
+	void VSyncWait();
+	void DumpDesktopStatus();
 
 public: // simple data variables
 	BOOL Windowize;
@@ -170,9 +174,13 @@ private:
 	void UnmarkPrimarySurface(LPDIRECTDRAWSURFACE);
 	void UnmarkBackBufferSurface(LPDIRECTDRAWSURFACE);
 	BOOL MustShowOverlay;
-	void ShowFPS(HDC);
-	void ShowTimeStretching(HDC);
+	void ShowFPS(HDC, int, int);
+	void ShowTimeStretching(HDC, int, int);
 	TimerEvent_Type TimerEvent;
+	DWORD gdwRefreshRate;
+	#define MAXREFRESHDELAYCOUNT 20
+	int iRefreshDelays[MAXREFRESHDELAYCOUNT];
+	int iRefreshDelayCount;
 };
 
 extern dxwCore dxw;

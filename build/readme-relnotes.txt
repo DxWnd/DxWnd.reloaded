@@ -569,3 +569,14 @@ added debug messages about hooked window class and name
 fix: ignore IME window when hooking main win, destroy it when requested
 fix: ignore HWND_MESSAGE type windows
 added "Diablo tweak" compatibility flag for Diablo proper screen update handling. It is a temporary tweak waiting to understand better how to properly manage it.
+
+v2.02.88
+fix: DIABLOTWEAK flag defaulted to FALSE
+add: CLEARTARGET flag - forces a Clear CLEAR_TARGET operation on D3D BeginPaint: useful in combination with wireframe mode.
+updated "Optimize CPU" behavior: now it emulates a VSync wait also on D3D8/D3D9. Fixes some "swimming" problem in "Soul Reaver 2", and saves CPU time by limiting the FPS to the refresh rate.
+fixed positioning of FPS and time stretching indication on screen overlay
+cleaned up GUI project: no more japanese and localized resources, no more unreferenced resources.
+GUI: added Desktop status window
+GUI: added pixel format descriptor to DxWnd status
+
+

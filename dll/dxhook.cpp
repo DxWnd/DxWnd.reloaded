@@ -93,7 +93,7 @@ static char *Flag4Names[32]={
 };
 
 static char *Flag5Names[32]={
-	"DIABLOCHEAT", "", "", "",
+	"DIABLOTWEAK", "CLEARTARGET", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -106,8 +106,8 @@ static char *Flag5Names[32]={
 static char *TFlagNames[32]={
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
 	"OUTPROXYTRACE", "DXPROXED", "ASSERTDIALOG", "OUTIMPORTTABLE",
-	"OUTDEBUG", "OUTREGISTRY", "TRACEHOOKS", "",
-	"", "", "", "",
+	"OUTDEBUG", "OUTREGISTRY", "TRACEHOOKS", "OUTD3DTRACE",
+	"OUTDXWINTRACE", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1515,10 +1515,31 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 #ifdef CREATEDESKTOP
 	if(CREATEDESKTOP){
 		if (!hDesktopWindow){
-			//hDesktopWindow=CreateWindowEx(0, "STATIC", "DxWnd Desktop", 0, 
-			hDesktopWindow=CreateWindowEx(WS_EX_CONTROLPARENT, "STATIC", "DxWnd Desktop", 0, 
-				target->posx, target->posy, target->sizx, target->sizy, NULL, NULL, NULL, NULL);
+			static ATOM aClass;
+			WNDCLASSEX WndClsEx;
+			HINSTANCE hinst=NULL;
+			hinst=GetModuleHandle(NULL);
+			WndClsEx.cbSize        = sizeof(WNDCLASSEX);
+			WndClsEx.style         = 0;
+			WndClsEx.lpfnWndProc   = DefWindowProc;
+			WndClsEx.cbClsExtra    = 0;
+			WndClsEx.cbWndExtra    = 0;
+			WndClsEx.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+			WndClsEx.hCursor       = NULL;
+			WndClsEx.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+			//WndClsEx.hbrBackground = CreateSolidBrush(RGB(200,0,0));
+			WndClsEx.lpszMenuName  = NULL;
+			WndClsEx.lpszClassName = "dxwnd:desktop";
+			WndClsEx.hInstance     = hinst;
+			WndClsEx.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
+		
+			aClass=RegisterClassEx(&WndClsEx);
+
+			//HWND hParent = (*pGetDesktopWindow)();
+			HWND hParent = GetDesktopWindow(); // not hooked yet !
+			hDesktopWindow=CreateWindowEx(0, "dxwnd:desktop", "DxWnd Desktop", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
 			if(hDesktopWindow){
+				MoveWindow(hDesktopWindow, target->posx, target->posy, target->sizx, target->sizy, TRUE);
 				OutTraceDW("created desktop emulation: hwnd=%x\n", hDesktopWindow);
 			}
 			else{
@@ -1555,6 +1576,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		OutTrace("HookInit: dxw.hParentWnd=%x class=\"%s\" text=\"%s\" style=%x(%s) exstyle=%x(%s)\n", 
 			dxw.hParentWnd, ClassName, WinText, dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 		OutTrace("HookInit: target window pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY);
+		dxw.DumpDesktopStatus();
 	}
 
 	if (SKIPIMEWINDOW) {
@@ -1575,7 +1597,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 #ifdef CREATEDESKTOP
 	if(CREATEDESKTOP){
 		if (hDesktopWindow){
-			OutTraceDW("HookInit: set new parent=%x\n", hDesktopWindow);
+			OutTraceDW("HookInit: set new parent=%x to main win=%x\n", hDesktopWindow, dxw.hChildWnd);
 			SetParent(dxw.hChildWnd, hDesktopWindow);
 			dxw.hParentWnd = hDesktopWindow;
 		}

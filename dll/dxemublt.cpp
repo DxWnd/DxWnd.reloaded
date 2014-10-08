@@ -261,7 +261,7 @@ static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 	srcpitch = ddsd_src.lPitch - w;
 
 	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
-    for(y = 0; y < h-1; y ++){ // first h-1 lines ....
+	for(y = 0; y < h-1; y ++){ // first h-1 lines ....
 		register DWORD Q1, Q2, Q3, Q4, Q5;
 		Q5 = Melt32(PaletteEntries[*(src8)], PaletteEntries[*(src8+ddsd_src.lPitch)]);
         for(x = 0; x < w; x ++){
