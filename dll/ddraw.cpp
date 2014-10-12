@@ -2442,7 +2442,11 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	memcpy(&ddsd, lpddsd, lpddsd->dwSize); // Copy over ....
 	FixSurfaceCaps(&ddsd, dxversion);
-	if(ddsd.ddsCaps.dwCaps & (DDSCAPS_3DDEVICE|DDSCAPS_ZBUFFER)) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // v2.02.96 !!
+	// It looks that DDSCAPS_SYSTEMMEMORY surfaces can perfectly be DDSCAPS_3DDEVICE as well. 
+	// For "Risk II" it is necessary that both the primary surface and the offscreen surfaces are generated
+	// with the same type, so that assuming an identical lPitch and memcopy-ing from one buffer to the 
+	// other is a legitimate operation. 
+	if(ddsd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // v2.03.03 !!
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
@@ -3745,15 +3749,6 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC
 	DumpSurfaceAttributes(lpDDSurfaceDesc, "[Locked]" , __LINE__);
 	OutTraceB("Lock: lPitch=%d lpSurface=%x\n", lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
-
-	// Pitch fix: some video cards require alignement to a wide boundary, e.g. 128 bytes.
-	// on "Risk II" (Microprose version) you get a 800x600 generic surface that has a wider 
-	// pitch (1664 bytes, that is the smaller 128 multiple of 800 * 2) that should be treated
-	// as if it were a smaller one (1600 = 800 * 2) to get a good blit.
-	// both fixes below are working (one is commented out).
-	if(dxw.dwFlags1 & EMULATESURFACE) 
-		lpDDSurfaceDesc->lPitch = (lpDDSurfaceDesc->dwWidth * lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount) >> 3;
-		//lpDDSurfaceDesc->lPitch = (lpDDSurfaceDesc->lPitch / lpDDSurfaceDesc->dwWidth) * lpDDSurfaceDesc->dwWidth;
 
 	return res;
 }

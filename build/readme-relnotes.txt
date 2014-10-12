@@ -652,14 +652,14 @@ add: texture hooking
 add: texture management
 add: Direct3D dedicated configuration tab
 
-v2.3.01
+v2.03.01
 fix: fixed some bitmap handling while processing textures
 add: texture management dump to texture.out folder and hack from texture.in folder
 fix: AERO optimized mode with ddraw7 only surfaces: "Hoyle Casino Empire" works at least in fullscreen mode.
 fix: bilinear filters compiled with optimized and openmp flags - big speed improvement.
 fix: reduced the maximum amount of visible video card with "Limit available resources" flag: now "Breath of Fire IV" works.
 
-v2.3.02
+v2.03.02
 fix: when creating an IID_IDirectDrawGammaControl object through lpdds->QueryInterface redirect fake primary surface to real one to make the object working. Fixes "Might & Magic 7"
 fix: fixed logging of ddraw Set/GetGammaRamp methods. Added SUPPRESSDXERRORS error suppression
 add: texture extraction parameters (min & max x,y size) in dxwnd.ini config file
@@ -668,5 +668,6 @@ fix: in "prevent maximize" mode, set the main window in maximized state. Allow "
 add: Process kill command now warns you about existence of task
 fix: DxWnd window position save now works on multiscreen desktop
 
-
+v2.03.04
+fix: changed surface capability policy so that "Risk II" works with identical surface pitches
 
