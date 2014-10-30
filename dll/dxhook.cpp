@@ -1406,6 +1406,9 @@ LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 			}
 			else {
 				// fix the message point coordinates
+				POINT upleft={0,0};
+				(*pClientToScreen)(dxw.GethWnd(), &upleft);
+				msg->pt = dxw.SubCoordinates(msg->pt, upleft);
 				msg->pt=dxw.FixCursorPos(msg->pt);
 				// beware: needs fix for mousewheel?
 				if((msg->message <= WM_MOUSELAST) && (msg->message >= WM_MOUSEFIRST)) msg->lParam = MAKELPARAM(msg->pt.x, msg->pt.y); 
@@ -1719,7 +1722,7 @@ FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
 			if((((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
 				((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED)))){ // force hot patch and not already hooked
 											 
-				if(!Hooks->OriginalAddress) {
+			if(!Hooks->OriginalAddress) {
 					Hooks->OriginalAddress=(*pGetProcAddress)(hModule, Hooks->APIName);
 					if(!Hooks->OriginalAddress) continue;
 				}

@@ -12,17 +12,26 @@
 
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 
+typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, 
+										   BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION);
+CreateProcessA_Type pCreateProcessA = NULL;
+
+// v2.02.96: the GetSystemInfo API is NOT hot patchable on Win7. This can cause problems because it can't be hooked by simply
+// enabling hot patch. A solution is making all LiadLibrary* calls hot patchable, so that when loading the module, the call
+// can be hooked by the IAT lookup. This fixes a problem after movie playing in Wind Fantasy SP.
+
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "IsDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extIsDebuggerPresent},
 	{HOOK_IAT_CANDIDATE, "CheckRemoteDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extCheckRemoteDebuggerPresent},
 	{HOOK_IAT_CANDIDATE, "GetProcAddress", (FARPROC)GetProcAddress, (FARPROC *)&pGetProcAddress, (FARPROC)extGetProcAddress},
-	{HOOK_IAT_CANDIDATE, "LoadLibraryA", (FARPROC)LoadLibraryA, (FARPROC *)&pLoadLibraryA, (FARPROC)extLoadLibraryA},
-	{HOOK_IAT_CANDIDATE, "LoadLibraryExA", (FARPROC)LoadLibraryExA, (FARPROC *)&pLoadLibraryExA, (FARPROC)extLoadLibraryExA},
-	{HOOK_IAT_CANDIDATE, "LoadLibraryW", (FARPROC)LoadLibraryW, (FARPROC *)&pLoadLibraryW, (FARPROC)extLoadLibraryW},
-	{HOOK_IAT_CANDIDATE, "LoadLibraryExW", (FARPROC)LoadLibraryExW, (FARPROC *)&pLoadLibraryExW, (FARPROC)extLoadLibraryExW},
+	{HOOK_HOT_CANDIDATE, "LoadLibraryA", (FARPROC)LoadLibraryA, (FARPROC *)&pLoadLibraryA, (FARPROC)extLoadLibraryA},
+	{HOOK_HOT_CANDIDATE, "LoadLibraryExA", (FARPROC)LoadLibraryExA, (FARPROC *)&pLoadLibraryExA, (FARPROC)extLoadLibraryExA},
+	{HOOK_HOT_CANDIDATE, "LoadLibraryW", (FARPROC)LoadLibraryW, (FARPROC *)&pLoadLibraryW, (FARPROC)extLoadLibraryW},
+	{HOOK_HOT_CANDIDATE, "LoadLibraryExW", (FARPROC)LoadLibraryExW, (FARPROC *)&pLoadLibraryExW, (FARPROC)extLoadLibraryExW},
 	{HOOK_IAT_CANDIDATE, "GetDriveTypeA", (FARPROC)NULL, (FARPROC *)&pGetDriveType, (FARPROC)extGetDriveType},
 	{HOOK_IAT_CANDIDATE, "GetLogicalDrives", (FARPROC)NULL, (FARPROC *)&pGetLogicalDrives, (FARPROC)extGetLogicalDrives},
 	{HOOK_IAT_CANDIDATE, "GetTempFileNameA", (FARPROC)GetTempFileNameA, (FARPROC *)&pGetTempFileName, (FARPROC)extGetTempFileName},
+	{HOOK_IAT_CANDIDATE, "CreateProcessA", (FARPROC)NULL, (FARPROC *)&pCreateProcessA, (FARPROC)extCreateProcessA},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -59,11 +68,6 @@ static HookEntry_Type VersionHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type SuppressChildHooks[]={
-	{HOOK_IAT_CANDIDATE, "CreateProcessA", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extCreateProcessA},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
 static char *libname = "kernel32.dll";
 
 void HookKernel32(HMODULE module)
@@ -73,7 +77,6 @@ void HookKernel32(HMODULE module)
 	if(dxw.dwFlags2 & LIMITRESOURCES) HookLibrary(module, LimitHooks, libname);
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
-	if(dxw.dwFlags4 & SUPPRESSCHILD) HookLibrary(module, SuppressChildHooks, libname);
 }
 
 void HookKernel32Init()
@@ -82,7 +85,6 @@ void HookKernel32Init()
 	HookLibInit(LimitHooks);
 	HookLibInit(TimeHooks);
 	HookLibInit(VersionHooks);
-	HookLibInit(SuppressChildHooks);
 }
 
 FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -110,11 +112,6 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 
 	if(dxw.dwFlags2 & FAKEVERSION)
 		if (addr=RemapLibrary(proc, hModule, VersionHooks)) return addr;
-
-	if(dxw.dwFlags4 & SUPPRESSCHILD)
-		if (addr=RemapLibrary(proc, hModule, SuppressChildHooks)) return addr;
-
-	//if (addr=RemapLibrary(proc, hModule, SuppressPerfCountersHooks)) return addr;
 
 	return NULL;
 }
@@ -723,8 +720,29 @@ BOOL WINAPI extCreateProcessA(
 	LPPROCESS_INFORMATION lpProcessInformation
 )
 {
-	OutTraceDW("CreateProcess: SUPPRESS ApplicationName=%s CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
+	BOOL res;
+	OutTraceDW("CreateProcess: ApplicationName=\"%s\" CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
+	if(dxw.dwFlags4 & SUPPRESSCHILD) {
+		OutTraceDW("CreateProcess: SUPPRESS\n");
 	return TRUE;
+}
+//#define RELEASEHOOKTOSONPROCESS TRUE
+//	extern void UnhookProc();
+//	if(RELEASEHOOKTOSONPROCESS) UnhookProc();
+	res=(*pCreateProcessA)(
+		lpApplicationName, 
+		lpCommandLine, 
+		lpProcessAttributes,
+		lpThreadAttributes,
+		bInheritHandles,
+		dwCreationFlags,
+		lpEnvironment,
+		lpCurrentDirectory,
+		lpStartupInfo,
+		lpProcessInformation
+	);
+	if(!res) OutTraceE("CreateProcess: ERROR err=%d\n", GetLastError());
+	return res;
 }
 
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL pbDebuggerPresent)

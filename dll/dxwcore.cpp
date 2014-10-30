@@ -584,6 +584,11 @@ void dxwCore::SethWnd(HWND hwnd)
 		hwnd, RealHDC, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
 }
 
+BOOL dxwCore::ishWndFPS(HWND hwnd) 
+{
+	return (hwnd == hWndFPS);
+}
+
 void dxwCore::FixWorkarea(LPRECT workarea)
 {
 	int w, h, b; // width, height and border
@@ -662,6 +667,48 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 	if(!OffsetRect(&RetRect ,UpLeft.x, UpLeft.y)){
 		OutTraceE("OffsetRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
 	}
+	return RetRect;
+}
+
+RECT dxwCore::MapClientRect(LPRECT lpRect)
+{
+	// same as MapClient, but taking in proper account aspect ratio & virtual desktop position
+	RECT RetRect;
+	RECT ClientRect;
+	RECT NullRect={0, 0, 0, 0};
+	int w, h, bx, by; // width, height and x,y borders
+
+	if (!(*pGetClientRect)(hWnd, &ClientRect)) return NullRect;
+	
+	RetRect=ClientRect;
+	bx = by = 0;
+	if (dwFlags2 & KEEPASPECTRATIO){
+		w = RetRect.right - RetRect.left;
+		h = RetRect.bottom - RetRect.top;
+		if ((w * iRatioY) > (h * iRatioX)){
+			bx = (w - (h * iRatioX / iRatioY))/2;
+		}
+		else {
+			by = (h - (w * iRatioY / iRatioX))/2;
+		}
+	}
+
+	if(lpRect){ // v2.02.41 - fixed coordinates for KEEPASPECTRATIO option
+		LONG Width, Height;
+		Width = ClientRect.right - (2*bx);
+		Height = ClientRect.bottom - (2*by);
+		RetRect.left = bx + (lpRect->left * Width / dwScreenWidth);
+		RetRect.right = (lpRect->right * Width / dwScreenWidth);
+		RetRect.top = by + (lpRect->top * Height / dwScreenHeight);
+		RetRect.bottom = (lpRect->bottom * Height / dwScreenHeight);
+	}
+	else{
+		RetRect.left = ClientRect.left + bx;
+		RetRect.right = ClientRect.right - bx;
+		RetRect.top = ClientRect.top + by;
+		RetRect.bottom = ClientRect.bottom - by;
+	}
+
 	return RetRect;
 }
 
@@ -918,16 +965,26 @@ void dxwCore::DoSlow(int delay)
 	}
 }
 
+// Remarks:
+// If the target window is owned by the current process, GetWindowText causes a WM_GETTEXT message 
+// to be sent to the specified window or control. If the target window is owned by another process 
+// and has a caption, GetWindowText retrieves the window caption text. If the window does not have 
+// a caption, the return value is a null string. This behavior is by design. It allows applications 
+// to call GetWindowText without becoming unresponsive if the process that owns the target window 
+// is not responding. However, if the target window is not responding and it belongs to the calling 
+// application, GetWindowText will cause the calling application to become unresponsive. 
+
 static void CountFPS(HWND hwnd)
 {
 	static DWORD time = 0xFFFFFFFF;
 	static DWORD FPSCount = 0;
+	static HWND LasthWnd = 0;
 	extern void SetFPS(int);
+	static char sBuf[80+15+1]; // title + fps string + terminator
 	//DXWNDSTATUS Status;
 	DWORD tmp;
 	tmp = (*pGetTickCount)();
 	if((tmp - time) > 1000) {
-		char sBuf[80+15+1]; // title + fps string + terminator
 		char *fpss;
 		// log fps count
 		// OutTrace("FPS: Delta=%x FPSCount=%d\n", (tmp-time), FPSCount);
@@ -935,7 +992,10 @@ static void CountFPS(HWND hwnd)
 		GetHookInfo()->FPSCount = FPSCount; // for overlay display
 		// show fps on win title bar
 		if (dxw.dwFlags2 & SHOWFPS){
-			GetWindowText(hwnd, sBuf, 80);
+			if(hwnd != LasthWnd){
+				GetWindowText(hwnd, sBuf, 80);
+				LasthWnd = hwnd;
+			}
 			fpss=strstr(sBuf," ~ (");
 			if(fpss==NULL) fpss=&sBuf[strlen(sBuf)];
 			sprintf_s(fpss, 15, " ~ (%d FPS)", FPSCount);
@@ -953,20 +1013,24 @@ static void CountFPS(HWND hwnd)
 
 static void LimitFrameCount(DWORD delay)
 {
-	static DWORD oldtime=(*pGetTickCount)();
+	static DWORD oldtime = (*pGetTickCount)();
 	DWORD newtime;
 	newtime = (*pGetTickCount)();
+	if(IsDebug) OutTrace("FPS limit: old=%x new=%x delay=%d sleep=%d\n", 
+		oldtime, newtime, delay, (oldtime+delay-newtime));
 	// use '<' and not '<=' to avoid the risk of sleeping forever....
-	if(newtime < oldtime+delay) {
-		if(IsDebug) OutTrace("FPS limit: old=%x new=%x delay=%d sleep=%d\n", 
-			oldtime, newtime, delay, (oldtime+delay-newtime));
-		(*pSleep)(oldtime+delay-newtime);
-		// no good processing messages in the meanwhile: AoE series won't work at all!
-		// don't use DoSlow(oldtime+delay-newtime); 
-		oldtime += delay; // same as doing "oldtime=(*pGetTickCount)();" now
+	if((newtime < oldtime+delay) && (newtime >= oldtime)) {
+		//if(IsDebug) OutTrace("FPS limit: old=%x new=%x delay=%d sleep=%d\n", 
+		//	oldtime, newtime, delay, (oldtime+delay-newtime));
+		do{
+			if(IsDebug) OutTrace("FPS limit: sleep=%d\n", oldtime+delay-newtime);
+			(*pSleep)(oldtime+delay-newtime);
+			newtime = (*pGetTickCount)();
+			if(IsDebug) OutTrace("FPS limit: newtime=%d\n", newtime);
+		} while(newtime < oldtime+delay);
 	}
-	else
-		oldtime = newtime;
+	oldtime += delay;
+	if(oldtime < newtime-delay) oldtime = newtime-delay;
 }
 
 static BOOL SkipFrameCount(DWORD delay)
@@ -1586,8 +1650,27 @@ BOOL dxwCore::ReleaseEmulatedDC(HWND hwnd)
 	//OutTrace("StretchBlt: destdc=%x destrect=(0,0)-(%d,%d) srcdc=%x srcrect=(0,0)-(%d,%d)\n", wdc, client.right, client.bottom, VirtualHDC, VirtualPicRect.right, VirtualPicRect.bottom);
 	// v2.02.94: set HALFTONE stretching. But causes problems with Imperialism II
 	// SetStretchBltMode(wdc,HALFTONE);
+#if 1
 	if(!(*pGDIStretchBlt)(wdc, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, SRCCOPY))
 		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+#else
+	int w, h, bx, by; // width, height and x,y borders
+	RECT RetRect;
+	bx = by = 0;
+	RetRect=client;
+	if (dwFlags2 & KEEPASPECTRATIO){
+		w = RetRect.right - RetRect.left;
+		h = RetRect.bottom - RetRect.top;
+		if ((w * iRatioY) > (h * iRatioX)){
+			bx = (w - (h * iRatioX / iRatioY))/2;
+		}
+		else {
+			by = (h - (w * iRatioY / iRatioX))/2;
+		}
+	}
+	if(!(*pGDIStretchBlt)(wdc, bx, by, client.right-bx, client.bottom-by, VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, SRCCOPY))
+		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+#endif
 	//(*pInvalidateRect)(hwnd, NULL, 0);
 	if(!DeleteObject(VirtualPic))
 		OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);	
@@ -1745,6 +1828,7 @@ BOOL dxwCore::CheckScreenResolution(unsigned int w, unsigned int h)
 	#define HUGE 100000
 	if(dxw.dwFlags4 & LIMITSCREENRES){
 		DWORD maxw, maxh;
+		maxw=HUGE; maxh=HUGE; // v2.02.96
 		switch(MaxScreenRes){
 			case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
 			case DXW_LIMIT_320x200: maxw=320; maxh=200; break;

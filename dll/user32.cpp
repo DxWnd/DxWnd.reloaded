@@ -43,7 +43,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "CreateWindowExW", (FARPROC)CreateWindowExW, (FARPROC *)&pCreateWindowExW, (FARPROC)extCreateWindowExW},
 	{HOOK_IAT_CANDIDATE, "RegisterClassExA", (FARPROC)RegisterClassExA, (FARPROC *)&pRegisterClassExA, (FARPROC)extRegisterClassExA},
 	{HOOK_IAT_CANDIDATE, "RegisterClassA", (FARPROC)RegisterClassA, (FARPROC *)&pRegisterClassA, (FARPROC)extRegisterClassA},
-	{HOOK_IAT_CANDIDATE, "GetSystemMetrics", (FARPROC)GetSystemMetrics, (FARPROC *)&pGetSystemMetrics, (FARPROC)extGetSystemMetrics},
+	{HOOK_HOT_CANDIDATE, "GetSystemMetrics", (FARPROC)GetSystemMetrics, (FARPROC *)&pGetSystemMetrics, (FARPROC)extGetSystemMetrics},
 	{HOOK_IAT_CANDIDATE, "GetDesktopWindow", (FARPROC)GetDesktopWindow, (FARPROC *)&pGetDesktopWindow, (FARPROC)extGetDesktopWindow},
 	{HOOK_IAT_CANDIDATE, "CloseWindow", (FARPROC)NULL, (FARPROC *)&pCloseWindow, (FARPROC)extCloseWindow},
 	{HOOK_IAT_CANDIDATE, "DestroyWindow", (FARPROC)NULL, (FARPROC *)&pDestroyWindow, (FARPROC)extDestroyWindow},
@@ -53,13 +53,12 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "GetWindowLongA", (FARPROC)GetWindowLongA, (FARPROC *)&pGetWindowLongA, (FARPROC)extGetWindowLongA}, 
 	{HOOK_HOT_CANDIDATE, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
 	{HOOK_HOT_CANDIDATE, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
-
-	//{HOOK_HOT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
-	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
-
 	{HOOK_IAT_CANDIDATE, "IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
 	{HOOK_IAT_CANDIDATE, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
 	{HOOK_IAT_CANDIDATE, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
+	//{HOOK_HOT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
+	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+	//{HOOK_IAT_CANDIDATE, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -591,12 +590,20 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		if(dxw.dwFlags1 & LOCKWINSTYLE){
 			if(nIndex==GWL_STYLE){
 				OutTraceDW("SetWindowLong: Lock GWL_STYLE=%x\n", dwNewLong);
-				//return 1;
+#if 1
 				return (*pGetWindowLongA)(hwnd, nIndex);
+#else
+				dwNewLong = (*pGetWindowLongA)(hwnd, nIndex);
+				if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwNewLong & WS_CHILD) /*&& dxw.IsDesktop(hwnd)*/){
+					OutTraceDW("SetWindowLong: GWL_STYLE %x force OVERLAPPEDWINDOW\n", dwNewLong);
+					dwNewLong |= WS_OVERLAPPEDWINDOW; 
+					dwNewLong &= ~WS_CLIPSIBLINGS; 
+				}
+				return dwNewLong;
+#endif
 			}
 			if(nIndex==GWL_EXSTYLE){
 				OutTraceDW("SetWindowLong: Lock GWL_EXSTYLE=%x\n", dwNewLong);
-				//return 1;
 				return (*pGetWindowLongA)(hwnd, nIndex);
 			}
 		}
@@ -1610,7 +1617,7 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 	OutTraceDW("FillRect: hdc=%x hbrush=%x rect=(%d,%d)-(%d,%d)\n", hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
 
 	if(dxw.dwFlags4 & NOFILLRECT) {
-		OutTraceDW("FillRect: SUPPRESSED\n", hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
+		OutTraceDW("FillRect: SUPPRESS\n", hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
 		return TRUE;
 	}
 
@@ -1763,6 +1770,7 @@ LONG WINAPI extEnumDisplaySettings(LPCTSTR lpszDeviceName, DWORD iModeNum, DEVMO
 		if(dxw.dwFlags4 & LIMITSCREENRES){
 			#define HUGE 100000
 			DWORD maxw, maxh;
+			maxw = maxh = HUGE;
 			switch(dxw.MaxScreenRes){
 				case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
 				case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
@@ -2224,6 +2232,7 @@ BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 		if(dxw.IsDesktop(hwnd))
 			lpRect=NULL;
 		else{
+#if 1
 			POINT p={0,0};
 			lpRect=&Rect;
 			(*pGetClientRect)(hwnd, lpRect);
@@ -2234,6 +2243,10 @@ BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 			lpRect->bottom += p.y;
 			//dxw.AddCoordinates(lpRect, p);
 			dxw.UnmapClient(lpRect);
+#else
+			lpRect=&Rect;
+			Rect = dxw.MapClientRect(lpRect);
+#endif
 		}
 		extBlt(dxw.lpDDSPrimHDC, lpRect, dxw.lpDDSPrimHDC, NULL, 0, NULL);
 		return TRUE;
@@ -2875,6 +2888,27 @@ BOOL WINAPI extValidateRect(HWND hWnd, const RECT *lpRect)
 			OutTrace("ValidateRect: hwnd=%x rect=NULL\n", hWnd);
 	}
 	ret = (*pValidateRect)(hWnd, lpRect);
+	return ret;
+}
+
+int WINAPI extGetWindowTextA(HWND hWnd, LPTSTR lpString, int nMaxCount)
+{
+	// purpose of this wrapped call is to clear the FPS indicator (format " ~ (%d FPS)") 
+	// from the window title, if present. It crashes games such as "Panzer General 3 Scorched Earth"
+	// when FPS on window title is activated.
+	int ret;
+	OutTraceDW("GetWindowTextA: hwnd=%x MaxCount=%d\n", hWnd, nMaxCount);
+	ret=(*pGetWindowTextA)(hWnd, lpString, nMaxCount);
+	if(ret) OutTraceDW("GetWindowTextA: ret=%d String=\"%s\"\n", ret, lpString);
+	if (ret && (dxw.dwFlags2 & SHOWFPS) && dxw.ishWndFPS(hWnd)){
+		char *p;
+		p=strstr(lpString, " ~ (");
+		if(p){
+			*p = NULL;
+			ret = strlen(lpString);
+			OutTraceDW("GetWindowTextA: FIXED ret=%d String=\"%s\"\n", ret, lpString);
+		}
+	}
 	return ret;
 }
 #endif

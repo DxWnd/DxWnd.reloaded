@@ -136,9 +136,12 @@ BOOL WinDBGetSize(HWND hwnd, int *w, int *h)
 WNDPROC WinDBGetProc(HWND hwnd)
 {
 	int StackIdx;
-	for(StackIdx=0; StackIdx<WhndTOS; StackIdx++) if (WhndStack[StackIdx].hwnd==hwnd) {
+	//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x TOS=%d\n", hwnd, WhndTOS);
+	for(StackIdx=0; StackIdx<WhndTOS; StackIdx++) {
+		if (WhndStack[StackIdx].hwnd==hwnd) {
 		//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=%x\n", hwnd, WhndStack[StackIdx].wndproc);
 		return WhndStack[StackIdx].wndproc; // either a good value, or NULL
+	}
 	}
 	//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=NULL\n", hwnd);
 	return NULL;

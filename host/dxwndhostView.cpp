@@ -224,6 +224,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
 	if(dlg->m_FixTextOut) t->flags |= FIXTEXTOUT;
 	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
+	if(dlg->m_RemapMCI) t->flags5 |= REMAPMCI;
 	if(dlg->m_KeepCursorWithin) t->flags |= KEEPCURSORWITHIN;
 	if(dlg->m_KeepCursorFixed) t->flags2 |= KEEPCURSORFIXED;
 	if(dlg->m_UseRGB565) t->flags |= USERGB565;
@@ -411,6 +412,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_VideoToSystemMem = t->flags & SWITCHVIDEOMEMORY ? 1 : 0;
 	dlg->m_FixTextOut = t->flags & FIXTEXTOUT ? 1 : 0;
 	dlg->m_HookGlide = t->flags4 & HOOKGLIDE ? 1 : 0;
+	dlg->m_RemapMCI = t->flags5 & REMAPMCI ? 1 : 0;
 	dlg->m_KeepCursorWithin = t->flags & KEEPCURSORWITHIN ? 1 : 0;
 	dlg->m_KeepCursorFixed = t->flags2 & KEEPCURSORFIXED ? 1 : 0;
 	dlg->m_UseRGB565 = t->flags & USERGB565 ? 1 : 0;

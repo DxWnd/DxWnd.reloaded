@@ -1821,7 +1821,7 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 
 	if (dwLocalDDVersion > dxw.dwMaxDDVersion) {
 		*obp = NULL;
-		OutTraceDW("QueryInterface(S): DDVersion=%d SUPPRESSED lpdds=%x(%s) REFIID=%x obp=(NULL) ret=0 at %d\n",
+		OutTraceDW("QueryInterface(S): DDVersion=%d SUPPRESS lpdds=%x(%s) REFIID=%x obp=(NULL) ret=0 at %d\n",
 			dwLocalDDVersion, lpdds, IsPrim?"":"(PRIM)", riid.Data1, __LINE__);
 		return(0);
 	}
@@ -2617,6 +2617,7 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_BACKBUFFER|DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	if(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
@@ -2702,6 +2703,7 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	memcpy(&ddsd, lpddsd, lpddsd->dwSize); // Copy over ....
 	FixSurfaceCaps(&ddsd, dxversion);
+	if(ddsd.ddsCaps.dwCaps & (DDSCAPS_3DDEVICE|DDSCAPS_ZBUFFER)) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // v2.02.96 !!
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 

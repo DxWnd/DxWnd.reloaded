@@ -34,6 +34,8 @@ FARPROC Remap_AdvApi32_ProcAddress(LPCSTR proc, HMODULE hModule)
 #define IsFake(hKey) (((DWORD)hKey & HKEY_MASK) == HKEY_MASK)
 
 static FILE *OpenFakeRegistry();
+static char *hKey2String(HKEY);
+static LONG myRegOpenKeyEx(HKEY, LPCTSTR, PHKEY);
 
 static char *hKey2String(HKEY hKey)
 {
@@ -50,7 +52,7 @@ static char *hKey2String(HKEY hKey)
 			while (!feof(regf)){
 				if(RegBuf[0]=='['){
 					if(hLocalKey == hKey){
-						OutTrace("building fake Key=\"%s\" hKey=%x\n", sKey, hKey);
+						//OutTrace("building fake Key=\"%s\" hKey=%x\n", sKey, hKey);
 						fclose(regf);
 						strcpy(sKey, &RegBuf[1]);
 						sKey[strlen(sKey)-2]=0; // get rid of "]"
@@ -162,7 +164,7 @@ LONG WINAPI extRegQueryValueEx(
 {
 	LONG res;
 
-	OutTraceR("RegQueryValueEx: hKey=%x(%s) ValueName=\"%s\" Reserved=%x\n", hKey, hKey2String(hKey), lpValueName, lpReserved);
+	OutTraceR("RegQueryValueEx: hKey=%x(\"%s\") ValueName=\"%s\" Reserved=%x\n", hKey, hKey2String(hKey), lpValueName, lpReserved);
 	if (!IsFake(hKey)){
 		res=(*pRegQueryValueEx)(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 		if(IsTraceR){
@@ -295,7 +297,10 @@ LONG WINAPI extRegSetValueEx(HKEY hKey, LPCTSTR lpValueName, DWORD Reserved, DWO
 			default: OutTrace("\n");
 		}
 	}
-	if(IsFake(hKey) && (dxw.dwFlags3 & EMULATEREGISTRY)) return ERROR_SUCCESS;
+	if(IsFake(hKey) && (dxw.dwFlags3 & EMULATEREGISTRY)) {
+		OutTraceR("RegSetValueEx: SUPPRESS registry key set\n");
+		return ERROR_SUCCESS;
+	}
 	return (*pRegSetValueEx)(hKey, lpValueName, Reserved, dwType, lpData, cbData);
 }
 

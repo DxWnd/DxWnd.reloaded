@@ -204,9 +204,12 @@ typedef BOOL	(WINAPI *GetCursorInfo_Type)(PCURSORINFO);
 typedef HWND	(WINAPI *WindowFromPoint_Type)(POINT);
 typedef HWND	(WINAPI *ChildWindowFromPoint_Type)(HWND, POINT);
 typedef HWND	(WINAPI *ChildWindowFromPointEx_Type)(HWND, POINT, UINT);
+typedef int		(WINAPI *GetWindowTextA_Type)(HWND, LPTSTR, int);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
+typedef MCIERROR(WINAPI *mciSendStringA_Type)(LPCTSTR, LPTSTR, UINT, HANDLE);
+typedef MCIERROR(WINAPI *mciSendStringW_Type)(LPCWSTR, LPWSTR, UINT, HANDLE);
 typedef DWORD	(WINAPI *timeGetTime_Type)(void);
 typedef MMRESULT(WINAPI *timeKillEvent_Type)(UINT);
 typedef MMRESULT(WINAPI *timeSetEvent_Type)(UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT);
@@ -419,9 +422,13 @@ DXWEXTERN GetCursorInfo_Type pGetCursorInfo DXWINITIALIZED;
 DXWEXTERN WindowFromPoint_Type pWindowFromPoint DXWINITIALIZED;
 DXWEXTERN ChildWindowFromPoint_Type pChildWindowFromPoint DXWINITIALIZED;
 DXWEXTERN ChildWindowFromPointEx_Type pChildWindowFromPointEx DXWINITIALIZED;
+DXWEXTERN GetWindowTextA_Type pGetWindowTextA DXWINITIALIZED;
 
 // Winmm.dll:
-DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
+DXWEXTERN mciSendCommand_Type pmciSendCommandA DXWINITIALIZED;
+DXWEXTERN mciSendCommand_Type pmciSendCommandW DXWINITIALIZED;
+DXWEXTERN mciSendStringA_Type pmciSendStringA DXWINITIALIZED;
+DXWEXTERN mciSendStringW_Type pmciSendStringW DXWINITIALIZED;
 DXWEXTERN timeGetTime_Type ptimeGetTime DXWINITIALIZED;
 DXWEXTERN timeKillEvent_Type ptimeKillEvent DXWINITIALIZED;
 DXWEXTERN timeSetEvent_Type ptimeSetEvent DXWINITIALIZED;
@@ -641,10 +648,13 @@ extern BOOL WINAPI extGetCursorInfo(PCURSORINFO);
 extern HWND WINAPI extWindowFromPoint(POINT);
 extern HWND WINAPI extChildWindowFromPoint(HWND, POINT);
 extern HWND WINAPI extChildWindowFromPointEx(HWND, POINT, UINT);
-
+//extern int WINAPI extGetWindowTextA(HWND, LPTSTR, int);
 
 // Winmm.dll:
-extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
+extern MCIERROR WINAPI extmciSendCommandA(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
+extern MCIERROR WINAPI extmciSendCommandW(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
+extern MCIERROR WINAPI extmciSendStringW(LPCWSTR, LPWSTR, UINT, HANDLE);
+extern MCIERROR WINAPI extmciSendStringA(LPCTSTR, LPTSTR, UINT, HANDLE);
 extern DWORD WINAPI exttimeGetTime(void);
 extern MMRESULT WINAPI exttimeSetEvent(UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT);
 extern MMRESULT WINAPI exttimeKillEvent(UINT);

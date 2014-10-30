@@ -37,6 +37,9 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 
 	// Glide
 	DDX_Check(pDX, IDC_HOOKGLIDE, cTarget->m_HookGlide);
+
+	// MCI
+	DDX_Check(pDX, IDC_REMAPMCI, cTarget->m_RemapMCI);
 }
 
 BEGIN_MESSAGE_MAP(CTabSysLibs, CDialog)

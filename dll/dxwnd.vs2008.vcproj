@@ -70,7 +70,7 @@
 			<Tool
 				Name="VCResourceCompilerTool"
 				PreprocessorDefinitions="_DEBUG"
-				Culture="1041"
+				Culture="0"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"

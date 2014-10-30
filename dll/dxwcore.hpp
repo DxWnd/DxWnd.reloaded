@@ -52,6 +52,7 @@ public: // methods
 	void EraseClipCursor(void);
 	RECT MapWindowRect(LPRECT lpRect);
 	RECT MapWindowRect(void);
+	RECT MapClientRect(LPRECT lpRect);
 	void MapClient(LPPOINT);
 	void MapClient(LPRECT);
 	void MapClient(int *, int *, int *, int *);
@@ -74,6 +75,7 @@ public: // methods
 	POINT ClientOffset(HWND);
 	void ScreenRefresh(void);
 	BOOL HandleFPS(void);
+	BOOL ishWndFPS(HWND);
 	DWORD GetTickCount(void);
 	void MarkPrimarySurface(LPDIRECTDRAWSURFACE);
 	BOOL IsAPrimarySurface(LPDIRECTDRAWSURFACE);

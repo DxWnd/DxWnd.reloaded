@@ -7,7 +7,6 @@
 
 #define MAXTARGETS			256
 
-#define DXWACTIVATESINGLETASK 1 // comment to allow multiple task activations
 #define ONEPIXELFIX 1 
 
 // first flags DWORD dwFlags1:
@@ -173,6 +172,7 @@
 #define TRACEHOOKS			0x00000400 // log hook operations
 #define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
 #define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
+#define REMAPMCI			0x00002000 // remap MCI calls coordinates in mciSendString
 
 #define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE | LOCKEDSURFACE)
 #define HANDLEFPS			(SHOWFPS | SHOWFPSOVERLAY | LIMITFPS | SKIPFPS)

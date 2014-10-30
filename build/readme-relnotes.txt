@@ -623,3 +623,12 @@ fix: FPS handling to screen updated made by SetDIBitsToDevice
 fix: PeekMessage implementation with "Peek all message in queue": fixes "Shadow Watch"
 fix: missing hook to CreateProcess - needed for "Suppress child process creation".
 fix: exception for bilinear filtering applied to certain games (e.g. "Shadow Watch")
+
+v2.02.96
+fix: FPS inticator on window title was causing the program to become irresponsive (partial fix)
+fix: proper setting of ddraw surface capabilities will allow primary surface emulation for most D3D1-7 games
+fix: missing initialization of variables in screen size limit handling
+fix: processing of mouse messages 
+fix: GetSystemMetrics and LoadLibrary* calls hooked by hot patching to fix "Wind Fantasy SP" movie problems
+fix: completed winmm multimedia api hooking to fix "Wind Fantasy SP" movie problems, and not only....
+fix: revised FPS control to assure more stable fps when a FPS limit delay is set 

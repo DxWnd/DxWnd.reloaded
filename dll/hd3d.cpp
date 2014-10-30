@@ -1612,23 +1612,23 @@ BOOL WINAPI extShowCursor9(void *lpd3dd, BOOL bShow)
 
 void WINAPI voidDebugSetLevel(void) 
 {
-	OutTraceD3D("DebugSetLevel: SUPPRESSED\n");
+	OutTraceD3D("DebugSetLevel: SUPPRESS\n");
 }
 
 void WINAPI voidDebugSetMute(void) 
 {
-	OutTraceD3D("DebugSetMute: SUPPRESSED\n");
+	OutTraceD3D("DebugSetMute: SUPPRESS\n");
 }
 
 BOOL  WINAPI voidDisableD3DSpy(void)
 {
-	OutTraceD3D("DisableD3DSpy: SUPPRESSED\n");
+	OutTraceD3D("DisableD3DSpy: SUPPRESS\n");
 	return FALSE;
 }
 
 HRESULT WINAPI voidDirect3DShaderValidatorCreate9(void) 
 {
-	OutTraceD3D("Direct3DShaderValidatorCreate9: SUPPRESSED\n");
+	OutTraceD3D("Direct3DShaderValidatorCreate9: SUPPRESS\n");
 	return 0;
 }
 

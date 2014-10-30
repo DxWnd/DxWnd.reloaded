@@ -100,6 +100,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_VideoToSystemMem = FALSE;
 	m_FixTextOut = FALSE;
 	m_HookGlide = FALSE;
+	m_RemapMCI = TRUE;
 	m_KeepCursorWithin = FALSE;
 	m_KeepCursorFixed = FALSE;
 	m_UseRGB565 = FALSE;

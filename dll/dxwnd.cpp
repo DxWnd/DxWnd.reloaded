@@ -24,7 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.02.95"
+#define VERSION "2.02.96"
+#define DXWACTIVATESINGLETASK 1 // comment to allow multiple task activations
 
 #define DDTHREADLOCK 1
 
@@ -216,6 +217,15 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 		ReleaseMutex(hMutex);
 	}
 	return CallNextHookEx(hHook, ncode, wparam, lparam);
+}
+
+void UnhookProc()
+{
+	// used to unhook DxWnd from the current process and allow another one (a son) to be managed
+	//ReleaseMutex(hMutex);
+	ReleaseMutex(hLockMutex);
+	UnmapViewOfFile(pMapping);
+	CloseHandle(hMapping);
 }
 
 void InjectHook()

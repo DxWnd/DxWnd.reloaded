@@ -628,6 +628,10 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\resource"
+			>
+		</File>
 	</Files>
 	<Globals>
 		<Global

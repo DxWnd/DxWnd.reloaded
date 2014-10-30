@@ -1,3 +1,6 @@
+#define _CRT_SECURE_NO_WARNINGS 
+#define _CRT_NON_CONFORMING_SWPRINTFS
+
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
@@ -5,12 +8,15 @@
 #include "dxhelper.h"
 
 #include "MMSystem.h"
+#include <stdio.h>
 
-//#undef OutTraceDW
-//#define OutTraceDW OutTrace
+#define SUPPRESSMCIERRORS FALSE
+
+BOOL IsWithinMCICall = FALSE;
 
 static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommand, (FARPROC)extmciSendCommand},
+	{HOOK_HOT_CANDIDATE, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
+	{HOOK_HOT_CANDIDATE, "mciSendCommandW", NULL, (FARPROC *)&pmciSendCommandW, (FARPROC)extmciSendCommandW},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -21,10 +27,17 @@ static HookEntry_Type TimeHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
+static HookEntry_Type RemapHooks[]={
+	{HOOK_HOT_CANDIDATE, "mciSendStringA", NULL, (FARPROC *)&pmciSendStringA, (FARPROC)extmciSendStringA},
+	{HOOK_HOT_CANDIDATE, "mciSendStringW", NULL, (FARPROC *)&pmciSendStringW, (FARPROC)extmciSendStringW},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
 void HookWinMM(HMODULE module)
 {
 	HookLibrary(module, Hooks, "winmm.dll");
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, "winmm.dll");
+	if(dxw.dwFlags5 & REMAPMCI) HookLibrary(module, RemapHooks, "winmm.dll");
 }
 
 FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -34,6 +47,8 @@ FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
 	if(dxw.dwFlags2 & TIMESTRETCH)
 		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
+	if(dxw.dwFlags5 & REMAPMCI)
+		if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
 
 	return NULL;
 }
@@ -81,7 +96,7 @@ MMRESULT WINAPI exttimeKillEvent(UINT uTimerID)
 	You can use the MCI_GETDEVCAPS_CAN_STRETCH flag with the MCI_GETDEVCAPS command to determine if a device scales the image. A device returns FALSE if it cannot scale the image.
 */
 
-MCIERROR WINAPI extmciSendCommand(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
+MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
 {
 	RECT saverect;
 	MCIERROR ret;
@@ -126,3 +141,86 @@ MCIERROR WINAPI extmciSendCommand(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdw
 	if (ret) OutTraceE("mciSendCommand: ERROR res=%d\n", ret);
 	return ret;
 }
+
+MCIERROR WINAPI extmciSendCommandA(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
+{
+	return extmciSendCommand(pmciSendCommandA, IDDevice, uMsg, fdwCommand, dwParam);
+}
+
+MCIERROR WINAPI extmciSendCommandW(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
+{
+	return extmciSendCommand(pmciSendCommandW, IDDevice, uMsg, fdwCommand, dwParam);
+}
+
+MCIERROR WINAPI extmciSendStringA(LPCTSTR lpszCommand, LPTSTR lpszReturnString, UINT cchReturn, HANDLE hwndCallback)
+{
+	MCIERROR ret;
+	if(IsWithinMCICall) return(*pmciSendStringA)(lpszCommand, lpszReturnString, cchReturn, hwndCallback); // just proxy ...
+	OutTraceDW("mciSendStringA: Command=\"%s\" Return=%x Callback=%x\n", lpszCommand, cchReturn, hwndCallback);
+#ifdef WFSPONLY
+	char *target="put movie destination at ";
+	if(!strncmp(lpszCommand, target, strlen(target))) {
+		char NewCommand[256];
+		RECT rect;
+		sscanf(&lpszCommand[strlen(target)], "%ld %ld %ld %ld", &(rect.left), &(rect.top), &(rect.right), &(rect.bottom));
+		rect=dxw.MapClientRect(&rect);
+		sprintf(NewCommand, "put movie destination at %d %d %d %d", rect.left, rect.top, rect.right, rect.bottom);
+		lpszCommand=NewCommand;
+		OutTraceDW("mciSendStringA: replaced Command=\"%s\"\n", lpszCommand);
+	}
+#else
+	char sMovieNickName[81];
+	RECT rect;
+	if (sscanf(lpszCommand, "put %s destination at %ld %ld %ld %ld", 
+		sMovieNickName, &(rect.left), &(rect.top), &(rect.right), &(rect.bottom))==5){
+		char NewCommand[256];
+		rect=dxw.MapClientRect(&rect);
+		sprintf(NewCommand, "put %s destination at %d %d %d %d", sMovieNickName, rect.left, rect.top, rect.right, rect.bottom);
+		lpszCommand=NewCommand;
+		OutTraceDW("mciSendStringA: replaced Command=\"%s\"\n", lpszCommand);
+	}
+#endif
+	IsWithinMCICall=TRUE;
+	ret=(*pmciSendStringA)(lpszCommand, lpszReturnString, cchReturn, hwndCallback);
+	IsWithinMCICall=FALSE;
+	if(ret) OutTraceDW("mciSendStringA ERROR: ret=%x\n", ret);
+	OutTraceDW("mciSendStringA: RetString=\"%s\"\n", lpszReturnString);
+	return ret;
+}
+
+MCIERROR WINAPI extmciSendStringW(LPCWSTR lpszCommand, LPWSTR lpszReturnString, UINT cchReturn, HANDLE hwndCallback)
+{
+	MCIERROR ret;
+	WCHAR *target=L"put movie destination at ";
+	if(IsWithinMCICall) return(*pmciSendStringW)(lpszCommand, lpszReturnString, cchReturn, hwndCallback); // just proxy ...
+	OutTraceDW("mciSendStringW: Command=\"%ls\" Return=%x Callback=%x\n", lpszCommand, cchReturn, hwndCallback);
+#ifdef WFSPONLY
+	if(!wcsncmp(lpszCommand, target, wcslen(target))) {
+		WCHAR NewCommand[256];
+		RECT rect;
+		swscanf(&lpszCommand[wcslen(target)], L"%ld %ld %ld %ld", &(rect.left), &(rect.top), &(rect.right), &(rect.bottom));
+		rect=dxw.MapClientRect(&rect);
+		swprintf(NewCommand, L"put movie destination at %d %d %d %d", rect.left, rect.top, rect.right, rect.bottom);
+		lpszCommand=NewCommand;
+		OutTraceDW("mciSendStringA: replaced Command=\"%ls\"\n", lpszCommand);
+	}
+#else
+	WCHAR sMovieNickName[81];
+	RECT rect;
+	if (swscanf(lpszCommand, L"put %ls destination at %ld %ld %ld %ld", 
+		sMovieNickName, &(rect.left), &(rect.top), &(rect.right), &(rect.bottom))==5){
+		WCHAR NewCommand[256];
+		rect=dxw.MapClientRect(&rect);
+		swprintf(NewCommand, L"put %ls destination at %d %d %d %d", sMovieNickName, rect.left, rect.top, rect.right, rect.bottom);
+		lpszCommand=NewCommand;
+		OutTraceDW("mciSendStringW: replaced Command=\"%ls\"\n", lpszCommand);
+	}
+#endif
+	IsWithinMCICall=TRUE;
+	ret=(*pmciSendStringW)(lpszCommand, lpszReturnString, cchReturn, hwndCallback);
+	IsWithinMCICall=FALSE;
+	if(ret) OutTraceDW("mciSendStringW ERROR: ret=%x\n", ret);
+	OutTraceDW("mciSendStringW: RetString=\"%ls\"\n", lpszReturnString);
+	return ret;
+}
+

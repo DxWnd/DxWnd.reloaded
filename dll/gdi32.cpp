@@ -1091,7 +1091,7 @@ BOOL WINAPI extSetDeviceGammaRamp(HDC hDC, LPVOID lpRamp)
 	BOOL ret;
 	OutTraceDW("SetDeviceGammaRamp: hdc=%x\n", hDC);
 	if(dxw.dwFlags2 & DISABLEGAMMARAMP) {
-		OutTraceDW("SetDeviceGammaRamp: SUPPRESSED\n");
+		OutTraceDW("SetDeviceGammaRamp: SUPPRESS\n");
 		return TRUE;
 	}
 	ret=(*pGDISetDeviceGammaRamp)(hDC, lpRamp);
@@ -1716,7 +1716,7 @@ int WINAPI extAddFontResourceA(LPCTSTR lpszFontFile)
 	BOOL res;
 	OutTraceDW("AddFontResource: FontFile=\"%s\"\n", lpszFontFile);
 	if(dxw.dwFlags3 & FONTBYPASS) {
-		OutTraceDW("AddFontResource: SUPPRESSED FontFile=\"%s\"\n", lpszFontFile);
+		OutTraceDW("AddFontResource: SUPPRESS FontFile=\"%s\"\n", lpszFontFile);
 		return TRUE;
 	}
 	res=(*pAddFontResourceA)(lpszFontFile);
@@ -1729,7 +1729,7 @@ int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
 	BOOL res;
 	OutTraceDW("AddFontResource: FontFile=\"%ls\"\n", lpszFontFile);
 	if(dxw.dwFlags3 & FONTBYPASS) {
-		OutTraceDW("AddFontResource: SUPPRESSED FontFile=\"%ls\"\n", lpszFontFile);
+		OutTraceDW("AddFontResource: SUPPRESS FontFile=\"%ls\"\n", lpszFontFile);
 		return TRUE;
 	}
 	res=(*pAddFontResourceW)(lpszFontFile);
