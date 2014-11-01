@@ -107,7 +107,8 @@ typedef void	(WINAPI *GetSystemTime_Type)(LPSYSTEMTIME);
 typedef void	(WINAPI *GetSystemTimeAsFileTime_Type)(LPFILETIME);
 typedef DWORD	(WINAPI *GetTickCount_Type)(void);
 typedef DWORD	(WINAPI *GetVersion_Type)(void);
-typedef BOOL	(WINAPI *GetVersionEx_Type)(LPOSVERSIONINFO);
+typedef BOOL	(WINAPI *GetVersionExA_Type)(LPOSVERSIONINFOA);
+typedef BOOL	(WINAPI *GetVersionExW_Type)(LPOSVERSIONINFOW);
 typedef void	(WINAPI *GlobalMemoryStatus_Type)(LPMEMORYSTATUS);
 typedef HMODULE (WINAPI *LoadLibraryA_Type)(LPCTSTR);
 typedef HMODULE (WINAPI *LoadLibraryExA_Type)(LPCTSTR, HANDLE, DWORD);
@@ -189,6 +190,8 @@ typedef HWND	(WINAPI *SetCapture_Type)(HWND);
 typedef HWND	(WINAPI *GetForegroundWindow_Type)(void);
 typedef HWND	(WINAPI *GetActiveWindow_Type)(void);
 typedef BOOL	(WINAPI *IsWindowVisible_Type)(HWND);
+typedef BOOL	(WINAPI *SystemParametersInfo_Type)(UINT, UINT, PVOID, UINT);
+typedef BOOL	(WINAPI *KillTimer_Type)(HWND, UINT_PTR);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -307,7 +310,8 @@ DXWEXTERN GetSystemTime_Type pGetSystemTime DXWINITIALIZED;
 DXWEXTERN GetSystemTimeAsFileTime_Type pGetSystemTimeAsFileTime DXWINITIALIZED;
 DXWEXTERN GetTickCount_Type pGetTickCount DXWINITIALIZED;
 DXWEXTERN GetVersion_Type pGetVersion DXWINITIALIZED;
-DXWEXTERN GetVersionEx_Type pGetVersionEx DXWINITIALIZED;
+DXWEXTERN GetVersionExA_Type pGetVersionExA DXWINITIALIZED;
+DXWEXTERN GetVersionExW_Type pGetVersionExW DXWINITIALIZED;
 DXWEXTERN GlobalMemoryStatus_Type pGlobalMemoryStatus DXWINITIALIZED;
 DXWEXTERN LoadLibraryA_Type pLoadLibraryA DXWINITIALIZED;
 DXWEXTERN LoadLibraryExA_Type pLoadLibraryExA DXWINITIALIZED;
@@ -384,6 +388,8 @@ DXWEXTERN SetCapture_Type pSetCapture DXWINITIALIZED;
 DXWEXTERN GetForegroundWindow_Type pGetForegroundWindow DXWINITIALIZED;
 DXWEXTERN GetActiveWindow_Type pGetActiveWindow DXWINITIALIZED;
 DXWEXTERN IsWindowVisible_Type pIsWindowVisible DXWINITIALIZED;
+DXWEXTERN SystemParametersInfo_Type pSystemParametersInfoA DXWINITIALIZED;
+DXWEXTERN KillTimer_Type pKillTimer DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommand DXWINITIALIZED;
@@ -496,7 +502,8 @@ extern void WINAPI extGetSystemTime(LPSYSTEMTIME);
 extern void WINAPI extGetSystemTimeAsFileTime(LPFILETIME);
 extern DWORD WINAPI extGetTickCount(void);
 extern DWORD WINAPI extGetVersion(void);
-extern BOOL WINAPI extGetVersionEx(LPOSVERSIONINFO);
+extern BOOL WINAPI extGetVersionExA(LPOSVERSIONINFOA);
+extern BOOL WINAPI extGetVersionExW(LPOSVERSIONINFOW);
 extern void WINAPI extGlobalMemoryStatus(LPMEMORYSTATUS);
 extern int WINAPI extIsDebuggerPresent(void);
 extern HMODULE WINAPI extLoadLibraryA(LPCTSTR);
@@ -521,6 +528,7 @@ extern HRESULT STDAPICALLTYPE extCoInitialize(LPVOID);
 
 // user32.dll:
 extern HDC WINAPI extBeginPaint(HWND, LPPAINTSTRUCT);
+extern HDC WINAPI extDDBeginPaint(HWND, LPPAINTSTRUCT);
 extern LRESULT WINAPI extCallWindowProc(WNDPROC, HWND, UINT, WPARAM, LPARAM);
 extern LONG WINAPI extChangeDisplaySettingsA(DEVMODEA *, DWORD);
 extern LONG WINAPI extChangeDisplaySettingsExA(LPCTSTR, DEVMODEA *, HWND, DWORD, LPVOID);
@@ -534,6 +542,7 @@ extern HWND WINAPI extCreateWindowExA(DWORD, LPCTSTR, LPCTSTR, DWORD, int, int, 
 extern HWND WINAPI extCreateWindowExW(DWORD, LPCWSTR, LPCWSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
 extern LRESULT WINAPI extDefWindowProc(HWND, UINT, WPARAM, LPARAM);
 extern BOOL WINAPI extEndPaint(HWND, const PAINTSTRUCT *);
+extern BOOL WINAPI extDDEndPaint(HWND, const PAINTSTRUCT *);
 extern LONG WINAPI extEnumDisplaySettings(LPCTSTR, DWORD, DEVMODE *);
 extern int WINAPI extFillRect(HDC, const RECT *, HBRUSH);
 extern int WINAPI extFrameRect(HDC, const RECT *, HBRUSH);
@@ -578,6 +587,8 @@ extern HWND WINAPI extSetCapture(HWND);
 extern HWND WINAPI extGetForegroundWindow(void);
 extern HWND WINAPI extGetActiveWindow(void);
 extern BOOL WINAPI extIsWindowVisible(HWND);
+extern BOOL WINAPI extSystemParametersInfoA(UINT, UINT, PVOID, UINT);
+extern BOOL WINAPI extKillTimer(HWND, UINT_PTR);
 
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommand(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);

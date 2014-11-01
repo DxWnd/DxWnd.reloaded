@@ -356,3 +356,13 @@ fixed log message for TextOut parameters
 hooked DisableD3DSpy (invoked by The Bard's Tale)
 fixed extglViewport coordinate remapping when invoked with CW_USEDEFAULT values (Civ III)
 fixed bug in DirectDarawCreate/Ex hooking with wrong module handle
+
+v2.02.53
+Handling of ddraw screen color depth 15BPP - in "Hesperian Wars"
+fixed IAT scanning: now function addresses for remapping are searched in possibly multiple instances of dll text segment - in "Aaron Hall's Dungeon Odissey"
+hooked SystemParametersInfo call
+fixed window size logic to check for window menu bar, considering also the WS_CHILD case.
+fixed window move/resize when message processing is enabled: coordinates outside the child area or within ENTER/EXITSIZEMOVE must NOT be altered.
+expanded timer processing to include user32 Set/KillTimer - in "Aaron Hall's Dungeon Odissey"
+fixed possible recursion while hooking child window procedure identical to parent's one
+fixed gdi emulation on top of ddraw surface, enough to play "Sid Meyer's Civilization III".

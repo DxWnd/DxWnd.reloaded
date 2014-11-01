@@ -562,6 +562,7 @@ void FixPixelFormat(int ColorDepth, DDPIXELFORMAT *pf)
 		pf->dwBBitMask = 0;
 		pf->dwRGBAlphaBitMask = 0x0000;
 		break;
+	case 15: // v2.02.53: Hesperian Wars - so far the only game setting color depth to 15 BPP!
 	case 16:
 		pf->dwRGBBitCount = 16;
 		if (dxw.dwFlags1 & USERGB565){
@@ -571,7 +572,7 @@ void FixPixelFormat(int ColorDepth, DDPIXELFORMAT *pf)
 			pf->dwRGBAlphaBitMask = 0x0000;
 		}
 		else {
-			if(!(dxw.dwFlags4 & NOALPHACHANNEL)) pf->dwFlags |= DDPF_ALPHAPIXELS; // v2.02.33,40	
+			if(!(dxw.dwFlags4 & NOALPHACHANNEL) && (ColorDepth == 16)) pf->dwFlags |= DDPF_ALPHAPIXELS; // v2.02.33,40,53	
 			pf->dwRBitMask = 0x7c00;
 			pf->dwGBitMask = 0x03e0;
 			pf->dwBBitMask = 0x001f;
@@ -799,6 +800,7 @@ static void SetPixFmt(LPDDSURFACEDESC2 lpdd)
 	switch (dxw.VirtualPixelFormat.dwRGBBitCount)
 	{
 	case 8:
+	case 15:
 	case 16:
 	case 24:
 	case 32:

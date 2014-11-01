@@ -257,3 +257,9 @@ typedef enum {
 	DXW_LIMIT_1024x768,
 	DXW_LIMIT_1280x960
 } ResolutionLimits_Types;
+
+typedef enum {
+	TIMER_TYPE_NONE = 0,
+	TIMER_TYPE_USER32,
+	TIMER_TYPE_WINMM
+} Timer_Types;

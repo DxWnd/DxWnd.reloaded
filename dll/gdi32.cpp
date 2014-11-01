@@ -78,11 +78,12 @@ static HookEntry_Type ScaledHooks[]={
 	{"Ellipse", (FARPROC)NULL, (FARPROC *)&pEllipse, (FARPROC)extEllipse},
 	{"Polygon", (FARPROC)NULL, (FARPROC *)&pPolygon, (FARPROC)extPolygon},
 	{"Arc", (FARPROC)NULL, (FARPROC *)&pArc, (FARPROC)extArc},
-	{"CreateEllipticRgn", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgn, (FARPROC)extCreateEllipticRgn},
-	{"CreateEllipticRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgnIndirect, (FARPROC)extCreateEllipticRgnIndirect},
-	{"CreateRectRgn", (FARPROC)NULL, (FARPROC *)&pCreateRectRgn, (FARPROC)extCreateRectRgn},
-	{"CreateRectRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateRectRgnIndirect, (FARPROC)extCreateRectRgnIndirect},
-	{"CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
+	// commented out since they alter text on screen...... (see Imperialism II difficulty level menu)
+	//{"CreateEllipticRgn", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgn, (FARPROC)extCreateEllipticRgn},
+	//{"CreateEllipticRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgnIndirect, (FARPROC)extCreateEllipticRgnIndirect},
+	//{"CreateRectRgn", (FARPROC)NULL, (FARPROC *)&pCreateRectRgn, (FARPROC)extCreateRectRgn},
+	//{"CreateRectRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateRectRgnIndirect, (FARPROC)extCreateRectRgnIndirect},
+	//{"CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
 	{"DrawTextA", (FARPROC)NULL, (FARPROC *)&pDrawText, (FARPROC)extDrawText},
 	{"DrawTextExA", (FARPROC)NULL, (FARPROC *)&pDrawTextEx, (FARPROC)extDrawTextEx},
 
@@ -123,11 +124,9 @@ static HookEntry_Type DDHooks[]={
 	{"CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extDDCreateDC},
 	{"BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extDDBitBlt},
 	{"StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extDDStretchBlt},
-	// {"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extDDPatBlt}, // missing one ...
-	// {"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
-
 	{"GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
-
+	// {"PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extDDPatBlt}, // missing one ...
+	// {"MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extDDMaskBlt}, // missing one ...
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -314,7 +313,6 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 				OutTrace(" res=0x%04x\n",res); break;
 		}
 	}
-
 
 	// if you have a bypassed setting, use it first!
 	if(pSetDevMode){
@@ -618,18 +616,22 @@ extern HDC PrimHDC;
 
 HDC WINAPI extDDCreateCompatibleDC(HDC hdc)
 {
-	HDC RetHdc, SrcHdc;
+	HDC RetHdc;
 	extern GetDC_Type pGetDC;
 
 	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 
-	if(hdc==0 && pGetDC && dxw.IsFullScreen()){
+	if(dxw.IsDesktop(WindowFromDC(hdc)) && dxw.IsFullScreen()) {
 		dxw.SetPrimarySurface();
-		(*pGetDC)(dxw.lpDDSPrimHDC,&SrcHdc);
-		OutTraceDW("GDI.CreateCompatibleDC: duplicating screen HDC lpDDSPrimHDC=%x\n", dxw.lpDDSPrimHDC); 
-		RetHdc=(*pGDICreateCompatibleDC)(SrcHdc);
-		(*pReleaseDC)(dxw.lpDDSPrimHDC,SrcHdc);
-	}
+		if(!PrimHDC && dxw.lpDDSPrimHDC){
+			HRESULT res;
+			STOPPER("null PrimHDC");
+			res=(*pGetDC)(dxw.lpDDSPrimHDC, &PrimHDC);
+			if(res) OutTraceE("GDI.CreateCompatibleDC ERROR: GetDC lpdds=%x err=%d(%s) at %d\n", dxw.lpDDSPrimHDC, res, ExplainDDError(res), __LINE__);
+		}
+		OutTraceDW("GDI.CreateCompatibleDC: duplicating screen HDC lpDDSPrimHDC=%x SrcHdc=%x\n", dxw.lpDDSPrimHDC, PrimHDC); 
+		RetHdc=(*pGDICreateCompatibleDC)(PrimHDC);
+	} 
 	else
 		RetHdc=(*pGDICreateCompatibleDC)(hdc);
 
@@ -774,7 +776,6 @@ HDC WINAPI extDDGetWindowDC(HWND hwnd)
 	return ret;
 }
 
-#if 1
 int WINAPI extDDReleaseDC(HWND hwnd, HDC hDC)
 {
 	int res;
@@ -796,27 +797,6 @@ int WINAPI extDDReleaseDC(HWND hwnd, HDC hDC)
 	}
 	return(res);
 }
-#else
-int WINAPI extDDReleaseDC(HWND hwnd, HDC hDC)
-{
-	int res;
-	extern HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE, HDC);
-
-	OutTraceDW("GDI.ReleaseDC: hwnd=%x hdc=%x\n", hwnd, hDC);
-	res=0;
-	if (hDC == hPrimaryDC){
-		OutTraceDW("GDI.ReleaseDC: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
-		//extReleaseDC(dxw.lpDDSPrimHDC, hDC);
-		hPrimaryDC=NULL;
-		res=1; // 1 = OK
-	}
-	else {
-		res=(*pGDIReleaseDC)(hwnd, hDC);
-		if (!res) OutTraceE("GDI.ReleaseDC: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	}
-	return(res);
-}
-#endif
 
 BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
 {
@@ -829,18 +809,25 @@ BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHe
 
 	ret=1; // OK
 
-	if(hdcDest==0) {
+	//if(hdcDest==0) {
+	if(dxw.IsDesktop(WindowFromDC(hdcDest))) {
+		OutTrace("hdcDest=%x PrimHDC=%x\n", hdcDest, PrimHDC);
 		hdcDest=PrimHDC;
 		if(hdcDest==0) {
 			dxw.ResetPrimarySurface();
 			dxw.SetPrimarySurface();
-			res=extGetDC(dxw.lpDDSPrimHDC, &PrimHDC);
+			extGetDC(dxw.lpDDSPrimHDC, &PrimHDC);
 			hdcDest=PrimHDC;
 		}
+		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+		if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+		dxw.ScreenRefresh();
+
 	}
 
 	res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+
 
 	//dxw.SetPrimarySurface();
 	//OutTraceDW("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
@@ -857,9 +844,20 @@ BOOL WINAPI extDDStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int
 {
 	BOOL ret;
 	RECT ClientRect;
+	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
 
 	OutTraceDW("GDI.StretchBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d nWSrc=%x nHSrc=%x dwRop=%x\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
+
+	//if(dxw.IsDesktop(WindowFromDC(hdcDest))) {
+	//	hdcDest=PrimHDC;
+	//	if(hdcDest==0) {
+	//		dxw.ResetPrimarySurface();
+	//		dxw.SetPrimarySurface();
+	//		extGetDC(dxw.lpDDSPrimHDC, &PrimHDC);
+	//		hdcDest=PrimHDC;
+	//	}
+	//}
 
 	if(hdcDest != hdcSrc){
 		(*pGetClientRect)(dxw.GethWnd(),&ClientRect);
@@ -1936,6 +1934,13 @@ DWORD WINAPI extGetObjectType(HGDIOBJ h)
 }
 
 #if 0
+HBITMAP WINAPI extCreateDIBitmap(HDC hdc, const BITMAPINFOHEADER *lpbmih, DWORD fdwInit, const VOID *lpbInit, const BITMAPINFO *lpbmi, UINT fuUsage)
+{
+	OutTrace("CreateDIBitmap: hdc=x dwInit=%x bInit=%x Usage=%x\n", hdc, fdwInit, lpbInit, fuUsage);
+	return NULL;
+}
+
+
 int WINAPI extSetMapMode(HDC hdc, int fnMapMode)
 {
 	OutTraceDW("SetMapMode: hdc=%x MapMode=%d\n", hdc, fnMapMode);

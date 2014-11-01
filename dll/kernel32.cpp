@@ -6,6 +6,9 @@
 #include "hddraw.h"
 #include "ddproxy.h"
 
+//#undef IsTraceDW
+//#define IsTraceDW TRUE
+
 static HookEntry_Type Hooks[]={
 	{"IsDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extIsDebuggerPresent},
 	{"GetProcAddress", (FARPROC)GetProcAddress, (FARPROC *)&pGetProcAddress, (FARPROC)extGetProcAddress},
@@ -38,7 +41,6 @@ static HookEntry_Type TimeHooks[]={
 	{"GetSystemTimeAsFileTime", (FARPROC)GetSystemTimeAsFileTime, (FARPROC *)&pGetSystemTimeAsFileTime, (FARPROC)extGetSystemTimeAsFileTime},
 	{"Sleep", (FARPROC)Sleep, (FARPROC *)&pSleep, (FARPROC)extSleep},
 	{"SleepEx", (FARPROC)SleepEx, (FARPROC *)&pSleepEx, (FARPROC)extSleepEx},
-	{"SetTimer", (FARPROC)SetTimer, (FARPROC *)&pSetTimer, (FARPROC)extSetTimer},
 	{"QueryPerformanceCounter", (FARPROC)NULL, (FARPROC *)&pQueryPerformanceCounter, (FARPROC)extQueryPerformanceCounter},
 	{"QueryPerformanceFrequency", (FARPROC)NULL, (FARPROC *)&pQueryPerformanceFrequency, (FARPROC)extQueryPerformanceFrequency},
 	{0, NULL, 0, 0} // terminator
@@ -46,7 +48,8 @@ static HookEntry_Type TimeHooks[]={
 
 static HookEntry_Type VersionHooks[]={
 	{"GetVersion", (FARPROC)GetVersion, (FARPROC *)&pGetVersion, (FARPROC)extGetVersion},
-	{"GetVersionEx", (FARPROC)GetVersionEx, (FARPROC *)&pGetVersionEx, (FARPROC)extGetVersionEx},
+	{"GetVersionExA", (FARPROC)GetVersionExA, (FARPROC *)&pGetVersionExA, (FARPROC)extGetVersionExA},
+	{"GetVersionExW", (FARPROC)GetVersionExW, (FARPROC *)&pGetVersionExW, (FARPROC)extGetVersionExW},
 	{0, NULL, 0, 0} // terminator
 };
 
@@ -199,11 +202,11 @@ static struct {char bMajor; char bMinor; char *sName;} WinVersions[9]=
 	{6, 2, "Windows 8"}
 };
 
-BOOL WINAPI extGetVersionEx(LPOSVERSIONINFO lpVersionInfo)
+BOOL WINAPI extGetVersionExA(LPOSVERSIONINFOA lpVersionInfo)
 {
 	BOOL ret;
 
-	ret=(*pGetVersionEx)(lpVersionInfo);
+	ret=(*pGetVersionExA)(lpVersionInfo);
 	if(!ret) {
 		OutTraceE("GetVersionEx: ERROR err=%d\n", GetLastError());
 		return ret;
@@ -218,6 +221,31 @@ BOOL WINAPI extGetVersionEx(LPOSVERSIONINFO lpVersionInfo)
 		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
 		lpVersionInfo->dwBuildNumber = 0;
 		OutTraceDW("GetVersionEx: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
+			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
+			WinVersions[dxw.FakeVersionId].sName);
+	}
+	return TRUE;
+}
+
+BOOL WINAPI extGetVersionExW(LPOSVERSIONINFOW lpVersionInfo)
+{
+	BOOL ret;
+
+	ret=(*pGetVersionExW)(lpVersionInfo);
+	if(!ret) {
+		OutTraceE("GetVersionEx: ERROR err=%d\n", GetLastError());
+		return ret;
+	}
+
+	OutTraceDW("GetVersionEx: version=%d.%d build=(%d)\n", 
+		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber);
+
+	if(dxw.dwFlags2 & FAKEVERSION) {
+		// fake Win XP build 0
+		lpVersionInfo->dwMajorVersion = WinVersions[dxw.FakeVersionId].bMajor;
+		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
+		lpVersionInfo->dwBuildNumber = 0;
+		OutTraceDW("GetVersionEx: FIXED version=%d.%d build=(%d) os=\"%ls\"\n", 
 			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
 			WinVersions[dxw.FakeVersionId].sName);
 	}
@@ -284,17 +312,6 @@ void WINAPI extGetLocalTime(LPSYSTEMTIME lpLocalTime)
 		lpLocalTime->wHour, lpLocalTime->wMinute, lpLocalTime->wSecond, lpLocalTime->wMilliseconds);
 }
 
-UINT_PTR WINAPI extSetTimer(HWND hWnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPROC lpTimerFunc)
-{
-	UINT uShiftedElapse;
-	// beware: the quicker the time flows, the more the time clicks are incremented,
-	// and the lesser the pauses must be lasting! Shift operations are reverted in
-	// GetSystemTime vs. Sleep or SetTimer
-	uShiftedElapse = dxw.StretchTime(uElapse);
-	if (IsDebug) OutTrace("SetTimer: elapse=%d->%d timeshift=%d\n", uElapse, uShiftedElapse, dxw.TimeShift);
-	return (*pSetTimer)(hWnd, nIDEvent, uShiftedElapse, lpTimerFunc);
-}
-
 VOID WINAPI extSleep(DWORD dwMilliseconds)
 {
 	DWORD dwNewDelay;
@@ -330,6 +347,45 @@ void WINAPI extGetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 	if (IsDebug) OutTrace("GetSystemTimeAsFileTime\n");
 	dxw.GetSystemTimeAsFileTime(lpSystemTimeAsFileTime);
 }
+
+BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
+{
+	BOOL ret;
+	LARGE_INTEGER myPerfCount;
+	if(dxw.dwFlags4 & NOPERFCOUNTER){
+		ret=0;
+		myPerfCount.QuadPart = 0;
+	}
+	else{
+		ret=(*pQueryPerformanceCounter)(&myPerfCount);
+		myPerfCount = dxw.StretchCounter(myPerfCount);
+	}
+	*lpPerformanceCount = myPerfCount;
+	OutTraceB("QueryPerformanceCounter: ret=%x Count=%x-%x\n", ret, lpPerformanceCount->HighPart, lpPerformanceCount->LowPart);
+	return ret;
+}
+
+BOOL WINAPI extQueryPerformanceFrequency(LARGE_INTEGER *lpPerformanceFrequency)
+{
+	BOOL ret;
+	if(dxw.dwFlags4 & NOPERFCOUNTER){
+		LARGE_INTEGER myPerfFrequency;
+		myPerfFrequency.LowPart = 0L;
+		myPerfFrequency.HighPart = 0L;
+		*lpPerformanceFrequency=myPerfFrequency;
+		ret = 0;
+	}
+	else
+		ret=(*pQueryPerformanceFrequency)(lpPerformanceFrequency);
+	OutTraceDW("QueryPerformanceFrequency: ret=%x Frequency=%x-%x\n", ret, lpPerformanceFrequency->HighPart, lpPerformanceFrequency->LowPart);
+	return ret;
+}
+
+/* -------------------------------------------------------------------------------
+
+LoadLibrary (hooking) related APIs
+
+/* ---------------------------------------------------------------------------- */
 
 HMODULE SysLibs[SYSLIBIDX_MAX];
 
@@ -536,6 +592,12 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 	return ret;
 }
 
+/* -------------------------------------------------------------------------------
+
+I/O related APIs
+
+/* ---------------------------------------------------------------------------- */
+
 UINT WINAPI extGetDriveType(LPCTSTR lpRootPathName)
 {
 	OutTraceDW("GetDriveType: path=\"%s\"\n", lpRootPathName);
@@ -543,91 +605,30 @@ UINT WINAPI extGetDriveType(LPCTSTR lpRootPathName)
 	return (*pGetDriveType)(lpRootPathName);
 }
 
-static HANDLE LastFile=NULL;
-static int Where=0;
-static DWORD FileLength;
-static DWORD IOHeapSize;
-static HANDLE IOHeap;
-
 BOOL WINAPI extReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped)
 {
 	BOOL ret;
 	static char *IOBuffer=NULL;
-	DWORD BytesRead;
-	DWORD Cursor;
-	//HANDLE hFileRead;
 
-	OutTrace("ReadFile: hFile=%x Buffer=%x BytesToRead=%d\n", hFile, lpBuffer, nNumberOfBytesToRead);
 
-#define SECTOR_SIZE 4096
-//#define LEGACY_SIZE 1024
-#define LEGACY_SIZE 1024
-
-	if(!IOBuffer) { // initial allocation
-		IOHeap=HeapCreate(0, 0, 0);
-		IOHeapSize = SECTOR_SIZE*200;
-		if(IOHeap==NULL) OutTraceE("HeapCreate ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-		IOBuffer=(char *)HeapAlloc(IOHeap, 0, IOHeapSize);
-		if(IOBuffer==0) OutTraceE("HeapAlloc ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-		OutTrace("ReadFile: Heap=%x Buffer=%x\n", IOHeap, IOBuffer);
-	}
-
-	// if reading current cached file ....
-	if(hFile==LastFile){
-		OutTrace("ReadFile: BUFFERED BEFORE BytesRequested=%d FileSize=%d where=%d\n", 
-			nNumberOfBytesToRead, FileLength, Where);
-		if((Where+nNumberOfBytesToRead)<=FileLength)
-			*lpNumberOfBytesRead=nNumberOfBytesToRead;
-		else
-			*lpNumberOfBytesRead=FileLength-Where;
-		if (*lpNumberOfBytesRead < 0) *lpNumberOfBytesRead=0;
-		memcpy((char *)lpBuffer, IOBuffer+Where, *lpNumberOfBytesRead);
-		OutTrace("ReadFile: ");
-		for(unsigned int i=0; i<*lpNumberOfBytesRead; i++) OutTrace("%02X,", *((unsigned char *)lpBuffer+i));
+	if(IsTraceDW){
+		OutTrace("ReadFile: hFile=%x Buffer=%x BytesToRead=%d Overlapped=%x", hFile, lpBuffer, nNumberOfBytesToRead, lpOverlapped);
+		if(lpOverlapped) OutTrace("->(Offset=0x%x OffsetHigh=0x%x)", lpOverlapped->Offset, lpOverlapped->OffsetHigh);
 		OutTrace("\n");
-		OutTrace("ReadFile: BUFFERED READ BytesRequested=%d BytesRead=%d where=%d\n", 
-			nNumberOfBytesToRead, *lpNumberOfBytesRead, Where);
-		Where += (*lpNumberOfBytesRead);
-		//Where = ((Where+(LEGACY_SIZE-1)) / LEGACY_SIZE) * LEGACY_SIZE;
-		return TRUE;
 	}
-	
-	LastFile=hFile;
-	Where=Cursor=0;
-	// get the whole file
-	Where=(*pSetFilePointer)(hFile, 0, 0, FILE_CURRENT);
-	if(Where==INVALID_SET_FILE_POINTER){
-		OutTraceE("SetFilePointer ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-		return FALSE;
-	}
-	if((*pSetFilePointer)(hFile, 0, 0, FILE_BEGIN)==INVALID_SET_FILE_POINTER){
-		OutTraceE("SetFilePointer ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-		return FALSE;
-	}
-	OutTrace("SetFilePointer: current pos=%d\n", Where);
-	//hFileRead=ReOpenFile(hFile, 0, 0, 0);	
-	do {// try to read it all
-		// when space is not enough, let's grow!
-		if((DWORD)(Cursor+SECTOR_SIZE) > (DWORD)IOHeapSize){
-			OutTrace("HeapReAlloc: about to add another chunk... current size=%d\n", IOHeapSize);
-			IOHeapSize += (200*SECTOR_SIZE);
-			IOBuffer=(char *)HeapReAlloc(IOHeap, 0, IOBuffer, IOHeapSize);
-			if(IOBuffer==0) OutTraceE("HeapReAlloc ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-		}
-		ret=(*pReadFile)(hFile, IOBuffer+Cursor, SECTOR_SIZE, &BytesRead, NULL); // read one block
-		if(!ret) 
-			OutTrace("ReadFIle ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-		else
-			OutTrace("ReadFIle: BytesRead=%d\n", BytesRead);
-		Cursor+=BytesRead;
-		if (ret &&  BytesRead == 0) ret=FALSE; // eof
-	} while(ret);
-	//CloseHandle(hFileRead);
-	OutTrace("ReadFIle: BUFFERED FileSize=%d\n", Cursor);
-	FileLength=Cursor;
 
-	// recurse ...
-	return extReadFile(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
+	ret = (*pReadFile)(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
+	if(IsTraceDW){
+		if(ret){
+			OutTrace("ReadFile: NumberOfBytesRead=%d\n", *lpNumberOfBytesRead);
+			OutTrace("ReadFile: ");
+			for(unsigned int i=0; i<*lpNumberOfBytesRead; i++) OutTrace("%02X,", *((unsigned char *)lpBuffer+i));
+			OutTrace("\n");
+		}
+		else
+			OutTrace("ReadFile: ERROR err=%d\n", GetLastError());
+	}
+	return ret;
 }
 
 HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
@@ -635,76 +636,41 @@ HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwS
 							DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
 {
 	HANDLE ret;
-	OutTrace("CreateFile: FileName=%s DesiredAccess=%x SharedMode=%x Disposition=%x Flags=%x\n", 
+	OutTraceDW("CreateFile: FileName=%s DesiredAccess=%x SharedMode=%x Disposition=%x Flags=%x\n", 
 		lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes);
 
-	//dwFlagsAndAttributes &= ~FILE_FLAG_NO_BUFFERING;
+	// just proxy
+	if(!(dxw.dwFlags3 & BUFFEREDIOFIX))
+		return (*pCreateFile)(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+
+	if((dxw.dwFlags3 & BUFFEREDIOFIX) && (dwFlagsAndAttributes & FILE_FLAG_NO_BUFFERING)){
+		OutTraceDW("CreateFile: suppress FILE_FLAG_NO_BUFFERING\n"); 
+		dwFlagsAndAttributes &= ~FILE_FLAG_NO_BUFFERING;
+	}
 
 	ret=(*pCreateFile)(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-	if(ret && (ret != (HANDLE)INVALID_SET_FILE_POINTER)) 
-		OutTrace("CreateFile: ret=%x\n", ret);
-	else
-		OutTraceE("CreateFile ERROR: err=%d\n", GetLastError());
+	if(IsTraceDW){
+		if(ret && (ret != (HANDLE)INVALID_SET_FILE_POINTER)) 
+			OutTrace("CreateFile: ret=%x\n", ret);
+		else
+			OutTrace("CreateFile ERROR: err=%d\n", GetLastError());
+	}
 	return ret;
 } 
 
 BOOL WINAPI extCloseHandle(HANDLE hObject)
 {
-	if (hObject==LastFile) {
-		LastFile=0; // invalidate cache
-		OutTrace("CloseHandle: INVALIDATE CACHE hFile=%x\n", hObject);
-	}
+	OutTrace("CloseHandle: hFile=%x\n", hObject);
 
 	return (*pCloseHandle)(hObject);
 }
 
 DWORD WINAPI extSetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)
 {
-	DWORD ret;
-	OutTrace("SetFilePointer: hFile=%x DistanceToMove=%ld DistanceToMoveHigh=%x MoveMethod=%x\n", 
+	OutTrace("SetFilePointer: hFile=%x DistanceToMove=0x%lx DistanceToMoveHigh=0x%x MoveMethod=%x\n", 
 		hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
 
-	// if cached file ...
-	if(LastFile==hFile){
-		int LastPos=Where;
-		if(!lpDistanceToMoveHigh){
-			OutTrace("SetFilePointer: buffered move\n");
-			switch(dwMoveMethod){
-				case FILE_BEGIN: Where=lDistanceToMove; break;
-				case FILE_CURRENT: Where+=lDistanceToMove; break;
-				case FILE_END: Where=FileLength-lDistanceToMove; break;
-			}
-			//if(Where % LEGACY_SIZE){
-			//	Where=LastPos;
-			//	SetLastError(ERROR_INVALID_PARAMETER);
-			//	OutTrace("SetFilePointer: ret=INVALID_SET_FILE_POINTER pos=%d\n", Where);
-			//	return INVALID_SET_FILE_POINTER;
-			//}
-			
-			// Where = ((Where + LEGACY_SIZE-1) / LEGACY_SIZE) * LEGACY_SIZE;
-			
-			Where = (Where / LEGACY_SIZE) * LEGACY_SIZE;
-
-			OutTrace("SetFilePointer: ret=0x%x(#%d)\n", Where, Where);
-			return Where;
-		}
-	}
-
-	// proxy
-	ret=(*pSetFilePointer)(hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
-	if(lpDistanceToMoveHigh){
-		if(ret)
-			OutTrace("SetFilePointer: DistanceToMoveHigh=%x\n", *lpDistanceToMoveHigh);
-		else
-			OutTraceE("SetFilePointer ERROR: err=%d\n", GetLastError());
-	}
-	else{
-		if(ret==INVALID_SET_FILE_POINTER)
-			OutTraceE("SetFilePointer ERROR: err=%d\n", GetLastError());
-		else
-			OutTrace("SetFilePointer: ret=%x\n", ret);
-	}
-	return ret;
+	return (*pSetFilePointer)(hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
 }
 
 BOOL WINAPI extCreateProcessA(
@@ -722,37 +688,4 @@ BOOL WINAPI extCreateProcessA(
 {
 	OutTraceDW("CreateProcess: SUPPRESS ApplicationName=%s CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
 	return TRUE;
-}
-
-BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
-{
-	BOOL ret;
-	LARGE_INTEGER myPerfCount;
-	if(dxw.dwFlags4 & NOPERFCOUNTER){
-		ret=0;
-		myPerfCount.QuadPart = 0;
-	}
-	else{
-		ret=(*pQueryPerformanceCounter)(&myPerfCount);
-		myPerfCount = dxw.StretchCounter(myPerfCount);
-	}
-	*lpPerformanceCount = myPerfCount;
-	OutTraceB("QueryPerformanceCounter: ret=%x Count=%x-%x\n", ret, lpPerformanceCount->HighPart, lpPerformanceCount->LowPart);
-	return ret;
-}
-
-BOOL WINAPI extQueryPerformanceFrequency(LARGE_INTEGER *lpPerformanceFrequency)
-{
-	BOOL ret;
-	if(dxw.dwFlags4 & NOPERFCOUNTER){
-		LARGE_INTEGER myPerfFrequency;
-		myPerfFrequency.LowPart = 0L;
-		myPerfFrequency.HighPart = 0L;
-		*lpPerformanceFrequency=myPerfFrequency;
-		ret = 0;
-	}
-	else
-		ret=(*pQueryPerformanceFrequency)(lpPerformanceFrequency);
-	OutTraceDW("QueryPerformanceFrequency: ret=%x Frequency=%x-%x\n", ret, lpPerformanceFrequency->HighPart, lpPerformanceFrequency->LowPart);
-	return ret;
 }

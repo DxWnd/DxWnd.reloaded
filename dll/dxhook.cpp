@@ -337,143 +337,9 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	*hookedproc = tmp;
 }
 
-#ifdef HOOKBYIAT
-PIMAGE_SECTION_HEADER ImageRVA2Section(PIMAGE_NT_HEADERS pimage_nt_headers,DWORD dwRVA)
-{
-	int i;
-	PIMAGE_SECTION_HEADER pimage_section_header=(PIMAGE_SECTION_HEADER)((PCHAR(pimage_nt_headers)) + sizeof(IMAGE_NT_HEADERS));
-	for(i=0;i<pimage_nt_headers->FileHeader.NumberOfSections;i++)
-	{
-		if((pimage_section_header->VirtualAddress) && (dwRVA<=(pimage_section_header->VirtualAddress+pimage_section_header->SizeOfRawData)))
-		{
-			return ((PIMAGE_SECTION_HEADER)pimage_section_header);
-		}
-		pimage_section_header++;
-	}
-	return(NULL);
-}
-
-DWORD RVA2Offset(PCHAR pImageBase,DWORD dwRVA)
-{
-	DWORD _offset;
-	PIMAGE_SECTION_HEADER section;
-	PIMAGE_DOS_HEADER pimage_dos_header;
-	PIMAGE_NT_HEADERS pimage_nt_headers;
-	pimage_dos_header = PIMAGE_DOS_HEADER(pImageBase);
-	pimage_nt_headers = (PIMAGE_NT_HEADERS)(pImageBase+pimage_dos_header->e_lfanew);
-	section=ImageRVA2Section(pimage_nt_headers,dwRVA);
-	if(section==NULL)
-	{
-		return(0);
-	}
-	_offset=dwRVA+section->PointerToRawData-section->VirtualAddress;
-	return(_offset);
-}
-
-void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, void *hookproc)
-{
-	PIMAGE_NT_HEADERS pnth;
-	PIMAGE_IMPORT_DESCRIPTOR pidesc;
-	DWORD base, rva;
-	PSTR impmodule;
-	PIMAGE_THUNK_DATA ptaddr;
-	PIMAGE_THUNK_DATA ptname;
-	PIMAGE_IMPORT_BY_NAME piname;
-	DWORD oldprotect;
-	void *org;
-	PCHAR pThunk;
-	DWORD dwThunk;
-	PCHAR pDllName;
-
-	OutTraceB("HookAPI: module=%x dll=%s apiproc=%x apiname=%s hookproc=%x\n", 
-		module, dll, apiproc, apiname, hookproc);
-
-	if(!*apiname) { // check
-		char *sMsg="HookAPI: NULL api name\n";
-		OutTraceE(sMsg);
-		if (IsAssertEnabled) MessageBox(0, sMsg, "HookAPI", MB_OK | MB_ICONEXCLAMATION);
-		return 0;
-	}
-
-	base = (DWORD)module;
-	__try{
-		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
-		if(!pnth) {
-			OutTraceE("HookAPI: ERROR no PNTH at %d\n", __LINE__);
-			return 0;
-		}
-		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress;
-		if(!rva) {
-			OutTraceE("HookAPI: ERROR no IAT at %d\n", __LINE__);
-			return 0;
-		}
-		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
-		OutTraceDW("HookAPI: pidesc=%x\n", pidesc); 
-
-		while(pidesc->Name){
-			pThunk=(PCHAR)base+pidesc->FirstThunk;
-			dwThunk = pidesc->FirstThunk;
-			pDllName=(PSTR)base+pidesc->Name;
-			OutTraceDW("HookAPI: pDllName=%s Name=%s\n", pDllName, pidesc->Name);
-			//impmodule = (PSTR)(base + pidesc->Name);
-			//if(!lstrcmpi(dll, impmodule)) break;
-			pidesc ++;
-		}
-		if(!pidesc->FirstThunk) {
-			OutTraceB("HookAPI: PE unreferenced dll=%s\n", dll);
-			return 0;
-		}
-
-		ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
-		ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
-
-		if((apiproc==NULL) && (ptname==NULL)){
-			if (IsDebug) OutTraceDW("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
-			return 0;
-		}
-
-		while(ptaddr->u1.Function){
-			if (ptname){
-				if(!IMAGE_SNAP_BY_ORDINAL(ptname->u1.Ordinal)){
-					piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
-					if(!lstrcmpi(apiname, (char *)piname->Name)) break;
-				}
-			}
-			if (apiproc){
-				if(ptaddr->u1.Function == (DWORD)apiproc) break;
-			}
-			ptaddr ++;
-			if (ptname) ptname ++;
-		}
-		if(!ptaddr->u1.Function) return 0;
-
-		org = (void *)ptaddr->u1.Function;
-		if(org == hookproc) return 0; // already hooked
-			
-		if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
-			OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		ptaddr->u1.Function = (DWORD)hookproc;
-		if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
-			OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
-			OutTraceDW("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		if(IsDebug) OutTrace("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
-	}
-	__except(EXCEPTION_EXECUTE_HANDLER)
-	{       
-		OutTraceDW("HookAPI: EXCEPTION hook=%s:%s Hook Failed.\n", dll, apiname);
-		org = 0;
-	}
-	return org;
-}
-
-#else
+// v2.02.53: thorough scan - the IAT is scanned considering the possibility to have each dll module 
+// replicated also many times. It may depend upon the compiling environment? 
+// So far, it makes the difference for Dungeon Odissey
 
 void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, void *hookproc)
 {
@@ -498,6 +364,8 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 	}
 
 	base = (DWORD)module;
+	org = 0; // by default, ret = 0 => API not found
+
 	__try{
 		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
 		if(!pnth) {
@@ -513,64 +381,70 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 
 		while(pidesc->FirstThunk){
 			impmodule = (PSTR)(base + pidesc->Name);
-			if(!lstrcmpi(dll, impmodule)) break;
+			if(!lstrcmpi(dll, impmodule)) {
+				//OutTraceH("HookAPI: dll=%s found at %x\n", dll, impmodule);
+
+				ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
+				ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
+
+				//if((apiproc==NULL) && (ptname==NULL)){
+				//	OutTraceH("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
+				//	return 0;
+				//}
+
+				while(ptaddr->u1.Function){
+					if (ptname){
+						if(!IMAGE_SNAP_BY_ORDINAL(ptname->u1.Ordinal)){
+							piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
+							//OutTrace("examining by ptname name=%s\n", (char *)piname->Name);
+							if(!lstrcmpi(apiname, (char *)piname->Name)) break;
+						}
+					}
+					if (apiproc){
+						// log not working !!!
+						//piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptaddr->u1.AddressOfData);
+						//OutTrace("examining by addr name=%s\n", (char *)piname->Name);
+						if(ptaddr->u1.Function == (DWORD)apiproc) break;
+					}
+					ptaddr ++;
+					if (ptname) ptname ++;
+				}
+
+				if(ptaddr->u1.Function) {
+					org = (void *)ptaddr->u1.Function;
+					if(org == hookproc) return 0; // already hooked
+						
+					if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
+						OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
+						return 0;
+					}
+					ptaddr->u1.Function = (DWORD)hookproc;
+					if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
+						OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
+						return 0;
+					}
+					if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
+						OutTraceDW("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
+						return 0;
+					}
+					OutTraceH("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
+
+					return org;
+				}
+			}
 			pidesc ++;
 		}
 		if(!pidesc->FirstThunk) {
-			OutTraceH("HookAPI: PE unreferenced dll=%s\n", dll);
+			OutTraceH("HookAPI: PE unreferenced function %s:%s\n", dll, apiname);
 			return 0;
 		}
-
-		ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
-		ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
-
-		if((apiproc==NULL) && (ptname==NULL)){
-			OutTraceH("HookAPI: unreacheable api=%s dll=%s\n", apiname, dll);
-			return 0;
-		}
-
-		while(ptaddr->u1.Function){
-			if (ptname){
-				if(!IMAGE_SNAP_BY_ORDINAL(ptname->u1.Ordinal)){
-					piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
-					if(!lstrcmpi(apiname, (char *)piname->Name)) break;
-				}
-			}
-			if (apiproc){
-				if(ptaddr->u1.Function == (DWORD)apiproc) break;
-			}
-			ptaddr ++;
-			if (ptname) ptname ++;
-		}
-		if(!ptaddr->u1.Function) return 0;
-
-		org = (void *)ptaddr->u1.Function;
-		if(org == hookproc) return 0; // already hooked
-			
-		if(!VirtualProtect(&ptaddr->u1.Function, 4, PAGE_EXECUTE_READWRITE, &oldprotect)) {
-			OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		ptaddr->u1.Function = (DWORD)hookproc;
-		if(!VirtualProtect(&ptaddr->u1.Function, 4, oldprotect, &oldprotect)) {
-			OutTraceDW("HookAPI: VirtualProtect error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		if (!FlushInstructionCache(GetCurrentProcess(), &ptaddr->u1.Function, 4)) {
-			OutTraceDW("HookAPI: FlushInstructionCache error %d at %d\n", GetLastError(), __LINE__);
-			return 0;
-		}
-		OutTraceH("HookAPI hook=%s address=%x->%x\n", apiname, org, hookproc);
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{       
 		OutTraceDW("HookAPI: EXCEPTION hook=%s:%s Hook Failed.\n", dll, apiname);
-		org = 0;
 	}
 	return org;
 }
-
-#endif
 
 // v.2.1.80: unified positioning logic into CalculateWindowPos routine
 // now taking in account for window menus (see "Alien Cabal")
@@ -596,7 +470,7 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 		rect.bottom = rect.top + MaxY; //v2.02.09
 		break;
 	case DXW_DESKTOP_WORKAREA:
-		SystemParametersInfo(SPI_GETWORKAREA, NULL, &workarea, 0);
+		(*pSystemParametersInfoA)(SPI_GETWORKAREA, NULL, &workarea, 0);
 		rect = workarea;
 		break;
 	case DXW_DESKTOP_FULL:
@@ -620,7 +494,8 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	UnmappedRect=rect;
 	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
-	hMenu = GetMenu(hwnd);	
+	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
+	hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 	AdjustWindowRectEx(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
 	if (hMenu) CloseHandle(hMenu);
 	switch(dxw.Coordinates){
@@ -1466,18 +1341,42 @@ extern HHOOK hMouseHook;
 
 LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 {
+	static BOOL SizeMoving = FALSE;
+
 	if(code == HC_ACTION){
 		if(dxw.IsFullScreen()){
 			MSG *msg;
 			msg = (MSG *)lParam;
-			OutTraceC("MessageHook: message=%d(%s) remove=%d pt=(%d,%d)\n", 
-				msg->message, ExplainWinMessage(msg->message), msg->wParam, msg->pt.x, msg->pt.y);
-			msg->pt=dxw.FixMessagePt(dxw.GethWnd(), msg->pt);
-			// beware: needs fix for mousewheel?
-			if((msg->message <= WM_MOUSELAST) && (msg->message >= WM_MOUSEFIRST)) msg->lParam = MAKELPARAM(msg->pt.x, msg->pt.y); 
-			OutTraceC("MessageHook: fixed lparam/pt=(%d,%d)\n", msg->pt.x, msg->pt.y);
-			GetHookInfo()->CursorX=(short)msg->pt.x;
-			GetHookInfo()->CursorY=(short)msg->pt.y;
+			OutTraceC("MessageHook: hwnd=%x message=%d(%s) remove=%d pt=(%d,%d)\n", 
+				msg->hwnd, msg->message, ExplainWinMessage(msg->message), msg->wParam, msg->pt.x, msg->pt.y);
+
+			switch(msg->message){
+				case WM_ENTERSIZEMOVE: SizeMoving = TRUE; break;
+				case WM_EXITSIZEMOVE: SizeMoving = FALSE; break;
+			}
+
+			// do not try to fix coordinates for points outside the client area!!
+			// in theory, that should primarily depend on the message type, but this is the way it works ...
+			// do not do the fixing also when in sizemove mode
+			RECT client;
+			client=dxw.GetUnmappedScreenRect();
+			if ((SizeMoving) ||
+				(msg->pt.x < client.left)		||
+				(msg->pt.y < client.top)		||
+				(msg->pt.x > client.right)		||
+				(msg->pt.y > client.bottom)){
+				// do nothing
+			}
+			else {
+				// fix the message point coordinates
+				msg->pt=dxw.FixMessagePt(dxw.GethWnd(), msg->pt);
+				//msg->pt=dxw.FixMessagePt(msg->hwnd, msg->pt);
+				// beware: needs fix for mousewheel?
+				if((msg->message <= WM_MOUSELAST) && (msg->message >= WM_MOUSEFIRST)) msg->lParam = MAKELPARAM(msg->pt.x, msg->pt.y); 
+				OutTraceC("MessageHook: fixed lparam/pt=(%d,%d)\n", msg->pt.x, msg->pt.y);
+				GetHookInfo()->CursorX=(short)msg->pt.x;
+				GetHookInfo()->CursorY=(short)msg->pt.y;
+			}
 		}
 	}
 	return CallNextHookEx(hMouseHook, code, wParam, lParam);

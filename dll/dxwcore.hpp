@@ -4,12 +4,23 @@
 #define DDSQLEN 0x10
 
 typedef struct {
-	UINT uTimerId;
-	UINT uDelay;
-	UINT uResolution;
-	LPTIMECALLBACK lpTimeProc;
-	DWORD_PTR dwUser;
-	UINT fuEvent;
+	DWORD dwTimerType;
+	union{
+		struct {
+			UINT uTimerId;
+			UINT uDelay;
+			UINT uResolution;
+			LPTIMECALLBACK lpTimeProc;
+			DWORD_PTR dwUser; 
+			UINT fuEvent;
+		};
+		struct {
+			HWND hWnd;
+			UINT_PTR nIDEvent;
+			UINT uElapse;
+			TIMERPROC lpTimerFunc;
+		};
+	} t;
 } TimerEvent_Type;
 
 class dxwCore
@@ -53,6 +64,7 @@ public: // methods
 	void FixWorkarea(LPRECT);
 	POINT FixMessagePt(HWND, POINT);
 	RECT GetScreenRect(void);
+	RECT GetUnmappedScreenRect();
 	RECT GetWindowRect(RECT);
 	RECT GetClientRect(RECT);
 	POINT AddCoordinates(POINT, POINT);
@@ -94,7 +106,9 @@ public: // methods
 	int VirtualOffsetX, VirtualOffsetY;
 	void DumpPalette(DWORD, LPPALETTEENTRY);
 	void PushTimer(UINT, UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT);
+	void PushTimer(HWND, UINT_PTR, UINT, TIMERPROC);
 	void PopTimer(UINT);
+	void PopTimer(HWND, UINT_PTR);
 	void RenewTimers();
 
 public: // simple data variables

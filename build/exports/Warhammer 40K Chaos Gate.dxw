@@ -1,15 +1,15 @@
 [target]
-title0=Imperialism II
-path0=D:\Games\Imperialism 2\imperialism II.exe
+title0=Warhammer 40K Chaos Gate
+path0=D:\Games\Warhammer 40K Chaos Gate\game\WH40K.exe
 module0=
 opengllib0=
 ver0=0
 coord0=0
-flag0=679485474
+flag0=679493667
 flagg0=1207959552
-flagh0=32788
+flagh0=20
 flagi0=4
-tflag0=0
+tflag0=64
 initx0=0
 inity0=0
 minx0=0
@@ -23,4 +23,4 @@ sizy0=600
 maxfps0=0
 initts0=0
 winver0=0
-maxres0=0
+maxres0=-1

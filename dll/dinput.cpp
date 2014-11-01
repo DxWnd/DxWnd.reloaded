@@ -15,6 +15,7 @@ typedef HRESULT (WINAPI *GetDeviceData_Type)(LPDIRECTINPUTDEVICE, DWORD, LPVOID,
 typedef HRESULT (WINAPI *GetDeviceState_Type)(LPDIRECTINPUTDEVICE, DWORD, LPDIMOUSESTATE);
 typedef HRESULT (WINAPI *DISetCooperativeLevel_Type)(LPDIRECTINPUTDEVICE, HWND, DWORD);
 typedef HRESULT (WINAPI *SetDataFormat_Type)(LPDIRECTINPUTDEVICE, LPCDIDATAFORMAT);
+typedef HRESULT (WINAPI *DIEnumDevices_Type)(void *, DWORD, LPDIENUMDEVICESCALLBACK, LPVOID, DWORD);
 
 HRESULT WINAPI extDirectInputCreate(HINSTANCE, DWORD, LPDIRECTINPUT *, LPUNKNOWN);
 HRESULT WINAPI extDirectInputCreateEx(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
@@ -26,6 +27,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE, DWORD, LPDIMOUSESTATE);
 HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE, HWND, DWORD);
 HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE, LPCDIDATAFORMAT);
 HRESULT WINAPI extQueryInterfaceI(void *, REFIID, LPVOID *);
+HRESULT WINAPI extDIEnumDevices(void *, DWORD, LPDIENUMDEVICESCALLBACK, LPVOID, DWORD);
 void GetMousePosition(int *, int *);
 void InitPosition(int, int, int, int, int, int);
 	
@@ -38,6 +40,7 @@ GetDeviceState_Type pGetDeviceState;
 DISetCooperativeLevel_Type pDISetCooperativeLevel;
 SetDataFormat_Type pSetDataFormat;
 QueryInterface_Type pQueryInterfaceI;
+DIEnumDevices_Type pDIEnumDevices;
 
 int iCursorX;
 int iCursorY;
@@ -103,7 +106,7 @@ HRESULT WINAPI extDirectInputCreate(HINSTANCE hinst,
 	if(res) return res;
 	SetHook((void *)(**(DWORD **)lplpdi), extQueryInterfaceI, (void **)&pQueryInterfaceI, "QueryInterface(I)");
 	SetHook((void *)(**(DWORD **)lplpdi + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
-	//SetHook((void *)(**(DWORD **)lplpdi + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
+	SetHook((void *)(**(DWORD **)lplpdi + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
 	return 0;
 }
 
@@ -118,7 +121,7 @@ HRESULT WINAPI extDirectInputCreateEx(HINSTANCE hinst,
 	res = (*pDirectInputCreateEx)(hinst, dwversion, riidltf, ppvout, pu);
 	if(res) return res;
 	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
-	//SetHook((void *)(**(DWORD **)lplpdi + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
+	SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
 	SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceEx, (void **)pDICreateDeviceEx, "DICreateDeviceEx(I)");
 	return 0;
 }
@@ -137,6 +140,7 @@ HRESULT WINAPI extQueryInterfaceI(void * lpdi, REFIID riid, LPVOID *obp)
 	case 0x5944E662:		//DirectInput2A
 	case 0x5944E663:		//DirectInput2W
 		SetHook((void *)(**(DWORD **)obp + 12), extDICreateDevice, (void **)pDICreateDevice, "CreateDevice(I)");
+		SetHook((void *)(**(DWORD **)obp + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
 		break;
 	}
 	return 0;
@@ -317,12 +321,56 @@ void InitPosition(int x, int y, int minx, int miny, int maxx, int maxy)
 	iCurMaxY = maxy;
 }
 
-//HRESULT WINAPI extEnumDevices(void *lpdi, DWORD dwDevType, LPDIENUMDEVICESCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags)
-//{
-//	HRESULT res;
-//	OutTraceDW("EnumDevices(I): di=%x DevType=%x CallBack=%x Ref=%x Flags=%x\n", lpdi, dwDevType, lpCallback, pvRef, dwFlags);
-//	res=(*pEnumDevices)( lpdi, dwDevType, lpCallback, pvRef, dwFlags);
-//	OutTraceDW("EnumDevices(I): res=%x\n", res);
-//	return res;
-//}
+typedef struct {
+	LPDIENUMDEVICESCALLBACK cb;
+	LPVOID arg;
+} CallbackArg;
+
+HRESULT WINAPI extDeviceProxy(LPCDIDEVICEINSTANCE dev, LPVOID arg)
+{
+	HRESULT res;
+	char *p;
+	switch (dev->dwSize) {
+		case sizeof(DIDEVICEINSTANCEA): p="ASCII"; break;
+		case sizeof(DIDEVICEINSTANCEW): p="WIDECHAR"; break;
+		default: p="UNKNOWN"; break;
+	}
+	OutTraceDW("EnumDevices(I): CALLBACK size=%d(%s) GUID=(%x.%x.%x.%x) type=%x InstanceName=\"%s\", ProductName=\"%s\"\n", 
+		dev->dwSize, p, dev->guidInstance.Data1, dev->guidInstance.Data2, dev->guidInstance.Data3, dev->guidInstance.Data4, 
+		dev->dwDevType, dev->tszInstanceName, dev->tszProductName);
+
+	if(0){
+		DIDEVICEINSTANCEW fixdev;
+		fixdev.dwSize=sizeof(DIDEVICEINSTANCEW);
+		fixdev.dwDevType=dev->dwDevType;
+		fixdev.guidInstance=dev->guidInstance;
+		fixdev.guidProduct=dev->guidProduct;
+		mbstowcs(fixdev.tszInstanceName, dev->tszInstanceName, strlen(dev->tszInstanceName));
+		mbstowcs(fixdev.tszProductName, dev->tszProductName, strlen(dev->tszProductName));
+		res = ((LPDIENUMDEVICESCALLBACKW)(((CallbackArg *)arg)->cb))(&fixdev, ((CallbackArg *)arg)->arg);
+		OutTraceDW("EnumDevices: CALLBACK ret=%x\n", res);
+		return res;
+	}
+
+	__try{
+		res = ((((CallbackArg *)arg)->cb))(dev, ((CallbackArg *)arg)->arg);
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER){
+		res=TRUE;
+	}
+	OutTraceDW("EnumDevices: CALLBACK ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extDIEnumDevices(void *lpdi, DWORD dwDevType, LPDIENUMDEVICESCALLBACK lpCallback, LPVOID pvRef, DWORD dwFlags)
+{
+	HRESULT res;
+	CallbackArg Arg;
+	OutTraceDW("EnumDevices(I): di=%x DevType=%x CallBack=%x Ref=%x Flags=%x\n", lpdi, dwDevType, lpCallback, pvRef, dwFlags);
+	Arg.cb= lpCallback;
+	Arg.arg=pvRef;
+	res=(*pDIEnumDevices)( lpdi, dwDevType, (LPDIENUMDEVICESCALLBACK)extDeviceProxy, pvRef, dwFlags);
+	OutTraceDW("EnumDevices(I): res=%x\n", res);
+	return res;
+}
 

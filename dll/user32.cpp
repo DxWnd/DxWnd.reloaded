@@ -19,8 +19,6 @@ static HookEntry_Type Hooks[]={
 	{"ChangeDisplaySettingsExA", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsExA, (FARPROC)extChangeDisplaySettingsExA},
 	{"ChangeDisplaySettingsW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsW, (FARPROC)extChangeDisplaySettingsW}, // ref. by Knights of Honor
 	{"ChangeDisplaySettingsExW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsExW, (FARPROC)extChangeDisplaySettingsExW},
-	{"BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
-	{"EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
 	{"ShowCursor", (FARPROC)ShowCursor, (FARPROC *)&pShowCursor, (FARPROC)extShowCursor},
 	{"CreateDialogIndirectParamA", (FARPROC)CreateDialogIndirectParamA, (FARPROC *)&pCreateDialogIndirectParam, (FARPROC)extCreateDialogIndirectParam},
 	{"CreateDialogParamA", (FARPROC)CreateDialogParamA, (FARPROC *)&pCreateDialogParam, (FARPROC)extCreateDialogParam},
@@ -45,10 +43,19 @@ static HookEntry_Type Hooks[]={
 	//{"GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
 	//{"GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	{"IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
+	{"SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
+	{0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type NoGDIHooks[]={
+	{"BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
+	{"EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
 	{0, NULL, 0, 0} // terminator
 };
 
 static HookEntry_Type EmulateHooks[]={
+	{"BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
+	{"EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
 	{"GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
 	{"GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC}, 
 	{"ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
@@ -57,6 +64,8 @@ static HookEntry_Type EmulateHooks[]={
 };
 
 static HookEntry_Type DDHooks[]={
+	{"BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extDDBeginPaint},
+	{"EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extDDEndPaint},
 	{"GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extDDGetDC},
 	{"GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extDDGetDC},
 	{"ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extDDReleaseDC},
@@ -65,6 +74,8 @@ static HookEntry_Type DDHooks[]={
 };
 
 static HookEntry_Type ScaledHooks[]={
+	{"BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
+	{"EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
 	{"GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
 	{"GetDCEx", (FARPROC)NULL, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
 	{"GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC},
@@ -112,6 +123,12 @@ static HookEntry_Type MouseHooks2[]={
 	{0, NULL, 0, 0} // terminator
 };
 
+static HookEntry_Type TimeHooks[]={
+	{"SetTimer", (FARPROC)SetTimer, (FARPROC *)&pSetTimer, (FARPROC)extSetTimer},
+	{"KillTimer", (FARPROC)KillTimer, (FARPROC *)&pKillTimer, (FARPROC)extKillTimer},
+	{0, NULL, 0, 0} // terminator
+};
+
 FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
@@ -121,6 +138,8 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if (dxw.dwFlags2 & GDISTRETCHED)	if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;  
 	if (dxw.dwFlags3 & GDIEMULATEDC)	if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr; 
 	if (dxw.dwFlags1 & MAPGDITOPRIMARY) if (addr=RemapLibrary(proc, hModule, DDHooks)) return addr; 
+	if (!(dxw.dwFlags2 & GDISTRETCHED) && !(dxw.dwFlags3 & GDIEMULATEDC) && !(dxw.dwFlags1 & MAPGDITOPRIMARY))
+		if (addr=RemapLibrary(proc, hModule, NoGDIHooks)) return addr;  
 
 	if (dxw.dwFlags1 & MODIFYMOUSE)		if (addr=RemapLibrary(proc, hModule, MouseHooks)) return addr;
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))
@@ -129,6 +148,9 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 		if (addr=RemapLibrary(proc, hModule, MouseHooks2)) return addr;
 	if (dxw.dwFlags3 & PEEKALLMESSAGES)
 		if (addr=RemapLibrary(proc, hModule, PeekAllHooks)) return addr;
+	if(dxw.dwFlags2 & TIMESTRETCH)
+		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
+
 	return NULL;
 }
 
@@ -137,15 +159,18 @@ static char *libname = "user32.dll";
 void HookUser32(HMODULE hModule)
 {
 	HookLibrary(hModule, Hooks, libname);
+	if (!(dxw.dwFlags2 & GDISTRETCHED) && !(dxw.dwFlags3 & GDIEMULATEDC) && !(dxw.dwFlags1 & MAPGDITOPRIMARY))
+		HookLibrary(hModule, NoGDIHooks, libname);
 	if (dxw.dwFlags3 & GDIEMULATEDC)	HookLibrary(hModule, EmulateHooks, libname);
 	if (dxw.dwFlags2 & GDISTRETCHED)	HookLibrary(hModule, ScaledHooks, libname);
 	if (dxw.dwFlags1 & MAPGDITOPRIMARY) HookLibrary(hModule, DDHooks, libname);
 
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibrary(hModule, RemapHooks, libname);
-	if(dxw.dwFlags1 & MODIFYMOUSE) HookLibrary(hModule, MouseHooks, libname);
+	if (dxw.dwFlags1 & MODIFYMOUSE) HookLibrary(hModule, MouseHooks, libname);
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)) HookLibrary(hModule, WinHooks, libname);
-	if((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibrary(hModule, MouseHooks2, libname);
-	if(dxw.dwFlags3 & PEEKALLMESSAGES) HookLibrary(hModule, PeekAllHooks, libname);
+	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibrary(hModule, MouseHooks2, libname);
+	if (dxw.dwFlags3 & PEEKALLMESSAGES) HookLibrary(hModule, PeekAllHooks, libname);
+	if (dxw.dwFlags2 & TIMESTRETCH) HookLibrary(hModule, TimeHooks, libname);
 
 	return;
 }
@@ -280,15 +305,18 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	static int BorderX=-1;
 	static int BorderY=-1;
 	int cx, cy;
+	extern void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
 
 	OutTraceDW("%s: GOT hwnd=%x pos=(%d,%d) dim=(%d,%d) Flags=%x(%s)\n", 
 		ApiName, hwnd, wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
 
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag = 0;
+		WINDOWPOS MaxPos;
+		CalculateWindowPos(hwnd, MaxX, MaxY, &MaxPos);
 
-		if(wp->cx>MaxX) { wp->cx=MaxX; UpdFlag=1; }
-		if(wp->cy>MaxY) { wp->cy=MaxY; UpdFlag=1; }
+		if(wp->cx>MaxPos.cx) { wp->cx=MaxPos.cx; UpdFlag=1; }
+		if(wp->cy>MaxPos.cy) { wp->cy=MaxPos.cy; UpdFlag=1; }
 		if (UpdFlag) 
 			OutTraceDW("%s: SET max dim=(%d,%d)\n", ApiName, wp->cx, wp->cy);
 	}
@@ -296,7 +324,6 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	if ((wp->flags & (SWP_NOMOVE|SWP_NOSIZE))==(SWP_NOMOVE|SWP_NOSIZE)) return; //v2.02.13
 
 	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
-		extern void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
 		CalculateWindowPos(hwnd, MaxX, MaxY, wp);
 		OutTraceDW("%s: LOCK pos=(%d,%d) dim=(%d,%d)\n", ApiName, wp->x, wp->y, wp->cx, wp->cy);
 	}
@@ -360,9 +387,15 @@ void dxwFixMinMaxInfo(char *ApiName, HWND hwnd, LPARAM lParam)
 			lpmmi->ptMaxSize.x = dxw.GetScreenWidth();
 			lpmmi->ptMaxSize.y = dxw.GetScreenHeight();
 		}
+
+		// allow for initial dimensions ....
+		//if(lpmmi->ptMaxSize.x < dxw.iSizX) lpmmi->ptMaxSize.x = dxw.iSizX;
+		//if(lpmmi->ptMaxSize.y < dxw.iSizY) lpmmi->ptMaxSize.y = dxw.iSizY;
+
 		OutTraceDW("%s: SET PREVENTMAXIMIZE MaxPosition=(%d,%d) MaxSize=(%d,%d)\n", ApiName, 
 			lpmmi->ptMaxPosition.x, lpmmi->ptMaxPosition.y, lpmmi->ptMaxSize.x, lpmmi->ptMaxSize.y);
 	}
+
 	// v2.1.75: added logic to fix win coordinates to selected ones. 
 	// fixes the problem with "Achtung Spitfire", that can't be managed through PREVENTMAXIMIZE flag.
 	if (dxw.dwFlags1 & LOCKWINPOS){
@@ -424,37 +457,6 @@ static LRESULT WINAPI FixWindowProc(char *ApiName, HWND hwnd, UINT Msg, WPARAM w
 	return(-1);
 }
 
-static POINT FixMessagePt(HWND hwnd, POINT point)
-{
-	RECT rect;
-	static POINT curr;
-	curr=point;
-
-	if(!(*pScreenToClient)(hwnd, &curr)){
-		OutTraceE("ScreenToClient ERROR=%d hwnd=%x at %d\n", GetLastError(), hwnd, __LINE__);
-		curr.x = curr.y = 0;
-	}
-
-	if (!(*pGetClientRect)(hwnd, &rect)) {
-		OutTraceE("GetClientRect ERROR=%d hwnd=%x at %d\n", GetLastError(), hwnd, __LINE__);
-		curr.x = curr.y = 0;
-	}
-
-#ifdef ISDEBUG
-	if(IsDebug) OutTrace("FixMessagePt point=(%d,%d) hwnd=%x win pos=(%d,%d) size=(%d,%d)\n",
-		point.x, point.y, hwnd, point.x-curr.x, point.y-curr.y, rect.right, rect.bottom);
-#endif
-
-	if (curr.x < 0) curr.x=0;
-	if (curr.y < 0) curr.y=0;
-	if (curr.x > rect.right) curr.x=rect.right;
-	if (curr.y > rect.bottom) curr.y=rect.bottom;
-	if (rect.right)  curr.x = (curr.x * dxw.GetScreenWidth()) / rect.right;
-	if (rect.bottom) curr.y = (curr.y * dxw.GetScreenHeight()) / rect.bottom;
-
-	return curr;
-}
-
 // --------------------------------------------------------------------------
 //
 // user32 API hookers
@@ -470,8 +472,6 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 	else
 		OutTraceDW("InvalidateRect: hwnd=%x rect=NULL erase=%x\n",
 		hwnd, bErase);
-
-	//if(dxw.dwFlags3 & GDIEMULATEDC) return TRUE;
 
 	if(dxw.IsFullScreen() && dxw.IsRealDesktop(hwnd)) {
 		hwnd=dxw.GethWnd();
@@ -646,7 +646,8 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 	rect.right=cx; rect.bottom=cy;
 	dwCurStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
-	hMenu = GetMenu(hwnd);	
+	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
+	hMenu = (dwCurStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 	AdjustWindowRectEx(&rect, dwCurStyle, (hMenu!=NULL), dwExStyle);
 	if (hMenu) CloseHandle(hMenu);
 	cx=rect.right; cy=rect.bottom;
@@ -1057,8 +1058,6 @@ static HWND WINAPI extCreateWindowCommon(
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		OutTraceDW("%s: handling PREVENTMAXIMIZE mode\n", ApiName);
 		dwStyle &= ~WS_MAXIMIZE;
-		//dwStyle &= ~(WS_MAXIMIZE | WS_POPUP);
-		//dwExStyle &= ~WS_EX_TOPMOST;
 	}
 
 	// v2.1.92: fixes size & position for auxiliary big window, often used
@@ -1074,7 +1073,7 @@ static HWND WINAPI extCreateWindowCommon(
 				((x<=0)&&(y<=0)) || ((x==CW_USEDEFAULT)&&(y==CW_USEDEFAULT))
 			)
 		&&
-			((nWidth>=(int)dxw.GetScreenWidth())&&(nHeight>=(int)dxw.GetScreenHeight()))
+			((nWidth>=(int)dxw.GetScreenWidth())&&(nHeight>=(int)dxw.GetScreenHeight())) 
 		&&
 			!(dwExStyle & WS_EX_CONTROLPARENT) // Diablo fix
 		&&
@@ -1123,7 +1122,7 @@ static HWND WINAPI extCreateWindowCommon(
 		dxw.SetFullScreen(TRUE);
 		if(dxw.Coordinates==DXW_DESKTOP_WORKAREA){
 			RECT workarea;
-			SystemParametersInfo(SPI_GETWORKAREA, NULL, &workarea, 0);
+			(*pSystemParametersInfoA)(SPI_GETWORKAREA, NULL, &workarea, 0);
 			x=0;
 			y=0;
 			nWidth=workarea.right;
@@ -1197,10 +1196,12 @@ static HWND WINAPI extCreateWindowCommon(
 	if ((dwStyle & WS_CHILD) && (dxw.dwFlags1 & HOOKCHILDWIN)){
 		long res;
 		pWindowProc = (WNDPROC)(*pGetWindowLong)(wndh, GWL_WNDPROC);
-		OutTraceDW("Hooking CHILD wndh=%x WindowProc %x->%x\n", wndh, pWindowProc, extChildWindowProc);
-		res=(*pSetWindowLong)(wndh, GWL_WNDPROC, (LONG)extChildWindowProc);
-		WhndStackPush(wndh, pWindowProc);
-		if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
+		if((pWindowProc != extWindowProc) && (pWindowProc != extChildWindowProc)){ // avoid recursions 
+			OutTraceDW("Hooking CHILD wndh=%x WindowProc %x->%x\n", wndh, pWindowProc, extChildWindowProc);
+			res=(*pSetWindowLong)(wndh, GWL_WNDPROC, (LONG)extChildWindowProc);
+			WhndStackPush(wndh, pWindowProc);
+			if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
+		}
 	}
 
 	OutTraceDW("%s: ret=%x\n", ApiName, wndh);
@@ -1234,13 +1235,17 @@ HWND WINAPI extCreateWindowExW(
   LPVOID lpParam) 
 {
 	if(IsTraceDW){
-		char xString[20], yString[20];
+		char xString[20], yString[20], wString[20], hString[20];
 		if (x==CW_USEDEFAULT) strcpy(xString,"CW_USEDEFAULT"); 
 		else sprintf(xString,"%d", x);
 		if (y==CW_USEDEFAULT) strcpy(yString,"CW_USEDEFAULT"); 
 		else sprintf(yString,"%d", y);
-		OutTrace("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
-			lpClassName, lpWindowName, xString, yString, nWidth, nHeight, 
+		if (nWidth==CW_USEDEFAULT) strcpy(wString,"CW_USEDEFAULT"); 
+		else sprintf(wString,"%d", nWidth);
+		if (nHeight==CW_USEDEFAULT) strcpy(hString,"CW_USEDEFAULT"); 
+		else sprintf(hString,"%d", nHeight);
+		OutTrace("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s)\n",
+			lpClassName, lpWindowName, xString, yString, wString, hString, 
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 	}
 	if(IsDebug) OutTrace("CreateWindowExW: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
@@ -1264,13 +1269,17 @@ HWND WINAPI extCreateWindowExA(
   LPVOID lpParam) 
 {
 	if(IsTraceDW){
-		char xString[20], yString[20];
+		char xString[20], yString[20], wString[20], hString[20];
 		if (x==CW_USEDEFAULT) strcpy(xString,"CW_USEDEFAULT"); 
 		else sprintf(xString,"%d", x);
 		if (y==CW_USEDEFAULT) strcpy(yString,"CW_USEDEFAULT"); 
 		else sprintf(yString,"%d", y);
-		OutTrace("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
-			ClassToStr(lpClassName), lpWindowName, xString, yString, nWidth, nHeight, 
+		if (nWidth==CW_USEDEFAULT) strcpy(wString,"CW_USEDEFAULT"); 
+		else sprintf(wString,"%d", nWidth);
+		if (nHeight==CW_USEDEFAULT) strcpy(hString,"CW_USEDEFAULT"); 
+		else sprintf(hString,"%d", nHeight);
+		OutTrace("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s)\n",
+			ClassToStr(lpClassName), lpWindowName, xString, yString, wString, hString, 
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 	}
 	if(IsDebug) OutTrace("CreateWindowExA: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
@@ -1562,9 +1571,10 @@ HDC WINAPI extGDIGetDC(HWND hwnd)
 
 	ret=(*pGDIGetDC)(lochwnd);
 
-	if((dxw.dwFlags3 & GDIEMULATEDC) && (dxw.IsDesktop(hwnd))){
+	if((dxw.dwFlags3 & GDIEMULATEDC) && (dxw.IsDesktop(hwnd)) && (dxw.VirtualHDC==NULL)){
 		ret=dxw.AcquireEmulatedDC(lochwnd);
 		OutTraceDW("GDI.GetDC(GDIEMULATEDC): remapping hdc=%x->%x\n", (*pGDIGetDC)(hwnd), ret);
+		dxw.VirtualHDC=ret;
 	}
 	
 	if(ret){
@@ -1664,7 +1674,7 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 	OutTraceDW("GDI.ReleaseDC: hwnd=%x hdc=%x\n", hwnd, hDC);
 	if (dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 
-	if(dxw.dwFlags3 & GDIEMULATEDC) 
+	if((dxw.dwFlags3 & GDIEMULATEDC) && (hDC == dxw.VirtualHDC)) // v2.02.53 !!!!! 
 		res=dxw.ReleaseEmulatedDC(hwnd);
 	else
 		res=(*pGDIReleaseDC)(hwnd, hDC);
@@ -1673,40 +1683,16 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 	return(res);
 }
 
-HDC EmuHDC; 
-
 HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 {
 	HDC hdc;
 	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
 
-	// proxy part ...
 	OutTraceDW("GDI.BeginPaint: hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, dxw.IsFullScreen());
 	hdc=(*pBeginPaint)(hwnd, lpPaint);
 
 	// if not in fullscreen mode, that's all!
 	if(!dxw.IsFullScreen()) return hdc;
-
-	if((dxw.dwFlags3 & GDIEMULATEDC) && dxw.IsFullScreen() && dxw.IsDesktop(hwnd)) {
-		EmuHDC = dxw.AcquireEmulatedDC(hwnd); 
-		OutTraceDW("GDI.BeginPaint(GDIEMULATEDC): hdc=%x emulated hdc=%x\n", hdc, EmuHDC);
-		hdc=EmuHDC;
-		lpPaint->hdc=EmuHDC;
-		dxw.MapClient(&lpPaint->rcPaint);
-		return hdc;
-	}
-
-	// on MAPGDITOPRIMARY, return the PrimHDC handle instead of the window DC
-	if(dxw.dwFlags1 & MAPGDITOPRIMARY) {
-		if(pGetDC && dxw.lpDDSPrimHDC){
-			extGetDC(dxw.lpDDSPrimHDC,&PrimHDC);
-			OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): redirect hdc=%x -> PrimHDC=%x\n", hdc, PrimHDC);
-			hdc=PrimHDC;
-		}
-		else {
-			OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): hdc=%x\n", hdc);
-		}
-	}
 
 	// on CLIENTREMAPPING, resize the paint area to virtual screen size
 	if(dxw.dwFlags1 & CLIENTREMAPPING){
@@ -1716,14 +1702,76 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 		lpPaint->rcPaint.bottom=dxw.GetScreenHeight();
 	}
 
+	if(!dxw.IsDesktop(hwnd)) return hdc;
+
+	if(dxw.dwFlags3 & GDIEMULATEDC) {
+		HDC EmuHDC; 
+		EmuHDC = dxw.AcquireEmulatedDC(hwnd); 
+		lpPaint->hdc=EmuHDC;
+		dxw.MapClient(&lpPaint->rcPaint);
+		OutTraceDW("GDI.BeginPaint(GDIEMULATEDC): hdc=%x -> %x\n", hdc, EmuHDC);
+		return EmuHDC;
+	}
+
 	OutTraceDW("GDI.BeginPaint: hdc=%x\n", hdc);
 	return hdc;
+}
+
+HDC WINAPI extDDBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
+{
+	HDC hdc;
+	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
+
+	OutTraceDW("GDI.BeginPaint: hwnd=%x lpPaint=%x FullScreen=%x\n", hwnd, lpPaint, dxw.IsFullScreen());
+	hdc=(*pBeginPaint)(hwnd, lpPaint);
+
+	// if not in fullscreen mode, that's all!
+	if(!dxw.IsFullScreen()) return hdc;
+
+	// on CLIENTREMAPPING, resize the paint area to virtual screen size
+	if(dxw.dwFlags1 & CLIENTREMAPPING){
+		lpPaint->rcPaint.top=0;
+		lpPaint->rcPaint.left=0;
+		lpPaint->rcPaint.right=dxw.GetScreenWidth();
+		lpPaint->rcPaint.bottom=dxw.GetScreenHeight();
+	}
+
+	if(!dxw.IsDesktop(hwnd)) return hdc;
+
+	// on MAPGDITOPRIMARY, return the PrimHDC handle instead of the window DC
+	// if a primary surface has not been created yet, do it
+	if(!pGetDC || !dxw.lpDDSPrimHDC){
+		extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
+		HRESULT res;
+		LPDIRECTDRAW lpDD;
+		LPDIRECTDRAWSURFACE lpDDS;
+		DDSURFACEDESC ddsd;
+		res=extDirectDrawCreate(0, &lpDD, NULL);
+		//lpDD->SetDisplayMode(dxw.GetScreenWidth(), dxw.GetScreenHeight(), NULL);
+		lpDD->SetCooperativeLevel(hwnd, DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE);
+		memset((void *)&ddsd, 0, sizeof(DDSURFACEDESC));
+		ddsd.dwSize = sizeof(DDSURFACEDESC);
+		ddsd.dwFlags = DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH;
+		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+		ddsd.dwHeight = dxw.GetScreenHeight();
+		ddsd.dwWidth = dxw.GetScreenWidth();
+		res=lpDD->CreateSurface(&ddsd, &lpDDS, NULL);
+		dxw.lpDDSPrimHDC = lpDDS;
+		OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): dd=%x ddsPrim=%x\n", lpDD, lpDDS);
+	}
+	extGetDC(dxw.lpDDSPrimHDC,&PrimHDC);
+	lpPaint->hdc=PrimHDC;
+	//dxw.MapClient(&lpPaint->rcPaint);			
+	OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): hdc=%x -> %x\n", hdc, PrimHDC);
+	return PrimHDC;
 }
 
 BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 {
 	BOOL ret;
-	HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc);
+	extern HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc);
+	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
+	extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx);
 
 	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x\n", hwnd, lpPaint, lpPaint->hdc);
 
@@ -1733,6 +1781,15 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 		ret=(*pEndPaint)(hwnd, lpPaint); // useful ???? seems not ....
 		if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 		return ret;
+	}
+
+	// v2.02.53 ...
+	if((dxw.dwFlags1 & MAPGDITOPRIMARY) && dxw.IsFullScreen() && dxw.IsDesktop(hwnd)){
+		ret=(*pEndPaint)(hwnd, lpPaint);
+		dxw.lpDDSPrimHDC->Unlock(NULL);
+		//dxw.ScreenRefresh();
+		extBlt(dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL);
+		return TRUE;
 	}
 
 	// proxy part ...
@@ -1748,11 +1805,37 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 	// v2.02.09: on MAPGDITOPRIMARY, release the PrimHDC handle 
 	if(dxw.dwFlags1 & MAPGDITOPRIMARY) {
 		if(pReleaseDC && dxw.lpDDSPrimHDC){
+			extGetDC(dxw.lpDDSPrimHDC,&PrimHDC);
 			extReleaseDC(dxw.lpDDSPrimHDC, PrimHDC);
 			OutTraceDW("GDI.EndPaint: released hdc=%x\n", PrimHDC);
 		}
 	}
 	
+	return ret;
+}
+
+BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
+{
+	BOOL ret;
+	extern HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc);
+	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
+	extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx);
+
+	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x\n", hwnd, lpPaint, lpPaint->hdc);
+
+	// v2.02.53 ...
+	if(dxw.IsFullScreen() && dxw.IsDesktop(hwnd)){
+		ret=(*pEndPaint)(hwnd, lpPaint);
+		dxw.lpDDSPrimHDC->Unlock(NULL);
+		//dxw.ScreenRefresh();
+		extBlt(dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL);
+		return TRUE;
+	}
+
+	// proxy part ...
+	ret=(*pEndPaint)(hwnd, lpPaint);
+	OutTraceDW("GDI.EndPaint: hwnd=%x ret=%x\n", hwnd, ret);
+	if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
 	return ret;
 }
 
@@ -2073,10 +2156,53 @@ BOOL WINAPI extIsWindowVisible(HWND hwnd)
 {
 	BOOL ret;
 	ret=(*pIsWindowVisible)(hwnd);
-	OutTraceDW("IsWindowVisible: hwnd=%x ret=%x\n", hwnd, ret);
-	if(dxw.IsDesktop(hwnd)){
+	OutTraceB("IsWindowVisible: hwnd=%x ret=%x\n", hwnd, ret);
+	if(dxw.IsDesktop(hwnd) && !ret){
 		OutTraceDW("IsWindowVisible: FORCING ret=TRUE\n");
 		ret=TRUE;
 	}
+	return ret;
+}
+
+BOOL WINAPI extSystemParametersInfoA(UINT uiAction, UINT uiParam, PVOID pvParam, UINT fWinIni)
+{
+	BOOL ret;
+	OutTraceDW("SystemParametersInfo: Action=%x Param=%x WinIni=%x\n", uiAction, uiParam, fWinIni);
+	ret=(*pSystemParametersInfoA)(uiAction, uiParam, pvParam, fWinIni);
+	if(uiAction==SPI_GETWORKAREA){
+		LPRECT cli = (LPRECT)pvParam;
+		cli->top = 0;
+		cli->left = 0;
+		cli->bottom = dxw.GetScreenHeight();
+		cli->right = dxw.GetScreenWidth();
+		OutTraceDW("SystemParametersInfo: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
+	}
+	return ret;
+}
+
+#undef OutTraceDW
+#define OutTraceDW OutTrace
+
+UINT_PTR WINAPI extSetTimer(HWND hWnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPROC lpTimerFunc)
+{
+	UINT uShiftedElapse;
+	UINT_PTR ret;
+	// beware: the quicker the time flows, the more the time clicks are incremented,
+	// and the lesser the pauses must be lasting! Shift operations are reverted in
+	// GetSystemTime vs. Sleep or SetTimer
+	uShiftedElapse = dxw.StretchTime(uElapse);
+	OutTraceDW("SetTimer: hwnd=%x TimerFunc=%x elapse=%d->%d timeshift=%d\n", hWnd, lpTimerFunc, uElapse, uShiftedElapse, dxw.TimeShift);
+	ret = (*pSetTimer)(hWnd, nIDEvent, uShiftedElapse, lpTimerFunc);
+	if(ret) dxw.PushTimer(hWnd, ret, uElapse, lpTimerFunc);
+	OutTraceDW("SetTimer: IDEvent=%x ret=%x\n", nIDEvent, ret);
+	return ret;
+}
+
+BOOL WINAPI extKillTimer(HWND hWnd, UINT_PTR uIDEvent)
+{
+	BOOL ret;
+	OutTraceDW("KillTimer: hwnd=%x IDEvent=%x\n", hWnd, uIDEvent); 
+	ret = (*pKillTimer)(hWnd, uIDEvent);
+	OutTraceDW("KillTimer: ret=%x\n", ret);
 	return ret;
 }

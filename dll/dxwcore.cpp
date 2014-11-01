@@ -27,7 +27,7 @@ dxwCore::dxwCore()
 	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
 	ResetEmulatedDC();
 	MustShowOverlay=FALSE;
-	TimerEvent.uTimerId = 0;
+	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
 }
 
 dxwCore::~dxwCore()
@@ -243,6 +243,21 @@ RECT dxwCore::GetScreenRect()
 	Screen.bottom=dwScreenHeight;
 	return Screen;
 }
+
+RECT dxwCore::GetUnmappedScreenRect()
+{
+	static RECT Screen;
+	POINT upleft = {0, 0};
+	memset(&Screen, 0, sizeof(RECT));
+	(*pGetClientRect)(hWnd, &Screen);
+	(*pClientToScreen)(hWnd, &upleft);
+	Screen.top += upleft.x;
+	Screen.bottom += upleft.x;
+	Screen.left += upleft.y;
+	Screen.right += upleft.y;
+	return Screen;
+}
+
 
 BOOL dxwCore::IsDesktop(HWND hwnd)
 {
@@ -1326,6 +1341,7 @@ BOOL dxwCore::ReleaseEmulatedDC(HWND hwnd)
 	(*pGetClientRect)(hwnd, &client);
 	if(!(wdc=(*pGDIGetDC)(hwnd)))
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	//OutTrace("StretchBlt: destdc=%x destrect=(0,0)-(%d,%d) srcdc=%x srcrect=(0,0)-(%d,%d)\n", wdc, client.right, client.bottom, VirtualHDC, dxw.GetScreenWidth(), dxw.GetScreenHeight());
 	if(!(*pGDIStretchBlt)(wdc, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), SRCCOPY))
 		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	//(*pInvalidateRect)(hwnd, NULL, 0);
@@ -1349,40 +1365,91 @@ BOOL dxwCore::IsVirtual(HDC hdc)
 void dxwCore::PushTimer(UINT uTimerId, UINT uDelay, UINT uResolution, LPTIMECALLBACK lpTimeProc, DWORD_PTR dwUser, UINT fuEvent)
 {
 		// save current timer
-		TimerEvent.uTimerId = uTimerId;
-		TimerEvent.uDelay = uDelay;
-		TimerEvent.uResolution = uResolution;
-		TimerEvent.lpTimeProc = lpTimeProc;
-		TimerEvent.dwUser = dwUser;
-		TimerEvent.fuEvent = fuEvent;
+		TimerEvent.dwTimerType = TIMER_TYPE_WINMM;
+		TimerEvent.t.uTimerId = uTimerId;
+		TimerEvent.t.uDelay = uDelay;
+		TimerEvent.t.uResolution = uResolution;
+		TimerEvent.t.lpTimeProc = lpTimeProc;
+		TimerEvent.t.dwUser = dwUser;
+		TimerEvent.t.fuEvent = fuEvent;
+}
+
+void dxwCore::PushTimer(HWND hWnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPROC lpTimerFunc)
+{
+		// save current timer
+		TimerEvent.dwTimerType = TIMER_TYPE_USER32;
+		TimerEvent.t.hWnd = hWnd;
+		TimerEvent.t.nIDEvent = nIDEvent;
+		TimerEvent.t.uElapse = uElapse;
+		TimerEvent.t.lpTimerFunc = lpTimerFunc;
 }
 
 void dxwCore::PopTimer(UINT uTimerId)
 {
-		// clear current timer
-	if(uTimerId != TimerEvent.uTimerId){
+	// clear current timer
+	if(TimerEvent.dwTimerType != TIMER_TYPE_WINMM) {
 		// this should never happen, unless there are more than 1 timer!
 		char msg[256];
-		sprintf(msg,"PopTimer: TimerId=%x last=%x\n", uTimerId, TimerEvent.uTimerId);
+		sprintf(msg,"PopTimer: TimerType=%x last=%x\n", TIMER_TYPE_WINMM, TimerEvent.dwTimerType);
 		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
 		return;
 	}
-	TimerEvent.uTimerId = 0;
-	TimerEvent.uDelay = 0;
-	TimerEvent.uResolution = 0;
-	TimerEvent.lpTimeProc = NULL;
-	TimerEvent.dwUser = 0;
-	TimerEvent.fuEvent = 0;
+	if(uTimerId != TimerEvent.t.uTimerId){
+		// this should never happen, unless there are more than 1 timer!
+		char msg[256];
+		sprintf(msg,"PopTimer: TimerId=%x last=%x\n", uTimerId, TimerEvent.t.uTimerId);
+		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		return;
+	}
+	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
+}
+
+void dxwCore::PopTimer(HWND hWnd, UINT_PTR nIDEvent)
+{
+	// clear current timer
+	if(TimerEvent.dwTimerType != TIMER_TYPE_USER32) {
+		// this should never happen, unless there are more than 1 timer!
+		char msg[256];
+		sprintf(msg,"PopTimer: TimerType=%x last=%x\n", TIMER_TYPE_WINMM, TimerEvent.dwTimerType);
+		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		return;
+	}
+	if(nIDEvent != TimerEvent.t.nIDEvent){
+		// this should never happen, unless there are more than 1 timer!
+		char msg[256];
+		sprintf(msg,"PopTimer: TimerId=%x last=%x\n", nIDEvent, TimerEvent.t.nIDEvent);
+		MessageBox(0, msg, "PopTimer", MB_OK | MB_ICONEXCLAMATION);
+		return;
+	}
+	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
 }
 
 void dxwCore::RenewTimers()
 {
-	if(ptimeKillEvent && ptimeSetEvent && TimerEvent.uTimerId){
-		UINT NewDelay;
-		MMRESULT res;
-		(*ptimeKillEvent)(TimerEvent.uTimerId);
-		NewDelay = dxw.StretchTime(TimerEvent.uDelay);
-		res=(*ptimeSetEvent)(NewDelay, TimerEvent.uResolution, TimerEvent.lpTimeProc, TimerEvent.dwUser, TimerEvent.fuEvent);
-		TimerEvent.uTimerId = res;
+	switch(TimerEvent.dwTimerType){
+	case TIMER_TYPE_NONE:
+		break;
+	case TIMER_TYPE_USER32:
+		if(pSetTimer && pKillTimer){
+			UINT uElapse;
+			UINT_PTR res;
+			(*pKillTimer)(TimerEvent.t.hWnd, TimerEvent.t.nIDEvent);
+			uElapse = dxw.StretchTime(TimerEvent.t.uElapse);
+			res=(*pSetTimer)(TimerEvent.t.hWnd, TimerEvent.t.nIDEvent, uElapse, TimerEvent.t.lpTimerFunc);
+			TimerEvent.t.nIDEvent = res;
+			OutTraceDW("DXWND: RenewTimers type=USER32 Elsapse=%d IDEvent=%x\n", uElapse, res);
+		}
+		break;
+	case TIMER_TYPE_WINMM:
+		if(ptimeKillEvent && ptimeSetEvent){
+			UINT NewDelay;
+			MMRESULT res;
+			(*ptimeKillEvent)(TimerEvent.t.uTimerId);
+			NewDelay = dxw.StretchTime(TimerEvent.t.uDelay);
+			res=(*ptimeSetEvent)(NewDelay, TimerEvent.t.uResolution, TimerEvent.t.lpTimeProc, TimerEvent.t.dwUser, TimerEvent.t.fuEvent);
+			TimerEvent.t.uTimerId = res;
+			OutTraceDW("DXWND: RenewTimers type=WINMM Delay=%d TimerId=%x\n", NewDelay, res);
+		}
+		break;
 	}
 }
