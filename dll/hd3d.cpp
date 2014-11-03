@@ -7,6 +7,7 @@
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "dxhook.h"
+#include "dxhelper.h"
 #include "syslibs.h"
 
 #define HOOKD3D10ANDLATER 1
@@ -496,6 +497,7 @@ void HookD3DDevice8(void** ppD3Ddev8)
 		if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_FOGENABLE, FALSE);
 		if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_ZFUNC, D3DCMP_ALWAYS);
 		//if(1) (*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_SPECULARENABLE, TRUE);
+		//if(1) (*pSetRenderState)((void *)*ppD3Ddev8, D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
 	}
 	//if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 	//SetHook((void *)(**(DWORD **)ppD3Ddev8 +  4), extAddRef8, (void **)&pAddRef8, "AddRef(D8)");
@@ -529,6 +531,7 @@ void HookD3DDevice9(void** ppD3Ddev9)
 		if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_FOGENABLE, FALSE);
 		if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_ZFUNC, D3DCMP_ALWAYS);
 		//if(1) (*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_SPECULARENABLE, TRUE);
+		//if(1) (*pSetRenderState)((void *)*ppD3Ddev9, D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
 	}
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  4), extAddRef9, (void **)&pAddRef9, "AddRef(D9)");
@@ -960,14 +963,25 @@ extern char *ExplainRenderstateValue(DWORD Value);
 
 HRESULT WINAPI extSetRenderState(void *pd3dd, D3DRENDERSTATETYPE State, DWORD Value) 
 {
+	HRESULT res;
+	OutTraceD3D("SetRenderState: d3dd=%x State=%x(%s) Value=%x\n", pd3dd, State, ExplainD3DRenderState(State), Value);
+
 	if((dxw.dwFlags4 & ZBUFFERALWAYS) && (State == D3DRS_ZFUNC)) {
 		OutTraceD3D("SetRenderState: FIXED State=ZFUNC Value=%s->D3DCMP_ALWAYS\n", ExplainRenderstateValue(Value));
 		Value = D3DCMP_ALWAYS;
 	}
-	if((dxw.dwFlags2 & WIREFRAME) && (State == D3DRS_FILLMODE)) Value=D3DFILL_WIREFRAME;
-	if((dxw.dwFlags4 & DISABLEFOGGING) && (State == D3DRS_FOGENABLE)) Value=FALSE;
-	//if(1 && (State == D3DRS_SPECULARENABLE)) Value=TRUE;
-	return (*pSetRenderState)(pd3dd, State, Value);
+	if((dxw.dwFlags2 & WIREFRAME) && (State == D3DRS_FILLMODE)){
+		OutTraceD3D("SetRenderState: FIXED State=FILLMODE Value=%x->D3DFILL_WIREFRAME\n", Value);
+		Value = D3DFILL_WIREFRAME;
+	}
+	if((dxw.dwFlags4 & DISABLEFOGGING) && (State == D3DRS_FOGENABLE)){
+		OutTraceD3D("SetRenderState: FIXED State=FOGENABLE Value=%x->FALSE\n", Value);
+		Value = FALSE;
+	}
+
+	res=(*pSetRenderState)(pd3dd, State, Value);
+	if(res) OutTraceE("SetRenderState: res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
 }
 
 HRESULT WINAPI extGetRenderState(void *pd3dd, D3DRENDERSTATETYPE State, DWORD Value) 

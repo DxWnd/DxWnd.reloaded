@@ -1662,3 +1662,20 @@ char *ExplainD3DRenderState(DWORD c)
 	}
 	return p;
 }
+
+char *ExplainRenderstateValue(DWORD Value)
+{
+	char *p;
+	switch(Value){
+	case D3DCMP_NEVER               : p="D3DCMP_NEVER"; break;
+	case D3DCMP_LESS                : p="D3DCMP_LESS"; break;
+	case D3DCMP_EQUAL               : p="D3DCMP_EQUAL"; break;
+	case D3DCMP_LESSEQUAL           : p="D3DCMP_LESSEQUAL"; break;
+	case D3DCMP_GREATER             : p="D3DCMP_GREATER"; break;
+	case D3DCMP_NOTEQUAL            : p="D3DCMP_NOTEQUAL"; break;
+	case D3DCMP_GREATEREQUAL        : p="D3DCMP_GREATEREQUAL"; break;
+	case D3DCMP_ALWAYS              : p="D3DCMP_ALWAYS"; break;
+	default							: p="???"; break;
+	}
+	return p;
+}

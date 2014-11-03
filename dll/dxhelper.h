@@ -47,3 +47,4 @@ extern char *ExplainGetDCExFlags(DWORD);
 extern char *ExplainPaletteUse(UINT);
 extern char *ExplainRasterCaps(DWORD);
 extern char *ExplainD3DRenderState(DWORD);
+extern char *ExplainRenderstateValue(DWORD);

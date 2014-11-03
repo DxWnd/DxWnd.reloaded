@@ -77,11 +77,14 @@ AddViewport3_Type pAddViewport3 = NULL;
 Scene3_Type pBeginScene1 = NULL;
 Scene3_Type pBeginScene2 = NULL;
 Scene3_Type pBeginScene3 = NULL;
+Scene3_Type pBeginScene7 = NULL;
 Scene3_Type pEndScene1 = NULL;
 Scene3_Type pEndScene2 = NULL;
 Scene3_Type pEndScene3 = NULL;
+Scene3_Type pEndScene7 = NULL;
 SetRenderState3_Type pSetRenderState2 = NULL;
 SetRenderState3_Type pSetRenderState3 = NULL;
+SetRenderState3_Type pSetRenderState7 = NULL;
 GetViewport7_Type pGetViewport7 = NULL;
 SetViewport7_Type pSetViewport7 = NULL;
 SetLightState_Type pSetLightState3 = NULL;
@@ -148,14 +151,17 @@ HRESULT WINAPI extQueryInterfaceD3(void *, REFIID, LPVOID *);
 HRESULT WINAPI extD3DInitialize(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
 HRESULT WINAPI extD3DGetCaps(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
 
-HRESULT WINAPI extSetRenderState2(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extBeginScene1(void *);
 HRESULT WINAPI extEndScene1(void *);
 HRESULT WINAPI extBeginScene2(void *);
 HRESULT WINAPI extEndScene2(void *);
-HRESULT WINAPI extSetRenderState3(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extBeginScene3(void *);
 HRESULT WINAPI extEndScene3(void *);
+HRESULT WINAPI extBeginScene7(void *);
+HRESULT WINAPI extEndScene7(void *);
+HRESULT WINAPI extSetRenderState2(void *, D3DRENDERSTATETYPE, DWORD);
+HRESULT WINAPI extSetRenderState3(void *, D3DRENDERSTATETYPE, DWORD);
+HRESULT WINAPI extSetRenderState7(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extGetCaps3(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
 HRESULT WINAPI extSetLightState3(void *d3dd, D3DLIGHTSTATETYPE d3dls, DWORD t);
 HRESULT WINAPI extSetViewport3(void *, LPD3DVIEWPORT);
@@ -269,7 +275,7 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 	case 7:
 		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
 		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices7, (void **)&pEnumDevices7, "EnumDevices(7)");
-		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice7, (void **)&pCreateDevice7, "CreateDevice(D3D7)");
+		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateDevice7, (void **)&pCreateDevice7, "CreateDevice(D3D7)");
 		break;
 	}
 } 
@@ -302,6 +308,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
 			if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
+			//if(1) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
 		}		
 		break;
 	case 3:
@@ -317,11 +324,21 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
 			if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
+			//if(1) (*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
 		}		
 		break;
 	case 7:
+		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  60), extGetViewport7, (void **)&pGetViewport7, "GetViewport(7)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extSetRenderState7, (void **)&pSetRenderState7, "SetRenderState(7)");
+		if(pSetRenderState7){
+			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState7)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
+			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState7)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
+			if(dxw.dwFlags4 & ZBUFFERALWAYS) (*pSetRenderState7)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
+			//if(1) (*pSetRenderState7)(*lpd3ddev, D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
+		}		
 		break;
 	}
 } 
@@ -773,67 +790,42 @@ HRESULT WINAPI extD3DGetCaps(void *d3dd, LPD3DDEVICEDESC lpd3dd ,LPD3DDEVICEDESC
 	return res;
 }
 
-char *ExplainRenderstateValue(DWORD Value)
+HRESULT WINAPI extSetRenderState(SetRenderState3_Type pSetRenderState, int version, void *d3dd, D3DRENDERSTATETYPE State, DWORD Value)
 {
-	char *p;
-	switch(Value){
-	case D3DCMP_NEVER               : p="D3DCMP_NEVER"; break;
-	case D3DCMP_LESS                : p="D3DCMP_LESS"; break;
-	case D3DCMP_EQUAL               : p="D3DCMP_EQUAL"; break;
-	case D3DCMP_LESSEQUAL           : p="D3DCMP_LESSEQUAL"; break;
-	case D3DCMP_GREATER             : p="D3DCMP_GREATER"; break;
-	case D3DCMP_NOTEQUAL            : p="D3DCMP_NOTEQUAL"; break;
-	case D3DCMP_GREATEREQUAL        : p="D3DCMP_GREATEREQUAL"; break;
-	case D3DCMP_ALWAYS              : p="D3DCMP_ALWAYS"; break;
-	default							: p="???"; break;
+	HRESULT res;
+	OutTraceD3D("SetRenderState(%d): d3dd=%x State=%x(%s) Value=%x\n", version, d3dd, State, ExplainD3DRenderState(State), Value);
+
+	if((dxw.dwFlags4 & ZBUFFERALWAYS) && (State == D3DRENDERSTATE_ZFUNC)) {
+		OutTraceD3D("SetRenderState: FIXED State=ZFUNC Value=%s->D3DCMP_ALWAYS\n", ExplainRenderstateValue(Value));
+		Value = D3DCMP_ALWAYS;
 	}
-	return p;
+	if((dxw.dwFlags2 & WIREFRAME) && (State == D3DRENDERSTATE_FILLMODE)){
+		OutTraceD3D("SetRenderState: FIXED State=FILLMODE Value=%x->D3DFILL_WIREFRAME\n", Value);
+		Value = D3DFILL_WIREFRAME;
+	}
+	if((dxw.dwFlags4 & DISABLEFOGGING) && (State == D3DRENDERSTATE_FOGENABLE)){
+		OutTraceD3D("SetRenderState: FIXED State=FOGENABLE Value=%x->FALSE\n", Value);
+		Value = FALSE;
+	}
+
+	res=(*pSetRenderState)(d3dd, State, Value);
+	if(res) OutTraceE("SetRenderState: res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
 }
 
 HRESULT WINAPI extSetRenderState2(void *d3dd, D3DRENDERSTATETYPE State, DWORD Value)
 {
-	HRESULT res;
-	OutTraceD3D("SetRenderState(2): d3dd=%x State=%x(%s) Value=%x\n", d3dd, State, ExplainD3DRenderState(State), Value);
-	if((dxw.dwFlags4 & ZBUFFERALWAYS) && (State == D3DRENDERSTATE_ZFUNC)) {
-		DWORD OldValue;
-		OldValue = Value;
-		Value = D3DCMP_ALWAYS;
-		OutTraceD3D("SetRenderState: FIXED State=ZFUNC Value=%s->D3DCMP_ALWAYS\n", ExplainRenderstateValue(OldValue));
-	}
-	if((dxw.dwFlags2 & WIREFRAME) && (State == D3DRENDERSTATE_FILLMODE)){
-		Value = D3DFILL_WIREFRAME;
-		OutTraceD3D("SetRenderState: FIXED State=FILLMODE Value=D3DFILL_WIREFRAME\n");
-}	
-	if((dxw.dwFlags4 & DISABLEFOGGING) && (State == D3DRENDERSTATE_FOGENABLE)){
-		OutTraceD3D("SetRenderState: FIXED State=FOGENABLE Value=FALSE\n");
-		Value = FALSE;
-	}
-	res=(*pSetRenderState2)(d3dd, State, Value);
-	if(res) OutTraceE("SetRenderState(2): res=%x(%s)\n", res, ExplainDDError(res));
-	return res;
+	return extSetRenderState(pSetRenderState2, 2, d3dd, State, Value);
 }
 
 HRESULT WINAPI extSetRenderState3(void *d3dd, D3DRENDERSTATETYPE State, DWORD Value)
 {
-	HRESULT res;
-	OutTraceD3D("SetRenderState(3): d3dd=%x State=%x(%s) Value=%x\n", d3dd, State, ExplainD3DRenderState(State), Value);
-	if((dxw.dwFlags4 & ZBUFFERALWAYS) && (State == D3DRENDERSTATE_ZFUNC)) {
-		DWORD OldValue;
-		OldValue = Value;
-		Value = D3DCMP_ALWAYS;
-		OutTraceD3D("SetRenderState: FIXED State=ZFUNC Value=%s->D3DCMP_ALWAYS\n", ExplainRenderstateValue(OldValue));
-	}
-	if((dxw.dwFlags2 & WIREFRAME) && (State == D3DRENDERSTATE_FILLMODE)){
-		Value = D3DFILL_WIREFRAME;
-		OutTraceD3D("SetRenderState: FIXED State=FILLMODE Value=D3DFILL_WIREFRAME\n");
-	}
-	if((dxw.dwFlags4 & DISABLEFOGGING) && (State == D3DRENDERSTATE_FOGENABLE)){
-		OutTraceD3D("SetRenderState: FIXED State=FOGENABLE Value=FALSE\n");
-		Value = FALSE;
-	}
-	res=(*pSetRenderState3)(d3dd, State, Value);
-	if(res) OutTraceE("SetRenderState(3): res=%x(%s)\n", res, ExplainDDError(res));
-	return res;
+	return extSetRenderState(pSetRenderState3, 3, d3dd, State, Value);
+}
+
+HRESULT WINAPI extSetRenderState7(void *d3dd, D3DRENDERSTATETYPE State, DWORD Value)
+{
+	return extSetRenderState(pSetRenderState7, 7, d3dd, State, Value);
 }
 
 HRESULT WINAPI extBeginScene1(void *d3dd)
@@ -898,6 +890,18 @@ HRESULT WINAPI extBeginScene3(void *d3dd)
 	return res;
 }
 
+HRESULT WINAPI extBeginScene7(void *d3dd)
+{
+	HRESULT res;
+	OutTraceD3D("BeginScene(7): d3dd=%x\n", d3dd);
+
+	// there is no Clear method for Viewport object in D3D7 !!!
+
+	res=(*pBeginScene7)(d3dd);
+	if(res) OutTraceE("BeginScene(7): res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
 HRESULT WINAPI extEndScene1(void *d3dd)
 {
 	HRESULT res;
@@ -925,6 +929,16 @@ HRESULT WINAPI extEndScene3(void *d3dd)
 	res=(*pEndScene3)(d3dd);
 	//dxw.ShowOverlay();
 	if(res) OutTraceE("EndScene(3): res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extEndScene7(void *d3dd)
+{
+	HRESULT res;
+	OutTraceD3D("EndScene(7): d3dd=%x\n", d3dd);
+	res=(*pEndScene7)(d3dd);
+	//dxw.ShowOverlay();
+	if(res) OutTraceE("EndScene(7): res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
 

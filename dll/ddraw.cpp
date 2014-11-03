@@ -2820,11 +2820,15 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	// the attached backbuffer itself. Makes Silver working, anyway....
 	// beware: "Snowboard Racer" fails if you return an attached surface anyhow! There,
 	// the primary surface was created with back buffer count == 1.
+	// v2.2.62 fix: a check to implement doublebuffer emulation only in case of DDSCAPS_BACKBUFFER
+	// requests. A call to GetAttachedSurface can be made to retrieve DDSCAPS_ZBUFFER surfaces, and in 
+	// this case the lpDDSBack surface can't be returned.
 
-	if (IsBack && (DDSD_Prim.dwBackBufferCount > 1)){ 
+	if (IsBack && (DDSD_Prim.dwBackBufferCount > 1) && (lpddsc->dwCaps & DDSCAPS_BACKBUFFER)){ 
+	//if (IsBack && (DDSD_Prim.dwBackBufferCount > 1)){ 
 		*lplpddas = lpDDSBack;
-		OutTraceDW("GetAttachedSurface(%d): DOUBLEBUFFER attached=%x\n", dxversion, *lplpddas); 
-		return 0;
+		OutTraceDW("GetAttachedSurface(%d): DOUBLEBUFFER attached to BACK=%x\n", dxversion, *lplpddas); 
+		return DD_OK;
 	}
 
 	// on primary surface return the lpDDSBack surface coming from either an explicit
@@ -2834,7 +2838,7 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 		if (lpDDSBack) {
 			*lplpddas = lpDDSBack;
 			OutTraceDW("GetAttachedSurface(%d): BACKBUFFER attached=%x\n", dxversion, *lplpddas); 
-			return 0;
+			return DD_OK;
 		}
 		else {
 			*lplpddas = NULL;
@@ -2842,7 +2846,7 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 			return DDERR_NOTFOUND;
 		}
 	}
-	
+
 	// proxy the call...
 
 	res=(*pGetAttachedSurface)(lpdds, lpddsc, lplpddas);

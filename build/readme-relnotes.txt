@@ -407,3 +407,10 @@ fixed handling of special effects (wireframe, no fogging, zbuffer always) to be 
 
 v2.02.61
 added directx "Compensate Flip emulation" flag: used primarily to get rid of mouse artifacts due to emulated Flip rpocedure in windowed mode. Fixes Gruntz issues and some other games...
+
+v2.02.62
+fixed d3d7 CreateDevice hook and d3d7 rendering options (wireframe, disablefogging, zbufferalways)
+fixed doublebuffer emulation - avoid returning the backbuffer when zbuffer is requested. Fixes rendering problems of many games!
+
+
+
