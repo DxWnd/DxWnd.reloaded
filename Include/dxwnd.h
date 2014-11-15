@@ -157,6 +157,7 @@
 #define QUARTERBLT			0x00000100 // Consider a screen update (to count or limit FPS) only  blt operations bigger than a quarter of the whole primary surface
 #define NOIMAGEHLP			0x00000200 // Interceptd Imagehlp.dll unsupported calls (used by "the 5th element")
 #define BILINEARFILTER		0x00000400 // experimental bilinear filtering
+#define REPLACEPRIVOPS		0x00000800 // replace privileged opcodes, such as IN (Ubik)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

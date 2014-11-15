@@ -33,7 +33,6 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HANDLEEXCEPTIONS, cTarget->m_HandleExceptions);
 	DDX_Check(pDX, IDC_LIMITRESOURCES, cTarget->m_LimitResources);
 	DDX_Check(pDX, IDC_SUPPRESSIME, cTarget->m_SuppressIME);
-	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 	DDX_Check(pDX, IDC_CDROMDRIVETYPE, cTarget->m_CDROMDriveType);
 	DDX_Check(pDX, IDC_FONTBYPASS, cTarget->m_FontBypass);
 	DDX_Check(pDX, IDC_BUFFEREDIOFIX, cTarget->m_BufferedIOFix);
@@ -44,6 +43,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HIDECDROMEMPTY, cTarget->m_HideCDROMEmpty);
 	DDX_Check(pDX, IDC_DIABLOTWEAK, cTarget->m_DiabloTweak);
 	DDX_Check(pDX, IDC_NOIMAGEHLP, cTarget->m_NoImagehlp);
+	DDX_Check(pDX, IDC_REPLACEPRIVOPS, cTarget->m_ReplacePrivOps);
 
 	// 3D management
 	DDX_Check(pDX, IDC_NOTEXTURES, cTarget->m_NoTextures);
@@ -51,6 +51,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_DISABLEFOGGING, cTarget->m_DisableFogging);
 	DDX_Check(pDX, IDC_CLEARTARGET, cTarget->m_ClearTarget);
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
+	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 
 	// Registry management
 	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);

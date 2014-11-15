@@ -29,6 +29,7 @@ public:
 	int		m_DxEmulationMode;
 	int		m_DxFilterMode;
 	int		m_DCEmulationMode;
+	int		m_MouseVisibility;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
 	BOOL	m_OutProxyTrace;
@@ -58,6 +59,7 @@ public:
 	BOOL	m_NoBanner;
 	BOOL	m_StartDebug;
 	BOOL	m_HookEnabled;
+	BOOL	m_ReplacePrivOps;
 	CString	m_FilePath;
 	CString	m_LaunchPath;
 	CString	m_Module;
@@ -71,8 +73,6 @@ public:
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;
 	BOOL	m_FixWinFrame;
-	BOOL	m_HideHwCursor;
-	BOOL	m_ShowHwCursor;
 	BOOL	m_EnableClipping;
 	BOOL	m_CursorClipping;
 	BOOL	m_VideoToSystemMem;

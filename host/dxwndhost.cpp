@@ -163,6 +163,11 @@ BOOL CDxwndhostApp::InitInstance()
 					if(ResLib) AfxSetResourceHandle(ResLib);
 					else MessageBoxEx(NULL, "Missing language \"IT\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
 					break;
+				case 0x19: // 419 - russian
+					ResLib=LoadLibrary("Resources_RU.dll");
+					if(ResLib) AfxSetResourceHandle(ResLib);
+					else MessageBoxEx(NULL, "Missing language \"RU\"\nUsing default language \"en\"", "Warning", MB_OK, NULL);
+					break;
 				default: 
 					//char sBuf[81];
 					//sprintf(sBuf, "Got Lang=%x(%x-%x)", LangId, LangId>>9, (LangId & 0x1FF));

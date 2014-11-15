@@ -27,9 +27,10 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
+	// Cursor Visibility 
+	DDX_Radio(pDX, IDC_CURSORAUTOMATIC, cTarget->m_MouseVisibility);
+	// Cursor Handling
 	DDX_Check(pDX, IDC_MODIFYMOUSE, cTarget->m_ModifyMouse);
-	DDX_Check(pDX, IDC_HIDEHWCURSOR, cTarget->m_HideHwCursor);
-	DDX_Check(pDX, IDC_SHOWHWCURSOR, cTarget->m_ShowHwCursor);
 	DDX_Check(pDX, IDC_ENABLECLIPPING, cTarget->m_EnableClipping);
 	DDX_Check(pDX, IDC_CLIPCURSOR, cTarget->m_CursorClipping);
 	DDX_Check(pDX, IDC_KEEPCURSORWITHIN, cTarget->m_KeepCursorWithin);

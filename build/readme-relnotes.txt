@@ -636,3 +636,10 @@ fix: revised FPS control to assure more stable fps when a FPS limit delay is set
 v2.02.97
 fix: mouse black trails in "Deadlock II"
 fix: missing default value for filter mode
+
+v2.02.98
+fix: better ddraw surface handling - now  "Darkened Skye" runs in emulated surface mode with perfect colors
+fix: fixed RDTSC opcode search loop - fixed time stretching for "Ubik"
+add: added "Peplace privileged opcodes" flag - makes unpatched "Ubik" run
+fix: revised ddsurface capabilities policy to allow D3D1-7 games to run in emulated mode and bilinear filtering
+

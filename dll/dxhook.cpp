@@ -95,7 +95,7 @@ static char *Flag4Names[32]={
 static char *Flag5Names[32]={
 	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "NOSYSTEMMEMORY",
 	"NOBLT", "NOSYSTEMEMULATED", "DOFASTBLT", "AEROBOOST",
-	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "",
+	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -616,7 +616,7 @@ LRESULT CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPA
 		t = (*pGetTickCount)();
 	int tn = (*pGetTickCount)();
 
-	OutTraceW("DEBUG: DialogWinMsg [0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
+	OutTraceW("DEBUG: DialogWinMsg hwnd=%x msg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
 
 	// optimization: don't invalidate too often!
 	// 200mSec seems a good compromise.
@@ -639,7 +639,7 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	static WINDOWPOS *wp;
 	WNDPROC pWindowProc;
 
-	OutTraceW("DEBUG: ChildWinMsg [0x%x]%s(%x,%x)\n", message, ExplainWinMessage(message), wparam, lparam);
+	OutTraceW("DEBUG: ChildWinMsg hwnd=%x msg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
 
 	if(dxw.Windowize){
 		switch(message){
@@ -1447,19 +1447,25 @@ static void ReplaceRDTSC()
 	FreeLibrary(psapilib);
 
 	(*pPreparedisasm)();
-	opcodes=(unsigned char *)GetModuleHandle(NULL);
+	opcodes = (unsigned char *)mi.lpBaseOfDll;
 	unsigned int offset = 0;
 	BOOL cont = TRUE;
 	OutTraceDW("DXWND: opcode starting at addr=%x size=%x\n", opcodes, dwSegSize);
-	while (TRUE) {
-		int cmdlen;
+	while (cont) {
+		int cmdlen = 0;
 		__try{
 			cmdlen=(*pDisasm)(opcodes+offset,20,offset,&da,0,NULL,NULL);
 			//OutTrace("offset=%x opcode=%x\n", offset, *(opcodes+offset));
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER){
 			OutTrace("exception at offset=%x\n", offset);
-			cont=FALSE;
+			if(opcodes+offset < mi.EntryPoint) {
+				offset = (unsigned char *)mi.EntryPoint - (unsigned char *)mi.lpBaseOfDll;
+				OutTraceDW("DXWND: opcode resuming at addr=%x\n", opcodes+offset);
+				continue;
+			}
+			else
+				cont=FALSE;
 		}		
 		if (cmdlen==0) break;
 		// search for RDTSC opcode 0x0F31
@@ -1492,7 +1498,82 @@ static void ReplaceRDTSC()
 			}
 		}
 		offset+=cmdlen; 
-		if((offset+0x10) > dwSegSize) break;
+		if((offset+0x10) > (int)mi.lpBaseOfDll + dwSegSize) break; // skip last 16 bytes, just in case....
+	}
+
+	return;
+	(*pFinishdisasm)();
+	FreeLibrary(disasmlib);
+}
+
+static void ReplacePrivilegedOps()
+{
+	typedef BOOL (WINAPI *GetModuleInformation_Type)(HANDLE, HMODULE, LPMODULEINFO, DWORD);
+	HMODULE disasmlib;
+	unsigned char *opcodes;
+	t_disasm da;
+	MODULEINFO mi;
+	HMODULE psapilib;
+	GetModuleInformation_Type pGetModuleInformation;
+	DWORD dwSegSize;
+	DWORD oldprot;
+
+	if (!(disasmlib=LoadDisasm())) return;
+
+	// getting segment size
+	psapilib=(*pLoadLibraryA)("psapi.dll");
+	if(!psapilib) {
+		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", "psapi.dll", GetLastError());
+		return;
+	}
+	pGetModuleInformation=(GetModuleInformation_Type)(*pGetProcAddress)(psapilib, "GetModuleInformation");
+	(*pGetModuleInformation)(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(mi));
+	dwSegSize = mi.SizeOfImage;
+	FreeLibrary(psapilib);
+
+	(*pPreparedisasm)();
+	opcodes = (unsigned char *)mi.lpBaseOfDll;
+	unsigned int offset = 0;
+	BOOL cont = TRUE;
+	OutTraceDW("DXWND: opcode starting at addr=%x size=%x\n", opcodes, dwSegSize);
+	while (cont) {
+		int cmdlen = 0;
+		__try{
+			cmdlen=(*pDisasm)(opcodes+offset,20,offset,&da,0,NULL,NULL);
+			//OutTrace("offset=%x opcode=%x\n", offset, *(opcodes+offset));
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER){
+			OutTrace("exception at offset=%x\n", offset);
+			if(opcodes+offset < mi.EntryPoint) {
+				offset = (unsigned char *)mi.EntryPoint - (unsigned char *)mi.lpBaseOfDll;
+				OutTraceDW("DXWND: opcode resuming at addr=%x\n", opcodes+offset);
+				continue;
+			}
+			else
+				cont=FALSE;
+		}		
+		if (cmdlen==0) break;
+		// search for IN opcode 0xEC (IN AL, DX)
+		if(*(opcodes+offset) == 0xEC){
+			OutTraceDW("DXWND: IN opcode found at addr=%x\n", (opcodes+offset));
+			if(!VirtualProtect((LPVOID)(opcodes+offset), 8, PAGE_READWRITE, &oldprot)) {
+				OutTrace("VirtualProtect ERROR: target=%x err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
+				return; // error condition
+			}
+			*(opcodes+offset) = 0x90;	// __asm NOP
+			if((*(opcodes+offset+1) == 0xA8) && 
+				((*(opcodes+offset+3) == 0x75) || (*(opcodes+offset+3) == 0x74))) { // both JNZ and JZ
+				OutTraceDW("DXWND: IN loop found at addr=%x\n", (opcodes+offset));
+				memset((opcodes+offset+1), 0x90, 4); // Ubik I/O loop
+				offset+=4;
+			}
+			if(!VirtualProtect((LPVOID)(opcodes+offset), 8, oldprot, &oldprot)){
+				OutTrace("VirtualProtect ERROR; target=%x, err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
+				return; // error condition
+			}
+		}
+		offset+=cmdlen; 
+		if((offset+0x10) > (int)mi.lpBaseOfDll + dwSegSize) break; // skip last 16 bytes, just in case....
 	}
 
 	return;
@@ -1638,6 +1719,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	//if ((hwnd==0) && (dxw.dwFlags4 & INTERCEPTRDTSC)) ReplaceRDTSC();
 	if (dxw.dwFlags4 & INTERCEPTRDTSC) ReplaceRDTSC();
+	if (dxw.dwFlags5 & REPLACEPRIVOPS) ReplacePrivilegedOps();
 
 	if (dxw.dwTFlags & DXPROXED){
 		HookDDProxy(base, dxw.dwTargetDDVersion);

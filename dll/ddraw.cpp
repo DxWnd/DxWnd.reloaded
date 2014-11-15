@@ -435,8 +435,10 @@ static void LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 	if (lpddsd->dwFlags & DDSD_ALPHABITDEPTH) OutTrace(" AlphaBitDepth=%d", lpddsd->dwAlphaBitDepth);
 	if (lpddsd->dwFlags & DDSD_REFRESHRATE) OutTrace(" RefreshRate=%d", lpddsd->dwRefreshRate);
 	if (lpddsd->dwFlags & DDSD_LINEARSIZE) OutTrace(" LinearSize=%d", lpddsd->dwLinearSize);
-	//if (lpddsd->dwFlags & DDSD_TEXTURESTAGE) OutTrace(" TextureStage=%x", lpddsd->dwTextureStage);
-	//if (lpddsd->dwFlags & DDSD_FVF) OutTrace(" FVF=%x", lpddsd->dwFVF);
+	if (lpddsd->dwSize == sizeof(DDSURFACEDESC2)){
+		if (lpddsd->dwFlags & DDSD_TEXTURESTAGE) OutTrace(" TextureStage=%x", ((LPDDSURFACEDESC2)lpddsd)->dwTextureStage);
+		if (lpddsd->dwFlags & DDSD_FVF) OutTrace(" FVF=%x", ((LPDDSURFACEDESC2)lpddsd)->dwFVF);
+	}
 	
 	OutTrace("\n");
 }
@@ -2050,339 +2052,54 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 
 	return res;
 }
-#ifdef DXWND_ANALYTICMODE
-#define FIX_FLAGSMASK (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PITCH|DDSD_PIXELFORMAT|DDSD_ZBUFFERBITDEPTH|DDSD_TEXTURESTAGE)
-
-void FixSurfaceCapsAnalytic(LPDDSURFACEDESC2 lpddsd, int dxversion)
-{
-	switch (lpddsd->dwFlags & FIX_FLAGSMASK){
-	//case 0:
-	//	switch (lpddsd->ddsCaps.dwCaps){
-	//	case 0:
-	//		// Star Force Deluxe
-	//		lpddsd->dwFlags = DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT;
-	//		lpddsd->ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY;
-	//		lpddsd->dwHeight = dxw.GetScreenHeight();
-	//		lpddsd->dwWidth = dxw.GetScreenWidth();
-	//		GetPixFmt(lpddsd);
-	//		return;
-	//		break;
-	//	}
-	//	break;
-	case DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT|DDSD_TEXTURESTAGE:
-		// Ancient Evil:
-		// dwFlags: DDSD_CAPS+HEIGHT+WIDTH+PIXELFORMAT+TEXTURESTAGE
-		// dwCaps1: DDSCAPS_OFFSCREENPLAIN+SYSTEMMEMORY+TEXTURE
-		// dwCaps2: DDSCAPS2_TEXTUREMANAGE
-		GetPixFmt(lpddsd);
-		return;
-		break;
-	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_ZBUFFERBITDEPTH:
-		switch (lpddsd->ddsCaps.dwCaps){
-		case DDSCAPS_VIDEOMEMORY|DDSCAPS_ZBUFFER:
-			// Dungeon Keeper II 
-			return;
-			break;
-		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER:
-			// "Star Wars Shadows of the Empire" through d3d 
-			return;
-			break;
-		}
-		break;
-	case DDSD_CAPS|DDSD_WIDTH:
-		switch (lpddsd->ddsCaps.dwCaps){
-		case DDSCAPS_SYSTEMMEMORY:
-			return;
-			break;
-		case DDSCAPS_VIDEOMEMORY:
-			return;
-			break;
-		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_RESERVED2:
-			// Martian Gothic
-			return;
-			break;
-		case DDSCAPS_VIDEOMEMORY|DDSCAPS_RESERVED2:
-			// Martian Gothic
-			return;
-			break;
-		case DDSCAPS_VIDEOMEMORY|DDSCAPS_WRITEONLY|DDSCAPS_RESERVED2:
-			// Empire Earth
-			return;
-			break;
-		}
-		break;
-	case DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH:
-		switch (lpddsd->ddsCaps.dwCaps){
-		case DDSCAPS_BACKBUFFER|DDSCAPS_SYSTEMMEMORY:
-			// Vangers
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY;
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_VIDEOMEMORY:
-			// Bunnies must die
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_SYSTEMMEMORY; // NOT WORKING
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY:
-			// Alien Nations, Heroes of Might & Magic IV --- troublesome!!!!
-			lpddsd->dwFlags = (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT);
-			lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
-			// Cave Story, HoMM3
-			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_SYSTEMMEMORY:
-			// Magic & Mayhem
-			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN:
-			// Cave Story, Magic & Mayhem
-			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN;
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE:
-			// Nightmare Ned
-			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE:
-			// Actua Soccer 3
-			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_VIDEOMEMORY|DDSCAPS_3DDEVICE:
-			// Actua Soccer 3
-			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE;
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_SYSTEMMEMORY:
-			// Nightmare Ned, The Sims ???
-			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		}
-		break;
-	case DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PITCH:
-		switch (lpddsd->ddsCaps.dwCaps){
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
-			// Airline Tycoon Evolution
-			return;
-			break;
-		}
-		break;
-	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT:
-		switch (lpddsd->ddsCaps.dwCaps){
-		case DDSCAPS_COMPLEX|DDSCAPS_SYSTEMMEMORY|DDSCAPS_TEXTURE|DDSCAPS_MIPMAP: // Powerslide
-		case DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_TEXTURE|DDSCAPS_MIPMAP: // Powerslide
-			return;
-			break;
-		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_TEXTURE|DDSCAPS_3DDEVICE:
-		case DDSCAPS_OVERLAY|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
-		case DDSCAPS_COMPLEX|DDSCAPS_FLIP|DDSCAPS_OVERLAY|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
-		case DDSCAPS_COMPLEX|DDSCAPS_FLIP|DDSCAPS_OVERLAY|DDSCAPS_VIDEOMEMORY:
-			// Zoo Tycoon
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
-			// Empire Earth
-			// tbd
-			// try
-			lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_SYSTEMMEMORY);
-			// eotry
-			return;
-			break;		
-		case DDSCAPS_OFFSCREENPLAIN:
-			// Submarine titans (8BPP)
-			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
-			GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY:
-			// Duckman, HoM&M4, Beavis & Butthead do U.
-			// unsetting the Pixel Format may cause the backbuffer to be created with DDPF_ALPHAPIXELS flag on 
-			// and some generic surface with DDPF_ALPHAPIXELS off, so that blitting is unsupported.
-			// But it seems impossible to get HOMM4 to cope with Beavis & Butthead!!!
-			if(!(dxw.dwFlags3 & NOPIXELFORMAT)) GetPixFmt(lpddsd);
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY:
-			// Dungeon Keeper II GOG release (intro screen): doesn't like calling GetPixFmt!!!
-			// it requests a DDPF_FOURCC surface with fourcc="YYYY" that should not be overridden?
-			//
-			// need not to be configurable until we get a different case.
-			// it works both on VIDEOMEMORY or SYSTEMMEMORY. The latter should be more stable.
-			// v2.02.41: don't alter FOURCC pixel formats
-			if(lpddsd->ddpfPixelFormat.dwFlags & DDPF_FOURCC) return;
-			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM:
-			// Empire Earth
-			// Zoo Tycoon: better leave as it is....
-			// lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); ????
-			return;
-			break;
-		case DDSCAPS_COMPLEX|DDSCAPS_TEXTURE|DDSCAPS_MIPMAP:
-			// Empire Earth: flags = DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT|DDSD_MIPMAPCOUNT
-			return;
-			break;
-		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER:
-			// the Sims
-			return;
-			break;
-		case DDSCAPS_SYSTEMMEMORY|DDSCAPS_TEXTURE:
-			// Wargames Direct3D hw acceleration 
-			// Star Wars Shadows of the Empire in RGB HEL mode
-			return;
-			break;
-		case DDSCAPS_TEXTURE:
-			// Empire Earth
-			return;
-			break;
-		case DDSCAPS_VIDEOMEMORY|DDSCAPS_ZBUFFER:
-			// Martian Gothic
-			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER); // working ????
-			return;
-			break;
-		case DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM|DDSCAPS_ZBUFFER:
-			// Rayman 2
-			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER); // working ????
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE:
-			// Premier Manager 98
-			GetPixFmt(lpddsd);
-			return;
-			break;		
-		case DDSCAPS_OVERLAY|DDSCAPS_VIDEOMEMORY: // NOT WORKING
-			// Bunnies must die (not the horny ones!)
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_OVERLAY|DDSCAPS_SYSTEMMEMORY;
-			return;
-			break;			
-		case DDSCAPS_SYSTEMMEMORY:
-			// Star Force Deluxe
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY;
-			// GetPixFmt(lpddsd);
-			return;
-			break;			
-		case DDSCAPS_TEXTURE|DDSCAPS_VIDEOMEMORY|DDSCAPS_ALLOCONLOAD: 
-			// Star Wars Shadows of the Empire
-			// seems to work both with/without GetPixFmt, but doesn't like DDSCAPS_SYSTEMMEMORY textures.
-			// Setting GetPixFmt makes bad alpha transparencies!
-			// DDSCAPS_VIDEOMEMORY doesn't work with HEL only! Better switch to DDSCAPS_SYSTEMMEMORY.
-			if (dxw.dwFlags3 & FORCESHEL) lpddsd->ddsCaps.dwCaps = (DDSCAPS_TEXTURE|DDSCAPS_SYSTEMMEMORY|DDSCAPS_ALLOCONLOAD);
-			return;
-			break;			
-		}
-		break;
-	case DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH|DDSD_PIXELFORMAT:
-		switch (lpddsd->ddsCaps.dwCaps){
-		case DDSCAPS_SYSTEMMEMORY:
-			// Wargames
-			lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
-			GetPixFmt(lpddsd);
-			//lpddsd->dwFlags = DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH; // turn DDSD_PIXELFORMAT off
-			return;
-			break;
-		case DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY:
-			// A10 Cuba
-			lpddsd->ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY; // DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY working as well...
-			return;
-			break;			
-		}
-		break;
-
-	}
-
-	if(dxw.dwFlags3 & SURFACEWARN){
-		char sMsg[512];
-		sprintf(sMsg, "Flags=%x(%s) Caps=%x(%s)", lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags), lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
-		MessageBox(0, sMsg, "FixSurfaceCaps unmanaged setting", MB_OK | MB_ICONEXCLAMATION);
-	}
-}
-#endif
 
 static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 {	
-	// To do: fix Dungeon Keeper II
-
 	// rules of thumb:
-	// 1) always get rid of DDSCAPS_VIDEOMEMORY & DDSCAPS_LOCALVIDMEM caps
-	// 2) always add DDSCAPS_SYSTEMMEMORY caps
-	// 3) DDSCAPS_SYSTEMMEMORY is supported from dxversion 4
-	// 4) if DDSD_CAPS is not set, ignore caps
-	// 5) ignore DDSD_CKSRCBLT, ....
-	// 6) setting a different pixel format in memory requires DDSCAPS_OFFSCREENPLAIN capability
-	// 7) DDSD_TEXTURESTAGE surfaces may need to adjust pixel format (....???)
-	// 8) Generic surfaces are mapped to SYSTEMMEMORY and set to primary surface PixelFormat
-	// 9) When pixelformat is unspecified, be sure to pick the right one (with or without alphapixels?)
-	// 10) Don't alter surfaces with a color depth different from primary surface (Lords of Magic Special Edition)
+	// 1) textures should be left untouched (switching to SYSTEMMEMORY when forcing HEL may even fail!)
+	// 2) if a pixel format is specified, if DDSCAPS_SYSTEMMEMORY add DDSCAPS_OFFSCREENPLAY (if pixel formats are different?), otherwise do not touch anything.
+	// 3) if the surface is used as a buffer (DDSD_WIDTH set, DDSD_HEIGHT unset) do not touch anything.
+	// 4) zbuffer surfaces (DDSCAPS_ZBUFFER set) must have DDSCAPS_SYSTEMMEMORY 
+	// 5) DDSCAPS_3DDEVICE surfaces should have a defined pixel format
+	// 6) in all remaining cases, adjust the pixel format and ensure you have DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN
 
 	if(!(lpddsd->dwFlags & DDSD_CAPS)) lpddsd->ddsCaps.dwCaps = 0;
 
 	OutTraceDW("FixSurfaceCaps: Flags=%x(%s) Caps=%x(%s)\n",
 		lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags), lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
 
-#ifdef DXWND_ANALYTICMODE
-	if(dxw.dwFlags3 & ANALYTICMODE) return FixSurfaceCapsAnalytic(lpddsd, dxversion);
-#endif
-
-	if((lpddsd->dwFlags & (DDSD_WIDTH|DDSD_HEIGHT)) == DDSD_WIDTH) { 
-		// buffer surface - no changes
-		return;
-	}
-	if((lpddsd->dwFlags & (DDSD_PIXELFORMAT|DDSD_TEXTURESTAGE)) == (DDSD_PIXELFORMAT|DDSD_TEXTURESTAGE)){
-		// textures, set proper color depth and make no further changes
-		GetPixFmt(lpddsd);
-		return;
-	}
-	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) { // z-buffer surface - set to memory
-		lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER); 
-		return;
-	}
-	if((lpddsd->dwFlags & DDSD_CAPS) && 
-		(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) &&
-		!(lpddsd->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) // v2.02.90: added for "Zoo Tycoon" textures
-		{ // 3DDEVICE no TEXTURE: enforce PIXELFORMAT on MEMORY
-		lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE); 
-		GetPixFmt(lpddsd);
-		return;
-	}
 	// DDSCAPS_TEXTURE surfaces must be left untouched, unless you set FORCESHEL: in this case switch VIDEOMEMORY to SYSTEMMEMORY
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_TEXTURE)){
 		if (dxw.dwFlags3 & FORCESHEL) {
 			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
 			lpddsd->ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 		}
-		// no further changes...
 		return;
 	}
 
-	if(lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH){
-		lpddsd->dwFlags &= ~DDSD_PIXELFORMAT;
+	// this is valid just in case the above block eliminated TEXTURE surfaces....
+	if (lpddsd->dwFlags & DDSD_PIXELFORMAT){ // pixel format defined
+		if (lpddsd->ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN; // to allow for pixel format conversion (Quest for Glory 5 - GOG version)
+		return;
 	}
 
-	// v2.02.41: don't alter FOURCC pixel formats
-	if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwFlags & DDPF_FOURCC)) return;
+	if ((lpddsd->dwFlags & (DDSD_WIDTH|DDSD_HEIGHT)) == DDSD_WIDTH) { // buffer surface
+		return;
+	}
 
-	// v2.02.50: don't alter surfaces with different color depth
-	if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwRGBBitCount != dxw.VirtualPixelFormat.dwRGBBitCount)) return;
+	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) { // z-buffer surface - set to memory
+		lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER); 
+		return;
+	}
+
+	if((lpddsd->dwFlags & DDSD_CAPS) && 
+		(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) // v2.02.90: added for "Zoo Tycoon" textures
+		{ // 3DDEVICE no TEXTURE: enforce PIXELFORMAT on MEMORY
+		lpddsd->dwFlags |= DDSD_PIXELFORMAT;
+		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE); 
+		GetPixFmt(lpddsd);
+		return;
+	}
 
 	// default case: adjust pixel format
 	OutTraceB("FixSurfaceCaps: suppress DDSCAPS_VIDEOMEMORY case\n");
@@ -2406,6 +2123,9 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	DDSURFACEDESC2 ddsd;
 	HRESULT res;
 
+	// save primary surface type for later use
+	bIs3DPrimarySurfaceDevice = (lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE);
+
 	// emulated primary surface
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
 
@@ -2419,8 +2139,18 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.dwFlags &= ~(DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE);
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+#if 0
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+#else
+	// "problematic" situations:
+	// New Your Racer (intro movies & 3D part) Caps=DDSCAPS_COMPLEX+OVERLAY Pixel.Flags=DDPF_FOURCC
+	//ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+	//if(lpddsd->ddsCaps.dwCaps & DDSCAPS_OVERLAY) ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY);
+	//if(lpddsd->ddsCaps.dwCaps & DDSCAPS_OVERLAY) ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_OFFSCREENPLAIN);
+	ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+	//ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+#endif
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags5 & NOSYSTEMEMULATED) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
@@ -2488,7 +2218,12 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		ClearSurfaceDesc((void *)&ddsd, dxversion);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
 		// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
+		// DDSCAPS_SYSTEMMEMORY makes operations faster, but it is not always good...
 		ddsd.ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+		// "problematic" situations that need no DDSCAPS_SYSTEMMEMORY:
+		// Flying Heroes (caps=DDSCAPS_3DDEVICE)
+		// Echelon (caps=DDSCAPS_COMPLEX+3DDEVICE)
+		if(bIs3DPrimarySurfaceDevice) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
 		// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 		if(dxw.dwFlags5 & NOSYSTEMEMULATED) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 		ddsd.dwWidth = dxw.GetScreenWidth();
@@ -2520,17 +2255,15 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	DDSURFACEDESC2 ddsd;
 	HRESULT res;
 
+	bIs3DPrimarySurfaceDevice = (lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE);
+
 	// genuine primary surface
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
 	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_FLIP|DDSCAPS_COMPLEX);
 	// v2.02.93: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
 	// this impact also on capabilities for temporary surfaces for AERO optimized handling
-	bIs3DPrimarySurfaceDevice = FALSE;
-	if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) {
-		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
-		bIs3DPrimarySurfaceDevice = TRUE;
-	}
+	if(bIs3DPrimarySurfaceDevice) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
 	// create Primary surface
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]" , __LINE__);
@@ -3067,31 +2800,47 @@ HRESULT WINAPI PrimaryFastBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDI
 HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
 {
 	HRESULT res;
-	DDSURFACEDESC ddsd; 
+	DDSURFACEDESC2 ddsd; 
 	RECT TmpRect;
 	LPDIRECTDRAWSURFACE lpddsTmp;
 	LPDIRECTDRAWSURFACE lpddsBak;
 	DDSCAPS caps;
+	CreateSurface1_Type pCreateSurface;
+	int dwSize;
+
+	switch(iBakBufferVersion){
+		default:
+		case 1: pCreateSurface=pCreateSurface1; dwSize = sizeof(DDSURFACEDESC); break;
+		case 2: pCreateSurface=(CreateSurface1_Type)pCreateSurface2; dwSize = sizeof(DDSURFACEDESC); break;
+		case 3: pCreateSurface=(CreateSurface1_Type)pCreateSurface3; dwSize = sizeof(DDSURFACEDESC); break;
+		case 4: pCreateSurface=(CreateSurface1_Type)pCreateSurface4; dwSize = sizeof(DDSURFACEDESC2); break;
+		case 7: pCreateSurface=(CreateSurface1_Type)pCreateSurface7; dwSize = sizeof(DDSURFACEDESC2); break;
+	}
 	caps.dwCaps = DDSCAPS_BACKBUFFER;
 	memset(&ddsd, 0, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd);
+	ddsd.dwSize = dwSize;
 	if(lpddssrc==NULL){
 		// blit from backbuffer
-		lpdds->GetAttachedSurface(&caps, &lpddsBak);
-		if(lpddsBak) lpddsBak->GetSurfaceDesc(&ddsd);
+		lpdds->GetAttachedSurface(&caps, &(LPDIRECTDRAWSURFACE)lpddsBak);
+		lpddsBak->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
 	}
 	else{
 		// blit from surface
-		lpddssrc->GetSurfaceDesc(&ddsd);
+		lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
 	}
 	TmpRect.left = TmpRect.top = 0;
 	TmpRect.bottom = ddsd.dwHeight = lpdestrect->bottom - lpdestrect->top;
 	TmpRect.right  = ddsd.dwWidth  = lpdestrect->right  - lpdestrect->left;
+	if((TmpRect.bottom==0) || (TmpRect.right==0)) return DD_OK; // avoid blitting to null areas (Fifa 2000 D3D)
 	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
 	// capabilities must cope with primary / backbuffer surface capabilities to get speedy operations
 	ddsd.ddsCaps.dwCaps = bIs3DPrimarySurfaceDevice ? DDSCAPS_OFFSCREENPLAIN : (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-	res=(*pCreateSurface1)(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
-	if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	res=(*pCreateSurface)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
+	if(res) {
+		OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if(IsDebug) DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Gateway]" , __LINE__);
+		return res;
+	}
 	// stretch-blit to target size on OFFSCREENPLAIN temp surface
 	res= (*pBlt)(lpddsTmp, &TmpRect, lpddssrc, lpsrcrect, DDBLT_WAIT, 0);
 	if(res) OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -3108,7 +2857,7 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	HRESULT res;
 	extern void Resize_HQ_4ch( unsigned char*, RECT *, int, unsigned char*, RECT *, int);
 	/* to be implemented .... */
-	DDSURFACEDESC ddsd; 
+	DDSURFACEDESC2 ddsd; 
 	RECT TmpRect, SrcRect;
 	LPDIRECTDRAWSURFACE lpddsTmp;
 	LPDIRECTDRAWSURFACE lpddsBak;
@@ -3117,17 +2866,28 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	BYTE *bSourceBuf, *bDestBuf;
 	LONG dwWidth, dwHeight;
 	int SrcPitch, DestPitch;
+	CreateSurface1_Type pCreateSurface;
+	int dwSize;
+
+	switch(iBakBufferVersion){
+		default:
+		case 1: pCreateSurface=pCreateSurface1; dwSize = sizeof(DDSURFACEDESC); break;
+		case 2: pCreateSurface=(CreateSurface1_Type)pCreateSurface2; dwSize = sizeof(DDSURFACEDESC); break;
+		case 3: pCreateSurface=(CreateSurface1_Type)pCreateSurface3; dwSize = sizeof(DDSURFACEDESC); break;
+		case 4: pCreateSurface=(CreateSurface1_Type)pCreateSurface4; dwSize = sizeof(DDSURFACEDESC2); break;
+		case 7: pCreateSurface=(CreateSurface1_Type)pCreateSurface7; dwSize = sizeof(DDSURFACEDESC2); break;
+	}
 	caps.dwCaps = DDSCAPS_BACKBUFFER;
 	memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-	ddsd.dwSize = sizeof(DDSURFACEDESC);
+	ddsd.dwSize = dwSize;
 	if(lpddssrc==NULL){
 		// blit from backbuffer
 		lpdds->GetAttachedSurface(&caps, &lpddsBak);
-		if(lpddsBak) lpddsBak->GetSurfaceDesc(&ddsd);
+		if(lpddsBak) lpddsBak->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
 	}
 	else{
 		// blit from surface
-		lpddssrc->GetSurfaceDesc(&ddsd);
+		lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
 	}
 	
 	// assign source RECT values anyway....
@@ -3146,19 +2906,19 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
 	// capabilities must cope with primary / backbuffer surface capabilities to get speedy operations
 	ddsd.ddsCaps.dwCaps = bIs3DPrimarySurfaceDevice ? DDSCAPS_OFFSCREENPLAIN : (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-	res=(*pCreateSurface1)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
+	res=(*pCreateSurface)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
 	if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 
 	// get informations
-	memset(&ddsd,0,sizeof(DDSURFACEDESC));
-	ddsd.dwSize = sizeof(DDSURFACEDESC);
+	memset(&ddsd,0,dwSize);
+	ddsd.dwSize = dwSize;
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0);
 	if(res) OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	bSourceBuf = (BYTE *)ddsd.lpSurface;
 	SrcPitch = ddsd.lPitch;
-	memset(&ddsd,0,sizeof(DDSURFACEDESC));
-	ddsd.dwSize = sizeof(DDSURFACEDESC);
+	memset(&ddsd,0,dwSize);
+	ddsd.dwSize = dwSize;
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	res=(*pLock)(lpddsTmp, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0);
 	if(res) OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -3171,10 +2931,8 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 		bDestBuf, lpdestrect, DestPitch);
 
 	// fast-blit to primary
-	if(lpddssrc==lpDDSEmu_Back) lpddssrc->Unlock(NULL); // this surface is unhooked!!!
-	else (*pUnlock1)(lpddssrc, NULL);
-	//(*pUnlock1)(lpddsTmp, NULL);
-	lpddsTmp->Unlock(NULL); // this surface is unhooked!!!	
+	(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
+	(*pUnlockMethod(lpddsTmp))(lpddsTmp, NULL);
 	res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
 	if(res) OutTraceE("BltFast: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	(*pReleaseS)(lpddsTmp);	
@@ -3454,9 +3212,11 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		Dungeon Keeper II intro movies bug ....
 		it seems that you can't blit from compressed or different surfaces in memory,
 		while the operation COULD be supported to video. As a mater of fact, it DOES
-		work on my PC. 
+		work on my PC. The error code is DDERR_UNSUPPORTED.
+		v2.02.98 update....
+		The same thing happens with New York Racer, but with DDERR_EXCEPTION error code.
 		*/
-		if(res==DDERR_UNSUPPORTED){
+		if((res==DDERR_UNSUPPORTED) || (res==DDERR_EXCEPTION)){
 			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
@@ -4006,15 +3766,14 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	if(res==DDERR_NOTLOCKED) res=DD_OK; // ignore not locked error
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
 	if (IsPrim && res==DD_OK) {
-		sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
-		// v2.02.97: set dirty rect to syncronize with gdi operations. See "Deadlock II" problems...
-		RECT dirty;
-		if(lprect){
-			dirty = *lprect;
-			dxw.MapClient(&dirty);
-			lprect = &dirty;
+		if(dxversion == 1){
+			res=sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
+			if(IsPrim) (*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE); // to fix "Deadlock II" mouse trails....
 		}
-		(*pInvalidateRect)(dxw.GethWnd(), lprect, FALSE);
+		else {
+			res=sBlt("Unlock", lpdds, lprect, lpdds, lprect, NULL, 0, FALSE);
+			if(IsPrim) (*pInvalidateRect)(dxw.GethWnd(), lprect, FALSE); 
+		}
 	}
 
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
@@ -4914,6 +4673,7 @@ HRESULT WINAPI extGetSurfaceDesc7(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 l
 		OutTraceDW("GetSurfaceDesc: ASSERT - bad dwSize=%d lpdds=%x at %d\n", lpddsd->dwSize, lpdds, __LINE__);
 		return DDERR_INVALIDOBJECT;
 	}
+
 	OutTraceDW("GetSurfaceDesc: ASSERT - missing hook lpdds=%x dwSize=%d(%s) at %d\n", 
 		lpdds, lpddsd->dwSize, lpddsd->dwSize==sizeof(DDSURFACEDESC)?"DDSURFACEDESC":"DDSURFACEDESC2", __LINE__);
 	return DDERR_INVALIDOBJECT;

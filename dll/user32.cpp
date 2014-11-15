@@ -57,7 +57,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
 	{HOOK_IAT_CANDIDATE, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
 	//{HOOK_HOT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
-	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	//{HOOK_IAT_CANDIDATE, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };

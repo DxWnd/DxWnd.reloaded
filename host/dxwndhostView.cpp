@@ -125,7 +125,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
 	if(dlg->m_NoWinPosChanges) t->flags5 |= NOWINPOSCHANGES;
 
-	t->flags &= ~EMULATEFLAGS;
 	switch(dlg->m_DxEmulationMode){
 		case 0: t->flags |= AUTOMATIC; break;
 		case 1: break;
@@ -135,28 +134,31 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 			break;
 	}
 
-	t->flags4 &= ~BILINEAR2XFILTER;
-	t->flags5 &= ~BILINEARFILTER;
 	switch(dlg->m_DxFilterMode){
 		case 0: break;
 		case 1: t->flags4 |= BILINEAR2XFILTER; break;
 		case 2: t->flags5 |= BILINEARFILTER; break;
 	}
 
-	t->flags2 &= ~GDISTRETCHED;
-	t->flags &= ~MAPGDITOPRIMARY;
-	t->flags3 &= ~GDIEMULATEDC;
 	switch(dlg->m_DCEmulationMode){
 		case 0: break;
 		case 1: t->flags2 |= GDISTRETCHED; break;
 		case 2: t->flags3 |= GDIEMULATEDC; break;
 		case 3: t->flags |= MAPGDITOPRIMARY; break;
 	}
+
 	switch(dlg->m_ResTypes){
 		case 0: t->flags4 |= SUPPORTSVGA; break;
 		case 1: t->flags4 |= SUPPORTHDTV; break;
 		case 2: t->flags4 |= NATIVERES; break;
 	}	
+
+	switch(dlg->m_MouseVisibility){
+		case 0: break;
+		case 1: t->flags |= HIDEHWCURSOR; break;
+		case 2: t->flags2 |= SHOWHWCURSOR; break;
+	}	
+
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_OutProxyTrace) t->tflags |= OUTPROXYTRACE;
@@ -172,7 +174,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ImportTable) t->tflags |= OUTIMPORTTABLE;
 	if(dlg->m_RegistryOp) t->tflags |= OUTREGISTRY;
 	if(dlg->m_TraceHooks) t->tflags |= TRACEHOOKS;
-	//if(dlg->m_HandleDC) t->flags |= HANDLEDC;
 	if(dlg->m_HandleExceptions) t->flags |= HANDLEEXCEPTIONS;
 	if(dlg->m_LimitResources) t->flags2 |= LIMITRESOURCES;
 	if(dlg->m_CDROMDriveType) t->flags3 |= CDROMDRIVETYPE;
@@ -217,8 +218,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
 	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
-	if(dlg->m_HideHwCursor) t->flags |= HIDEHWCURSOR;
-	if(dlg->m_ShowHwCursor) t->flags2 |= SHOWHWCURSOR;
 	if(dlg->m_EnableClipping) t->flags |= ENABLECLIPPING;
 	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
@@ -233,7 +232,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoSystemMemory) t->flags5 |= NOSYSTEMMEMORY;
 	if(dlg->m_NoSystemEmulated) t->flags5 |= NOSYSTEMEMULATED;
 	if(dlg->m_NoBlt) t->flags5 |= NOBLT;
-	//if(dlg->m_BilinearBlt) t->flags5 |= BILINEARFILTER;
 	if(dlg->m_FastBlt) t->flags5 |= DOFASTBLT;
 	if(dlg->m_PreventMaximize) t->flags |= PREVENTMAXIMIZE;
 	if(dlg->m_ClientRemapping) t->flags |= CLIENTREMAPPING;
@@ -285,6 +283,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
 	if(dlg->m_NoFillRect) t->flags4 |= NOFILLRECT;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
+	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	t->initx = dlg->m_InitX;
 	t->inity = dlg->m_InitY;
 	t->minx = dlg->m_MinX;
@@ -344,6 +343,10 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags4 & SUPPORTSVGA) dlg->m_ResTypes = 0;
 	if(t->flags4 & SUPPORTHDTV) dlg->m_ResTypes = 1;
 	if(t->flags4 & NATIVERES) dlg->m_ResTypes = 2;
+
+	dlg->m_MouseVisibility = 0;
+	if(t->flags & HIDEHWCURSOR) dlg->m_MouseVisibility = 1;
+	if(t->flags2 & SHOWHWCURSOR) dlg->m_MouseVisibility = 2;
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
@@ -405,8 +408,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
 	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
-	dlg->m_HideHwCursor = t->flags & HIDEHWCURSOR ? 1 : 0;
-	dlg->m_ShowHwCursor = t->flags2 & SHOWHWCURSOR ? 1 : 0;
 	dlg->m_EnableClipping = t->flags & ENABLECLIPPING ? 1 : 0;
 	dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
 	dlg->m_VideoToSystemMem = t->flags & SWITCHVIDEOMEMORY ? 1 : 0;
@@ -421,7 +422,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoSystemMemory = t->flags5 & NOSYSTEMMEMORY ? 1 : 0;
 	dlg->m_NoSystemEmulated = t->flags5 & NOSYSTEMEMULATED ? 1 : 0;
 	dlg->m_NoBlt = t->flags5 & NOBLT ? 1 : 0;
-	//dlg->m_BilinearBlt = t->flags5 & BILINEARFILTER ? 1 : 0;
 	dlg->m_FastBlt = t->flags5 & DOFASTBLT ? 1 : 0;
 	dlg->m_PreventMaximize = t->flags & PREVENTMAXIMIZE ? 1 : 0;
 	dlg->m_ClientRemapping = t->flags & CLIENTREMAPPING ? 1 : 0;
@@ -473,6 +473,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;
 	dlg->m_NoFillRect = t->flags4 & NOFILLRECT ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
+	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_InitX = t->initx;
 	dlg->m_InitY = t->inity;
 	dlg->m_MinX = t->minx;

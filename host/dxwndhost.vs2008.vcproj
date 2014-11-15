@@ -491,7 +491,7 @@
 				>
 			</File>
 			<File
-				RelativePath="Resource.h"
+				RelativePath=".\Resource.h"
 				>
 			</File>
 			<File
@@ -628,10 +628,6 @@
 				>
 			</File>
 		</Filter>
-		<File
-			RelativePath=".\resource"
-			>
-		</File>
 	</Files>
 	<Globals>
 		<Global
