@@ -643,3 +643,5 @@ fix: fixed RDTSC opcode search loop - fixed time stretching for "Ubik"
 add: added "Peplace privileged opcodes" flag - makes unpatched "Ubik" run
 fix: revised ddsurface capabilities policy to allow D3D1-7 games to run in emulated mode and bilinear filtering
 
+v2.02.99
+fix: completed bilinear filtering for 16bpp desktop color depth

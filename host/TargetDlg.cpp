@@ -45,7 +45,6 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_DiabloTweak = FALSE;
 	m_NoImagehlp = FALSE;
 	m_ReplacePrivOps = FALSE;
-	m_DisableHAL = FALSE;
 	m_ForcesHEL = FALSE;
 	m_ColorFix = FALSE;
 	m_NoPixelFormat = FALSE;
@@ -59,7 +58,6 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_ForceYUVtoRGB = FALSE;
 	m_ForceRGBtoYUV = FALSE;
 	m_LimitScreenRes = FALSE;
-	m_SaveCaps = FALSE;
 	m_SingleProcAffinity = FALSE;
 	m_LimitResources = FALSE;
 	m_CDROMDriveType = FALSE;
@@ -203,6 +201,8 @@ BOOL CTargetDlg::OnInitDialog()
 	LoadString(AfxGetResourceHandle(), DXW_TAB_INPUT, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_DIRECTX, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_D3D, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_TIMING, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));

@@ -69,6 +69,8 @@ typedef HRESULT (WINAPI *GetCurrentViewport3_Type)(void *, LPDIRECT3DVIEWPORT3 *
 typedef HRESULT (WINAPI *SetCurrentViewport3_Type)(void *, LPDIRECT3DVIEWPORT3);
 typedef HRESULT (WINAPI *SetTexture3_Type)(void *, DWORD, LPDIRECT3DTEXTURE2);
 typedef HRESULT (WINAPI *SetTexture7_Type)(void *, DWORD, LPDIRECTDRAWSURFACE7);
+typedef HRESULT (WINAPI *SwapTextureHandles_Type)(void *, LPDIRECT3DTEXTURE, LPDIRECT3DTEXTURE);
+typedef HRESULT (WINAPI *SwapTextureHandles2_Type)(void *, LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
 
 D3DInitialize_Type pD3DInitialize = NULL;
 D3DGetCaps_Type pD3DGetCaps = NULL;
@@ -96,6 +98,8 @@ GetCurrentViewport3_Type pGetCurrentViewport3 = NULL;
 SetCurrentViewport3_Type pSetCurrentViewport3 = NULL;
 SetTexture3_Type pSetTexture3 = NULL;
 SetTexture7_Type pSetTexture7 = NULL;
+SwapTextureHandles_Type pSwapTextureHandles = NULL;
+SwapTextureHandles2_Type pSwapTextureHandles2 = NULL;
 
 // IDirect3DViewport-n interfaces
 
@@ -189,6 +193,28 @@ HRESULT WINAPI extSetViewport7(void *, LPD3DVIEWPORT7);
 HRESULT WINAPI extGetViewport7(void *, LPD3DVIEWPORT7);
 HRESULT WINAPI extSetTexture3(void *, DWORD, LPDIRECT3DTEXTURE2);
 HRESULT WINAPI extSetTexture7(void *, DWORD, LPDIRECTDRAWSURFACE7);
+HRESULT WINAPI extSwapTextureHandles(void *, LPDIRECT3DTEXTURE, LPDIRECT3DTEXTURE);
+HRESULT WINAPI extSwapTextureHandles2(void *, LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
+
+// Texture
+
+typedef HRESULT (WINAPI *TexInitialize_Type)(void *, LPDIRECT3DDEVICE, LPDIRECTDRAWSURFACE);
+typedef HRESULT (WINAPI *TexGetHandle_Type)(void *, LPDIRECT3DDEVICE, LPD3DTEXTUREHANDLE);
+typedef HRESULT (WINAPI *TexPaletteChanged_Type)(void *, DWORD, DWORD);
+typedef HRESULT (WINAPI *TexLoad_Type)(void *, LPDIRECT3DTEXTURE);
+typedef HRESULT (WINAPI *TexUnload_Type)(void *);
+
+TexInitialize_Type pTInitialize = NULL;
+TexGetHandle_Type pTGetHandle = NULL;
+TexPaletteChanged_Type pTPaletteChanged = NULL;
+TexLoad_Type pTLoad = NULL;
+TexUnload_Type pTUnload = NULL;
+
+HRESULT WINAPI extTexInitialize(void *, LPDIRECT3DDEVICE, LPDIRECTDRAWSURFACE);
+HRESULT WINAPI extTexGetHandle(void *, LPDIRECT3DDEVICE, LPD3DTEXTUREHANDLE);
+HRESULT WINAPI extTexPaletteChanged(void *, DWORD, DWORD);
+HRESULT WINAPI extTexLoad(void *, LPDIRECT3DTEXTURE);
+HRESULT WINAPI extTexUnload(void *);
 
 extern char *ExplainDDError(DWORD);
 int GD3DDeviceVersion;
@@ -299,7 +325,9 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 
 	switch(d3dversion){
 	case 1:
+		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  16), extGetCaps1, (void **)&pGetCaps1, "GetCaps(1)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extAddViewport1, (void **)&pAddViewport1, "AddViewport(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extDeleteViewport1, (void **)&pDeleteViewport1, "DeleteViewport(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  44), extNextViewport1, (void **)&pNextViewport1, "NextViewport(1)");
@@ -307,7 +335,9 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extEndScene1, (void **)&pEndScene1, "EndScene(1)");
 		break;
 	case 2:
+		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps2, (void **)&pGetCaps2, "GetCaps(2)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extAddViewport2, (void **)&pAddViewport2, "AddViewport(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  28), extDeleteViewport2, (void **)&pDeleteViewport2, "DeleteViewport(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  32), extNextViewport2, (void **)&pNextViewport2, "NextViewport(2)");
@@ -323,6 +353,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		}		
 		break;
 	case 3:
+		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps3, (void **)&pGetCaps3, "GetCaps(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extAddViewport3, (void **)&pAddViewport3, "AddViewport(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extBeginScene3, (void **)&pBeginScene3, "BeginScene(3)");
@@ -339,6 +370,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		}		
 		break;
 	case 7:
+		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
@@ -445,6 +477,25 @@ void HookMaterial(LPDIRECT3DMATERIAL *lpMaterial, int d3dversion)
 	default:
 		SetHook((void *)(**(DWORD **)lpMaterial +  12), extSetMaterial, (void **)&pSetMaterial, "SetMaterial");
 		SetHook((void *)(**(DWORD **)lpMaterial +  16), extGetMaterial, (void **)&pGetMaterial, "GetMaterial");
+		break;
+	}
+}
+
+void HookTexture(LPVOID *lpTexture, int version)
+{
+	OutTraceD3D("HookTexture: Texture=%x version=%d\n", *lpTexture, version);
+ 	switch(version){
+	case 1:
+		SetHook((void *)(**(DWORD **)lpTexture +  12), extTexInitialize, (void **)&pTInitialize, "Initialize(T1)");
+		SetHook((void *)(**(DWORD **)lpTexture +  16), extTexGetHandle, (void **)&pTGetHandle, "GetHandle(T1)");
+		SetHook((void *)(**(DWORD **)lpTexture +  20), extTexPaletteChanged, (void **)&pTPaletteChanged, "PaletteChanged(T1)");
+		SetHook((void *)(**(DWORD **)lpTexture +  24), extTexLoad, (void **)&pTLoad, "Load(T1)");
+		SetHook((void *)(**(DWORD **)lpTexture +  28), extTexUnload, (void **)&pTUnload, "Unload(T1)");
+		break;
+	case 2:
+		SetHook((void *)(**(DWORD **)lpTexture +  12), extTexGetHandle, (void **)&pTGetHandle, "GetHandle(T2)");
+		SetHook((void *)(**(DWORD **)lpTexture +  16), extTexPaletteChanged, (void **)&pTPaletteChanged, "PaletteChanged(T2)");
+		SetHook((void *)(**(DWORD **)lpTexture +  20), extTexLoad, (void **)&pTLoad, "Load(T2)");
 		break;
 	}
 }
@@ -1249,20 +1300,22 @@ HRESULT WINAPI extNextViewport2(void *d3dd, LPDIRECT3DVIEWPORT2 lpd3dvp, LPDIREC
 HRESULT WINAPI extSetTexture3(void *d3dd, DWORD flags, LPDIRECT3DTEXTURE2 lptex)
 {
 	HRESULT res;
+	OutTraceD3D("SetTexture(3): d3dd=%x flags=%x tex=%x\n", d3dd, flags, lptex);
 	if (dxw.dwFlags4 & NOTEXTURES) return DD_OK;
 
 	res=(*pSetTexture3)(d3dd, flags, lptex);
-	OutTraceD3D("SetTexture3: d3dd=%x, flags=%x, tex=%x res=%x\n", d3dd, flags, lptex, res);
+	if(res) OutTraceD3D("SetTexture(3): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
 
 HRESULT WINAPI extSetTexture7(void *d3dd, DWORD flags, LPDIRECTDRAWSURFACE7 lptex)
 {
 	HRESULT res;
+	OutTraceD3D("SetTexture(7): d3dd=%x, flags=%x, tex=%x\n", d3dd, flags, lptex);
 	if (dxw.dwFlags4 & NOTEXTURES) return DD_OK;
 
 	res=(*pSetTexture7)(d3dd, flags, lptex);
-	OutTraceD3D("SetTexture7: d3dd=%x, flags=%x, tex=%x res=%x\n", d3dd, flags, lptex, res);
+	if(res) OutTraceD3D("SetTexture(7): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
 
@@ -1270,7 +1323,7 @@ HRESULT WINAPI extSetMaterial(void *d3dd, LPD3DMATERIAL lpMaterial)
 {
 	HRESULT res;
 
-	OutTraceD3D("SetMaterial: d3dd=%x, material=%x\n", d3dd, lpMaterial);
+	OutTraceD3D("SetMaterial: d3dd=%x material=%x\n", d3dd, lpMaterial);
 	if(lpMaterial && IsDebug){
 		OutTraceD3D("Material: Size=%d Texture=%x diffuse=(%f,%f,%f,%f) ambient=(%f,%f,%f,%f) specular=(%f,%f,%f,%f) emissive=(%f,%f,%f,%f) power=%f\n", 
 			lpMaterial->dwSize, lpMaterial->hTexture, 
@@ -1291,7 +1344,7 @@ HRESULT WINAPI extGetMaterial(void *d3dd, LPD3DMATERIAL lpMaterial)
 	HRESULT res;
 
 	res=(*pGetMaterial)(d3dd, lpMaterial);
-	OutTraceD3D("GetMaterial: d3dd=%x, material=%x res=%x\n", d3dd, lpMaterial, res);
+	OutTraceD3D("GetMaterial: d3dd=%x material=%x res=%x\n", d3dd, lpMaterial, res);
 	if(lpMaterial && IsDebug && (res==DD_OK)){
 		OutTraceD3D("Material: Size=%d diffuse=(%f,%f,%f,%f) ambient=(%f,%f,%f,%f) specular=(%f,%f,%f,%f) emissive=(%f,%f,%f,%f) power=%f\n", 
 			lpMaterial->dwSize, 
@@ -1303,4 +1356,70 @@ HRESULT WINAPI extGetMaterial(void *d3dd, LPD3DMATERIAL lpMaterial)
 			);
 		}
 	return res;
+}
+
+HRESULT WINAPI extSwapTextureHandles(void *d3dd, LPDIRECT3DTEXTURE t1, LPDIRECT3DTEXTURE t2)
+{
+	HRESULT res;
+
+	OutTraceD3D("SwapTextureHandles(1): d3dd=%x t1=%x t2=%x\n", d3dd, t1, t2);
+	if (dxw.dwFlags4 & NOTEXTURES) return DD_OK;
+	
+	res=(*pSwapTextureHandles)(d3dd, t1, t2);
+	if(res) OutTraceD3D("SwapTextureHandles(1): ERROR res=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extSwapTextureHandles2(void *d3dd, LPDIRECT3DTEXTURE2 t1, LPDIRECT3DTEXTURE2 t2)
+{
+	HRESULT res;
+
+	OutTraceD3D("SwapTextureHandles(2): d3dd=%x t1=%x t2=%x\n", d3dd, t1, t2);
+	if (dxw.dwFlags4 & NOTEXTURES) return DD_OK;
+	
+	res=(*pSwapTextureHandles2)(d3dd, t1, t2);
+	if(res) OutTraceD3D("SwapTextureHandles(2): ERROR res=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extTexInitialize(void *t, LPDIRECT3DDEVICE lpd3dd, LPDIRECTDRAWSURFACE lpdds)
+{
+	OutTrace("Texture::Initialize\n");
+	return (*pTInitialize)(t, lpd3dd, lpdds);
+}
+
+HRESULT WINAPI extTexGetHandle(void *t, LPDIRECT3DDEVICE lpd3dd, LPD3DTEXTUREHANDLE lpth)
+{
+	HRESULT ret;
+	OutTrace("Texture::GetHandle lpt=%x lpd3dd=%x lpth=%x\n", t, lpd3dd, lpth);
+	ret = (*pTGetHandle)(t, lpd3dd, lpth);
+	if(ret) OutTraceE("Texture::Load ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	return ret;
+}
+
+HRESULT WINAPI extTexPaletteChanged(void *t, DWORD dw1, DWORD dw2)
+{
+	HRESULT ret;
+	OutTrace("Texture::PaletteChanged lpt=%x dw1=%x dw2=%x\n", t, dw1, dw2);
+	ret = (*pTPaletteChanged)(t, dw1, dw2);
+	if(ret) OutTraceE("Texture::PaletteChanged ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	return ret;
+}
+
+HRESULT WINAPI extTexLoad(void *t, LPDIRECT3DTEXTURE lpt)
+{
+	HRESULT ret;
+	OutTrace("Texture::Load lpt=%x lpd3dt=%x\n", t, lpt);
+	ret = (*pTLoad)(t, lpt);
+	if(ret) OutTraceE("Texture::Load ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	return ret;
+}
+
+HRESULT WINAPI extTexUnload(void *t)
+{
+	HRESULT ret;
+	OutTrace("Texture::Unload lpt=%x\n", t);
+	ret = (*pTUnload)(t);
+	if(ret) OutTraceE("Texture::Load ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
+	return ret;
 }

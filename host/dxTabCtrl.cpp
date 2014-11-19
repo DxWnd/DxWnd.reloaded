@@ -24,6 +24,7 @@
 #include "TabProgram.h"
 #include "TabLogs.h"
 #include "TabDirectX.h"
+#include "TabDirect3D.h"
 #include "TabInput.h"
 #include "TabTiming.h"
 #include "TabWindow.h"
@@ -51,6 +52,7 @@ CDXTabCtrl::CDXTabCtrl()
 	m_tabPages[i++]=new CTabWindow;
 	m_tabPages[i++]=new CTabInput;
 	m_tabPages[i++]=new CTabDirectX;
+	m_tabPages[i++]=new CTabDirect3D;
 	m_tabPages[i++]=new CTabTiming;
 	m_tabPages[i++]=new CTabLogs;
 	m_tabPages[i++]=new CTabSysLibs;
@@ -76,6 +78,7 @@ void CDXTabCtrl::Init()
 	m_tabPages[i++]->Create(IDD_TAB_OUTPUT, this);
 	m_tabPages[i++]->Create(IDD_TAB_INPUT, this);
 	m_tabPages[i++]->Create(IDD_TAB_DIRECTX, this);
+	m_tabPages[i++]->Create(IDD_TAB_D3D, this);
 	m_tabPages[i++]->Create(IDD_TAB_TIMING, this);
 	m_tabPages[i++]->Create(IDD_TAB_LOG, this);
 	m_tabPages[i++]->Create(IDD_TAB_SYSLIBS, this);

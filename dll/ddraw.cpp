@@ -19,7 +19,8 @@
 
 extern BOOL IsChangeDisplaySettingsHotPatched;
 BOOL bDontReleaseBackBuffer = FALSE;
-BOOL bIs3DPrimarySurfaceDevice = FALSE;
+DWORD dwBackBufferCaps;
+extern void TextureHandling(LPDIRECTDRAWSURFACE);
 
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -674,7 +675,13 @@ static void ddSetCompatibility()
 
 int HookDirectDraw(HMODULE module, int version)
 {
-	if(dxw.dwFlags2 & SETCOMPATIBILITY) ddSetCompatibility();
+	if(dxw.dwFlags2 & SETCOMPATIBILITY) {
+		static BOOL AlreadyDone = FALSE;
+		if(!AlreadyDone){
+			ddSetCompatibility();
+			AlreadyDone = TRUE;
+		}
+	}
 
 	if(dxw.dwFlags4 & HOTPATCH) {
 		// hot-patch all APIs and that's all folks!
@@ -1379,6 +1386,14 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 	SetHook((void *)(**(DWORD **)lplpdds + 140), extUpdateOverlayZOrderProxy, (void **)&pUpdateOverlayZOrder, "UpdateOverlayZOrder(S)");
 }
 
+static void HookGammaControl(LPVOID *obp)
+{
+	// IDirectDrawGammaControl::GetGammaRamp
+	SetHook((void *)(**(DWORD **)obp + 12), extDDGetGammaRamp, (void **)&pDDGetGammaRamp, "GetGammaRamp(G)");
+	// IDirectDrawGammaControl::SetGammaRamp
+	SetHook((void *)(**(DWORD **)obp + 16), extDDSetGammaRamp, (void **)&pDDSetGammaRamp, "SetGammaRamp(G)");
+}
+
 /* ------------------------------------------------------------------------------ */
 // CleanRect:
 // takes care of a corrupted RECT struct where some elements are not valid pointers.
@@ -1756,6 +1771,7 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	BOOL IsBack;
 	BOOL IsGammaRamp;
 	unsigned int dwLocalDDVersion;
+	unsigned int dwLocalTexVersion;
 
 	OutTraceDDRAW("QueryInterface(S): lpdds=%x REFIID=%x(%s) obp=%x\n",
 		lpdds, riid.Data1, ExplainGUID((GUID *)&riid), *obp);	
@@ -1765,6 +1781,7 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	IsGammaRamp=FALSE;
 
 	dwLocalDDVersion=0;
+	dwLocalTexVersion=0;
 	switch(riid.Data1){
 	case 0x6C14DB81:
 		dwLocalDDVersion = 1;
@@ -1800,6 +1817,15 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 		OutTraceDW("QueryInterface: IID_IDirectDrawGammaControl\n");
 		IsGammaRamp=TRUE;
 		break;
+	// textures
+	case 0x2CDCD9E0:
+		OutTraceDW("QueryInterface: IID_IDirect3DTexture\n");
+		dwLocalTexVersion = 1;
+		break;
+	case 0x93281502:
+		OutTraceDW("QueryInterface: IID_IDirect3DTexture2\n");
+		dwLocalTexVersion = 2;
+		break;
 	} 
 
 	if (dwLocalDDVersion > dxw.dwMaxDDVersion) {
@@ -1820,49 +1846,50 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 
 	if (! *obp) {
 		OutTraceDW("QueryInterface(S): Interface for DX version %d not found\n", dwLocalDDVersion);
-		return(0);
+		return 0;
 	}
 
 	// added trace
-	OutTraceDDRAW("QueryInterface(S): lpdds=%x%s REFIID=%x obp=%x DDVersion=%d ret=0\n",
-		lpdds, IsPrim?"(PRIM)":"", riid.Data1, *obp, dwLocalDDVersion);
+	OutTraceDW("QueryInterface(S): lpdds=%x%s REFIID=%x obp=%x DDVersion=%d TexVersion=%d GammaRamp=%d ret=0\n",
+		lpdds, IsPrim?"(PRIM)":"", riid.Data1, *obp, dwLocalDDVersion, dwLocalTexVersion, IsGammaRamp);
 
-	switch (dwLocalDDVersion){
-		case 1: // added for The Sims
-		case 2:
-		case 3:
-		case 4: 
-		case 7:
-		dxw.dwDDVersion=dwLocalDDVersion;
-		if(IsPrim){
-			OutTraceDW("QueryInterface(S): primary=%x new=%x\n", lpdds, *obp);
-			dxw.MarkPrimarySurface((LPDIRECTDRAWSURFACE)*obp);
-			HookDDSurfacePrim((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion);
+	if (dwLocalDDVersion) {
+		switch (dwLocalDDVersion){
+			case 1: // added for The Sims
+			case 2:
+			case 3:
+			case 4: 
+			case 7:
+			dxw.dwDDVersion=dwLocalDDVersion;
+			if(IsPrim){
+				OutTraceDW("QueryInterface(S): primary=%x new=%x\n", lpdds, *obp);
+				dxw.MarkPrimarySurface((LPDIRECTDRAWSURFACE)*obp);
+				HookDDSurfacePrim((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion);
+			}
+			else{
+				if(IsBack) dxw.MarkBackBufferSurface((LPDIRECTDRAWSURFACE)*obp);
+				else dxw.MarkRegularSurface((LPDIRECTDRAWSURFACE)*obp);
+				// v2.02.13: seems that hooking inconditionally gives troubles. What is the proper safe hook condition?
+				HookDDSurfaceGeneric((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion);
+			}
+			break;
 		}
-		else{
-			if(IsBack) dxw.MarkBackBufferSurface((LPDIRECTDRAWSURFACE)*obp);
-			else dxw.MarkRegularSurface((LPDIRECTDRAWSURFACE)*obp);
-			// v2.02.13: seems that hooking inconditionally gives troubles. What is the proper safe hook condition?
-			HookDDSurfaceGeneric((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion);
-		}
-		break;
-	}
-
-	if(IsGammaRamp){
-		// IDirectDrawGammaControl::GetGammaRamp
-		SetHook((void *)(**(DWORD **)obp + 12), extDDGetGammaRamp, (void **)&pDDGetGammaRamp, "GetGammaRamp(G)");
-		// IDirectDrawGammaControl::SetGammaRamp
-		SetHook((void *)(**(DWORD **)obp + 16), extDDSetGammaRamp, (void **)&pDDSetGammaRamp, "SetGammaRamp(G)");
-	}
-
-	if((lpdds == lpDDSBack) && dwLocalDDVersion) {
-		// assume that you always use the newer interface version, if available.
-		if(dwLocalDDVersion > (UINT)iBakBufferVersion){
-			OutTraceDW("QueryInterface(S): switching backbuffer %x -> %x\n", lpDDSBack, *obp); 
-			lpDDSBack = (LPDIRECTDRAWSURFACE)*obp;
-			iBakBufferVersion = dwLocalDDVersion;
+		if(lpdds == lpDDSBack) {
+			// assume that you always use the newer interface version, if available.
+			if(dwLocalDDVersion > (UINT)iBakBufferVersion){
+				OutTraceDW("QueryInterface(S): switching backbuffer %x -> %x\n", lpDDSBack, *obp); 
+				lpDDSBack = (LPDIRECTDRAWSURFACE)*obp;
+				iBakBufferVersion = dwLocalDDVersion;
+			}
 		}
 	}
+
+	if(dwLocalTexVersion) {
+		if(dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK)) TextureHandling((LPDIRECTDRAWSURFACE)lpdds);
+		HookTexture(obp, dwLocalTexVersion);
+	}
+
+	if(IsGammaRamp)	HookGammaControl(obp);
 
 	return 0;
 }
@@ -2123,9 +2150,6 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	DDSURFACEDESC2 ddsd;
 	HRESULT res;
 
-	// save primary surface type for later use
-	bIs3DPrimarySurfaceDevice = (lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE);
-
 	// emulated primary surface
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
 
@@ -2139,18 +2163,8 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.dwFlags &= ~(DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE);
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
-#if 0
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-#else
-	// "problematic" situations:
-	// New Your Racer (intro movies & 3D part) Caps=DDSCAPS_COMPLEX+OVERLAY Pixel.Flags=DDPF_FOURCC
-	//ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-	//if(lpddsd->ddsCaps.dwCaps & DDSCAPS_OVERLAY) ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY);
-	//if(lpddsd->ddsCaps.dwCaps & DDSCAPS_OVERLAY) ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_OFFSCREENPLAIN);
-	ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-	//ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-#endif
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags5 & NOSYSTEMEMULATED) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
@@ -2220,12 +2234,9 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 		// DDSCAPS_SYSTEMMEMORY makes operations faster, but it is not always good...
 		ddsd.ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
-		// "problematic" situations that need no DDSCAPS_SYSTEMMEMORY:
-		// Flying Heroes (caps=DDSCAPS_3DDEVICE)
-		// Echelon (caps=DDSCAPS_COMPLEX+3DDEVICE)
-		if(bIs3DPrimarySurfaceDevice) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
 		// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 		if(dxw.dwFlags5 & NOSYSTEMEMULATED) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+		dwBackBufferCaps = ddsd.ddsCaps.dwCaps;
 		ddsd.dwWidth = dxw.GetScreenWidth();
 		ddsd.dwHeight = dxw.GetScreenHeight();
 		if(dxw.dwFlags4 & BILINEAR2XFILTER){
@@ -2255,15 +2266,13 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	DDSURFACEDESC2 ddsd;
 	HRESULT res;
 
-	bIs3DPrimarySurfaceDevice = (lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE);
-
 	// genuine primary surface
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
 	ddsd.dwFlags &= ~(DDSD_WIDTH|DDSD_HEIGHT|DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_FLIP|DDSCAPS_COMPLEX);
 	// v2.02.93: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
 	// this impact also on capabilities for temporary surfaces for AERO optimized handling
-	if(bIs3DPrimarySurfaceDevice) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	if ((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
 	// create Primary surface
 	DumpSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]" , __LINE__);
@@ -2325,7 +2334,7 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_BACKBUFFER|DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
-	if(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	if(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // necessary: Martian Gotic crashes otherwise
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
@@ -2834,7 +2843,7 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	if((TmpRect.bottom==0) || (TmpRect.right==0)) return DD_OK; // avoid blitting to null areas (Fifa 2000 D3D)
 	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
 	// capabilities must cope with primary / backbuffer surface capabilities to get speedy operations
-	ddsd.ddsCaps.dwCaps = bIs3DPrimarySurfaceDevice ? DDSCAPS_OFFSCREENPLAIN : (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+	ddsd.ddsCaps.dwCaps = dwBackBufferCaps;
 	res=(*pCreateSurface)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
 	if(res) {
 		OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -2852,11 +2861,38 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	return res;
 }
 
+void *LoadFilter(char *apiname)
+{
+	HMODULE filterlib;
+	#define MAX_FILE_PATH 512
+	char sSourcePath[MAX_FILE_PATH+1];
+	char *p;
+	DWORD dwAttrib;	
+	
+	dwAttrib = GetFileAttributes("dxwnd.dll");
+	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return NULL;
+	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_FILE_PATH);
+	p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
+
+	*p=0;
+	SetDllDirectory(sSourcePath);
+
+	strcpy(p, "mp.dll");
+	filterlib=(*pLoadLibraryA)(sSourcePath);
+	if(!filterlib) {
+		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", sSourcePath, GetLastError());
+		return NULL;
+	}
+	return (*pGetProcAddress)(filterlib, apiname);
+}
+
 HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
 {
 	HRESULT res;
-	extern void Resize_HQ_4ch( unsigned char*, RECT *, int, unsigned char*, RECT *, int);
+	typedef void (WINAPI *Resize_HQ_Type)( unsigned char*, RECT *, int, unsigned char*, RECT *, int);
+	static Resize_HQ_Type pResize_HQ = NULL;
 	/* to be implemented .... */
+
 	DDSURFACEDESC2 ddsd; 
 	RECT TmpRect, SrcRect;
 	LPDIRECTDRAWSURFACE lpddsTmp;
@@ -2905,7 +2941,7 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	TmpRect.right  = ddsd.dwWidth  = dwWidth;
 	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
 	// capabilities must cope with primary / backbuffer surface capabilities to get speedy operations
-	ddsd.ddsCaps.dwCaps = bIs3DPrimarySurfaceDevice ? DDSCAPS_OFFSCREENPLAIN : (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
+	ddsd.ddsCaps.dwCaps = dwBackBufferCaps;
 	res=(*pCreateSurface)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
 	if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 
@@ -2926,9 +2962,41 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	DestPitch = ddsd.lPitch;
 
 	// do the filtering
-	Resize_HQ_4ch( 
-		bSourceBuf, lpsrcrect, SrcPitch, 
-		bDestBuf, lpdestrect, DestPitch);
+	if(!pResize_HQ) {
+		char *filter;
+		HMODULE filterlib;
+		switch(ddsd.ddpfPixelFormat.dwGBitMask)
+		{
+		default:
+		case 0x00FF00:
+			filter = "Resize_HQ_4ch";
+			break;
+		case 0x0007E0: // RGB565
+			filter = "Resize_HQ_2ch565";
+			break;
+		case 0x0003E0: // RGB555
+			filter = "Resize_HQ_2ch555";
+			break;
+		}
+
+		filterlib=(*pLoadLibraryA)("mp.dll");
+		if(!filterlib) {
+			char sMsg[80+1];
+			sprintf(sMsg, "DXWND: ERROR can't load lib=\"mp.dll\" err=%x\n", GetLastError());
+			OutTraceE(sMsg);
+			MessageBox(0, sMsg, "ERROR", MB_OK | MB_ICONEXCLAMATION);
+			exit(0);
+		}
+		pResize_HQ = (Resize_HQ_Type)(*pGetProcAddress)(filterlib, filter);
+		if(!pResize_HQ){
+			char sMsg[80+1];
+			sprintf(sMsg, "DXWND: ERROR can't load name=\"%s\"\n", filter);
+			OutTraceE(sMsg);
+			MessageBox(0, sMsg, "ERROR", MB_OK | MB_ICONEXCLAMATION);
+			exit(0);
+		}
+	}
+	(*pResize_HQ)(bSourceBuf, lpsrcrect, SrcPitch, bDestBuf, lpdestrect, DestPitch);
 
 	// fast-blit to primary
 	(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
@@ -3092,6 +3160,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			if (lpddssrc) DescribeSurface(lpddssrc, 0, "[SRC]" , __LINE__); // lpddssrc could be NULL!!!
 		}
 		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+		if(dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK)) TextureHandling(lpdds);
 		return res;
 	}
 
@@ -3246,6 +3315,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			res=(*pEmuBlt)(lpDDSEmu_Back, &emurect, lpdds, &emurect, DDBLT_WAIT, 0);
 		}
 		if(res) {
+			BlitError(res, &emurect, &emurect, __LINE__);
 			if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
 			return res;
 		}
@@ -3777,6 +3847,8 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	}
 
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
+
+	if((dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK)) && (!IsPrim)) TextureHandling(lpdds);
 	return res;
 }
 
@@ -4673,7 +4745,6 @@ HRESULT WINAPI extGetSurfaceDesc7(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 l
 		OutTraceDW("GetSurfaceDesc: ASSERT - bad dwSize=%d lpdds=%x at %d\n", lpddsd->dwSize, lpdds, __LINE__);
 		return DDERR_INVALIDOBJECT;
 	}
-
 	OutTraceDW("GetSurfaceDesc: ASSERT - missing hook lpdds=%x dwSize=%d(%s) at %d\n", 
 		lpdds, lpddsd->dwSize, lpddsd->dwSize==sizeof(DDSURFACEDESC)?"DDSURFACEDESC":"DDSURFACEDESC2", __LINE__);
 	return DDERR_INVALIDOBJECT;

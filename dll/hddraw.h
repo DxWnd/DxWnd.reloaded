@@ -126,3 +126,10 @@ typedef HRESULT (WINAPI *SetEntries_Type)(LPDIRECTDRAWPALETTE, DWORD, DWORD, DWO
 // 
 // GammaRamp
 typedef HRESULT (WINAPI *GammaRamp_Type)(LPDIRECTDRAWSURFACE, DWORD, LPDDGAMMARAMP);
+
+// extern procedures
+
+extern void HookTexture(LPVOID *, int);
+extern int Set_dwSize_From_Surface(LPDIRECTDRAWSURFACE);
+
+

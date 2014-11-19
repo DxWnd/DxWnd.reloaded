@@ -73,7 +73,7 @@ static char *Flag2Names[32]={
 static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
-	"SAVECAPS", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
+	"--SAVECAPS--", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
 	"NOWINDOWMOVE", "--DISABLEHAL--", "LOCKSYSCOLORS", "GDIEMULATEDC",
 	"FULLSCREENONLY", "FONTBYPASS", "YUV2RGB", "RGB2YUV",
 	"BUFFEREDIOFIX", "FILTERMESSAGES", "PEEKALLMESSAGES", "SURFACEWARN",
@@ -96,8 +96,8 @@ static char *Flag5Names[32]={
 	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "NOSYSTEMMEMORY",
 	"NOBLT", "NOSYSTEMEMULATED", "DOFASTBLT", "AEROBOOST",
 	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
-	"", "", "", "",
-	"", "", "", "",
+	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
+	"TEXTURETRANSP", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1163,19 +1163,10 @@ static void LockScreenMode(DWORD dmPelsWidth, DWORD dmPelsHeight, DWORD dmBitsPe
 static HMODULE LoadDisasm()
 {
 	HMODULE disasmlib;
-	#define MAX_FILE_PATH 512
-	char sSourcePath[MAX_FILE_PATH+1];
-	char *p;
-	DWORD dwAttrib;	
 	
-	dwAttrib = GetFileAttributes("dxwnd.dll");
-	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return NULL;
-	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_FILE_PATH);
-	p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
-	strcpy(p, "disasm.dll");
-	disasmlib=(*pLoadLibraryA)(sSourcePath);
+	disasmlib=(*pLoadLibraryA)("disasm.dll");
 	if(!disasmlib) {
-		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", sSourcePath, GetLastError());
+		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", "disasm.dll", GetLastError());
 		return NULL;
 	}
 	pGeterrwarnmessage=(Geterrwarnmessage_Type)(*pGetProcAddress)(disasmlib, "Geterrwarnmessage");
@@ -1590,6 +1581,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	HMODULE base;
 	char *sModule;
 	char sModuleBuf[60+1];
+	char sSourcePath[MAX_PATH+1];
 	static char *dxversions[14]={
 		"Automatic", "DirectX1~6", "", "", "", "", "", 
 		"DirectX7", "DirectX8", "DirectX9", "DirectX10", "DirectX11", "None", ""
@@ -1599,6 +1591,17 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	};
 	
 	dxw.InitTarget(target);
+
+	// add the DxWnd install dir to the search path, to make all included dll linkable
+	DWORD dwAttrib;		
+	dwAttrib = GetFileAttributes("dxwnd.dll");
+	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
+		MessageBox(0, "DXWND: ERROR can't locate itself", "ERROR", MB_OK | MB_ICONEXCLAMATION);
+		exit(0);
+	}
+	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_PATH);
+	sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")] = 0; // terminate the string just before "dxwnd.dll"
+	SetDllDirectory(sSourcePath);
 
 	if(dxw.dwFlags1 & AUTOMATIC) dxw.dwFlags1 |= EMULATESURFACE; // if AUTOMATIC, try this first!
 

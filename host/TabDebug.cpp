@@ -33,7 +33,6 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_ASSERT, cTarget->m_AssertDialog);
 	DDX_Check(pDX, IDC_MARKBLIT, cTarget->m_MarkBlit);
 	DDX_Check(pDX, IDC_NOBLT, cTarget->m_NoBlt);
-//	DDX_Check(pDX, IDC_BILINEARBLT, cTarget->m_BilinearBlt);
 	DDX_Check(pDX, IDC_FASTBLT, cTarget->m_FastBlt);
 	DDX_Check(pDX, IDC_ANALYTICMODE, cTarget->m_AnalyticMode);
 	DDX_Check(pDX, IDC_SURFACEWARN, cTarget->m_SurfaceWarn);
@@ -44,6 +43,8 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOFILLRECT, cTarget->m_NoFillRect);
 	DDX_Check(pDX, IDC_ZBUFFERALWAYS, cTarget->m_ZBufferAlways);
 	DDX_Check(pDX, IDC_HOTPATCHALWAYS, cTarget->m_HotPatchAlways);
+	DDX_Check(pDX, IDC_NOSYSTEMMEMORY, cTarget->m_NoSystemMemory);
+	DDX_Check(pDX, IDC_NOSYSTEMEMULATED, cTarget->m_NoSystemEmulated);
 }
 
 BEGIN_MESSAGE_MAP(CTabDebug, CDialog)

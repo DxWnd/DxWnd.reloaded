@@ -75,7 +75,7 @@
 #define LIMITRESOURCES		0x10000000 // Limit resources to fit an old program's expectations 
 #define STARTDEBUG			0x20000000 // Start in DEBUG mode
 #define SETCOMPATIBILITY	0x40000000 // invoke ddraw SetAppCompatData to set aero compatibility mode
-#define WIREFRAME			0x80000000 // invoke ddraw SetAppCompatData to set aero compatibility mode
+#define WIREFRAME			0x80000000 // forces wireframe display for D3D and Glide games
 
 // third flags DWORD dxw.dwFlags3:
 #define FORCEHOOKOPENGL		0x00000001 // loads OpenGL32.dll and hooks it
@@ -86,12 +86,12 @@
 #define FIXD3DFRAME			0x00000020 // Preserve windows frame in D3D9 programs
 #define FORCE16BPP			0x00000040 // Forces 16BPP desktop color depth
 #define BLACKWHITE			0x00000080 // Simulate a B&W screen monitor mapping colors to grayscales
-#define SAVECAPS			0x00000100 // Saves and restores original surface flags & capabilities
+//#define SAVECAPS			0x00000100 // Saves and restores original surface flags & capabilities (UNUSED)
 #define SINGLEPROCAFFINITY	0x00000200 // Set Process Affinity to a single core
 #define EMULATEREGISTRY		0x00000400 // Emulate registry api to read extra keys
 #define CDROMDRIVETYPE		0x00000800 // Pretends that GetDriveType() always returns DRIVE_CDROM
 #define NOWINDOWMOVE		0x00001000 // Do not try to update window position & size on D3D rendering
-#define DISABLEHAL			0x00002000 // Disable HAL support (IID_IDirect3DHALDevice) - no longer used
+//#define DISABLEHAL			0x00002000 // Disable HAL support (IID_IDirect3DHALDevice) - no longer used
 #define LOCKSYSCOLORS		0x00004000 // Lock Sys Colors changes by SetSysColors() call
 #define GDIEMULATEDC		0x00008000 // Map GDI/user32 calls to primary to a memory surface to be stretch-blitted to the primary
 #define FULLSCREENONLY		0x00010000 // assume that the program is always in fullscreen mode
@@ -158,6 +158,11 @@
 #define NOIMAGEHLP			0x00000200 // Interceptd Imagehlp.dll unsupported calls (used by "the 5th element")
 #define BILINEARFILTER		0x00000400 // experimental bilinear filtering
 #define REPLACEPRIVOPS		0x00000800 // replace privileged opcodes, such as IN (Ubik)
+#define REMAPMCI			0x00001000 // remap MCI calls coordinates in mciSendString
+#define TEXTUREHIGHLIGHT	0x00002000 // highlight textures with random color & grid
+#define TEXTUREDUMP			0x00004000 // dump textures to file system as bmp files
+#define TEXTUREHACK			0x00008000 // load (replace) hacked textures from file system (bmp files)
+#define TEXTURETRANSP		0x00010000 // transparent textures (unimplemented)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -173,7 +178,6 @@
 #define TRACEHOOKS			0x00000400 // log hook operations
 #define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
 #define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
-#define REMAPMCI			0x00002000 // remap MCI calls coordinates in mciSendString
 
 #define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE | LOCKEDSURFACE)
 #define HANDLEFPS			(SHOWFPS | SHOWFPSOVERLAY | LIMITFPS | SKIPFPS)

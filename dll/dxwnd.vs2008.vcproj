@@ -154,6 +154,7 @@
 				ExceptionHandling="2"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
+				OpenMP="true"
 				PrecompiledHeaderFile=".\Release/dxwnd.pch"
 				AssemblerListingLocation=".\Release/"
 				ObjectFile=".\Release/"
@@ -218,10 +219,6 @@
 			>
 			<File
 				RelativePath=".\advapi.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\bilinear.cpp"
 				>
 			</File>
 			<File
@@ -402,6 +399,10 @@
 			</File>
 			<File
 				RelativePath=".\smack.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\texv4handle.cpp"
 				>
 			</File>
 			<File

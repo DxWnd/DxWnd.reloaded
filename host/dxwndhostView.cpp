@@ -159,6 +159,13 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags2 |= SHOWHWCURSOR; break;
 	}	
 
+	switch(dlg->m_TextureHandling){
+		case 0: break;
+		case 1: t->flags5 |= TEXTUREHIGHLIGHT; break;
+		case 2: t->flags5 |= TEXTUREDUMP; break;
+		case 3: t->flags5 |= TEXTUREHACK; break;
+	}
+
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_OutProxyTrace) t->tflags |= OUTPROXYTRACE;
@@ -194,7 +201,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
 	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
-	if(dlg->m_DisableHAL) t->flags3 |= DISABLEHAL;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
 	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
@@ -208,7 +214,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
 	if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
 	if(dlg->m_LimitScreenRes) t->flags4 |= LIMITSCREENRES;
-	if(dlg->m_SaveCaps) t->flags3 |= SAVECAPS;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
 	if(dlg->m_SlowDown) t->flags |= SLOWDOWN;
@@ -348,6 +353,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & HIDEHWCURSOR) dlg->m_MouseVisibility = 1;
 	if(t->flags2 & SHOWHWCURSOR) dlg->m_MouseVisibility = 2;
 
+	dlg->m_TextureHandling = 0;
+	if(t->flags5 & TEXTUREHIGHLIGHT) dlg->m_TextureHandling = 1;
+	if(t->flags5 & TEXTUREDUMP) dlg->m_TextureHandling = 2;
+	if(t->flags5 & TEXTUREHACK) dlg->m_TextureHandling = 3;
+
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_OutProxyTrace = t->tflags & OUTPROXYTRACE ? 1 : 0;
@@ -371,7 +381,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
 	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
-	dlg->m_DisableHAL = t->flags3 & DISABLEHAL ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
 	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
@@ -385,7 +394,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
 	dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
 	dlg->m_LimitScreenRes = t->flags4 & LIMITSCREENRES ? 1 : 0;
-	dlg->m_SaveCaps = t->flags3 & SAVECAPS ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg->m_CDROMDriveType = t->flags3 & CDROMDRIVETYPE ? 1 : 0;

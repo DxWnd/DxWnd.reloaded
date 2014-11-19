@@ -402,6 +402,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TabDirect3D.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabDirect3D.h"
+				>
+			</File>
+			<File
 				RelativePath=".\TabDirectX.cpp"
 				>
 			</File>
@@ -628,6 +636,10 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\resource"
+			>
+		</File>
 	</Files>
 	<Globals>
 		<Global

@@ -30,6 +30,7 @@ public:
 	int		m_DxFilterMode;
 	int		m_DCEmulationMode;
 	int		m_MouseVisibility;
+	int		m_TextureHandling;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
 	BOOL	m_OutProxyTrace;
@@ -154,7 +155,6 @@ public:
 	BOOL	m_AEROBoost;
 	BOOL	m_DiabloTweak;
 	BOOL	m_NoImagehlp;
-	BOOL	m_DisableHAL;
 	BOOL	m_ForcesHEL;
 	BOOL	m_ColorFix;
 	BOOL	m_NoPixelFormat;
@@ -165,7 +165,6 @@ public:
 	BOOL	m_SuppressChild;
 	BOOL	m_HideDesktop;
 	BOOL	m_LockSysColors;
-	BOOL	m_SaveCaps;
 	BOOL	m_SingleProcAffinity;
 	BOOL	m_WireFrame;
 	BOOL	m_NoTextures;

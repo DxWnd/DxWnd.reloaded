@@ -17,12 +17,10 @@ extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
 extern DWORD PaletteEntries[256];
 extern DWORD *Palette16BPP;
 extern char *ExplainDDError(DWORD);
-extern int Set_dwSize_From_Surface(LPDIRECTDRAWSURFACE);
 
 // just in case ....
 #define SwitchdwSize(s) s.dwSize=(s.dwSize==sizeof(DDSURFACEDESC))?sizeof(DDSURFACEDESC2):sizeof(DDSURFACEDESC)
 
-#define DXWNDDIRECTBLITTING 1
 #define MARKBLITCOLOR32 0x00FFFF00
 #define MARKBLITCOLOR16 0x0FF0
 EmuBlt_Type pEmuBlt;
@@ -555,13 +553,12 @@ static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	return res;
 }
 
+// note: better avoid direct blitting in case of identical color depth (e.g. EmuBlt_32_to_32, EmuBlt_16_to_16)
+// because it does not work between complex surfaces when DDSDCAPS_SYSTEMMEMORY is not omogeneous!
 
 static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
-#ifdef DXWNDDIRECTBLITTING
-	return (*pBlt)(lpddsdst, lpdestrect, lpddssrc, lpsrcrect, dwflags, NULL);
-#else
 	DWORD x, y, w, h;
 	long srcpitch, destpitch;
 	HRESULT res;
@@ -628,7 +625,6 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
-#endif
 }
 
 static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
@@ -1210,11 +1206,11 @@ static HRESULT WINAPI BilinearBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 
 	ddsd_src.lPitch >>= 2;
 	src32 = (DWORD *)(lpsurface ? lpsurface:ddsd_src.lpSurface);
-	src32 += (lpsrcrect->top >> 1)*ddsd_src.lPitch;
-	src32 += (lpsrcrect->left >> 1);
+	src32 += lpsrcrect->top*ddsd_src.lPitch;
+	src32 += lpsrcrect->left;
 	srcpitch = ddsd_src.lPitch - w;
 
-	// OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src8,dest,srcpitch,destpitch);
+	//OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src32,dest,srcpitch,destpitch);
     for(y = 0; y < h-1; y ++){ 
 		register DWORD Q1, Q2, Q3, Q4, Q5;
 		Q5 = Melt32(*(src32), *(src32+ddsd_src.lPitch));
@@ -1248,7 +1244,7 @@ static HRESULT WINAPI BilinearBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 		dest+=2;
     }
 
-	if(dxw.dwFlags3 & MARKBLIT) MarkRect16((SHORT *)dest0, 2*w, 2*h, destpitch);
+	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, 2*w, 2*h, destpitch);
 
 	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
