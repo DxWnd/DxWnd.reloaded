@@ -143,7 +143,7 @@ char *ExplainDDSCaps3(DWORD c)
 	if (c & DDSCAPS3_DMAP) strcat(eb, "DDSCAPS3_DMAP+");
 	if (c & DDSCAPS3_MULTISAMPLE_QUALITY_MASK) {
 		DWORD dwQuality;
-		char sQuality[20];
+		char sQuality[32];
 		dwQuality = (c & DDSCAPS3_MULTISAMPLE_QUALITY_MASK) >> DDSCAPS3_MULTISAMPLE_QUALITY_SHIFT;
 		sprintf(sQuality, "QUALITY(%d)+", dwQuality);
 		strcat(eb, sQuality);
@@ -1552,7 +1552,7 @@ char *ExplainPaletteUse(UINT uUsage)
 
 char *ExplainRasterCaps(DWORD c)
 {
-	static char eb[128];
+	static char eb[256];
 	unsigned int l;
 	strcpy(eb,"RC_");
 	if(c & RC_BITBLT) strcat(eb, "BITBLT+");

@@ -1,4 +1,4 @@
-LIBRARY mp
+LIBRARY filter
 EXPORTS
 		Resize_HQ_4ch		@1
 		Resize_HQ_2ch565		@2

@@ -35,6 +35,21 @@ static unsigned int Hash(BYTE *buf, int len)
    return hash;
 }
 
+static unsigned int HashSurface(BYTE *buf, int pitch, int width, int height)
+{
+   unsigned int b    = 378551;
+   unsigned int a    = 63689;
+   DWORD hash = 0;
+   for(int y = 0; y < height; y++){
+	   BYTE *p = buf + (y * pitch);
+	   for(int x = 0; x < width; x++){
+		  hash = hash * a + p[x];
+		  a    = a * b;
+	   }
+   }
+   return hash;
+}
+
 void TextureHighlight(LPDIRECTDRAWSURFACE s)
 {
 	DDSURFACEDESC2 ddsd;
@@ -111,8 +126,14 @@ void TextureHighlight(LPDIRECTDRAWSURFACE s)
 static void TextureDump(LPDIRECTDRAWSURFACE s)
 {
 	DDSURFACEDESC2 ddsd;
-	int w, h, iSurfaceSize;
+	int w, h, iSurfaceSize, iScanLineSize;
 	HRESULT res;
+	static BOOL DoOnce = TRUE;
+
+	if(DoOnce){ // first time through, build the texture dir if not done yet
+		CreateDirectory("texture.out", NULL);
+		DoOnce = FALSE;
+	}
 
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
 	ddsd.dwSize = Set_dwSize_From_Surface(s);
@@ -121,12 +142,18 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		OutTraceE("TextureDump: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
+
 	extern LPDIRECTDRAWSURFACE lpDDSBack;
 	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && (s != lpDDSBack)) while (TRUE) {
 		OutTrace("TextureDump: lpdds=%x BitCount=%d size=(%dx%d)\n", 
 			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
 		h = ddsd.dwHeight;
+		if((w<2) && (h<2)) {
+			OutTrace("TextureDump: SKIP small texture\n");
+			break;
+		}
+
 		iSurfaceSize = ddsd.dwHeight * ddsd.lPitch;
 
 		//HANDLE hf;					// file handle  
@@ -156,17 +183,18 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		pbi.bV4AlphaMask = ddsd.ddpfPixelFormat.dwRGBAlphaBitMask;
 		pbi.bV4CSType = LCS_CALIBRATED_RGB;
 		//pbi.bV4CSType = 0xFFFFFFFF;
+		iScanLineSize = ((pbi.bV4Width * pbi.bV4BitCount + 0x1F) & ~0x1F)/8;
 
 		// calculate the bitmap hash
 		DWORD hash;
-		hash = Hash((BYTE *)ddsd.lpSurface, iSurfaceSize); 
+		hash = HashSurface((BYTE *)ddsd.lpSurface, ddsd.lPitch, ddsd.dwWidth, ddsd.dwHeight); 
 		if(!hash) {
 			OutTrace("TextureDump: lpdds=%x hash=NULL\n", s); 
 			break; // almost certainly, an empty black surface!
 		}
 
 		// Create the .BMP file. 
-		sprintf_s(pszFile, 80, "texture.%x.bmp", hash);
+		sprintf_s(pszFile, 80, "texture.out/texture.%03d.%03d.%08X.bmp", ddsd.dwWidth, ddsd.dwHeight, hash);
 		hf = fopen(pszFile, "wb");
 		if(!hf) break;
 
@@ -186,9 +214,8 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		fwrite((LPVOID)&pbi, sizeof(BITMAPV4HEADER) + pbi.bV4ClrUsed * sizeof (RGBQUAD), 1, hf);
 
 		// Copy the array of color indices into the .BMP file.  
-		fwrite((LPVOID)ddsd.lpSurface, iSurfaceSize, 1, hf);
-		if(pbi.bV4SizeImage > (DWORD)iSurfaceSize)
-			for (int i = pbi.bV4SizeImage - iSurfaceSize; i; i--) putc(0, hf);
+		for(int y=0; y<(int)ddsd.dwHeight; y++)
+			fwrite((BYTE *)ddsd.lpSurface + (y*ddsd.lPitch), iScanLineSize, 1, hf);
 
 		// Close the .BMP file.  
 		fclose(hf);
@@ -201,7 +228,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 static void TextureHack(LPDIRECTDRAWSURFACE s)
 {
 	DDSURFACEDESC2 ddsd;
-	int w, h, iSurfaceSize;
+	int w, h, iSurfaceSize, iScanLineSize;
 	HRESULT res;
 
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
@@ -232,14 +259,15 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 		pbi.biBitCount = (WORD)ddsd.ddpfPixelFormat.dwRGBBitCount;
 		pbi.biSizeImage = ((pbi.biWidth * pbi.biBitCount + 0x1F) & ~0x1F)/8 * pbi.biHeight; 
 		iSizeImage = pbi.biSizeImage;
+		iScanLineSize = ((pbi.biWidth * pbi.biBitCount + 0x1F) & ~0x1F)/8;
 
 		// calculate the bitmap hash
 		DWORD hash;
-		hash = Hash((BYTE *)ddsd.lpSurface, iSurfaceSize); 
+		hash = HashSurface((BYTE *)ddsd.lpSurface, ddsd.lPitch, ddsd.dwWidth, ddsd.dwHeight); 
 		if(!hash) break; // almost certainly, an empty black surface!
 
 		// Look for the .BMP file. 
-		sprintf_s(pszFile, 80, "texture.%x.bmp", hash);
+		sprintf_s(pszFile, 80, "texture.in/texture.%03d.%03d.%08X.bmp", ddsd.dwWidth, ddsd.dwHeight, hash);
 		hf = fopen(pszFile, "rb");
 		if(!hf) break; // no updated texture to load
 
@@ -258,12 +286,18 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 
 			// Read the new texture  from the .BMP file.  
 			if(pbi.biHeight < 0){
-				// height < 0 means scan lines in the up to down order, hence you can read them all
-				if(fread((LPVOID)ddsd.lpSurface, iSurfaceSize, 1, hf) != 1) break;
+				// biHeight < 0 -> scan lines from top to bottom, same as surface/texture convention
+				for(int y=0; y<(int)ddsd.dwHeight; y++){
+					BYTE *p = (BYTE *)ddsd.lpSurface + (ddsd.lPitch * y);
+					fseek(hf, hdr.bfOffBits + (iScanLineSize * y), SEEK_SET);
+					if(fread((LPVOID)p, ddsd.lPitch, 1, hf) != 1) break;
+				}
 			}
 			else {
+				// biHeight > 0 -> scan lines from bottom to top, inverse order as surface/texture convention
 				for(int y=0; y<(int)ddsd.dwHeight; y++){
 					BYTE *p = (BYTE *)ddsd.lpSurface + (ddsd.lPitch * ((ddsd.dwHeight-1) - y));
+					fseek(hf, hdr.bfOffBits + (iScanLineSize * y), SEEK_SET);
 					if(fread((LPVOID)p, ddsd.lPitch, 1, hf) != 1) break;
 				}
 			}

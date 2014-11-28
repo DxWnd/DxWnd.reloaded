@@ -8,9 +8,6 @@
 
 // exported API
 
-//#undef OutTraceD3D
-//#define OutTraceD3D OutTrace
-
 typedef HRESULT (WINAPI *Direct3DCreateDevice_Type)(GUID FAR *, LPDIRECT3D, LPDIRECTDRAWSURFACE, LPDIRECT3D *, LPUNKNOWN);
 typedef HRESULT (WINAPI *Direct3DCreate_Type)(UINT, LPDIRECT3D *, LPUNKNOWN);
 
@@ -371,10 +368,10 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		break;
 	case 7:
 		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
-		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
-		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
-		SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
-		SetHook((void *)(**(DWORD **)lpd3ddev +  60), extGetViewport7, (void **)&pGetViewport7, "GetViewport(7)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +  60), extGetViewport7, (void **)&pGetViewport7, "GetViewport(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extSetRenderState7, (void **)&pSetRenderState7, "SetRenderState(7)");
 		if (dxw.dwFlags4 & NOTEXTURES) SetHook((void *)(**(DWORD **)lpd3ddev + 140), extSetTexture7, (void **)&pSetTexture7, "SetTexture(D7)");
 		if(pSetRenderState7){

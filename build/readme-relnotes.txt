@@ -645,3 +645,17 @@ fix: revised ddsurface capabilities policy to allow D3D1-7 games to run in emula
 
 v2.02.99
 fix: completed bilinear filtering for 16bpp desktop color depth
+fix: fixed surface handling, Suppress SYSTEMMEMORY options now moved to debug flags (maybe unnecessary)
+fix: AERO compatibility is now declared just once
+fix: fast bilinear blitting in the 32 -> 32 BPP case
+add: texture hooking
+add: texture management
+add: Direct3D dedicated configuration tab
+
+v2.3.01
+fix: fixed some bitmap handling while processing textures
+add: texture management dump to texture.out folder and hack from texture.in folder
+fix: AERO optimized mode with ddraw7 only surfaces: "Hoyle Casino Empire" works at least in fullscreen mode.
+fix: bilinear filters compiled with optimized and openmp flags - big speed improvement.
+fix: reduced the maximum amount of visible video card with "Limit available resources" flag: now "Breath of Fire IV" works.
+

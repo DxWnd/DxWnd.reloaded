@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="mp"
+	Name="filter"
 	ProjectGUID="{F3E96EF0-AF9C-43C2-8E3E-0DD10B66E0FC}"
-	RootNamespace="mp"
+	RootNamespace="filter"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="0"
 	>
@@ -39,16 +39,18 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
+				Optimization="2"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;MP_EXPORTS;"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				MinimalRebuild="false"
+				BasicRuntimeChecks="0"
+				RuntimeLibrary="2"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
 				OpenMP="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
-				DebugInformationFormat="4"
+				DebugInformationFormat="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -64,7 +66,7 @@
 				OutputFile="..\Debug\mp.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
-				ModuleDefinitionFile=".\mp.def"
+				ModuleDefinitionFile=".\filter.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -114,12 +116,17 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="2"
+				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MP_EXPORTS;"
 				RuntimeLibrary="2"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
+				OpenMP="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
-				DebugInformationFormat="3"
+				Detect64BitPortabilityProblems="false"
+				DebugInformationFormat="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -133,8 +140,8 @@
 			<Tool
 				Name="VCLinkerTool"
 				OutputFile="..\$(OutDir)\$(ProjectName).dll"
-				LinkIncremental="2"
-				ModuleDefinitionFile=".\mp.def"
+				LinkIncremental="0"
+				ModuleDefinitionFile=".\filter.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -197,7 +204,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\mp.def"
+				RelativePath=".\filter.def"
 				>
 			</File>
 		</Filter>

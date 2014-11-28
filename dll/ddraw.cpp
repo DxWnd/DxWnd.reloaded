@@ -756,18 +756,20 @@ Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE lpdds)
 	// to do: return extUnlock for unhooked surfaces 
 
 	char sMsg[81];
-	void * extUnlock;
-	__try{ // v2.02.31: catch some possible exception (i.e. Abomination in EMULATION mode)
-		extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
+	void * extUnlock = NULL;
+	if(lpdds){
+		__try{ // v2.02.31: catch some possible exception (i.e. Abomination in EMULATION mode)
+			extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER){
+			OutTraceE("Exception at %d\n",__LINE__);
+			extUnlock=NULL;
+		};
+		if(extUnlock==(void *)extUnlock1) return (Unlock4_Type)pUnlock1;
+		if(extUnlock==(void *)extUnlock4) return (Unlock4_Type)pUnlock4;
+		if(extUnlock==(void *)extUnlockDir1) return (Unlock4_Type)pUnlock1;
+		if(extUnlock==(void *)extUnlockDir4) return (Unlock4_Type)pUnlock4;
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER){
-		OutTraceE("Exception at %d\n",__LINE__);
-		return (Unlock4_Type)pUnlock1;
-	};
-	if(extUnlock==(void *)extUnlock1) return (Unlock4_Type)pUnlock1;
-	if(extUnlock==(void *)extUnlock4) return (Unlock4_Type)pUnlock4;
-	if(extUnlock==(void *)extUnlockDir1) return (Unlock4_Type)pUnlock1;
-	if(extUnlock==(void *)extUnlockDir4) return (Unlock4_Type)pUnlock4;
 	sprintf_s(sMsg, 80, "pUnlockMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "pUnlockMethod", MB_OK | MB_ICONEXCLAMATION);
@@ -779,19 +781,21 @@ Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE lpdds)
 Lock_Type pLockMethod(LPDIRECTDRAWSURFACE lpdds)
 {
 	char sMsg[81];
-	void * extUnlock;
-	__try{ // v2.02.31: catch some possible exception (i.e. Abomination in EMULATION mode)
-		extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
+	void * extLock = NULL;
+	if(lpdds){
+		__try{ // v2.02.31: catch some possible exception (i.e. Abomination in EMULATION mode)
+			extLock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER){
+			OutTraceE("Exception at %d\n",__LINE__);
+			extLock=NULL;
+		};
+		if(extUnlock==(void *)extUnlock1) return pLock1;
+		if(extUnlock==(void *)extUnlock4) return pLock4;
+		if(extUnlock==(void *)extUnlockDir1) return pLock1;
+		if(extUnlock==(void *)extUnlockDir4) return pLock4;
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER){
-		OutTraceE("Exception at %d\n",__LINE__);
-		return (Unlock4_Type)pUnlock1;
-	};
-	if(extUnlock==(void *)extUnlock1) return pLock1;
-	if(extUnlock==(void *)extUnlock4) return pLock4;
-	if(extUnlock==(void *)extUnlockDir1) return pLock1;
-	if(extUnlock==(void *)extUnlockDir4) return pLock4;
-	sprintf_s(sMsg, 80, "pLockMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
+	sprintf_s(sMsg, 80, "pLockMethod: pUnlock(%x) can't match %x\n", lpdds, extLock);
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "pLockMethod", MB_OK | MB_ICONEXCLAMATION);
 	if (pLock4) return pLock4;
@@ -802,15 +806,23 @@ Lock_Type pLockMethod(LPDIRECTDRAWSURFACE lpdds)
 CreateSurface2_Type pCreateSurfaceMethod(LPDIRECTDRAWSURFACE lpdds)
 {
 	char sMsg[81];
-	void * extUnlock;
-	extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);
-	if(extUnlock==(void *)extUnlock1) return (CreateSurface2_Type)pCreateSurface1;
-	if(extUnlock==(void *)extUnlock4) return pCreateSurface7 ? (CreateSurface2_Type)pCreateSurface7 : (CreateSurface2_Type)pCreateSurface4;
-	if(extUnlock==(void *)extUnlockDir1) return (CreateSurface2_Type)pCreateSurface1;
-	if(extUnlock==(void *)extUnlockDir4) return pCreateSurface7 ? (CreateSurface2_Type)pCreateSurface7 : (CreateSurface2_Type)pCreateSurface4;
+	void * extUnlock = NULL;
+	if(lpdds){
+		__try{ // v2.02.31: catch some possible exception (i.e. Abomination in EMULATION mode)
+			extUnlock=(void *)*(DWORD *)(*(DWORD *)lpdds + 128);	}
+		__except (EXCEPTION_EXECUTE_HANDLER){
+			OutTraceE("Exception at %d\n",__LINE__);
+			extUnlock = NULL;
+		};
+		if(extUnlock==(void *)extUnlock1) return (CreateSurface2_Type)pCreateSurface1;
+		if(extUnlock==(void *)extUnlock4) return pCreateSurface7 ? (CreateSurface2_Type)pCreateSurface7 : (CreateSurface2_Type)pCreateSurface4;
+		if(extUnlock==(void *)extUnlockDir1) return (CreateSurface2_Type)pCreateSurface1;
+		if(extUnlock==(void *)extUnlockDir4) return pCreateSurface7 ? (CreateSurface2_Type)pCreateSurface7 : (CreateSurface2_Type)pCreateSurface4;
+	}
 	sprintf_s(sMsg, 80, "pCreateSurfaceMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "pCreateSurfaceMethod", MB_OK | MB_ICONEXCLAMATION);
+	if (pCreateSurface7) return pCreateSurface7;
 	if (pCreateSurface4) return pCreateSurface4;
 	return (CreateSurface2_Type)pCreateSurface1;
 }
@@ -849,19 +861,21 @@ int SurfaceDescrSize(LPDIRECTDRAWSURFACE lpdds)
 int lpddsHookedVersion(LPDIRECTDRAWSURFACE lpdds)
 {
 	char sMsg[81];
-	void * extGetCaps;
+	void * extGetCaps = NULL;
 
-	__try{
-	extGetCaps=(void *)*(DWORD *)(*(DWORD *)lpdds + 56);
+	if(lpdds){
+		__try{
+		extGetCaps=(void *)*(DWORD *)(*(DWORD *)lpdds + 56);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER){
+		extGetCaps=NULL;
+		};	
+		if(extGetCaps==(void *)extGetCaps1S) return 1;
+		if(extGetCaps==(void *)extGetCaps2S) return 2;
+		if(extGetCaps==(void *)extGetCaps3S) return 3;
+		if(extGetCaps==(void *)extGetCaps4S) return 4;
+		if(extGetCaps==(void *)extGetCaps7S) return 7;
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER){
-	extGetCaps=NULL;
-	};	
-	if(extGetCaps==(void *)extGetCaps1S) return 1;
-	if(extGetCaps==(void *)extGetCaps2S) return 2;
-	if(extGetCaps==(void *)extGetCaps3S) return 3;
-	if(extGetCaps==(void *)extGetCaps4S) return 4;
-	if(extGetCaps==(void *)extGetCaps7S) return 7;
 	sprintf_s(sMsg, 80, "lpddsHookedVersion(%x) can't match %x\n", lpdds, extGetCaps);
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "lpddsHookedVersion", MB_OK | MB_ICONEXCLAMATION);
@@ -871,18 +885,20 @@ int lpddsHookedVersion(LPDIRECTDRAWSURFACE lpdds)
 int lpddHookedVersion(LPDIRECTDRAW lpdd)
 {
 	char sMsg[81];
-	void * extCreateSurface;
+	void *extCreateSurface = NULL;
 
-	__try{
-	extCreateSurface=(void *)*(DWORD *)(*(DWORD *)lpdd + 24);
+	if(lpPrimaryDD){
+		__try{
+		extCreateSurface=(void *)*(DWORD *)(*(DWORD *)lpdd + 24);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER){
+		extCreateSurface=NULL;
+		};	
+		if(extCreateSurface==(void *)extCreateSurface7) return 7;
+		if(extCreateSurface==(void *)extCreateSurface4) return 4;
+		if(extCreateSurface==(void *)extCreateSurface2) return 2;
+		if(extCreateSurface==(void *)extCreateSurface1) return 1;
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER){
-	extCreateSurface=NULL;
-	};	
-	if(extCreateSurface==(void *)extCreateSurface7) return 7;
-	if(extCreateSurface==(void *)extCreateSurface4) return 4;
-	if(extCreateSurface==(void *)extCreateSurface2) return 2;
-	if(extCreateSurface==(void *)extCreateSurface1) return 1;
 	sprintf_s(sMsg, 80, "lpddHookedVersion(%x) can't match %x\n", lpdd, extCreateSurface);
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "lpddHookedVersion", MB_OK | MB_ICONEXCLAMATION);
@@ -1587,7 +1603,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 		//OutTrace("DirectDrawCreate: drivercaps=%x(%s) emulcaps=%x(%s)\n", DriverCaps.ddsCaps, "???", EmulCaps.ddsCaps, "???");
 	}
 
-	lpPrimaryDD=*lplpdd;
+	if(lpPrimaryDD==NULL) lpPrimaryDD=*lplpdd; // do not override the value set when creating the primary surface!
 	return DD_OK;
 }
 
@@ -1659,7 +1675,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 		//OutTrace("DirectDrawCreate: drivercaps=%x(%s) emulcaps=%x(%s)\n", DriverCaps.ddsCaps, "???", EmulCaps.ddsCaps, "???");
 	}
 
-	lpPrimaryDD=*lplpdd;
+	if(lpPrimaryDD==NULL) lpPrimaryDD=*lplpdd; // do not override the value set when creating the primary surface!
 	return DD_OK;
 }
 
@@ -2257,6 +2273,9 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		dxw.MarkRegularSurface(lpDDSEmu_Back);
 		if (dxw.dwTFlags & OUTPROXYTRACE) HookDDSurfaceGeneric(&lpDDSEmu_Back, dxversion);
 	}
+
+	// "Hoyle Casino Empire" opens a primary surface and NOT a backbuffer ....
+	iBakBufferVersion=dxversion; // v2.03.01
 
 	return DD_OK;
 }
@@ -2877,7 +2896,7 @@ void *LoadFilter(char *apiname)
 	*p=0;
 	SetDllDirectory(sSourcePath);
 
-	strcpy(p, "mp.dll");
+	strcpy(p, "filter.dll");
 	filterlib=(*pLoadLibraryA)(sSourcePath);
 	if(!filterlib) {
 		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", sSourcePath, GetLastError());
@@ -2979,10 +2998,10 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 			break;
 		}
 
-		filterlib=(*pLoadLibraryA)("mp.dll");
+		filterlib=(*pLoadLibraryA)("filter.dll");
 		if(!filterlib) {
 			char sMsg[80+1];
-			sprintf(sMsg, "DXWND: ERROR can't load lib=\"mp.dll\" err=%x\n", GetLastError());
+			sprintf(sMsg, "DXWND: ERROR can't load lib=\"filter.dll\" err=%x\n", GetLastError());
 			OutTraceE(sMsg);
 			MessageBox(0, sMsg, "ERROR", MB_OK | MB_ICONEXCLAMATION);
 			exit(0);
@@ -4848,7 +4867,9 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
  HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree, GetAvailableVidMem_Type pGetAvailableVidMem)
 {
 	HRESULT res; 
-	const DWORD dwMaxMem = 0x7FFFF000;
+	//const DWORD dwMaxMem = 0x7FFFF000;
+        // v03.01.01: limit to smaller value to allow "Breath of Fire IV" card detection
+	const DWORD dwMaxMem = 0x70000000; 
 	OutTraceDDRAW("GetAvailableVidMem(D): lpdd=%x\n", lpdd);
 	res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree);
 	if(res){
