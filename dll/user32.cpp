@@ -54,8 +54,9 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
 	{HOOK_HOT_CANDIDATE, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
 
-	//{HOOK_IAT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
-	//{HOOK_IAT_CANDIDATE, "GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+	//{HOOK_HOT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
+	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+
 	{HOOK_IAT_CANDIDATE, "IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
 	{HOOK_IAT_CANDIDATE, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
 	{HOOK_IAT_CANDIDATE, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
@@ -825,6 +826,7 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 	*lppoint=dxw.ScreenToClient(*lppoint);
 	*lppoint=dxw.FixCursorPos(*lppoint);
 
+#if 0
 	if(dxw.dwFlags4 & FRAMECOMPENSATION){
 		static int dx, dy, todo=TRUE;
 		if (todo){
@@ -837,6 +839,7 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 		lppoint->x += dx;
 		lppoint->y += dy;
 	}
+#endif
 
 	GetHookInfo()->CursorX=(short)lppoint->x;
 	GetHookInfo()->CursorY=(short)lppoint->y;
@@ -909,12 +912,74 @@ BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsg
 {
 	BOOL res;
 
-	res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, (wRemoveMsg & 0x000F));
+#if 0
+	UINT bRemoveMsg = (wRemoveMsg & 0x000F);
+	UINT message;
 
-	OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
-		lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
-		lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
+	do{
+		res=(*pPeekMessage)(lpMsg, hwnd, 0, 0, bRemoveMsg);
+		if(!res) break; // no message available
+
+		OutTraceW("PeekMessage: GOT lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
+			lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
+			lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
+
+		message = lpMsg->message;
+		if(res &&(dxw.dwFlags3 & FILTERMESSAGES)){ // filter offending messages
+			switch(message){
+			case WM_NCMOUSEMOVE:
+			case WM_NCLBUTTONDOWN:
+			case WM_NCLBUTTONUP:
+			case WM_NCLBUTTONDBLCLK:
+			case WM_NCRBUTTONDOWN:
+			case WM_NCRBUTTONUP:
+			case WM_NCRBUTTONDBLCLK:
+			case WM_NCMBUTTONDOWN:
+			case WM_NCMBUTTONUP:
+			case WM_NCMBUTTONDBLCLK:
+				OutTraceDW("WindowProc[%x]: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), lpMsg->wParam, lpMsg->lParam);
+				if(!bRemoveMsg) (*pPeekMessage)(lpMsg, hwnd, message, message, TRUE);
+				continue;
+			}
+		}
+		if((wMsgFilterMin==0) && (wMsgFilterMax == 0)) break; // no filtering, everything is good
+		if((message < wMsgFilterMin) || (message > wMsgFilterMax)){
+			OutTraceDW("WindowProc[%x]: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), lpMsg->wParam, lpMsg->lParam);
+			if(!bRemoveMsg) (*pPeekMessage)(lpMsg, hwnd, message, message, TRUE);
+			continue; // skip this one ....	
+		}
+	} while(FALSE); 
+#endif
+
+	if((wMsgFilterMin==0) && (wMsgFilterMax == 0)){
+		// no filtering, everything is good
+		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
+	}
+	else {
+		MSG Dummy;
+		// better eliminate all messages before and after the selected range !!!!
+		//if(wMsgFilterMin)(*pPeekMessage)(&Dummy, hwnd, 0, wMsgFilterMin-1, TRUE);
+		if(wMsgFilterMin>0x0F)(*pPeekMessage)(&Dummy, hwnd, 0x0F, wMsgFilterMin-1, TRUE);
+		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
+		if(wMsgFilterMax<WM_KEYFIRST)(*pPeekMessage)(&Dummy, hwnd, wMsgFilterMax+1, WM_KEYFIRST-1, TRUE); // don't touch above WM_KEYFIRST !!!!
+	}
+
+#if 0
+	MSG Dummy;
+	(*pPeekMessage)(&Dummy, hwnd, 0x0F, 0x100, TRUE);
+	res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
+#endif
+
+	if(res)
+		OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
+			lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
+			lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
+	else
+		OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) res=%x\n", 
+			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg), res);
+
 
 	return res;
 }
@@ -1100,6 +1165,17 @@ int WINAPI extGetSystemMetrics(int nindex)
 
 	res=(*pGetSystemMetrics)(nindex);
 	OutTraceDW("GetSystemMetrics: index=%x(%s), res=%d\n", nindex, ExplainsSystemMetrics(nindex), res);
+
+	if(!dxw.Windowize){
+		// v2.02.95: if not in window mode, just implement the HIDEMULTIMONITOR flag
+		if( (nindex ==SM_CMONITORS) &&
+			(dxw.dwFlags2 & HIDEMULTIMONITOR) && 
+			res>1) {
+			res=1;
+			OutTraceDW("GetSystemMetrics: fix SM_CMONITORS=%d\n", res);
+		}
+		return res;
+	}
 
 	// if you have a bypassed setting, use it first!
 	if(pSetDevMode){
@@ -2556,18 +2632,18 @@ HWND WINAPI extGetActiveWindow(void)
 {
 	HWND ret;
 	ret=(*pGetActiveWindow)();
-	OutTraceDW("GetActiveWindow: ret=%x\n", ret);
-	STOPPER("GetActiveWindow");
-	return ret;
+	OutTraceDW("GetActiveWindow: ret=%x->%x\n", ret, dxw.GethWnd());
+	//STOPPER("GetActiveWindow");
+	return dxw.GethWnd();
 }
 
 HWND WINAPI extGetForegroundWindow(void)
 {
 	HWND ret;
 	ret=(*pGetForegroundWindow)();
-	OutTraceDW("GetForegroundWindow: ret=%x\n", ret);
-	STOPPER("GetForegroundWindow");
-	return ret;
+	OutTraceDW("GetForegroundWindow: ret=%x->%x\n", ret, dxw.GethWnd());
+	//STOPPER("GetForegroundWindow");
+	return dxw.GethWnd();
 }
 
 BOOL WINAPI extIsWindowVisible(HWND hwnd)

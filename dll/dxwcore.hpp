@@ -63,7 +63,6 @@ public: // methods
 	void MapWindow(LPRECT);
 	void MapWindow(int *, int *, int *, int *);
 	void FixWorkarea(LPRECT);
-	POINT FixMessagePt(HWND, POINT);
 	RECT GetScreenRect(void);
 	RECT GetUnmappedScreenRect();
 	RECT GetWindowRect(RECT);

@@ -744,6 +744,8 @@ int HookDirectDraw(HMODULE module, int version)
 
 Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE lpdds)
 {
+	// to do: return extUnlock for unhooked surfaces 
+
 	char sMsg[81];
 	void * extUnlock;
 	__try{ // v2.02.31: catch some possible exception (i.e. Abomination in EMULATION mode)
@@ -1939,6 +1941,7 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 		OutTraceDW("SetDisplayMode: fixing colordepth current=%d required=%d size=(%dx%d)\n",
 				ddsd.ddpfPixelFormat.dwRGBBitCount, dwbpp, dwwidth, dwheight);
 	}
+
 	if(dxw.dwFlags1 & EMULATESURFACE){
 		dwbpp = ddsd.ddpfPixelFormat.dwRGBBitCount;
 	}
@@ -1948,8 +1951,10 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	else
 		res = (*pSetDisplayMode2)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0);
 
+	if(res) OutTraceE("SetDisplayMode: error=%x\n", res);
+
 	SetVSyncDelays(lpdd);
-	return 0;
+	return DD_OK;
 }
 
 HRESULT WINAPI extSetDisplayMode2(LPDIRECTDRAW lpdd,
@@ -3012,6 +3017,15 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 		OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
 	else
 		OutTraceDDRAW("GetAttachedSurface(%d): attached=%x\n", dxversion, *lplpddas); 
+
+#if 0
+	// beware: ddraw 7 surfaces can be created with FLIP capability, hence could have a backbuffer ???
+	if((res==DDERR_NOTFOUND) && (dxversion==7) && (!IsPrim) && (!IsBack)){
+		*lplpddas = lpdds;
+		res = DD_OK;
+	}
+#endif
+
 	return res;
 	
 }
@@ -3161,8 +3175,6 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	TmpRect.bottom = ddsd.dwHeight = dwHeight;
 	TmpRect.right  = ddsd.dwWidth  = dwWidth;
 	ddsd.dwFlags = (DDSD_HEIGHT | DDSD_WIDTH | DDSD_CAPS);
-	// work only on even width surfaces, or you'd have to take in account proper pitch!
-	// dwWidth = ddsd.dwWidth = ((dwWidth + 1) >> 1) << 1; 
 	// capabilities must cope with primary / backbuffer surface capabilities to get speedy operations
 	ddsd.ddsCaps.dwCaps = bIs3DPrimarySurfaceDevice ? DDSCAPS_OFFSCREENPLAIN : (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 	res=(*pCreateSurface1)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
@@ -3190,9 +3202,8 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 		bDestBuf, lpdestrect, DestPitch);
 
 	// fast-blit to primary
-	//(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
-	//(*pUnlockMethod(lpddsTmp))(lpddsTmp, NULL);	
-	(*pUnlock1)(lpddssrc, NULL);
+	if(lpddssrc==lpDDSEmu_Back) lpddssrc->Unlock(NULL); // this surface is unhooked!!!
+	else (*pUnlock1)(lpddssrc, NULL);
 	//(*pUnlock1)(lpddsTmp, NULL);
 	lpddsTmp->Unlock(NULL); // this surface is unhooked!!!	
 	res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
@@ -3374,8 +3385,9 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	if(dxw.dwFlags5 & NOBLT) return DD_OK;
 	
 	destrect=dxw.MapWindowRect(lpdestrect);
-
-	//OutTraceB("DESTRECT=(%d,%d)-(%d,%d)\n", destrect.left, destrect.top, destrect.right, destrect.bottom);
+	OutTraceB("DESTRECT=(%d,%d)-(%d,%d) Screen=(%dx%d)\n", 
+		destrect.left, destrect.top, destrect.right, destrect.bottom,
+		dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	// =========================
 	// Blit to primary direct surface 
@@ -4896,10 +4908,12 @@ HRESULT WINAPI extGetSurfaceDesc1(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpd
 	switch(lpddsd->dwSize){
 		case sizeof(DDSURFACEDESC):
 		if (pGetSurfaceDesc1) return extGetSurfaceDesc(pGetSurfaceDesc1, lpdds, lpddsd);
-		/**/ if (pGetSurfaceDesc4) return extGetSurfaceDesc((GetSurfaceDesc_Type)pGetSurfaceDesc4, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd);
+		//else return lpdds->GetSurfaceDesc((LPDDSURFACEDESC)lpddsd);
+		if (pGetSurfaceDesc4) return extGetSurfaceDesc((GetSurfaceDesc_Type)pGetSurfaceDesc4, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd);
 		break;
 		case sizeof(DDSURFACEDESC2):
 		if (pGetSurfaceDesc4) return extGetSurfaceDesc((GetSurfaceDesc_Type)pGetSurfaceDesc4, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd);
+		//else return lpdds->GetSurfaceDesc((LPDDSURFACEDESC)lpddsd);
 		break;
 		default:
 		OutTraceDW("GetSurfaceDesc: ASSERT - bad dwSize=%d lpdds=%x at %d\n", lpddsd->dwSize, lpdds, __LINE__);
@@ -4917,9 +4931,11 @@ HRESULT WINAPI extGetSurfaceDesc2(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 l
 	switch(lpddsd->dwSize){
 		case sizeof(DDSURFACEDESC):
 		if (pGetSurfaceDesc1) return extGetSurfaceDesc(pGetSurfaceDesc1, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd);
+		//else return lpdds->GetSurfaceDesc((LPDDSURFACEDESC)lpddsd);
 		break;
 		case sizeof(DDSURFACEDESC2):
 		if (pGetSurfaceDesc4) return extGetSurfaceDesc((GetSurfaceDesc_Type)pGetSurfaceDesc4, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd);
+		//else return lpdds->GetSurfaceDesc((LPDDSURFACEDESC)lpddsd);
 		break;
 		default:
 		OutTraceDW("GetSurfaceDesc: ASSERT - bad dwSize=%d lpdds=%x at %d\n", lpddsd->dwSize, lpdds, __LINE__);

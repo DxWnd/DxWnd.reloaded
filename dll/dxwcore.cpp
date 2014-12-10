@@ -118,11 +118,17 @@ void dxwCore::InitTarget(TARGETMAP *target)
 
 void dxwCore::SetScreenSize(void) 
 {
-	SetScreenSize(800, 600); // set to default screen resolution
-	//SetScreenSize(640, 480); // set to default screen resolution
+	if(dxw.Windowize)
+		SetScreenSize(800, 600); // set to default screen resolution
+	else{
+		int sizx, sizy;
+		sizx = GetSystemMetrics(SM_CXSCREEN);
+		sizy = GetSystemMetrics(SM_CYSCREEN);
+		SetScreenSize(sizx, sizy);
+	}
 }
 
-void dxwCore::SetScreenSize(int x, int y)
+void dxwCore::SetScreenSize(int x, int y) 
 {
 	DXWNDSTATUS *p;
 	OutTraceDW("DXWND: set screen size=(%d,%d)\n", x, y);
@@ -147,8 +153,9 @@ void dxwCore::SetScreenSize(int x, int y)
 		}
 		if(((DWORD)p->Width > maxw) || ((DWORD)p->Height > maxh)){
 			OutTraceDW("DXWND: limit device size=(%d,%d)\n", maxw, maxh);
-			p->Width = (short)maxw;
-			p->Height = (short)maxh;
+			// v2.02.95 setting new virtual desktop size 
+			dwScreenWidth = p->Width = (short)maxw;
+			dwScreenHeight= p->Height = (short)maxh;
 		}
 	}
 }
@@ -461,6 +468,19 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		if (h) curr.y = (curr.y * dxw.GetScreenHeight()) / h;
 	}
 
+	if(dxw.dwFlags4 & FRAMECOMPENSATION){
+		static int dx, dy, todo=TRUE;
+		if (todo){
+			POINT FrameOffset = dxw.GetFrameOffset();
+			dx=FrameOffset.x;
+			dy=FrameOffset.y;
+			OutTraceC("GetCursorPos: frame compensation=(%d,%d)\n", dx, dy);
+			todo=FALSE;
+		}
+		curr.x += dx;
+		curr.y += dy;
+	}
+
 	if((dxw.dwFlags1 & ENABLECLIPPING) && lpClipRegion){
 		// v2.1.93:
 		// in clipping mode, avoid the cursor position to lay outside the valid rect
@@ -643,37 +663,6 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 		OutTraceE("OffsetRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
 	}
 	return RetRect;
-}
-
-POINT dxwCore::FixMessagePt(HWND hwnd, POINT point)
-{
-	RECT rect;
-	static POINT curr;
-	curr=point;
-
-	if(!(*pScreenToClient)(hwnd, &curr)){
-		OutTraceE("ScreenToClient ERROR=%d hwnd=%x at %d\n", GetLastError(), hwnd, __LINE__);
-		curr.x = curr.y = 0;
-	}
-
-	if (!(*pGetClientRect)(hwnd, &rect)) {
-		OutTraceE("GetClientRect ERROR=%d hwnd=%x at %d\n", GetLastError(), hwnd, __LINE__);
-		curr.x = curr.y = 0;
-	}
-
-#ifdef ISDEBUG
-	if(IsDebug) OutTrace("FixMessagePt point=(%d,%d) hwnd=%x win pos=(%d,%d) size=(%d,%d)\n",
-		point.x, point.y, hwnd, point.x-curr.x, point.y-curr.y, rect.right, rect.bottom);
-#endif
-
-	if (curr.x < 0) curr.x=0;
-	if (curr.y < 0) curr.y=0;
-	if (curr.x > rect.right) curr.x=rect.right;
-	if (curr.y > rect.bottom) curr.y=rect.bottom;
-	if (rect.right)  curr.x = ((curr.x * dxw.GetScreenWidth()) + (rect.right >> 1)) / rect.right;
-	if (rect.bottom) curr.y = ((curr.y * dxw.GetScreenHeight()) + (rect.bottom >> 1)) / rect.bottom;
-
-	return curr;
 }
 
 void dxwCore::MapClient(LPRECT rect)

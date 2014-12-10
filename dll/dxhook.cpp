@@ -1406,8 +1406,7 @@ LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 			}
 			else {
 				// fix the message point coordinates
-				msg->pt=dxw.FixMessagePt(dxw.GethWnd(), msg->pt);
-				//msg->pt=dxw.FixMessagePt(msg->hwnd, msg->pt);
+				msg->pt=dxw.FixCursorPos(msg->pt);
 				// beware: needs fix for mousewheel?
 				if((msg->message <= WM_MOUSELAST) && (msg->message >= WM_MOUSEFIRST)) msg->lParam = MAKELPARAM(msg->pt.x, msg->pt.y); 
 				OutTraceC("MessageHook: fixed lparam/pt=(%d,%d)\n", msg->pt.x, msg->pt.y);

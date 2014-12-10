@@ -616,3 +616,10 @@ fix: debug option "highlight blit to primary" was causing game crashes when the 
 fix: trapped sporadic CloseHandle(hMenu) crashes in a try/catch clause.
 fix: attempt to fix FIXD3DFRAME option
 fix: added SetStretchBltMode(hdc,HALFTONE) to SetDIBitsToDevice hooker to improve stretching: fixes "Celtic Kings Rage of War"
+
+v2.02.95
+fix: handling of limit resolution field
+fix: FPS handling to screen updated made by SetDIBitsToDevice
+fix: PeekMessage implementation with "Peek all message in queue": fixes "Shadow Watch"
+fix: missing hook to CreateProcess - needed for "Suppress child process creation".
+fix: exception for bilinear filtering applied to certain games (e.g. "Shadow Watch")

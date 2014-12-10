@@ -326,24 +326,34 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 			OutTraceDW("GetDeviceCaps: fix(1) BITSPIXEL/COLORRES cap=%x\n",res);
 			return res;
 		case HORZRES:
-			res = pSetDevMode->dmPelsWidth;
-			OutTraceDW("GetDeviceCaps: fix(1) HORZRES cap=%d\n", res);
-			return res;
+			if(dxw.Windowize){
+				res = pSetDevMode->dmPelsWidth;
+				OutTraceDW("GetDeviceCaps: fix(1) HORZRES cap=%d\n", res);
+				return res;
+			}
+			break;
 		case VERTRES:
-			res = pSetDevMode->dmPelsHeight;
-			OutTraceDW("GetDeviceCaps: fix(1) VERTRES cap=%d\n", res);
-			return res;
+			if(dxw.Windowize){
+				res = pSetDevMode->dmPelsHeight;
+				OutTraceDW("GetDeviceCaps: fix(1) VERTRES cap=%d\n", res);
+				return res;
+			}
+			break;
 		}
 	}
 
 	switch(nindex){
 	case VERTRES:
-		res= dxw.GetScreenHeight();
-		OutTraceDW("GetDeviceCaps: fix(2) VERTRES cap=%d\n", res);
+		if(dxw.Windowize){
+			res= dxw.GetScreenHeight();
+			OutTraceDW("GetDeviceCaps: fix(2) VERTRES cap=%d\n", res);
+		}
 		break;
 	case HORZRES:
-		res= dxw.GetScreenWidth();
-		OutTraceDW("GetDeviceCaps: fix(2) HORZRES cap=%d\n", res);
+		if(dxw.Windowize){
+			res= dxw.GetScreenWidth();
+			OutTraceDW("GetDeviceCaps: fix(2) HORZRES cap=%d\n", res);
+		}
 		break;
 	// WARNING: in no-emu mode, the INIT8BPP and INIT16BPP flags expose capabilities that
 	// are NOT implemented and may cause later troubles!
@@ -1313,6 +1323,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 	}
 	//else
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		// blitting toprimary surface !!!
 		DWORD OrigWidth, OrigHeight;
 		int OrigXDest, OrigYDest;
 		OrigWidth=dwWidth;
@@ -1323,6 +1334,10 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 		OutTraceDW("SetDIBitsToDevice: fixed dest=(%d,%d)-(%dx%d)\n", XDest, YDest, dwWidth, dwHeight);
 		HDC hTempDc;
 		HBITMAP hbmPic;
+
+		if(dxw.HandleFPS()) return DD_OK;
+		if(dxw.dwFlags5 & NOBLT) return DD_OK;
+	
 		if(!(hTempDc=CreateCompatibleDC(hdc)))
 			OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 		// tricky part: CreateCompatibleBitmap is needed to set the dc size, but it has to be performed
@@ -1338,6 +1353,9 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 		SetStretchBltMode(hdc,HALFTONE);
 		if(!(ret=(*pGDIStretchBlt)(hdc, XDest, YDest, dwWidth, dwHeight, hTempDc, 0, 0, OrigWidth, OrigHeight, SRCCOPY)))
 			OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+
+		dxw.ShowOverlay(hdc);
+
 		if(!(DeleteObject(hbmPic))) // v2.02.32 - avoid resource leakage
 			OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 		if(!(DeleteDC(hTempDc)))

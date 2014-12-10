@@ -82,6 +82,7 @@ void HookKernel32Init()
 	HookLibInit(LimitHooks);
 	HookLibInit(TimeHooks);
 	HookLibInit(VersionHooks);
+	HookLibInit(SuppressChildHooks);
 }
 
 FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)

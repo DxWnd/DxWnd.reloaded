@@ -121,7 +121,8 @@ MCIERROR WINAPI extmciSendCommand(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdw
 	}
 
 	ret=(*pmciSendCommand)(IDDevice, uMsg, fdwCommand, dwParam);
+
 	if(dxw.IsFullScreen() && uMsg==MCI_PUT) pr->rc=saverect;
-	if (ret) OutTraceE("mciSendCommand: ERROR res=%x\n", ret);
+	if (ret) OutTraceE("mciSendCommand: ERROR res=%d\n", ret);
 	return ret;
 }
