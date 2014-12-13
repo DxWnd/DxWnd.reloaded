@@ -55,7 +55,7 @@ static unsigned int Hash(BYTE *buf, int len)
    return hash;
 }
 
-static unsigned int HashSurface(BYTE *buf, int pitch, int width, int height)
+unsigned int HashSurface(BYTE *buf, int pitch, int width, int height)
 {
    unsigned int b    = 378551;
    unsigned int a    = 63689;
@@ -68,6 +68,50 @@ static unsigned int HashSurface(BYTE *buf, int pitch, int width, int height)
 	   }
    }
    return hash;
+}
+
+static char *SurfaceType(DDPIXELFORMAT ddpfPixelFormat)
+{
+	static char sSurfaceType[81];
+	char sColorType[21];
+	DWORD mask;
+	int i, count;
+	strcpy(sSurfaceType, "");
+	// red
+	mask=ddpfPixelFormat.dwRBitMask;
+	for (i=0, count=0; i<32; i++) {
+		if(mask & 0x1) count++;
+		mask >>= 1;
+	}
+	sprintf(sColorType, "R%d", count);
+	strcat(sSurfaceType, sColorType);
+	// green
+	mask=ddpfPixelFormat.dwGBitMask;
+	for (i=0, count=0; i<32; i++) {
+		if(mask & 0x1) count++;
+		mask >>= 1;
+	}
+	sprintf(sColorType, "G%d", count);
+	strcat(sSurfaceType, sColorType);
+	// blue
+	mask=ddpfPixelFormat.dwBBitMask;
+	for (i=0, count=0; i<32; i++) {
+		if(mask & 0x1) count++;
+		mask >>= 1;
+	}
+	sprintf(sColorType, "B%d", count);
+	strcat(sSurfaceType, sColorType);
+	// alpha channel
+	mask=ddpfPixelFormat.dwRGBAlphaBitMask;
+	if(mask){
+		for (i=0, count=0; i<32; i++) {
+			if(mask & 0x1) count++;
+			mask >>= 1;
+		}
+		sprintf(sColorType, "A%d", count);
+		strcat(sSurfaceType, sColorType);
+	}
+	return sSurfaceType;
 }
 
 void TextureHighlight(LPDIRECTDRAWSURFACE s)
@@ -150,6 +194,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 	HRESULT res;
 	static int MinTexX, MinTexY, MaxTexX, MaxTexY;
 	static BOOL DoOnce = TRUE;
+	char pszFile[MAX_PATH];
 
 	if(DoOnce){
 		char sProfilePath[MAX_PATH];
@@ -159,6 +204,8 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		MinTexY=GetPrivateProfileInt("Texture", "MinTexY", 0, sProfilePath);
 		MaxTexY=GetPrivateProfileInt("Texture", "MaxTexY", 0, sProfilePath);
 		OutTrace("TextureDump: size min=(%dx%d) max=(%dx%d)\n", MinTexX, MinTexY, MaxTexX, MaxTexY);
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out", GetDxWndPath());
+		CreateDirectory(pszFile, NULL);
 		DoOnce = FALSE;
 	}
 
@@ -191,14 +238,10 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 
 		iSurfaceSize = ddsd.dwHeight * ddsd.lPitch;
 
-		//HANDLE hf;					// file handle  
 		FILE *hf;
 		BITMAPFILEHEADER hdr;       // bitmap file-header 
 		BITMAPV4HEADER pbi;			// bitmap info-header  
-		//DWORD dwTmp; 
-		char pszFile[MAX_PATH];
 
-		//pbih = (PBITMAPINFOHEADER)&pbi; 
 		memset((void *)&pbi, 0, sizeof(BITMAPV4HEADER));
 		pbi.bV4Size = sizeof(BITMAPV4HEADER); 
 		pbi.bV4Width = ddsd.dwWidth;
@@ -217,7 +260,6 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		pbi.bV4BlueMask = ddsd.ddpfPixelFormat.dwBBitMask;
 		pbi.bV4AlphaMask = ddsd.ddpfPixelFormat.dwRGBAlphaBitMask;
 		pbi.bV4CSType = LCS_CALIBRATED_RGB;
-		//pbi.bV4CSType = 0xFFFFFFFF;
 		iScanLineSize = ((pbi.bV4Width * pbi.bV4BitCount + 0x1F) & ~0x1F)/8;
 
 		// calculate the bitmap hash
@@ -229,7 +271,8 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		}
 
 		// Create the .BMP file. 
-		sprintf_s(pszFile, 80, "%s\\texture.out\\texture.%03d.%03d.%08X.bmp", GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, hash);
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.bmp", 
+			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), hash);
 		hf = fopen(pszFile, "wb");
 		if(!hf) break;
 
@@ -302,7 +345,8 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 		if(!hash) break; // almost certainly, an empty black surface!
 
 		// Look for the .BMP file. 
-		sprintf_s(pszFile, 80, "%s\\texture.in\\texture.%03d.%03d.%08X.bmp", GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, hash);
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.bmp", 
+			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), hash);
 		hf = fopen(pszFile, "rb");
 		if(!hf) break; // no updated texture to load
 
@@ -350,8 +394,8 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 
 void TextureHandling(LPDIRECTDRAWSURFACE s)
 {
-	OutTrace("TextureHandling: dxw.dwFlags5 = %x\n", dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK));
-	switch(dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK)){
+	//OutTrace("TextureHandling(1-7): dxw.dwFlags5 = %x\n", dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK));
+	switch(dxw.dwFlags5 & TEXTUREMASK){
 		default:
 		case TEXTUREHIGHLIGHT: 
 			TextureHighlight(s);
@@ -361,6 +405,9 @@ void TextureHandling(LPDIRECTDRAWSURFACE s)
 			break;
 		case TEXTUREHACK:
 			TextureHack(s);
+			break;
+		case TEXTURETRANSP:
+			//TextureTransp(s);
 			break;
 	}
 }

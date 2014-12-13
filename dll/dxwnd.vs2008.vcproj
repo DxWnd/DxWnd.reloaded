@@ -222,6 +222,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\d3dtexture.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ddproxy.cpp"
 				>
 			</File>
@@ -244,6 +248,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\ddtexture.cpp"
+				>
 			</File>
 			<File
 				RelativePath=".\dinput.cpp"
@@ -366,6 +374,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hd3d8.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hd3d9.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\hotpatch.cpp"
 				>
 			</File>
@@ -399,10 +415,6 @@
 			</File>
 			<File
 				RelativePath=".\smack.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\texv4handle.cpp"
 				>
 			</File>
 			<File
