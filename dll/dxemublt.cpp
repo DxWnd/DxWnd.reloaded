@@ -1268,8 +1268,29 @@ static HRESULT WINAPI EmuBlt_Null(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrec
 
 void SetBltTransformations()
 {
-	OutTraceDW("SetBltTransformations: color transformation %d->%d\n", 
-		dxw.VirtualPixelFormat.dwRGBBitCount, dxw.ActualPixelFormat.dwRGBBitCount);
+	pPrimaryBlt = PrimaryBlt;
+	if(dxw.dwFlags5 & AEROBOOST) pPrimaryBlt = PrimaryStretchBlt;
+	if(dxw.dwFlags5 & BILINEARFILTER) pPrimaryBlt = PrimaryBilinearBlt; 
+	if(dxw.dwFlags5 & DOFASTBLT) pPrimaryBlt = PrimaryFastBlt; // debug opt
+	if(dxw.dwFlags5 & NOBLT) pPrimaryBlt = PrimaryNoBlt; // debug opt
+
+	extern HRESULT WINAPI ColorConversionDDRAW(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+	extern HRESULT WINAPI ColorConversionGDI(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+	extern HRESULT WINAPI ColorConversionEmulated(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+	pColorConversion = ColorConversionDDRAW; // default for no emulation mode
+	if(dxw.dwFlags1 & EMULATESURFACE) {
+		pColorConversion = ColorConversionEmulated; // default for emulation mode
+		if(dxw.dwFlags5 & HYBRIDMODE) pColorConversion = ColorConversionDDRAW;
+		if(dxw.dwFlags5 & GDICOLORCONV) pColorConversion = ColorConversionGDI;
+	}
+	char *s = "???";
+	if(pColorConversion == ColorConversionDDRAW) s="DDRAW"; 
+	if(pColorConversion == ColorConversionGDI) s="GDI";
+	if(pColorConversion == ColorConversionEmulated) s="EMULATED";
+	OutTraceDW("SetBltTransformations: color conversion %s BPP %d->%d\n", 
+		s, dxw.VirtualPixelFormat.dwRGBBitCount, dxw.ActualPixelFormat.dwRGBBitCount);
+
+	if(pColorConversion != ColorConversionEmulated) return;
 
 	/* default (bad) setting */
 	pEmuBlt=EmuBlt_Null;
@@ -1331,11 +1352,4 @@ void SetBltTransformations()
 			dxw.ActualPixelFormat.dwRGBBitCount);
 		break;
 	}
-
-	pPrimaryBlt = PrimaryBlt;
-	if(dxw.dwFlags5 & AEROBOOST) pPrimaryBlt = PrimaryStretchBlt;
-	if(dxw.dwFlags5 & BILINEARFILTER) pPrimaryBlt = PrimaryBilinearBlt; 
-	if(dxw.dwFlags5 & DOFASTBLT) pPrimaryBlt = PrimaryFastBlt; // debug opt
-	if(dxw.dwFlags5 & NOBLT) pPrimaryBlt = PrimaryNoBlt; // debug opt
-	return;
 }

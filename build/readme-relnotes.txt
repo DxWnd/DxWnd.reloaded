@@ -674,3 +674,10 @@ fix: changed surface capability policy so that "Risk II" works with identical su
 v2.03.05
 add: texture dump for d3d8 & d3d9. Note: highlight & hack yet to be implemented. d3d10 & d3d11 yet to be implemented. Texture types not complete.
 fix: handling of d3d10 (Assassin's Creed) 
+
+v2.03.06
+fix: do not try to set vsync delays on ddraw surface when not created yet 
+fix: catched several sporadic errors before they could crash the application
+fix: GetAttachedSurface() now retrieves a backbuffer from the list, instead of referencing the last one - this fixes "Tomb Raider III" GOG release in non emulated mode.
+add: "Normalize performance counter" flag to fix an improper use of QueryPerformanceCounter() made by "Cyber Gladiators"
+add: "GDI Color conversion" debug flag

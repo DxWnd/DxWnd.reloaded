@@ -241,3 +241,6 @@ typedef enum {
 	DXVK_ALTF4,
 	DXVK_SIZE
 };
+
+typedef HRESULT (WINAPI *ColorConversion_Type)(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+extern ColorConversion_Type pColorConversion;

@@ -163,6 +163,9 @@
 #define TEXTUREDUMP			0x00004000 // dump textures to file system as bmp files
 #define TEXTUREHACK			0x00008000 // load (replace) hacked textures from file system (bmp files)
 #define TEXTURETRANSP		0x00010000 // transparent textures (unimplemented)
+#define NORMALIZEPERFCOUNT	0x00020000 // Normalize Performance Counter to a Performance Frequency of 1MHz
+#define HYBRIDMODE			0x00040000 // ?????
+#define GDICOLORCONV		0x00080000 // do color conversion using GDI
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

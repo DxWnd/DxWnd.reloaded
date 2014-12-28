@@ -131,6 +131,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags |= EMULATEBUFFER; break;
 		case 3: t->flags |= LOCKEDSURFACE; break;
 		case 4: t->flags |= EMULATESURFACE; break;
+		case 5: t->flags5 |= HYBRIDMODE; break;
 			break;
 	}
 
@@ -238,6 +239,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoSystemEmulated) t->flags5 |= NOSYSTEMEMULATED;
 	if(dlg->m_NoBlt) t->flags5 |= NOBLT;
 	if(dlg->m_FastBlt) t->flags5 |= DOFASTBLT;
+	if(dlg->m_GDIColorConv) t->flags5 |= GDICOLORCONV;
 	if(dlg->m_PreventMaximize) t->flags |= PREVENTMAXIMIZE;
 	if(dlg->m_ClientRemapping) t->flags |= CLIENTREMAPPING;
 	if(dlg->m_LockWinPos) t->flags |= LOCKWINPOS;
@@ -267,6 +269,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ShowTimeStretch) t->flags4 |= SHOWTIMESTRETCH;
 	if(dlg->m_TimeStretch) t->flags2 |= TIMESTRETCH;
 	if(dlg->m_StretchTimers) t->flags4 |= STRETCHTIMERS;
+	if(dlg->m_NormalizePerfCount) t->flags5 |= NORMALIZEPERFCOUNT;
 	if(dlg->m_QuarterBlt) t->flags5 |= QUARTERBLT;
 	if(dlg->m_FineTiming) t->flags4 |= FINETIMING;
 	if(dlg->m_ReleaseMouse) t->flags4 |= RELEASEMOUSE;
@@ -334,6 +337,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 2;
 	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 3;
 	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 4;
+	if(t->flags5 & HYBRIDMODE) dlg->m_DxEmulationMode = 5;
 
 	dlg->m_DxFilterMode = 0;
 	if(t->flags4 & BILINEAR2XFILTER) dlg->m_DxFilterMode = 1;
@@ -431,6 +435,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoSystemEmulated = t->flags5 & NOSYSTEMEMULATED ? 1 : 0;
 	dlg->m_NoBlt = t->flags5 & NOBLT ? 1 : 0;
 	dlg->m_FastBlt = t->flags5 & DOFASTBLT ? 1 : 0;
+	dlg->m_GDIColorConv = t->flags5 & GDICOLORCONV ? 1 : 0;
 	dlg->m_PreventMaximize = t->flags & PREVENTMAXIMIZE ? 1 : 0;
 	dlg->m_ClientRemapping = t->flags & CLIENTREMAPPING ? 1 : 0;
 	dlg->m_LockWinPos = t->flags & LOCKWINPOS ? 1 : 0;
@@ -460,6 +465,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ShowTimeStretch = t->flags4 & SHOWTIMESTRETCH ? 1 : 0;
 	dlg->m_TimeStretch = t->flags2 & TIMESTRETCH ? 1 : 0;
 	dlg->m_StretchTimers = t->flags4 & STRETCHTIMERS ? 1 : 0;
+	dlg->m_NormalizePerfCount = t->flags5 & NORMALIZEPERFCOUNT ? 1 : 0;
 	dlg->m_QuarterBlt = t->flags5 & QUARTERBLT ? 1 : 0;
 	dlg->m_FineTiming = t->flags4 & FINETIMING ? 1 : 0;
 	dlg->m_ReleaseMouse = t->flags4 & RELEASEMOUSE ? 1 : 0;
@@ -655,16 +661,16 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	sprintf_s(key, sizeof(key), "coord%i", i);
 	TargetMap->coordinates = GetPrivateProfileInt("target", key, 0, InitPath);
 
-	// be sure just one of the emulation flags is set
 	sprintf_s(key, sizeof(key), "flag%i", i);
 	TargetMap->flags = GetPrivateProfileInt("target", key, 0, InitPath);
-	flags = TargetMap->flags;
-	TargetMap->flags &= ~EMULATEFLAGS;
-	do{
-		if(flags & EMULATESURFACE) {TargetMap->flags |= EMULATESURFACE; break;}
-		if(flags & EMULATEBUFFER) {TargetMap->flags |= EMULATEBUFFER; break;}
-		if(flags & LOCKEDSURFACE) {TargetMap->flags |= LOCKEDSURFACE; break;}
-	} while (0);
+	//// be sure just one of the emulation flags is set
+	//flags = TargetMap->flags;
+	//TargetMap->flags &= ~EMULATEFLAGS;
+	//do{
+	//	if(flags & EMULATESURFACE) {TargetMap->flags |= EMULATESURFACE; break;}
+	//	if(flags & EMULATEBUFFER) {TargetMap->flags |= EMULATEBUFFER; break;}
+	//	if(flags & LOCKEDSURFACE) {TargetMap->flags |= LOCKEDSURFACE; break;}
+	//} while (0);
 
 	sprintf_s(key, sizeof(key), "flagg%i", i);
 	TargetMap->flags2 = GetPrivateProfileInt("target", key, 0, InitPath);

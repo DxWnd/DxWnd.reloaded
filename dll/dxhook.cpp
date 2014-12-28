@@ -794,7 +794,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		extern void SetVSyncDelays(LPDIRECTDRAW);
 		extern LPDIRECTDRAW lpPrimaryDD;
 		if(dxw.dwFlags4 & STRETCHTIMERS) dxw.RenewTimers();
-		SetVSyncDelays(lpPrimaryDD);
+		if(lpPrimaryDD) SetVSyncDelays(lpPrimaryDD);
 		LastTimeShift=dxw.TimeShift;
 	}
 
@@ -1302,6 +1302,7 @@ void HookModule(HMODULE base, int dxversion)
 		(dxw.dwFlags4 & OVERRIDEREGISTRY) || 
 		(dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
+	//HookSmackW32(base);
 }
 
 #define USEWINNLSENABLE
@@ -1576,6 +1577,18 @@ static void ReplacePrivilegedOps()
 HWND hDesktopWindow = NULL;
 #endif
 
+// Message poller: its only purpose is to keep sending messages to the main window
+// so that the message loop is kept running. It is a trick necessary to play 
+// smack videos with smackw32.dll and AUTOREFRESH mode set
+DWORD WINAPI MessagePoller(LPVOID lpParameter)
+{
+	#define DXWREFRESHINTERVAL 20
+	while(TRUE){
+		Sleep(DXWREFRESHINTERVAL);
+		SendMessage(dxw.GethWnd(), WM_NCHITTEST, 0, 0);
+	}
+}
+
 void HookInit(TARGETMAP *target, HWND hwnd)
 {
 	HMODULE base;
@@ -1604,6 +1617,13 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	SetDllDirectory(sSourcePath);
 
 	if(dxw.dwFlags1 & AUTOMATIC) dxw.dwFlags1 |= EMULATESURFACE; // if AUTOMATIC, try this first!
+	if(dxw.dwFlags5 & HYBRIDMODE) {
+		// special mode settings ....
+		dxw.dwFlags1 |= EMULATESURFACE;
+		dxw.dwFlags5 |= NOSYSTEMEMULATED;
+		dxw.dwFlags2 |= SETCOMPATIBILITY;
+		dxw.dwFlags5 &= ~(BILINEARFILTER | AEROBOOST); 
+	}
 
 	if(hwnd){ // v2.02.32: skip this when in code injection mode.
 		// v2.1.75: is it correct to set hWnd here?
@@ -1660,6 +1680,14 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 			hwnd, GetDC(hwnd), dxw.hParentWnd, GetDC(dxw.hParentWnd), GetDesktopWindow(), GetDC(GetDesktopWindow()));
 		else OutTrace("\n");
 		if (dxw.dwFlags4 & LIMITSCREENRES) OutTrace("HookInit: max resolution=%s\n", (dxw.MaxScreenRes<6)?Resolutions[dxw.MaxScreenRes]:"unknown");
+	}
+
+	{
+		// Beware: for some strange & mysterious reason, this call makes Warcraft II and other games
+		// work better, avoiding something that resembles a black palette (no blit errors, but the
+		// whole screen black!!) and an AERO rupture.
+		PIXELFORMATDESCRIPTOR pfd;
+		DescribePixelFormat(GetDC(GetDesktopWindow()), 1, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
 	}
 
 	if (hwnd && IsDebug){
@@ -1786,6 +1814,9 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 			AdjustWindowPos(dxw.hParentWnd, target->sizx, target->sizy);
 		}
 	}
+
+	if (dxw.dwFlags1 & AUTOREFRESH) 
+		CreateThread(NULL, 0, MessagePoller, NULL, 0, NULL);
 }
 
 LPCSTR ProcToString(LPCSTR proc)

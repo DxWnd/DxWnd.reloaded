@@ -90,6 +90,7 @@ public:
 	BOOL	m_NoBlt;
 	BOOL	m_BilinearBlt;
 	BOOL	m_FastBlt;
+	BOOL	m_GDIColorConv;
 	BOOL	m_PreventMaximize;
 	BOOL	m_ClientRemapping;
 	BOOL	m_LockWinPos;
@@ -119,6 +120,7 @@ public:
 	BOOL	m_ShowTimeStretch;
 	BOOL	m_TimeStretch;
 	BOOL	m_StretchTimers;
+	BOOL	m_NormalizePerfCount;
 	BOOL	m_QuarterBlt;
 	BOOL	m_FineTiming;
 	BOOL	m_ReleaseMouse;

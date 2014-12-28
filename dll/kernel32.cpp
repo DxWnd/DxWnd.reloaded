@@ -357,6 +357,13 @@ BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
 	else{
 		LARGE_INTEGER CurrentInCount;
 		ret=(*pQueryPerformanceCounter)(&CurrentInCount);
+		if(dxw.dwFlags5 & NORMALIZEPERFCOUNT) {
+			LARGE_INTEGER PerfFrequency;
+			static LARGE_INTEGER StartCounter = {0LL};
+			if (StartCounter.QuadPart == 0LL) StartCounter.QuadPart = CurrentInCount.QuadPart;
+			(*pQueryPerformanceFrequency)(&PerfFrequency);
+			CurrentInCount.QuadPart = ((CurrentInCount.QuadPart - StartCounter.QuadPart) * 1000000LL) / PerfFrequency.QuadPart;
+		}
 		*lpPerformanceCount = dxw.StretchLargeCounter(CurrentInCount);
 	}
 
@@ -374,8 +381,15 @@ BOOL WINAPI extQueryPerformanceFrequency(LARGE_INTEGER *lpPerformanceFrequency)
 		*lpPerformanceFrequency=myPerfFrequency;
 		ret = 0;
 	}
-	else
-		ret=(*pQueryPerformanceFrequency)(lpPerformanceFrequency);
+	else{
+		if(dxw.dwFlags5 & NORMALIZEPERFCOUNT){
+			lpPerformanceFrequency->QuadPart = 1000000LL;
+			ret = TRUE;
+		}
+		else{
+			ret = (*pQueryPerformanceFrequency)(lpPerformanceFrequency);
+		}
+	}
 	OutTraceDW("QueryPerformanceFrequency: ret=%x Frequency=%x-%x\n", ret, lpPerformanceFrequency->HighPart, lpPerformanceFrequency->LowPart);
 	return ret;
 }
@@ -726,6 +740,21 @@ BOOL WINAPI extCreateProcessA(
 		OutTraceDW("CreateProcess: SUPPRESS\n");
 	return TRUE;
 }
+
+#if 0
+	// useless: DxWnd should hook to two processes contemporarily ....
+	// problem: binkplay seems to detect the screen actual size 
+	if(TRUE){
+		// get rid of /R option from binkplay argument line
+		if(!strncmp(lpCommandLine, "binkplay.exe ", strlen("binkplay.exe "))){
+			char *rCommand;
+			rCommand = strstr(lpCommandLine, "/R ");
+			if(rCommand) memset(rCommand, ' ', strlen("/R "));
+			OutTraceDW("CreateProcess: ApplicationName=\"%s\" CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
+		}
+	}
+#endif
+
 //#define RELEASEHOOKTOSONPROCESS TRUE
 //	extern void UnhookProc();
 //	if(RELEASEHOOKTOSONPROCESS) UnhookProc();

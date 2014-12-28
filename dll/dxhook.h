@@ -11,6 +11,7 @@ extern void HookUser32(HMODULE);
 extern void HookWinMM(HMODULE);
 extern void HookAdvApi32(HMODULE);
 extern void HookImagehlp(HMODULE);
+extern void HookSmackW32(HMODULE);
 
 extern void InitPosition(int, int, int, int, int, int);
 //void InitWindowPos(int, int, int, int);

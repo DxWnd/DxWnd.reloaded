@@ -21,6 +21,7 @@ extern BOOL IsChangeDisplaySettingsHotPatched;
 BOOL bDontReleaseBackBuffer = FALSE;
 DWORD dwBackBufferCaps;
 extern void TextureHandling(LPDIRECTDRAWSURFACE);
+ColorConversion_Type pColorConversion = NULL;
 
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -1516,10 +1517,7 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 			c2=&swcaps;
 			res=(*pGetCapsD)(lpdd, NULL, c2);
 		}
-		//DWORD AlphaCaps;
-		//AlphaCaps=c1->dwFXAlphaCaps;
 		memcpy((void *)c1, (void *)c2, size);
-		//c1->dwFXAlphaCaps=AlphaCaps;		
 	}
 
 	if(dxw.dwFlags3 & CAPMASK) MaskCapsD(c1, c2);
@@ -2743,8 +2741,11 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	// AddAttachedSurface, or a primary complex surface creation otherwise....
 
 	if(IsPrim && (lpddsc->dwCaps & (DDSCAPS_BACKBUFFER|DDSCAPS_FLIP))) { // v2.02.42 added DDSCAPS_FLIP for Empire Earth
-		if (lpDDSBack) {
-			*lplpddas = lpDDSBack;
+		// in "Tomb Raider III" GOG release, the primary surface is queryed and has no attached
+		// backbuffer, but a backbuffer does exist and has to be retrieved by GetBackBufferSurface.
+		LPDIRECTDRAWSURFACE lpddsback = dxw.GetBackBufferSurface();
+		if (lpddsback) {
+			*lplpddas = lpddsback;
 			OutTraceDW("GetAttachedSurface(%d): BACKBUFFER attached=%x\n", dxversion, *lplpddas); 
 			return DD_OK;
 		}
@@ -2829,7 +2830,12 @@ HRESULT WINAPI PrimaryBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECT
 
 HRESULT WINAPI PrimaryFastBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
 {
-	return (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddssrc, lpsrcrect, DDBLTFAST_WAIT);
+	RECT client;
+	int iXOffset, iYOffset; // offsets to center surface area to window
+	(*pGetClientRect)(dxw.GethWnd(), &client);
+	iXOffset = (client.right - dxw.GetScreenWidth()) >> 1;
+	iYOffset = (client.bottom - dxw.GetScreenHeight()) >> 1;
+	return (*pBltFast)(lpdds, iXOffset + lpdestrect->left, iYOffset + lpdestrect->top, lpddssrc, lpsrcrect, DDBLTFAST_WAIT);
 }
 
 HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
@@ -2857,6 +2863,10 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	if(lpddssrc==NULL){
 		// blit from backbuffer
 		lpdds->GetAttachedSurface(&caps, &(LPDIRECTDRAWSURFACE)lpddsBak);
+		if(lpddsBak == NULL) {
+			OutTraceE("PrimaryStretchBlt: skip - lpddsBak=%x at %d\n", lpddsBak, __LINE__);
+			return DD_OK; // fake a success ...
+		}
 		lpddsBak->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
 	}
 	else{
@@ -2878,11 +2888,14 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	}
 	// stretch-blit to target size on OFFSCREENPLAIN temp surface
 	res= (*pBlt)(lpddsTmp, &TmpRect, lpddssrc, lpsrcrect, DDBLT_WAIT, 0);
-	if(res) OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	// fast-blit to primary
-	res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
-	if(res) OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	if (res) BlitError(res, lpsrcrect, lpdestrect, __LINE__);
+	if(res) {
+		OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	}
+	else {
+		// fast-blit to primary
+		res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
+		if(res) OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	}
 	(*pReleaseS)(lpddsTmp);
 	return res;
 }
@@ -2976,14 +2989,20 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	ddsd.dwSize = dwSize;
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0);
-	if(res) OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	if(res) {
+		OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return DD_OK;
+	}
 	bSourceBuf = (BYTE *)ddsd.lpSurface;
 	SrcPitch = ddsd.lPitch;
 	memset(&ddsd,0,dwSize);
 	ddsd.dwSize = dwSize;
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	res=(*pLock)(lpddsTmp, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0);
-	if(res) OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	if(res) {
+		OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return DD_OK;
+	}
 	bDestBuf = (BYTE *)ddsd.lpSurface;
 	DestPitch = ddsd.lPitch;
 
@@ -3036,6 +3055,66 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 
 HRESULT WINAPI PrimaryNoBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
 {
+	return DD_OK;
+}
+
+typedef HRESULT (WINAPI *ColorConversion_Type)(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+
+HRESULT WINAPI ColorConversionEmulated(LPDIRECTDRAWSURFACE lpdds, RECT emurect, LPDIRECTDRAWSURFACE *lpddssource)
+{
+	HRESULT res;
+	res=(*pEmuBlt)(lpDDSEmu_Back, &emurect, lpdds, &emurect, DDBLT_WAIT, 0);
+	if(res==DDERR_SURFACEBUSY){
+		(*pUnlockMethod(lpdds))(lpdds, NULL);
+		(*pUnlockMethod(lpDDSEmu_Back))(lpDDSEmu_Back, NULL);
+		res=(*pEmuBlt)(lpDDSEmu_Back, &emurect, lpdds, &emurect, DDBLT_WAIT, 0);
+	}
+	if(res) {
+		BlitError(res, &emurect, &emurect, __LINE__);
+		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
+	}
+	*lpddssource = lpDDSEmu_Back;
+	return res;
+}
+
+HRESULT WINAPI ColorConversionGDI(LPDIRECTDRAWSURFACE lpdds, RECT emurect, LPDIRECTDRAWSURFACE *lpddssource)
+{
+	// GDICOLORCONV: use GDI capabilities to convert color depth by BitBlt-ting between different hdc
+	HRESULT res;
+	OutTrace("STEP: GDI Color Conversion\n");
+	do {
+		HDC hdc_source, hdc_dest;
+		res=(*pGetDC)(lpdds, &hdc_source);
+		if(res) {
+			OutTraceE("GetDC ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			break;
+		}
+		res=(*pGetDC)(lpDDSEmu_Back, &hdc_dest);
+		if(res) {
+			OutTraceE("GetDC ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			break;
+		}
+		if(!BitBlt(hdc_dest, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), hdc_source, 0, 0, SRCCOPY)){
+			OutTraceE("BitBlt ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		}
+		res=(*pReleaseDC)(lpdds, hdc_source);
+		if(res) {
+			OutTraceE("ReleaseDC ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			break;
+		}
+		res=(*pReleaseDC)(lpDDSEmu_Back, hdc_dest);
+		if(res) {
+			OutTraceE("ReleaseDC ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			break;
+		}
+	} while(FALSE);
+	*lpddssource = lpDDSEmu_Back;
+	return res;
+}
+
+HRESULT WINAPI ColorConversionDDRAW(LPDIRECTDRAWSURFACE lpdds, RECT emurect, LPDIRECTDRAWSURFACE *lpddssource)
+{
+	*lpddssource = lpdds;
 	return DD_OK;
 }
 
@@ -3332,23 +3411,10 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	}
 
 	LPDIRECTDRAWSURFACE lpDDSSource;
-
-	if(dxw.dwFlags1 & EMULATESURFACE){ 
-		res=(*pEmuBlt)(lpDDSEmu_Back, &emurect, lpdds, &emurect, DDBLT_WAIT, 0);
-		if(res==DDERR_SURFACEBUSY){
-			(*pUnlockMethod(lpdds))(lpdds, NULL);
-			(*pUnlockMethod(lpDDSEmu_Back))(lpDDSEmu_Back, NULL);
-			res=(*pEmuBlt)(lpDDSEmu_Back, &emurect, lpdds, &emurect, DDBLT_WAIT, 0);
-		}
-		if(res) {
-			BlitError(res, &emurect, &emurect, __LINE__);
-			if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
-			return res;
-		}
-		lpDDSSource = lpDDSEmu_Back;
-	}
-	else{
-		lpDDSSource = lpdds;
+	if (res=(*pColorConversion)(lpdds, emurect, &lpDDSSource)) {
+		OutTraceE("sBlt ERROR: Color conversion failed res=%d(%s)\n", res, ExplainDDError(res));
+		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
+		return res;
 	}
 
 	dxw.ShowOverlay(lpDDSSource);
@@ -4332,8 +4398,13 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 
 	OutTraceDDRAW("Release(S): lpdds=%x%s refcount=%d\n", lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), res);
 	if (res==0) { // common precondition
+		// erase surface from primary or backbuffer list
+		if(IsPrim || IsBack) dxw.MarkRegularSurface(lpdds);
+
 		// when releasing primary surface, erase clipping region
 		if(IsPrim && (dxw.dwFlags1 & CLIPCURSOR)) dxw.EraseClipCursor();
+		
+		// clear service surface pointers
 		if (dxw.dwFlags1 & EMULATESURFACE) {
 			if(lpdds==lpDDSEmu_Prim) {
 				OutTraceDW("Release(S): Clearing lpDDSEmu_Prim pointer\n");
@@ -4875,7 +4946,7 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 	return ret;
 }
 
- HRESULT WINAPI extDDSetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDGAMMARAMP lpgr)
+HRESULT WINAPI extDDSetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDGAMMARAMP lpgr)
 {
 	HRESULT ret;
 	OutTraceDDRAW("SetGammaRamp: dds=%x dwFlags=%x\n", lpdds, dwFlags);
@@ -4891,7 +4962,7 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 	return ret;
 }
 
- HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree, GetAvailableVidMem_Type pGetAvailableVidMem)
+HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree, GetAvailableVidMem_Type pGetAvailableVidMem)
 {
 	HRESULT res; 
 	//const DWORD dwMaxMem = 0x7FFFF000;

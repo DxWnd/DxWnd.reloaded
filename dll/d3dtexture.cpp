@@ -233,8 +233,6 @@ void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 			break; // almost certainly, an empty black surface!
 		}
 
-		dxw.dwTFlags = (hash == 0xEC2EE7CE) ? 0xFFFFFFFF : 0x00000000;
-
 		// Create the .BMP file. 
 		extern char *GetDxWndPath();
 		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.bmp", 

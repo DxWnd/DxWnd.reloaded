@@ -52,7 +52,20 @@ void CDesktopDialog::OnTimer(UINT_PTR nIDEvent)
 
 	PIXELFORMATDESCRIPTOR pfd;
 	int  iPixelFormat;
-	// get the current pixel format index  
+	// get the current pixel format index 
+#if 0
+	::DescribePixelFormat(hDC, 1, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+	HMODULE ogl;
+	//ogl=LoadLibrary("opengl32");
+	ogl=LoadLibrary("gdi32");
+	typedef BOOL (WINAPI *wglGetPixelFormat_Type)(HDC);
+	wglGetPixelFormat_Type pwglGetPixelFormat;
+	//pwglGetPixelFormat = (wglGetPixelFormat_Type)GetProcAddress(ogl, "wglGetPixelFormat");
+	pwglGetPixelFormat = (wglGetPixelFormat_Type)GetProcAddress(ogl, "GetPixelFormat");
+	iPixelFormat = (*pwglGetPixelFormat)(hDC); 
+	iPixelFormat = (*pwglGetPixelFormat)(NULL); 
+	//iPixelFormat = ::GetPixelFormat(NULL); 
+#endif
 	iPixelFormat = ::GetPixelFormat(hDC); 
 	if(!iPixelFormat) iPixelFormat=1; // why returns 0???
 	if(iPixelFormat){
@@ -75,7 +88,6 @@ void CDesktopDialog::OnTimer(UINT_PTR nIDEvent)
 	else{
 		sprintf_s(sMsg, 1024, "error %d", GetLastError());
 	}
-
 
 	this->SetDlgItemTextA(IDC_DESKTOPINFO, sMsg);
 }
