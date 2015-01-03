@@ -1,0 +1,20 @@
+[HKEY_LOCAL_MACHINE\SOFTWARE]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Viacom New Media]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Viacom New Media\The Divide]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Viacom New Media\The Divide\1.0]
+"Display Name"="\"The Divide\""
+"InstallDir"="."
+"InstallSrc"="."
+"CDROM"=".:"
+"ProgramDir"="."
+"LevelsDir"=".\\Levels\\"
+"MoviesDir"=".\\Movies\\"
+"SoundsDir"=".\\pc\\"
+
+
+[HKEY_CURRENT_USER\SOFTWARE\Viacom New Media\The Divide\Config]
+"Game Settings"=hex:20,03,00,00,58,02,00,00,20,03,00,00,58,02,00,00\
+00,00,00,00,00,00,00,00,01,00,00,00,00,00,00,00,01,00,00,00,00\
+00,00,00,00,00,00,00,00,00,00,00,01,00,00,00,00,00,00,00,00,00\
+00,00,01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00
+

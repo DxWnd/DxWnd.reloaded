@@ -197,12 +197,13 @@ LONG WINAPI extRegQueryValueEx(
 	}
 
 	// try emulated registry
+	res = ERROR_FILE_NOT_FOUND;
 	FILE *regf;
 	char RegBuf[MAX_PATH+1];
 	char *pData;
 	HKEY hCurKey=HKEY_FAKE+1;
 	regf=OpenFakeRegistry();
-	if(regf==NULL) return ERROR_FILE_NOT_FOUND;
+	if(regf==NULL) return res;
 	if(!lpValueName)lpValueName="";
 	fgets(RegBuf, 256, regf);
 	while (!feof(regf)){
@@ -211,70 +212,79 @@ LONG WINAPI extRegQueryValueEx(
 		}
 		else {
 			if(hCurKey==hKey){
-
-				//OutTrace("loop: \"%s\"\n", RegBuf);
 				if((RegBuf[0]=='"') &&
 					!_strnicmp(lpValueName, &RegBuf[1], strlen(lpValueName)) &&
 					(RegBuf[strlen(lpValueName)+1]=='"') &&
 					(RegBuf[strlen(lpValueName)+2]=='='))
 				{
+					LPBYTE lpb;
 					res=ERROR_FILE_NOT_FOUND;
 					pData=&RegBuf[strlen(lpValueName)+3];
+					lpb = lpData;
 					if(*pData=='"'){ // string value
+						if(lpType) *lpType=REG_SZ;
 						if(lpData){
-							LPBYTE lpb;
-							lpb = lpData;
 							*lpcbData=0;
 							pData++;
 							while(*pData && (*pData != '"')){
 								if(*pData=='\\') pData++;
 								*lpb++=*pData++;
-								*lpcbData++;
+								if(lpcbData) *lpcbData++;
 							}
 							*lpb = 0; // string terminator
 						}
-						if(lpType) *lpType=REG_SZ;
-						//
-						OutTraceR("RegQueryValueEx: Data=\"%s\" type=REG_SZ\n", lpData);
+						OutTraceR("RegQueryValueEx: type=REG_SZ Data=\"%s\"\n", lpData ? (char *)lpData : "(NULL)");
 						res=ERROR_SUCCESS;
+						break;
 					}
 					if(!strncmp(pData,"dword:",strlen("dword:"))){ //dword value
 						DWORD val;
+						if(lpType) *lpType=REG_DWORD;
 						pData+=strlen("dword:");
 						sscanf(pData, "%x", &val);
 						if(lpData) memcpy(lpData, &val, sizeof(DWORD));
-						if(lpType) *lpType=REG_DWORD;
-						*lpcbData=sizeof(DWORD);
-						OutTraceR("RegQueryValueEx: Data=0x%x type=REG_DWORD\n", val);
+						if(lpcbData) *lpcbData=sizeof(DWORD);
+						OutTraceR("RegQueryValueEx: type=REG_DWORD Data=0x%x\n", val);
 						res=ERROR_SUCCESS;
+						break;
 					}
-					if(!strncmp(pData,"hex:",strlen("hex:"))){ //dword value
-						pData+=strlen("hex:");
-						pData[strlen(pData)-1]=0; // eliminates \n
+					if(!strncmp(pData,"hex:",strlen("hex:"))){ //hex value
+						BYTE *p;
 						if(lpType) *lpType=REG_BINARY;
-						OutTraceDW("RegQueryValueEx: Data=");
-						if(lpData){
-							*lpcbData=0;
-							while(strlen(pData)>1){
-								sscanf(pData, "%x,", (char *)lpData);
-								OutTraceDW("%02.2x,", *(unsigned char *)lpData);
-								pData+=3;
-								lpData++;
-								(*lpcbData)++;
+						p = (BYTE *)pData;
+						p+=strlen("hex:");
+						if(lpcbData) *lpcbData=0;
+						while(TRUE){
+							p[strlen((char *)p)-1]=0; // eliminates \n
+							if(lpData){
+								while(strlen((char *)p)>1){
+									sscanf((char *)p, "%x,", (char *)lpb);
+									p+=3;
+									lpb++;
+									if(lpcbData) (*lpcbData)++;
+								}
+								if(p[strlen((char *)p)-1]=='\\'){
+									fgets(RegBuf, 256, regf);
+									pData = RegBuf;
+									p = (BYTE *)pData;
+								}
+								else break;
 							}
 						}
-						OutTraceR(" type=REG_BINARY cbData=%d\n", *lpcbData);
+						OutTraceR("RegQueryValueEx: type=REG_BINARY cbData=%d Data=%s\n", 
+							lpcbData ? *lpcbData : 0, 
+							lpData ? "(NULL)" : hexdump(lpData, *lpcbData));
 						res=ERROR_SUCCESS;
+						break;
 					}
-					fclose(regf);
-					return res;
 				}
 			}
 		}
 		fgets(RegBuf, 256, regf);
 	}
 	fclose(regf);
-	return ERROR_FILE_NOT_FOUND;
+	OutTraceR("RegQueryValueEx: res=%x\n", res);
+	return res;
 }
 
 LONG WINAPI extRegCloseKey(HKEY hKey)
@@ -287,18 +297,13 @@ LONG WINAPI extRegCloseKey(HKEY hKey)
 LONG WINAPI extRegSetValueEx(HKEY hKey, LPCTSTR lpValueName, DWORD Reserved, DWORD dwType, const BYTE *lpData, DWORD cbData)
 {
 	if (IsTraceR){
-		OutTrace("RegSetValueEx: hKey=%x ValueName=\"%s\" Type=%x(%s) cbData=%d ", hKey, lpValueName, dwType, ExplainRegType(dwType), cbData);
+		char sInfo[1024];
+		sprintf(sInfo, "RegSetValueEx: hKey=%x ValueName=\"%s\" Type=%x(%s) cbData=%d", hKey, lpValueName, dwType, ExplainRegType(dwType), cbData);
 		switch(dwType){
-			case REG_DWORD: OutTrace("Data=%x\n", *(DWORD *)lpData); break;
-			case REG_NONE: OutTrace("Data=\"%s\"\n", lpData); break;
-			case REG_BINARY: {
-				DWORD i;
-				OutTrace("Data=%02.2X,", *lpData);
-				for(i=1; i<cbData; i++) OutTrace("%02.2X", lpData[i]);
-				OutTrace("\n");
-				};
-				break;
-			default: OutTrace("\n");
+			case REG_DWORD: OutTrace("%s Data=%x\n", sInfo, *(DWORD *)lpData); break;
+			case REG_NONE: OutTrace("%s Data=\"%s\"\n", sInfo, lpData); break;
+			case REG_BINARY: OutTrace("%s Data=%s\n", sInfo, hexdump((BYTE *)lpData, cbData)); break;
+			default: OutTrace("%s\n", sInfo);
 		}
 	}
 	if(IsFake(hKey) && (dxw.dwFlags3 & EMULATEREGISTRY)) {
@@ -314,6 +319,8 @@ LONG WINAPI extRegCreateKeyEx(HKEY hKey, LPCTSTR lpSubKey, DWORD Reserved, LPTST
 	OutTraceR("RegCreateKeyEx: hKey=%x(%s) SubKey=\"%s\" Class=%x\n", hKey, hKey2String(hKey), lpSubKey, lpClass);
 	if (dxw.dwFlags3 & EMULATEREGISTRY){
 		*phkResult = HKEY_FAKE;
+        // V2.3.12: return existing fake key if any ....
+        if(dxw.dwFlags4 & OVERRIDEREGISTRY) myRegOpenKeyEx(hKey, lpSubKey, phkResult);
 		if(lpdwDisposition) *lpdwDisposition=REG_OPENED_EXISTING_KEY;
 		return ERROR_SUCCESS;
 	}
@@ -327,6 +334,8 @@ LONG WINAPI extRegCreateKey(HKEY hKey, LPCTSTR lpSubKey, PHKEY phkResult)
 	OutTraceR("RegCreateKey: hKey=%x(%s) SubKey=\"%s\"\n", hKey, hKey2String(hKey), lpSubKey);
 	if (dxw.dwFlags3 & EMULATEREGISTRY){
 		*phkResult = HKEY_FAKE;
+        // V2.3.12: return existing fake key if any ....
+        if(dxw.dwFlags4 & OVERRIDEREGISTRY) myRegOpenKeyEx(hKey, lpSubKey, phkResult);
 		return ERROR_SUCCESS;
 	}
 	else

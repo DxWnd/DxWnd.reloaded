@@ -37,6 +37,20 @@ BOOL WINAPI extExtTextOutA(HDC, int, int, UINT, const RECT *, LPCSTR, UINT, cons
 ExtTextOutW_Type pExtTextOutW = NULL;
 ExtTextOutA_Type pExtTextOutA = NULL;
 
+/*
+typedef COLORREF (WINAPI *SetBkColor_Type)(HDC, COLORREF);
+typedef COLORREF (WINAPI *SetTextColor_Type)(HDC hdc, COLORREF crColor);
+typedef int (WINAPI *SetBkMode_Type)(HDC, int);
+
+SetBkColor_Type pSetBkColor = NULL;
+SetTextColor_Type pSetTextColor = NULL;
+SetBkMode_Type pSetBkMode = NULL;
+
+COLORREF WINAPI extSetBkColor(HDC, COLORREF);
+COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor);
+int WINAPI extSetBkMode(HDC, int);
+*/
+
 static HookEntry_Type Hooks[]={
 
 	{HOOK_IAT_CANDIDATE, "GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
@@ -155,6 +169,15 @@ static HookEntry_Type FontHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
+/*
+static HookEntry_Type LockWHooks[]={
+	{HOOK_HOT_CANDIDATE, "SetBkColor", (FARPROC)SetBkColor, (FARPROC *)&pSetBkColor, (FARPROC)extSetBkColor},
+	{HOOK_HOT_CANDIDATE, "SetBkMode", (FARPROC)SetBkMode, (FARPROC *)&pSetBkMode, (FARPROC)extSetBkMode},
+	{HOOK_HOT_CANDIDATE, "SetTextColor", (FARPROC)SetTextColor, (FARPROC *)&pSetTextColor, (FARPROC)extSetTextColor},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+*/
+
 extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 extern HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
 
@@ -168,6 +191,7 @@ void HookGDI32Init()
 	HookLibInit(EmulateHooks);
 	HookLibInit(TextHooks);
 	HookLibInit(GammaHooks);
+	//HookLibInit(LockWHooks);
 }
 
 void HookGDI32(HMODULE module)
@@ -182,6 +206,7 @@ void HookGDI32(HMODULE module)
 	if (dxw.dwFlags2 & DISABLEGAMMARAMP)	HookLibrary(module, GammaHooks, libname);
 	// v2.02.33 - for "Stratego" compatibility option
 	if(dxw.dwFlags3 & FONTBYPASS)			HookLibrary(module, FontHooks, libname);
+	//if(1)									HookLibrary(module, LockWHooks, libname);
 }
 
 FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -198,6 +223,7 @@ FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if (dxw.dwFlags2 & DISABLEGAMMARAMP)	if(addr=RemapLibrary(proc, hModule, GammaHooks)) return addr;
 	// v2.02.33 - for "Stratego" compatibility option
 	if (dxw.dwFlags3 & FONTBYPASS)			if(addr=RemapLibrary(proc, hModule, FontHooks)) return addr;
+	//if (1)									if(addr=RemapLibrary(proc, hModule, LockWHooks)) return addr;
 
 	return NULL;
 }
@@ -338,7 +364,7 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 	case RASTERCAPS:
 		if(dxw.dwFlags2 & INIT8BPP) {
 			res |= RC_PALETTE; // v2.02.12
-			OutTraceDW("GetDeviceCaps: fix(2) RASTERCAPS setting RC_PALETTE cap=%x\n",res);
+			OutTraceDW("GetDeviceCaps: fix(2) RASTERCAPS setting RC_PALETTE cap=%x\n", res);
 		}
 		break;
 	case BITSPIXEL:
@@ -346,7 +372,7 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 		if(dxw.dwFlags2 & (INIT8BPP|INIT16BPP)){ // v2.02.32 fix
 			if(dxw.dwFlags2 & INIT8BPP) res = 8;
 			if(dxw.dwFlags2 & INIT16BPP) res = 16;
-			OutTraceDW("GetDeviceCaps: fix(2) BITSPIXEL/COLORRES cap=%d\n",res);
+			OutTraceDW("GetDeviceCaps: fix(2) BITSPIXEL/COLORRES cap=%d\n", res);
 		}
 		break;
 	//case NUMCOLORS: // numcolors windows bug fix....
@@ -369,15 +395,15 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 			if(dxw.VirtualPixelFormat.dwRGBBitCount!=0) res = dxw.VirtualPixelFormat.dwRGBBitCount;
 			if(dxw.dwFlags2 & INIT8BPP) res = 8;
 			if(dxw.dwFlags2 & INIT16BPP) res = 16;
-			if(PrevRes != res) OutTraceDW("GetDeviceCaps: fix(3) BITSPIXEL/COLORRES cap=%d\n",res);
+			if(PrevRes != res) OutTraceDW("GetDeviceCaps: fix(3) BITSPIXEL/COLORRES cap=%d\n", res);
 			break;
 		case SIZEPALETTE:
 			res = 256;
-			OutTraceDW("GetDeviceCaps: fix(3) SIZEPALETTE cap=%x\n",res);
+			OutTraceDW("GetDeviceCaps: fix(3) SIZEPALETTE cap=%x\n", res);
 			break;
 		case NUMRESERVED:
 			res = 0;
-			OutTraceDW("GetDeviceCaps: fix(3) NUMRESERVED cap=%x\n",res);
+			OutTraceDW("GetDeviceCaps: fix(3) NUMRESERVED cap=%x\n", res);
 			break;
 		}
 	}
@@ -493,14 +519,14 @@ BOOL WINAPI extAnimatePalette(HPALETTE hpal, UINT iStartIndex, UINT cEntries, co
 UINT WINAPI extRealizePalette(HDC hdc)
 {
 	UINT ret;
-	extern void mySetPalette(int, int, LPPALETTEENTRY);
+	extern void mySetPalette(int, int, LPPALETTEENTRY, BOOL);
 
 	OutTraceDW("GDI.RealizePalette: hdc=%x\n", hdc);
 	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
 		PALETTEENTRY PalEntries[256];
 		UINT nEntries;
 		nEntries=GetPaletteEntries(hDesktopPalette, 0, 256, PalEntries);
-		mySetPalette(0, nEntries, PalEntries);
+		mySetPalette(0, nEntries, PalEntries, TRUE); // ??
 		if(IsDebug) dxw.DumpPalette(nEntries, PalEntries);
 		ret=DD_OK;
 	}
@@ -1868,6 +1894,36 @@ BOOL WINAPI extExtTextOutW(HDC hdc, int X, int Y, UINT fuOptions, const RECT *lp
 }
 
 #if 0
+COLORREF WINAPI extSetBkColor(HDC hdc, COLORREF crColor)
+{
+	OutTrace("SetBkColor: hdc=%x color=%x\n", hdc, crColor);
+	if(dxw.Windowize && dxw.IsRealDesktop(WindowFromDC(hdc))) {
+		OutTrace("Remap desktop hdc=%x->%x\n", hdc, GetDC(dxw.GethWnd()));
+		hdc=GetDC(dxw.GethWnd());
+	}
+	return (*pSetBkColor)(hdc, crColor);
+}
+
+int WINAPI extSetBkMode(HDC hdc, int iBkMode)
+{
+	OutTrace("SetBkMode: hdc=%x bkmode=%x\n", hdc, iBkMode);
+	if(dxw.Windowize && dxw.IsRealDesktop(WindowFromDC(hdc))) {
+		OutTrace("Remap desktop hdc=%x->%x\n", hdc, GetDC(dxw.GethWnd()));
+		hdc=GetDC(dxw.GethWnd());
+	}
+	return (*pSetBkMode)(hdc, iBkMode);
+}
+
+COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor)
+{
+	OutTrace("SetTextColor: hdc=%x color=%x\n", hdc, crColor);
+	if(dxw.Windowize && dxw.IsRealDesktop(WindowFromDC(hdc))) {
+		OutTrace("Remap desktop hdc=%x->%x\n", hdc, GetDC(dxw.GethWnd()));
+		hdc=GetDC(dxw.GethWnd());
+	}
+	return (*pSetTextColor)(hdc, crColor);
+}
+
 // unhooked, since quite surprisingly all rectangles showed properly scaled already in RollerCoaster Tycoon !!
 DWORD WINAPI extGetRegionData(HRGN hRgn, DWORD dwCount, LPRGNDATA lpRgnData)
 {

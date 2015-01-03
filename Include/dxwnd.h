@@ -37,7 +37,7 @@
 #define LOCKEDSURFACE		0x01000000 // emulates the buffer of the primary surface when locked and written directly
 #define FIXPARENTWIN		0x02000000 // fixes parent window size & position
 #define SWITCHVIDEOMEMORY 	0x04000000 // when VIDEO memory is over, switches to SYSTEM memory
-#define CLIENTREMAPPING		0x08000000 // hooks CLientToRect, RectToClient, GetClientRect, GetWinRect
+#define CLIENTREMAPPING		0x08000000 // hooks ClientToRect, RectToClient, GetClientRect, GetWinRect
 #define HANDLEALTF4			0x10000000 // forces quitting the program when receiving Alt-F4 key
 #define LOCKWINPOS			0x20000000 // prevent the program to change its own windows properties
 #define HOOKCHILDWIN		0x40000000 // hook CHILD windows to alter placement coordinates (UNUSED)
@@ -264,6 +264,8 @@ void OutTrace(const char *, ...);
 void OutTraceHex(BYTE *, int);
 void *HookAPI(HMODULE, char *, void *, const char *, void *);
 void AdjustWindowFrame(HWND, DWORD, DWORD);
+char *hexdump(unsigned char *, int);
+
 LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK extChildWindowProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK extDialogWindowProc(HWND, UINT, WPARAM, LPARAM);

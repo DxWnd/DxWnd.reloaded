@@ -741,3 +741,14 @@ v2.03.11
 fix: added DDSCAPS_FLIP capability to emulated backbuffer surface. Fixes "Injection" missing flips
 fix: added high order bit set to kernel32.dll GetVersion() wrapper in case of Win95/98 emulation. Fixes "Warhead" frontend program
 fix: coordinates returned by user32.dll GetClipCursor() must be scaled accordingly with virtual desktop size. Fixes "SubCulture" mouse control problems
+
+v2.03.12
+fix: several issues in fake registry hooks
+add: continue char '\' in fake registry configuration for hex values
+add: GetClipList ddraw hooker: fixes "Full Pipe" blitting coordinates
+fix: proper handling of palette reserved entries
+fix: dinput GetDeviceData
+add: implemented "Release mouse outside window" functionality in dinput calls
+fix: now "Release mouse outside window" leaves the mouse close to where it left the window
+fix: in GUI, keeps memory of last used paths
+fix: several log messages

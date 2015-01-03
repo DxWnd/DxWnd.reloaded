@@ -1035,12 +1035,35 @@ HRESULT WINAPI extAddRefCProxy(LPDIRECTDRAWCLIPPER lpddClip)
 HRESULT WINAPI extGetClipListProxy(LPDIRECTDRAWCLIPPER lpddClip, LPRECT lpRect, LPRGNDATA lpRgnData, LPDWORD lpw)
 {
 	HRESULT res;
-	OutTraceP("GetClipList(C): PROXED lpddClip=%x ", lpddClip);
-	if (lpRect) OutTraceP("rect=(%d,%d)-(%d,%d) ", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-	else OutTraceP("rect=(NULL) ");
+	if(IsTraceP){
+		char sInfo[81];
+		if (lpRect) sprintf(sInfo, "rect=(%d,%d)-(%d,%d) ", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+		else sprintf(sInfo, "rect=(NULL) ");
+		OutTrace("GetClipList(C): PROXED lpddClip=%x %s\n", lpddClip, sInfo);
+	}
 	res=(*pGetClipList)(lpddClip, lpRect, lpRgnData, lpw);
-	if(res) OutTraceP("GeGetClipListtHWnd(C): ERROR err=%x(%s)\n", res, ExplainDDError(res));
-	else OutTraceP("GetClipList(C): w=%x\n", *lpw);
+	if(IsTraceP){
+		//char *sInfo[1024];
+		if(res) OutTrace("GetClipList(C): ERROR err=%x(%s)\n", res, ExplainDDError(res));
+		else{
+			if(lpRgnData){
+				OutTrace("GetClipList(C): w=%x rgndataheader{size=%d type=%x count=%d RgnSize=%d bound=(%d,%d)-(%d,%d)}\n", 
+				*lpw, lpRgnData->rdh.dwSize, lpRgnData->rdh.iType, lpRgnData->rdh.nCount, lpRgnData->rdh.nRgnSize, 
+				lpRgnData->rdh.rcBound.left, lpRgnData->rdh.rcBound.top, lpRgnData->rdh.rcBound.right, lpRgnData->rdh.rcBound.bottom);
+				if(IsDebug){
+					RECT *rgns;
+					rgns = (RECT *)lpRgnData->Buffer;
+					for(DWORD i=0; i<lpRgnData->rdh.nCount; i++){
+						OutTrace("GetClipList(C): rect[%d]=(%d,%d)-(%d,%d)\n", 
+							i, rgns[i].left, rgns[i].top, rgns[i].right, rgns[i].bottom);
+					}
+				}
+			}
+			else{
+				OutTrace("GetClipList(C): w=%x\n", *lpw);
+			}
+		}
+	}
 	return res;
 }
 

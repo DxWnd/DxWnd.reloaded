@@ -63,26 +63,42 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CTabProgram message handlers
 
+extern void GetFolderFromPath(char *);
+
 void CTabProgram::OnOpen() 
 {
 	// TODO: Please add your control notification handler code here
     char path[MAX_PATH];
+	extern char *gInitFilePath;
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
+	GetPrivateProfileString("window", "exepath", ".", path, MAX_PATH, gInitFilePath);
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
-    if( dlg.DoModal() == IDOK) cTarget->m_File.SetWindowText(dlg.GetPathName());
+	if( dlg.DoModal() == IDOK) {
+		cTarget->m_File.SetWindowText(dlg.GetPathName());
+		strcpy(path, dlg.GetPathName());
+		GetFolderFromPath(path);
+		WritePrivateProfileString("window", "exepath", path, gInitFilePath);
+	}
 }
 
 void CTabProgram::OnOpenLaunch() 
 {
 	// TODO: Please add your control notification handler code here
     char path[MAX_PATH];
+	extern char *gInitFilePath;
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
+	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitFilePath);
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
-    if( dlg.DoModal() == IDOK) cTarget->m_Launch.SetWindowText(dlg.GetPathName());
+	if( dlg.DoModal() == IDOK) {
+		cTarget->m_Launch.SetWindowText(dlg.GetPathName());
+		strcpy(path, dlg.GetPathName());
+		GetFolderFromPath(path);
+		WritePrivateProfileString("window", "exepath", path, gInitFilePath);
+	}
 }
 
 BOOL CTabProgram::OnInitDialog()

@@ -402,6 +402,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hexdump.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\hotpatch.cpp"
 				>
 			</File>

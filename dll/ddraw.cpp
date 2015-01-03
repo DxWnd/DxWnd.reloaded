@@ -104,6 +104,7 @@ HRESULT WINAPI extSetSurfaceDesc(LPDIRECTDRAWSURFACE, LPDDSURFACEDESC, DWORD);
 
 // DirectDrawClipper
 HRESULT WINAPI extReleaseC(LPDIRECTDRAWCLIPPER);
+HRESULT WINAPI extGetClipList(LPDIRECTDRAWCLIPPER, LPRECT, LPRGNDATA, LPDWORD);
 
 // DirectDrawPalette
 HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE);
@@ -495,13 +496,40 @@ void DescribeSurface(LPDIRECTDRAWSURFACE lpdds, int dxversion, char *label, int 
 
 BOOL isPaletteUpdated;
 
-void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries)
+void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries, BOOL Has256ColorsPalette)
 {
 	int i;
 	extern DXWNDSTATUS *pStatus;
 
+	// copy the palette entries on the current system palette 
 	for(int idx=0; idx<dwcount; idx++)  
 		pStatus->Palette[dwstart+idx]= lpentries[idx];
+
+	// if has reserved palette entries, recover them
+	if(!Has256ColorsPalette){
+		int nStatCols, nPalEntries;
+		PALETTEENTRY SysPalEntry[256];
+		LPPALETTEENTRY lpEntry;
+		extern GetSystemPaletteEntries_Type pGDIGetSystemPaletteEntries;
+		extern GetDeviceCaps_Type pGDIGetDeviceCaps;
+
+		// The number of static colours should be 20, but inquire it anyway 
+		nStatCols = (*pGDIGetDeviceCaps)(GetDC(0), NUMRESERVED);
+
+		// fix the first nStatCols/2 and the last nStatCols/2 entries 
+		nPalEntries=(*pGDIGetSystemPaletteEntries)(GetDC(0), 0, 256, SysPalEntry);
+
+		for (i = 0; i < 256; i++){
+			// skip intermediate un-reserved palette entries
+			if(i==(nStatCols / 2)) i=256 - (nStatCols / 2); 
+			lpEntry = &lpentries[i];
+			if(lpEntry->peFlags==0){
+				lpEntry->peRed = SysPalEntry[i].peRed;
+				lpEntry->peGreen = SysPalEntry[i].peGreen;
+				lpEntry->peBlue = SysPalEntry[i].peBlue;
+			}
+		}
+	}
 
 	for(i = 0; i < dwcount; i ++){
 		PALETTEENTRY PalColor;
@@ -1087,6 +1115,8 @@ static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
 
 	// IDirectDrawClipper::Release
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 8), extReleaseC, (void **)&pReleaseC, "Release(C)");
+	// IDirectDrawClipper::GetClipList
+	SetHook((void *)(**(DWORD **)lplpDDClipper + 12), extGetClipList, (void **)&pGetClipList, "GetClipList(C)");
 
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 	// Just proxed ...
@@ -1095,8 +1125,6 @@ static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
 	SetHook((void *)(**(DWORD **)lplpDDClipper), extQueryInterfaceCProxy, (void **)&pQueryInterfaceC, "QueryInterface(C)");
 	// IDirectDrawClipper::AddRef
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 4), extAddRefCProxy, (void **)&pAddRefC, "AddRef(C)");
-	// IDirectDrawClipper::GetClipList
-	SetHook((void *)(**(DWORD **)lplpDDClipper + 12), extGetClipListProxy, (void **)&pGetClipList, "GetClipList(C)");
 	// IDirectDrawClipper::GetHWnd
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 16), extGetHWndProxy, (void **)&pGetHWnd, "GetHWnd(C)");
 	// IDirectDrawClipper::Initialize
@@ -3385,6 +3413,8 @@ HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE 
 
 #define DDPCAPS_INITIALIZE_LEGACY 0x00000008l
 
+BOOL Has256ColorsPalette = FALSE;
+
 HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa,
 	LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
 {
@@ -3394,6 +3424,7 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 	if(IsDebug && (dwflags & DDPCAPS_8BIT)) dxw.DumpPalette(256, lpddpa);
 
 	//if (dwflags & ~(DDPCAPS_PRIMARYSURFACE|DDPCAPS_8BIT|DDPCAPS_ALLOW256|DDPCAPS_INITIALIZE_LEGACY)) STOPPER("Palette flags");
+	if(dwflags & DDPCAPS_ALLOW256) Has256ColorsPalette = TRUE;
 
 	if(dxw.dwFlags1 & EMULATESURFACE) dwflags &= ~DDPCAPS_PRIMARYSURFACE;
 	res = (*pCreatePalette)(lpdd, dwflags, lpddpa, lplpddp, pu);
@@ -3454,7 +3485,7 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 			lpentries = (LPPALETTEENTRY)PaletteEntries;
 			res2=lpddp->GetEntries(0, 0, 256, lpentries);
 			if(res2) OutTraceE("SetPalette: GetEntries ERROR res=%x(%s)\n", res2, ExplainDDError(res2));
-			mySetPalette(0, 256, lpentries); // v2.02.76: necessary for "Requiem Avenging Angel" in SURFACEEMULATION mode
+			mySetPalette(0, 256, lpentries, Has256ColorsPalette); // v2.02.76: necessary for "Requiem Avenging Angel" in SURFACEEMULATION mode
 		}
 		// Apply palette to backbuffer surface. This is necessary on some games: "Duckman private dick", "Total Soccer 2000", ...
 		if (lpDDSBack){
@@ -3490,7 +3521,8 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 			OutTraceDW("SetEntries: ASSERT start+count > 256\n");
 		}
 
-		mySetPalette(dwstart, dwcount, lpentries);
+		if(dwflags & DDPCAPS_ALLOW256) Has256ColorsPalette=TRUE;
+		mySetPalette(dwstart, dwcount, lpentries, Has256ColorsPalette);
 
 		// GHO: needed for fixed rect and variable palette animations, 
 		// e.g. dungeon keeper loading screen, Warcraft II splash, ...
@@ -4024,7 +4056,7 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 				EmuDesc.ddpfPixelFormat.dwRGBBitCount=SupportedDepths[DepthIdx];
 				EmuDesc.lPitch=SupportedRes[ResIdx].w * SupportedDepths[DepthIdx] / 8;
 				FixPixelFormat(EmuDesc.ddpfPixelFormat.dwRGBBitCount, &(EmuDesc.ddpfPixelFormat));
-				EnumModesCallbackDumper((LPDDSURFACEDESC)&EmuDesc, lpContext);
+				if(IsDebug) EnumModesCallbackDumper((LPDDSURFACEDESC)&EmuDesc, lpContext);
 				res=(*cb)((LPDDSURFACEDESC)&EmuDesc, lpContext);
 				if(res==DDENUMRET_CANCEL) break;
 			}
@@ -4462,6 +4494,59 @@ HRESULT WINAPI extReleaseC(LPDIRECTDRAWCLIPPER lpddClip)
 
 	OutTraceDDRAW("Release(C): PROXED lpddClip=%x ref=%x\n", lpddClip, ref);
 	return ref;
+}
+
+HRESULT WINAPI extGetClipList(LPDIRECTDRAWCLIPPER lpddClip, LPRECT lpRect, LPRGNDATA lpRgnData, LPDWORD lpw)
+{
+	HRESULT res;
+
+	// returned clip region (both RgnData and single RECT array) should be relocated in window mode
+	// an easy way to do that, though not accurate, is to consider the clip region as the whole virtual screen
+	// a better way is to use the dxw.UnmapWindow(RECT *) method
+	// this makes "Full Pipe" working without clipping problems.
+
+	if(IsTraceDDRAW){
+		char sInfo[81];
+		if (lpRect) sprintf(sInfo, "rect=(%d,%d)-(%d,%d) ", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+		else sprintf(sInfo, "rect=(NULL) ");
+		OutTrace("GetClipList(C): lpddClip=%x %s\n", lpddClip, sInfo);
+	}
+	res=(*pGetClipList)(lpddClip, lpRect, lpRgnData, lpw);
+	if(IsTraceDDRAW){
+		if(res) OutTrace("GetClipList(C): ERROR err=%x(%s)\n", res, ExplainDDError(res));
+		else{
+			if(lpRgnData){
+				OutTrace("GetClipList(C): w=%x rgndataheader{size=%d type=%x count=%d RgnSize=%d bound=(%d,%d)-(%d,%d)}\n", 
+					*lpw, lpRgnData->rdh.dwSize, lpRgnData->rdh.iType, lpRgnData->rdh.nCount, lpRgnData->rdh.nRgnSize, 
+					lpRgnData->rdh.rcBound.left, lpRgnData->rdh.rcBound.top, lpRgnData->rdh.rcBound.right, lpRgnData->rdh.rcBound.bottom);
+				if(dxw.Windowize && (dxw.dwFlags1 & CLIENTREMAPPING)){
+					dxw.UnmapWindow(&lpRgnData->rdh.rcBound);
+					//lpRgnData->rdh.rcBound = dxw.GetScreenRect();
+					OutTraceDW("GetClipList(C): w=%x rgndataheader{size=%d type=%x count=%d RgnSize=%d REMAPPED bound=(%d,%d)-(%d,%d)}\n", 
+						*lpw, lpRgnData->rdh.dwSize, lpRgnData->rdh.iType, lpRgnData->rdh.nCount, lpRgnData->rdh.nRgnSize, 
+						lpRgnData->rdh.rcBound.left, lpRgnData->rdh.rcBound.top, lpRgnData->rdh.rcBound.right, lpRgnData->rdh.rcBound.bottom);
+				}
+				if(IsDebug){
+					RECT *rgns;
+					rgns = (RECT *)lpRgnData->Buffer;
+					for(DWORD i=0; i<lpRgnData->rdh.nCount; i++){
+						OutTrace("GetClipList(C): rect[%d]=(%d,%d)-(%d,%d)\n", 
+							i, rgns[i].left, rgns[i].top, rgns[i].right, rgns[i].bottom);
+						if(dxw.Windowize && (dxw.dwFlags1 & CLIENTREMAPPING)){
+							dxw.UnmapWindow(&rgns[i]);
+							//rgns[i] = dxw.GetScreenRect();
+							OutTrace("GetClipList(C): REMAPPED rect[%d]=(%d,%d)-(%d,%d)\n", 
+								i, rgns[i].left, rgns[i].top, rgns[i].right, rgns[i].bottom);
+						}
+					}
+				}
+			}
+			else{
+				OutTrace("GetClipList(C): w=%x\n", *lpw);
+			}
+		}
+	}
+	return res;
 }
 
 HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)

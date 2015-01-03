@@ -235,6 +235,25 @@ HRESULT WINAPI extDICreateDeviceEx(LPDIRECTINPUT lpdi, REFGUID rguid,
 	return 0;
 }
 
+/* from MSDN:
+cbObjectData
+    Size of the DIDEVICEOBJECTDATA structure, in bytes. 
+rgdod
+    Array of DIDEVICEOBJECTDATA structures to receive the buffered data. 
+	The number of elements in this array must be equal to the value of the pdwInOut parameter. 
+	If this parameter is NULL, the buffered data is not stored anywhere, but all other side effects take place. 
+pdwInOut
+    On entry, the number of elements in the array pointed to by the rgdod parameter. 
+	On exit, the number of elements actually obtained. 
+dwFlags
+    Flags that control the manner in which data is obtained. 
+	This value can be 0 or the following flag.
+
+    DIGDD_PEEK
+        Do not remove the items from the buffer. A subsequent IDirectInputDevice8::GetDeviceData call will read the same data. 
+		Normally, data is removed from the buffer after it is read.
+*/
+
 HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID rgdod, LPDWORD pdwinout, DWORD dwflags)
 {
 	HRESULT res;
@@ -242,39 +261,56 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 	unsigned int i;
 	POINT p;
 
-	OutTraceDW("GetDeviceData(I): cbdata=%i\n", cbdata);
+	OutTraceDW("GetDeviceData(I): did=%x cbdata=%i rgdod=%x, inout=%d flags=%x\n", 
+		lpdid, cbdata, rgdod, *pdwinout, dwflags);
 
 	res = (*pGetDeviceData)(lpdid, cbdata, rgdod, pdwinout, dwflags);
-	if(res) return res;
+	if(res) {
+		OutTraceE("GetDeviceData(I) ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+		return res;
+	}
 
-	if(!dxw.bActive) *pdwinout = 0;
-	GetMousePosition((int *)&p.x, (int *)&p.y);
+	if(!dxw.bActive) {
+		*pdwinout = 0;
+		return DI_OK;
+	}
+
+	if(dxw.dwFlags4 & RELEASEMOUSE){
+		POINT curr;
+		RECT client;
+		extern GetCursorPos_Type pGetCursorPos;
+		extern GetClientRect_Type pGetClientRect;
+		extern ScreenToClient_Type pScreenToClient;
+		(*pGetCursorPos)(&curr);
+		(*pScreenToClient)(dxw.GethWnd(), &curr);
+		(*pGetClientRect)(dxw.GethWnd(), &client);
+		if ((curr.x < client.left) || (curr.y < client.top) || (curr.x > client.right) || (curr.y > client.bottom)){
+			*pdwinout = 0;
+			return DI_OK;
+		}
+	}
+
 	if(cbdata == 20 || cbdata == 24 || cbdata == 16){
 		tmp = (BYTE *)rgdod;
-		for(i = 0; i < *pdwinout; i ++){
-			if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_X){
-				((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.x;
-				if(!dxw.bDInputAbs){
-					if(p.x < iCurMinX) p.x = iCurMinX;
-					if(p.x > iCurMaxX) p.x = iCurMaxX;
-					((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.x - iCursorXBuf;
-					iCursorXBuf = p.x;
-				}
+		if(dxw.bDInputAbs){
+			GetMousePosition((int *)&p.x, (int *)&p.y);
+			for(i = 0; i < *pdwinout; i ++){
+				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_X)((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.x;
+				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_Y)((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.y;
+				tmp += cbdata;
 			}
-			if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_Y){
-				((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.y;
-				if(!dxw.bDInputAbs){
-					if(p.y < iCurMinY) p.y = iCurMinY;
-					if(p.y > iCurMaxY) p.y = iCurMaxY;
-					((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.y - iCursorYBuf;
-					iCursorYBuf = p.y;
-				}
-			}
-			tmp += cbdata;
+			OutTraceB("GetDeviceData(I): ABS mousedata=(%d,%d)\n", p.x, p.y);
 		}
-		OutTraceDW("DEBUG: directinput mousedata=(%d,%d)\n", p.x, p.y);
+		else{
+			for(i = 0; i < *pdwinout; i ++){
+				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_X) OutTraceB("GetDeviceData(I): REL mousedata X=%d\n", ((LPDIDEVICEOBJECTDATA)tmp)->dwData);
+				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_Y) OutTraceB("GetDeviceData(I): REL mousedata Y=%d\n", ((LPDIDEVICEOBJECTDATA)tmp)->dwData);
+				tmp += cbdata;
+			}
+		}
 	}
-	return 0;
+
+	return DI_OK;
 }
 
 HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMOUSESTATE lpvdata)
@@ -314,7 +350,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	}
 	
 	if(cbdata == 256 && !dxw.bActive) ZeroMemory(lpvdata, 256);
-	return 0;
+	return DI_OK;
 }
 
 //static char *dftype(LPCDIDATAFORMAT lpdf)
@@ -356,11 +392,21 @@ static char *didftype(DWORD c)
 	else eb[0]=0;
 	return(eb);
 }
+static char *ExplainDataFormatFlags(DWORD f)
+{
+	char *s;
+	s="unknown";
+	switch(f){
+		case DIDF_ABSAXIS: s="DIDF_ABSAXIS";
+		case DIDF_RELAXIS: s="DIDF_RELAXIS";
+	}
+	return s;
+}
 
 HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 {
-	OutTraceDW("SetDataFormat(I): did=%x lpdf=%x size=%d objsize=%d flags=0x%x datasize=%d numobjects=%d\n", 
-		lpdid, lpdf, lpdf->dwSize, lpdf->dwObjSize, lpdf->dwFlags, lpdf->dwDataSize, lpdf->dwNumObjs);
+	OutTraceDW("SetDataFormat(I): did=%x lpdf=%x size=%d objsize=%d flags=0x%x(%s) datasize=%d numobjects=%d\n", 
+		lpdid, lpdf, lpdf->dwSize, lpdf->dwObjSize, lpdf->dwFlags, ExplainDataFormatFlags(lpdf->dwFlags), lpdf->dwDataSize, lpdf->dwNumObjs);
 	if(IsDebug){
 		DIOBJECTDATAFORMAT *df;
 		df = lpdf->rgodf;
@@ -396,7 +442,7 @@ HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE lpdid, HWND hwnd, DW
 void GetMousePosition(int *x, int *y)
 {
 	POINT p;
-	//GetCursorPos(&p);
+
 	extern BOOL WINAPI extGetCursorPos(LPPOINT);
 	extGetCursorPos(&p);
 	*x = p.x;

@@ -81,6 +81,11 @@ static char *Unescape(char *s)
 	return tmp;
 }
 
+void GetFolderFromPath(char *path)
+{
+	for(char *c=&path[strlen(path)-1]; (c>path) && (*c!='\\'); c--) *c=0;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CDxwndhostView
 
@@ -869,6 +874,8 @@ void CDxwndhostView::OnDraw(CDC* pDC)
 	ASSERT_VALID(pDoc);
 }
 
+char *gInitFilePath;
+
 void CDxwndhostView::OnInitialUpdate()
 {
 	CListView::OnInitialUpdate();
@@ -905,6 +912,7 @@ void CDxwndhostView::OnInitialUpdate()
 	GetCurrentDirectory(MAX_PATH, InitPath);
 	strcat_s(InitPath, sizeof(InitPath), "\\");
 	strcat_s(InitPath, sizeof(InitPath), m_ConfigFileName);
+	gInitFilePath = InitPath;
 	listctrl.InsertColumn(0, &listcol);
 
 	for(i = 0; i < MAXTARGETS; i ++){
@@ -958,7 +966,7 @@ void CDxwndhostView::OnDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-static char ImportExportPath[4096] = {0};
+//static char ImportExportPath[4096] = {0};
 
 void CDxwndhostView::OnExport()
 {
@@ -969,12 +977,19 @@ void CDxwndhostView::OnExport()
 	if(!listctrl.GetSelectedCount()) return;
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
-	//path[0]=0;
-	strcpy_s(path, MAX_PATH, TitleMaps[i].title);
+	GetPrivateProfileString("window", "exportpath", ".\\", path, MAX_PATH, InitPath);
+	//strcat_s(path, MAX_PATH, "\\");
+	strcat_s(path, MAX_PATH, TitleMaps[i].title);
 	CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
-	if( dlg.DoModal() == IDOK) 
-		SaveConfigItem(&TargetMaps[i], &TitleMaps[i], 0, dlg.GetPathName().GetBuffer());
+	if( dlg.DoModal() == IDOK) {
+		strcpy(path, dlg.GetPathName().GetBuffer());
+		//MessageBox(path, "PathName", MB_OK);
+		SaveConfigItem(&TargetMaps[i], &TitleMaps[i], 0, path);
+		GetFolderFromPath(path);
+		//MessageBox(path, "FolderPath", MB_OK);
+		WritePrivateProfileString("window", "exportpath", path, InitPath);
+	}
 }
 
 void CDxwndhostView::OnImport()
@@ -982,6 +997,7 @@ void CDxwndhostView::OnImport()
 	LV_ITEM listitem;
 	int i;
     char path[MAX_PATH];
+	char ImportExportPath[4096] = {0};
 	for (i=0; strlen(TargetMaps[i].path) && i<MAXTARGETS; i++)
 		;
 	if (i==MAXTARGETS) {
@@ -994,6 +1010,8 @@ void CDxwndhostView::OnImport()
 	char folder[MAX_PATH+1];
 	char pathname[MAX_PATH+1];
 	OPENFILENAME ofn = {0};
+	GetPrivateProfileString("window", "exportpath", ".", pathname, MAX_PATH, InitPath);
+	ofn.lpstrInitialDir = pathname;
 	ofn.lStructSize = sizeof(ofn);
 	ofn.lpstrFilter = "DxWnd export file\0*.dxw\0\0";
 	ofn.lpstrFile = (LPSTR)ImportExportPath;
@@ -1012,6 +1030,8 @@ void CDxwndhostView::OnImport()
 				listitem.iImage = SetTargetIcon(TargetMaps[i]);
 				listitem.pszText = TitleMaps[i].title;
 				listctrl.InsertItem(&listitem);
+				GetFolderFromPath(ImportExportPath);
+				WritePrivateProfileString("window", "exportpath", ImportExportPath, InitPath);
 			}
 		}
 		else{
@@ -1019,9 +1039,10 @@ void CDxwndhostView::OnImport()
 			char* p = ImportExportPath;
 			strcpy(folder, p);
 			strcat(folder, "\\");
+			WritePrivateProfileString("window", "exportpath", folder, InitPath);
 			p += lstrlen((LPSTR)p) + 1;
 			while(*p && (i<MAXTARGETS)){
-				// "p" - name of each files, NULL to terminate
+				// "p" - name of each file, NULL to terminate
 				if(!*p) break;
 				if(i==MAXTARGETS) break;
 				strcpy(pathname, folder);
@@ -1367,6 +1388,17 @@ void CDxwndhostView::OnProcessKill()
 	ClipCursor(NULL);
 	RevertScreenChanges(&this->InitDevMode);
 }
+	//GetPrivateProfileString("window", "exportpath", ".", path, MAX_PATH, InitPath);
+	//strcat_s(path, MAX_PATH, "\\");
+	//strcat_s(path, MAX_PATH, TitleMaps[i].title);
+	//CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+ //       "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
+	//if( dlg.DoModal() == IDOK) {
+	//	SaveConfigItem(&TargetMaps[i], &TitleMaps[i], 0, dlg.GetPathName().GetBuffer());
+	//	WritePrivateProfileString("window", "exportpath", dlg.GetFolderPath(), InitPath);
+	//}
+
+
 
 void CDxwndhostView::OnAdd() 
 {

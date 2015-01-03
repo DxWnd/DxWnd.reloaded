@@ -420,6 +420,8 @@ POINT dxwCore::FixCursorPos(POINT prev)
 	POINT curr;
 	RECT rect;
 	extern LPRECT lpClipRegion;
+	static BOOL IsWithin = TRUE;
+	static POINT LastPos;
 
 	curr=prev;
 
@@ -449,6 +451,7 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		}
 
 		if(dxw.dwFlags4 & RELEASEMOUSE){
+#if 0
 			if ((curr.x < 0) ||
 				(curr.y < 0) ||
 				(curr.x > w) ||
@@ -456,6 +459,28 @@ POINT dxwCore::FixCursorPos(POINT prev)
 				curr.x = w / 2;
 				curr.y = h / 2;
 			}
+#else
+			if ((curr.x < 0) || (curr.y < 0) || (curr.x > w) || (curr.y > h)){
+				if(IsWithin){
+					int RestX, RestY;
+					RestX = w ? ((CLIP_TOLERANCE * w) / dxw.GetScreenWidth()) + 2 : CLIP_TOLERANCE + 2;
+					RestY = h ? ((CLIP_TOLERANCE * h) / dxw.GetScreenHeight()) + 2 : CLIP_TOLERANCE + 2;
+					if (curr.x < 0) curr.x = RestX;
+					if (curr.y < 0) curr.y = RestY;
+					if (curr.x > w) curr.x = w - RestX;
+					if (curr.y > h) curr.y = h - RestY;
+					LastPos = curr;
+					IsWithin = FALSE;
+				}
+				else{
+					curr = LastPos;
+				}
+			}
+			else{
+				IsWithin = TRUE;
+				LastPos = curr;
+			}
+#endif
 		}
 		else {
 			if (curr.x < 0) curr.x = 0;
@@ -831,6 +856,19 @@ void dxwCore::MapWindow(LPPOINT lppoint)
 	(*pClientToScreen)(hWnd, &upleft);
 	lppoint->x = upleft.x + (((lppoint->x * client.right) + (dwScreenWidth >> 1)) / dwScreenWidth);
 	lppoint->y = upleft.y + (((lppoint->y * client.bottom) + (dwScreenHeight >> 1)) / dwScreenHeight);
+}
+
+void dxwCore::UnmapWindow(LPRECT rect)
+{
+	RECT client;
+	POINT upleft = {0,0};
+	if(!(*pGetClientRect)(hWnd, &client)) return;
+	(*pClientToScreen)(hWnd, &upleft);
+	if((client.right == 0) || (client.bottom == 0)) return;
+	rect->left= ((rect->left  - upleft.x) * (int)dwScreenWidth) / client.right;
+	rect->top= ((rect->top  - upleft.y) * (int)dwScreenHeight) / client.bottom;
+	rect->right= ((rect->right  - upleft.x) * (int)dwScreenWidth) / client.right;
+	rect->bottom= ((rect->bottom  - upleft.y) * (int)dwScreenHeight) / client.bottom;
 }
 
 POINT dxwCore::ClientOffset(HWND hwnd)

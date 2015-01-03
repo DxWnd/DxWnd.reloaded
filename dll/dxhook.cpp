@@ -951,8 +951,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_ACTIVATE:
+		// turn DirectInput bActive flag on & off .....
 		dxw.bActive = (LOWORD(wparam) == WA_ACTIVE || LOWORD(wparam) == WA_CLICKACTIVE) ? 1 : 0;
 	case WM_NCACTIVATE:
+		// turn DirectInput bActive flag on & off .....
 		if(message == WM_NCACTIVATE) dxw.bActive = wparam;
 		(*pSetWindowPos)(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 		if(dxw.dwFlags1 & UNNOTIFY){

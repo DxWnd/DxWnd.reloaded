@@ -58,7 +58,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
 	{HOOK_HOT_CANDIDATE, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
 	//{HOOK_HOT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
-	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	//{HOOK_IAT_CANDIDATE, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
@@ -1054,6 +1054,7 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 	UINT pi;
 	int ret;
 	// a rarely used API, but responsible for a painful headache: needs hooking for "Commandos 2", "Alien Nations".
+	// used also in "Full Pipe" activemovie
 
 	OutTraceDW("MapWindowPoints: hWndFrom=%x%s hWndTo=%x%s cPoints=%d FullScreen=%x\n", 
 		hWndFrom, dxw.IsDesktop(hWndFrom)?"(DESKTOP)":"",
@@ -1070,9 +1071,14 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 		if(dxw.IsRealDesktop(hWndFrom)) hWndFrom=dxw.GethWnd();
 	}
 	
-	// should scale the retcode ???
+	// should scale the retcode and every point ???
 	ret=(*pMapWindowPoints)(hWndFrom, hWndTo, lpPoints, cPoints);
 
+	if(IsDebug){
+		OutTrace("Mapped points: ");
+		for(pi=0; pi<cPoints; pi++) OutTrace("(%d,%d)", lpPoints[pi].x, lpPoints[pi].y);
+		OutTrace("\n");
+	}
 	OutTraceDW("MapWindowPoints: ret=%x (%d,%d)\n", ret, (ret&0xFFFF0000)>>16, ret&0x0000FFFF);
 	return ret;
 }
@@ -2574,18 +2580,22 @@ HWND WINAPI extGetActiveWindow(void)
 {
 	HWND ret;
 	ret=(*pGetActiveWindow)();
-	OutTraceDW("GetActiveWindow: ret=%x->%x\n", ret, dxw.GethWnd());
-	//STOPPER("GetActiveWindow");
-	return dxw.GethWnd();
+	if(dxw.Windowize && dxw.IsFullScreen()) {
+		OutTraceDW("GetActiveWindow: ret=%x->%x\n", ret, dxw.GethWnd());
+		return dxw.GethWnd();
+	}
+	return ret;
 }
 
 HWND WINAPI extGetForegroundWindow(void)
 {
 	HWND ret;
 	ret=(*pGetForegroundWindow)();
-	OutTraceDW("GetForegroundWindow: ret=%x->%x\n", ret, dxw.GethWnd());
-	//STOPPER("GetForegroundWindow");
-	return dxw.GethWnd();
+	if(dxw.Windowize && dxw.IsFullScreen()) {
+		OutTraceDW("GetForegroundWindow: ret=%x->%x\n", ret, dxw.GethWnd());
+		return dxw.GethWnd();
+	}
+	return ret;
 }
 
 BOOL WINAPI extIsWindowVisible(HWND hwnd)
