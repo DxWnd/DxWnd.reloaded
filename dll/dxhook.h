@@ -5,6 +5,7 @@ extern int HookDirect3D7(HMODULE, int);
 extern void HookOle32(HMODULE);
 extern void HookGDI32(HMODULE);
 extern int HookDirectInput(HMODULE, int);
+extern void HookDirectSound(HMODULE);
 extern void HookImeLib(HMODULE);
 extern void HookKernel32(HMODULE);
 extern void HookUser32(HMODULE);

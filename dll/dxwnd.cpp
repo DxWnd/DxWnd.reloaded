@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.07"
+#define VERSION "2.03.08"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS
@@ -160,7 +160,8 @@ static BOOL GetMultiTaskEnabling(){
 }
 
 int SetTarget(TARGETMAP *targets){
-	int i, j;
+	int i;
+	char path[MAX_PATH+1];
 
 	WaitForSingleObject(hMutex, INFINITE);
 	pStatus->Status=DXW_IDLE;
@@ -173,10 +174,11 @@ int SetTarget(TARGETMAP *targets){
 	pStatus->DXVersion = 0;
 	pStatus->AllowMultiTask=GetMultiTaskEnabling();
 	for(i = 0; targets[i].path[0]; i ++){
-		//OutTraceDW("SetTarget entry %s\n",pMapping[i].path);
+		char *c;
 		pMapping[i] = targets[i];
-		for(j = 0; pMapping[i].path[j]; j ++)
-			pMapping[i].path[j] = tolower(pMapping[i].path[j]);
+		GetFullPathName(targets[i].path, MAX_PATH, path, NULL);
+		for(c = path; *c; c++) *c = tolower(*c);
+		strcpy(pMapping[i].path, path);
 	}
 	pMapping[i].path[0] = 0;
 	ReleaseMutex(hMutex);

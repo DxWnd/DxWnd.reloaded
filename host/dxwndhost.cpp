@@ -137,7 +137,7 @@ BOOL CDxwndhostApp::InitInstance()
 	
 	//CompatibilityMinLevel = GetPrivateProfileInt("window", "compatminlevel", 0, InitPath);
 
-	if(!gbDebug) gbDebug = GetPrivateProfileInt("window", "debug", 0, InitPath); // debug fleg set from config file
+	if(!gbDebug) gbDebug = GetPrivateProfileInt("window", "debug", 0, InitPath); // debug flag set from config file
 
 	if(!LangSelected){
 		LANGID LangId;
@@ -197,11 +197,11 @@ BOOL CDxwndhostApp::InitInstance()
 	m_pMainWnd->ShowWindow(SW_SHOW);
 	m_pMainWnd->UpdateWindow();
 
+	BOOL bCheckAdminRights = GetPrivateProfileInt("window", "checkadmin", 0, InitPath); 
 	extern BOOL IsProcessElevated();
 	extern BOOL IsUserInAdminGroup();
     OSVERSIONINFO osver = { sizeof(osver) };
-    if (GetVersionEx(&osver) && osver.dwMajorVersion >= 6)
-    {
+    if (bCheckAdminRights && (GetVersionEx(&osver)) && (osver.dwMajorVersion >= 6)){
 		BOOL const fInAdminGroup = IsUserInAdminGroup();
 		if(!fInAdminGroup) return TRUE;
 

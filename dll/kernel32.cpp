@@ -151,25 +151,49 @@ if ((int)lpBuffer->dwTotalPhys < 0) ...
 and also don't set 
 BIGENOUGH 0x80000000 // possibly negative!!!
 but:
-BIGENOUGH 0x20000000 // surely positive !!!
+BIGENOUGH 0x60000000 // surely positive !!!
 
+v2.03.08: the "Jeff Gordon XS Racing demo" adds the dwAvailPhys to the dwAvailPageFile
+value, so that the sum is negative. To avoid this, all available memory values are
+divided by 2 (HALFBIG macro).
 /* ---------------------------------------------------------------------------- */
-#define BIGENOUGH 0x20000000
+
+#define BIGENOUGH 0x60000000
+#define HALFBIG (BIGENOUGH >> 1)
+#define TOOBIG	  0xFFFFFFFF
 
 void WINAPI extGlobalMemoryStatus(LPMEMORYSTATUS lpBuffer)
 {
 	(*pGlobalMemoryStatus)(lpBuffer);
-	OutTraceDW("GlobalMemoryStatus: Length=%x MemoryLoad=%x "
+	OutTraceDW("GlobalMemoryStatus: Length=%d MemoryLoad=%d%c "
 		"TotalPhys=%x AvailPhys=%x TotalPageFile=%x AvailPageFile=%x TotalVirtual=%x AvailVirtual=%x\n",
-		lpBuffer->dwMemoryLoad, lpBuffer->dwTotalPhys, lpBuffer->dwAvailPhys,
+		lpBuffer->dwLength, lpBuffer->dwMemoryLoad, '%', lpBuffer->dwTotalPhys, lpBuffer->dwAvailPhys,
 		lpBuffer->dwTotalPageFile, lpBuffer->dwAvailPageFile, lpBuffer->dwTotalVirtual, lpBuffer->dwAvailVirtual);
 	if(lpBuffer->dwLength==sizeof(MEMORYSTATUS)){
-		if ((int)lpBuffer->dwTotalPhys < 0) lpBuffer->dwTotalPhys = BIGENOUGH;
-		if ((int)lpBuffer->dwAvailPhys < 0) lpBuffer->dwAvailPhys = BIGENOUGH;
-		if ((int)lpBuffer->dwTotalPageFile < 0) lpBuffer->dwTotalPageFile = BIGENOUGH;
-		if ((int)lpBuffer->dwAvailPageFile < 0) lpBuffer->dwAvailPageFile = BIGENOUGH;
-		if ((int)lpBuffer->dwTotalVirtual < 0) lpBuffer->dwTotalVirtual = BIGENOUGH;
-		if ((int)lpBuffer->dwAvailVirtual < 0) lpBuffer->dwAvailVirtual = BIGENOUGH;
+		MEMORYSTATUS PrevMemoryStatus;
+		memcpy(&PrevMemoryStatus, lpBuffer, sizeof(MEMORYSTATUS));
+		if (((int)lpBuffer->dwTotalPhys < 0) || ((int)lpBuffer->dwTotalPhys > BIGENOUGH)) lpBuffer->dwTotalPhys = BIGENOUGH;
+		if (((int)lpBuffer->dwAvailPhys < 0) || ((int)lpBuffer->dwAvailPhys > HALFBIG)) lpBuffer->dwAvailPhys = HALFBIG;
+		if (((int)lpBuffer->dwTotalPageFile < 0) || ((int)lpBuffer->dwTotalPageFile > BIGENOUGH)) lpBuffer->dwTotalPageFile = BIGENOUGH;
+		if (((int)lpBuffer->dwAvailPageFile < 0) || ((int)lpBuffer->dwAvailPageFile > HALFBIG)) lpBuffer->dwAvailPageFile = HALFBIG;
+		if (((int)lpBuffer->dwTotalVirtual < 0) || ((int)lpBuffer->dwTotalVirtual > BIGENOUGH)) lpBuffer->dwTotalVirtual = BIGENOUGH;
+		if (((int)lpBuffer->dwAvailVirtual < 0) || ((int)lpBuffer->dwAvailVirtual > HALFBIG)) lpBuffer->dwAvailVirtual = HALFBIG;
+		if(dxw.dwFlags5 & STRESSRESOURCES){
+			lpBuffer->dwTotalPhys = TOOBIG;
+			lpBuffer->dwAvailPhys = TOOBIG;
+			lpBuffer->dwTotalPageFile = TOOBIG;
+			lpBuffer->dwAvailPageFile = TOOBIG;
+			lpBuffer->dwTotalVirtual = TOOBIG;
+			lpBuffer->dwAvailVirtual = TOOBIG;
+		}
+		if(memcmp(&PrevMemoryStatus, lpBuffer, sizeof(MEMORYSTATUS)))
+			OutTraceDW("GlobalMemoryStatus UPDATED: Length=%d MemoryLoad=%d%c "
+				"TotalPhys=%x AvailPhys=%x TotalPageFile=%x AvailPageFile=%x TotalVirtual=%x AvailVirtual=%x\n",
+				lpBuffer->dwLength, lpBuffer->dwMemoryLoad, '%', lpBuffer->dwTotalPhys, lpBuffer->dwAvailPhys,
+				lpBuffer->dwTotalPageFile, lpBuffer->dwAvailPageFile, lpBuffer->dwTotalVirtual, lpBuffer->dwAvailVirtual);
+	}
+	else{
+		OutTraceDW("GlobalMemoryStatus WARNING: Length=%d sizeof(LPMEMORYSTATUS)=%d\n", lpBuffer->dwLength, sizeof(LPMEMORYSTATUS));
 	}
 }
 
@@ -722,6 +746,24 @@ DWORD WINAPI extSetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDista
 	return (*pSetFilePointer)(hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
 }
 
+static char *ExplainDebugEvent(DWORD ec)
+{
+	char *e;
+	switch(ec){
+		case EXCEPTION_DEBUG_EVENT: e="EXCEPTION"; break;
+		case CREATE_THREAD_DEBUG_EVENT: e="CREATE_THREAD"; break;
+		case CREATE_PROCESS_DEBUG_EVENT: e="CREATE_PROCESS"; break;
+		case EXIT_THREAD_DEBUG_EVENT: e="EXIT_THREAD"; break;
+		case EXIT_PROCESS_DEBUG_EVENT: e="EXIT_PROCESS"; break;
+		case LOAD_DLL_DEBUG_EVENT: e="LOAD_DLL"; break;
+		case UNLOAD_DLL_DEBUG_EVENT: e="UNLOAD_DLL"; break;
+		case OUTPUT_DEBUG_STRING_EVENT: e="OUTPUT_DEBUG"; break;
+		case RIP_EVENT: e="RIP"; break;
+		default: e="unknown"; break;
+	}
+	return e;
+}
+
 BOOL WINAPI extCreateProcessA(
 	LPCTSTR lpApplicationName, 
 	LPTSTR lpCommandLine, 
@@ -758,6 +800,7 @@ BOOL WINAPI extCreateProcessA(
 		extern char *GetFileNameFromHandle(HANDLE);
 		DWORD dwContinueStatus = DBG_CONTINUE;
 		extern BOOL Inject(DWORD, const char *);
+		LPVOID LastExceptionPtr = 0;
 
 		//dwCreationFlags |= DEBUG_ONLY_THIS_PROCESS;
 		dwCreationFlags |= (DEBUG_ONLY_THIS_PROCESS|DEBUG_PROCESS);
@@ -773,6 +816,7 @@ BOOL WINAPI extCreateProcessA(
 		while(bContinueDebugging)
 		{ 
 			if (!WaitForDebugEvent(&debug_event, INFINITE)) break;
+			OutTrace("CreateProcess: event=%x(%s)\n", debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode));
 			switch(debug_event.dwDebugEventCode){
 			case EXIT_PROCESS_DEBUG_EVENT:
 				bContinueDebugging=false;
@@ -788,7 +832,7 @@ BOOL WINAPI extCreateProcessA(
 					extern LPVOID GetThreadStartAddress(HANDLE);
 					DWORD TargetHandle;
 					DWORD EndlessLoop;
-					EndlessLoop=0x9090FEEB;
+				EndlessLoop=0x9090FEEB; // assembly for JMP to here, NOP, NOP
 					SIZE_T BytesCount;
 					TargetHandle = (DWORD)OpenProcess(
 						PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, 
@@ -807,18 +851,38 @@ BOOL WINAPI extCreateProcessA(
 							}
 						}
 					}
-#endif				OutTrace("CreateProcess: injection terminated\n", res);
+#endif				
+				OutTrace("CreateProcess: injection started\n", res);
 				break;
 			case EXIT_THREAD_DEBUG_EVENT:
 #ifdef LOCKINJECTIONTHREADS
 				if(TargetHandle && StartAddress){
+					if(dxw.dwFlags5 & FREEZEINJECTEDSON){
+						OutTrace("CreateProcess: FREEZEINJECTEDSON leaving son process in endless loop\n", GetLastError());
+					}
+					else{
 					if(!WriteProcessMemory(lpProcessInformation->hProcess, StartAddress, &StartingCode, 4, &BytesCount)){
 						OutTrace("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
 					}
+					}
 					CloseHandle((HANDLE)TargetHandle);
+					OutTrace("CreateProcess: injection terminated\n", res);
 				}
 #endif
 				bContinueDebugging=false;
+			case EXCEPTION_DEBUG_EVENT:
+				{
+					LPEXCEPTION_DEBUG_INFO ei;
+					ei=(LPEXCEPTION_DEBUG_INFO)&debug_event.u;
+					OutTraceE("CreateProcess: EXCEPTION code=%x flags=%x addr=%x firstchance=%x\n", 
+						ei->ExceptionRecord.ExceptionCode, 
+						ei->ExceptionRecord.ExceptionFlags, 
+						ei->ExceptionRecord.ExceptionAddress,
+						debug_event.u.Exception.dwFirstChance);
+					// exception twice in same address, then do not continue.
+					if(LastExceptionPtr == ei->ExceptionRecord.ExceptionAddress) bContinueDebugging = FALSE;
+					LastExceptionPtr = ei->ExceptionRecord.ExceptionAddress;
+				}
 			default:
 				break;
 			}

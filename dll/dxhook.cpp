@@ -97,8 +97,8 @@ static char *Flag5Names[32]={
 	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
 	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
 	"TEXTURETRANSP", "NORMALIZEPERFCOUNT", "HYBRIDMODE", "GDICOLORCONV",
-	"INJECTSON", "ENABLESONHOOK", "", "",
-	"", "", "", "",
+	"INJECTSON", "ENABLESONHOOK", "FREEZEINJECTEDSON", "GDIMODE",
+	"CENTERTOWIN", "MESSAGEPUMP", "", "",
 	"", "", "", "",
 };
 
@@ -121,10 +121,10 @@ char *GetDxWndPath()
 	if(DoOnce){
 		DWORD dwAttrib;		
 		dwAttrib = GetFileAttributes("dxwnd.dll");
-		if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-			MessageBox(0, "DXWND: ERROR can't locate itself", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-			exit(0);
-		}
+		//if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
+		//	MessageBox(0, "DXWND: ERROR can't locate itself", "ERROR", MB_OK | MB_ICONEXCLAMATION);
+		//	exit(0);
+		//}
 		GetModuleFileName(GetModuleHandle("dxwnd"), sFolderPath, MAX_PATH);
 		sFolderPath[strlen(sFolderPath)-strlen("dxwnd.dll")] = 0; // terminate the string just before "dxwnd.dll"
 		DoOnce = FALSE;
@@ -926,6 +926,14 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if(dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		if(dxw.dwFlags2 & REFRESHONRESIZE) dxw.ScreenRefresh();
 		if(dxw.dwFlags4 & HIDEDESKTOP) dxw.HideDesktop(dxw.GethWnd());
+		if(dxw.dwFlags5 & CENTERTOWIN) {
+			HDC thdc;
+			HWND w = dxw.GethWnd();
+			RECT client;
+			(*pGetClientRect)(w, &client);
+			thdc=(*pGDIGetDC)(w);
+			if(thdc) (*pGDIBitBlt)(thdc, client.left, client.top, client.right, client.bottom, 0, 0, 0, BLACKNESS);
+		}
 		break;
 	case WM_ACTIVATE:
 		dxw.bActive = (LOWORD(wparam) == WA_ACTIVE || LOWORD(wparam) == WA_CLICKACTIVE) ? 1 : 0;
@@ -1324,6 +1332,7 @@ void HookModule(HMODULE base, int dxversion)
 		(dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 	//HookSmackW32(base);
+	//HookDirectSound(base);
 }
 
 #define USEWINNLSENABLE
@@ -1608,6 +1617,7 @@ DWORD WINAPI MessagePoller(LPVOID lpParameter)
 		Sleep(DXWREFRESHINTERVAL);
 		SendMessage(dxw.GethWnd(), WM_NCHITTEST, 0, 0);
 	}
+    return 0;
 }
 
 void HookInit(TARGETMAP *target, HWND hwnd)
@@ -1629,10 +1639,10 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	// add the DxWnd install dir to the search path, to make all included dll linkable
 	DWORD dwAttrib;		
 	dwAttrib = GetFileAttributes("dxwnd.dll");
-	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-		MessageBox(0, "DXWND: ERROR can't locate itself", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-		exit(0);
-	}
+	//if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
+	//	MessageBox(0, "DXWND: ERROR can't locate itself", "ERROR", MB_OK | MB_ICONEXCLAMATION);
+	//	exit(0);
+	//}
 	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_PATH);
 	sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")] = 0; // terminate the string just before "dxwnd.dll"
 	SetDllDirectory(sSourcePath);
@@ -1645,6 +1655,9 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		dxw.dwFlags2 |= SETCOMPATIBILITY;
 		dxw.dwFlags5 &= ~(BILINEARFILTER | AEROBOOST); 
 	}
+	if(dxw.dwFlags5 & GDIMODE) dxw.dwFlags1 |= EMULATESURFACE;
+	if(dxw.dwFlags5 & STRESSRESOURCES) dxw.dwFlags5 |= LIMITRESOURCES;
+
 
 	if(hwnd){ // v2.02.32: skip this when in code injection mode.
 		// v2.1.75: is it correct to set hWnd here?
@@ -1769,13 +1782,11 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
 	if (dxw.dwFlags2 & SUPPRESSIME) DisableIME();
 
-	//if ((hwnd==0) && (dxw.dwFlags4 & INTERCEPTRDTSC)) ReplaceRDTSC();
 	if (dxw.dwFlags4 & INTERCEPTRDTSC) ReplaceRDTSC();
 	if (dxw.dwFlags5 & REPLACEPRIVOPS) ReplacePrivilegedOps();
 
 	if (dxw.dwTFlags & DXPROXED){
 		HookDDProxy(base, dxw.dwTargetDDVersion);
-		//return 0;
 		return;
 	}
 

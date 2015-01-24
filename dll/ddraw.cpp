@@ -1026,6 +1026,8 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	}
 	// IDIrectDraw::FlipToGDISurface
 	SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface, (void **)&pFlipToGDISurface, "FlipToGDISurface(D)");
+	// IDIrectDraw::GetCaps
+	SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCapsD, (void **)&pGetCapsD, "GetCaps(D)");
 	// IDIrectDraw::GetDisplayMode
 	SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D)");
 	// IDIrectDraw::GetGDISurface
@@ -1063,8 +1065,6 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		SetHook((void *)(**(DWORD **)lplpdd + 36), extEnumSurfacesProxy1, (void **)&pEnumSurfaces1, "EnumSurfaces(D1)");
 	else
 		SetHook((void *)(**(DWORD **)lplpdd + 36), extEnumSurfacesProxy4, (void **)&pEnumSurfaces4, "EnumSurfaces(D4)");
-	// IDIrectDraw::GetCaps
-	SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCapsD, (void **)&pGetCapsD, "GetCaps(D)");
 	// IDIrectDraw::GetFourCCCodes
 	SetHook((void *)(**(DWORD **)lplpdd + 52), extGetFourCCCodesProxy, (void **)&pGetFourCCCodes, "GetFourCCCodes(D)");
 	// IDIrectDraw::GetMonitorFrequency
@@ -1483,6 +1483,35 @@ static void MaskCapsD(LPDDCAPS c1, LPDDCAPS c2)
 // directdraw method hooks
 /* ------------------------------------------------------------------------------ */
 
+static void HandleCapsD(char *sLabel, LPDDCAPS c)
+{
+	OutTraceDDRAW(
+		"GetCaps(%s): caps=%x(%s) caps2=%x(%s) palcaps=%x(%s) "
+		"fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+		sLabel,
+		c->dwCaps, ExplainDDDCaps(c->dwCaps),
+		c->dwCaps2, ExplainDDDCaps2(c->dwCaps2),
+		c->dwPalCaps, ExplainDDPalCaps(c->dwPalCaps),
+		c->dwFXCaps, ExplainDDFXCaps(c->dwFXCaps),
+		c->dwFXAlphaCaps, ExplainDDFXALPHACaps(c->dwFXAlphaCaps),
+		c->dwCKeyCaps, ExplainDDCKeyCaps(c->dwCKeyCaps));
+	OutTraceDDRAW("GetCaps(%s): VidMemTotal=%x VidMemFree=%x\n", 
+		sLabel, c->dwVidMemTotal, c->dwVidMemFree);
+	if(dxw.dwFlags2 & LIMITRESOURCES){ // check for memory value overflow
+		const DWORD dwMaxMem = 0x70000000; 
+		if(c->dwVidMemTotal > dwMaxMem) c->dwVidMemTotal = dwMaxMem;
+		if(c->dwVidMemFree  > dwMaxMem) c->dwVidMemFree  = dwMaxMem;
+	}
+	if(dxw.dwFlags5 & STRESSRESOURCES){
+		//const DWORD dwHugeMem = 0xF0000000; 
+		const DWORD dwHugeMem = 0xFFFFFFFF; 
+		c->dwVidMemTotal = dwHugeMem;		
+		c->dwVidMemFree  = dwHugeMem;	
+	}
+	if((dxw.dwFlags5 & STRESSRESOURCES) || (dxw.dwFlags5 & STRESSRESOURCES))
+		OutTraceDDRAW("GetCaps(%s): FIXED VidMemTotal=%x VidMemFree=%x\n", sLabel, c->dwVidMemTotal, c->dwVidMemFree);
+}
+
 HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 {
 	HRESULT res;
@@ -1491,28 +1520,8 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 	if(res) 
 		OutTraceE("GetCaps(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	else {
-		if (c1) OutTraceDDRAW("GetCaps(D-HW): caps=%x(%s) caps2=%x(%s) palcaps=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
-			c1->dwCaps, ExplainDDDCaps(c1->dwCaps),
-			c1->dwCaps2, ExplainDDDCaps2(c1->dwCaps2),
-			c1->dwPalCaps, ExplainDDPalCaps(c1->dwPalCaps),
-			c1->dwFXCaps, ExplainDDFXCaps(c1->dwFXCaps),
-			c1->dwFXAlphaCaps, ExplainDDFXALPHACaps(c1->dwFXAlphaCaps),
-			c1->dwCKeyCaps, ExplainDDCKeyCaps(c1->dwCKeyCaps));
-		if (c2) OutTraceDDRAW("GetCaps(D-SW): caps=%x(%s) caps2=%x(%s) palcaps=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
-			c2->dwCaps, ExplainDDDCaps(c2->dwCaps),
-			c2->dwCaps2, ExplainDDDCaps2(c2->dwCaps2),
-			c2->dwPalCaps, ExplainDDPalCaps(c2->dwPalCaps),
-			c2->dwFXCaps, ExplainDDFXCaps(c2->dwFXCaps),
-			c2->dwFXAlphaCaps, ExplainDDFXALPHACaps(c2->dwFXAlphaCaps),
-			c2->dwCKeyCaps, ExplainDDCKeyCaps(c2->dwCKeyCaps));
-	}
-
-	if(dxw.dwFlags2 & LIMITRESOURCES){ // check for memory value overflow
-		const DWORD dwMaxMem = 0x70000000; 
-		if(c1->dwVidMemTotal > dwMaxMem) c1->dwVidMemTotal = dwMaxMem;
-		if(c1->dwVidMemFree  > dwMaxMem) c1->dwVidMemFree  = dwMaxMem;
-		if(c2->dwVidMemTotal > dwMaxMem) c2->dwVidMemTotal = dwMaxMem;
-		if(c2->dwVidMemFree  > dwMaxMem) c2->dwVidMemFree  = dwMaxMem;
+		if (c1) HandleCapsD("D-HW", c1);
+		if (c2) HandleCapsD("D-SW", c2);
 	}
 
 	if((dxw.dwFlags3 & FORCESHEL) && c1) {
@@ -1528,13 +1537,8 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 		DWORD dwVidMemTotal=c1->dwVidMemTotal;
 		DWORD dwVidMemFree=c1->dwVidMemFree;
 		memcpy((void *)c1, (void *)c2, size);
-#if 0
-		if(c1->dwVidMemTotal == 0) c1->dwVidMemTotal=0x40000000; // about 1GB - aqrit's suggestion
-		if(c1->dwVidMemFree  == 0) c1->dwVidMemFree =0x40000000; // about 1GB - aqrit's suggestion
-#else
 		if(c1->dwVidMemTotal == 0) c1->dwVidMemTotal=dwVidMemTotal; 
 		if(c1->dwVidMemFree  == 0) c1->dwVidMemFree =dwVidMemFree; 
-#endif
 	}
 
 	if(dxw.dwFlags3 & CAPMASK) MaskCapsD(c1, c2);
@@ -3140,102 +3144,17 @@ HRESULT WINAPI ColorConversionDDRAW(LPDIRECTDRAWSURFACE lpdds, RECT emurect, LPD
 	return DD_OK;
 }
 
-HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
-	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx, BOOL isFlipping)
+static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
+	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx)
 {
-	RECT emurect, destrect;
-	POINT p = {0, 0};
+	RECT srcrect;
 	HRESULT res;
-	BOOL ToPrim, FromPrim, ToScreen, FromScreen;
-	extern PrimaryBlt_Type pPrimaryBlt;
+	BOOL FromScreen;
+	//extern PrimaryBlt_Type pPrimaryBlt;
 	//CkArg arg;
 
-	ToPrim=dxw.IsAPrimarySurface(lpdds);
-	FromPrim=dxw.IsAPrimarySurface(lpddssrc);
-	ToScreen=ToPrim && !(dxw.dwFlags1 & EMULATESURFACE);
-	FromScreen=FromPrim && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
+	FromScreen=dxw.IsAPrimarySurface(lpddssrc) && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
 
-	CleanRect(&lpdestrect,__LINE__);
-	CleanRect(&lpsrcrect,__LINE__);
-
-	// log
-	if(IsTraceDW){
-		char sLog[256];
-		char sInfo[128];
-		sprintf(sLog, "%s: dest=%x%s src=%x%s dwFlags=%x(%s)",
-			api, lpdds, (ToPrim ? "(PRIM)":""), lpddssrc, (FromPrim ? "(PRIM)":""), dwflags, ExplainBltFlags(dwflags));
-		if (lpdestrect)
-			sprintf(sInfo, " destrect=(%d,%d)-(%d,%d)", lpdestrect->left, lpdestrect->top, lpdestrect->right, lpdestrect->bottom);
-		else
-			sprintf(sInfo, " destrect=(NULL)");
-		strcat(sLog, sInfo);
-		if (lpsrcrect)
-			sprintf(sInfo, " srcrect=(%d,%d)-(%d,%d)", lpsrcrect->left, lpsrcrect->top, lpsrcrect->right, lpsrcrect->bottom);
-		else
-			sprintf(sInfo, " srcrect=(NULL)");
-		strcat(sLog, sInfo);
-		if(lpddbltfx){
-			if (dwflags & DDBLT_COLORFILL){
-				sprintf(sInfo, " ddbltfx.FillColor=%x", lpddbltfx->dwFillColor); 
-				strcat(sLog, sInfo);
-			}
-			if (dwflags & DDBLT_KEYDESTOVERRIDE){
-				sprintf(sInfo, " ddbltfx.DestColorkey=%x", lpddbltfx->ddckDestColorkey); 
-				strcat(sLog, sInfo);
-			}
-			if (dwflags & DDBLT_KEYSRCOVERRIDE){
-				sprintf(sInfo, " ddbltfx.SrcColorkey=%x", lpddbltfx->ddckSrcColorkey); 
-				strcat(sLog, sInfo);
-			}
-			if (dwflags & DDBLT_ROP){
-				sprintf(sInfo, " ddbltfx.ROP=%x", lpddbltfx->dwROP);
-				strcat(sLog, sInfo);
-			}
-			if (dwflags & DDBLT_DEPTHFILL){
-				sprintf(sInfo, " ddbltfx.FillDepth=%x", lpddbltfx->dwFillDepth);
-				strcat(sLog, sInfo);
-			}
-		}
-		strcat(sLog,"\n");
-		OutTrace(sLog);
-	}
-
-	// debug suppressions
-	if(ToPrim){
-		if(isFlipping){
-			if(dxw.dwFlags3 & NODDRAWFLIP) return DD_OK;
-		}
-		else {
-			if(dxw.dwFlags3 & NODDRAWBLT) return DD_OK;
-		}
-	}
-
-#ifdef ONEPIXELFIX
-	if (lpdestrect){
-		if ((lpdestrect->top == 0) && (lpdestrect->bottom == dxw.GetScreenHeight() -1)) lpdestrect->bottom = dxw.GetScreenHeight();
-		if ((lpdestrect->left == 0) && (lpdestrect->right  == dxw.GetScreenWidth()  -1)) lpdestrect->right  = dxw.GetScreenWidth();
-	}
-	if (lpsrcrect){
-		if ((lpsrcrect->top == 0) && (lpsrcrect->bottom == dxw.GetScreenHeight() -1)) lpsrcrect->bottom = dxw.GetScreenHeight();
-		if ((lpsrcrect->left == 0) && (lpsrcrect->right  == dxw.GetScreenWidth()  -1)) lpsrcrect->right  = dxw.GetScreenWidth();
-	}
-#endif
-
-#define FIXBIGGERRECT 1
-#if FIXBIGGERRECT
-	if(ToPrim && lpdestrect){
-		if((DWORD)lpdestrect->top < 0) lpdestrect->top = 0;
-		if((DWORD)lpdestrect->left < 0) lpdestrect->left = 0;
-		if((DWORD)lpdestrect->bottom > dxw.GetScreenHeight()) lpdestrect->bottom = dxw.GetScreenHeight();
-		if((DWORD)lpdestrect->right > dxw.GetScreenWidth()) lpdestrect->right = dxw.GetScreenWidth();
-	}
-#endif
-
-	// blit to non primary surface
-
-	if(!ToPrim){
-		//RECT srcrect, winrect;
-		RECT srcrect;
 		// make a working copy of srcrect if not NULL
 		if (lpsrcrect){
 			srcrect=*lpsrcrect;
@@ -3294,9 +3213,41 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		return res;
 	}
 
-	// =========================
-	// Blit to primary surface
-	// =========================
+static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
+	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx, BOOL isFlipping)
+{
+	HRESULT res;
+	RECT destrect, emurect;
+	extern PrimaryBlt_Type pPrimaryBlt;
+
+	// debug suppressions
+	if(isFlipping){
+		if(dxw.dwFlags3 & NODDRAWFLIP) return DD_OK;
+	}
+	else {
+		if(dxw.dwFlags3 & NODDRAWBLT) return DD_OK;
+	}
+
+#ifdef ONEPIXELFIX
+	if (lpdestrect){
+		if ((lpdestrect->top == 0) && (lpdestrect->bottom == dxw.GetScreenHeight() -1)) lpdestrect->bottom = dxw.GetScreenHeight();
+		if ((lpdestrect->left == 0) && (lpdestrect->right  == dxw.GetScreenWidth()  -1)) lpdestrect->right  = dxw.GetScreenWidth();
+	}
+	if (lpsrcrect){
+		if ((lpsrcrect->top == 0) && (lpsrcrect->bottom == dxw.GetScreenHeight() -1)) lpsrcrect->bottom = dxw.GetScreenHeight();
+		if ((lpsrcrect->left == 0) && (lpsrcrect->right  == dxw.GetScreenWidth()  -1)) lpsrcrect->right  = dxw.GetScreenWidth();
+	}
+#endif
+
+#define FIXBIGGERRECT 1
+#if FIXBIGGERRECT
+	if(lpdestrect){
+		if((DWORD)lpdestrect->top < 0) lpdestrect->top = 0;
+		if((DWORD)lpdestrect->left < 0) lpdestrect->left = 0;
+		if((DWORD)lpdestrect->bottom > dxw.GetScreenHeight()) lpdestrect->bottom = dxw.GetScreenHeight();
+		if((DWORD)lpdestrect->right > dxw.GetScreenWidth()) lpdestrect->right = dxw.GetScreenWidth();
+	}
+#endif
 
 	if(dxw.dwFlags5 & QUARTERBLT){
 		BOOL QuarterUpdate;
@@ -3314,6 +3265,14 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	OutTraceB("DESTRECT=(%d,%d)-(%d,%d) Screen=(%dx%d)\n", 
 		destrect.left, destrect.top, destrect.right, destrect.bottom,
 		dxw.GetScreenWidth(), dxw.GetScreenHeight());
+
+	if(!lpddssrc) {
+		if (isFlipping){
+			// handle the flipping chain ...
+			lpddssrc=lpDDSBack;
+			OutTraceDW("Flip: setting flip chain to lpdds=%x\n", lpddssrc);
+		}
+	}
 
 	// =========================
 	// Blit to primary direct surface 
@@ -3376,12 +3335,10 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	// Blit/Flip to emulated primary surface
 	// =========================
 
-	if(!lpddssrc) {
-		if (isFlipping){
-			// handle the flipping chain ...
-			lpddssrc=lpDDSBack;
-			OutTraceDW("Flip: setting flip chain to lpdds=%x\n", lpddssrc);
-		}
+	if(dxw.dwFlags5 & GDIMODE){
+		extern void BlitToWindow(HWND, LPDIRECTDRAWSURFACE);
+		if (lpdds != lpddssrc) BlitToWindow(dxw.GethWnd(), lpddssrc);
+		return DD_OK;
 	}
 
 	if (lpdestrect){
@@ -3449,6 +3406,82 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	if (res) BlitError(res, &emurect, &destrect, __LINE__);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	if (IsDebug) OutTrace("%s: done ret=%x at %d\n", api, res, __LINE__);
+	return res;
+}
+
+HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
+	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx, BOOL isFlipping)
+{
+	POINT p = {0, 0};
+	HRESULT res;
+	BOOL ToPrim, FromPrim, ToScreen, FromScreen;
+
+	if(dxw.dwFlags5 & MESSAGEPUMP){
+		MSG msg;
+		while(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)){
+			OutTraceW("MESSAGEPUMP: msg=%x l-wParam=(%x,%x)\n", msg.message, msg.lParam, msg.wParam);
+			if((msg.message >= WM_KEYFIRST) && (msg.message <= WM_KEYLAST)) break; // do not consume keyboard inputs
+			PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+
+	ToPrim=dxw.IsAPrimarySurface(lpdds);
+	FromPrim=dxw.IsAPrimarySurface(lpddssrc);
+	ToScreen=ToPrim && !(dxw.dwFlags1 & EMULATESURFACE);
+	FromScreen=FromPrim && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
+
+	CleanRect(&lpdestrect,__LINE__);
+	CleanRect(&lpsrcrect,__LINE__);
+
+	// log
+	if(IsTraceDW){
+		char sLog[256];
+		char sInfo[128];
+		sprintf(sLog, "%s: dest=%x%s src=%x%s dwFlags=%x(%s)",
+			api, lpdds, (ToPrim ? "(PRIM)":""), lpddssrc, (FromPrim ? "(PRIM)":""), dwflags, ExplainBltFlags(dwflags));
+		if (lpdestrect)
+			sprintf(sInfo, " destrect=(%d,%d)-(%d,%d)", lpdestrect->left, lpdestrect->top, lpdestrect->right, lpdestrect->bottom);
+		else
+			sprintf(sInfo, " destrect=(NULL)");
+		strcat(sLog, sInfo);
+		if (lpsrcrect)
+			sprintf(sInfo, " srcrect=(%d,%d)-(%d,%d)", lpsrcrect->left, lpsrcrect->top, lpsrcrect->right, lpsrcrect->bottom);
+		else
+			sprintf(sInfo, " srcrect=(NULL)");
+		strcat(sLog, sInfo);
+		if(lpddbltfx){
+			if (dwflags & DDBLT_COLORFILL){
+				sprintf(sInfo, " ddbltfx.FillColor=%x", lpddbltfx->dwFillColor); 
+				strcat(sLog, sInfo);
+			}
+			if (dwflags & DDBLT_KEYDESTOVERRIDE){
+				sprintf(sInfo, " ddbltfx.DestColorkey=%x", lpddbltfx->ddckDestColorkey); 
+				strcat(sLog, sInfo);
+			}
+			if (dwflags & DDBLT_KEYSRCOVERRIDE){
+				sprintf(sInfo, " ddbltfx.SrcColorkey=%x", lpddbltfx->ddckSrcColorkey); 
+				strcat(sLog, sInfo);
+			}
+			if (dwflags & DDBLT_ROP){
+				sprintf(sInfo, " ddbltfx.ROP=%x", lpddbltfx->dwROP);
+				strcat(sLog, sInfo);
+			}
+			if (dwflags & DDBLT_DEPTHFILL){
+				sprintf(sInfo, " ddbltfx.FillDepth=%x", lpddbltfx->dwFillDepth);
+				strcat(sLog, sInfo);
+			}
+		}
+		strcat(sLog,"\n");
+		OutTrace(sLog);
+	}
+
+	if(ToPrim) 
+		res = sBltToPrimary(api, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx, isFlipping);
+	else
+		res = sBltNoPrimary(api, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+
 	return res;
 }
 
@@ -3715,7 +3748,8 @@ HRESULT WINAPI extGetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lpl
 	res=(*pGetPalette)(lpdds, lplpddp);
 
 	// v2.03.07: in "Die Hard Trilogy" the backbuffer surface is queryed for the palette
-	if((dxw.dwFlags1 & EMULATESURFACE) && (res == DDERR_NOPALETTEATTACHED) && (isPrim||isBack)){
+    // v2.03.08: in "Viper Racing" lpDDP is still NULL (how could it be?)
+	if((dxw.dwFlags1 & EMULATESURFACE) && (res == DDERR_NOPALETTEATTACHED) && (isPrim||isBack) && lpDDP){
 		OutTraceDW("GetPalette: retrieve PRIMARY palette for emulated surface lpDDP=%x\n", lpDDP);
 		*lplpddp = lpDDP;
 		lpDDP->AddRef();
@@ -5008,22 +5042,34 @@ HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPD
 	//const DWORD dwMaxMem = 0x7FFFF000;
         // v03.01.01: limit to smaller value to allow "Breath of Fire IV" card detection
 	const DWORD dwMaxMem = 0x70000000; 
+	const DWORD dwHugeMem = 0xF0000000; 
 	OutTraceDDRAW("GetAvailableVidMem(D): lpdd=%x\n", lpdd);
 	res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree);
 	if(res){
 		if((dxw.dwFlags3 & FORCESHEL) && (res==DDERR_NODIRECTDRAWHW)){
 			// fake some video memory....
 			OutTraceDW("GetAvailableVidMem(D): FORCESHEL mode Total=Free=%x\n", dwMaxMem);
-			*lpdwTotal = dwMaxMem; 
-			*lpdwFree = dwMaxMem;
+			if(lpdwTotal) *lpdwTotal = dwMaxMem; 
+			if(lpdwFree) *lpdwFree = dwMaxMem;
 			return DD_OK;
 		}
 		OutTraceE("GetAvailableVidMem(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		return res; 
 	}
-	else {
+
 		OutTraceDW("GetAvailableVidMem(D): DDSCaps=%x(%s) Total=%x Free=%x\n", 
 			*lpDDSCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
-		if(dxw.dwFlags2 & LIMITRESOURCES){ // check for memory value overflow - see "Mageslayer" and "Take no Prisoners"
+
+	if(!(dxw.dwFlags2 & LIMITRESOURCES)) return res;
+	
+	// simulate a value overflow condition
+	if(dxw.dwFlags5 & STRESSRESOURCES){
+		if(lpdwTotal) *lpdwTotal = dwHugeMem;
+		if(lpdwFree) *lpdwFree = dwHugeMem;
+		return DD_OK;
+	}
+	
+	// check for memory value overflow - see "Mageslayer" and "Take no Prisoners"
 			DWORD dwLocalTotal;
 			if(lpdwTotal == NULL) {
 				lpdwTotal = &dwLocalTotal; // point to usable memory....
@@ -5042,8 +5088,7 @@ HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPD
 				*lpdwTotal = dwMaxMem;
 				OutTraceDW("GetAvailableVidMem(D): FIXED Total=%x Free=%x\n", *lpdwTotal, *lpdwFree);
 			}
-		}
-	}
+
 	return res; 
 }
 

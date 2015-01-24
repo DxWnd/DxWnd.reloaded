@@ -285,7 +285,11 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	OutTraceDW("GetDeviceState(I): did=%x cbData=%i,%i\n", lpdid, cbdata, dxw.bActive);
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
-	if(res) return res;
+	if(res) {
+		OutTraceE("GetDeviceState(I) ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+		return res;
+	}
+
 	if(	cbdata == sizeof(DIMOUSESTATE) || cbdata == sizeof(DIMOUSESTATE2) 
 	//	|| cbdata == sizeof(DIJOYSTATE) || cbdata == sizeof(DIJOYSTATE2) 
 	){
@@ -373,12 +377,19 @@ HRESULT WINAPI extSetDataFormat(LPDIRECTINPUTDEVICE lpdid, LPCDIDATAFORMAT lpdf)
 
 HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE lpdid, HWND hwnd, DWORD dwflags)
 {
+	HRESULT res;
+
 	OutTraceDW("SetCooperativeLevel(I): did=%x hwnd=%x flags=%x(%s)\n", 
 		lpdid, hwnd, dwflags, ExplainDICooperativeFlags(dwflags));
 
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 	dwflags = DISCL_NONEXCLUSIVE | DISCL_BACKGROUND;
-	return (*pDISetCooperativeLevel)(lpdid, hwnd, dwflags);
+	res = (*pDISetCooperativeLevel)(lpdid, hwnd, dwflags);
+	if(res != DD_OK){
+		OutTraceE("SetCooperativeLevel(I) ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+	}
+
+	return res;
 }
 
 // Simplified version, taking in proper account the GetCursorPos API hooking & coordinate processing

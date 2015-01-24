@@ -398,6 +398,24 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 		}
 	}
 
+	if ((dxw.dwFlags5 & CENTERTOWIN) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
+		RECT wrect;
+		LONG dwStyle, dwExStyle;
+		HMENU hMenu;
+		int minx, miny;
+		wrect.top = wrect.left = 0;
+		wrect.right = dxw.GetScreenWidth();
+		wrect.bottom = dxw.GetScreenHeight();
+		dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
+		dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
+		hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
+		AdjustWindowRectEx(&wrect, dwStyle, (hMenu!=NULL), dwExStyle);
+		minx = wrect.right - wrect.left;
+		miny = wrect.bottom - wrect.top;
+		if(wp->cx < minx) wp->cx = minx;
+		if(wp->cy < miny) wp->cy = miny;
+	}
+
 	iLastCX= wp->cx;
 	iLastCY= wp->cy;
 }

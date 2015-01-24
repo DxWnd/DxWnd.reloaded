@@ -42,6 +42,7 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
 	DDX_Check(pDX, IDC_NOFLIPEMULATION, cTarget->m_NoFlipEmulation);
 	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
+	DDX_Check(pDX, IDC_CENTERTOWIN, cTarget->m_CenterToWin);
 	DDX_Check(pDX, IDC_SETCOMPATIBILITY, cTarget->m_SetCompatibility);
 	DDX_Check(pDX, IDC_AEROBOOST, cTarget->m_AEROBoost);
 }

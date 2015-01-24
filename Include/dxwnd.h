@@ -168,6 +168,11 @@
 #define GDICOLORCONV		0x00080000 // do color conversion using GDI
 #define INJECTSON			0x00100000 // when starting a son process, inject dxwnd.dll at the beginning of execution
 #define ENABLESONHOOK		0x00200000 // forward hooking capability to son processes
+#define FREEZEINJECTEDSON	0x00400000 // BEWARE!!!! you must know what you're doing. Leaves the injected son in an endless loop 
+#define GDIMODE				0x00800000 // Use GDI to both stretch and color conversion. It seems faster....
+#define CENTERTOWIN			0x01000000 // do NOT stretch the image to the whole window client area, but center to it.
+#define STRESSRESOURCES		0x02000000 // simulates a lack of resources condition, for testing (debug opt.)
+#define MESSAGEPUMP			0x04000000 // inserts a "message pump" loop between repeated operation that may stop the task on Win7 and greater
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

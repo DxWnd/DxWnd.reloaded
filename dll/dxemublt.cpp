@@ -1272,6 +1272,7 @@ void SetBltTransformations()
 	if(dxw.dwFlags5 & AEROBOOST) pPrimaryBlt = PrimaryStretchBlt;
 	if(dxw.dwFlags5 & BILINEARFILTER) pPrimaryBlt = PrimaryBilinearBlt; 
 	if(dxw.dwFlags5 & DOFASTBLT) pPrimaryBlt = PrimaryFastBlt; // debug opt
+	if(dxw.dwFlags5 & CENTERTOWIN) pPrimaryBlt = PrimaryFastBlt; 
 	if(dxw.dwFlags5 & NOBLT) pPrimaryBlt = PrimaryNoBlt; // debug opt
 
 	extern HRESULT WINAPI ColorConversionDDRAW(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);

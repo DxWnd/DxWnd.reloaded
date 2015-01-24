@@ -66,7 +66,8 @@ HRESULT WINAPI extCheckDeviceFormat(void *, UINT, D3DDEVTYPE, D3DFORMAT, DWORD, 
 HRESULT WINAPI extCheckDeviceMultiSampleType(void *, UINT, D3DDEVTYPE, D3DFORMAT, BOOL, D3DMULTISAMPLE_TYPE, DWORD *);
 HRESULT WINAPI extCheckDepthStencilMatch(void *, UINT, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, D3DFORMAT);
 HRESULT WINAPI extCheckDeviceFormatConversion(void *, UINT, D3DDEVTYPE, D3DFORMAT, D3DFORMAT);
-HRESULT WINAPI extD3DGetDeviceCaps(void *, UINT, D3DDEVTYPE, D3DCAPS9 *);
+HRESULT WINAPI extD3DGetDeviceCaps8(void *, UINT, D3DDEVTYPE, D3DCAPS9 *);
+HRESULT WINAPI extD3DGetDeviceCaps9(void *, UINT, D3DDEVTYPE, D3DCAPS9 *);
 HMONITOR WINAPI extGetAdapterMonitor(void *, UINT);
 HRESULT WINAPI extCreateDevice(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, void **);
 HRESULT WINAPI extCreateDeviceEx(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, D3DDISPLAYMODEEX *, void **);
@@ -538,6 +539,7 @@ void HookDirect3D8(void *lpd3d)
 	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier8, (void **)&pGetAdapterIdentifier8, "GetAdapterIdentifier(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes8, (void **)&pEnumAdapterModes8, "EnumAdapterModes(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode8, (void **)&pGetAdapterDisplayMode8, "GetAdapterDisplayMode(D8)");
+	SetHook((void *)(*(DWORD *)lpd3d + 52), extD3DGetDeviceCaps8, (void **)&pD3DGetDeviceCaps, "GetDeviceCaps(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 60), extCreateDevice, (void **)&pCreateDevice8, "CreateDevice(D8)");
 }
 
@@ -571,6 +573,7 @@ void HookDirect3D9(void *lpd3d, BOOL ex)
 	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier9, (void **)&pGetAdapterIdentifier9, "GetAdapterIdentifier(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes9, (void **)&pEnumAdapterModes9, "EnumAdapterModes(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode9, (void **)&pGetAdapterDisplayMode9, "GetAdapterDisplayMode(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 56), extD3DGetDeviceCaps9, (void **)&pD3DGetDeviceCaps, "GetDeviceCaps(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice, (void **)&pCreateDevice9, "CreateDevice(D9)");
 	if(ex) SetHook((void *)(*(DWORD *)lpd3d + 80), extCreateDeviceEx, (void **)&pCreateDeviceEx, "CreateDeviceEx(D9)");
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
@@ -581,7 +584,6 @@ void HookDirect3D9(void *lpd3d, BOOL ex)
 	SetHook((void *)(*(DWORD *)lpd3d + 44), extCheckDeviceMultiSampleType, (void **)&pCheckDeviceMultiSampleType, "CheckDeviceMultiSampleType(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 48), extCheckDepthStencilMatch, (void **)&pCheckDepthStencilMatch, "CheckDepthStencilMatch(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 52), extCheckDeviceFormatConversion, (void **)&pCheckDeviceFormatConversion, "CheckDeviceFormatConversion(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 56), extD3DGetDeviceCaps, (void **)&pD3DGetDeviceCaps, "GetDeviceCaps(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 60), extGetAdapterMonitor, (void **)&pGetAdapterMonitor, "GetAdapterMonitor(D9)");
 }
 
@@ -1764,84 +1766,157 @@ static char *ExplainD3D9DeviceType(D3DDEVTYPE DeviceType)
 	return s;
 }
 
-HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps)
+HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps, int version)
 {
 	HRESULT res;
-	OutTraceD3D("GetDeviceCaps: d3d=%x adapter=%d devtype=%x(%s)\n", lpd3d, Adapter, DeviceType, ExplainD3D9DeviceType(DeviceType));
+	OutTraceD3D("GetDeviceCaps(%d): d3d=%x adapter=%d devtype=%x(%s)\n", version, lpd3d, Adapter, DeviceType, ExplainD3D9DeviceType(DeviceType));
 	res=(*pD3DGetDeviceCaps)(lpd3d, Adapter, DeviceType, pCaps);
 	if(res){
 		OutTraceE("GetDeviceCaps: ERROR: err=%x\n", res);
 	}
 	else{
 		if(IsDebug){
-			OutTrace("GetDeviceCaps: DeviceType=%x(%s) Caps=%x Caps2=%x Caps3=%x PresentationIntervals=%x CursorCaps=%x DevCaps=%x\n",
-				pCaps->DeviceType, ExplainD3D9DeviceType(pCaps->DeviceType), pCaps->Caps, pCaps->Caps2, pCaps->Caps3, pCaps->PresentationIntervals,
-				pCaps->CursorCaps, pCaps->DevCaps);
-			OutTrace("GetDeviceCaps: PrimitiveMiscCaps=%x RasterCaps=%x ZCmpCaps=%x SrcBlendCaps=%x DestBlendCaps=%x AlphaCmpCaps=%x\n",
-				pCaps->PrimitiveMiscCaps, pCaps->RasterCaps, pCaps->ZCmpCaps, pCaps->SrcBlendCaps, pCaps->DestBlendCaps, pCaps->AlphaCmpCaps); 
-			OutTrace("GetDeviceCaps: AlphaCmpCaps=%x ShadeCaps=%x TextureCaps=%x TextureFilterCaps=%x CubeTextureFilterCaps=%x VolumeTextureFilterCaps=%x\n",
-				pCaps->AlphaCmpCaps, pCaps->ShadeCaps, pCaps->TextureCaps, pCaps->TextureFilterCaps, pCaps->CubeTextureFilterCaps, pCaps->VolumeTextureFilterCaps); 
-			OutTrace("GetDeviceCaps: TextureAddressCaps=%x VolumeTextureAddressCaps=%x LineCaps=%x StencilCaps=%x FVFCaps=%x TextureOpCaps=%x VertexProcessingCaps=%x\n",
-				pCaps->TextureAddressCaps, pCaps->VolumeTextureAddressCaps, pCaps->LineCaps, pCaps->StencilCaps, pCaps->FVFCaps, pCaps->TextureOpCaps, pCaps->VertexProcessingCaps);
-			OutTrace("GetDeviceCaps: MaxTexture(Width x Height)=(%dx%d) MaxVolumeExtent=%d MaxTextureRepeat=%d MaxTextureAspectRatio=%d MaxAnisotropy=%d\n",
-				pCaps->MaxTextureWidth, pCaps->MaxTextureHeight, pCaps->MaxVolumeExtent, pCaps->MaxTextureRepeat, pCaps->MaxTextureAspectRatio, pCaps->MaxAnisotropy);
-			OutTrace("GetDeviceCaps: MaxActiveLights=%d MaxUserClipPlanes=%x MaxUserClipPlanes=%x\n",
-				pCaps->MaxActiveLights, pCaps->MaxUserClipPlanes, pCaps->MaxUserClipPlanes);
-/*
-    float   MaxVertexW;
-
-    float   GuardBandLeft;
-    float   GuardBandTop;
-    float   GuardBandRight;
-    float   GuardBandBottom;
-
-    float   ExtentsAdjust;
-
-    DWORD   MaxTextureBlendStages;
-    DWORD   MaxSimultaneousTextures;
-
-    DWORD   ;
-    DWORD   ;
-    DWORD   ;
-    DWORD   MaxVertexBlendMatrices;
-    DWORD   MaxVertexBlendMatrixIndex;
-
-    float   MaxPointSize;
-
-    DWORD   MaxPrimitiveCount;          // max number of primitives per DrawPrimitive call
-    DWORD   MaxVertexIndex;
-    DWORD   MaxStreams;
-    DWORD   MaxStreamStride;            // max stride for SetStreamSource
-
-    DWORD   VertexShaderVersion;
-    DWORD   MaxVertexShaderConst;       // number of vertex shader constant registers
-
-    DWORD   PixelShaderVersion;
-    float   PixelShader1xMaxValue;      // max value storable in registers of ps.1.x shaders
-
-    // Here are the DX9 specific ones
-    DWORD   DevCaps2;
-
-    float   MaxNpatchTessellationLevel;
-    DWORD   Reserved5;
-
-    UINT    MasterAdapterOrdinal;       // ordinal of master adaptor for adapter group
-    UINT    AdapterOrdinalInGroup;      // ordinal inside the adapter group
-    UINT    NumberOfAdaptersInGroup;    // number of adapters in this adapter group (only if master)
-    DWORD   DeclTypes;                  // Data types, supported in vertex declarations
-    DWORD   NumSimultaneousRTs;         // Will be at least 1
-    DWORD   StretchRectFilterCaps;      // Filter caps supported by StretchRect
-    D3DVSHADERCAPS2_0 VS20Caps;
-    D3DPSHADERCAPS2_0 PS20Caps;
-    DWORD   VertexTextureFilterCaps;    // D3DPTFILTERCAPS for IDirect3DTexture9's for texture, used in vertex shaders
-    DWORD   MaxVShaderInstructionsExecuted; // maximum number of vertex shader instructions that can be executed
-    DWORD   MaxPShaderInstructionsExecuted; // maximum number of pixel shader instructions that can be executed
-    DWORD   MaxVertexShader30InstructionSlots; 
-    DWORD   MaxPixelShader30InstructionSlots;
-	*/
+			OutTrace("GetDeviceCaps:\n\t"
+				"DeviceType=%x(%s)\n\t"
+				"Caps=%x Caps2=%x Caps3=%x\n\t"
+				"PresentationIntervals=%x\n\t"
+				"CursorCaps=%x DevCaps=%x\n\t"
+				"PrimitiveMiscCaps=%x\n\t"
+				"RasterCaps=%x\n\t"
+				"ZCmpCaps=%x\n\t"
+				"SrcBlendCaps=%x\n\t"
+				"DestBlendCaps=%x\n\t"
+				"AlphaCmpCaps=%x\n\t"
+				"ShadeCaps=%x\n\t"
+				"TextureCaps=%x\n\t",
+				pCaps->DeviceType, ExplainD3D9DeviceType(pCaps->DeviceType), 
+				pCaps->Caps, pCaps->Caps2, pCaps->Caps3, 
+				pCaps->PresentationIntervals,
+				pCaps->CursorCaps, pCaps->DevCaps,
+				pCaps->PrimitiveMiscCaps, 
+				pCaps->RasterCaps, 
+				pCaps->ZCmpCaps, 
+				pCaps->SrcBlendCaps, 
+				pCaps->DestBlendCaps, 
+				pCaps->AlphaCmpCaps, 				
+				pCaps->ShadeCaps, 
+				pCaps->TextureCaps);
+			OutTrace(
+				"TextureFilterCaps=%x\n\t"
+				"CubeTextureFilterCaps=%x\n\t"
+				"VolumeTextureFilterCaps=%x\n\t"
+				"TextureAddressCaps=%x\n\t"
+				"VolumeTextureAddressCaps=%x\n\t"
+				"LineCaps=%x\n\t"
+				"StencilCaps=%x\n\t"
+				"FVFCaps=%x\n\t"
+				"TextureOpCaps=%x\n\t"
+				"VertexProcessingCaps=%x\n\t",
+				pCaps->TextureFilterCaps, 
+				pCaps->CubeTextureFilterCaps, 
+				pCaps->VolumeTextureFilterCaps, 
+				pCaps->TextureAddressCaps, 
+				pCaps->VolumeTextureAddressCaps, 
+				pCaps->LineCaps, 
+				pCaps->StencilCaps, 
+				pCaps->FVFCaps, 
+				pCaps->TextureOpCaps, 
+				pCaps->VertexProcessingCaps);
+			OutTrace(
+				"MaxTexture(Width x Height)=(%dx%d)\n\t"
+				"MaxVolumeExtent=%d\n\t"
+				"MaxTextureRepeat=%d\n\t"
+				"MaxTextureAspectRatio=%d\n\t"
+				"MaxAnisotropy=%d\n\t"
+				"MaxActiveLights=%d\n\t"
+				"MaxUserClipPlanes=%x\n\t"
+				"MaxUserClipPlanes=%x\n\t"
+				"MaxVertexW=%f\n\t"
+				"GuardBandLeft=%f\n\t"
+				"GuardBandTop=%f\n\t"
+				"GuardBandRight=%f\n\t"
+				"GuardBandBottom=%f\n\t"
+				"ExtentsAdjust=%f\n\t"
+				"MaxPointSize=%f\n\t"
+				"MaxTextureBlendStages=%d\n\t"
+				"MaxSimultaneousTextures=%x\n\t"
+				"MaxVertexBlendMatrices=%x\n\t"
+				"MaxVertexBlendMatrixIndex=%x\n\t"
+				"MaxPrimitiveCount=%d\n\t"
+				"MaxVertexIndex=%x\n\t"
+				"MaxStreams=%x\n\t"
+				"MaxStreamStride=%x\n\t"
+				"VertexShaderVersion=%x\n\t"
+				"MaxVertexShaderConst=%d\n\t"
+				"PixelShaderVersion=%x\n\t"
+				"PixelShader1xMaxValue=%f\n\t",
+				pCaps->MaxTextureWidth, pCaps->MaxTextureHeight, 
+				pCaps->MaxVolumeExtent, 
+				pCaps->MaxTextureRepeat, 
+				pCaps->MaxTextureAspectRatio, 
+				pCaps->MaxAnisotropy,
+				pCaps->MaxActiveLights, 
+				pCaps->MaxUserClipPlanes, 
+				pCaps->MaxUserClipPlanes,
+				pCaps->MaxVertexW, 
+				pCaps->GuardBandLeft, 
+				pCaps->GuardBandTop, 
+				pCaps->GuardBandRight, 
+				pCaps->GuardBandBottom, 
+				pCaps->ExtentsAdjust, 
+				pCaps->MaxPointSize,
+				pCaps->MaxTextureBlendStages, 
+				pCaps->MaxSimultaneousTextures, 
+				pCaps->MaxVertexBlendMatrices, 
+				pCaps->MaxVertexBlendMatrixIndex,
+				pCaps->MaxPrimitiveCount, 
+				pCaps->MaxVertexIndex, 
+				pCaps->MaxStreams, 
+				pCaps->MaxStreamStride, 
+				pCaps->VertexShaderVersion,
+				pCaps->MaxVertexShaderConst, 
+				pCaps->PixelShaderVersion, 
+				pCaps->PixelShader1xMaxValue);
+			if(version == 9) OutTrace(
+				"DevCaps2=%x Reserved5=%x\n\t"
+				"MaxNpatchTessellationLevel=%f\n\t"
+				"MasterAdapterOrdinal=%i\n\t"
+				"AdapterOrdinalInGroup=%i\n\t"
+				"NumberOfAdaptersInGroup=%i\n\t"
+				"DeclTypes=%x\n\t"
+				"NumSimultaneousRTs=%x\n\t"
+				"StretchRectFilterCaps=%x\n\t"
+				"VertexTextureFilterCaps=%x\n\t"
+				"MaxVShaderInstructionsExecuted=%x\n\t"
+				"MaxPShaderInstructionsExecuted=%x\n\t"
+				"MaxVertexShader30InstructionSlots=%x\n\t"
+				"MaxPixelShader30InstructionSlots=%x\n",
+				pCaps->DevCaps2, pCaps->Reserved5,
+				pCaps->MaxNpatchTessellationLevel,
+				pCaps->MasterAdapterOrdinal,
+				pCaps->AdapterOrdinalInGroup,
+				pCaps->NumberOfAdaptersInGroup,
+				pCaps->DeclTypes,
+				pCaps->NumSimultaneousRTs,
+				pCaps->StretchRectFilterCaps,
+				pCaps->VertexTextureFilterCaps,
+				pCaps->MaxVShaderInstructionsExecuted,
+				pCaps->MaxPShaderInstructionsExecuted,
+				pCaps->MaxVertexShader30InstructionSlots,
+				pCaps->MaxPixelShader30InstructionSlots);
 		}
 	}
 	return res;
+}
+
+HRESULT WINAPI extD3DGetDeviceCaps8(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps)
+{
+	return extD3DGetDeviceCaps(lpd3d, Adapter, DeviceType, pCaps, 8);
+}
+
+HRESULT WINAPI extD3DGetDeviceCaps9(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps)
+{
+	return extD3DGetDeviceCaps(lpd3d, Adapter, DeviceType, pCaps, 9);
 }
 
 HMONITOR WINAPI extGetAdapterMonitor(void *lpd3d, UINT Adapter)
@@ -1860,6 +1935,7 @@ UINT WINAPI extGetAvailableTextureMem(void *lpd3dd)
 		OutTraceDW("GetAvailableTextureMem: LIMIT AvailableTextureMem=%u->%u\n", AvailableTextureMem, TextureMemoryLimit);
 		AvailableTextureMem = TextureMemoryLimit;
 	}
+	if(dxw.dwFlags5 & STRESSRESOURCES) AvailableTextureMem = 0xFFFFFFFF;
 	return AvailableTextureMem;
 }
 
@@ -1957,8 +2033,6 @@ HRESULT WINAPI extCreateTexture9(void *lpd3dd, UINT Width, UINT Height, UINT Lev
 	}
 	return res;
 }
-BYTE *s;
-int w, h, pitch;
 
 HRESULT WINAPI extLockRect(void *lpd3dtex, UINT Level, D3DLOCKED_RECT *pLockedRect, CONST RECT *pRect, DWORD Flags)
 {

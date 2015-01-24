@@ -58,6 +58,7 @@ public:
 	BOOL	m_FilterMessages;
 	BOOL	m_PeekAllMessages;
 	BOOL	m_NoWinPosChanges;
+	BOOL	m_MessagePump;
 	BOOL	m_NoBanner;
 	BOOL	m_StartDebug;
 	BOOL	m_HookEnabled;
@@ -133,6 +134,7 @@ public:
 	BOOL	m_ForceHookOpenGL;
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
+	BOOL	m_CenterToWin;
 	BOOL	m_SurfaceWarn;
 	BOOL	m_CapMask;
 	BOOL	m_NoDDRAWBlt;
@@ -150,6 +152,8 @@ public:
 	BOOL	m_ZBuffer0Clean;
 	BOOL	m_ZBufferAlways;
 	BOOL	m_HotPatchAlways;
+	BOOL	m_FreezeInjectedSon;
+	BOOL	m_StressResources;
 	BOOL	m_NoPower2Fix;
 	BOOL	m_NoPerfCounter;
 	BOOL	m_DisableFogging;

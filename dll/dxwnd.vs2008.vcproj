@@ -226,6 +226,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\avifile.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\d3dtexture.cpp"
 				>
 			</File>
@@ -276,6 +280,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\dsound.cpp"
+				>
 			</File>
 			<File
 				RelativePath=".\dwhide.cpp"
@@ -347,6 +355,10 @@
 			</File>
 			<File
 				RelativePath=".\gdi32.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\gdiblt.cpp"
 				>
 			</File>
 			<File

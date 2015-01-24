@@ -166,6 +166,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FilterMessages) t->flags3 |= FILTERMESSAGES;
 	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
 	if(dlg->m_NoWinPosChanges) t->flags5 |= NOWINPOSCHANGES;
+	if(dlg->m_MessagePump) t->flags5 |= MESSAGEPUMP;
 
 	switch(dlg->m_DxEmulationMode){
 		case 0: t->flags |= AUTOMATIC; break;
@@ -174,6 +175,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 3: t->flags |= LOCKEDSURFACE; break;
 		case 4: t->flags |= EMULATESURFACE; break;
 		case 5: t->flags5 |= HYBRIDMODE; break;
+		case 6: t->flags5 |= GDIMODE; break;
 			break;
 	}
 
@@ -241,6 +243,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ZBuffer0Clean) t->flags4 |= ZBUFFER0CLEAN;
 	if(dlg->m_ZBufferAlways) t->flags4 |= ZBUFFERALWAYS;
 	if(dlg->m_HotPatchAlways) t->flags4 |= HOTPATCHALWAYS;
+	if(dlg->m_FreezeInjectedSon) t->flags5 |= FREEZEINJECTEDSON;
+	if(dlg->m_StressResources) t->flags5 |= STRESSRESOURCES;
 	if(dlg->m_NoPower2Fix) t->flags4 |= NOPOWER2FIX;
 	if(dlg->m_NoPerfCounter) t->flags4 |= NOPERFCOUNTER;
 	if(dlg->m_DisableFogging) t->flags4 |= DISABLEFOGGING;
@@ -332,6 +336,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_BlackWhite) t->flags3 |= BLACKWHITE;
 	if(dlg->m_FakeVersion) t->flags2 |= FAKEVERSION;
 	if(dlg->m_FullRectBlt) t->flags2 |= FULLRECTBLT;
+	if(dlg->m_CenterToWin) t->flags5 |= CENTERTOWIN;
 	if(dlg->m_NoPaletteUpdate) t->flags2 |= NOPALETTEUPDATE;
 	if(dlg->m_SurfaceWarn) t->flags3 |= SURFACEWARN;
 	if(dlg->m_CapMask) t->flags3 |= CAPMASK;
@@ -380,6 +385,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FilterMessages = t->flags3 & FILTERMESSAGES ? 1 : 0;
 	dlg->m_PeekAllMessages = t->flags3 & PEEKALLMESSAGES ? 1 : 0;
 	dlg->m_NoWinPosChanges = t->flags5 & NOWINPOSCHANGES ? 1 : 0;
+	dlg->m_MessagePump = t->flags5 & MESSAGEPUMP ? 1 : 0;
 
 	dlg->m_DxEmulationMode = 1; // none
 	if(t->flags & AUTOMATIC) dlg->m_DxEmulationMode = 0;
@@ -387,6 +393,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 3;
 	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 4;
 	if(t->flags5 & HYBRIDMODE) dlg->m_DxEmulationMode = 5;
+	if(t->flags5 & GDIMODE) dlg->m_DxEmulationMode = 6;
 
 	dlg->m_DxFilterMode = 0;
 	if(t->flags4 & BILINEAR2XFILTER) dlg->m_DxFilterMode = 1;
@@ -462,6 +469,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ZBuffer0Clean = t->flags4 & ZBUFFER0CLEAN ? 1 : 0;
 	dlg->m_ZBufferAlways = t->flags4 & ZBUFFERALWAYS ? 1 : 0;
 	dlg->m_HotPatchAlways = t->flags4 & HOTPATCHALWAYS ? 1 : 0;
+	dlg->m_FreezeInjectedSon = t->flags5 & FREEZEINJECTEDSON ? 1 : 0;
+	dlg->m_StressResources = t->flags5 & STRESSRESOURCES ? 1 : 0;
 	dlg->m_NoPower2Fix = t->flags4 & NOPOWER2FIX ? 1 : 0;
 	dlg->m_NoPerfCounter = t->flags4 & NOPERFCOUNTER ? 1 : 0;
 	dlg->m_DisableFogging = t->flags4 & DISABLEFOGGING ? 1 : 0;
@@ -533,6 +542,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_BlackWhite = t->flags3 & BLACKWHITE ? 1 : 0;
 	dlg->m_FakeVersion = t->flags2 & FAKEVERSION ? 1 : 0;
 	dlg->m_FullRectBlt = t->flags2 & FULLRECTBLT ? 1 : 0;
+	dlg->m_CenterToWin = t->flags5 & CENTERTOWIN ? 1 : 0;
 	dlg->m_NoPaletteUpdate = t->flags2 & NOPALETTEUPDATE ? 1 : 0;
 	dlg->m_SurfaceWarn = t->flags3 & SURFACEWARN ? 1 : 0;
 	dlg->m_CapMask = t->flags3 & CAPMASK ? 1 : 0;
@@ -1590,12 +1600,12 @@ void CDxwndhostView::Resize()
 	int i, tmp, size = 0;
 	
 	for(i = 0; i < MAXTARGETS; i ++){
-		tmp = listctrl.GetStringWidth(TargetMaps[i].path);
+		tmp = listctrl.GetStringWidth(TitleMaps[i].title);
 		if(size < tmp) size = tmp;
 	}
 	
 	listcol.mask = LVCF_WIDTH;
-	listcol.cx = size + 10;
+	listcol.cx = size + 32;
 	listctrl.SetColumn(0, &listcol);
 }
 

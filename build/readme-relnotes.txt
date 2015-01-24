@@ -705,4 +705,17 @@ add: partial logging of Direct3DDevice::GetDeviceCaps output (to be completed)
 add: handling of notes in the DxWnd GUI (configuration notes tab)
 mod: when log is not possible on program's folder, it is no longer written in %TEMP% dir, is now written in DxWnd local dir.
 
+v2.03.08
+add: "GDI mode" ddraw surface handling mode
+add: "center to window" option
+add: "message pump" input flag - fixes Arxel Tribe games (Faust, Legend of the prophet & assassin, ...)
+fix: "Viper Racing" crash
+fix: "limit resources" option for "Tiger Woods PGA World Tour 08"
+fix: "limit resources" option for "Jeff Gordon XS Racing demo"
+add: debug "stress resources" option
+fix: added a couple of directinput diagnostic logs
+add: debug option "freeze injected son"
+add: made check for admin rights configurable in dxwnd.ini
+add: "portable" capability to configure relative pathnames
+fix: small bug in game menu string width - now game titles should not be trunked any longer.
 
