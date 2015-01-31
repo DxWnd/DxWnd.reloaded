@@ -1413,6 +1413,7 @@ void dxwCore::ShowBanner(HWND hwnd)
 	RECT client;
 	RECT win;
 	POINT PrevViewPort;
+	int StretchMode;
 
 	hClientDC=(*pGDIGetDC)(hwnd);
 	(*pGetClientRect)(hwnd, &client);
@@ -1432,6 +1433,8 @@ void dxwCore::ShowBanner(HWND hwnd)
 
 	//if(!pSetViewportOrgEx) pSetViewportOrgEx=SetViewportOrgEx;
 	(*pSetViewportOrgEx)(hClientDC, 0, 0, &PrevViewPort);
+	StretchMode=GetStretchBltMode(hClientDC);
+	SetStretchBltMode(hClientDC, HALFTONE);
 	for (int i=1; i<=16; i++){
 		int w, h;
 		w=(bm.bmWidth*i)/8;
@@ -1447,6 +1450,7 @@ void dxwCore::ShowBanner(HWND hwnd)
 		(*pGDIStretchBlt)(hClientDC, (client.right-w)/2, (client.bottom-h)/2, w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
 		Sleep(40);
 	}
+	SetStretchBltMode(hClientDC, StretchMode);
 	(*pSetViewportOrgEx)(hClientDC, PrevViewPort.x, PrevViewPort.y, NULL);
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);

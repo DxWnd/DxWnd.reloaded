@@ -324,10 +324,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Inject.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\KillProc.cpp"
 				>
 			</File>

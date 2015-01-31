@@ -234,6 +234,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ddblit.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ddproxy.cpp"
 				>
 			</File>

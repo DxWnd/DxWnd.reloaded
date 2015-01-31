@@ -122,7 +122,7 @@
 #define DISABLEFOGGING		0x00000080 // Disable D3D fogging
 #define NOPOWER2FIX			0x00000100 // Handle textures whose size is not a power of 2 (32, 64, 128 ...)
 #define NOPERFCOUNTER		0x00000200 // Disables the GetPerfCounter performance metrics API,as if it was not supported....
-#define BILINEAR2XFILTER	0x00000400 // attempt to smooth low-res graphic by applying biulinear filtering in emulation mode
+#define BILINEAR2XFILTER	0x00000400 // attempt to smooth low-res graphic by applying simplified bilinear filtering in emulation mode
 #define INTERCEPTRDTSC		0x00000800 // Intercapts RDTSC opcodes to hook at assembly level
 #define LIMITSCREENRES		0x00001000 // Limit available screen resolution up to defined maximum
 #define NOFILLRECT			0x00002000 // Suppress FillRect calls
@@ -173,6 +173,7 @@
 #define CENTERTOWIN			0x01000000 // do NOT stretch the image to the whole window client area, but center to it.
 #define STRESSRESOURCES		0x02000000 // simulates a lack of resources condition, for testing (debug opt.)
 #define MESSAGEPUMP			0x04000000 // inserts a "message pump" loop between repeated operation that may stop the task on Win7 and greater
+#define TEXTUREFORMAT		0x08000000 // Apply virtual pixel format to texture surfaces without DDSD_PIXELFORMAT attribute
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

@@ -853,6 +853,9 @@ BOOL WINAPI extCreateProcessA(
 					}
 #endif				
 				OutTrace("CreateProcess: injection started\n", res);
+				CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hProcess);
+				CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hThread);
+				CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hFile);
 				break;
 			case EXIT_THREAD_DEBUG_EVENT:
 #ifdef LOCKINJECTIONTHREADS
@@ -881,8 +884,16 @@ BOOL WINAPI extCreateProcessA(
 						debug_event.u.Exception.dwFirstChance);
 					// exception twice in same address, then do not continue.
 					if(LastExceptionPtr == ei->ExceptionRecord.ExceptionAddress) bContinueDebugging = FALSE;
+					//if(ei->dwFirstChance == 0) bContinueDebugging = FALSE;
 					LastExceptionPtr = ei->ExceptionRecord.ExceptionAddress;
 				}
+				break;
+			case LOAD_DLL_DEBUG_EVENT:
+				CloseHandle(((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->hFile);
+				break;
+			case CREATE_THREAD_DEBUG_EVENT:
+				CloseHandle(((CREATE_THREAD_DEBUG_INFO *)&debug_event.u)->hThread);
+				break;
 			default:
 				break;
 			}

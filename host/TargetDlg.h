@@ -76,6 +76,7 @@ public:
 	BOOL	m_SuppressClipping;
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;
+	BOOL	m_TextureFormat;
 	BOOL	m_FixWinFrame;
 	BOOL	m_EnableClipping;
 	BOOL	m_CursorClipping;

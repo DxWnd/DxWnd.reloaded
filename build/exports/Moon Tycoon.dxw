@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+	<head>
+
+		<meta http-equiv="content-Type" content="text/html; charset=utf-8" />
+		<title>Wikisend: free file sharing service</title>
+		<link href="http://wikisend.com/css/styles.css" type="text/css" rel="stylesheet" />
+		<script src="http://wikisend.com/js/jquery-1.2.1.min.js" type="text/javascript"></script>
+		<script src="http://wikisend.com/js/download.js" type="text/javascript"></script><script src="http://wikisend.com/js/common.js" type="text/javascript"></script></head>
+
+<body>
+
+<div id="pagebgr">
+<div id="topbgr">
+<div id="page">
+
+<!-- Login -->
+<div id="login">
+<form action="/sign-in/" method="post" id="signInForm">
+
+<div id="close"><input name="" type="image" id="close_login" src="http://wikisend.com/images/close_win.gif" /></div>
+
+<div id="left">
+
+<div class="formelement">
+<div class="formtitle"><label for="username">Username:</label></div><input id="username" name="username" type="text" class="inputfield" />
+</div>
+
+<div class="formelement">
+<div class="formtitle"><label for="password">Password:</label></div><input id="password" name="password" type="password" class="inputfield" />
+</div>
+</div>
+<div id="right">
+
+<input type="image" src="http://wikisend.com/images/button_login.gif" alt="Sign in" /><br />
+<a id="forgot" href="/forgot-password/">Forgot your password?</a>
+<input type="hidden" name="sent" value="1" />
+</div>
+
+</form>
+</div>
+<!-- End Login -->
+
+<!-- ################# HEADER ################## -->
+<div id="header">
+<div id="logo"><a href="/"><img src="http://wikisend.com/images/logo.gif" width="351" height="58" alt="Wikisend: file sharing service" class="imgblock" /></a></div>
+
+<div id="toplinks">
+Have an account: <a href="/sign-in/" id="open_login">Sign in here</a><br />New user: <a href="/sign-up/">Sign up now</a></div></div>
+
+<!-- ################# END HEADER ################## -->
+
+<!-- ################# EARTH BLOCK ################## -->
+
+<div id="earthtabs">
+<div id="upload"><a href="/"><img src="/images/upload_inactive.gif" width="260" height="46" alt="Upload" class="imgblock" /></a></div>
+<div id="download"><img src="/images/earth_download.gif" width="278" height="59" alt="Download" class="imgblock" /></div>
+</div>
+
+<div id="earth"><div id="themebgr"><div id="cloud"><div id="grass"><div id="insidetheme">
+
+
+	<div id="titleblock">
+		<span id="filetitle">Moon Tycoon.dxw</span>	</div>
+
+	<form action="" method="post" id="downloadform">
+		<div class="textindent">
+			
+			<ul id="details">
+				<li><span class="detailtitle">File ID:</span> <span id="fileidvalue">271650</span></li>
+				<li><span class="detailtitle">File size:</span> 512 B</li>
+				<li><span class="detailtitle">Time to live:</span> 28 days</li>			</ul>
+			<div class="linkblock">
+					<div class="linktitle"><label for="dlink">Download link:</label></div><input id="dlink" type="text" value="http://wikisend.com/download/271650/Moon Tycoon.dxw" class="linkfield" readonly="readonly"/></div><div class="linkblock">
+					<div class="linktitle"><label for="flink">Forum link:</label></div><input id="flink" type="text" value="[URL=http://wikisend.com/download/271650/Moon Tycoon.dxw]Moon Tycoon.dxw[/URL]" class="linkfield" readonly="readonly"/></div>	
+				
+		</div>
+		
+		<!-- end properties -->
+	
+
+		<div class="button">
+			<input type="hidden" name="act" value="download" id="act" />
+			<input type="image" src="/images/button_download.gif" alt="Download file" id="d_but"/>
+		</div>
+	</form>
+	
+
+</div></div></div></div></div>
+
+
+<!-- ################# END EARTH BLOCK ################## -->
+
+
+<!-- ################# WHY BLOCK ################## -->
+
+<div id="why"><div id="bgr"><div id="gradient"><div id="earthpics">
+<h1>Why our site?</h1>
+
+<div id="content">
+<h2>Simple &amp; Free</h2>
+Upload and download lots of  files, big files, small files, data files, 
+media files, archives or backups - any files. With Wikisend it`s simple and 
+free.
+
+<h2>Share with Friends</h2>
+Share files with your friends using E-mail, MySpace page, your blog, forums 
+and so on. With Wikisend sharing files, photos, videos or documents is easy, 
+fast, and reliable.
+
+<h2>Start now</h2>
+No need to register, activate, install or read manuals - use our uploading 
+form, you`re ready to go.
+
+</div>
+
+</div></div></div></div>
+
+<!-- ################# END WHY BLOCK ################## -->
+
+
+</div></div></div>
+
+<!-- ################# FOOTER ################## -->
+<div id="footer"><div id="bottom"><div id="top">
+
+<ul>
+
+	<li id="first"><a class="footlink" href="/">Home page</a></li>
+	<li><a class="footlink" href="/feedback/">Feedback</a></li>
+	<li><a class="footlink" href="/terms/">Terms and conditions</a></li>
+	</ul>
+
+<div id="copy">&copy;&nbsp;2008 Wikisend - File Sharing. All rights reserved.</div>
+
+</div></div></div>
+<!-- ################# END FOOTER ################## -->
+
+</body>
+</html>

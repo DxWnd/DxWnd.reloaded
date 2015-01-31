@@ -15,61 +15,40 @@
 
 BOOL Inject(DWORD pID, const char * DLL_NAME)
 {
-	HANDLE Proc;
+	HANDLE hProc, hThread;
+	HMODULE hLib;
 	char buf[50] = {0};
 	LPVOID RemoteString, LoadLibAddy;
 	if(!pID) return false;
-	//Proc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pID); // not working on Win XP
-	Proc = OpenProcess(PROCESS_CREATE_THREAD|PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, FALSE, pID);
-	if(!Proc)
+	//hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pID); // not working on Win XP
+	hProc = OpenProcess(PROCESS_CREATE_THREAD|PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, FALSE, pID);
+	if(!hProc)
 	{
 		sprintf(buf, "OpenProcess() failed: pid=%x err=%d", pID, GetLastError());
 		MessageBox(NULL, buf, "Loader", MB_OK);
-		printf(buf);
 		return false;
 	}
-	LoadLibAddy = (LPVOID)GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
-	// Allocate space in the process for our DLL
-	RemoteString = (LPVOID)VirtualAllocEx(Proc, NULL, strlen(DLL_NAME), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	// Write the string name of our DLL in the memory allocated
-	WriteProcessMemory(Proc, (LPVOID)RemoteString, DLL_NAME, strlen(DLL_NAME), NULL);
-	// Load our DLL
-	if(!CreateRemoteThread(Proc, NULL, 0, (LPTHREAD_START_ROUTINE)LoadLibAddy, (LPVOID)RemoteString, 0, NULL)){
+	hLib=GetModuleHandle("kernel32.dll");
+	LoadLibAddy = (LPVOID)GetProcAddress(hLib, "LoadLibraryA");
+	// Allocate space in the process for the DLL
+	RemoteString = (LPVOID)VirtualAllocEx(hProc, NULL, strlen(DLL_NAME), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	// Write the string name of the DLL in the memory allocated
+	WriteProcessMemory(hProc, (LPVOID)RemoteString, DLL_NAME, strlen(DLL_NAME), NULL);
+	// Load the DLL
+	hThread=CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)LoadLibAddy, (LPVOID)RemoteString, 0, NULL);
+	// Free/Release/Close everything
+	VirtualFreeEx(hProc, RemoteString, strlen(DLL_NAME), MEM_RELEASE);
+	if(!hThread){
 		sprintf(buf, "CreateRemoteThread() failed: pid=%x err=%d", pID, GetLastError());
 		MessageBox(NULL, buf, "Loader", MB_OK);
-		printf(buf);
+		CloseHandle(hProc);
 		return false;
 	}
-	CloseHandle(Proc);
+	CloseHandle(hThread);
+	CloseHandle(hProc);
+	CloseHandle(hLib);
 	return true;
 }
-
-#if 0
-DWORD GetTargetThreadIDFromProcName(const char * ProcName)
-{
-	PROCESSENTRY32 pe;
-	HANDLE thSnapShot;
-	BOOL retval, ProcFound = false;
-	thSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if(thSnapShot == INVALID_HANDLE_VALUE)
-	{
-		MessageBox(NULL, "Error: Unable to create toolhelp snapshot!", "2MLoader", MB_OK);
-		//printf("Error: Unable to create toolhelp snapshot!");
-		return false;
-	}
-	pe.dwSize = sizeof(PROCESSENTRY32);
-	retval = Process32First(thSnapShot, &pe);
-	while(retval)
-	{
-		if(StrStrI(pe.szExeFile, ProcName))
-		{
-			return pe.th32ProcessID;
-		}
-		retval = Process32Next(thSnapShot, &pe);
-	}
-	return 0;
-}
-#endif
 
 #define STATUS_SUCCESS    ((NTSTATUS)0x000 00000L)
 #define ThreadQuerySetWin32StartAddress 9

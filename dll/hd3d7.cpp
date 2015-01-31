@@ -1,5 +1,8 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <windows.h>
 #include <d3d.h>
+#include <stdio.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "dxhook.h"
@@ -32,6 +35,7 @@ typedef HRESULT (WINAPI *FindDevice_Type)(void *, LPD3DFINDDEVICESEARCH, LPD3DFI
 typedef HRESULT (WINAPI *CreateDevice2_Type)(void *, REFCLSID, LPDIRECTDRAWSURFACE, LPDIRECT3DDEVICE2 *);
 typedef HRESULT (WINAPI *CreateDevice3_Type)(void *, REFCLSID, LPDIRECTDRAWSURFACE4, LPDIRECT3DDEVICE3 *, LPUNKNOWN);
 typedef HRESULT (WINAPI *CreateDevice7_Type)(void *, REFCLSID, LPDIRECTDRAWSURFACE7, LPDIRECT3DDEVICE7 *);
+typedef HRESULT (WINAPI *EnumZBufferFormats_Type)(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 
 QueryInterfaceD3_Type pQueryInterfaceD3 = NULL;
 Initialize_Type pInitialize = NULL;
@@ -46,6 +50,9 @@ FindDevice_Type pFindDevice = NULL;
 CreateDevice2_Type pCreateDevice2 = NULL;
 CreateDevice3_Type pCreateDevice3 = NULL;
 CreateDevice7_Type pCreateDevice7 = NULL;
+EnumZBufferFormats_Type pEnumZBufferFormats = NULL;
+
+HRESULT WINAPI extEnumZBufferFormats(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 
 // Direct3DDevice-n interfaces
 
@@ -216,6 +223,89 @@ HRESULT WINAPI extTexUnload(void *);
 extern char *ExplainDDError(DWORD);
 int GD3DDeviceVersion;
 
+static char *sFourCC(DWORD fcc)
+{
+	static char sRet[5];
+	char c;
+	int i;
+	char *t=&sRet[0];
+	for(i=0; i<4; i++){
+		c = fcc & (0xFF);
+		*t++ = isprint(c) ? c : '.';
+		c = c >> 8;
+	}
+	*t = 0;
+	return sRet;
+}
+
+char *DumpPixelFormat(LPDDPIXELFORMAT ddpfPixelFormat)
+{
+	static char sBuf[512];
+	char sItem[256];
+	DWORD flags=ddpfPixelFormat->dwFlags;
+	sprintf(sBuf, " PixelFormat flags=%x(%s) BPP=%d", 
+		flags, ExplainPixelFormatFlags(flags), ddpfPixelFormat->dwRGBBitCount);
+	if (flags & DDPF_RGB) {
+		if (flags & DDPF_ALPHAPIXELS) {
+			sprintf(sItem, " RGBA=(%x,%x,%x,%x)", 
+				ddpfPixelFormat->dwRBitMask,
+				ddpfPixelFormat->dwGBitMask,
+				ddpfPixelFormat->dwBBitMask,
+				ddpfPixelFormat->dwRGBAlphaBitMask);
+		}
+		else {
+			sprintf(sItem, " RGB=(%x,%x,%x)", 
+				ddpfPixelFormat->dwRBitMask,
+				ddpfPixelFormat->dwGBitMask,
+				ddpfPixelFormat->dwBBitMask);
+		}
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_YUV) {
+		sprintf(sItem, " YUVA=(%x,%x,%x,%x)", 
+			ddpfPixelFormat->dwYBitMask,
+			ddpfPixelFormat->dwUBitMask,
+			ddpfPixelFormat->dwVBitMask,
+			ddpfPixelFormat->dwYUVAlphaBitMask);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_ZBUFFER) {
+		sprintf(sItem, " SdZSbL=(%x,%x,%x,%x)", 
+			ddpfPixelFormat->dwStencilBitDepth,
+			ddpfPixelFormat->dwZBitMask,
+			ddpfPixelFormat->dwStencilBitMask,
+			ddpfPixelFormat->dwLuminanceAlphaBitMask);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_ALPHA) {
+		sprintf(sItem, " LBdBlZ=(%x,%x,%x,%x)", 
+			ddpfPixelFormat->dwLuminanceBitMask,
+			ddpfPixelFormat->dwBumpDvBitMask,
+			ddpfPixelFormat->dwBumpLuminanceBitMask,
+			ddpfPixelFormat->dwRGBZBitMask);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_LUMINANCE) {
+		sprintf(sItem, " BMbMF=(%x,%x,%x,%x)", 
+			ddpfPixelFormat->dwBumpDuBitMask,
+			ddpfPixelFormat->MultiSampleCaps.wBltMSTypes,
+			ddpfPixelFormat->MultiSampleCaps.wFlipMSTypes,
+			ddpfPixelFormat->dwYUVZBitMask);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_BUMPDUDV) {
+		sprintf(sItem, " O=(%x)", 
+			ddpfPixelFormat->dwOperations);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_FOURCC) {
+		sprintf(sItem, " FourCC=%x(%s)", 
+			ddpfPixelFormat->dwFourCC, sFourCC(ddpfPixelFormat->dwFourCC));
+		strcat(sBuf, sItem);
+	}
+	return sBuf;
+}
+
 int HookDirect3D7(HMODULE module, int version){
 	void *tmp;
 	HINSTANCE hinst;
@@ -305,6 +395,7 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateViewport3, (void **)&pCreateViewport3, "CreateViewport(3)");
 		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice3, (void **)&pCreateDevice3, "CreateDevice(D3D3)");
+		SetHook((void *)(**(DWORD **)lplpdd +  40), extEnumZBufferFormats, (void **)&pEnumZBufferFormats, "EnumZBufferFormats(D3D3)");
 		break;
 	case 7:
 		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
@@ -1420,3 +1511,30 @@ HRESULT WINAPI extTexUnload(void *t)
 	if(ret) OutTraceE("Texture::Load ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
+
+typedef struct {
+	LPD3DENUMPIXELFORMATSCALLBACK *cb;
+	LPVOID arg;
+} CallbackZBufArg;
+
+HRESULT WINAPI extZBufferProxy(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
+{
+	HRESULT res;
+	OutTraceD3D("EnumZBufferFormats: CALLBACK PixelFormat=%x(%s) context=%x\n", lpDDPixFmt->dwFlags,  lpContext);
+	res = (*(((CallbackZBufArg *)lpContext)->cb))(lpDDPixFmt, ((CallbackZBufArg *)lpContext)->arg);
+	OutTraceD3D("EnumDevices: CALLBACK ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extEnumZBufferFormats(void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
+{
+	HRESULT ret;
+	CallbackZBufArg Arg;
+	OutTrace("Direct3D::EnumZBufferFormats d3d=%x clsid=%x context=%x\n", lpd3d, riidDevice.Data1, lpContext);
+	Arg.cb= &lpEnumCallback;
+	Arg.arg=lpContext;
+	ret = (*pEnumZBufferFormats)(lpd3d, riidDevice, (LPD3DENUMPIXELFORMATSCALLBACK)extZBufferProxy, (LPVOID)&Arg);
+	OutTraceE("Direct3D::EnumZBufferFormats res=%x(%s)\n", ret, ExplainDDError(ret));
+	return ret;
+}
+

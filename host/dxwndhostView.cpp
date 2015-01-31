@@ -35,7 +35,6 @@ TARGETMAP *pTargets; // idem.
 
 #define LOCKINJECTIONTHREADS
 
-
 static char *Escape(char *s)
 {
 	static char tmp[1024];
@@ -276,6 +275,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressClipping) t->flags |= SUPPRESSCLIPPING;
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
+	if(dlg->m_TextureFormat) t->flags5 |= TEXTUREFORMAT;
 	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
 	if(dlg->m_EnableClipping) t->flags |= ENABLECLIPPING;
 	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
@@ -482,6 +482,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressClipping = t->flags & SUPPRESSCLIPPING ? 1 : 0;
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
+	dlg->m_TextureFormat = t->flags5 & TEXTUREFORMAT ? 1 : 0;
 	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
 	dlg->m_EnableClipping = t->flags & ENABLECLIPPING ? 1 : 0;
 	dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
@@ -1673,6 +1674,38 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	CListView::OnRButtonDown(nFlags, point);
 }
 
+static char *ExceptionCaption(DWORD ec)
+{
+	char *c;
+	switch(ec){
+		case EXCEPTION_ACCESS_VIOLATION:		c="Access Violation"; break;
+		case EXCEPTION_DATATYPE_MISALIGNMENT:	c="Datatype Misalignment"; break;
+		case EXCEPTION_BREAKPOINT:				c="Breakpoint"; break;
+		case EXCEPTION_SINGLE_STEP:				c="Single Step"; break;
+		case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:	c="Array Bouds Exceeded"; break;
+		case EXCEPTION_FLT_DENORMAL_OPERAND:	c="Float Denormal Operand"; break;
+		case EXCEPTION_FLT_DIVIDE_BY_ZERO:		c="Divide by Zero"; break;
+		case EXCEPTION_FLT_INEXACT_RESULT:		c="Inexact Result"; break;
+		case EXCEPTION_FLT_INVALID_OPERATION:	c="Invalid Operation"; break;
+		case EXCEPTION_FLT_OVERFLOW:			c="Float Overflow"; break;
+		case EXCEPTION_FLT_STACK_CHECK:			c="Float Stack Check"; break;
+		case EXCEPTION_FLT_UNDERFLOW:			c="Float Undeflow"; break;
+		case EXCEPTION_INT_DIVIDE_BY_ZERO:		c="Integer Divide by Zero"; break;
+		case EXCEPTION_INT_OVERFLOW:			c="Integer Overflow"; break;
+		case EXCEPTION_PRIV_INSTRUCTION:		c="Priviliged Instruction"; break;
+		case EXCEPTION_IN_PAGE_ERROR:			c="In Page Error"; break;
+		case EXCEPTION_ILLEGAL_INSTRUCTION:		c="Illegal Instruction"; break;
+		case EXCEPTION_NONCONTINUABLE_EXCEPTION:c="Non-continuable exception"; break;
+		case EXCEPTION_STACK_OVERFLOW:			c="Stack Overflow"; break;
+		case EXCEPTION_INVALID_DISPOSITION:		c="Invalid Disposition"; break;
+		case EXCEPTION_GUARD_PAGE:				c="Guard Page Violation"; break;
+		case EXCEPTION_INVALID_HANDLE:			c="Invalid Handle"; break;
+		//case EXCEPTION_POSSIBLE_DEADLOCK:		c="Possible Deadlock"; break;
+		default:								c="unknown"; break;
+	}
+	return c;
+}
+
 // For thread messaging
 #define DEBUG_EVENT_MESSAGE		WM_APP + 0x100
 
@@ -1699,13 +1732,13 @@ DWORD WINAPI StartDebug(void *p)
 	int res;
 	BOOL step=TRUE; // initialize to TRUE to enable
 	BOOL stepdll=FALSE; // initialize to TRUE to enable
+	extern char *GetFileNameFromHandle(HANDLE);
 #endif
 #ifdef LOCKINJECTIONTHREADS
 	DWORD StartingCode;
 	LPVOID StartAddress = 0;
-	DWORD TargetHandle = NULL;
+	HANDLE TargetHandle = NULL;
 #endif
-	extern char *GetFileNameFromHandle(HANDLE);
 	bool bContinueDebugging;
 	char DebugMessage[256+1];
 
@@ -1728,30 +1761,12 @@ DWORD WINAPI StartDebug(void *p)
 	while(bContinueDebugging)
 	{ 
 		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
-		if (!WaitForDebugEvent(&debug_event, INFINITE)) return TRUE;
+		if (!WaitForDebugEvent(&debug_event, INFINITE)) break; // must release pinfo handles
 		switch(debug_event.dwDebugEventCode){
 		case EXIT_PROCESS_DEBUG_EVENT:
-#ifdef DXWDEBUGSTEPPING
-			if(step){
-				// DXW_STRING_STEPPING
-				xpi=(EXIT_PROCESS_DEBUG_INFO *)&debug_event.u;
-				sprintf(DebugMessage, "EXIT PROCESS RetCode=%x", xpi->dwExitCode);
-				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
-				if(res!=IDYES) step=FALSE;
-			}
-#endif
 			bContinueDebugging=false;
 			break;
 		case CREATE_PROCESS_DEBUG_EVENT:
-#ifdef DXWDEBUGSTEPPING
-			if(step){
-				pi=(PROCESS_INFORMATION *)&debug_event.u;
-				sprintf(DebugMessage, "CREATE PROCESS hProcess=%x hThread=%x dwProcessId=%x dwThreadId=%x path=%s", 
-					pi->hProcess, pi->hThread, pi->dwProcessId, pi->dwThreadId, GetFileNameFromHandle(pi->hProcess));
-				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
-				if(res!=IDYES) step=FALSE;
-			}
-#endif
 			GetFullPathName("dxwnd.dll", MAX_PATH, path, NULL);
 			if(!Inject(pinfo.dwProcessId, path)){
 				// DXW_STRING_INJECTION
@@ -1763,20 +1778,14 @@ DWORD WINAPI StartDebug(void *p)
 			DWORD EndlessLoop;
 			EndlessLoop=0x9090FEEB; // careful: it's BIG ENDIAN: EB FE 90 90
 			SIZE_T BytesCount;
-			TargetHandle = (DWORD)OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, FALSE, pinfo.dwProcessId);
+			TargetHandle = OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, FALSE, pinfo.dwProcessId);
 			if(TargetHandle){
-				//sprintf(DebugMessage,"OpenProcess returns=%x", TargetHandle);
-				//MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 				StartAddress = GetThreadStartAddress(pinfo.hThread);
-				//sprintf(DebugMessage,"GetThreadStartAddress returns=%x", StartAddress);
-				//MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 				if(StartAddress){
 					if(!ReadProcessMemory(pinfo.hProcess, StartAddress, &StartingCode, 4, &BytesCount)){ 
 						sprintf(DebugMessage,"ReadProcessMemory error=%d", GetLastError());
 						MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 					}
-					//sprintf(DebugMessage,"ReadProcessMemory got=%x", StartingCode);
-					//MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 					if(!WriteProcessMemory(pinfo.hProcess, StartAddress, &EndlessLoop, 4, &BytesCount)){
 						sprintf(DebugMessage,"WriteProcessMemory error=%d", GetLastError());
 						MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
@@ -1784,95 +1793,55 @@ DWORD WINAPI StartDebug(void *p)
 				}
 			}
 #endif
+			CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hProcess);
+			CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hThread);
+			CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hFile);
 			break;
 		case CREATE_THREAD_DEBUG_EVENT:
-#ifdef DXWDEBUGSTEPPING
-			if(step){
-				ti=(CREATE_THREAD_DEBUG_INFO *)&debug_event.u;
-				sprintf(DebugMessage, "CREATE THREAD hThread=%x lpThreadLocalBase=%x lpStartAddress=%x", 
-					ti->hThread, ti->lpThreadLocalBase, ti->lpStartAddress);
-				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
-				if(res!=IDYES) step=FALSE;
-			}
-#endif
+			CloseHandle(((CREATE_THREAD_DEBUG_INFO *)&debug_event.u)->hThread);
 			break;
 		case EXIT_THREAD_DEBUG_EVENT:
-#ifdef DXWDEBUGSTEPPING
-			if(step){
-				xti=(EXIT_THREAD_DEBUG_INFO *)&debug_event.u;
-				sprintf(DebugMessage, "EXIT THREAD RetCode=%x", xti->dwExitCode);
-				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
-				if(res!=IDYES) step=FALSE;
-			}
-#endif
 #ifdef LOCKINJECTIONTHREADS
 			if(TargetHandle && StartAddress){
-				//sprintf(DebugMessage,"OpenProcess returns=%x", TargetHandle);
-				//MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 				if(!WriteProcessMemory(pinfo.hProcess, StartAddress, &StartingCode, 4, &BytesCount)){
 					sprintf(DebugMessage,"WriteProcessMemory error=%d", GetLastError());
 					MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 				}
-				//sprintf(DebugMessage,"WriteProcessMemory recovered=%x", StartingCode);
-				//MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
-				CloseHandle((HANDLE)TargetHandle);
 			}
+			if(TargetHandle) CloseHandle((HANDLE)TargetHandle);
 #endif
 			bContinueDebugging=false;
 			break;
 		case LOAD_DLL_DEBUG_EVENT:
-#ifdef DXWDEBUGSTEPPING
-			if(stepdll){
-				li=(LOAD_DLL_DEBUG_INFO *)&debug_event.u;
-				sprintf(DebugMessage, "LOAD DLL hFile=%x path=%s", 
-					li->hFile, GetFileNameFromHandle(li->hFile));
-				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
-				if(res!=IDYES) stepdll=FALSE; 
-			}
-#endif
+			CloseHandle(((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->hFile);
 			break;
 		case UNLOAD_DLL_DEBUG_EVENT:
-#ifdef DXWDEBUGSTEPPING
-			if(stepdll){
-				ui=(UNLOAD_DLL_DEBUG_INFO *)&debug_event.u;
-				sprintf(DebugMessage, "UNLOAD DLL Base=%x", ui->lpBaseOfDll);
-				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
-				if(res!=IDYES) stepdll=FALSE; 
-			}
-#endif
 			break;
 		case OUTPUT_DEBUG_STRING_EVENT: 				
 			break;
 		case EXCEPTION_DEBUG_EVENT:
-#ifdef DXWDEBUGSTEPPING
-			if(step){
-				ei=(EXCEPTION_DEBUG_INFO *)&debug_event.u;
-				sprintf(DebugMessage, "EXCEPTION code=%x flags=%x addr=%x firstchance=%x", 
-					ei->ExceptionRecord.ExceptionCode, 
-					ei->ExceptionRecord.ExceptionFlags, 
-					ei->ExceptionRecord.ExceptionAddress,
-					debug_event.u.Exception.dwFirstChance);
-				res=MessageBoxEx(0, DebugMessage, "Continue stepping?", MB_YESNO | MB_ICONQUESTION, NULL);
-				if(res!=IDYES) step=FALSE;
-			}
-#endif
+			//sprintf(DebugMessage, "Exception %x(%s) caught at addr=%x",
+			//	debug_event.u.Exception.ExceptionRecord.ExceptionCode, 
+			//	ExceptionCaption(debug_event.u.Exception.ExceptionRecord.ExceptionCode),
+			//	debug_event.u.Exception.ExceptionRecord.ExceptionAddress);
+			//MessageBoxEx(0, DebugMessage, "EXCEPTION", MB_ICONEXCLAMATION, NULL);
 			break;
 		default:
+			sprintf(DebugMessage,"Unknown eventcode=%x", debug_event.dwDebugEventCode);
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
 			break;
 		}
 		if(bContinueDebugging){
-			ContinueDebugEvent(debug_event.dwProcessId, 
-				debug_event.dwThreadId, 
-				dwContinueStatus);
+			ContinueDebugEvent(debug_event.dwProcessId, debug_event.dwThreadId, dwContinueStatus);
 		}
 		else{
 			DebugSetProcessKillOnExit(FALSE);
 			ContinueDebugEvent(debug_event.dwProcessId,debug_event.dwThreadId, DBG_CONTINUE); 
 			DebugActiveProcessStop(debug_event.dwProcessId);
-			if (pinfo.hProcess) CloseHandle(pinfo.hProcess);
-			if (pinfo.hThread) CloseHandle(pinfo.hThread);
 		}
 	}
+	CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
+	CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
 	return TRUE;
 }
 
@@ -1896,12 +1865,14 @@ void CDxwndhostView::OnRun()
 	if(TargetMaps[i].flags2 & STARTDEBUG){
 		ThreadInfo.TM=&TargetMaps[i];
 		ThreadInfo.PM=&TitleMaps[i];
-		CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL); 
+		CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
 	}
 	else{
 		CreateProcess(NULL, 
 			(strlen(TitleMaps[i].launchpath)>0) ? TitleMaps[i].launchpath: TargetMaps[i].path, 
 			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
+		CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
+		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
 	}
 }
 

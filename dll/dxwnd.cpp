@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.08"
+#define VERSION "2.03.09"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS
@@ -176,7 +176,11 @@ int SetTarget(TARGETMAP *targets){
 	for(i = 0; targets[i].path[0]; i ++){
 		char *c;
 		pMapping[i] = targets[i];
-		GetFullPathName(targets[i].path, MAX_PATH, path, NULL);
+		c = targets[i].path;
+		if(*c == '*')
+			strcpy(path, targets[i].path);
+		else
+			GetFullPathName(targets[i].path, MAX_PATH, path, NULL);
 		for(c = path; *c; c++) *c = tolower(*c);
 		strcpy(pMapping[i].path, path);
 	}

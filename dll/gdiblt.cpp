@@ -40,6 +40,10 @@ void BlitToWindow(HWND w, LPDIRECTDRAWSURFACE s)
 		if(!ret) OutTrace("BitBlt error=%d\n", GetLastError());
 	}
 	else{
+		if(dxw.dwFlags5 & BILINEARFILTER) {
+			ret=SetStretchBltMode(thdc, HALFTONE);
+			if((!ret) || (ret==ERROR_INVALID_PARAMETER)) OutTrace("GDI SetStretchBltMode error=%d\n", GetLastError());
+		}
 		ret=(*pGDIStretchBlt)(thdc, 0, 0, client.right, client.bottom, shdc, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), SRCCOPY);
 		if(!ret) OutTrace("GDI StretchBlt error=%d\n", GetLastError());
 	}

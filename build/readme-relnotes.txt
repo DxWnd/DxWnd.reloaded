@@ -719,3 +719,9 @@ add: made check for admin rights configurable in dxwnd.ini
 add: "portable" capability to configure relative pathnames
 fix: small bug in game menu string width - now game titles should not be trunked any longer.
 
+v2.03.09
+code reorganization & reuse
+add: "Set texture pixel format" flag, makes "Jeff Gordon XS Racing" working on emulated mode and 32BPP desktop
+add: "GDI mode" emulation uses HALFTONE to activate GDI bilinear stretching when "Full Bilinear" filter is activated: slower, but better quality
+add: preliminary hooking for EnumZBufferFormats ddraw7 method
+fix: eliminated some handle leakage when injecting launched processes
