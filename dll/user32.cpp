@@ -403,9 +403,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 		LONG dwStyle, dwExStyle;
 		HMENU hMenu;
 		int minx, miny;
-		wrect.top = wrect.left = 0;
-		wrect.right = dxw.GetScreenWidth();
-		wrect.bottom = dxw.GetScreenHeight();
+		wrect = dxw.GetScreenRect();
 		dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
 		dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
 		hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
@@ -1659,12 +1657,14 @@ BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 	// proxy....
 	if (!(dxw.dwFlags1 & ENABLECLIPPING)) {
 		ret=(*pGetClipCursor)(lpRect);
+		// v2.03.11: fix for "SubCulture" mouse movement
+		if(lpRect && dxw.Windowize)	*lpRect = dxw.GetScreenRect();
 		if(IsTraceDDRAW){
 			if (lpRect)
-				OutTrace("GetClipCursor: PROXED rect=(%d,%d)-(%d,%d) ret=%d\n", 
+				OutTrace("GetClipCursor: rect=(%d,%d)-(%d,%d) ret=%d\n", 
 					lpRect->left,lpRect->top,lpRect->right,lpRect->bottom, ret);
 			else 
-				OutTrace("GetClipCursor: PROXED rect=(NULL) ret=%d\n", ret);
+				OutTrace("GetClipCursor: rect=(NULL) ret=%d\n", ret);
 		}		
 		return ret;
 	}
@@ -1672,11 +1672,8 @@ BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 	if(lpRect){
 		if(lpClipRegion)
 			*lpRect=ClipRegion;
-		else{
-			lpRect->top = lpRect->left = 0;
-			lpRect->right = dxw.GetScreenWidth();
-			lpRect->bottom = dxw.GetScreenHeight();
-		}
+		else 
+			*lpRect=dxw.GetScreenRect();
 		OutTraceDW("GetClipCursor: rect=(%d,%d)-(%d,%d) ret=%d\n", 
 			lpRect->left,lpRect->top,lpRect->right,lpRect->bottom, TRUE);
 	}
@@ -2617,10 +2614,7 @@ BOOL WINAPI extSystemParametersInfoA(UINT uiAction, UINT uiParam, PVOID pvParam,
 	ret=(*pSystemParametersInfoA)(uiAction, uiParam, pvParam, fWinIni);
 	if(uiAction==SPI_GETWORKAREA){
 		LPRECT cli = (LPRECT)pvParam;
-		cli->top = 0;
-		cli->left = 0;
-		cli->bottom = dxw.GetScreenHeight();
-		cli->right = dxw.GetScreenWidth();
+		*cli = dxw.GetScreenRect();
 		OutTraceDW("SystemParametersInfoA: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
 	}
 	return ret;
@@ -2640,10 +2634,7 @@ BOOL WINAPI extSystemParametersInfoW(UINT uiAction, UINT uiParam, PVOID pvParam,
 	ret=(*pSystemParametersInfoW)(uiAction, uiParam, pvParam, fWinIni);
 	if(uiAction==SPI_GETWORKAREA){
 		LPRECT cli = (LPRECT)pvParam;
-		cli->top = 0;
-		cli->left = 0;
-		cli->bottom = dxw.GetScreenHeight();
-		cli->right = dxw.GetScreenWidth();
+		*cli = dxw.GetScreenRect();
 		OutTraceDW("SystemParametersInfoW: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
 	}
 	return ret;

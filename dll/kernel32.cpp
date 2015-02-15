@@ -63,9 +63,9 @@ static HookEntry_Type TimeHooks[]={
 };
 
 static HookEntry_Type VersionHooks[]={
-	{HOOK_IAT_CANDIDATE, "GetVersion", (FARPROC)GetVersion, (FARPROC *)&pGetVersion, (FARPROC)extGetVersion},
-	{HOOK_IAT_CANDIDATE, "GetVersionExA", (FARPROC)GetVersionExA, (FARPROC *)&pGetVersionExA, (FARPROC)extGetVersionExA},
-	{HOOK_IAT_CANDIDATE, "GetVersionExW", (FARPROC)GetVersionExW, (FARPROC *)&pGetVersionExW, (FARPROC)extGetVersionExW},
+	{HOOK_HOT_CANDIDATE, "GetVersion", (FARPROC)GetVersion, (FARPROC *)&pGetVersion, (FARPROC)extGetVersion},
+	{HOOK_HOT_CANDIDATE, "GetVersionExA", (FARPROC)GetVersionExA, (FARPROC *)&pGetVersionExA, (FARPROC)extGetVersionExA},
+	{HOOK_HOT_CANDIDATE, "GetVersionExW", (FARPROC)GetVersionExW, (FARPROC *)&pGetVersionExW, (FARPROC)extGetVersionExW},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -218,6 +218,29 @@ Windows 98/SE"			4.10	4		10		if osVerInfo.szCSDVersion[1] = 'A' then Windows98SE
 Windows ME				4.90	4		90
 */
 
+/*
+Differences with older Windows versions
+This function is provided even with older Windows versions with some significant differences than stated above:
+The high order bit determins if it's NT based (NT, 2000, XP and newer) or not (Win 3.1, 95, 98, ME)
+The remaining bits of the high order word specify the build number only on NT based Windows verions.
+
+From older MSDN:
+To distinguish between operating system platforms, use the high order bit and the low order byte, as shown in the following table:
+
+Windows NT
+    High order bit: 0
+    Low order byte (major version number): 3 or 4
+Windows 95 and Windows 98
+    High order bit: 1
+    Low order byte (major version number): 4
+Win32s with Windows 3.1
+    High order bit: 1
+    Low order byte (major version number): 3
+
+For Windows NT and Win32s, the remaining bits in the high order word specify the build number.
+For Windows 95 and Windows 98, the remaining bits of the high order word are reserved.
+*/
+
 static struct {char bMajor; char bMinor; char *sName;} WinVersions[9]=
 {
 	{4, 0, "Windows 95"},
@@ -237,11 +260,11 @@ BOOL WINAPI extGetVersionExA(LPOSVERSIONINFOA lpVersionInfo)
 
 	ret=(*pGetVersionExA)(lpVersionInfo);
 	if(!ret) {
-		OutTraceE("GetVersionEx: ERROR err=%d\n", GetLastError());
+		OutTraceE("GetVersionExA: ERROR err=%d\n", GetLastError());
 		return ret;
 	}
 
-	OutTraceDW("GetVersionEx: version=%d.%d build=(%d)\n", 
+	OutTraceDW("GetVersionExA: version=%d.%d build=(%d)\n", 
 		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber);
 
 	if(dxw.dwFlags2 & FAKEVERSION) {
@@ -249,7 +272,7 @@ BOOL WINAPI extGetVersionExA(LPOSVERSIONINFOA lpVersionInfo)
 		lpVersionInfo->dwMajorVersion = WinVersions[dxw.FakeVersionId].bMajor;
 		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
 		lpVersionInfo->dwBuildNumber = 0;
-		OutTraceDW("GetVersionEx: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
+		OutTraceDW("GetVersionExA: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
 			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
 			WinVersions[dxw.FakeVersionId].sName);
 	}
@@ -262,11 +285,11 @@ BOOL WINAPI extGetVersionExW(LPOSVERSIONINFOW lpVersionInfo)
 
 	ret=(*pGetVersionExW)(lpVersionInfo);
 	if(!ret) {
-		OutTraceE("GetVersionEx: ERROR err=%d\n", GetLastError());
+		OutTraceE("GetVersionExW: ERROR err=%d\n", GetLastError());
 		return ret;
 	}
 
-	OutTraceDW("GetVersionEx: version=%d.%d build=(%d)\n", 
+	OutTraceDW("GetVersionExW: version=%d.%d build=(%d)\n", 
 		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber);
 
 	if(dxw.dwFlags2 & FAKEVERSION) {
@@ -274,7 +297,7 @@ BOOL WINAPI extGetVersionExW(LPOSVERSIONINFOW lpVersionInfo)
 		lpVersionInfo->dwMajorVersion = WinVersions[dxw.FakeVersionId].bMajor;
 		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
 		lpVersionInfo->dwBuildNumber = 0;
-		OutTraceDW("GetVersionEx: FIXED version=%d.%d build=(%d) os=\"%ls\"\n", 
+		OutTraceDW("GetVersionExW: FIXED version=%d.%d build=(%d) os=\"%ls\"\n", 
 			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
 			WinVersions[dxw.FakeVersionId].sName);
 	}
@@ -307,8 +330,9 @@ DWORD WINAPI extGetVersion(void)
 		dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
 	    dwMinorVersion = (DWORD)(HIBYTE(LOWORD(dwVersion)));
 		dwBuild = (DWORD)(HIWORD(dwVersion));
-		OutTraceDW("GetVersion: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
-			dwMajorVersion, dwMinorVersion, dwBuild, WinVersions[dxw.FakeVersionId].sName);
+		if(WinVersions[dxw.FakeVersionId].bMajor == 4) dwVersion |= 0x80000000; // v2.03.11: fixes "Warhead"
+		OutTraceDW("GetVersion: FIXED version=%x: Win%d.%d build=(%d) os=\"%s\"\n", 
+			dwVersion, dwMajorVersion, dwMinorVersion, dwBuild, WinVersions[dxw.FakeVersionId].sName);
 	}
 
 	return dwVersion;

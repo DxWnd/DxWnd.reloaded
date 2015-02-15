@@ -2850,7 +2850,7 @@ void BlitError(HRESULT res, LPRECT lps, LPRECT lpd, int line)
 void BlitTrace(char *label, LPRECT lps, LPRECT lpd, int line)
 {
 	char sInfo[512];
-	sprintf(sInfo, "Blt: %s", label);
+	sprintf(sInfo, "[%s]", label);
 	if (lps)
 		sprintf(sInfo, "%s src=(%d,%d)-(%d,%d)", sInfo, lps->left, lps->top, lps->right, lps->bottom);
 	else
@@ -3644,8 +3644,10 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	HRESULT res;
 	//RECT screen, rect;
 	BOOL IsPrim;
+	BOOL IsBack;
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsBack=dxw.IsABackBufferSurface(lpdds);
 
 	if ((dxversion == 4) && lprect) CleanRect(&lprect,__LINE__);
 
@@ -3657,7 +3659,7 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 		}
 		else
 			sprintf_s(sRect, 80, "lpvoid=%x", lprect);
-		OutTrace("Unlock(%d): lpdds=%x%s %s\n", dxversion, lpdds, (IsPrim ? "(PRIM)":""), sRect);
+		OutTrace("Unlock(%d): lpdds=%x%s %s\n", dxversion, lpdds, (IsPrim ? "(PRIM)": (IsBack ? "(BACK)" : "")), sRect);
 	}
 
 	res=(*pUnlock)(lpdds, lprect);
@@ -3666,11 +3668,11 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	if (IsPrim && res==DD_OK) {
 		if(dxversion == 1){
 			res=sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
-			if(IsPrim) (*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE); // to fix "Deadlock II" mouse trails....
+			(*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE); // to fix "Deadlock II" mouse trails....
 		}
 		else {
 			res=sBlt("Unlock", lpdds, lprect, lpdds, lprect, NULL, 0, FALSE);
-			if(IsPrim) (*pInvalidateRect)(dxw.GethWnd(), lprect, FALSE); 
+			(*pInvalidateRect)(dxw.GethWnd(), lprect, FALSE); 
 		}
 	}
 
@@ -4325,31 +4327,34 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	IsBack=dxw.IsABackBufferSurface(lpdds);
 	IsFixed=FALSE;
-	OutTraceDDRAW("GetCaps(S%d): lpdds=%x%s, lpcaps=%x\n", dxInterface, lpdds, IsPrim?"(PRIM)":"", caps);
+	char *sLabel;
+
+	sLabel = IsPrim?"(PRIM)":(IsBack ? "(BACK)" : "");
 	res=(*pGetCapsS)(lpdds, caps);
 	if(res) 
-		OutTraceE("GetCaps(S%d): ERROR %x(%s)\n", dxInterface, res, ExplainDDError(res));
+		OutTraceE("GetCaps(S%d): ERROR lpdds=%x%s err=%x(%s)\n", dxInterface, lpdds, sLabel, res, ExplainDDError(res));
 	else
-		OutTraceDDRAW("GetCaps(S%d): lpdds=%x caps=%x(%s)\n", dxInterface, lpdds, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
+		OutTraceDDRAW("GetCaps(S%d): lpdds=%x%s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 
 	if (IsPrim) {
-		OutTraceDW("GetCaps(S%d): fixing PRIMARY surface\n", dxInterface);
 		IsFixed=TRUE;
+		sLabel="PRIMARYSURFACE";
 		caps->dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
 		caps->dwCaps |= DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE; // primary surfaces must be this way
 		caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
 		}
 
 	if (IsBack) {
-		OutTraceDW("GetCaps(S%d): fixing BACKBUFFER surface\n", dxInterface);
 		IsFixed=TRUE;
-		caps->dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); // you never know....
+		sLabel="BACKBUFFER";
+		// v2.03.11: added DDSCAPS_FLIP capability to backbuffer surface: "Ignition" checks for it before Flip-ping to primary
+		caps->dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM); // you never know....
 		caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
 	}
 
 	if ((caps->dwCaps & DDSCAPS_ZBUFFER) || (lpdds == lpDDZBuffer)){
-		OutTraceDW("GetCaps(S%d): fixing ZBUFFER surface\n", dxInterface);
 		IsFixed=TRUE;
+		sLabel="ZBUFFER";
 		if (DDZBufferCaps & DDSCAPS_SYSTEMMEMORY){
 			caps->dwCaps |= (DDSCAPS_ZBUFFER|DDSCAPS_SYSTEMMEMORY); 
 			caps->dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
@@ -4360,7 +4365,7 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 		}
 	}
 
-	if(IsFixed) OutTraceDW("GetCaps(S%d): lpdds=%x FIXED caps=%x(%s)\n", dxInterface, lpdds, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
+	if(IsFixed) OutTraceDW("GetCaps(S%d): lpdds=%x FIXED %s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 	return res;
 }
 

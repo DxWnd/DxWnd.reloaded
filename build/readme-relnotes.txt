@@ -736,3 +736,8 @@ fix: log message reorganization
 add: SetStretchBltMode HALFTONE in GDI mode to provide bilinear filtered GDI stretching
 fix: some GDI mode optimization - should bring performances similar to D3DWindower, with similar configuration
 fix: GDI mode bug, crashing when blitting from NULL surface (to do a color fill operation)
+
+v2.03.11
+fix: added DDSCAPS_FLIP capability to emulated backbuffer surface. Fixes "Injection" missing flips
+fix: added high order bit set to kernel32.dll GetVersion() wrapper in case of Win95/98 emulation. Fixes "Warhead" frontend program
+fix: coordinates returned by user32.dll GetClipCursor() must be scaled accordingly with virtual desktop size. Fixes "SubCulture" mouse control problems

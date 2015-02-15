@@ -1062,6 +1062,7 @@ void dxwCore::SetVSyncDelays(UINT RefreshRate)
 	int Reminder;
 	char sInfo[256];
 
+	if(!(dxw.dwFlags1 & SAVELOAD)) return;
 	if((RefreshRate < 10) || (RefreshRate > 100)) return; 
 
 	gdwRefreshRate = RefreshRate;
