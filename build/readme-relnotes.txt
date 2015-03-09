@@ -877,3 +877,14 @@ v2.03.34:
 fix: handling of real primary/backbuffer surfaces in non-emulated modes and WinXP: now uses system memory if possible, video memory otherwise. 
 fix: simulation of backbuffer attach in non emulated modes.
 fix: mciSendString hooker, was losing a final command line argument
+
+v2.03.35:
+add: added "Set ZBufferBitDepths capability" flag to set a no longer supported fields in the capability structure. This makes ""Banzai Bug" bypass the capability checks.
+fix: better handling of surface capabilities in flippable mode
+fix: fixed bug in primary surface handling when already created ...
+add: added ""Share ddraw and GDI DC" flag: sharing was introduced in release v2.03.19, but proved to be incompatible in many situations. Now it is off by default and enabled when necessary.
+fix: the flags for disabling DDSCAPS_SYSTEMMEMORY capability are now used also in non-emulated flipping emulation mode. Depending on the video card, it may help getting compatibility.
+fix: handling of NULL DC in non emulated modes: the NULL DC (corresponding to the whole desktop) is replaced by the window DC. This reduces problems like clearing the whole desktop.
+fix: EnumDisplayModes was returning wrong modes list in SVGA mode.
+fix: applied the error suppression to the DeleteAttachedSurface hooker.
+fix: hooked User32 CreateRectRegion/Indirect calls. 

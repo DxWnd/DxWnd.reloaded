@@ -88,6 +88,7 @@ public:
 	BOOL	m_CursorClipping;
 	BOOL	m_VideoToSystemMem;
 	BOOL	m_FixTextOut;
+	BOOL	m_SharedDC;
 	BOOL	m_HookGlide;
 	BOOL	m_RemapMCI;
 	BOOL	m_NoMovies;
@@ -181,6 +182,7 @@ public:
 	BOOL	m_DisableMaxWinMode;
 	BOOL	m_NoImagehlp;
 	BOOL	m_ForcesHEL;
+	BOOL	m_SetZBufferBitDepths;
 	BOOL	m_ForcesSwapEffect;
 	BOOL	m_ColorFix;
 	BOOL	m_NoPixelFormat;

@@ -198,6 +198,8 @@
 #define CONFIRMONCLOSE		0x00004000 // on close button, ask the user before closing the window / terminating the program
 #define TERMINATEONCLOSE	0x00008000 // on WM_CLOSE message, also terminates the program
 #define FLIPEMULATION		0x00010000 // create virtual primary and backbuffer as un-attached surfaces and replace Flip with Blt
+#define SETZBUFFERBITDEPTHS	0x00020000 // when not set, set the legacy dwZBufferBitDepths field in the directdraw capability from GetCaps()
+#define SHAREDDC			0x00040000 // enable sharing window DC and primary surface DC
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

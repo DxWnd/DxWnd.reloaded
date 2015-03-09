@@ -53,3 +53,4 @@ extern char *ExplainChangeDisplaySettingsFlags(DWORD);
 extern char *ExplainDICooperativeFlags(DWORD);
 extern char *ExplainRegionType(DWORD);
 extern char *ExplainPixelFormat(LPDDPIXELFORMAT);
+extern char *ExplainZBufferBitDepths(DWORD);

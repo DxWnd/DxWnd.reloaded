@@ -118,8 +118,9 @@ static HookEntry_Type ScaledHooks[]={
 	// commented out since they alter text on screen...... (see Imperialism II difficulty level menu)
 	//{HOOK_IAT_CANDIDATE, "CreateEllipticRgn", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgn, (FARPROC)extCreateEllipticRgn},
 	//{HOOK_IAT_CANDIDATE, "CreateEllipticRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateEllipticRgnIndirect, (FARPROC)extCreateEllipticRgnIndirect},
-	//{HOOK_IAT_CANDIDATE, "CreateRectRgn", (FARPROC)NULL, (FARPROC *)&pCreateRectRgn, (FARPROC)extCreateRectRgn},
-	//{HOOK_IAT_CANDIDATE, "CreateRectRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateRectRgnIndirect, (FARPROC)extCreateRectRgnIndirect},
+	// CreateRectRgn must be hooked in scaled mode to let Avernum work correctly!
+	{HOOK_IAT_CANDIDATE, "CreateRectRgn", (FARPROC)NULL, (FARPROC *)&pCreateRectRgn, (FARPROC)extCreateRectRgn},
+	{HOOK_IAT_CANDIDATE, "CreateRectRgnIndirect", (FARPROC)NULL, (FARPROC *)&pCreateRectRgnIndirect, (FARPROC)extCreateRectRgnIndirect},
 	//{HOOK_IAT_CANDIDATE, "CreatePolygonRgn", (FARPROC)NULL, (FARPROC *)&pCreatePolygonRgn, (FARPROC)extCreatePolygonRgn},
 	// same as emulated GDI ...
 	{HOOK_IAT_CANDIDATE, "CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extGDICreateCompatibleDC},

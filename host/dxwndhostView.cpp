@@ -286,6 +286,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DisableMaxWinMode) t->flags6 |= DISABLEMAXWINMODE;
 	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
+	if(dlg->m_SetZBufferBitDepths) t->flags6 |= SETZBUFFERBITDEPTHS;
 	if(dlg->m_ForcesSwapEffect) t->flags6 |= FORCESWAPEFFECT;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
 	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
@@ -317,6 +318,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
 	if(dlg->m_FixTextOut) t->flags |= FIXTEXTOUT;
+	if(dlg->m_SharedDC) t->flags6 |= SHAREDDC;
 	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
 	if(dlg->m_RemapMCI) t->flags5 |= REMAPMCI;
 	if(dlg->m_NoMovies) t->flags6 |= NOMOVIES;
@@ -498,6 +500,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DisableMaxWinMode = t->flags6 & DISABLEMAXWINMODE ? 1 : 0;
 	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
+	dlg->m_SetZBufferBitDepths = t->flags6 & SETZBUFFERBITDEPTHS ? 1 : 0;
 	dlg->m_ForcesSwapEffect = t->flags6 & FORCESWAPEFFECT ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
 	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
@@ -546,6 +549,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
 	dlg->m_VideoToSystemMem = t->flags & SWITCHVIDEOMEMORY ? 1 : 0;
 	dlg->m_FixTextOut = t->flags & FIXTEXTOUT ? 1 : 0;
+	dlg->m_SharedDC = t->flags6 & SHAREDDC ? 1 : 0;
 	dlg->m_HookGlide = t->flags4 & HOOKGLIDE ? 1 : 0;
 	dlg->m_RemapMCI = t->flags5 & REMAPMCI ? 1 : 0;
 	dlg->m_NoMovies = t->flags6 & NOMOVIES ? 1 : 0;

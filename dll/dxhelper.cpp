@@ -1622,6 +1622,22 @@ char *ExplainRegionType(DWORD c)
 	return "unknown";
 }
 
+char *ExplainZBufferBitDepths(DWORD c)
+{
+	static char eb[128];
+	unsigned int l;
+	strcpy(eb,"DDBD_");
+	if(c & DDBD_8) strcat(eb, "8+");
+	if(c & DDBD_16) strcat(eb, "16+");
+	if(c & DDBD_24) strcat(eb, "24+");
+	if(c & DDBD_32) strcat(eb, "32+");
+	l=strlen(eb);
+	if (l>strlen("DDBD_")) eb[l-1]=0; // delete last '+' if any
+	else strcpy(eb,"NULL");
+	return(eb);
+}
+
+
 #define _FACD3D  0x876
 #define MAKE_D3DHRESULT( code )  MAKE_HRESULT( 1, _FACD3D, code )
 #define MAKE_D3DSTATUS( code )  MAKE_HRESULT( 0, _FACD3D, code )

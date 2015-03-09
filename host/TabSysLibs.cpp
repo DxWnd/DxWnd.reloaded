@@ -31,6 +31,7 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CLIENTREMAPPING, cTarget->m_ClientRemapping);
 	DDX_Radio(pDX, IDC_GDINONE, cTarget->m_DCEmulationMode);
 	DDX_Check(pDX, IDC_FIXTEXTOUT, cTarget->m_FixTextOut);
+	DDX_Check(pDX, IDC_SHAREDDC, cTarget->m_SharedDC);
 
 	// OpenGL
 	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL); // duplicated

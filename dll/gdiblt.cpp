@@ -27,9 +27,15 @@ void BlitToWindow(HWND w, LPDIRECTDRAWSURFACE s)
 
 	if(!s) return; // for surface color fill 
 	res=(*pGetDC)(s, &shdc);
-	if(res) OutTrace("ddraw GetDC error lpdds=%x res=%x(%s)\n", s, res, ExplainDDError(res));
+	if(res) {
+		OutTrace("ddraw GetDC error lpdds=%x res=%x(%s)\n", s, res, ExplainDDError(res));
+		return;
+	}
 	thdc=(*pGDIGetDC)(w);
-	if(!thdc) OutTrace("GDI GetDC error=%d\n", GetLastError());
+	if(!thdc) {
+		OutTrace("GDI GetDC error=%d\n", GetLastError());
+		return;
+	}
 	client = dxw.MapClientRect(NULL);
 	if(dxw.dwFlags5 & CENTERTOWIN){
 		int x, y;
