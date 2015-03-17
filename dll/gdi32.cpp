@@ -37,6 +37,12 @@ BOOL WINAPI extExtTextOutA(HDC, int, int, UINT, const RECT *, LPCSTR, UINT, cons
 ExtTextOutW_Type pExtTextOutW = NULL;
 ExtTextOutA_Type pExtTextOutA = NULL;
 
+#ifdef TRACEPALETTE
+typedef BOOL (WINAPI *ResizePalette_Type)(HPALETTE, UINT);
+ResizePalette_Type pResizePalette = NULL;
+BOOL WINAPI extResizePalette(HPALETTE, UINT);
+#endif
+
 /*
 typedef COLORREF (WINAPI *SetBkColor_Type)(HDC, COLORREF);
 typedef COLORREF (WINAPI *SetTextColor_Type)(HDC hdc, COLORREF crColor);
@@ -81,8 +87,9 @@ static HookEntry_Type Hooks[]={
 
 	{HOOK_HOT_CANDIDATE, "GetPaletteEntries", (FARPROC)GetPaletteEntries, (FARPROC *)&pGetPaletteEntries, (FARPROC)extGetPaletteEntries},
 	{HOOK_HOT_CANDIDATE, "GetSystemPaletteUse", (FARPROC)GetSystemPaletteUse, (FARPROC *)&pGetSystemPaletteUse, (FARPROC)extGetSystemPaletteUse},
-
-
+#ifdef TRACEPALETTE
+	{HOOK_IAT_CANDIDATE, "ResizePalette", (FARPROC)ResizePalette, (FARPROC *)&pResizePalette, (FARPROC)extResizePalette},
+#endif
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 }; 
 
@@ -526,14 +533,14 @@ BOOL WINAPI extAnimatePalette(HPALETTE hpal, UINT iStartIndex, UINT cEntries, co
 UINT WINAPI extRealizePalette(HDC hdc)
 {
 	UINT ret;
-	extern void mySetPalette(int, int, LPPALETTEENTRY, BOOL);
+	extern void mySetPalette(int, int, LPPALETTEENTRY);
 
 	OutTraceDW("GDI.RealizePalette: hdc=%x\n", hdc);
 	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
 		PALETTEENTRY PalEntries[256];
 		UINT nEntries;
 		nEntries=(*pGetPaletteEntries)(hDesktopPalette, 0, 256, PalEntries);
-		mySetPalette(0, nEntries, PalEntries, TRUE); // ??
+		mySetPalette(0, nEntries, PalEntries); 
 		if(IsDebug) dxw.DumpPalette(nEntries, PalEntries);
 		ret=DD_OK;
 	}
@@ -1916,6 +1923,14 @@ BOOL WINAPI extExtTextOutW(HDC hdc, int X, int Y, UINT fuOptions, const RECT *lp
 		return (*pExtTextOutW)(hdc, X, Y, fuOptions, NULL, lpString, cbCount, lpDx);
 	
 }
+
+#ifdef TRACEPALETTE
+BOOL WINAPI extResizePalette(HPALETTE hpal, UINT nEntries)
+{
+	OutTrace("ResizePalette: hpal=%x nEntries=%d\n", hpal, nEntries);
+	return (*pResizePalette)(hpal, nEntries);
+}
+#endif
 
 #if 0
 COLORREF WINAPI extSetBkColor(HDC hdc, COLORREF crColor)

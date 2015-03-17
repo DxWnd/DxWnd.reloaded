@@ -759,3 +759,8 @@ fix: recovery for lost surfaces (i.e. after a Ctrl+Alt+Del command)
 fix: palette display form showing active entries
 fix: EnumDisplayModes hook in emulate surface mode
 fix: several log improvements
+
+v2.03.14
+add: window commands Minimize, Restore & Close
+add: made palette behaviour configurable (until better understood...)
+add: "updatepaths" tag in dxwnd.ini

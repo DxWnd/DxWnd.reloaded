@@ -316,6 +316,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\findwindow.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\getfname.cpp"
 				>
 			</File>

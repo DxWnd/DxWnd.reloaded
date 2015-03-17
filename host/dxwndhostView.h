@@ -70,6 +70,9 @@ protected:
 	afx_msg void OnProcessKill();
 	afx_msg void OnPause();
 	afx_msg void OnResume();
+	afx_msg void OnWindowRestore();
+	afx_msg void OnWindowMinimize();
+	afx_msg void OnWindowClose();
 	afx_msg void OnSort();
 	afx_msg void OnViewLog();
 	afx_msg void OnDeleteLog();

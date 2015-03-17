@@ -100,6 +100,9 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_TASK_KILL, OnKill)
 	ON_COMMAND(ID_TASK_PAUSE, OnPause)
 	ON_COMMAND(ID_TASK_RESUME, OnResume)
+	ON_COMMAND(ID_WINDOW_MINIMIZE, OnWindowMinimize)
+	ON_COMMAND(ID_WINDOW_RESTORE, OnWindowRestore)
+	ON_COMMAND(ID_WINDOW_CLOSE, OnWindowClose)
 	ON_COMMAND(ID_ADD, OnAdd)
 	ON_COMMAND(ID_MODIFY, OnModify)
 	ON_COMMAND(ID_PEXPORT, OnExport)
@@ -279,6 +282,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	//if(dlg->m_SuppressChild) t->flags4 |= SUPPRESSCHILD;
 	if(dlg->m_HideDesktop) t->flags4 |= HIDEDESKTOP;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
+	if(dlg->m_LockReservedPalette) t->flags5 |= LOCKRESERVEDPALETTE;
 	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
 	if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
 	if(dlg->m_LimitScreenRes) t->flags4 |= LIMITSCREENRES;
@@ -475,6 +479,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	//dlg->m_SuppressChild = t->flags4 & SUPPRESSCHILD ? 1 : 0;
 	dlg->m_HideDesktop = t->flags4 & HIDEDESKTOP ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
+	dlg->m_LockReservedPalette = t->flags5 & LOCKRESERVEDPALETTE ? 1 : 0;
 	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
 	dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
 	dlg->m_LimitScreenRes = t->flags4 & LIMITSCREENRES ? 1 : 0;
@@ -977,7 +982,7 @@ void CDxwndhostView::OnExport()
 	if(!listctrl.GetSelectedCount()) return;
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
-	GetPrivateProfileString("window", "exportpath", ".\\", path, MAX_PATH, InitPath);
+	GetPrivateProfileString("window", "exportpath", NULL, path, MAX_PATH, InitPath);
 	//strcat_s(path, MAX_PATH, "\\");
 	strcat_s(path, MAX_PATH, TitleMaps[i].title);
 	CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
@@ -986,9 +991,10 @@ void CDxwndhostView::OnExport()
 		strcpy(path, dlg.GetPathName().GetBuffer());
 		//MessageBox(path, "PathName", MB_OK);
 		SaveConfigItem(&TargetMaps[i], &TitleMaps[i], 0, path);
-		GetFolderFromPath(path);
-		//MessageBox(path, "FolderPath", MB_OK);
-		WritePrivateProfileString("window", "exportpath", path, InitPath);
+		if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) {
+			GetFolderFromPath(path);
+			WritePrivateProfileString("window", "exportpath", path, InitPath);
+		}
 	}
 }
 
@@ -1010,7 +1016,7 @@ void CDxwndhostView::OnImport()
 	char folder[MAX_PATH+1];
 	char pathname[MAX_PATH+1];
 	OPENFILENAME ofn = {0};
-	GetPrivateProfileString("window", "exportpath", ".", pathname, MAX_PATH, InitPath);
+	GetPrivateProfileString("window", "exportpath", NULL, pathname, MAX_PATH, InitPath);
 	ofn.lpstrInitialDir = pathname;
 	ofn.lStructSize = sizeof(ofn);
 	ofn.lpstrFilter = "DxWnd export file\0*.dxw\0\0";
@@ -1030,8 +1036,10 @@ void CDxwndhostView::OnImport()
 				listitem.iImage = SetTargetIcon(TargetMaps[i]);
 				listitem.pszText = TitleMaps[i].title;
 				listctrl.InsertItem(&listitem);
-				GetFolderFromPath(ImportExportPath);
-				WritePrivateProfileString("window", "exportpath", ImportExportPath, InitPath);
+				if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) {
+					GetFolderFromPath(ImportExportPath);
+					WritePrivateProfileString("window", "exportpath", ImportExportPath, InitPath);
+				}
 			}
 		}
 		else{
@@ -1039,7 +1047,8 @@ void CDxwndhostView::OnImport()
 			char* p = ImportExportPath;
 			strcpy(folder, p);
 			strcat(folder, "\\");
-			WritePrivateProfileString("window", "exportpath", folder, InitPath);
+			if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) 
+				WritePrivateProfileString("window", "exportpath", folder, InitPath);
 			p += lstrlen((LPSTR)p) + 1;
 			while(*p && (i<MAXTARGETS)){
 				// "p" - name of each file, NULL to terminate
@@ -1325,6 +1334,32 @@ void CDxwndhostView::OnResume()
 	}
 }
 
+extern HWND find_main_window(unsigned long);
+
+void CDxwndhostView::OnWindowMinimize() 
+{
+	DXWNDSTATUS DxWndStatus;
+	if ((GetHookStatus(&DxWndStatus) == DXW_RUNNING) && (DxWndStatus.hWnd!=NULL))
+		//::PostMessage(DxWndStatus.hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+		::PostMessage(find_main_window(DxWndStatus.dwPid), WM_SYSCOMMAND, SC_MINIMIZE, 0);
+}
+
+void CDxwndhostView::OnWindowRestore() 
+{
+	DXWNDSTATUS DxWndStatus;
+	if ((GetHookStatus(&DxWndStatus) == DXW_RUNNING) && (DxWndStatus.hWnd!=NULL))
+		//::PostMessage(DxWndStatus.hWnd, WM_SYSCOMMAND, SC_RESTORE, 0);
+		::PostMessage(find_main_window(DxWndStatus.dwPid), WM_SYSCOMMAND, SC_RESTORE, 0);
+}
+
+void CDxwndhostView::OnWindowClose() 
+{
+	DXWNDSTATUS DxWndStatus;
+	if ((GetHookStatus(&DxWndStatus) == DXW_RUNNING) && (DxWndStatus.hWnd!=NULL))
+		//::PostMessage(DxWndStatus.hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
+		::PostMessage(find_main_window(DxWndStatus.dwPid), WM_SYSCOMMAND, SC_CLOSE, 0);
+}
+
 void CDxwndhostView::OnKill() 
 {
 	CTargetDlg dlg;
@@ -1388,17 +1423,6 @@ void CDxwndhostView::OnProcessKill()
 	ClipCursor(NULL);
 	RevertScreenChanges(&this->InitDevMode);
 }
-	//GetPrivateProfileString("window", "exportpath", ".", path, MAX_PATH, InitPath);
-	//strcat_s(path, MAX_PATH, "\\");
-	//strcat_s(path, MAX_PATH, TitleMaps[i].title);
-	//CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
- //       "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
-	//if( dlg.DoModal() == IDOK) {
-	//	SaveConfigItem(&TargetMaps[i], &TitleMaps[i], 0, dlg.GetPathName().GetBuffer());
-	//	WritePrivateProfileString("window", "exportpath", dlg.GetFolderPath(), InitPath);
-	//}
-
-
 
 void CDxwndhostView::OnAdd() 
 {

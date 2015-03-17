@@ -178,6 +178,7 @@ public:
 	//BOOL	m_SuppressChild;
 	BOOL	m_HideDesktop;
 	BOOL	m_LockSysColors;
+	BOOL	m_LockReservedPalette;
 	BOOL	m_SingleProcAffinity;
 	BOOL	m_WireFrame;
 	BOOL	m_NoTextures;

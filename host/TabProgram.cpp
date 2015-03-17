@@ -77,9 +77,11 @@ void CTabProgram::OnOpen()
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
 		cTarget->m_File.SetWindowText(dlg.GetPathName());
-		strcpy(path, dlg.GetPathName());
-		GetFolderFromPath(path);
-		WritePrivateProfileString("window", "exepath", path, gInitFilePath);
+		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitFilePath)){
+			strcpy(path, dlg.GetPathName());
+			GetFolderFromPath(path);
+			WritePrivateProfileString("window", "exepath", path, gInitFilePath);
+		}
 	}
 }
 
@@ -95,9 +97,11 @@ void CTabProgram::OnOpenLaunch()
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
 		cTarget->m_Launch.SetWindowText(dlg.GetPathName());
-		strcpy(path, dlg.GetPathName());
-		GetFolderFromPath(path);
-		WritePrivateProfileString("window", "exepath", path, gInitFilePath);
+		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitFilePath)){
+			strcpy(path, dlg.GetPathName());
+			GetFolderFromPath(path);
+			WritePrivateProfileString("window", "exepath", path, gInitFilePath);
+		}
 	}
 }
 

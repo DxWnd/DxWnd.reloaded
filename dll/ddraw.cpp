@@ -496,13 +496,13 @@ void DescribeSurface(LPDIRECTDRAWSURFACE lpdds, int dxversion, char *label, int 
 
 BOOL isPaletteUpdated;
 
-void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries, BOOL Has256ColorsPalette)
+void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries)
 {
 	int i;
 	extern DXWNDSTATUS *pStatus;
 
 	// if has reserved palette entries, recover them
-	if(!Has256ColorsPalette){
+	if(dxw.dwFlags5 & LOCKRESERVEDPALETTE){
 		int nStatCols, nPalEntries;
 		PALETTEENTRY SysPalEntry[256];
 		LPPALETTEENTRY lpEntry;
@@ -3435,8 +3435,6 @@ HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE 
 
 #define DDPCAPS_INITIALIZE_LEGACY 0x00000008l
 
-BOOL Has256ColorsPalette = FALSE;
-
 HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa,
 	LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
 {
@@ -3444,10 +3442,6 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 
 	OutTraceDDRAW("CreatePalette: dwFlags=%x(%s)\n", dwflags, ExplainCreatePaletteFlags(dwflags));
 	if(IsDebug && (dwflags & DDPCAPS_8BIT)) dxw.DumpPalette(256, lpddpa);
-
-	//if (dwflags & ~(DDPCAPS_PRIMARYSURFACE|DDPCAPS_8BIT|DDPCAPS_ALLOW256|DDPCAPS_INITIALIZE_LEGACY)) STOPPER("Palette flags");
-	if(dwflags & DDPCAPS_ALLOW256) Has256ColorsPalette = TRUE;
-	if(!(dwflags & DDPCAPS_PRIMARYSURFACE)) Has256ColorsPalette = TRUE;
 
 	if(dxw.dwFlags1 & EMULATESURFACE) dwflags &= ~DDPCAPS_PRIMARYSURFACE;
 	res = (*pCreatePalette)(lpdd, dwflags, lpddpa, lplpddp, pu);
@@ -3508,7 +3502,7 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 			lpentries = (LPPALETTEENTRY)PaletteEntries;
 			res2=lpddp->GetEntries(0, 0, 256, lpentries);
 			if(res2) OutTraceE("SetPalette: GetEntries ERROR res=%x(%s)\n", res2, ExplainDDError(res2));
-			mySetPalette(0, 256, lpentries, Has256ColorsPalette); // v2.02.76: necessary for "Requiem Avenging Angel" in SURFACEEMULATION mode
+			mySetPalette(0, 256, lpentries); // v2.02.76: necessary for "Requiem Avenging Angel" in SURFACEEMULATION mode
 		}
 		// Apply palette to backbuffer surface. This is necessary on some games: "Duckman private dick", "Total Soccer 2000", ...
 		if (lpDDSBack){
@@ -3544,8 +3538,7 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 			OutTraceDW("SetEntries: ASSERT start+count > 256\n");
 		}
 
-		if(dwflags & DDPCAPS_ALLOW256) Has256ColorsPalette=TRUE;
-		mySetPalette(dwstart, dwcount, lpentries, Has256ColorsPalette);
+		mySetPalette(dwstart, dwcount, lpentries);
 
 		// GHO: needed for fixed rect and variable palette animations, 
 		// e.g. dungeon keeper loading screen, Warcraft II splash, ...

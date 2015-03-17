@@ -24,6 +24,14 @@ BOOL IsChangeDisplaySettingsHotPatched = FALSE;
 //EnumDisplayMonitors_Type pEnumDisplayMonitors = NULL;
 //BOOL WINAPI extEnumDisplayMonitors(HDC, LPCRECT, MONITORENUMPROC, LPARAM);
 
+#ifdef TRACEPALETTE
+typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
+GetDIBColorTable_Type pGetDIBColorTable = NULL;
+UINT WINAPI extGetDIBColorTable(HDC, UINT, UINT, RGBQUAD *);
+typedef UINT (WINAPI *SetDIBColorTable_Type)(HDC, UINT, UINT, const RGBQUAD *);
+SetDIBColorTable_Type pSetDIBColorTable = NULL;
+UINT WINAPI extSetDIBColorTable(HDC, UINT, UINT, const RGBQUAD *);
+#endif
 
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
@@ -66,7 +74,10 @@ static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	//{HOOK_IAT_CANDIDATE, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
 	//{HOOK_HOT_CANDIDATE, "EnumDisplayMonitors", (FARPROC)EnumDisplayMonitors, (FARPROC *)&pEnumDisplayMonitors, (FARPROC)extEnumDisplayMonitors},
-
+#ifdef TRACEPALETTE
+	{HOOK_HOT_CANDIDATE, "GetDIBColorTable", (FARPROC)GetDIBColorTable, (FARPROC *)&pGetDIBColorTable, (FARPROC)extGetDIBColorTable},
+	{HOOK_HOT_CANDIDATE, "SetDIBColorTable", (FARPROC)SetDIBColorTable, (FARPROC *)&pSetDIBColorTable, (FARPROC)extSetDIBColorTable},
+#endif
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -2832,6 +2843,64 @@ int WINAPI extGetUpdateRgn(HWND hWnd, HRGN hRgn, BOOL bErase)
 
     return regionType; 
 }
+
+#ifdef TRACEPALETTE
+UINT WINAPI extGetDIBColorTable(HDC hdc, UINT uStartIndex, UINT cEntries, RGBQUAD *pColors)
+{
+	UINT ret;
+	OutTraceDW("GetDIBColorTable: hdc=%x start=%d entries=%d\n", hdc, uStartIndex, cEntries);
+
+	//if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
+	//	//extern PALETTEENTRY PalEntries[256];
+	//	extern DWORD *PaletteEntries;
+	//	if((uStartIndex+cEntries) > 256) cEntries = 256 - uStartIndex;
+	//	for(UINT i=0; i<cEntries; i++) {
+	//		PALETTEENTRY p;
+	//		memcpy(&p, &PaletteEntries[i+uStartIndex], sizeof(DWORD));
+	//		pColors[i].rgbBlue = p.peBlue;
+	//		pColors[i].rgbGreen = p.peGreen;
+	//		pColors[i].rgbRed = p.peRed;
+	//		pColors[i].rgbReserved = p.peFlags;
+	//	}
+	//	ret=cEntries;
+	//}
+	//else
+	//	ret = (*pGetDIBColorTable)(hdc, uStartIndex, cEntries, pColors);
+
+	ret = (*pGetDIBColorTable)(hdc, uStartIndex, cEntries, pColors);
+	OutTraceDW("GetDIBColorTable: ret=%x\n", ret);
+	if(IsDebug) dxw.DumpPalette(cEntries, (PALETTEENTRY *)pColors);
+	return ret;
+}
+
+UINT WINAPI extSetDIBColorTable(HDC hdc, UINT uStartIndex, UINT cEntries, const RGBQUAD *pColors)
+{
+	UINT ret;
+	OutTraceDW("SetDIBColorTable: hdc=%x start=%d entries=%d\n", hdc, uStartIndex, cEntries);
+	if(IsDebug) dxw.DumpPalette(cEntries, (PALETTEENTRY *)pColors);
+
+	//if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
+	//	//extern PALETTEENTRY PalEntries[256];
+	//	extern DWORD *PaletteEntries;
+	//	if((uStartIndex+cEntries) > 256) cEntries = 256 - uStartIndex;
+	//	for(UINT i=0; i<cEntries; i++) {
+	//		PALETTEENTRY p;
+	//		memcpy(&p, &PaletteEntries[i+uStartIndex], sizeof(DWORD));
+	//		pColors[i].rgbBlue = p.peBlue;
+	//		pColors[i].rgbGreen = p.peGreen;
+	//		pColors[i].rgbRed = p.peRed;
+	//		pColors[i].rgbReserved = p.peFlags;
+	//	}
+	//	ret=cEntries;
+	//}
+	//else
+	//	ret = (*pSetDIBColorTable)(hdc, uStartIndex, cEntries, pColors);
+	
+	ret = (*pSetDIBColorTable)(hdc, uStartIndex, cEntries, pColors);
+	OutTraceDW("SetDIBColorTable: ret=%x\n", ret);
+	return ret;
+}
+#endif
 
 #ifdef NOUNHOOKED
 BOOL WINAPI extValidateRect(HWND hWnd, const RECT *lpRect)
