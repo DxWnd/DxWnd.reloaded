@@ -1,4 +1,6 @@
 //#define D3D10_IGNORE_SDK_LAYERS 1
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <windows.h>
 #include <d3d9.h>
 #include <D3D10_1.h>
@@ -802,12 +804,23 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
 {
 	HRESULT res;
-	OutTraceB("Present\n");
+	RECT RemappedRect;
+	if(IsDebug){
+		char sSourceRect[81];
+		char sDestRect[81];
+		if (pSourceRect) sprintf_s(sSourceRect, 80, "(%d,%d)-(%d,%d)", pSourceRect->left, pSourceRect->top, pSourceRect->right, pSourceRect->bottom);
+		else strcpy(sSourceRect, "(NULL)");
+		if (pDestRect) sprintf_s(sDestRect, 80, "(%d,%d)-(%d,%d)", pDestRect->left, pDestRect->top, pDestRect->right, pDestRect->bottom);
+		else strcpy(sDestRect, "(NULL)");
+		OutTraceB("Present: SourceRect=%s DestRect=%s hDestWndOverride=%x\n", sSourceRect, sDestRect, hDestWindowOverride);
+	}
 	// frame counter handling....
 	if (dxw.HandleFPS()) return D3D_OK;
 	if (dxw.dwFlags1 & SAVELOAD) dxw.VSyncWait();
-	// proxy ....
-	res=(*pPresent)(pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+	// v2.03.15 - fix target RECT region
+	if(dxw.dwFlags2 & FULLRECTBLT) pSourceRect = pDestRect = NULL;
+	RemappedRect=dxw.MapClientRect((LPRECT)pDestRect);
+	res=(*pPresent)(pd3dd, pSourceRect, &RemappedRect, hDestWindowOverride, pDirtyRegion);
 	dxw.ShowOverlay();
 	return res;
 }
@@ -1194,7 +1207,7 @@ HRESULT WINAPI extSetViewport(void *pd3dd, D3DVIEWPORT9 *pViewport)
 
 HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DSwapChain9 **ppSwapChain)
 {
-	HRESULT res;
+	HRESULT res, res2;
 	DWORD param[64], *tmp;
 	D3DDISPLAYMODE mode;
 
@@ -1224,12 +1237,16 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 	}
 
 	if (dwD3DVersion == 9)
-		(*pGetAdapterDisplayMode9)(lpd3dd, 0, &mode);
+		res2=(*pGetAdapterDisplayMode9)(lpd3dd, D3DADAPTER_DEFAULT, &mode);
 	else
-		(*pGetAdapterDisplayMode8)(lpd3dd, 0, &mode);
+		res2=(*pGetAdapterDisplayMode8)(lpd3dd, D3DADAPTER_DEFAULT, &mode);
+	if(res2==DD_OK){
 	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
+	}
+	else
+		OutTraceE("CreateAdditionalSwapChain: GetAdapterDisplayMode err=%x(%s)\n", res2, ExplainDDError(res2));
 
 	if(dxw.Windowize){
 		if(dwD3DVersion == 9){
@@ -1247,8 +1264,14 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 			param[12] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 		}
 	}
+
+	if(res2 == D3DERR_DEVICELOST){
+		res2 = (*pReset)(lpd3dd, (D3DPRESENT_PARAMETERS *)param);
+		if(res2 != DD_OK) OutTraceE("CreateAdditionalSwapChain: Reset err=%x(%s)\n", res2, ExplainDDError(res2));
+	}
+
 	res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
-	if(res){
+	if(res && (res2==DD_OK)){
 		OutTraceD3D("switching to mode=%x\n", mode.Format);
 		param[2] = mode.Format; // first attempt: current screen mode
 		res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
@@ -1258,8 +1281,13 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 		param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
 		res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
 	}
+	//if(res){
+	//	OutTraceD3D("switching to size=0,0\n");
+	//	param[0] = param[1] = 0; // third attempt: unknown, good for windowed mode
+	//	res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
+	//}
 	if(res) {
-		OutTraceE("CreateAdditionalSwapChain ERROR: res=%x\n", res);
+		OutTraceE("CreateAdditionalSwapChain ERROR: res=%x(%s)\n", res, ExplainDDError(res));
 	}
 
 	(dwD3DVersion == 9) ? HookD3DDevice9(&lpd3dd) : HookD3DDevice8(&lpd3dd);
@@ -1725,8 +1753,12 @@ UINT WINAPI extGetAdapterModeCount(void *lpd3d, UINT Adapter, D3DFORMAT Format)
 
 HRESULT WINAPI extCheckDeviceType(void *lpd3d, UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
 {
+	HRESULT res;
 	OutTraceD3D("CheckDeviceType: d3d=%x adapter=%d windowed=%x\n", lpd3d, Adapter, bWindowed);
-	return (*pCheckDeviceType)(lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed);
+	if(dxw.Windowize) bWindowed = TRUE;
+	res = (*pCheckDeviceType)(lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed);
+	OutTraceD3D("CheckDeviceType: res=%x\n", res);
+	return res;
 }
 
 HRESULT WINAPI extCheckDeviceFormat(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, DWORD Usage, D3DRESOURCETYPE RType, D3DFORMAT CheckFormat)

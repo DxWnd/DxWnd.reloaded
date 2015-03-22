@@ -36,6 +36,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_OutDWTrace = FALSE;
 	m_OutD3DTrace = FALSE;
 	m_OutDDRAWTrace = FALSE;
+	m_OutDebugString = FALSE;
 	m_DXProxed = FALSE;
 	//m_HandleDC = FALSE;
 	m_HandleExceptions = FALSE;

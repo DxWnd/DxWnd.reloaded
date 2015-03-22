@@ -41,8 +41,8 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsExA, (FARPROC *)&pChangeDisplaySettingsExA, (FARPROC)extChangeDisplaySettingsExA},
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsW, (FARPROC)extChangeDisplaySettingsW}, // ref. by Knights of Honor
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsExW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsExW, (FARPROC)extChangeDisplaySettingsExW},
-	{HOOK_HOT_CANDIDATE, "GetMonitorInfoA", (FARPROC)NULL, (FARPROC *)&pGetMonitorInfoA, (FARPROC)extGetMonitorInfoA},
-	{HOOK_HOT_CANDIDATE, "GetMonitorInfoW", (FARPROC)NULL, (FARPROC *)&pGetMonitorInfoW, (FARPROC)extGetMonitorInfoW},
+	{HOOK_HOT_CANDIDATE, "GetMonitorInfoA", (FARPROC)GetMonitorInfoA, (FARPROC *)&pGetMonitorInfoA, (FARPROC)extGetMonitorInfoA},
+	{HOOK_HOT_CANDIDATE, "GetMonitorInfoW", (FARPROC)GetMonitorInfoW, (FARPROC *)&pGetMonitorInfoW, (FARPROC)extGetMonitorInfoW},
 	{HOOK_IAT_CANDIDATE, "ShowCursor", (FARPROC)ShowCursor, (FARPROC *)&pShowCursor, (FARPROC)extShowCursor},
 	{HOOK_IAT_CANDIDATE, "CreateDialogIndirectParamA", (FARPROC)CreateDialogIndirectParamA, (FARPROC *)&pCreateDialogIndirectParam, (FARPROC)extCreateDialogIndirectParam},
 	{HOOK_IAT_CANDIDATE, "CreateDialogParamA", (FARPROC)CreateDialogParamA, (FARPROC *)&pCreateDialogParam, (FARPROC)extCreateDialogParam},
@@ -1418,7 +1418,8 @@ static HWND WINAPI extCreateWindowCommon(
 
 	// "Hoyle Casino Empire" needs to be in a maximized state to continue after the intro movie.
 	// Sending a SW_MAXIMIZE message intercepted by the PREVENTMAXIMIZE handling fixes the problem.
-	if (dxw.IsFullScreen() && (dxw.dwFlags1 & PREVENTMAXIMIZE)){
+	//if (dxw.IsFullScreen() && (dxw.dwFlags1 & PREVENTMAXIMIZE)){
+	if ((hwnd == dxw.GethWnd()) && dxw.IsFullScreen() && (dxw.dwFlags1 & PREVENTMAXIMIZE)){
 		OutTraceDW("%s: entering maximized state\n", ApiName); 
 		(*pShowWindow)(hwnd, SW_MAXIMIZE);
 	}
@@ -2776,13 +2777,15 @@ BOOL extGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpmi, GetMonitorInfo_Typ
 	BOOL res;
 	OutTraceDW("GetMonitorInfo: hMonitor=%x mi=MONITORINFO%s\n", hMonitor, lpmi->cbSize==sizeof(MONITORINFO)?"":"EX");
 	res=(*pGetMonitorInfo)(hMonitor, lpmi);
-	if(res && dxw.Windowize){
+	//v2.03.15 - must fix the coordinates also in case of error: that may depend on the windowed mode.
+	if(dxw.Windowize){
 		OutTraceDW("GetMonitorInfo: FIX Work=(%d,%d)-(%d,%d) Monitor=(%d,%d)-(%d,%d) -> (%d,%d)-(%d,%d)\n", 
 			lpmi->rcWork.left, lpmi->rcWork.top, lpmi->rcWork.right, lpmi->rcWork.bottom,
 			lpmi->rcMonitor.left, lpmi->rcMonitor.top, lpmi->rcMonitor.right, lpmi->rcMonitor.bottom,
 			0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight());
 		lpmi->rcWork = dxw.GetScreenRect();
 		lpmi->rcMonitor = dxw.GetScreenRect();
+		res=TRUE;
 	}
 	else
 		OutTraceE("GetMonitorInfo: ERROR err=%d\n", GetLastError());

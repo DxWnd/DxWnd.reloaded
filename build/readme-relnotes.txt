@@ -764,3 +764,10 @@ v2.03.14
 add: window commands Minimize, Restore & Close
 add: made palette behaviour configurable (until better understood...)
 add: "updatepaths" tag in dxwnd.ini
+
+v2.03.15
+fix: keep aspect ratio calculations
+fix: d3d Present method, to properly scale to window size (fixes "Silent Hunter III" rendering)
+fix: GetMonitorInfo hooker: in windowed mode the call may fail, a virtual size and ok retcode should be returned
+fix: Blt method recovering errors when D3D CreateAdditionalSwapChain method fails: allow to see the intro movies of "Silent Hunter III".
+fix: added some missing D3D errorcode labels in log file

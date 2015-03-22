@@ -253,16 +253,19 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		it seems that you can't blit from compressed or different surfaces in memory,
 		while the operation COULD be supported to video. As a mater of fact, it DOES
 		work on my PC. The error code is DDERR_UNSUPPORTED.
-		v2.02.98 update....
-		The same thing happens with New York Racer, but with DDERR_EXCEPTION error code.
+		v2.02.98: The same thing happens with "New York Racer", but with DDERR_EXCEPTION error code.
+		V2.03.15: The same thing happens with "Silent Hunter III", but with DDERR_INVALIDRECT error code.
 		*/
-		if((res==DDERR_UNSUPPORTED) || (res==DDERR_EXCEPTION)){
+		if((res==DDERR_UNSUPPORTED) || (res==DDERR_EXCEPTION) || (res==DDERR_INVALIDRECT)){
+			RECT targetrect;
 			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
-			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+			targetrect=destrect;
+			dxw.MapWindowRect(&targetrect); // v2.03.15
+			res=(*pBlt)(lpDDSEmu_Prim, &targetrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
-		
+
 		// Try to handle HDC lock concurrency....		
 		if(res==DDERR_SURFACEBUSY){
 			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);

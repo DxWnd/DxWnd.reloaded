@@ -722,10 +722,11 @@ RECT dxwCore::MapClientRect(LPRECT lpRect)
 		LONG Width, Height;
 		Width = ClientRect.right - (2*bx);
 		Height = ClientRect.bottom - (2*by);
+		// v2.03.15 - fixed right & bottom values
 		RetRect.left = bx + (lpRect->left * Width / dwScreenWidth);
-		RetRect.right = (lpRect->right * Width / dwScreenWidth);
+		RetRect.right = RetRect.left + Width;
 		RetRect.top = by + (lpRect->top * Height / dwScreenHeight);
-		RetRect.bottom = (lpRect->bottom * Height / dwScreenHeight);
+		RetRect.bottom = RetRect.top + Height;
 	}
 	else{
 		RetRect.left = ClientRect.left + bx;
