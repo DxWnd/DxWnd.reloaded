@@ -7,7 +7,10 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 #include "resource.h"
+#include "hddraw.h"
 #include "d3d9.h"
+extern GetDC_Type pGetDC;
+extern ReleaseDC_Type pReleaseDC;
 
 /* ------------------------------------------------------------------ */
 // Internal function pointers
@@ -796,6 +799,8 @@ POINT dxwCore::ClientOffset(HWND hwnd)
 	desk0 = upleft;
 	if (desktop.right) ret.x = (((win0.x - desk0.x) * (LONG)dwScreenWidth) + (desktop.right >> 1)) / desktop.right;
 	if (desktop.bottom) ret.y = (((win0.y - desk0.y) * (LONG)dwScreenHeight) + (desktop.bottom >> 1)) / desktop.bottom;
+	if(ret.x < 0) ret.x = 0;
+	if(ret.y < 0) ret.y = 0;
 	OutTraceB("ClientOffset: hwnd=%x offset=(%d,%d)\n", hwnd, ret.x, ret.y);
 	return ret;
 }
@@ -1524,94 +1529,79 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
 {
 	HDC wdc;
+	RECT WinRect;
+
 	if(!(wdc=(*pGDIGetDC)(hwnd))){
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 		return NULL;
 	}
-	return AcquireEmulatedDC(wdc);
-}
-
-HDC dxwCore::AcquireEmulatedDC(LPDIRECTDRAWSURFACE lpdds)
-{
-	HDC ddc;
-	typedef HRESULT (WINAPI *GetDC_Type) (LPDIRECTDRAWSURFACE, HDC FAR *);
-	extern GetDC_Type pGetDC;
-	if((*pGetDC)(lpdds, &ddc))
-		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	return AcquireEmulatedDC(ddc);
-}
-
-HDC dxwCore::AcquireEmulatedDC(HDC wdc)
-{
 	RealHDC=wdc;
-	HWND hwnd;
-	RECT WinRect;
+
+	RECT LastVRect;
+	LastVRect = VirtualPicRect;
+
 	if(!(hwnd=WindowFromDC(wdc)))
 		OutTraceE("WindowFromDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	(*pGetClientRect)(hwnd, &WinRect);
 	if(dxw.IsDesktop(hwnd)){
-		dxw.VirtualPicRect = dxw.GetScreenRect();
+		// when screen resolution changes, better renew service resources
+		VirtualPicRect = dxw.GetScreenRect();
+		if((LastVRect.right != VirtualPicRect.right) || (LastVRect.bottom != VirtualPicRect.bottom)) {
+			DeleteObject(VirtualHDC);
+			VirtualHDC = NULL;
+			DeleteObject(VirtualPic);
+			VirtualPic = NULL;
+		}
 	}
 	else {
 		VirtualPicRect = WinRect;
 		dxw.UnmapClient(&VirtualPicRect);
 	}
-	if(!(VirtualHDC=CreateCompatibleDC(wdc)))
-		OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	if(!(VirtualPic=CreateCompatibleBitmap(wdc, VirtualPicRect.right, VirtualPicRect.bottom)))
-		OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	if(!SelectObject(VirtualHDC, VirtualPic)){
-		if(!DeleteObject(VirtualPic))
-			OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+
+	OutTraceB("AcquireEmulatedDC: hwnd=%x Desktop=%x WinRect=(%d,%d)(%d,%d) VirtRect=(%d,%d)(%d,%d)\n",
+		hwnd, dxw.IsDesktop(hwnd), 
+		WinRect.left, WinRect.top, WinRect.right, WinRect.bottom,
+		VirtualPicRect.left, VirtualPicRect.top, VirtualPicRect.right, VirtualPicRect.bottom);
+
+	if (!VirtualHDC){
+		OutTraceB("AcquireEmulatedDC: INITIALIZE\n");
+		if(!(VirtualHDC=CreateCompatibleDC(wdc)))
+			OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+
 		if(!(VirtualPic=CreateCompatibleBitmap(wdc, dxw.GetScreenWidth(), dxw.GetScreenHeight())))
 			OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+
 		if(!SelectObject(VirtualHDC, VirtualPic))
 			OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+
+		if(!(*pGDIStretchBlt)(VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, wdc, 0, 0, WinRect.right, WinRect.bottom, SRCCOPY))
+			OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	}
-	if(!(*pGDIStretchBlt)(VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, wdc, 0, 0, WinRect.right, WinRect.bottom, SRCCOPY))
-		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+
 	return VirtualHDC;
 }
 
 BOOL dxwCore::ReleaseEmulatedDC(HWND hwnd)
 {
-	BOOL ret;
 	HDC wdc;
-	RECT client;
-	(*pGetClientRect)(hwnd, &client);
+	RECT WinRect;
+
+	(*pGetClientRect)(hwnd, &WinRect);
+
+	OutTraceB("ReleaseEmulatedDC: hwnd=%x Desktop=%x WinRect=(%d,%d)(%d,%d) VirtRect=(%d,%d)(%d,%d)\n",
+		hwnd, dxw.IsDesktop(hwnd), 
+		WinRect.left, WinRect.top, WinRect.right, WinRect.bottom,
+		VirtualPicRect.left, VirtualPicRect.top, VirtualPicRect.right, VirtualPicRect.bottom);
+
 	if(!(wdc=(*pGDIGetDC)(hwnd)))
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	//OutTrace("StretchBlt: destdc=%x destrect=(0,0)-(%d,%d) srcdc=%x srcrect=(0,0)-(%d,%d)\n", wdc, client.right, client.bottom, VirtualHDC, VirtualPicRect.right, VirtualPicRect.bottom);
-	// v2.02.94: set HALFTONE stretching. But causes problems with Imperialism II
-	// SetStretchBltMode(wdc,HALFTONE);
-#if 1
-	if(!(*pGDIStretchBlt)(wdc, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, SRCCOPY))
+	SetStretchBltMode(wdc, HALFTONE);
+	if(!(*pGDIStretchBlt)(wdc, 0, 0, WinRect.right, WinRect.bottom, VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, SRCCOPY))
 		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-#else
-	int w, h, bx, by; // width, height and x,y borders
-	RECT RetRect;
-	bx = by = 0;
-	RetRect=client;
-	if (dwFlags2 & KEEPASPECTRATIO){
-		w = RetRect.right - RetRect.left;
-		h = RetRect.bottom - RetRect.top;
-		if ((w * iRatioY) > (h * iRatioX)){
-			bx = (w - (h * iRatioX / iRatioY))/2;
-		}
-		else {
-			by = (h - (w * iRatioY / iRatioX))/2;
-		}
-	}
-	if(!(*pGDIStretchBlt)(wdc, bx, by, client.right-bx, client.bottom-by, VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, SRCCOPY))
-		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-#endif
 	//(*pInvalidateRect)(hwnd, NULL, 0);
-	if(!DeleteObject(VirtualPic))
-		OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);	
-	if(!DeleteObject(VirtualHDC))
-		OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);	
-	ret=TRUE;
-	return ret;
+
+	(*pGDIReleaseDC)(hwnd, VirtualHDC);
+	return TRUE;
 }
 
 void dxwCore::ResetEmulatedDC()
@@ -1625,6 +1615,75 @@ void dxwCore::ResetEmulatedDC()
 BOOL dxwCore::IsVirtual(HDC hdc)
 {
 	return (hdc==VirtualHDC) && (dwFlags3 & GDIEMULATEDC);
+}
+
+HDC dxwCore::AcquireSharedDC(HWND hwnd)
+{
+	extern HDC hFlippedDC;
+	LPDIRECTDRAWSURFACE lpDDSPrim;
+	lpDDSPrim = dxwss.GetPrimarySurface();
+	if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+	while((hFlippedDC == NULL) && lpDDSPrim) { 
+		OutTraceDW("AcquireSharedDC: found primary surface with no DC, unref lpdds=%x\n", lpDDSPrim);
+		dxwss.UnrefSurface(lpDDSPrim);
+		lpDDSPrim = dxwss.GetPrimarySurface();
+		if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+	}
+	if (!(hwnd == dxw.GethWnd())) {
+		POINT father, child, offset;
+		father.x = father.y = 0;
+		child.x = child.y = 0;
+		(*pClientToScreen)(dxw.GethWnd(),&father);
+		(*pClientToScreen)(hwnd,&child);
+		offset.x = child.x - father.x;
+		offset.y = child.y - father.y;
+		dxw.UnmapClient(&offset);
+		OutTraceDW("AcquireSharedDC: child window hwnd=%x offset=(%d,%d)\n", hwnd, offset.x, offset.y);		
+		(*pSetViewportOrgEx)(hFlippedDC, offset.x, offset.y, NULL);
+	}
+	else
+		(*pSetViewportOrgEx)(VirtualHDC, 0, 0, NULL);
+
+	OutTraceDW("AcquireSharedDC: remapping flipped GDI lpDDSPrim=%x hdc=%x\n", lpDDSPrim, hFlippedDC);
+	return hFlippedDC;
+}
+
+BOOL dxwCore::ReleaseSharedDC(HWND hwnd, HDC hDC)
+{
+	HRESULT ret;
+	LPDIRECTDRAWSURFACE lpDDSPrim;
+	lpDDSPrim = dxwss.GetPrimarySurface();
+	if(!lpDDSPrim) return(TRUE);
+	OutTraceDW("GDI.ReleaseDC: releasing flipped GDI hdc=%x\n", hDC);
+	ret=(*pReleaseDC)(dxwss.GetPrimarySurface(), hDC);
+	if (!(hwnd == dxw.GethWnd())) {
+		POINT father, child, offset;
+		RECT rect;
+		HDC hdc;
+		father.x = father.y = 0;
+		child.x = child.y = 0;
+		(*pClientToScreen)(dxw.GethWnd(),&father);
+		(*pClientToScreen)(hwnd,&child);
+		offset.x = child.x - father.x;
+		offset.y = child.y - father.y;
+		if(offset.x || offset.y){
+			// if the graphis was blitted to primary but below a modal child window,
+			// bring that up to the window surface to make it visible.
+			BOOL ret2;
+			(*pGetClientRect)(hwnd, &rect);
+			hdc=(*pGDIGetDC)(hwnd);
+			if(!hdc) OutTrace("GDI.ReleaseDC: GetDC ERROR=%d at %d\n", GetLastError(), __LINE__);
+			ret2=(*pGDIBitBlt)(hdc, rect.left, rect.top, rect.right, rect.bottom, hDC, offset.x, offset.y, SRCCOPY);
+			if(!ret2) OutTrace("GDI.ReleaseDC: BitBlt ERROR=%d at %d\n", GetLastError(), __LINE__);
+			ret2=(*pGDIReleaseDC)(hwnd, hdc);
+			if(!ret2)OutTrace("GDI.ReleaseDC: ReleaseDC ERROR=%d at %d\n", GetLastError(), __LINE__);
+			// this may flicker ....
+			(*pInvalidateRect)(hwnd, NULL, FALSE); 
+		}
+	}
+	if (ret) OutTraceE("GDI.ReleaseDC ERROR: err=%x(%s) at %d\n", ret, ExplainDDError(ret), __LINE__);
+	else dxw.ScreenRefresh();
+	return (ret == DD_OK);
 }
 
 void dxwCore::PushTimer(UINT uTimerId, UINT uDelay, UINT uResolution, LPTIMECALLBACK lpTimeProc, DWORD_PTR dwUser, UINT fuEvent)

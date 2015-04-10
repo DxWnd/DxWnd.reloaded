@@ -110,9 +110,9 @@ public: // methods
 	void FixStyle(char *, HWND, WPARAM, LPARAM);
 	void FixWindowFrame(HWND);
 	HDC AcquireEmulatedDC(HWND);
-	HDC AcquireEmulatedDC(HDC);
-	HDC AcquireEmulatedDC(LPDIRECTDRAWSURFACE);
 	BOOL ReleaseEmulatedDC(HWND);
+	HDC AcquireSharedDC(HWND);
+	BOOL ReleaseSharedDC(HWND, HDC);
 	BOOL IsVirtual(HDC);
 	void ResetEmulatedDC();
 	int VirtualOffsetX, VirtualOffsetY;

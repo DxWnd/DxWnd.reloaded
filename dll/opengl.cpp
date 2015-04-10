@@ -20,6 +20,10 @@
 #define COMPRESSED_RGBA_S3TC_DXT5_EXT                  0x83F3
 #endif
 
+//void WINAPI extglDrawPixels(GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
+//typedef void (WINAPI *glDrawPixels_Type)(GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
+//glDrawPixels_Type pglDrawPixels = NULL;
+
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
 	{HOOK_IAT_CANDIDATE, "glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
@@ -32,6 +36,8 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "wglMakeCurrent", NULL, (FARPROC *)&pwglMakeCurrent, (FARPROC)extwglMakeCurrent},
 	{HOOK_IAT_CANDIDATE, "wglGetProcAddress", NULL, (FARPROC *)&pwglGetProcAddress, (FARPROC)extwglGetProcAddress},
 	{HOOK_IAT_CANDIDATE, "glTexImage2D", NULL, (FARPROC *)&pglTexImage2D, (FARPROC)extglTexImage2D},
+	//{HOOK_IAT_CANDIDATE, "glDrawPixels", NULL, (FARPROC *)&pglDrawPixels, (FARPROC)extglDrawPixels},
+	{HOOK_IAT_CANDIDATE, "glPixelZoom", NULL, (FARPROC *)&pglPixelZoom, (FARPROC)extglPixelZoom},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -419,7 +425,7 @@ void WINAPI extglTexImage2D(
   	GLenum type,
   	const GLvoid * data)
 {
-	OutTrace("glTexImage2D: TEXTURE target=%x level=%x internalformat=%x format=%x type=%x size=(%dx%d)\n", 
+	OutTraceDW("glTexImage2D: TEXTURE target=%x level=%x internalformat=%x format=%x type=%x size=(%dx%d)\n", 
 		target, level, internalFormat, format, type, width, height);
 
 	switch(target){
@@ -446,4 +452,57 @@ void WINAPI extglTexImage2D(
 	}
 
 	return (*pglTexImage2D)(target, level, internalFormat, width, height, border, format, type, data);
+}
+
+#if 0
+char *ExplainDrawPixelsFormat(DWORD c)
+{
+	static char *eb;
+	switch(c)
+	{
+		case GL_COLOR_INDEX: 				eb="GL_COLOR_INDEX"; break;
+		case GL_STENCIL_INDEX: 				eb="GL_STENCIL_INDEX"; break;
+		case GL_DEPTH_COMPONENT: 			eb="GL_DEPTH_COMPONENT"; break;
+		case GL_RGB: 						eb="GL_RGB"; break;
+		case GL_BGR: 						eb="GL_BGR"; break;
+		case GL_RGBA: 						eb="GL_RGBA"; break;
+		case GL_BGRA: 						eb="GL_BGRA"; break;
+		case GL_RED: 						eb="GL_RED"; break;
+		case GL_GREEN: 						eb="GL_GREEN"; break;
+		case GL_BLUE: 						eb="GL_BLUE"; break;
+		case GL_ALPHA: 						eb="GL_ALPHA"; break;
+		case GL_LUMINANCE: 					eb="GL_LUMINANCE"; break;
+		case GL_LUMINANCE_ALPHA: 			eb="GL_LUMINANCE_ALPHA"; break;
+		default: 							eb="unknown"; break;
+	}
+	return eb;
+}
+
+void WINAPI extglDrawPixels(GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data)
+{
+	GLenum glerr;
+	OutTrace("glDrawPixels: size=(%dx%d) format=%x(%s) type=%d data=%x\n", 
+		width, height, format, ExplainDrawPixelsFormat(format), type, data);
+
+	(*pglDrawPixels)(width, height, format, type, data);
+	if ((glerr=glGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	return;
+}
+#endif
+
+void WINAPI extglPixelZoom(GLfloat xfactor, GLfloat yfactor)
+{
+	GLenum glerr;
+	OutTraceDW("glPixelZoom: x,y factor=(%f,%f)\n", xfactor, yfactor);
+
+	if(dxw.dwFlags6 & FIXPIXELZOOM){
+		RECT desktop;
+		(*pGetClientRect)(dxw.GethWnd(), &desktop);
+		xfactor = (xfactor * desktop.right) / dxw.GetScreenWidth();
+		yfactor = (yfactor * desktop.bottom) / dxw.GetScreenHeight();
+		OutTraceDW("glPixelZoom: FIXED x,y factor=(%f,%f)\n", xfactor, yfactor);
+	}
+	(*pglPixelZoom)(xfactor, yfactor);
+	if ((glerr=glGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	return;
 }

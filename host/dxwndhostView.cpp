@@ -380,6 +380,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_InterceptRDTSC) t->flags4 |= INTERCEPTRDTSC;
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
 	if(dlg->m_ForceHookOpenGL) t->flags3 |= FORCEHOOKOPENGL;
+	if(dlg->m_FixPixelZoom) t->flags6 |= FIXPIXELZOOM;
 	if(dlg->m_WireFrame) t->flags2 |= WIREFRAME;
 	if(dlg->m_NoTextures) t->flags4 |= NOTEXTURES;
 	if(dlg->m_BlackWhite) t->flags3 |= BLACKWHITE;
@@ -393,6 +394,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoDDRAWFlip) t->flags3 |= NODDRAWFLIP;
 	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
 	if(dlg->m_NoFillRect) t->flags4 |= NOFILLRECT;
+	if(dlg->m_ReuseEmulatedDC) t->flags6 |= REUSEEMULATEDDC;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	t->initx = dlg->m_InitX;
@@ -614,6 +616,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_InterceptRDTSC = t->flags4 & INTERCEPTRDTSC ? 1 : 0;
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;
 	dlg->m_ForceHookOpenGL = t->flags3 & FORCEHOOKOPENGL ? 1 : 0;
+	dlg->m_FixPixelZoom = t->flags6 & FIXPIXELZOOM ? 1 : 0;
 	dlg->m_WireFrame = t->flags2 & WIREFRAME ? 1 : 0;
 	dlg->m_NoTextures = t->flags4 & NOTEXTURES ? 1 : 0;
 	dlg->m_BlackWhite = t->flags3 & BLACKWHITE ? 1 : 0;
@@ -627,6 +630,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoDDRAWFlip = t->flags3 & NODDRAWFLIP ? 1 : 0;
 	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;
 	dlg->m_NoFillRect = t->flags4 & NOFILLRECT ? 1 : 0;
+	dlg->m_ReuseEmulatedDC = t->flags6 & REUSEEMULATEDDC ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_InitX = t->initx;

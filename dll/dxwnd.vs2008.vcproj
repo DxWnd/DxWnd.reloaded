@@ -77,7 +77,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shlwapi.lib odbc32.lib odbccp32.lib libMinHook.x86.lib"
+				AdditionalDependencies="shlwapi.lib odbc32.lib odbccp32.lib libMinHook.x86.lib OpenGl32.lib"
 				OutputFile="../Debug/dxwnd.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -178,7 +178,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies=" libMinHook.x86.lib"
+				AdditionalDependencies=" libMinHook.x86.lib OpenGl32.lib"
 				OutputFile="../Release/dxwnd.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"

@@ -33,10 +33,12 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FIXTEXTOUT, cTarget->m_FixTextOut);
 	DDX_Check(pDX, IDC_SHAREDDC, cTarget->m_SharedDC);
 	DDX_Check(pDX, IDC_NOFILLRECT, cTarget->m_NoFillRect);
+	DDX_Check(pDX, IDC_REUSEEMULATEDDC, cTarget->m_ReuseEmulatedDC);
 
 	// OpenGL
 	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL); // duplicated
 	DDX_Check(pDX, IDC_FORCEHOOKOPENGL, cTarget->m_ForceHookOpenGL);
+	DDX_Check(pDX, IDC_FIXPIXELZOOM, cTarget->m_FixPixelZoom);
 	DDX_Text(pDX, IDC_OPENGLLIB, cTarget->m_OpenGLLib);
 
 	// Glide

@@ -1988,30 +1988,8 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 	}
 
 	if(bFlippedDC) {
-		extern HDC hFlippedDC;
-		LPDIRECTDRAWSURFACE lpDDSPrim;
-		lpDDSPrim = dxwss.GetPrimarySurface();
-		if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
-		while((hFlippedDC == NULL) && lpDDSPrim) { 
-			OutTraceDW("%s: found primary surface with no DC, unref lpdds=%x\n", ApiName, lpDDSPrim);
-			dxwss.UnrefSurface(lpDDSPrim);
-			lpDDSPrim = dxwss.GetPrimarySurface();
-			if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
-		}
-		if (!(hwnd == dxw.GethWnd())) {
-			POINT father, child, offset;
-			father.x = father.y = 0;
-			child.x = child.y = 0;
-			(*pClientToScreen)(dxw.GethWnd(),&father);
-			(*pClientToScreen)(hwnd,&child);
-			offset.x = child.x - father.x;
-			offset.y = child.y - father.y;
-			dxw.UnmapClient(&offset);
-			OutTraceDW("%s: child window hwnd=%x offset=(%d,%d)\n", ApiName, hwnd, offset.x, offset.y);		
-			(*pSetViewportOrgEx)(hFlippedDC, offset.x, offset.y, NULL);
-		}
-		OutTraceDW("%s: remapping flipped GDI lpDDSPrim=%x hdc=%x\n", ApiName, lpDDSPrim, hFlippedDC);
-		if(hFlippedDC) return hFlippedDC;
+		ret = dxw.AcquireSharedDC(hwnd);
+		if(ret) return ret;
 	}
 
 	switch(GDIEmulationMode){
@@ -2020,7 +1998,6 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 			break;
 		case GDIMODE_EMULATED:
 			ret=dxw.AcquireEmulatedDC(lochwnd);
-			dxw.VirtualHDC=ret;
 			break;
 	}
 
@@ -2080,42 +2057,7 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 	if (dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 	if(hwnd == 0) return(TRUE);
 
-	if(bFlippedDC && (hDC == hFlippedDC)) {
-		HRESULT ret;
-		LPDIRECTDRAWSURFACE lpDDSPrim;
-		lpDDSPrim = dxwss.GetPrimarySurface();
-		if(!lpDDSPrim) return(TRUE);
-		OutTraceDW("GDI.ReleaseDC: releasing flipped GDI hdc=%x\n", hDC);
-		ret=(*pReleaseDC)(dxwss.GetPrimarySurface(), hDC);
-		if (!(hwnd == dxw.GethWnd())) {
-			POINT father, child, offset;
-			RECT rect;
-			HDC hdc;
-			father.x = father.y = 0;
-			child.x = child.y = 0;
-			(*pClientToScreen)(dxw.GethWnd(),&father);
-			(*pClientToScreen)(hwnd,&child);
-			offset.x = child.x - father.x;
-			offset.y = child.y - father.y;
-			if(offset.x || offset.y){
-				// if the graphis was blitted to primary but below a modal child window,
-				// bring that up to the window surface to make it visible.
-				BOOL ret2;
-				(*pGetClientRect)(hwnd, &rect);
-				hdc=(*pGDIGetDC)(hwnd);
-				if(!hdc) OutTrace("GDI.ReleaseDC: GetDC ERROR=%d at %d\n", GetLastError(), __LINE__);
-				ret2=(*pGDIBitBlt)(hdc, rect.left, rect.top, rect.right, rect.bottom, hDC, offset.x, offset.y, SRCCOPY);
-				if(!ret2) OutTrace("GDI.ReleaseDC: BitBlt ERROR=%d at %d\n", GetLastError(), __LINE__);
-				ret2=(*pGDIReleaseDC)(hwnd, hdc);
-				if(!ret2)OutTrace("GDI.ReleaseDC: ReleaseDC ERROR=%d at %d\n", GetLastError(), __LINE__);
-				// this may flicker ....
-				(*pInvalidateRect)(hwnd, NULL, FALSE); 
-			}
-		}
-		if (ret) OutTraceE("GDI.ReleaseDC ERROR: err=%x(%s) at %d\n", ret, ExplainDDError(ret), __LINE__);
-		else dxw.ScreenRefresh();
-		return (ret == DD_OK);
-	}
+	if(bFlippedDC && (hDC == hFlippedDC)) return dxw.ReleaseSharedDC(hwnd, hDC);
 
 	switch(GDIEmulationMode){
 		case GDIMODE_STRETCHED:
@@ -2266,7 +2208,7 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 				return TRUE;
 			}
 
-		if (dxw.IsFullScreen()){
+		if (dxw.IsFullScreen() && (dxw.dwFlags1 & CLIENTREMAPPING)){
 			POINT upleft={0,0};
 			RECT client;
 			BOOL isChild;

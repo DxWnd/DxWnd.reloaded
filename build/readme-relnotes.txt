@@ -915,3 +915,8 @@ v2.03.38
 fix: handling of WM_ACTIVATE and WM_NCACTIVATE messages, should bring the window to HWND_NOTOPMOST z-order position only when activation is on, not off!
 fix: in "Share GDI and draw DC" mode, check if the primary surface really has a DC and switch to another one if the DC is missing.
 fix: eliminated some redundant code in GDI ReleaseDC in DC emulated mode
+
+v2.03.39
+add: "Fix glPixelZoom args" flag to scale images rendered by OpenGL through GDI. It is needed for "Strength and Honor".
+add: "Reuse emulated DC" flag to optimize GDI emulation. experimental.
+

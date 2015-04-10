@@ -148,6 +148,7 @@ public:
 	BOOL	m_InterceptRDTSC;
 	BOOL	m_HookOpenGL;
 	BOOL	m_ForceHookOpenGL;
+	BOOL	m_FixPixelZoom;
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
 	BOOL	m_CenterToWin;
@@ -157,6 +158,7 @@ public:
 	BOOL	m_NoDDRAWFlip;
 	BOOL	m_NoGDIBlt;
 	BOOL	m_NoFillRect;
+	BOOL	m_ReuseEmulatedDC;
 	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;

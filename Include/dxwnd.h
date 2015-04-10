@@ -203,6 +203,8 @@
 #define WOW32REGISTRY		0x00080000 // Sets KEY_WOW32_64KEY registry flag
 #define STRETCHMOVIES		0x00100000 // Stretches ActiveMovie Windows to the whole window size
 #define BYPASSMCI			0x00200000 // bypass all MCI calls returning OK.
+#define FIXPIXELZOOM		0x00400000
+#define REUSEEMULATEDDC		0x00800000
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
