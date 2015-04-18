@@ -936,6 +936,7 @@ char *ExplainSetWindowIndex(DWORD c)
 		case GWL_STYLE:			eb="GWL_STYLE"; break;
 		case GWL_USERDATA:		eb="GWL_USERDATA"; break;
 		case GWL_WNDPROC:		eb="GWL_WNDPROC"; break;
+		case GWL_HWNDPARENT:	eb="GWL_HWNDPARENT"; break;
 		case DWL_DLGPROC:		eb="DWL_DLGPROC"; break;
 		case DWL_MSGRESULT:		eb="DWL_MSGRESULT"; break;
 		case DWL_USER:			eb="DWL_USER"; break;

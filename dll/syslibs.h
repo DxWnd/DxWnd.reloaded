@@ -136,6 +136,7 @@ typedef BOOL	(WINAPI *GetExitCodeProcess_Type)(HANDLE, LPDWORD);
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstanceEx_Type)(REFCLSID, IUnknown *, DWORD, COSERVERINFO *, DWORD, MULTI_QI *);
 typedef HRESULT (STDAPICALLTYPE *CoInitialize_Type)(LPVOID);
+typedef void (STDAPICALLTYPE *CoUninitialize_Type)(void);
 
 // user32.dll:
 typedef HDC		(WINAPI *BeginPaint_Type)(HWND, LPPAINTSTRUCT);
@@ -350,6 +351,7 @@ DXWEXTERN GetExitCodeProcess_Type pGetExitCodeProcess DXWINITIALIZED;
 DXWEXTERN CoCreateInstance_Type pCoCreateInstance DXWINITIALIZED;
 DXWEXTERN CoCreateInstanceEx_Type pCoCreateInstanceEx  DXWINITIALIZED;
 DXWEXTERN CoInitialize_Type pCoInitialize  DXWINITIALIZED;
+DXWEXTERN CoUninitialize_Type pCoUninitialize  DXWINITIALIZED;
 
 // user32.dll:
 DXWEXTERN BeginPaint_Type pBeginPaint DXWINITIALIZED;
@@ -565,6 +567,7 @@ extern BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *);
 extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
 extern HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID, IUnknown *, DWORD, COSERVERINFO *, DWORD, MULTI_QI *);
 extern HRESULT STDAPICALLTYPE extCoInitialize(LPVOID);
+extern void STDAPICALLTYPE extCoUninitialize(void);
 
 // user32.dll:
 extern HDC WINAPI extBeginPaint(HWND, LPPAINTSTRUCT);

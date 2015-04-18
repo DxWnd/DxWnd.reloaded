@@ -777,3 +777,11 @@ fix: MapWindowPoints hook - added coordinate scaling (fixes "NBA Live 99" compon
 fix: using "Suppress D3D8/9 reset" sets the backbuffer area as large as the whole desktop to avoid clipping
 add: added "Unlock Z-order" flag to avoid window to stay locked on top of z-order (useful for "NBA Live 99")
 add: added "EA Sprots hack" flag to suppress some interfering hooks set by EA games internally (useful for "NBA Live 99")
+
+v2.03.18:
+fix: eliminated direct output to primary surface, causing more troubles than goods ("Divine Divinity" flickering...)
+fix: handled CoCreateInstance calling CoCreateInstanceEx in hot patch mode.
+fix: eliminated InvalidateRect calls in ddrow Unlock hooker: this is not the right way to fix "Deadlock II", sorry.
+fix: DirectDrawEnumerateEx log
+fix: cursor is hidden in fullscreen mode only
+fix: CoCreateInstance & CoCreateInstanceEx wrappers. Now "Crusaders of Might & Magic" is playable in window

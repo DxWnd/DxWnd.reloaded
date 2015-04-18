@@ -36,6 +36,12 @@ HHOOK WINAPI extSetWindowsHookEx(int, HOOKPROC, HINSTANCE, DWORD);
 typedef BOOL (WINAPI *PostMessageA_Type)(HWND, UINT, WPARAM, LPARAM);
 PostMessageA_Type pPostMessageA = NULL;
 BOOL WINAPI extPostMessageA(HWND, UINT, WPARAM, LPARAM);
+typedef HRESULT (WINAPI *MessageBoxTimeoutA_Type)(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
+MessageBoxTimeoutA_Type pMessageBoxTimeoutA = NULL;
+HRESULT WINAPI extMessageBoxTimeoutA(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
+typedef HRESULT (WINAPI *MessageBoxTimeoutW_Type)(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
+MessageBoxTimeoutW_Type pMessageBoxTimeoutW = NULL;
+HRESULT WINAPI extMessageBoxTimeoutW(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
 
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
@@ -98,6 +104,9 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "ChildWindowFromPointEx", (FARPROC)ChildWindowFromPointEx, (FARPROC *)&pChildWindowFromPointEx, (FARPROC)extChildWindowFromPointEx},
 	{HOOK_HOT_CANDIDATE, "WindowFromPoint", (FARPROC)WindowFromPoint, (FARPROC *)&pWindowFromPoint, (FARPROC)extWindowFromPoint},
 	{HOOK_HOT_CANDIDATE, "SetWindowsHookExA", (FARPROC)SetWindowsHookExA, (FARPROC *)&pSetWindowsHookEx, (FARPROC)extSetWindowsHookEx},
+
+	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutA", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutA, (FARPROC)extMessageBoxTimeoutA},
+	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutW", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutW, (FARPROC)extMessageBoxTimeoutW},
 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
@@ -1113,6 +1122,7 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 	
 	ret=(*pMapWindowPoints)(hWndFrom, hWndTo, lpPoints, cPoints);
 	// v2.03.16: now must scale every point (fixes "NBA Live 99")
+	// v2.03.18: in some cases it should not! "New Your Race"...
 	for(pi=0; pi<cPoints; pi++){
 		dxw.UnmapClient(&lpPoints[pi]);
 	}
@@ -3037,3 +3047,21 @@ HHOOK WINAPI extSetWindowsHookEx(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWOR
 	ret=(*pSetWindowsHookEx)(idHook, lpfn, hMod, dwThreadId);
 	return ret;
 }
+
+
+HRESULT WINAPI extMessageBoxTimeoutA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType, WORD wLanguageId, DWORD dwMilliseconds)
+{
+	HRESULT res;
+	if(1) dwMilliseconds=1000;
+	res=(*pMessageBoxTimeoutA)(hWnd, lpText, lpCaption, uType, wLanguageId, dwMilliseconds);
+	return res;
+}
+
+HRESULT WINAPI extMessageBoxTimeoutW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType, WORD wLanguageId, DWORD dwMilliseconds)
+{
+	HRESULT res;
+	if(1) dwMilliseconds=1000;
+	res=(*pMessageBoxTimeoutW)(hWnd, lpText, lpCaption, uType, wLanguageId, dwMilliseconds);
+	return res;
+}
+

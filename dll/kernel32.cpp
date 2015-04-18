@@ -17,6 +17,16 @@ typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTE
 										   BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION);
 CreateProcessA_Type pCreateProcessA = NULL;
 
+#ifdef NOFREELIBRARY
+typedef BOOL (WINAPI *FreeLibrary_Type)(HMODULE);
+FreeLibrary_Type pFreeLibrary = NULL;
+BOOL WINAPI extFreeLibrary(HMODULE hModule)
+{ 
+	OutTrace("FreeLibrary: hModule=%x SUPPRESS\n", hModule);
+	return TRUE; 
+}
+#endif
+
 // v2.02.96: the GetSystemInfo API is NOT hot patchable on Win7. This can cause problems because it can't be hooked by simply
 // enabling hot patch. A solution is making all LoadLibrary* calls hot patchable, so that when loading the module, the call
 // can be hooked by the IAT lookup. This fixes a problem after movie playing in Wind Fantasy SP.
@@ -33,6 +43,9 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "GetLogicalDrives", (FARPROC)NULL, (FARPROC *)&pGetLogicalDrives, (FARPROC)extGetLogicalDrives},
 	{HOOK_IAT_CANDIDATE, "GetTempFileNameA", (FARPROC)GetTempFileNameA, (FARPROC *)&pGetTempFileName, (FARPROC)extGetTempFileName},
 	{HOOK_IAT_CANDIDATE, "CreateProcessA", (FARPROC)NULL, (FARPROC *)&pCreateProcessA, (FARPROC)extCreateProcessA},
+#ifdef NOFREELIBRARY
+	{HOOK_HOT_CANDIDATE, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
+#endif
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -533,7 +546,6 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 	}
 
 	// to do: the else condition: the program COULD load addresses by ordinal value ... done ??
-	// to do: CoCreateInstanceEx
 	if((DWORD)proc & 0xFFFF0000){
 		FARPROC remap;
 		switch(idx){

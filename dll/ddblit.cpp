@@ -64,15 +64,16 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	// Wrong guess!!! The cause was not compression, but simply a pixelformat mismatch. Better
 	// configure things properly and avoid this branch.
 	switch(res){
-	case DDERR_UNSUPPORTED:
-		if (dxw.dwFlags1 & EMULATESURFACE){
-			RECT targetrect;
-			if (IsDebug) BlitTrace("UNSUPP", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
-			targetrect=*lpdestrect;
-			dxw.MapWindowRect(&targetrect);
-			res=(*pBlt)(lpDDSEmu_Prim, &targetrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
-		}
-		break;
+	// commented out: it was the cause of the "Divine Divinity" flickering.
+	// commented in?: it seems useful in "Axis and Allies"....
+	//case DDERR_UNSUPPORTED:
+	//	if (dxw.dwFlags1 & EMULATESURFACE){
+	//		RECT targetrect;
+	//		if (IsDebug) BlitTrace("UNSUPP", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
+	//		targetrect = dxw.MapWindowRect(lpdestrect);
+	//		res=(*pBlt)(lpDDSEmu_Prim, &targetrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
+	//	}
+	//	break;
 	case DDERR_SURFACEBUSY:
 		(*pUnlockMethod(lpdds))(lpdds, NULL);
 		if (lpddssrc) (*pUnlockMethod(lpddssrc))(lpddssrc, NULL);	
@@ -261,8 +262,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 			RECT targetrect;
 			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
-			targetrect=destrect;
-			dxw.MapWindowRect(&targetrect); // v2.03.15
+			targetrect=dxw.MapWindowRect(&destrect); // v2.03.18
 			res=(*pBlt)(lpDDSEmu_Prim, &targetrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}

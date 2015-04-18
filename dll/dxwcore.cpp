@@ -997,7 +997,7 @@ void dxwCore::ScreenRefresh(void)
 	if (lpDDSPrim) extBlt(lpDDSPrim, NULL, lpDDSPrim, NULL, 0, NULL);
 
 	// v2.02.44 - used for what? Commenting out seems to fix the palette update glitches  
-	// and make the "Palette updates don't blit"option useless....
+	// and make the "Palette updates don't blit" option useless....
 	//(*pInvalidateRect)(hWnd, NULL, FALSE); 
 }
 

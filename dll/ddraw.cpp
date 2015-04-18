@@ -1760,9 +1760,10 @@ HRESULT WINAPI extInitialize(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 
 	res=(*pInitialize)(lpdd, lpPrivGuid);
 
+	if(res == DDERR_ALREADYINITIALIZED) res=DD_OK; // v2.03.18: this error could be caused by the CoCreateInstance implementation
 	if(dxw.dwFlags3 & COLORFIX) (((DDRAWI_DIRECTDRAW_INT *)lpdd))->lpLcl->dwAppHackFlags |= 0x800;
-
 	if(res) OutTraceE("Initialize ERROR: res=%x(%s)\n", res, ExplainDDError(res));
+	
 	return res;
 }
 
@@ -3716,18 +3717,12 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	}
 
 	res=(*pUnlock)(lpdds, lprect);
+	if (IsPrim && res==DD_OK) {
+		if(dxversion == 1) lprect=NULL;
+		res=sBlt("Unlock", lpdds, lprect, lpdds, lprect, NULL, 0, FALSE);
+	}
 	if(res==DDERR_NOTLOCKED) res=DD_OK; // ignore not locked error
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-	if (IsPrim && res==DD_OK) {
-		if(dxversion == 1){
-			res=sBlt("Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
-			(*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE); // to fix "Deadlock II" mouse trails....
-		}
-		else {
-			res=sBlt("Unlock", lpdds, lprect, lpdds, lprect, NULL, 0, FALSE);
-			(*pInvalidateRect)(dxw.GethWnd(), lprect, FALSE); 
-		}
-	}
 
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 
@@ -4712,7 +4707,7 @@ HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 	return ref;
 }
 
-BOOL WINAPI DDEnumerateCallbackFilter(GUID *lpGuid, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext)
+BOOL FAR PASCAL DDEnumerateCallbackFilter(GUID FAR *lpGuid, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext)
 {
 	BOOL res;
 	typedef struct {LPDDENUMCALLBACK lpCallback; LPVOID lpContext;} Context_Type;
@@ -4725,7 +4720,7 @@ BOOL WINAPI DDEnumerateCallbackFilter(GUID *lpGuid, LPSTR lpDriverDescription, L
 	return res;
 }
 
-BOOL WINAPI DDEnumerateCallbackExFilter(GUID *lpGuid, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext, HMONITOR hm)
+BOOL FAR PASCAL DDEnumerateCallbackExFilter(GUID FAR *lpGuid, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext, HMONITOR hm)
 {
 	BOOL res;
 	typedef struct {LPDDENUMCALLBACKEX lpCallback; LPVOID lpContext;} Context_Type;
@@ -4759,15 +4754,16 @@ HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX lpCallback, LPVOID lp
 {
 	HRESULT ret;
 	OutTraceDDRAW("DirectDrawEnumerateEx: lpCallback=%x lpContext=%x Flags=%x(%s)\n", 
-		lpCallback, lpContext, dxw.dwFlags1, ExplainDDEnumerateFlags(dwFlags));
+		lpCallback, lpContext, dwFlags, ExplainDDEnumerateFlags(dwFlags));
 	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG)){
 		struct {LPDDENUMCALLBACKEX lpCallback; LPVOID lpContext;} myContext;
 		myContext.lpCallback=lpCallback;
 		myContext.lpContext=lpContext;
 		ret=(*pDirectDrawEnumerateEx)(DDEnumerateCallbackExFilter, (LPVOID)&myContext, dwFlags);
 	}
-	else
+	else{
 		ret=(*pDirectDrawEnumerateEx)(lpCallback, lpContext, dwFlags);
+	}
 	if(ret) OutTraceE("DirectDrawEnumerateEx: ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) ret=0;
 	return ret;

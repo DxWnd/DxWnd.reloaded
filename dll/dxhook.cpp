@@ -598,7 +598,6 @@ void HookWindowProc(HWND hwnd)
 
 void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 {
-
 	HRESULT res=0;
 	LONG style;
 
@@ -629,7 +628,7 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 
 	// fixing cursor view and clipping region
 
-	if (dxw.dwFlags1 & HIDEHWCURSOR) while ((*pShowCursor)(0) >= 0);
+	if ((dxw.dwFlags1 & HIDEHWCURSOR) && dxw.IsFullScreen()) while ((*pShowCursor)(0) >= 0);
 	if (dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
 	if (dxw.dwFlags1 & CLIPCURSOR) {
 		OutTraceDW("AdjustWindowFrame: setting clip region\n");
@@ -937,7 +936,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			dxw.dwFlags1 |= LOCKWINPOS;
 			dx_UpdatePositionLock(hwnd);
 		}
-		if(dxw.dwFlags1 & HIDEHWCURSOR) while((*pShowCursor)(0) >= 0);
+		if((dxw.dwFlags1 & HIDEHWCURSOR) && dxw.IsFullScreen()) while((*pShowCursor)(0) >= 0);
 		if(dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
 		if(dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		if(dxw.dwFlags2 & REFRESHONRESIZE) dxw.ScreenRefresh();
@@ -974,7 +973,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if(dxw.Windowize){
 			prev.x = LOWORD(lparam);
 			prev.y = HIWORD(lparam);
-			if (dxw.dwFlags1 & HIDEHWCURSOR) {
+			if ((dxw.dwFlags1 & HIDEHWCURSOR) && dxw.IsFullScreen()){
 				(*pGetClientRect)(hwnd, &rect);
 				if(prev.x >= 0 && prev.x < rect.right && prev.y >= 0 && prev.y < rect.bottom)
 					while((*pShowCursor)(0) >= 0);
@@ -1680,7 +1679,6 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	}
 	if(dxw.dwFlags5 & GDIMODE) dxw.dwFlags1 |= EMULATESURFACE;
 	if(dxw.dwFlags5 & STRESSRESOURCES) dxw.dwFlags5 |= LIMITRESOURCES;
-
 
 	if(hwnd){ // v2.02.32: skip this when in code injection mode.
 		// v2.1.75: is it correct to set hWnd here?
