@@ -43,6 +43,10 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_WIREFRAME, cTarget->m_WireFrame);
 	DDX_Check(pDX, IDC_DISABLEFOGGING, cTarget->m_DisableFogging);
 	DDX_Check(pDX, IDC_CLEARTARGET, cTarget->m_ClearTarget);
+
+	// Swap Effect
+	DDX_Check(pDX, IDC_FORCESWAPEFFECT, cTarget->m_ForcesSwapEffect);
+	DDX_Radio(pDX, IDC_SWAP_DISCARD, cTarget->m_SwapEffect);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirect3D, CDialog)

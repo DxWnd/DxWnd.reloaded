@@ -6,6 +6,7 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 #include "resource.h"
+#include "d3d9.h"
 
 /* ------------------------------------------------------------------ */
 // Internal function pointers
@@ -81,6 +82,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags3 = target->flags3;
 	dwFlags4 = target->flags4;
 	dwFlags5 = target->flags5;
+	dwFlags6 = target->flags6;
 	dwTFlags = target->tflags;
 	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
 	if(dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
@@ -98,6 +100,13 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	FakeVersionId = target->FakeVersionId;
 	MaxScreenRes = target->MaxScreenRes;
 	Coordinates = target->coordinates;
+	switch(target->SwapEffect){
+		case 0: SwapEffect = D3DSWAPEFFECT_DISCARD; break;
+		case 1: SwapEffect = D3DSWAPEFFECT_FLIP; break;
+		case 2: SwapEffect = D3DSWAPEFFECT_COPY; break;
+		case 3: SwapEffect = D3DSWAPEFFECT_OVERLAY; break;
+		case 4: SwapEffect = D3DSWAPEFFECT_FLIPEX; break;
+	}
 	MustShowOverlay=((dwFlags2 & SHOWFPSOVERLAY) || (dwFlags4 & SHOWTIMESTRETCH));
 	if(dwFlags4 & FINETIMING){
 		pTimeShifter = TimeShifterFine;
@@ -722,11 +731,11 @@ RECT dxwCore::MapClientRect(LPRECT lpRect)
 		LONG Width, Height;
 		Width = ClientRect.right - (2*bx);
 		Height = ClientRect.bottom - (2*by);
-		// v2.03.15 - fixed right & bottom values
+		// v2.03.18 - fixed right & bottom values
 		RetRect.left = bx + (lpRect->left * Width / dwScreenWidth);
-		RetRect.right = RetRect.left + Width;
+		RetRect.right = bx + (lpRect->right * Width / dwScreenWidth);
 		RetRect.top = by + (lpRect->top * Height / dwScreenHeight);
-		RetRect.bottom = RetRect.top + Height;
+		RetRect.bottom = by + (lpRect->bottom * Height / dwScreenHeight);
 	}
 	else{
 		RetRect.left = ClientRect.left + bx;
@@ -1327,11 +1336,15 @@ void dxwCore::ShowOverlay()
 
 void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
 {
+	typedef HRESULT (WINAPI *GetDC_Type) (LPDIRECTDRAWSURFACE, HDC FAR *);
+	typedef HRESULT (WINAPI *ReleaseDC_Type)(LPDIRECTDRAWSURFACE, HDC);
+	extern GetDC_Type pGetDC;
+	extern ReleaseDC_Type pReleaseDC;
 	if (MustShowOverlay) {
 		HDC hdc; // the working dc
 		int h, w;
 		if(!lpdds) return;
-		if (FAILED(lpdds->GetDC(&hdc))) return;
+		if (FAILED((*pGetDC)(lpdds, &hdc))) return;
 		w = this->GetScreenWidth();
 		h = this->GetScreenHeight();
 		if(this->dwFlags4 & BILINEAR2XFILTER) {
@@ -1339,7 +1352,7 @@ void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
 			h <<=1;
 		}
 		this->ShowOverlay(hdc, w, h);
-		lpdds->ReleaseDC(hdc);
+		(*pReleaseDC)(lpdds, hdc);
 	}
 }
 

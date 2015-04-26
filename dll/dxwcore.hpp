@@ -139,12 +139,14 @@ public: // simple data variables
 	DWORD dwFlags3;
 	DWORD dwFlags4;
 	DWORD dwFlags5;
+	DWORD dwFlags6;
 	DWORD dwTFlags;
 	HWND hParentWnd;
 	HWND hChildWnd;
 	BOOL bActive;
 	BOOL bDInputAbs;
 	DWORD MaxFPS;
+	DWORD SwapEffect;
 	char *gsModules;
 	int TimeShift;
 	LPDIRECTDRAWSURFACE lpDDSPrimHDC;

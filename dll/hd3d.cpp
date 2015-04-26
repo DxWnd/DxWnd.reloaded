@@ -282,6 +282,7 @@ AddRef_Type pAddRef9 = 0;
 Release_Type pRelease9 = 0;
 
 DWORD dwD3DVersion;
+DWORD dwD3DSwapEffect;
 
 static HookEntry_Type d3d8Hooks[]={
 	{HOOK_HOT_CANDIDATE, "Direct3DCreate8", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate8, (FARPROC)extDirect3DCreate8},
@@ -327,6 +328,7 @@ static HookEntry_Type d3d11Hooks[]={
 FARPROC Remap_d3d8_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
 	if (addr=RemapLibrary(proc, hModule, d3d8Hooks)) return addr;
 	return NULL;
 }
@@ -334,6 +336,7 @@ FARPROC Remap_d3d8_ProcAddress(LPCSTR proc, HMODULE hModule)
 FARPROC Remap_d3d9_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
 	if (addr=RemapLibrary(proc, hModule, d3d9Hooks)) return addr;
 	if (dxw.dwFlags3 & SUPPRESSD3DEXT) if (addr=RemapLibrary(proc, hModule, d3d9Extra)) return addr;
 	return NULL;
@@ -342,6 +345,7 @@ FARPROC Remap_d3d9_ProcAddress(LPCSTR proc, HMODULE hModule)
 FARPROC Remap_d3d10_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
 	if (addr=RemapLibrary(proc, hModule, d3d10Hooks)) return addr;
 	return NULL;
 }
@@ -349,6 +353,7 @@ FARPROC Remap_d3d10_ProcAddress(LPCSTR proc, HMODULE hModule)
 FARPROC Remap_d3d10_1_ProcAddress(LPCSTR proc, HMODULE hModule) 
 {
 	FARPROC addr;
+	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
 	if (addr=RemapLibrary(proc, hModule, d3d10_1Hooks)) return addr;
 	return NULL;
 }
@@ -356,6 +361,7 @@ FARPROC Remap_d3d10_1_ProcAddress(LPCSTR proc, HMODULE hModule)
 FARPROC Remap_d3d11_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
 	if (addr=RemapLibrary(proc, hModule, d3d11Hooks)) return addr;
 	return NULL;
 }
@@ -750,6 +756,8 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 				OutTraceD3D("GetAdapterDisplayMode FAILED! %x\n", res);
 				return(DD_OK);
 			}
+			if(dxw.dwFlags6 & FORCESWAPEFFECT) param[6] = dxw.SwapEffect;			//Swap effect;
+			dwD3DSwapEffect = param[6];
 			param[7] = 0;			//hDeviceWindow
 			dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
 			param[8] = 1;			//Windowed
@@ -769,6 +777,8 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 				OutTraceD3D("GetAdapterDisplayMode FAILED! %x\n", res);
 				return(DD_OK);
 			}
+			if(dxw.dwFlags6 & FORCESWAPEFFECT) param[5] = dxw.SwapEffect;			//Swap effect;
+			dwD3DSwapEffect = param[5];
 			param[6] = 0;			//hDeviceWindow
 			dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
 			param[7] = 1;			//Windowed
@@ -839,8 +849,10 @@ HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDes
 	if(dxw.dwFlags2 & FULLRECTBLT) pSourceRect = pDestRect = NULL;
 	if(dxw.Windowize){
 		// v2.03.15 - fix target RECT region
+		if ((dwD3DSwapEffect == D3DSWAPEFFECT_COPY) && (dxw.dwFlags2 & KEEPASPECTRATIO)) {
 		RemappedDstRect=dxw.MapClientRect((LPRECT)pDestRect);
 		pDestRect = &RemappedDstRect;
+		}
 		OutTraceB("Present: FIXED DestRect=(%d,%d)-(%d,%d)\n", RemappedDstRect.left, RemappedDstRect.top, RemappedDstRect.right, RemappedDstRect.bottom);
 		// in case of NOD3DRESET, remap source rect. Unfortunately, this doesn't work in fullscreen mode ....
 		if((dxw.dwFlags4 & NOD3DRESET) && (pSourceRect == NULL)){ 
@@ -1049,6 +1061,8 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 
 	if(dwD3DVersion == 9){
 		if(dxw.Windowize){
+			if(dxw.dwFlags6 & FORCESWAPEFFECT) param[6] = dxw.SwapEffect;			//Swap effect;
+			dwD3DSwapEffect = param[6];
 			param[7] = 0;			//hDeviceWindow
 			dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
 			param[8] = 1;			//Windowed
@@ -1070,6 +1084,8 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	}
 	else{
 		if(dxw.Windowize){
+			if(dxw.dwFlags6 & FORCESWAPEFFECT) param[5] = dxw.SwapEffect;			//Swap effect;
+			dwD3DSwapEffect = param[5];
 			param[6] = 0;			//hDeviceWindow
 			dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
 			param[7] = 1;			//Windowed
@@ -1175,6 +1191,8 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	}
 
 	if(dxw.Windowize){
+		if(dxw.dwFlags6 & FORCESWAPEFFECT) param[6] = dxw.SwapEffect;			//Swap effect;
+		dwD3DSwapEffect = param[6];
 		//param[7] = 0;			//hDeviceWindow
 		param[7] = (DWORD)dxw.GethWnd();			//hDeviceWindow
 		dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
@@ -1313,6 +1331,8 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 
 	if(dxw.Windowize){
 		if(dwD3DVersion == 9){
+			if(dxw.dwFlags6 & FORCESWAPEFFECT) param[6] = dxw.SwapEffect;			//Swap effect;
+			dwD3DSwapEffect = param[6];
 			param[7] = 0;			//hDeviceWindow
 			dxw.SetFullScreen(~param[8]?TRUE:FALSE); 
 			param[8] = 1;			//Windowed
@@ -1320,6 +1340,8 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 			param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
 		}
 		else{
+			if(dxw.dwFlags6 & FORCESWAPEFFECT) param[5] = dxw.SwapEffect;			//Swap effect;
+			dwD3DSwapEffect = param[5];
 			param[6] = 0;			//hDeviceWindow
 			dxw.SetFullScreen(~param[7]?TRUE:FALSE); 
 			param[7] = 1;			//Windowed

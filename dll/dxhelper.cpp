@@ -968,7 +968,7 @@ char *ExplainGUID(GUID FAR *lpguid)
 		case DDCREATE_HARDWAREONLY:		return "DDCREATE_HARDWAREONLY"; break;
 		case DDCREATE_EMULATIONONLY:	return "DDCREATE_EMULATIONONLY"; break;
 	}
-	switch ((*(DWORD *)lpguid)){
+	switch (lpguid->Data1){
 		case 0x00000000: sguid="IID_IUnknown"; break;
 		case 0x6C14DB80: sguid="IID_IDirectDraw"; break;
 		case 0xB3A6F3E0: sguid="IID_IDirectDraw2"; break;

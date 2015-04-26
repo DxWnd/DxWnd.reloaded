@@ -49,6 +49,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_NoImagehlp = FALSE;
 	m_ReplacePrivOps = FALSE;
 	m_ForcesHEL = FALSE;
+	m_ForcesSwapEffect = FALSE;
 	m_ColorFix = FALSE;
 	m_NoPixelFormat = FALSE;
 	m_NoAlphaChannel = FALSE;
@@ -186,6 +187,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SizY = 600;
 	m_MaxFPS = 0;
 	m_InitTS = 8;
+	m_SwapEffect = 0;
 	//}}AFX_DATA_INIT
 
 }

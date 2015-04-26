@@ -166,6 +166,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	t->flags3 = 0;
 	t->flags4 = 0;
 	t->flags5 = 0;
+	t->flags6 = 0;
 	t->tflags = 0;
 	if(dlg->m_UnNotify) t->flags |= UNNOTIFY;
 	if(dlg->m_Windowize) t->flags2 |= WINDOWIZE;
@@ -274,6 +275,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_EASportsHack) t->flags5 |= EASPORTSHACK;
 	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
+	if(dlg->m_ForcesSwapEffect) t->flags6 |= FORCESWAPEFFECT;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
 	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
 	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
@@ -382,6 +384,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	t->InitTS = dlg->m_InitTS-8;
 	t->FakeVersionId = dlg->m_FakeVersionId;
 	t->MaxScreenRes = dlg->m_MaxScreenRes;
+	t->SwapEffect = dlg->m_SwapEffect;
 	strcpy_s(t->module, sizeof(t->module), dlg->m_Module);
 	strcpy_s(t->OpenGLLib, sizeof(t->OpenGLLib), dlg->m_OpenGLLib);
 }
@@ -473,6 +476,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_EASportsHack = t->flags5 & EASPORTSHACK ? 1 : 0;
 	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
+	dlg->m_ForcesSwapEffect = t->flags6 & FORCESWAPEFFECT ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
 	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
 	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
@@ -596,6 +600,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_InitTS = t->InitTS+8;
 	dlg->m_FakeVersionId = t->FakeVersionId;
 	dlg->m_MaxScreenRes = t->MaxScreenRes;
+	dlg->m_SwapEffect = t->SwapEffect;
 }
 
 static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, char *InitPath)
@@ -633,6 +638,9 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "flagj%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags5);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagk%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags6);
 	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
@@ -680,6 +688,9 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(key, sizeof(key), "maxres%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->MaxScreenRes);
 	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "swapeffect%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->SwapEffect);
+	WritePrivateProfileString("target", key, val, InitPath);
 }
 
 static void ClearTarget(int i, char *InitPath)
@@ -702,6 +713,8 @@ static void ClearTarget(int i, char *InitPath)
 	sprintf_s(key, sizeof(key), "flagi%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "flagj%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagk%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
@@ -726,6 +739,8 @@ static void ClearTarget(int i, char *InitPath)
 	sprintf_s(key, sizeof(key), "sizy%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "maxfps%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "swapeffect%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "initts%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
@@ -770,6 +785,8 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	TargetMap->flags4 = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "flagj%i", i);
 	TargetMap->flags5 = GetPrivateProfileInt("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagk%i", i);
+	TargetMap->flags6 = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	TargetMap->tflags = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "initx%i", i);
@@ -796,7 +813,8 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	TargetMap->MaxFPS = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "initts%i", i);
 	TargetMap->InitTS = GetPrivateProfileInt("target", key, 0, InitPath);
-
+	sprintf_s(key, sizeof(key), "swapeffect%i", i);
+	TargetMap->SwapEffect = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "winver%i", i);
 	TargetMap->FakeVersionId = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "maxres%i", i);

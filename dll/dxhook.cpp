@@ -102,6 +102,17 @@ static char *Flag5Names[32]={
 	"GSKYHACK", "LOCKRESERVEDPALETTE", "UNLOCKZORDER", "EASPORTSHACK",
 };
 
+static char *Flag6Names[32]={
+	"FORCESWAPEFFECT", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+};
+
 static char *TFlagNames[32]={
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
 	"OUTPROXYTRACE", "DXPROXED", "ASSERTDIALOG", "OUTIMPORTTABLE",
@@ -149,6 +160,7 @@ static void OutTraceHeader(FILE *fp)
 	for(i=0, dword=dxw.dwFlags3; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag3Names[i]);
 	for(i=0, dword=dxw.dwFlags4; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag4Names[i]);
 	for(i=0, dword=dxw.dwFlags5; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag5Names[i]);
+	for(i=0, dword=dxw.dwFlags6; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag6Names[i]);
 	for(i=0, dword=dxw.dwTFlags; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", TFlagNames[i]);
 	fprintf(fp, "***\n");
 }
@@ -1344,7 +1356,7 @@ void HookModule(HMODULE base, int dxversion)
 	//if(dxw.dwFlags2 & SUPPRESSIME) HookImeLib(module);
 	HookGDI32(base);
 	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base, dxversion);
-	HookDirectDraw(base, dxversion);
+	if(dxw.dwTargetDDVersion != HOOKDDRAWNONE) HookDirectDraw(base, dxversion);
 	HookDirect3D(base, dxversion);
 	HookDirect3D7(base, dxversion);
 	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 

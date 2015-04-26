@@ -785,3 +785,12 @@ fix: eliminated InvalidateRect calls in ddrow Unlock hooker: this is not the rig
 fix: DirectDrawEnumerateEx log
 fix: cursor is hidden in fullscreen mode only
 fix: CoCreateInstance & CoCreateInstanceEx wrappers. Now "Crusaders of Might & Magic" is playable in window
+
+v2.03.19:
+fix: scaling of movie coordinates rendered through MciSendString 
+fix: doubled rendering to screen with fast 2x bilinear filtering
+fix: crash when setting "showFPS overlay" with DirectX "hybrid mode"
+fix: "keep aspect ratio" with DirectX "GDI mode"
+fix: when ddraw hook is set to "none", no hook operations are performed on ddraw
+add: possibility to control the D3D8/9 SwapEffect field with the "force swap effect" flag
+fix: revised handling of GDI device context shared with DirectDraw primary surface, improved behaviour of "Star trek Armada"

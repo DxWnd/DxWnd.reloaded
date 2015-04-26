@@ -170,6 +170,7 @@ public:
 	BOOL	m_EASportsHack;
 	BOOL	m_NoImagehlp;
 	BOOL	m_ForcesHEL;
+	BOOL	m_ForcesSwapEffect;
 	BOOL	m_ColorFix;
 	BOOL	m_NoPixelFormat;
 	BOOL	m_NoAlphaChannel;
@@ -205,6 +206,7 @@ public:
 	int		m_FakeVersionId;
 	int		m_MaxScreenRes;
 	int		m_ResTypes;
+	int		m_SwapEffect;
 	//}}AFX_DATA
 
 

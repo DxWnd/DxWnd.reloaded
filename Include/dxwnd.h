@@ -8,9 +8,11 @@
 #define MAXTARGETS			256
 
 #define ONEPIXELFIX 1 
+#define HOOKDDRAWNONE 12
+#define HANDLEFLIPTOGDI 1
 
 // first flags DWORD dwFlags1:
-#define UNNOTIFY			0x00000001
+#define UNNOTIFY			0x00000001 
 #define EMULATESURFACE		0x00000002
 #define CLIPCURSOR		 	0x00000004 // Force cursor clipping within window
 #define RESETPRIMARY		0x00000008 // reset emulated primary surface when reopening DDRaw object
@@ -179,6 +181,9 @@
 #define UNLOCKZORDER		0x40000000 // Inhibit attempts to keep the main win on top of ZORDER by stripping BringWindowToTop and SetForegroundWindow calls
 #define EASPORTSHACK		0X80000000 // Hack to intercept and neutralize some of the hooks set internally by EA Sports games
 
+// sixth flags DWORD dxw.dwFlags6:
+#define FORCESWAPEFFECT		0x00000001 // in D3D8/9, forces the SwapEffect value in CreateDevice/Reset operations
+
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
 #define OUTDDRAWTRACE		0x00000002 // traces DxWnd directdraw screen handling
@@ -214,6 +219,7 @@ typedef struct TARGETMAP
 	int flags3;
 	int flags4;
 	int flags5;
+	int flags6;
 	int tflags;
 	short initx;
 	short inity;
@@ -229,6 +235,7 @@ typedef struct TARGETMAP
 	short InitTS;
 	short FakeVersionId;
 	short MaxScreenRes;
+	short SwapEffect;
 }TARGETMAP;
 
 typedef struct

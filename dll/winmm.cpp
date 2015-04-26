@@ -162,7 +162,12 @@ MCIERROR WINAPI extmciSendStringA(LPCTSTR lpszCommand, LPTSTR lpszReturnString, 
 	if (sscanf(lpszCommand, "put %s destination at %ld %ld %ld %ld", 
 		sMovieNickName, &(rect.left), &(rect.top), &(rect.right), &(rect.bottom))==5){
 		char NewCommand[256];
+		// v2.03.19 height / width fix
+		rect.right += rect.left; // convert width to position
+		rect.bottom += rect.top; // convert height to position
 		rect=dxw.MapClientRect(&rect);
+		rect.right -= rect.left; // convert position to width
+		rect.bottom -= rect.top; // convert position to height
 		sprintf(NewCommand, "put %s destination at %d %d %d %d", sMovieNickName, rect.left, rect.top, rect.right, rect.bottom);
 		lpszCommand=NewCommand;
 		OutTraceDW("mciSendStringA: replaced Command=\"%s\"\n", lpszCommand);
@@ -186,7 +191,12 @@ MCIERROR WINAPI extmciSendStringW(LPCWSTR lpszCommand, LPWSTR lpszReturnString, 
 	if (swscanf(lpszCommand, L"put %ls destination at %ld %ld %ld %ld", 
 		sMovieNickName, &(rect.left), &(rect.top), &(rect.right), &(rect.bottom))==5){
 		WCHAR NewCommand[256];
+		// v2.03.19 height / width fix
+		rect.right += rect.left; // convert width to position
+		rect.bottom += rect.top; // convert height to position
 		rect=dxw.MapClientRect(&rect);
+		rect.right -= rect.left; // convert position to width
+		rect.bottom -= rect.top; // convert position to height
 		swprintf(NewCommand, L"put %ls destination at %d %d %d %d", sMovieNickName, rect.left, rect.top, rect.right, rect.bottom);
 		lpszCommand=NewCommand;
 		OutTraceDW("mciSendStringW: replaced Command=\"%ls\"\n", lpszCommand);

@@ -23,6 +23,11 @@ DWORD dwBackBufferCaps;
 extern void TextureHandling(LPDIRECTDRAWSURFACE);
 ColorConversion_Type pColorConversion = NULL;
 
+#ifdef HANDLEFLIPTOGDI
+HDC hFlippedDC = NULL;
+BOOL bFlippedDC = FALSE;
+#endif
+
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
@@ -283,6 +288,7 @@ static HookEntry_Type ddHooks[]={
 FARPROC Remap_ddraw_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
 	if (addr=RemapLibrary(proc, hModule, ddHooks)) return addr;
 	return NULL;
 }
@@ -2367,6 +2373,8 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		if (dxw.dwTFlags & OUTPROXYTRACE) HookDDSurfaceGeneric(&lpDDSEmu_Back, dxversion);
 	}
 
+	bFlippedDC = TRUE;
+
 	return DD_OK;
 }
 
@@ -3696,7 +3704,6 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACED
 HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 {
 	HRESULT res;
-	//RECT screen, rect;
 	BOOL IsPrim;
 	BOOL IsBack;
 
@@ -3858,13 +3865,17 @@ HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc)
 
 HRESULT WINAPI extFlipToGDISurface(LPDIRECTDRAW lpdd)
 {
-	//HRESULT res;
+	// HRESULT res;
 
 	OutTraceDDRAW("FlipToGDISurface: lpdd=%x\n", lpdd);
 	// to revise: so far, it seems the best thing to do is NOTHING, just return 0.
-	//res=(*pFlipToGDISurface)(lpdd);
-	//if (res) OutTraceE("FlipToGDISurface: ERROR res=%x(%s), skipping\n", res, ExplainDDError(res));
+	// res=(*pFlipToGDISurface)(lpdd);
+	// if (res) OutTraceE("FlipToGDISurface: ERROR res=%x(%s), skipping\n", res, ExplainDDError(res));
 	// pretend you flipped anyway....
+#ifdef HANDLEFLIPTOGDI
+	bFlippedDC = TRUE;
+#endif
+
 	return 0;
 }
 
@@ -3876,6 +3887,7 @@ HRESULT WINAPI extGetGDISurface(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
 	// in EMULATED mode, should not return the actual ddraw primary surface, but the virtual one.
 	if(dxw.dwFlags1 & EMULATESURFACE){
 		*w=dxw.GetPrimarySurface();
+		OutTraceDW("GetGDISurface: EMULATED lpdd=%x w=%x\n", lpdd, *w);
 		return DD_OK;
 	}
 

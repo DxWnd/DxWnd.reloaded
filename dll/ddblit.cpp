@@ -10,7 +10,6 @@
 
 extern LPDIRECTDRAWSURFACE lpDDSBack;
 extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
-extern LPDIRECTDRAWSURFACE lpDDSEmu_Back;
 extern LPDIRECTDRAW lpPrimaryDD;
 extern Blt_Type pBlt;
 extern ReleaseS_Type pReleaseS;
@@ -290,6 +289,10 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	if(lpDDSEmu_Prim->IsLost()) lpDDSEmu_Prim->Restore();
 
 	dxw.ShowOverlay(lpDDSSource);
+	if(dxw.dwFlags4 & BILINEAR2XFILTER){
+		emurect.right <<= 1;
+		emurect.bottom <<= 1;
+	}
 	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
 	res=(*pPrimaryBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect);
 
@@ -364,7 +367,7 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		OutTrace(sLog);
 	}
 
-	if(ToPrim) 
+	if(ToPrim)
 		res = sBltToPrimary(api, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx, isFlipping);
 	else
 		res = sBltNoPrimary(api, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
