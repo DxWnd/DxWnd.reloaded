@@ -121,6 +121,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_UseRGB565 = TRUE; // seems the default for 16bit video mode
 	m_SuppressDXErrors = FALSE;
 	m_MarkBlit = FALSE;
+	m_MarkLock = FALSE;
 	m_NoSystemMemory = FALSE;
 	m_NoSystemEmulated = FALSE;
 	m_NoBlt = FALSE;

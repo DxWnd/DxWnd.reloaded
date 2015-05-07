@@ -268,6 +268,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoPerfCounter) t->flags4 |= NOPERFCOUNTER;
 	if(dlg->m_DisableFogging) t->flags4 |= DISABLEFOGGING;
 	if(dlg->m_ClearTarget) t->flags5 |= CLEARTARGET;
+	if(dlg->m_FixPitch) t->flags6 |= FIXPITCH;
+	if(dlg->m_Power2Width) t->flags6 |= POWER2WIDTH;
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
@@ -317,6 +319,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_UseRGB565) t->flags |= USERGB565;
 	if(dlg->m_SuppressDXErrors) t->flags |= SUPPRESSDXERRORS;
 	if(dlg->m_MarkBlit) t->flags3 |= MARKBLIT;
+	if(dlg->m_MarkLock) t->flags3 |= MARKLOCK;
 	if(dlg->m_NoSystemMemory) t->flags5 |= NOSYSTEMMEMORY;
 	if(dlg->m_NoSystemEmulated) t->flags5 |= NOSYSTEMEMULATED;
 	if(dlg->m_NoBlt) t->flags5 |= NOBLT;
@@ -515,6 +518,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoPerfCounter = t->flags4 & NOPERFCOUNTER ? 1 : 0;
 	dlg->m_DisableFogging = t->flags4 & DISABLEFOGGING ? 1 : 0;
 	dlg->m_ClearTarget = t->flags5 & CLEARTARGET ? 1 : 0;
+	dlg->m_FixPitch = t->flags6 & FIXPITCH ? 1 : 0;
+	dlg->m_Power2Width = t->flags6 & POWER2WIDTH ? 1 : 0;
 	dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
@@ -538,6 +543,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_UseRGB565 = t->flags & USERGB565 ? 1 : 0;
 	dlg->m_SuppressDXErrors = t->flags & SUPPRESSDXERRORS ? 1 : 0;
 	dlg->m_MarkBlit = t->flags3 & MARKBLIT ? 1 : 0;
+	dlg->m_MarkLock = t->flags3 & MARKLOCK ? 1 : 0;
 	dlg->m_NoSystemMemory = t->flags5 & NOSYSTEMMEMORY ? 1 : 0;
 	dlg->m_NoSystemEmulated = t->flags5 & NOSYSTEMEMULATED ? 1 : 0;
 	dlg->m_NoBlt = t->flags5 & NOBLT ? 1 : 0;

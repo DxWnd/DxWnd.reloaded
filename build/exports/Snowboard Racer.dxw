@@ -1,18 +1,18 @@
 [target]
-title0=Microsoft Midtown Madness
-path0=D:\Games\Midtown Madness\midtown.exe
+title0=Snowboard Racer
+path0=D:\Games\Snowboard Racer\snowboard\SnowBoard.exe
 launchpath0=
 module0=
 opengllib0=
 notes0=
 ver0=0
 coord0=0
-flag0=-1476394974
+flag0=136314914
 flagg0=1207959552
-flagh0=20
+flagh0=33554452
 flagi0=138412036
 flagj0=4224
-flagk0=512
+flagk0=256
 tflag0=0
 initx0=0
 inity0=0

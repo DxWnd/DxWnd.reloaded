@@ -87,7 +87,7 @@
 #define FIXD3DFRAME			0x00000020 // Preserve windows frame in D3D9 programs
 #define FORCE16BPP			0x00000040 // Forces 16BPP desktop color depth
 #define BLACKWHITE			0x00000080 // Simulate a B&W screen monitor mapping colors to grayscales
-//#define SAVECAPS			0x00000100 // Saves and restores original surface flags & capabilities (UNUSED)
+#define MARKLOCK			0x00000100 // higlights the locked/unlocked surfaces by surroundig the rect in color
 #define SINGLEPROCAFFINITY	0x00000200 // Set Process Affinity to a single core
 #define EMULATEREGISTRY		0x00000400 // Emulate registry api to read extra keys
 #define CDROMDRIVETYPE		0x00000800 // Pretends that GetDriveType() always returns DRIVE_CDROM
@@ -189,6 +189,8 @@
 #define FIXMOVIESCOLOR		0x00000020 // Fixes vfw movies color depth forcing the virtual value 
 #define WOW64REGISTRY		0x00000040 // Sets KEY_WOW64_64KEY registry flag
 #define DISABLEMAXWINMODE	0x00000080 // invoke ddraw SetAppCompatData(12,0) to set DisableMaxWindowedMode
+#define FIXPITCH			0x00000100 // Fixes surface filling made with no concern to actual pitch value
+#define POWER2WIDTH			0x00000200 // Fixes .....
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

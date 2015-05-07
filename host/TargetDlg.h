@@ -96,6 +96,7 @@ public:
 	BOOL	m_UseRGB565;
 	BOOL	m_SuppressDXErrors;
 	BOOL	m_MarkBlit;
+	BOOL	m_MarkLock;
 	BOOL	m_NoSystemMemory;
 	BOOL	m_NoSystemEmulated;
 	BOOL	m_NoBlt;
@@ -166,6 +167,8 @@ public:
 	BOOL	m_NoPerfCounter;
 	BOOL	m_DisableFogging;
 	BOOL	m_ClearTarget;
+	BOOL	m_FixPitch;
+	BOOL	m_Power2Width;
 	BOOL	m_SuppressIME;
 	BOOL	m_SetCompatibility;
 	BOOL	m_AEROBoost;

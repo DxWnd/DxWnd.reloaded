@@ -2482,6 +2482,17 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
+	if(dxw.dwFlags6 & POWER2WIDTH){ // v2.03.28: POWER2WIDTH to fix "Midtown Madness" in surface emulation mode
+		if(((ddsd.dwFlags & (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) == (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) &&
+			(ddsd.ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN)
+		){
+			DWORD dwWidth;
+			dwWidth = ((ddsd.dwWidth + 3) >> 2) << 2;
+			if(dwWidth != ddsd.dwWidth) OutTraceDW("CreateSurface: fixed surface width %d->%d\n", ddsd.dwWidth, dwWidth);
+			ddsd.dwWidth = dwWidth;
+		}
+	}
+
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
 	if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res!=DD_OK)){
 		OutTraceDW("CreateSurface ERROR: res=%x(%s) at %d, retry\n", res, ExplainDDError(res), __LINE__);
@@ -2494,11 +2505,9 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		return res;
 	}
 
-	OutTraceDW("CreateSurface: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]", __LINE__));
+	OutTraceDW("CreateSurface: CREATED lpddsd=%x version=%d %s\n", 
+		*lplpdds, dxversion, LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Dir Generic]", __LINE__));
 		
-	OutTraceDW("CreateSurface: created Emu_Generic dds=%x\n", *lplpdds);
-	if(IsDebug) DescribeSurface(*lplpdds, dxversion, "DDSEmu_Generic", __LINE__);
-
 	// v2.02.66: if 8BPP paletized surface and a primary palette exixts, apply.
 	// fixes "Virtua Fighter PC" palette bug
 	if(lpDDP && (ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8)){
@@ -2535,14 +2544,13 @@ static HRESULT BuildGenericDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 			return res;
 		}
 	}
-	OutTraceDW("CreateSurface: created GENERIC surface dds=%x flags=%x(%s) caps=%x(%s)\n", 
-		*lplpdds, lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags), lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
+
+	OutTraceDW("CreateSurface: CREATED lpddsd=%x version=%d %s\n", 
+		*lplpdds, dxversion, LogSurfaceAttributes((LPDDSURFACEDESC)lpddsd, "[Dir Generic]", __LINE__));
 
 	// hooks ....
 	HookDDSurfaceGeneric(lplpdds, dxversion);
 
-	OutTraceDW("CreateSurface: created lpdds=%x type=Generic ret=%x\n", *lplpdds, res);
-	if(IsDebug) DescribeSurface(*lplpdds, dxversion, "Generic", __LINE__); //v2.02.44 bug fix
 
 	return DD_OK;
 }
@@ -3522,6 +3530,9 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 	return res;
 }
 
+DDSURFACEDESC SaveSurfaceDesc;
+LPDIRECTDRAWSURFACE SaveSurface = NULL;
+
 HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 {
 	HRESULT res;
@@ -3552,6 +3563,11 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC
 	OutTraceB("Lock: lPitch=%d lpSurface=%x %s\n", 
 		lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface, LogSurfaceAttributes(lpDDSurfaceDesc, "[Locked]", __LINE__));
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
+
+	if((dxw.dwFlags6 & FIXPITCH) || (dxw.dwFlags3 & MARKLOCK)){
+		SaveSurfaceDesc = *lpDDSurfaceDesc;
+		SaveSurface = lpdds;
+	}
 
 	return res;
 }
@@ -3635,6 +3651,9 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACED
 	return res;
 }
 
+#define MARK16COLOR 0x7C1F
+#define MARK32COLOR 0x00FF00FF
+
 HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 {
 	HRESULT res;
@@ -3665,6 +3684,47 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 			// v2.03.20: apparently, it seems that in ddraw 7 you can set an empty rectangle to mean the whole area ....
 			// this fixes the black screen otherwise present in "Arcanum".
 			if(IsPrim && ((lprect->right - lprect->left) == 0) && ((lprect->bottom - lprect->top) == 0)) lprect = NULL;
+		}
+	}
+
+	if((dxw.dwFlags6 & FIXPITCH) && !(IsPrim||IsBack) && (lpdds == SaveSurface)){
+		OutTrace("DEBUG: fixing lpdds=%x size=(%dx%d) surface=%x pitch=%d bpp=%d\n",
+			lpdds, SaveSurfaceDesc.dwWidth, SaveSurfaceDesc.dwHeight, SaveSurfaceDesc.lpSurface, SaveSurfaceDesc.lPitch, SaveSurfaceDesc.ddpfPixelFormat.dwRGBBitCount);
+		int y;
+		LONG lVirtualPitch;
+		LPVOID p1, p2;
+		lVirtualPitch = (((SaveSurfaceDesc.dwWidth+1)>>1) * SaveSurfaceDesc.ddpfPixelFormat.dwRGBBitCount) >> 2;
+		if(lVirtualPitch != SaveSurfaceDesc.lPitch){ // do just if necessary ...
+			for (y=SaveSurfaceDesc.dwHeight-1; y; y--){ // for each scan line ...
+				p1 = (LPVOID)((DWORD)SaveSurfaceDesc.lpSurface + (y * lVirtualPitch));
+				p2 = (LPVOID)((DWORD)SaveSurfaceDesc.lpSurface + (y * SaveSurfaceDesc.lPitch));
+				memcpy(p2, p1, SaveSurfaceDesc.lPitch); // copy line to correct offset
+			}
+		}
+	}
+
+	if((dxw.dwFlags3 & MARKLOCK) && !(IsPrim||IsBack) && (lpdds == SaveSurface)){
+		switch(SaveSurfaceDesc.ddpfPixelFormat.dwRGBBitCount){
+			case 16:
+				for (UINT y=0; y<SaveSurfaceDesc.dwHeight; y++){ // for each scan line ...
+					USHORT *p;
+					p = (USHORT *)((DWORD)SaveSurfaceDesc.lpSurface + (y * SaveSurfaceDesc.lPitch));
+					p[0] = MARK16COLOR;
+					p[SaveSurfaceDesc.dwWidth-1] = MARK16COLOR;
+					if((y==0) || (y==(SaveSurfaceDesc.dwHeight-1)))
+						for (UINT x=0; x<SaveSurfaceDesc.dwWidth; x++) p[x] = MARK16COLOR;
+				}
+				break;
+			case 32:
+				for (UINT y=0; y<SaveSurfaceDesc.dwHeight; y++){ // for each scan line ...
+					ULONG *p;
+					p = (ULONG *)((DWORD)SaveSurfaceDesc.lpSurface + (y * SaveSurfaceDesc.lPitch));
+					p[0] = MARK32COLOR;
+					p[SaveSurfaceDesc.dwWidth-1] = MARK32COLOR;
+					if((y==0) || (y==(SaveSurfaceDesc.dwHeight-1)))
+						for (UINT x=0; x<SaveSurfaceDesc.dwWidth; x++) p[x] = MARK32COLOR;
+				}
+				break;	
 		}
 	}
 

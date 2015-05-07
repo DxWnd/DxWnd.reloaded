@@ -842,3 +842,8 @@ add: dxwnd proxyes to get standalone windowed mode (ask for instructions)
 fix: added SetAppCompatData(1, 0) to AERO compatibility for lock operations - improves AERO compatibility, e.g. "Age of Empires" intro movie
 add: added "Disable max window mode" flag for better compatibility with Win8/8.1
 fix: cleaned up some opengl hooking code. Mind possible regressions ....
+
+v2.03.28:
+add: added "Lock / Unlock pitch fix" flag to compensate for pitch change in emulation mode. Fixes "Snowboard racer" slanted graphic
+add: added "Width not power of 2 fix" flag to compensate for pitch change in emulation mode. Fixes "Microsoft Midtown Madness" slanted graphic
+add: debug flag "Highlight Locked surfaces" to highlight service surfaces that are Lock-ed and Unlock-ed.
