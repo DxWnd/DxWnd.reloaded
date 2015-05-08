@@ -108,6 +108,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_TASKBAR_HIDE, OnTaskbarHide)
 	ON_COMMAND(ID_TASKBAR_SHOW, OnTaskbarShow)
 	ON_COMMAND(ID_MODIFY, OnModify)
+	ON_COMMAND(ID_ADD, OnAdd)
 	ON_COMMAND(ID_PEXPORT, OnExport)
 	ON_COMMAND(ID_PKILL, OnProcessKill)
 	ON_COMMAND(ID_FILE_IMPORT, OnImport)
@@ -174,6 +175,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_UnNotify) t->flags |= UNNOTIFY;
 	if(dlg->m_Windowize) t->flags2 |= WINDOWIZE;
 	if(dlg->m_HookDLLs) t->flags3 |= HOOKDLLS;
+	if(dlg->m_TerminateOnClose) t->flags6 |= TERMINATEONCLOSE;
+	if(dlg->m_ConfirmOnClose) t->flags6 |= CONFIRMONCLOSE;
 	if(dlg->m_EmulateRegistry) t->flags3 |= EMULATEREGISTRY;
 	if(dlg->m_OverrideRegistry) t->flags4 |= OVERRIDEREGISTRY;
 	if(dlg->m_Wow64Registry) t->flags6 |= WOW64REGISTRY;
@@ -414,6 +417,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_Windowize = t->flags2 & WINDOWIZE ? 1 : 0;
 	dlg->m_HotPatch = t->flags4 & HOTPATCH ? 1 : 0;
 	dlg->m_HookDLLs = t->flags3 & HOOKDLLS ? 1 : 0;
+	dlg->m_TerminateOnClose = t->flags6 & TERMINATEONCLOSE ? 1 : 0;
+	dlg->m_ConfirmOnClose = t->flags6 & CONFIRMONCLOSE ? 1 : 0;
 	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
 	dlg->m_OverrideRegistry = t->flags4 & OVERRIDEREGISTRY ? 1 : 0;
 	dlg->m_Wow64Registry = t->flags6 & WOW64REGISTRY ? 1 : 0;

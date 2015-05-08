@@ -861,3 +861,9 @@ fix: revised the DDSCAPS_SYSTEMMEMORY suppression, now separated for primary & b
 v2.03.31:
 fix: handling of "No SYSTEMMEMORY on BackBuffer" flag for no-emulation mode: necessary to run "Microsoft Motocross Madness 2" in this mode.
 fix: allowing hot patching to GetCursorPos() user32.dll call. This allows correct mouse control with obfuscated exes, like the chinese RPG "Paladin 3".
+
+v2.03.32:
+add: flags "Ask confirmation on window close" and "Terminate on window close"
+fix: implemented surface stack cleanup on overflow: this should allow "European Air War" to run through several seasons.
+debug: added a few diagnostic messages to trap possible errors in DLL injection functions
+fix: recovered the menu Edit->Add command that went disabled

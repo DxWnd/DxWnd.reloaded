@@ -1060,20 +1060,17 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
-	case WM_QUIT:
-	case WM_DESTROY:
 	case WM_CLOSE:
-		if(dxw.dwFlags6 & HIDETASKBAR){
-			extern void gShowHideTaskBar(BOOL);
-			gShowHideTaskBar(FALSE);
-		}
+		// Beware: closing main window does not always mean that the program is about to terminate!!!
+		extern void gShowHideTaskBar(BOOL);
+		if(dxw.dwFlags6 & CONFIRMONCLOSE){
+			OutTraceDW("WindowProc: WM_CLOSE - terminating process?\n");
+			if (MessageBoxA(NULL, "Do you really want to exit the game?", "DxWnd", MB_YESNO | MB_TASKMODAL) != IDYES) return FALSE;
+		}			
+		if(dxw.dwFlags6 & HIDETASKBAR) gShowHideTaskBar(FALSE);
+		if(dxw.dwFlags3 & FORCE16BPP) RecoverScreenMode();
+		if(dxw.dwFlags6 & TERMINATEONCLOSE) TerminateProcess(GetCurrentProcess(),0);
 		break;
-	// commented out: WM_CLOSE just issue a request to close the window, not the process! It should be WM_QUIT....
-	//case WM_CLOSE:
-	//	OutTraceDW("WindowProc: WM_CLOSE - terminating process\n");
-	//	if(dxw.dwFlags3 & FORCE16BPP) RecoverScreenMode();
-	//	TerminateProcess(GetCurrentProcess(),0);
-	//	break;
 	case WM_SYSKEYDOWN:
 	case WM_KEYDOWN:
 		if(!(dxw.dwFlags4 & ENABLEHOTKEYS)) break;

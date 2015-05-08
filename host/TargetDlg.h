@@ -55,6 +55,8 @@ public:
 	BOOL	m_Windowize;
 	BOOL	m_HotPatch;
 	BOOL	m_HookDLLs;
+	BOOL	m_TerminateOnClose;
+	BOOL	m_ConfirmOnClose;
 	BOOL	m_EmulateRegistry;
 	BOOL	m_OverrideRegistry;
 	BOOL	m_Wow64Registry;

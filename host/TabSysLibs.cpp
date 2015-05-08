@@ -28,10 +28,12 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 
 	// GDI
+	DDX_Check(pDX, IDC_CLIENTREMAPPING, cTarget->m_ClientRemapping);
 	DDX_Radio(pDX, IDC_GDINONE, cTarget->m_DCEmulationMode);
 	DDX_Check(pDX, IDC_FIXTEXTOUT, cTarget->m_FixTextOut);
 
 	// OpenGL
+	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL); // duplicated
 	DDX_Check(pDX, IDC_FORCEHOOKOPENGL, cTarget->m_ForceHookOpenGL);
 	DDX_Text(pDX, IDC_OPENGLLIB, cTarget->m_OpenGLLib);
 

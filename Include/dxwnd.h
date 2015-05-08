@@ -195,6 +195,8 @@
 #define ACTIVATEAPP			0x00000800 // sends WM_ACTIVATEAPP message after every WM_WINPOSCHANGED message
 #define NOSYSMEMPRIMARY		0x00001000 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated primary surface
 #define NOSYSMEMBACKBUF		0x00002000 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated backbuffer surface
+#define CONFIRMONCLOSE		0x00004000 // on close button, ask the user before closing the window / terminating the program
+#define TERMINATEONCLOSE	0x00008000 // on WM_CLOSE message, also terminates the program
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

@@ -22,18 +22,31 @@ BOOL Inject(DWORD pID, const char * DLL_NAME)
 	if(!pID) return false;
 	//hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pID); // not working on Win XP
 	hProc = OpenProcess(PROCESS_CREATE_THREAD|PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, FALSE, pID);
-	if(!hProc)
-	{
+	if(!hProc){
 		sprintf(buf, "OpenProcess() failed: pid=%x err=%d", pID, GetLastError());
 		MessageBox(NULL, buf, "Loader", MB_OK);
 		return false;
 	}
 	hLib=GetModuleHandle("kernel32.dll");
+	if(!hLib){
+		sprintf(buf, "GetModuleHandle(\"kernel32.dll\") failed: err=%d", pID, GetLastError());
+		MessageBox(NULL, buf, "Loader", MB_OK);
+		return false;
+	}
 	LoadLibAddy = (LPVOID)GetProcAddress(hLib, "LoadLibraryA");
+	if(!LoadLibAddy){
+		sprintf(buf, "GetProcAddress(\"LoadLibraryA\") failed: err=%d", pID, GetLastError());
+		MessageBox(NULL, buf, "Loader", MB_OK);
+		return false;
+	}
 	// Allocate space in the process for the DLL
 	RemoteString = (LPVOID)VirtualAllocEx(hProc, NULL, strlen(DLL_NAME), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	// Write the string name of the DLL in the memory allocated
-	WriteProcessMemory(hProc, (LPVOID)RemoteString, DLL_NAME, strlen(DLL_NAME), NULL);
+	if(!WriteProcessMemory(hProc, (LPVOID)RemoteString, DLL_NAME, strlen(DLL_NAME), NULL)){
+		sprintf(buf, "WriteProcessMemory() failed: err=%d", pID, GetLastError());
+		MessageBox(NULL, buf, "Loader", MB_OK);
+		return false;
+	}
 	// Load the DLL
 	hThread=CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)LoadLibAddy, (LPVOID)RemoteString, 0, NULL);
 	// Free/Release/Close everything

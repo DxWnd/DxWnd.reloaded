@@ -9,6 +9,7 @@
 #include "dxwcore.hpp"
 
 //#define DXW_SURFACE_STACK_TRACING
+//#define OutTraceSDB OutTrace
 
 dxwSStack::dxwSStack()
 {
@@ -126,8 +127,10 @@ void dxwSStack::PushSurface(LPDIRECTDRAWSURFACE ps, USHORT role, USHORT version)
 		if ((e->lpdds==ps) || (e->lpdds==(DWORD)0)) break; // got matching entry or end of the list
 	}
 	if(i == DDSQLEN) {
-		MessageBox(0, "Surface stack is full", "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
-		return;
+		//MessageBox(0, "Surface stack is full", "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
+		//return;
+		for(int j=0;j<DDSQLEN-1;j++) SurfaceDB[j]=SurfaceDB[j+1]; // scale down the whole stack one entry
+		e=&SurfaceDB[DDSQLEN-1];
 	}
 	e->lpdds=ps;
 	e->uRole = role;
