@@ -53,6 +53,10 @@ END
 //
 
 IDB_BANNER              BITMAP                  "dxwbanner.bmp"
+IDB_CROSS               BITMAP                  "cross.bmp"
+IDB_FIRE1               BITMAP                  "fire1.bmp"
+IDB_FIRE2               BITMAP                  "fire2.bmp"
+IDB_FIRE3               BITMAP                  "fire3.bmp"
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -23,6 +23,7 @@
 #include "MinHook.h" 
 
 #define SKIPIMEWINDOW TRUE
+#define HOOKDIRECTSOUND FALSE
 
 dxwCore dxw;
 dxwSStack dxwss;
@@ -863,7 +864,7 @@ void HookModule(HMODULE base, int dxversion)
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 	HookAVIFil32(base);
 	//HookSmackW32(base);
-	//HookDirectSound(base);
+	//if (HOOKDIRECTSOUND) HookDirectSound(base);
 	//HookComDlg32(base);
 }
 

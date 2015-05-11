@@ -40,6 +40,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FIXNCHITTEST, cTarget->m_FixNCHITTEST);
 	DDX_Check(pDX, IDC_SLOW, cTarget->m_SlowDown);
 	DDX_Check(pDX, IDC_RELEASEMOUSE, cTarget->m_ReleaseMouse);
+	DDX_Check(pDX, IDC_VIRTUALJOYSTICK, cTarget->m_VirtualJoystick);
 	//DDX_Check(pDX, IDC_FRAMECOMPENSATION, cTarget->m_FrameCompensation);
 	// DirectInput
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);

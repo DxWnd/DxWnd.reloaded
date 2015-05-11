@@ -34,6 +34,7 @@ public:
 	int		m_SonProcessMode;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
+	BOOL	m_VirtualJoystick;
 	BOOL	m_OutProxyTrace;
 	BOOL	m_OutDebug;
 	BOOL	m_CursorTrace;

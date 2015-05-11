@@ -45,7 +45,7 @@ void HookDirectSoundInit()
 	HookLibInit(Hooks);
 }
 
-void HookDirectSound(LPDIRECTSOUND *lpds)
+void HookDirectSoundObj(LPDIRECTSOUND *lpds)
 {
 	// IDIrectSound::SetCooperativeLevel
 	SetHook((void *)(**(DWORD **)lpds + 24), extDSSetCooperativeLevel, (void **)&pDSSetCooperativeLevel, "SetCooperativeLevel(DSound)");
@@ -62,9 +62,10 @@ HRESULT WINAPI extDirectSoundCreate(LPGUID guid, LPDIRECTSOUND *lpds, LPUNKNOWN 
 		return res;
 	}
 
-	HookDirectSound(lpds);
+	HookDirectSoundObj(lpds);
 	return res;
 }
+
 #define DSSCL_NORMAL                0x00000001
 #define DSSCL_PRIORITY              0x00000002
 #define DSSCL_EXCLUSIVE             0x00000003

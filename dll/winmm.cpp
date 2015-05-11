@@ -6,11 +6,14 @@
 #include "syslibs.h"
 #include "dxhook.h"
 #include "dxhelper.h"
+#include "resource.h"
 
 #include "MMSystem.h"
 #include <stdio.h>
 
 #define SUPPRESSMCIERRORS FALSE
+#define EMULATEJOY TRUE
+#define INVERTJOYAXIS TRUE
 
 BOOL IsWithinMCICall = FALSE;
 
@@ -20,10 +23,19 @@ MCIDEVICEID WINAPI extmciGetDeviceIDA(LPCTSTR);
 typedef MCIDEVICEID (WINAPI *mciGetDeviceIDW_Type)(LPCWSTR);
 mciGetDeviceIDW_Type pmciGetDeviceIDW = NULL;
 MCIDEVICEID WINAPI extmciGetDeviceIDW(LPCWSTR);
+typedef DWORD (WINAPI *joyGetNumDevs_Type)(void);
+joyGetNumDevs_Type pjoyGetNumDevs = NULL;
+DWORD WINAPI extjoyGetNumDevs(void);
+typedef MMRESULT (WINAPI *joyGetDevCapsA_Type)(DWORD, LPJOYCAPS, UINT);
+joyGetDevCapsA_Type pjoyGetDevCapsA = NULL;
+MMRESULT WINAPI extjoyGetDevCapsA(DWORD, LPJOYCAPS, UINT);
+typedef MMRESULT (WINAPI *joyGetPosEx_Type)(DWORD, LPJOYINFOEX);
+joyGetPosEx_Type pjoyGetPosEx = NULL;
+MMRESULT WINAPI extjoyGetPosEx(DWORD, LPJOYINFOEX);
 
 static HookEntry_Type Hooks[]={
-	{HOOK_HOT_CANDIDATE, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
-	{HOOK_HOT_CANDIDATE, "mciSendCommandW", NULL, (FARPROC *)&pmciSendCommandW, (FARPROC)extmciSendCommandW},
+	{HOOK_IAT_CANDIDATE, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
+	{HOOK_IAT_CANDIDATE, "mciSendCommandW", NULL, (FARPROC *)&pmciSendCommandW, (FARPROC)extmciSendCommandW},
 	{HOOK_HOT_CANDIDATE, "mciGetDeviceIDA", NULL, (FARPROC *)&pmciGetDeviceIDA, (FARPROC)extmciGetDeviceIDA},
 	{HOOK_HOT_CANDIDATE, "mciGetDeviceIDW", NULL, (FARPROC *)&pmciGetDeviceIDW, (FARPROC)extmciGetDeviceIDW},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
@@ -42,11 +54,19 @@ static HookEntry_Type RemapHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
+static HookEntry_Type JoyHooks[]={
+	{HOOK_IAT_CANDIDATE, "joyGetNumDevs", NULL, (FARPROC *)&pjoyGetNumDevs, (FARPROC)extjoyGetNumDevs},
+	{HOOK_IAT_CANDIDATE, "joyGetDevCapsA", NULL, (FARPROC *)&pjoyGetDevCapsA, (FARPROC)extjoyGetDevCapsA},
+	{HOOK_IAT_CANDIDATE, "joyGetPosEx", NULL, (FARPROC *)&pjoyGetPosEx, (FARPROC)extjoyGetPosEx},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
 void HookWinMM(HMODULE module)
 {
 	HookLibrary(module, Hooks, "winmm.dll");
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, "winmm.dll");
 	if(dxw.dwFlags5 & REMAPMCI) HookLibrary(module, RemapHooks, "winmm.dll");
+	if(dxw.dwFlags6 & VIRTUALJOYSTICK) HookLibrary(module, JoyHooks, "winmm.dll");
 }
 
 FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -58,6 +78,8 @@ FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
 		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
 	if(dxw.dwFlags5 & REMAPMCI)
 		if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
+	if(dxw.dwFlags6 & VIRTUALJOYSTICK)
+		if (addr=RemapLibrary(proc, hModule, JoyHooks)) return addr;
 
 	return NULL;
 }
@@ -115,7 +137,22 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 	OutTraceDW("mciSendCommand: IDDevice=%x msg=%x(%s) Command=%x(%s)\n",
 		IDDevice, uMsg, ExplainMCICommands(uMsg), fdwCommand, ExplainMCIFlags(uMsg, fdwCommand));
 
-	if(dxw.dwFlags6 && BYPASSMCI) return 0;
+	if(dxw.dwFlags6 & BYPASSMCI){
+		if((uMsg == MCI_STATUS) && (fdwCommand == MCI_STATUS_ITEM)){
+			// fix for Tie Fighter 95: when bypassing, let the caller know you have no CD tracks
+			// otherwise you risk an almost endless loop going through the unassigned returned 
+			// number of ghost tracks
+			MCI_STATUS_PARMS *p = (MCI_STATUS_PARMS *)dwParam;
+			p->dwItem = 0;
+			p->dwTrack = 0; 
+			p->dwReturn = 0;
+			OutTraceDW("mciSendCommand: BYPASS fixing MCI_STATUS\n");
+		}
+		else{
+			OutTraceDW("mciSendCommand: BYPASS\n");
+		}
+		return 0;
+	}
 
 	if(dxw.IsFullScreen()){
 		switch(uMsg){
@@ -156,6 +193,15 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 	}
 
 	ret=(*pmciSendCommand)(IDDevice, uMsg, fdwCommand, dwParam);
+
+	if(ret == 0){
+		switch(uMsg){
+		case MCI_STATUS:
+			MCI_STATUS_PARMS *p = (MCI_STATUS_PARMS *)dwParam;
+			OutTrace("mciSendCommand: Item=%d Track=%d return=%x\n", p->dwItem, p->dwTrack, p->dwReturn);
+			break;
+		}
+	}
 
 	if(dxw.IsFullScreen() && uMsg==MCI_PUT) pr->rc=saverect;
 	if (ret) OutTraceE("mciSendCommand: ERROR res=%d\n", ret);
@@ -245,4 +291,148 @@ MCIDEVICEID WINAPI extmciGetDeviceIDW(LPCWSTR lpszDevice)
 	ret = (*pmciGetDeviceIDW)(lpszDevice);
 	OutTraceDW("mciGetDeviceIDW: device=\"%ls\" ret=%x\n", lpszDevice, ret);
 	return ret;
+}
+
+DWORD WINAPI extjoyGetNumDevs(void)
+{
+	OutTraceDW("joyGetNumDevs: emulate joystick ret=1\n");
+	return 1;
+}
+
+#define XSPAN 128
+#define YSPAN 128
+static void ShowJoystick(LONG, LONG, DWORD);
+
+MMRESULT WINAPI extjoyGetDevCapsA(DWORD uJoyID, LPJOYCAPS pjc, UINT cbjc)
+{
+	OutTraceDW("joyGetDevCaps: joyid=%d size=%d\n", uJoyID, cbjc);
+	if((uJoyID != -1) && (uJoyID != 0)) return MMSYSERR_NODRIVER;
+	if(cbjc != sizeof(JOYCAPS)) return MMSYSERR_INVALPARAM;
+	uJoyID = 0; // always first (unique) one ...
+
+	// set Joystick capability structure
+	memset(pjc, 0, sizeof(JOYCAPS));
+	strncpy(pjc->szPname, "DxWnd Joystick Emulator", MAXPNAMELEN);
+	pjc->wXmin = 0;
+	pjc->wXmax = XSPAN;
+	pjc->wYmin = 0;
+	pjc->wYmax = YSPAN;
+	pjc->wNumButtons = 2;
+	pjc->wMaxButtons = 2;
+	pjc->wPeriodMin = 60;
+	pjc->wPeriodMax = 600;
+	pjc->wCaps = 0;
+	pjc->wMaxAxes = 2;
+	pjc->wNumAxes = 2;
+
+	return JOYERR_NOERROR;
+}
+
+MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
+{
+	OutTraceDW("joyGetPosEx: joyid=%d\n", uJoyID);
+	if(uJoyID != 0) return JOYERR_PARMS;
+	LONG x, y;
+	HWND hwnd;
+	DWORD dwButtons;
+
+	dwButtons = 0;
+	if (GetKeyState(VK_LBUTTON) < 0) dwButtons |= JOY_BUTTON1;
+	if (GetKeyState(VK_RBUTTON) < 0) dwButtons |= JOY_BUTTON2;
+	POINT pt;
+	if(hwnd=dxw.GethWnd()){
+		RECT client;
+		POINT upleft = {0,0};
+		(*pGetClientRect)(hwnd, &client);
+		(*pClientToScreen)(hwnd, &upleft);
+		(*pGetCursorPos)(&pt);
+		pt.x -= upleft.x;
+		pt.y -= upleft.y;
+		if(pt.x < client.left) pt.x = client.left;
+		if(pt.x > client.right) pt.x = client.right;
+		if(pt.y < client.top) pt.y = client.top;
+		if(pt.y > client.bottom) pt.y = client.bottom;
+		x = (pt.x * XSPAN) / client.right;
+		if(INVERTJOYAXIS)
+			y = ((client.bottom - pt.y) * YSPAN) / client.bottom; // inverted y axis
+		else
+			pt.y = (pt.y * YSPAN) / dxw.GetScreenHeight();
+		ShowJoystick(pt.x, pt.y, dwButtons);
+	}
+	else {
+		x=(XSPAN>>1);
+		y=(YSPAN>>1);
+	}
+
+	// set Joystick info structure
+	memset(pji, 0, sizeof(JOYINFOEX));
+	pji->dwSize = sizeof(JOYINFOEX);
+	pji->dwFlags = 0;
+	pji->dwXpos = x;
+	pji->dwYpos = y;
+	pji->dwButtons = dwButtons;
+	pji->dwFlags = JOY_RETURNX|JOY_RETURNY|JOY_RETURNBUTTONS;
+
+	OutTraceDW("joyGetPosEx: joyid=%d pos=(%d,%d)\n", uJoyID, pji->dwXpos, pji->dwYpos);
+	return JOYERR_NOERROR;
+}
+
+static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
+{
+	static BOOL JustOnce=FALSE;
+	extern HMODULE hInst;
+	BITMAP bm;
+	HDC hClientDC;
+	static HBITMAP g_hbmJoyCross;
+	static HBITMAP g_hbmJoyFire1;
+	static HBITMAP g_hbmJoyFire2;
+	static HBITMAP g_hbmJoyFire3;
+	HBITMAP g_hbmJoy;
+	RECT client;
+	RECT win;
+	POINT PrevViewPort;
+	int StretchMode;
+
+	// don't show when system cursor is visible
+	CURSORINFO ci;
+	ci.cbSize = sizeof(CURSORINFO);
+	GetCursorInfo(&ci);
+	if(ci.flags == CURSOR_SHOWING) return;
+
+	hClientDC=(*pGDIGetDC)(dxw.GethWnd());
+	(*pGetClientRect)(dxw.GethWnd(), &client);
+
+	if(!JustOnce){
+		g_hbmJoyCross = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_CROSS));
+		g_hbmJoyFire1 = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_FIRE1));
+		g_hbmJoyFire2 = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_FIRE2));
+		g_hbmJoyFire3 = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_FIRE3));
+		JustOnce=TRUE;
+	}
+
+    HDC hdcMem = CreateCompatibleDC(hClientDC);
+ 	switch(dwButtons){
+		case 0: g_hbmJoy = g_hbmJoyCross; break;
+		case JOY_BUTTON1: g_hbmJoy = g_hbmJoyFire1; break;
+		case JOY_BUTTON2: g_hbmJoy = g_hbmJoyFire2; break;
+		default: g_hbmJoy = g_hbmJoyFire3; break;
+	}
+    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, g_hbmJoy);
+	GetObject(g_hbmJoy, sizeof(bm), &bm);
+
+	(*pGetWindowRect)(dxw.GethWnd(), &win);
+
+	//if(!pSetViewportOrgEx) pSetViewportOrgEx=SetViewportOrgEx;
+	(*pSetViewportOrgEx)(hClientDC, 0, 0, &PrevViewPort);
+	StretchMode=GetStretchBltMode(hClientDC);
+	SetStretchBltMode(hClientDC, HALFTONE);
+	int w, h;
+	w=36;
+	h=36;
+	(*pGDIStretchBlt)(hClientDC, x-(w>>1), y-(h>>1), w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
+
+	SetStretchBltMode(hClientDC, StretchMode);
+	(*pSetViewportOrgEx)(hClientDC, PrevViewPort.x, PrevViewPort.y, NULL);
+    SelectObject(hdcMem, hbmOld);
+    DeleteDC(hdcMem);
 }

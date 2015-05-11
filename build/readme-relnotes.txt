@@ -939,3 +939,16 @@ add: added debug flag NOWINDOWHOOKS to avoid WindowProc hook.
 fix: GetPaletteEntries hook returns 256 value against hpal=NULL. Let "M.I.B." run, though palette is still not ok.
 fix: StretchDIBits hook no longer can return an unassigned value
 fix: anti-recursion check in DialogBox WindowProc call
+
+v2.03.42
+add: option "Syncronize GDI and DDRAW palette" - fixes "Man in Black" palette problems
+add: apply "Remap MCI coordinates" options also to movies rendered through MCIWndCreate: fixes "Man in Black" movie problems
+fix: fixed InvalidateRect hooker logic - fixes "Imperialism" graphic.
+
+v2.03.43
+fix: eliminated SYSTEMMEMORY usage on DDSCAPS_3DDEVICE surfaces. Needed for "Arx Fatalis"
+fix: deleted emulation of ZBUFFER attach. Needed for "Arx Fatalis"
+fix: added emulation of PixelFormat in getPixelFormat hooker. Needed for "Arx Fatalis"
+add: added virtual joystick feature. Required to play "Tie Fighter 95" with no real joystick
+v2.03.43.fix1
+fix: recovered virtual joystick buttons

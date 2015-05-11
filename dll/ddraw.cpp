@@ -17,6 +17,8 @@
 #include "dxhelper.h"
 #include "syslibs.h"
 
+#define EMULATEZBUFFERATTACH FALSE
+
 extern BOOL IsChangeDisplaySettingsHotPatched;
 DWORD dwBackBufferCaps;
 extern void TextureHandling(LPDIRECTDRAWSURFACE);
@@ -2177,7 +2179,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	}
 
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) { // z-buffer surface - set to memory
-		lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER);  
+		lpddsd->ddsCaps.dwCaps = DDSCAPS_ZBUFFER;  
 		return;
 	}
 
@@ -2185,7 +2187,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) // v2.02.90: added for "Zoo Tycoon" textures
 		{ // 3DDEVICE no TEXTURE: enforce PIXELFORMAT on MEMORY
 		lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY|DDSCAPS_3DDEVICE); 
+		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE); 
 		GetPixFmt(lpddsd);
 		return;
 	}
@@ -2703,7 +2705,6 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	// For "Risk II" it is necessary that both the primary surface and the offscreen surfaces are generated
 	// with the same type, so that assuming an identical lPitch and memcopy-ing from one buffer to the 
 	// other is a legitimate operation. 
-	if(ddsd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // v2.03.03 !!
 
 	if(dxw.dwFlags6 & POWER2WIDTH){ // v2.03.28: POWER2WIDTH to fix "Midtown Madness" in surface emulation mode
 		if(((ddsd.dwFlags & (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) == (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) &&
@@ -3103,10 +3104,14 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 			}
 		}
 		// arguable utility ....
-		if ((IsPrim || IsBack) && lpDDZBuffer && (lpddsc->dwCaps & DDSCAPS_ZBUFFER)){ 
-			*lplpddas = lpDDZBuffer;
-			OutTraceDW("GetAttachedSurface(%d): SIMULATE ZBUFFER attach to %s=%x\n", dxversion, IsPrim?"PRIM":"BACK", lpdds); 
-			return DD_OK;
+		// commented out: causes "Arx Fatalis" crash assigning ZBUFFER to the wrong surface?
+		// would that be necessary on some game?
+		if(EMULATEZBUFFERATTACH){
+			if ((IsPrim || IsBack) && lpDDZBuffer && (lpddsc->dwCaps & DDSCAPS_ZBUFFER)){ 
+				*lplpddas = lpDDZBuffer;
+				OutTraceDW("GetAttachedSurface(%d): SIMULATE ZBUFFER attach to %s=%x\n", dxversion, IsPrim?"PRIM":"BACK", lpdds); 
+				return DD_OK;
+			}
 		}
 		OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
 	}
@@ -4487,7 +4492,9 @@ HRESULT WINAPI extGetPixelFormat(LPDIRECTDRAWSURFACE lpdds, LPDDPIXELFORMAT p)
 			p->dwRBitMask, p->dwGBitMask, p->dwBBitMask, p->dwRGBAlphaBitMask );
 	}
 
-	if ((dxw.dwFlags1 & EMULATESURFACE) && IsPrim){
+	// fix: virtual pixel definition is helpful not only on promary surfaces, but more in general
+	// on every surface that returns an error. It fixes "Arx Fatalis" crash.
+	if ((dxw.dwFlags1 & EMULATESURFACE) && res){
 		p->dwFlags = dxw.VirtualPixelFormat.dwFlags;
 		p->dwRGBBitCount= dxw.VirtualPixelFormat.dwRGBBitCount;
 		p->dwRBitMask = dxw.VirtualPixelFormat.dwRBitMask; 
@@ -4496,6 +4503,7 @@ HRESULT WINAPI extGetPixelFormat(LPDIRECTDRAWSURFACE lpdds, LPDDPIXELFORMAT p)
 		p->dwRGBAlphaBitMask = dxw.VirtualPixelFormat.dwRGBAlphaBitMask;
 		OutTraceDW("GetPixelFormat: EMULATED BitCount=%d RGBA=(%x,%x,%x,%x)\n", 
 			p->dwRGBBitCount, p->dwRBitMask, p->dwGBitMask, p->dwBBitMask, p->dwRGBAlphaBitMask );
+		res = DD_OK;
 	}
 
 	return res;

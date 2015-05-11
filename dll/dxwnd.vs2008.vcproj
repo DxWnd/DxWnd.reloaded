@@ -540,7 +540,35 @@
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
 			<File
+				RelativePath=".\bitmap1.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\bitmap2.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\bmp00001.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\bmp00002.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\cross.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\dxwbanner.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\fire1.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\fire2.bmp"
 				>
 			</File>
 		</Filter>

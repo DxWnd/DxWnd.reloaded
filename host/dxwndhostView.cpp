@@ -248,6 +248,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
+	if(dlg->m_VirtualJoystick) t->flags6 |= VIRTUALJOYSTICK;
 	if(dlg->m_OutProxyTrace) t->tflags |= OUTPROXYTRACE;
 	if(dlg->m_OutDebug) t->tflags |= OUTDEBUG;
 	if(dlg->m_CursorTrace) t->tflags |= OUTCURSORTRACE;
@@ -488,6 +489,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
+	dlg->m_VirtualJoystick = t->flags6 & VIRTUALJOYSTICK ? 1 : 0;
 	dlg->m_OutProxyTrace = t->tflags & OUTPROXYTRACE ? 1 : 0;
 	dlg->m_OutDebug = t->tflags & OUTDEBUG ? 1 : 0;
 	dlg->m_CursorTrace = t->tflags & OUTCURSORTRACE ? 1 : 0;

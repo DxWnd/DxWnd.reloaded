@@ -208,6 +208,7 @@
 #define CREATEDESKTOP		0x01000000 // creates a virtual desktop window to replace the real one
 #define NOWINDOWHOOKS		0x02000000 // do not intercept window callback routines
 #define SYNCPALETTE			0x04000000 // Syncronize GDI to DDRAW palette
+#define VIRTUALJOYSTICK		0x08000000 // Enables the DxWnd virtual joystick
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
