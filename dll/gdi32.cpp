@@ -655,13 +655,13 @@ HDC WINAPI extDDCreateCompatibleDC(HDC hdc)
 
 	if(dxw.IsDesktop(WindowFromDC(hdc)) && dxw.IsFullScreen()) {
 		dxw.SetPrimarySurface();
-		if(!PrimHDC && dxw.lpDDSPrimHDC){
+		if(!PrimHDC && dxw.lpDDSPrimary){
 			HRESULT res;
 			STOPPER("null PrimHDC");
-			res=(*pGetDC)(dxw.lpDDSPrimHDC, &PrimHDC);
-			if(res) OutTraceE("GDI.CreateCompatibleDC ERROR: GetDC lpdds=%x err=%d(%s) at %d\n", dxw.lpDDSPrimHDC, res, ExplainDDError(res), __LINE__);
+			res=(*pGetDC)(dxw.lpDDSPrimary, &PrimHDC);
+			if(res) OutTraceE("GDI.CreateCompatibleDC ERROR: GetDC lpdds=%x err=%d(%s) at %d\n", dxw.lpDDSPrimary, res, ExplainDDError(res), __LINE__);
 		}
-		OutTraceDW("GDI.CreateCompatibleDC: duplicating primary surface HDC lpDDSPrimHDC=%x SrcHdc=%x\n", dxw.lpDDSPrimHDC, PrimHDC); 
+		OutTraceDW("GDI.CreateCompatibleDC: duplicating primary surface HDC lpDDSPrimary=%x SrcHdc=%x\n", dxw.lpDDSPrimary, PrimHDC); 
 		RetHdc=(*pGDICreateCompatibleDC)(PrimHDC);
 	} 
 	else
@@ -698,21 +698,21 @@ static HDC WINAPI winDDGetDC(HWND hwnd, char *api)
 	dxw.SetPrimarySurface();
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 
-	if(dxw.lpDDSPrimHDC){ 
+	if(dxw.lpDDSPrimary){ 
 		if (PrimHDC){
 			OutTraceDW("%s: reusing primary hdc\n", api);
-			(*pUnlockMethod(dxw.lpDDSPrimHDC))(dxw.lpDDSPrimHDC, NULL);
+			(*pUnlockMethod(dxw.lpDDSPrimary))(dxw.lpDDSPrimary, NULL);
 			hdc=PrimHDC;
 		}
 		else{
-			OutTraceDW("%s: get hdc from PRIMARY surface lpdds=%x\n", api, dxw.lpDDSPrimHDC);
-			res=extGetDC(dxw.lpDDSPrimHDC,&hdc);
+			OutTraceDW("%s: get hdc from PRIMARY surface lpdds=%x\n", api, dxw.lpDDSPrimary);
+			res=extGetDC(dxw.lpDDSPrimary,&hdc);
 			if(res) {
-				OutTraceE("%s: GetDC(%x) ERROR %x(%s) at %d\n", api, dxw.lpDDSPrimHDC, res, ExplainDDError(res), __LINE__);
+				OutTraceE("%s: GetDC(%x) ERROR %x(%s) at %d\n", api, dxw.lpDDSPrimary, res, ExplainDDError(res), __LINE__);
 				if(res==DDERR_DCALREADYCREATED){
 					// try recovery....
-					(*pReleaseDC)(dxw.lpDDSPrimHDC,NULL);
-					res=extGetDC(dxw.lpDDSPrimHDC,&hdc);
+					(*pReleaseDC)(dxw.lpDDSPrimary,NULL);
+					res=extGetDC(dxw.lpDDSPrimary,&hdc);
 				}
 				if(res)return 0;
 			}
@@ -787,9 +787,9 @@ int WINAPI extDDReleaseDC(HWND hwnd, HDC hDC)
 	res=0;
 	if ((hDC == PrimHDC) || (hwnd==0)){
 		dxw.SetPrimarySurface();
-		OutTraceDW("GDI.ReleaseDC(DD): refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
-		if(!dxw.lpDDSPrimHDC) return 0;
-		extReleaseDC(dxw.lpDDSPrimHDC, hDC);
+		OutTraceDW("GDI.ReleaseDC(DD): refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimary);
+		if(!dxw.lpDDSPrimary) return 0;
+		extReleaseDC(dxw.lpDDSPrimary, hDC);
 		PrimHDC=NULL;
 		res=1; // 1 = OK
 	}
@@ -817,7 +817,7 @@ BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHe
 		if(hdcDest==0) {
 			dxw.ResetPrimarySurface();
 			dxw.SetPrimarySurface();
-			extGetDC(dxw.lpDDSPrimHDC, &PrimHDC);
+			extGetDC(dxw.lpDDSPrimary, &PrimHDC);
 			hdcDest=PrimHDC;
 		}
 		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
@@ -847,7 +847,7 @@ BOOL WINAPI extDDStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int
 	//	if(hdcDest==0) {
 	//		dxw.ResetPrimarySurface();
 	//		dxw.SetPrimarySurface();
-	//		extGetDC(dxw.lpDDSPrimHDC, &PrimHDC);
+	//		extGetDC(dxw.lpDDSPrimary, &PrimHDC);
 	//		hdcDest=PrimHDC;
 	//	}
 	//}
@@ -861,9 +861,9 @@ BOOL WINAPI extDDStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int
 		}
 	}
 	//dxw.SetPrimarySurface();
-	//OutTraceDW("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimHDC);
-	//sBlt("GDI.StretchBlt", dxw.lpDDSPrimHDC, NULL, dxw.lpDDSPrimHDC, NULL, 0, NULL, 0);
-	//res=(*pUnlockMethod(dxw.lpDDSPrimHDC))(dxw.lpDDSPrimHDC, NULL);
+	//OutTraceDW("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimary);
+	//sBlt("GDI.StretchBlt", dxw.lpDDSPrimary, NULL, dxw.lpDDSPrimary, NULL, 0, NULL, 0);
+	//res=(*pUnlockMethod(dxw.lpDDSPrimary))(dxw.lpDDSPrimary, NULL);
 	return ret;
 }
 

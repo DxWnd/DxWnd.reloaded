@@ -802,3 +802,7 @@ add: "Reserve legacy memory segments" compatibility flag, needed for "Crusaders 
 add: preliminary support for ddraw7 DirectDrawCreateClipper api
 add: "Suppress main window destruction" flag, to make "Prince of Persia 3D" playable
 fix: fully revised ddraw surface handling in d3d1-7 versions. Now "Might & Magic IX" is supported
+
+v2.03.21:
+fix: full re-design of ddraw "special" surface management (primary & backbuffer): greater compatibility for emulation mode
+fix: GDI edit window positioning for "Imperialism" city name selection

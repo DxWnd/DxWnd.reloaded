@@ -741,15 +741,45 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 	OutTraceDW("SetWindowPos: hwnd=%x%s pos=(%d,%d) dim=(%d,%d) Flags=%x\n", 
 		hwnd, dxw.IsFullScreen()?"(FULLSCREEN)":"", X, Y, cx, cy, uFlags);
 
-	//if ((hwnd != dxw.GethWnd()) || !dxw.IsFullScreen()){
-	if (!dxw.IsDesktop(hwnd) || !dxw.IsFullScreen()){
-		// just proxy
+	// when not in fullscreen mode, just proxy the call
+	if (!dxw.IsFullScreen()){
 		res=(*pSetWindowPos)(hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 		if(!res)OutTraceE("SetWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return res;
 	}
 
-	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen()){
+	// in fullscreen, but a child window inside .....
+	if (!dxw.IsDesktop(hwnd)){
+		RECT r;
+		r.left = X;
+		r.right = X + cx;
+		r.top = Y;
+		r.bottom = Y + cy;
+		if ((*pGetWindowLongA)(hwnd, GWL_STYLE) & WS_CHILD){
+			r = dxw.MapClientRect(&r);
+		}
+		else {
+			//r = dxw.MapWindowRect(&r);
+		}		
+		X = r.left;
+		Y = r.top;
+		cx = r.right - r.left;
+		cy = r.bottom - r.top;
+
+		res=(*pSetWindowPos)(hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
+		if(!res)OutTraceE("SetWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+
+		//HFONT hFont;
+		//hFont=CreateFont (
+		//	30, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, 
+		//	FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+		//	DEFAULT_PITCH | FF_SWISS, NULL); // "Arial");
+		//SendMessage (hwnd, WM_SETFONT, WPARAM (hFont), TRUE);	
+
+		return res;
+	}
+
+	if (dxw.dwFlags1 & LOCKWINPOS){
 		// Note: any attempt to change the window position, no matter where and how, through the
 		// SetWindowPos API is causing resizing to the default 1:1 pixed size in Commandos. 
 		// in such cases, there is incompatibility between LOCKWINPOS and LOCKWINSTYLE.
@@ -2019,7 +2049,7 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 			break;
 		case GDIMODE_DIRECTDRAW:
 			(*pGDIReleaseDC)(hwnd, lpPaint->hdc);
-			(*pGetDC)(dxw.lpDDSPrimHDC,&PrimHDC);
+			(*pGetDC)(dxw.lpDDSPrimary,&PrimHDC);
 			lpPaint->hdc=PrimHDC;
 			// resize the paint area to virtual screen size (see CivIII clipped panels...)
 			lpPaint->rcPaint=dxw.GetScreenRect();
@@ -2050,7 +2080,7 @@ HDC WINAPI extDDBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 
 	// on MAPGDITOPRIMARY, return the PrimHDC handle instead of the window DC
 	// if a primary surface has not been created yet, do it
-	if(!pGetDC || !dxw.lpDDSPrimHDC){
+	if(!pGetDC || !dxw.lpDDSPrimary){
 		extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 		HRESULT res;
 		LPDIRECTDRAW lpDD;
@@ -2067,11 +2097,11 @@ HDC WINAPI extDDBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 		ddsd.dwHeight = dxw.GetScreenHeight();
 		ddsd.dwWidth = dxw.GetScreenWidth();
 		res=lpDD->CreateSurface(&ddsd, &lpDDS, NULL);
-		dxw.lpDDSPrimHDC = lpDDS;
+		dxw.lpDDSPrimary = lpDDS;
 		OutTraceDW("GDI.BeginPaint(MAPGDITOPRIMARY): dd=%x ddsPrim=%x\n", lpDD, lpDDS);
 	}
 
-	extGetDC(dxw.lpDDSPrimHDC,&PrimHDC);
+	extGetDC(dxw.lpDDSPrimary,&PrimHDC);
 	lpPaint->hdc=PrimHDC;
 	// resize the paint area to virtual screen size (see CivIII clipped panels...)
 	lpPaint->rcPaint=dxw.GetScreenRect();
@@ -2131,7 +2161,7 @@ BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 		RECT Rect;
 		LPRECT lpRect;
 		ret=(*pEndPaint)(hwnd, lpPaint);
-		dxw.lpDDSPrimHDC->Unlock(NULL);
+		dxw.lpDDSPrimary->Unlock(NULL);
 		//dxw.ScreenRefresh();
 		if(dxw.IsDesktop(hwnd))
 			lpRect=NULL;
@@ -2152,7 +2182,7 @@ BOOL WINAPI extDDEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 			Rect = dxw.MapClientRect(lpRect);
 #endif
 		}
-		extBlt(dxw.lpDDSPrimHDC, lpRect, dxw.lpDDSPrimHDC, NULL, 0, NULL);
+		extBlt(dxw.lpDDSPrimary, lpRect, dxw.lpDDSPrimary, NULL, 0, NULL);
 		return TRUE;
 	}
 

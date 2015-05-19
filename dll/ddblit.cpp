@@ -8,7 +8,7 @@
 #include "hddraw.h"
 #include "dxhelper.h"
 
-extern LPDIRECTDRAWSURFACE lpDDSBack;
+//extern LPDIRECTDRAWSURFACE lpDDSBack;
 extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
 extern LPDIRECTDRAW lpPrimaryDD;
 extern Blt_Type pBlt;
@@ -47,6 +47,8 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	// is fixed no matter how the window/primary surface is scaled. 
 	// In "The Sims" there is no quality loss, but some scrolling artifact.
 	if(lpsrcrect && FromScreen){
+		LPDIRECTDRAWSURFACE lpDDSBack;
+		lpDDSBack = dxw.GetBackBufferSurface();
 		if(lpDDSBack && (dxw.dwFlags1 & BLITFROMBACKBUFFER)){
 			lpddssrc=lpDDSBack;
 			srcrect=dxw.GetScreenRect(); 
@@ -151,7 +153,8 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	if(!lpddssrc) {
 		if (isFlipping){
 			// handle the flipping chain ...
-			lpddssrc=lpDDSBack;
+			//lpddssrc=lpDDSBack;
+			lpddssrc = dxw.GetBackBufferSurface();
 			OutTraceDW("Flip: setting flip chain to lpdds=%x\n", lpddssrc);
 		}
 	}
@@ -258,11 +261,12 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		V2.03.15: The same thing happens with "Silent Hunter III", but with DDERR_INVALIDRECT error code.
 		*/
 		if((res==DDERR_UNSUPPORTED) || (res==DDERR_EXCEPTION) || (res==DDERR_INVALIDRECT)){
-			RECT targetrect;
+			//RECT targetrect;
 			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("UNSUPP", &emurect, &destrect, __LINE__);
-			targetrect=dxw.MapWindowRect(&destrect); // v2.03.18
-			res=(*pBlt)(lpDDSEmu_Prim, &targetrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+			//targetrect=dxw.MapWindowRect(&destrect); // v2.03.18
+			//res=(*pBlt)(lpDDSEmu_Prim, &targetrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+			res=(*pBlt)(lpDDSEmu_Prim, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
 		}
 

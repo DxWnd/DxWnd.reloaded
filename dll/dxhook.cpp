@@ -1983,7 +1983,7 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 				}
 				Hooks->OriginalAddress=(*pGetProcAddress)(hDLL, Hooks->APIName);
 				if(!Hooks->OriginalAddress) {
-					OutTrace("HookLibrary: GetProcAddress failed on API=%s err=%x\n", Hooks->APIName, GetLastError());
+					OutTraceB("HookLibrary: GetProcAddress failed on API=%s err=%x\n", Hooks->APIName, GetLastError());
 					continue;
 				}
 			}

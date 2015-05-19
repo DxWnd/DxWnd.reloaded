@@ -1,7 +1,7 @@
 #include <windows.h>
 #include "syslibs.h"
 
-#define DDSQLEN 0x10
+#define DDSQLEN 0x20
 
 typedef struct {
 	DWORD dwTimerType;
@@ -22,6 +22,18 @@ typedef struct {
 		};
 	} t;
 } TimerEvent_Type;
+
+typedef struct {
+	LPDIRECTDRAWSURFACE lpdds;
+	USHORT	uRef;
+	USHORT	uRole;
+	USHORT	uVersion;
+} SurfaceDB_Type;
+
+typedef enum {
+	SURFACE_ROLE_PRIMARY = 1,
+	SURFACE_ROLE_BACKBUFFER
+} Enum_Surface_Role_Type;
 
 class dxwCore
 {
@@ -80,10 +92,12 @@ public: // methods
 	BOOL ishWndFPS(HWND);
 	DWORD GetTickCount(void);
 	char *ExplainSurfaceRole(LPDIRECTDRAWSURFACE);
-	void MarkPrimarySurface(LPDIRECTDRAWSURFACE);
+	void ClearSurfaceList();
+	void MarkPrimarySurface(LPDIRECTDRAWSURFACE, int);
 	BOOL IsAPrimarySurface(LPDIRECTDRAWSURFACE);
+	void UnrefSurface(LPDIRECTDRAWSURFACE);
 	LPDIRECTDRAWSURFACE GetPrimarySurface(void);
-	void MarkBackBufferSurface(LPDIRECTDRAWSURFACE);
+	void MarkBackBufferSurface(LPDIRECTDRAWSURFACE, int);
 	BOOL IsABackBufferSurface(LPDIRECTDRAWSURFACE);
 	LPDIRECTDRAWSURFACE GetBackBufferSurface(void);
 	void MarkRegularSurface(LPDIRECTDRAWSURFACE);
@@ -150,7 +164,7 @@ public: // simple data variables
 	DWORD SwapEffect;
 	char *gsModules;
 	int TimeShift;
-	LPDIRECTDRAWSURFACE lpDDSPrimHDC;
+	LPDIRECTDRAWSURFACE lpDDSPrimary;
 	short iPosX;
 	short iPosY;
 	short iSizX;
@@ -173,14 +187,16 @@ protected:
 	DWORD dwScreenHeight;
 	BOOL FullScreen;
 	HWND hWnd, hWndFPS;
-	DWORD PrimSurfaces[DDSQLEN+1];
-	DWORD BackSurfaces[DDSQLEN+1];
+	SurfaceDB_Type SurfaceDB[DDSQLEN+1];
+	//DWORD PrimSurfaces[DDSQLEN+1];
+	//DWORD BackSurfaces[DDSQLEN+1];
 	HBITMAP VirtualPic;
 	RECT VirtualPicRect;
 
 private:
-	void UnmarkPrimarySurface(LPDIRECTDRAWSURFACE);
-	void UnmarkBackBufferSurface(LPDIRECTDRAWSURFACE);
+	void MarkSurfaceByRole(LPDIRECTDRAWSURFACE, USHORT, USHORT);
+	LPDIRECTDRAWSURFACE GetSurfaceByRole(USHORT);
+	void SetSurfaceEntry(LPDIRECTDRAWSURFACE, USHORT, USHORT);
 	BOOL MustShowOverlay;
 	void ShowFPS(HDC, int, int);
 	void ShowTimeStretching(HDC, int, int);

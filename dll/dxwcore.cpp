@@ -8,6 +8,12 @@
 #include "resource.h"
 #include "d3d9.h"
 
+#if 1
+#define OutTraceSDB OutTrace
+#else
+#define OutTraceSDB if(0) OutTrace
+#endif
+
 /* ------------------------------------------------------------------ */
 // Internal function pointers
 /* ------------------------------------------------------------------ */
@@ -40,8 +46,8 @@ dxwCore::dxwCore()
 	bActive = TRUE;
 	bDInputAbs = 0;
 	TimeShift = 0;
-	lpDDSPrimHDC = NULL;
-	memset(PrimSurfaces, 0, sizeof(PrimSurfaces));
+	lpDDSPrimary = NULL;
+	memset(SurfaceDB, 0, sizeof(SurfaceDB));
 	ResetEmulatedDC();
 	MustShowOverlay=FALSE;
 	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
@@ -228,16 +234,57 @@ void dxwCore::DumpDesktopStatus()
 // Primary surfaces auxiliary functions
 /* ------------------------------------------------------------------ */
 
+//#define DXW_SURFACE_STACK_TRACING
+
+static char *sRole(USHORT role)
+{
+	char *s;
+	switch (role){
+		case 0: s="(NULL)"; break; // should never happen ...
+		case SURFACE_ROLE_PRIMARY: s="(PRIM)"; break;
+		case SURFACE_ROLE_BACKBUFFER: s="(BACK)"; break;
+		default: s="??"; break; // should never happen ...
+	}
+	return s;
+}
+
+#ifdef DXW_SURFACE_STACK_TRACING
+static void CheckSurfaceList(SurfaceDB_Type *SurfaceDB)
+{
+	char sMsg[81];
+	int iPCount = 0;
+	int iBCount = 0;
+	for (int i=0;i<DDSQLEN;i++) {
+		if (SurfaceDB[i].lpdds == NULL) break;
+		if ((SurfaceDB[i].uRole == SURFACE_ROLE_PRIMARY)	&& SurfaceDB[i].uRef) iPCount++;
+		if ((SurfaceDB[i].uRole == SURFACE_ROLE_BACKBUFFER) && SurfaceDB[i].uRef) iBCount++;
+	}
+	if(iPCount > 1) {
+		sprintf(sMsg, "Primary count = %d", iPCount);
+		MessageBox(0, sMsg, "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
+	}
+	if(iBCount > 1) {
+		sprintf(sMsg, "Backbuffer count = %d", iPCount);
+		MessageBox(0, sMsg, "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
+	}
+}
+
+static void DumpSurfaceList(SurfaceDB_Type *SurfaceDB)
+{
+	for (int i=0;i<DDSQLEN;i++) {
+		if (SurfaceDB[i].lpdds == NULL) break;
+		OutTrace("--- SURFACELIST DUMP: i=%d lpssd=%x%s ref=%d vers=%d\n", i, 
+			SurfaceDB[i].lpdds, sRole(SurfaceDB[i].uRole), SurfaceDB[i].uRef, SurfaceDB[i].uVersion);
+	}
+}
+#endif
+
 char *dxwCore::ExplainSurfaceRole(LPDIRECTDRAWSURFACE ps)
 {
 	int i;
 	for (i=0;i<DDSQLEN;i++) {
-		if (PrimSurfaces[i]==(DWORD)ps) return "(PRIM)"; 
-		if (PrimSurfaces[i]==0) break;
-	}
-	for (i=0;i<DDSQLEN;i++) {
-		if (BackSurfaces[i]==(DWORD)ps) return "(BACK)"; 
-		if (BackSurfaces[i]==0) break;
+		if (SurfaceDB[i].lpdds==ps) return sRole(SurfaceDB[i].uRole);
+		if (SurfaceDB[i].lpdds==0) break;
 	}
 	// this should NEVER happen, but ...
 	extern LPDIRECTDRAWSURFACE lpDDSEmu_Back, lpDDSEmu_Prim;
@@ -247,68 +294,97 @@ char *dxwCore::ExplainSurfaceRole(LPDIRECTDRAWSURFACE ps)
 	return "";
 }
 
-void dxwCore::UnmarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
+void dxwCore::ClearSurfaceList()
 {
-	int i;
-	// OutTraceDW("PRIMARYSURFACE del %x\n",ps);
-	for (i=0;i<DDSQLEN;i++) {
-		if (PrimSurfaces[i]==(DWORD)ps) break; 
-		if (PrimSurfaces[i]==0) break;
-	}
-	if (PrimSurfaces[i]==(DWORD)ps){
-		for (; i<DDSQLEN; i++){
-			PrimSurfaces[i]=PrimSurfaces[i+1];
-			if (PrimSurfaces[i]==0) break;
-		}
-		PrimSurfaces[DDSQLEN]=0;
+#ifdef DXW_SURFACE_STACK_TRACING
+	OutTrace(">>> SURFACELIST CLEAR ALL\n");
+#endif
+	for (int i=0;i<DDSQLEN;i++) {
+		SurfaceDB[i].lpdds = NULL;
+		SurfaceDB[i].uRef = FALSE;
+		SurfaceDB[i].uRole = 0;
+		SurfaceDB[i].uVersion = 0;
 	}
 }
 
-void dxwCore::UnmarkBackBufferSurface(LPDIRECTDRAWSURFACE ps)
+void dxwCore::UnrefSurface(LPDIRECTDRAWSURFACE ps)
 {
 	int i;
-	// OutTraceDW("PRIMARYSURFACE del %x\n",ps);
-	for (i=0;i<DDSQLEN;i++) {
-		if (BackSurfaces[i]==(DWORD)ps) break; 
-		if (BackSurfaces[i]==0) break;
+	// look for entry
+	for (i=0;i<DDSQLEN;i++) 
+		if ((SurfaceDB[i].lpdds==ps) || SurfaceDB[i].lpdds==0) break; 
+	// if found, delete it by left-copying each entry until end of array
+	if (SurfaceDB[i].lpdds == ps) {
+#ifdef DXW_SURFACE_STACK_TRACING
+		OutTraceSDB(">>> SURFACELIST UNREF: lpdds=%x%s ref=%x vers=%d\n", ps, sRole(SurfaceDB[i].uRole), SurfaceDB[i].uRef, SurfaceDB[i].uVersion);
+#endif
+		SurfaceDB[i].uRef = FALSE;
 	}
-	if (BackSurfaces[i]==(DWORD)ps){
-		for (; i<DDSQLEN; i++){
-			BackSurfaces[i]=BackSurfaces[i+1];
-			if (BackSurfaces[i]==0) break;
-		}
-		BackSurfaces[DDSQLEN]=0;
-	}
+#ifdef DXW_SURFACE_STACK_TRACING
+	DumpSurfaceList(SurfaceDB);
+#endif
 }
 
-void dxwCore::MarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
+void dxwCore::MarkSurfaceByRole(LPDIRECTDRAWSURFACE ps, USHORT role, USHORT version)
 {
 	int i;
-	// OutTraceDW("PRIMARYSURFACE add %x\n",ps);
+	SurfaceDB_Type *e;
+#ifdef DXW_SURFACE_STACK_TRACING
+	OutTraceSDB(">>> SURFACELIST MARK: lpdds=%x%s vers=%d\n", ps, sRole(role), version);
+#endif
 	for (i=0;i<DDSQLEN;i++) {
-		if (PrimSurfaces[i]==(DWORD)ps) return; // if already there ....
-		if (PrimSurfaces[i]==(DWORD)0) break; // got end of list
+		e=&SurfaceDB[i];
+		if ((e->lpdds==ps) || (e->lpdds==(DWORD)0)) break; // got matching entry or end of the list
 	}
-	PrimSurfaces[i]=(DWORD)ps;
-	UnmarkBackBufferSurface(ps);
+	if(i == DDSQLEN) {
+		MessageBox(0, "Surface stack is full", "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
+		return;
+	}
+	e->lpdds=ps;
+	e->uRole = role;
+	e->uRef = TRUE;
+	e->uVersion = version;
+#ifdef DXW_SURFACE_STACK_TRACING
+	DumpSurfaceList(SurfaceDB);
+#endif
+}
+	
+void dxwCore::MarkPrimarySurface(LPDIRECTDRAWSURFACE ps, int version)
+{
+	MarkSurfaceByRole(ps, SURFACE_ROLE_PRIMARY, (USHORT)version);
 }
 
-void dxwCore::MarkBackBufferSurface(LPDIRECTDRAWSURFACE ps)
+void dxwCore::MarkBackBufferSurface(LPDIRECTDRAWSURFACE ps, int version)
 {
-	int i;
-	// OutTraceDW("PRIMARYSURFACE add %x\n",ps);
-	for (i=0;i<DDSQLEN;i++) {
-		if (BackSurfaces[i]==(DWORD)ps) return; // if already there ....
-		if (BackSurfaces[i]==(DWORD)0) break; // got end of list
-	}
-	BackSurfaces[i]=(DWORD)ps;
-	UnmarkPrimarySurface(ps);
+	MarkSurfaceByRole(ps, SURFACE_ROLE_BACKBUFFER, (USHORT)version);
 }
 
 void dxwCore::MarkRegularSurface(LPDIRECTDRAWSURFACE ps)
 {
-	UnmarkBackBufferSurface(ps);
-	UnmarkPrimarySurface(ps);
+	int i;
+	// look for entry
+	for (i=0;i<DDSQLEN;i++) {
+		if (SurfaceDB[i].lpdds==0) return;
+		if (SurfaceDB[i].lpdds==ps) break; 
+	}
+	// if found, delete it by left-copying each entry until end of array
+	if (SurfaceDB[i].lpdds==ps){
+#ifdef DXW_SURFACE_STACK_TRACING
+		OutTraceSDB(">>> SURFACELIST CLEAR: i=%d lpdds=%x%s ref=%x vers=%d\n", 
+			i, ps, sRole(SurfaceDB[i].uRole), SurfaceDB[i].uRef, SurfaceDB[i].uVersion);
+#endif
+		for (; i<DDSQLEN; i++){
+			SurfaceDB[i]=SurfaceDB[i+1];
+			if (SurfaceDB[i].lpdds==0) break;
+		}
+		SurfaceDB[DDSQLEN].lpdds=0;
+		SurfaceDB[DDSQLEN].uRole=0;
+		SurfaceDB[DDSQLEN].uRef=0;
+		SurfaceDB[DDSQLEN].uVersion=0;
+	}
+#ifdef DXW_SURFACE_STACK_TRACING
+	DumpSurfaceList(&SurfaceDB[0]);
+#endif
 }
 
 // Note: since MS itself declares that the object refcount is not reliable and should
@@ -324,8 +400,8 @@ BOOL dxwCore::IsAPrimarySurface(LPDIRECTDRAWSURFACE ps)
 	// treat NULL surface ptr as a non primary
 	if(!ps) return FALSE;
 	for (i=0;i<DDSQLEN;i++) {
-		if (PrimSurfaces[i]==0) return FALSE;
-		if (PrimSurfaces[i]==(DWORD)ps) return TRUE;
+		if (SurfaceDB[i].lpdds==0) return FALSE;
+		if (SurfaceDB[i].lpdds==ps) return (SurfaceDB[i].uRole == SURFACE_ROLE_PRIMARY);
 	}
 	return FALSE;
 }
@@ -336,42 +412,48 @@ BOOL dxwCore::IsABackBufferSurface(LPDIRECTDRAWSURFACE ps)
 	// treat NULL surface ptr as a non primary
 	if(!ps) return FALSE;
 	for (i=0;i<DDSQLEN;i++) {
-		if (BackSurfaces[i]==0) return FALSE;
-		if (BackSurfaces[i]==(DWORD)ps) return TRUE;
+		if (SurfaceDB[i].lpdds==0) return FALSE;
+		if (SurfaceDB[i].lpdds==ps) return (SurfaceDB[i].uRole == SURFACE_ROLE_BACKBUFFER);
 	}
 	return FALSE;
 }
 
+LPDIRECTDRAWSURFACE dxwCore::GetSurfaceByRole(USHORT role)
+{
+	// Get a surface marked for the desired role (either PRIMARY or BACKBUFFER) and
+	// whith a not null reference counter. In case of multiple choices, it has to
+	// return the most recent reference!!!
+	// tested with "101 the Airborne Invasion of Normandy" and "Armored Fist 3"
+	int i;
+	LPDIRECTDRAWSURFACE ret = NULL;
+#ifdef DXW_SURFACE_STACK_TRACING
+	if (IsAssertEnabled) CheckSurfaceList(SurfaceDB);
+#endif
+	for (i=0;i<DDSQLEN;i++) {
+		if ((SurfaceDB[i].uRole == role) && (SurfaceDB[i].uRef)) ret = SurfaceDB[i].lpdds;
+		if (SurfaceDB[i].lpdds==NULL) break;
+	}
+	return ret;
+}
+
 LPDIRECTDRAWSURFACE dxwCore::GetPrimarySurface(void)
 {
-	// return last opened one....
-	int i;
-	for (i=0;i<DDSQLEN;i++) {
-		if (PrimSurfaces[i]==0) break;
-	}
-	if (i) return((LPDIRECTDRAWSURFACE)PrimSurfaces[i-1]);
-	return NULL;
+	return GetSurfaceByRole(SURFACE_ROLE_PRIMARY);
 }
 
 LPDIRECTDRAWSURFACE dxwCore::GetBackBufferSurface(void)
 {
-	// return last opened one....
-	int i;
-	for (i=0;i<DDSQLEN;i++) {
-		if (BackSurfaces[i]==0) break;
-	}
-	if (i) return((LPDIRECTDRAWSURFACE)BackSurfaces[i-1]);
-	return NULL;
+	return GetSurfaceByRole(SURFACE_ROLE_BACKBUFFER);
 }
 
 void dxwCore::SetPrimarySurface(void)
 {
-	if (!lpDDSPrimHDC) lpDDSPrimHDC=GetPrimarySurface();
+	if (!lpDDSPrimary) lpDDSPrimary=GetPrimarySurface();
 }
 
 void dxwCore::ResetPrimarySurface(void)
 {
-	lpDDSPrimHDC=NULL;
+	lpDDSPrimary=NULL;
 }
 
 void dxwCore::InitWindowPos(int x, int y, int w, int h)
@@ -765,6 +847,21 @@ RECT dxwCore::MapClientRect(LPRECT lpRect)
 
 	return RetRect;
 }
+
+//RECT dxwCore::MapClientRect(LPPOINT lpPoint, int *SizX, int *SizY)
+//{
+//	RECT r;
+//	r.left = lpPoint->x;
+//	r.right = lpPoint->x + *SizX;
+//	r.top = lpPoint->y;
+//	r.bottom = lpPoint->y + *SizY;
+//	r = MapClientRect(&r);
+//	lpPoint->x = r.left;
+//	lpPoint->y = r.top;
+//	*SizX = r.right - r.left;
+//	*SizY = r.bottom - r.top;
+//	return NULL;
+//}
 
 void dxwCore::MapClient(LPRECT rect)
 {

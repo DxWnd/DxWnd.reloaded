@@ -927,26 +927,18 @@ HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7
 {
 	// v2.02.83: D3D CreateDevice (version 7? all versions?) internally calls the Release method upon the backbuffer
 	// surface, and this has to be avoided since it causes a crash. 
-	// The bIsWithinD3DCreateDevice boolean tells extReleaseS NOT to perform an actual release operation.
-	// v2.03.20: also, D3D CreateDevice internally Release the primary surface lpdds and builds a new primary
-	// using the same lpdds value, but issuing a QueryInterface call upon a zero-referenced object!
 
 	HRESULT res;
-	extern BOOL bIsWithinD3DCreateDevice;
 
 	OutTraceD3D("CreateDevice(D3D7): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
 		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
-	bIsWithinD3DCreateDevice = TRUE;
 	res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
-	bIsWithinD3DCreateDevice = FALSE;
 	if(res) {
 		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
 			dxw.dwFlags1 &= ~EMULATESURFACE;
 			dxw.dwFlags1 |= LOCKEDSURFACE;
-			bIsWithinD3DCreateDevice = TRUE;
 			res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
-			bIsWithinD3DCreateDevice = FALSE;
 			if (res) OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			else OutTraceD3D("CreateDevice(D3D7): Emulation OFF\n");
 		}

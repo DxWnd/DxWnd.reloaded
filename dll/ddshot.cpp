@@ -39,8 +39,7 @@ void DDrawScreenShot()
 	}
 
 	if(dxw.dwFlags5 & GDIMODE){
-		extern LPDIRECTDRAWSURFACE lpDDSBack;
-		s = lpDDSBack;
+		s = dxw.GetBackBufferSurface();
 	}
 	else{
 		s = dxw.GetPrimarySurface();

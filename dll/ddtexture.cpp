@@ -114,8 +114,7 @@ void TextureHighlight(LPDIRECTDRAWSURFACE s)
 		OutTraceE("TextureHigh: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
-	extern LPDIRECTDRAWSURFACE lpDDSBack;
-	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && (s != lpDDSBack)) {
+	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxw.IsABackBufferSurface(s)) {
 		OutTrace("TextureHigh: lpdds=%x BitCount=%d size=(%dx%d)\n", 
 			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
@@ -205,8 +204,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		return;
 	}
 
-	extern LPDIRECTDRAWSURFACE lpDDSBack;
-	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && (s != lpDDSBack)) while (TRUE) {
+	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxw.IsABackBufferSurface(s)) while (TRUE) {
 		OutTrace("TextureDump: lpdds=%x BitCount=%d size=(%dx%d)\n", 
 			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
@@ -320,8 +318,7 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 		OutTraceE("TextureHack: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
-	extern LPDIRECTDRAWSURFACE lpDDSBack;
-	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && (s != lpDDSBack)) while (TRUE) { // fake loop to ensure final Unlock
+	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxw.IsABackBufferSurface(s)) while (TRUE) { // fake loop to ensure final Unlock
 		OutTrace("TextureHack: lpdds=%x BitCount=%d size=(%dx%d)\n", 
 			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
