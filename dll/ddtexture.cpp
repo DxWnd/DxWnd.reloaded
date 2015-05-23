@@ -42,6 +42,7 @@ unsigned int HashSurface(BYTE *buf, int pitch, int width, int height)
 	int pixelsize;
 	DWORD hash = 0;
 	// integer divide, intentionally throwing reminder away
+	if (width == 0) return 0; // avoid DivBy0 error
 	pixelsize = pitch / width; 
 	for(int y = 0; y < height; y++){
 		BYTE *p = buf + (y * pitch);
@@ -114,7 +115,7 @@ void TextureHighlight(LPDIRECTDRAWSURFACE s)
 		OutTraceE("TextureHigh: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
-	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxw.IsABackBufferSurface(s)) {
+	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxwss.IsABackBufferSurface(s)) {
 		OutTrace("TextureHigh: lpdds=%x BitCount=%d size=(%dx%d)\n", 
 			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
@@ -204,7 +205,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		return;
 	}
 
-	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxw.IsABackBufferSurface(s)) while (TRUE) {
+	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxwss.IsABackBufferSurface(s)) while (TRUE) {
 		OutTrace("TextureDump: lpdds=%x BitCount=%d size=(%dx%d)\n", 
 			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
@@ -281,16 +282,8 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 
 		// Copy the RGBQUAD array into the file.  
 		if(pbi.bV4ClrUsed){
-			//DWORD PaletteEntries[256];
-			//LPDIRECTDRAWSURFACE lpDDS=NULL;
-			//LPDIRECTDRAWPALETTE lpDDP=NULL;
-			//lpDDS=dxw.GetPrimarySurface();
-			//if(lpDDS) lpDDS->GetPalette(&lpDDP);
-			//if(lpDDP) lpDDP->GetEntries(0, 0, 256, (LPPALETTEENTRY)PaletteEntries);
-			//for(int i=0; i<256; i++) PaletteEntries[i]=0xff0000;
 			extern DWORD PaletteEntries[256];
 			fwrite((LPVOID)PaletteEntries, pbi.bV4ClrUsed * sizeof (RGBQUAD), 1, hf);
-			//fwrite((LPBYTE)PaletteEntries, pbi.bV4ClrUsed * sizeof (RGBQUAD), 1, hf);
 		}
 
 		// Copy the array of color indices into the .BMP file.  
@@ -318,7 +311,7 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 		OutTraceE("TextureHack: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
-	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxw.IsABackBufferSurface(s)) while (TRUE) { // fake loop to ensure final Unlock
+	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxwss.IsABackBufferSurface(s)) while (TRUE) { // fake loop to ensure final Unlock
 		OutTrace("TextureHack: lpdds=%x BitCount=%d size=(%dx%d)\n", 
 			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;

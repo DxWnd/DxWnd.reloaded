@@ -806,3 +806,10 @@ fix: fully revised ddraw surface handling in d3d1-7 versions. Now "Might & Magic
 v2.03.21:
 fix: full re-design of ddraw "special" surface management (primary & backbuffer): greater compatibility for emulation mode
 fix: GDI edit window positioning for "Imperialism" city name selection
+
+v2.03.22:
+more code reorganization and cleanup
+eliminated GDI over directdraw emulation (MAPGDITOPRIMARY flag)
+add: support for texture D3DFMT_L8 dump ("Turok")
+fix: eliminate a possible divide by zero error
+fix: avoid intercepting WindowProc routines when set to special values 0xFFFFxxxx - makes "The Hulk" demo working

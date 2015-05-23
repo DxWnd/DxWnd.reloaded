@@ -27,15 +27,16 @@ void D3D9TextureHandling(void *arg, int Level)
 	IDirect3DSurface9 *pSurfaceLevel;
 	D3DSURFACE_DESC Desc;
 	D3DLOCKED_RECT LockedRect;
+	//OutTrace("D3D9TextureHandling: arg=%x level=%d\n", (DWORD)arg, Level);
 	if(res=lpd3dtex->GetSurfaceLevel(Level, &pSurfaceLevel)){
 		OutTraceE("Texture::GetSurfaceLevel ERROR: res=%d(%s)\n", res, ExplainDDError(res));
 		return;
 	}
+	pSurfaceLevel->Release();
 	if(res=lpd3dtex->GetLevelDesc(Level, &Desc)){
 		OutTraceE("Texture::GetLevelDesc ERROR: res=%d(%s)\n", res, ExplainDDError(res));
 		return;
 	}
-	pSurfaceLevel->Release();
 	switch(Desc.Type){
 		case D3DRTYPE_SURFACE:
 		case D3DRTYPE_TEXTURE:

@@ -204,7 +204,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 0: break;
 		case 1: t->flags2 |= GDISTRETCHED; break;
 		case 2: t->flags3 |= GDIEMULATEDC; break;
-		case 3: t->flags |= MAPGDITOPRIMARY; break;
+		//case 3: t->flags |= MAPGDITOPRIMARY; break;
 	}
 
 	switch(dlg->m_ResTypes){
@@ -428,7 +428,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DCEmulationMode = 0;
 	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
 	if(t->flags3 & GDIEMULATEDC) dlg->m_DCEmulationMode = 2;
-	if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
+	//if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
 
 	dlg->m_ResTypes = 0;
 	if(t->flags4 & SUPPORTSVGA) dlg->m_ResTypes = 0;

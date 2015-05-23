@@ -34,7 +34,7 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	//extern PrimaryBlt_Type pPrimaryBlt;
 	//CkArg arg;
 
-	FromScreen=dxw.IsAPrimarySurface(lpddssrc) && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
+	FromScreen=dxwss.IsAPrimarySurface(lpddssrc) && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
 
 	// make a working copy of srcrect if not NULL
 	if (lpsrcrect){
@@ -48,7 +48,7 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	// In "The Sims" there is no quality loss, but some scrolling artifact.
 	if(lpsrcrect && FromScreen){
 		LPDIRECTDRAWSURFACE lpDDSBack;
-		lpDDSBack = dxw.GetBackBufferSurface();
+		lpDDSBack = dxwss.GetBackBufferSurface();
 		if(lpDDSBack && (dxw.dwFlags1 & BLITFROMBACKBUFFER)){
 			lpddssrc=lpDDSBack;
 			srcrect=dxw.GetScreenRect(); 
@@ -154,7 +154,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		if (isFlipping){
 			// handle the flipping chain ...
 			//lpddssrc=lpDDSBack;
-			lpddssrc = dxw.GetBackBufferSurface();
+			lpddssrc = dxwss.GetBackBufferSurface();
 			OutTraceDW("Flip: setting flip chain to lpdds=%x\n", lpddssrc);
 		}
 	}
@@ -324,8 +324,8 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 		}
 	}
 
-	ToPrim=dxw.IsAPrimarySurface(lpdds);
-	FromPrim=dxw.IsAPrimarySurface(lpddssrc);
+	ToPrim=dxwss.IsAPrimarySurface(lpdds);
+	FromPrim=dxwss.IsAPrimarySurface(lpddssrc);
 	ToScreen=ToPrim && !(dxw.dwFlags1 & EMULATESURFACE);
 	FromScreen=FromPrim && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
 

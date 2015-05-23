@@ -362,6 +362,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\dxwsstack.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\dxwwstack.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\gdi32.cpp"
 				>
 			</File>
@@ -459,10 +467,6 @@
 			</File>
 			<File
 				RelativePath=".\wintrust.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\wndproc.cpp"
 				>
 			</File>
 		</Filter>

@@ -204,6 +204,7 @@ void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 			case D3DFMT_X1R5G5B5:
 			case D3DFMT_A1R5G5B5:
 			case D3DFMT_A8:
+			case D3DFMT_L8:
 				hash = HashSurface((BYTE *)LockedRect.pBits, LockedRect.Pitch, Desc.Width, Desc.Height);
 				break;
 			case D3DFMT_DXT1: 
@@ -274,6 +275,7 @@ void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 			case D3DFMT_DXT4:
 			case D3DFMT_DXT5:
 			case D3DFMT_A8:
+			case D3DFMT_L8:
 				pbi.bV4BitCount = 32;
 				pbi.bV4RedMask = 0x00FF0000;
 				pbi.bV4GreenMask = 0x0000FF00;
@@ -343,6 +345,7 @@ void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 				}
 				break;
 			case D3DFMT_A8:
+			case D3DFMT_L8:
 				{
 					// Copy the array of color indices into the .BMP file.  
 					BYTE *p = (BYTE *)LockedRect.pBits;

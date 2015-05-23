@@ -260,9 +260,6 @@ LPDIRECTDRAWPALETTE lpDDP=NULL;
 
 // v2.02.37: globals to store requested main surface capabilities 
 DDSURFACEDESC2 DDSD_Prim;
-DDSURFACEDESC2 DDSD_Back;
-DDSURFACEDESC2 DDSD_ZBuffer;
-
 DWORD DDZBufferCaps;
 DWORD PaletteEntries[256];
 DWORD *Palette16BPP = NULL;
@@ -1786,10 +1783,10 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	unsigned int dwLocalDDVersion;
 	unsigned int dwLocalTexVersion;
 
-	IsPrim=dxw.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds);
-	IsBack=dxw.IsABackBufferSurface((LPDIRECTDRAWSURFACE)lpdds);
+	IsPrim=dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds);
+	IsBack=dxwss.IsABackBufferSurface((LPDIRECTDRAWSURFACE)lpdds);
 	OutTraceDDRAW("QueryInterface(S): lpdds=%x%s REFIID=%x(%s)\n",
-		lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds), riid.Data1, ExplainGUID((GUID *)&riid));	
+		lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds), riid.Data1, ExplainGUID((GUID *)&riid));	
 
 	IsGammaRamp=FALSE;
 
@@ -1849,7 +1846,7 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	}
 
 	// fix the target for gamma ramp creation: if it is a primary surface, use the real one!!
-	if(dxw.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds) && IsGammaRamp) lpdds = lpDDSEmu_Prim;
+	if(dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds) && IsGammaRamp) lpdds = lpDDSEmu_Prim;
 
 	res = (*pQueryInterfaceS)(lpdds, riid, obp);
 
@@ -1879,12 +1876,12 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 			dxw.dwDDVersion=dwLocalDDVersion;
 			if(IsPrim){
 				OutTraceDW("QueryInterface(S): primary=%x new=%x\n", lpdds, *obp);
-				dxw.MarkPrimarySurface((LPDIRECTDRAWSURFACE)*obp, dwLocalDDVersion);
+				dxwss.PushPrimarySurface((LPDIRECTDRAWSURFACE)*obp, dwLocalDDVersion);
 				HookDDSurfacePrim((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion);
 			}
 			else{
-				if(IsBack) dxw.MarkBackBufferSurface((LPDIRECTDRAWSURFACE)*obp, dwLocalDDVersion);
-				else dxw.MarkRegularSurface((LPDIRECTDRAWSURFACE)*obp);
+				if(IsBack) dxwss.PushBackBufferSurface((LPDIRECTDRAWSURFACE)*obp, dwLocalDDVersion);
+				else dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp);
 				// v2.02.13: seems that hooking inconditionally gives troubles. What is the proper safe hook condition?
 				HookDDSurfaceGeneric((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion);
 			}
@@ -2260,7 +2257,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		OutTraceDW("CreateSurface: created new DDSEmu_Prim=%x\n",lpDDSEmu_Prim);
 		if(IsDebug) DescribeSurface(lpDDSEmu_Prim, dxversion, "DDSEmu_Prim", __LINE__);
 		InitDSScreenParameters(lpDDSEmu_Prim);
-		dxw.MarkRegularSurface(lpDDSEmu_Prim);
+		dxwss.PopSurface(lpDDSEmu_Prim);
 		// can't hook lpDDSEmu_Prim as generic, since the Flip method is unimplemented for a PRIMARY surface!
 		// better avoid it or hook just useful methods.
 		//if (dxw.dwTFlags & OUTPROXYTRACE) HookDDSurfaceGeneric(&lpDDSEmu_Prim, dxw.dwDDVersion);
@@ -2288,12 +2285,12 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		}
 		OutTraceDW("CreateSurface: created new DDSEmu_Back=%x\n", lpDDSEmu_Back);
 		if(IsDebug) DescribeSurface(lpDDSEmu_Back, dxversion, "DDSEmu_Back", __LINE__);
-		dxw.MarkRegularSurface(lpDDSEmu_Back);
+		dxwss.PopSurface(lpDDSEmu_Back);
 		if (dxw.dwTFlags & OUTPROXYTRACE) HookDDSurfaceGeneric(&lpDDSEmu_Back, dxversion);
 	}
 
 	bFlippedDC = TRUE;
-
+	
 	return DD_OK;
 }
 
@@ -2334,7 +2331,7 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	if(dxw.dwFlags1 & EMULATEBUFFER){
 		lpDDSEmu_Prim = *lplpdds;
-		dxw.MarkRegularSurface(lpDDSEmu_Prim);
+		dxwss.PopSurface(lpDDSEmu_Prim);
 
 		ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
 		// warning: can't create zero sized backbuffer surface !!!!
@@ -2598,10 +2595,10 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 			if (lpDDSEmu_Back) while(lpDDSEmu_Back->Release());
 			if (lpDDSEmu_Prim) while(lpDDSEmu_Prim->Release());
 			if (ddsd.dwFlags & DDSD_BACKBUFFERCOUNT) { // Praetorians !!!!
-				lpDDSBack = dxw.GetBackBufferSurface();
+				lpDDSBack = dxwss.GetBackBufferSurface();
 				if (lpDDSBack) {
 					while(lpDDSBack->Release());
-					dxw.MarkRegularSurface(lpDDSBack);
+					dxwss.PopSurface(lpDDSBack);
 					lpDDSBack = NULL;
 				}
 			}
@@ -2630,14 +2627,14 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		res=BuildPrimary(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, NULL);
 		if(res) return res;
 		lpDDSPrim = *lplpdds;
-		dxw.MarkPrimarySurface(lpDDSPrim, dxversion);
+		dxwss.PushPrimarySurface(lpDDSPrim, dxversion);
 		RegisterPixelFormat(lpDDSPrim);
 
 		if (BBCount){
 			// build emulated backbuffer surface
 			res=BuildBackBuffer(lpdd, pCreateSurface, lpddsd, dxversion, &lpDDSBack, NULL);
 			if(res) return res;
-			dxw.MarkBackBufferSurface(lpDDSBack, dxversion);
+			dxwss.PushBackBufferSurface(lpDDSBack, dxversion);
 
 			// V2.1.85/V2.2.34: tricky !!!!
 			// When a real backbuffer is created, it has a reference to its frontbuffer.
@@ -2678,7 +2675,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		}
 
 		res=BuildBackBuffer(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, NULL);
-		if(res == DD_OK) dxw.MarkBackBufferSurface(*lplpdds, dxversion);
+		if(res == DD_OK) dxwss.PushBackBufferSurface(*lplpdds, dxversion);
 		return res;
 	}
 
@@ -2686,7 +2683,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 
 	res=BuildGeneric(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, pu);
 	if(!res) {
-		dxw.MarkRegularSurface(*lplpdds);
+		dxwss.PopSurface(*lplpdds);
 		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
 			lpDDZBuffer=*lplpdds;
 			DDZBufferCaps = lpddsd->ddsCaps.dwCaps;
@@ -2727,8 +2724,8 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	BOOL IsPrim;
 	BOOL IsBack;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
-	IsBack=dxw.IsABackBufferSurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
+	IsBack=dxwss.IsABackBufferSurface(lpdds);
 	OutTraceDDRAW("GetAttachedSurface(%d): lpdds=%x%s caps=%x(%s)\n", 
 		dxversion, lpdds, (IsPrim?"(PRIM)":(IsBack ? "(BACK)":"")), lpddsc->dwCaps, ExplainDDSCaps(lpddsc->dwCaps));
 
@@ -2754,7 +2751,7 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	if(IsPrim && (lpddsc->dwCaps & (DDSCAPS_BACKBUFFER|DDSCAPS_FLIP))) { // v2.02.42 added DDSCAPS_FLIP for Empire Earth
 		// in "Tomb Raider III" GOG release, the primary surface is queryed and has no attached
 		// backbuffer, but a backbuffer does exist and has to be retrieved by GetBackBufferSurface.
-		LPDIRECTDRAWSURFACE lpddsback = dxw.GetBackBufferSurface();
+		LPDIRECTDRAWSURFACE lpddsback = dxwss.GetBackBufferSurface();
 		if (lpddsback) {
 			*lplpddas = lpddsback;
 			OutTraceDW("GetAttachedSurface(%d): BACKBUFFER attached=%x\n", dxversion, *lplpddas); 
@@ -3137,7 +3134,7 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 	LPDIRECTDRAWSURFACE lpddsTmp;
 	LPDIRECTDRAWSURFACE lpDDSBack;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("Flip: lpdds=%x%s, src=%x, flags=%x(%s)\n", 
 		lpdds, IsPrim?"(PRIM)":"", lpddssrc, dwflags, ExplainFlipFlags(dwflags));
 
@@ -3178,7 +3175,7 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 
 	if((dwflags & DDFLIP_WAIT) || (dxw.dwFlags1 & SAVELOAD)) lpPrimaryDD->WaitForVerticalBlank(DDWAITVB_BLOCKEND , 0);
 
-	lpDDSBack = dxw.GetBackBufferSurface();
+	lpDDSBack = dxwss.GetBackBufferSurface();
 
 	if(dxw.dwFlags4 & NOFLIPEMULATION){
 		HRESULT res2;
@@ -3260,7 +3257,7 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx)
 {
-	if ((dxw.dwFlags2 & FULLRECTBLT) && dxw.IsAPrimarySurface(lpdds)){
+	if ((dxw.dwFlags2 & FULLRECTBLT) && dxwss.IsAPrimarySurface(lpdds)){
 		lpsrcrect=NULL;
 		lpdestrect=NULL;
 	}
@@ -3281,8 +3278,8 @@ HRESULT WINAPI extBltFast(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy,
 	HRESULT ret;
 	BOOL ToPrim, FromPrim;
 
-	ToPrim=dxw.IsAPrimarySurface(lpdds);
-	FromPrim=dxw.IsAPrimarySurface(lpddssrc);
+	ToPrim=dxwss.IsAPrimarySurface(lpdds);
+	FromPrim=dxwss.IsAPrimarySurface(lpddssrc);
 
 	CleanRect(&lpsrcrect,__LINE__);
 
@@ -3381,8 +3378,8 @@ HRESULT WINAPI extGetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lpl
 	HRESULT res;
 	BOOL isPrim, isBack;
 
-	isPrim=dxw.IsAPrimarySurface(lpdds);
-	isBack=dxw.IsABackBufferSurface(lpdds);
+	isPrim=dxwss.IsAPrimarySurface(lpdds);
+	isBack=dxwss.IsABackBufferSurface(lpdds);
 	OutTraceDDRAW("GetPalette: lpdds=%x%s%s\n", lpdds, isPrim?"(PRIM)":"", isBack?"(BACK)":"");
 
 	res=(*pGetPalette)(lpdds, lplpddp);
@@ -3407,7 +3404,7 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 	BOOL isPrim;
 	HRESULT res;
 	
-	isPrim=dxw.IsAPrimarySurface(lpdds);
+	isPrim=dxwss.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("SetPalette: lpdds=%x%s lpddp=%x\n", lpdds, isPrim?"(PRIM)":"", lpddp);
 
 	res=(*pSetPalette)(lpdds, lpddp);
@@ -3427,7 +3424,7 @@ HRESULT WINAPI extSetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpdd
 			mySetPalette(0, 256, lpentries); // v2.02.76: necessary for "Requiem Avenging Angel" in SURFACEEMULATION mode
 		}
 		// Apply palette to backbuffer surface. This is necessary on some games: "Duckman private dick", "Total Soccer 2000", ...
-		lpDDSBack = dxw.GetBackBufferSurface();
+		lpDDSBack = dxwss.GetBackBufferSurface();
 		if (lpDDSBack){
 				OutTraceDW("SetPalette: apply PRIMARY palette lpDDP=%x to DDSBack=%x\n", lpddp, lpDDSBack);
 				res=(*pSetPalette)(lpDDSBack, lpddp);
@@ -3477,7 +3474,7 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 {
 	HRESULT res;
 	BOOL isPrim;
-	isPrim=dxw.IsAPrimarySurface(lpdds);
+	isPrim=dxwss.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("SetClipper: lpdds=%x%s lpddc=%x\n", lpdds, isPrim?"(PRIM)":"", lpddc);
 
 	// v2.1.84: SUPPRESSCLIPPING flag - improves "Monopoly Edition 3D" where continuous
@@ -3487,7 +3484,7 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 
 	if(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){
 		if ((isPrim && lpDDSEmu_Prim) || 
-			(dxw.IsABackBufferSurface(lpdds) && lpDDSEmu_Back)){
+			(dxwss.IsABackBufferSurface(lpdds) && lpDDSEmu_Back)){
 			OutTraceDW("SetClipper: skip primary/backbuffer lpdds=%x\n", lpdds);
 			res=0;
 		}
@@ -3509,7 +3506,7 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC
 	CleanRect(&lprect, __LINE__);
 
 	if(IsTraceDDRAW){
-		BOOL IsPrim=dxw.IsAPrimarySurface(lpdds);
+		BOOL IsPrim=dxwss.IsAPrimarySurface(lpdds);
 		char sRect[81];
 		if (lprect) sprintf_s(sRect, 80, "(%d,%d)-(%d,%d)", lprect->left, lprect->top, lprect->right, lprect->bottom);
 		else strcpy(sRect, "(NULL)");
@@ -3550,7 +3547,7 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACED
 	// to find out whether it is the primary or not, using lpdds==lpPrimaryDD->GetGDISurface(&lpDDSPrim);
 
 	if(IsTraceDDRAW){
-		BOOL IsPrim=dxw.IsAPrimarySurface(lpdds);
+		BOOL IsPrim=dxwss.IsAPrimarySurface(lpdds);
 		char sRect[81];
 		if (lprect) sprintf_s(sRect, 80, "(%d,%d)-(%d,%d)", lprect->left, lprect->top, lprect->right, lprect->bottom);
 		else strcpy(sRect, "(NULL)");
@@ -3622,8 +3619,8 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	BOOL IsBack;
 	RECT rect;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
-	IsBack=dxw.IsABackBufferSurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
+	IsBack=dxwss.IsABackBufferSurface(lpdds);
 
 	if(IsTraceDDRAW){
 		char sRect[81];
@@ -3682,7 +3679,7 @@ HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSUR
 	BOOL IsPrim;
 	LPDIRECTDRAWSURFACE lpDDSPrim;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 
 	if ((dxversion >= 4) && lprect) CleanRect(&lprect,__LINE__);
 
@@ -3742,7 +3739,7 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 	HRESULT res;
 	BOOL IsPrim;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("GetDC: lpdss=%x%s\n",lpdds, IsPrim?"(PRIM)":"");
 	res=(*pGetDC)(lpdds, pHDC);
 
@@ -3778,7 +3775,7 @@ HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR hdc)
 	HRESULT res;
 	BOOL IsPrim;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("ReleaseDC: lpdss=%x%s hdc=%x\n",lpdds, IsPrim?"(PRIM)":"", hdc);	
 	res=(*pReleaseDC)(lpdds, hdc);
 	if((IsPrim) && (dxw.dwFlags1 & EMULATESURFACE)) sBlt("ReleaseDC", lpdds, NULL, lpdds, NULL, 0, NULL, FALSE);
@@ -3811,7 +3808,7 @@ HRESULT WINAPI extGetGDISurface(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
 	// v2.02.31:
 	// in EMULATED mode, should not return the actual ddraw primary surface, but the virtual one.
 	if(dxw.dwFlags1 & EMULATESURFACE){
-		*w=dxw.GetPrimarySurface();
+		*w=dxwss.GetPrimarySurface();
 		OutTraceDW("GetGDISurface: EMULATED lpdd=%x w=%x\n", lpdd, *w);
 		return DD_OK;
 	}
@@ -4067,7 +4064,7 @@ HRESULT WINAPI extGetPixelFormat(LPDIRECTDRAWSURFACE lpdds, LPDDPIXELFORMAT p)
 	DWORD res;
 	BOOL IsPrim;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("GetPixelFormat: lpdds=%x%s\n", lpdds, IsPrim?"(PRIM)":"");
 	res=(*pGetPixelFormat)(lpdds, p);
 	if(res){
@@ -4112,17 +4109,17 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 	BOOL IsPrim;
 	BOOL IsBack;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
-	IsBack=dxw.IsABackBufferSurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
+	IsBack=dxwss.IsABackBufferSurface(lpdds);
 
 	res = (*pReleaseS)(lpdds);
 
-	OutTraceDDRAW("Release(S): lpdds=%x%s refcount=%d\n", lpdds, dxw.ExplainSurfaceRole(lpdds), res);
+	OutTraceDDRAW("Release(S): lpdds=%x%s refcount=%d\n", lpdds, dxwss.ExplainSurfaceRole(lpdds), res);
 	if (res==0) { // common precondition
 		// erase surface from primary or backbuffer list
 		// v2-03-20: d3d 1-7 play a dirty trick: it Release the surface passed as argument until refcount == 0,
 		// but then rebuilds it with the original attributes! So, better not forget them.
-		if(IsPrim || IsBack) dxw.UnrefSurface(lpdds);
+		if(IsPrim || IsBack) dxwss.UnrefSurface(lpdds);
 
 		// when releasing primary surface, erase clipping region
 		if(IsPrim && (dxw.dwFlags1 & CLIPCURSOR)) dxw.EraseClipCursor();
@@ -4137,10 +4134,6 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 				OutTraceDW("Release(S): Clearing lpDDSEmu_Back pointer\n");
 				lpDDSEmu_Back=NULL;
 			}
-			if(lpdds==dxw.lpDDSPrimary) {
-				OutTraceDW("Release(S): Clearing lpDDSPrimary pointer\n");
-				dxw.ResetPrimarySurface();
-			}
 		}
 	}
 
@@ -4152,7 +4145,7 @@ HRESULT WINAPI extSetColorKey(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORK
 {
 	HRESULT res;
 	BOOL IsPrim;
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	if(IsTraceDDRAW){
 		char sInfo[81];
 		if (lpDDColorKey) sprintf(sInfo, "(L:%x,H:%x)",lpDDColorKey->dwColorSpaceLowValue, lpDDColorKey->dwColorSpaceHighValue);
@@ -4171,7 +4164,7 @@ HRESULT WINAPI extGetColorKey(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORK
 {
 	HRESULT res;
 	BOOL IsPrim;
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("GetColorKey(S): lpdds=%x%s flags=%x(%s)\n", 
 		lpdds, (IsPrim ? "(PRIM)" : ""), flags, ExplainColorKeyFlag(flags));
 	res=(*pGetColorKey)(lpdds, flags, lpDDColorKey);
@@ -4188,7 +4181,7 @@ HRESULT WINAPI extEnumAttachedSurfaces(LPDIRECTDRAWSURFACE lpdds, LPVOID lpConte
 	HRESULT res;
 	BOOL IsPrim;
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 
 	OutTraceDDRAW("EnumAttachedSurfaces: lpdds=%x%s Context=%x Callback=%x\n", 
 		lpdds, (IsPrim ? "(PRIM)":""), lpContext, lpEnumSurfacesCallback);
@@ -4203,7 +4196,7 @@ HRESULT WINAPI extEnumAttachedSurfaces(LPDIRECTDRAWSURFACE lpdds, LPVOID lpConte
 		res=(*pEnumAttachedSurfaces)(lpdds, lpContext, lpEnumSurfacesCallback);
 		if (res) 
 			OutTraceE("EnumAttachedSurfaces: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		if(lpDDSBack = dxw.GetBackBufferSurface()){
+		if(lpDDSBack = dxwss.GetBackBufferSurface()){
 			ddsd.dwSize=Set_dwSize_From_Surface(lpDDSBack);
 			res=lpDDSBack->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
 			if(res){
@@ -4235,8 +4228,8 @@ HRESULT WINAPI extAddAttachedSurface(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURF
 	// just remember this for further handling in the Flip operation.
 	// But beware: this holds to BACKBUFFER surfaces only, and NOT for attached ZBUFFERS or similar!
 
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
-	IsBack=dxw.IsABackBufferSurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
+	IsBack=dxwss.IsABackBufferSurface(lpdds);
 	OutTraceDDRAW("AddAttachedSurface: lpdds=%x%s lpddsadd=%x%s\n", lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), lpddsadd, (lpddsadd==lpDDZBuffer)?"(ZBUF)":"");
 
 	//if(!lpddsadd) return DDERR_CANNOTATTACHSURFACE; // to avoid a crash...
@@ -4256,7 +4249,7 @@ HRESULT WINAPI extAddAttachedSurface(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURF
 			if ((dxw.dwFlags1 & EMULATESURFACE) && (res==DDERR_CANNOTATTACHSURFACE) ||
 				(res==DDERR_NOEXCLUSIVEMODE))
 			OutTraceDW("AddAttachedSurface: emulating BACKBUFFER attach on PRIMARY\n");
-			dxw.MarkBackBufferSurface(lpddsadd, 1);
+			dxwss.PushBackBufferSurface(lpddsadd, 1);
 			if (pAddRefS) (*pAddRefS)(lpdds);
 			res=DD_OK;
 		}
@@ -4282,7 +4275,7 @@ HRESULT WINAPI extDeleteAttachedSurface(LPDIRECTDRAWSURFACE lpdds,  DWORD dwflag
 	OutTraceDDRAW("DeleteAttachedSurface: lpdds=%x flags=%x lpddsdel=%x\n", lpdds, dwflags, lpddsdel);
 	res=(*pDeleteAttachedSurface)(lpdds, dwflags, lpddsdel);
 	if(res) OutTraceE("DeleteAttachedSurface: ERROR %x(%s)\n", res, ExplainDDError(res));
-	if (res && dxw.IsABackBufferSurface(lpddsdel)){
+	if (res && dxwss.IsABackBufferSurface(lpddsdel)){
 		OutTraceDW("DeleteAttachedSurface: emulating surface detach lpdds=%x\n", lpddsdel);
 		res = DD_OK;
 	}
@@ -4301,8 +4294,8 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 {
 	HRESULT res;
 	BOOL IsPrim, IsBack, IsFixed;
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
-	IsBack=dxw.IsABackBufferSurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
+	IsBack=dxwss.IsABackBufferSurface(lpdds);
 	IsFixed=FALSE;
 	char *sLabel;
 
@@ -4384,7 +4377,7 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 		if(dxw.dwFlags4 & FIXREFCOUNTER){
 			// v2.02.41: fix the ref counter to sumulate the unwindowed original situation
 			--VirtualRef; // why ????
-			if(dxw.GetBackBufferSurface()) --VirtualRef;
+			if(dxwss.GetBackBufferSurface()) --VirtualRef;
 			if(dxw.dwFlags1 & EMULATESURFACE){
 				if(lpDDSEmu_Prim) --VirtualRef;
 				if(lpDDSEmu_Back) --VirtualRef;
@@ -4494,8 +4487,8 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 {
 	HRESULT res;
 	BOOL IsPrim, IsBack, IsFixed;
-	IsPrim=dxw.IsAPrimarySurface(lpdds);
-	IsBack=dxw.IsABackBufferSurface(lpdds);
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
+	IsBack=dxwss.IsABackBufferSurface(lpdds);
 	IsFixed=FALSE;
 
 	if (!pGetSurfaceDesc) {
@@ -4699,7 +4692,7 @@ HRESULT WINAPI extDDGetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 	HRESULT ret;
 	OutTraceDDRAW("GetGammaRamp: dds=%x dwFlags=%x\n", lpdds, dwFlags);
 
-	if(dxw.IsAPrimarySurface(lpdds)) lpdds=lpDDSEmu_Prim;
+	if(dxwss.IsAPrimarySurface(lpdds)) lpdds=lpDDSEmu_Prim;
 	
 	ret=(*pDDGetGammaRamp)(lpdds, dwFlags, lpgr);
 	if(ret) {

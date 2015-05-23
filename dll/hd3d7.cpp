@@ -504,7 +504,7 @@ HRESULT WINAPI extDirect3DCreateDevice(GUID FAR *lpGUID, LPDIRECT3D lpd3ddevice,
 	HRESULT res;
 
 	OutTraceD3D("Direct3DCreateDevice: guid=%x d3ddevice=%x dds=%x%s UnkOuter=%x\n",
-		lpGUID, lpd3ddevice, surf, dxw.ExplainSurfaceRole(surf), pUnkOuter);
+		lpGUID, lpd3ddevice, surf, dxwss.ExplainSurfaceRole(surf), pUnkOuter);
 	res=(*pDirect3DCreateDevice)(lpGUID, lpd3ddevice, surf, lplpd3ddevice, pUnkOuter);
 	if(res) OutTraceE("Direct3DCreateDevice ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("Direct3DCreateDevice: d3ddevice=%x\n", *lplpd3ddevice);
@@ -879,7 +879,7 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 	HRESULT res;
 
 	OutTraceD3D("CreateDevice(D3D2): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
-		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
+		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
 	res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
 	if(res) {
 		OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -903,7 +903,7 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 	HRESULT res;
 
 	OutTraceD3D("CreateDevice(D3D3): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
-		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
+		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
 	res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
 	if(res) {
 		OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -931,7 +931,7 @@ HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7
 	HRESULT res;
 
 	OutTraceD3D("CreateDevice(D3D7): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
-		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
+		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
 	res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
 	if(res) {
 		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);

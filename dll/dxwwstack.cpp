@@ -1,37 +1,28 @@
-#define _WIN32_WINNT 0x0600
-#define WIN32_LEAN_AND_MEAN
+/* ------------------------------------------------------------------ */
+// DirectDraw Surface Stack implementation
+/* ------------------------------------------------------------------ */
+
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <windows.h>
 #include <stdio.h>
-#include <malloc.h>
-#include <ddraw.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
-#include "dxhook.h"
-#include "syslibs.h"
-#include "dxhelper.h"
 
-typedef struct {
-	HWND hwnd;
-	WNDPROC wndproc;
-	int w;
-	int h;
-} wndstack_entry;
-
+//#define DXW_WINPROC_STACK_TRACING
 #define MAXWNDHSTACK 256
 
-wndstack_entry *WhndStack;
-static int WhndTOS = 0;
-static int WhndSize = 0;
-
-void WinDBInit()
+dxwWStack::dxwWStack()
 {
+	WhndTOS = 0;
 	WhndSize = MAXWNDHSTACK;
 	WhndStack = (wndstack_entry *)malloc(WhndSize * sizeof(wndstack_entry));
 }
 
-void WinDBPut(HWND hwnd, WNDPROC wndproc, int w, int h)
+dxwWStack::~dxwWStack()
+{
+}
+
+void dxwWStack::Put(HWND hwnd, WNDPROC wndproc, int w, int h)
 {
 	int StackIdx;
 
@@ -66,7 +57,7 @@ void WinDBPut(HWND hwnd, WNDPROC wndproc, int w, int h)
 	WhndTOS++;
 }
 
-void WinDBPutProc(HWND hwnd, WNDPROC wndproc)
+void dxwWStack::PutProc(HWND hwnd, WNDPROC wndproc)
 {
 	int StackIdx;
 
@@ -94,7 +85,7 @@ void WinDBPutProc(HWND hwnd, WNDPROC wndproc)
 	WhndTOS++;
 }
 
-void WinDBPutSize(HWND hwnd, int w, int h)
+void dxwWStack::PutSize(HWND hwnd, int w, int h)
 {
 	int StackIdx;
 
@@ -119,7 +110,7 @@ void WinDBPutSize(HWND hwnd, int w, int h)
 	WhndTOS++;
 }
 
-BOOL WinDBGetSize(HWND hwnd, int *w, int *h)
+BOOL dxwWStack::GetSize(HWND hwnd, int *w, int *h)
 {
 	int StackIdx;
 	for(StackIdx=0; StackIdx<WhndTOS; StackIdx++) if (WhndStack[StackIdx].hwnd==hwnd) {
@@ -133,15 +124,16 @@ BOOL WinDBGetSize(HWND hwnd, int *w, int *h)
 	return FALSE;
 }
 
-WNDPROC WinDBGetProc(HWND hwnd)
+WNDPROC dxwWStack::GetProc(HWND hwnd)
 {
 	int StackIdx;
+	//if(dxw.dwFlags6 & USEDEFWINDOWPROC) return pDefWindowProcA;
 	//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x TOS=%d\n", hwnd, WhndTOS);
 	for(StackIdx=0; StackIdx<WhndTOS; StackIdx++) {
 		if (WhndStack[StackIdx].hwnd==hwnd) {
-		//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=%x\n", hwnd, WhndStack[StackIdx].wndproc);
-		return WhndStack[StackIdx].wndproc; // either a good value, or NULL
-	}
+			//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=%x\n", hwnd, WhndStack[StackIdx].wndproc);
+			return WhndStack[StackIdx].wndproc; // either a good value, or NULL
+		}
 	}
 	//OutTraceDW("DEBUG: WNDPROC STACK pop hwnd=%x, wndproc=NULL\n", hwnd);
 	return NULL;

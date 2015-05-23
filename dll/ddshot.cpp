@@ -39,10 +39,10 @@ void DDrawScreenShot()
 	}
 
 	if(dxw.dwFlags5 & GDIMODE){
-		s = dxw.GetBackBufferSurface();
+		s = dxwss.GetBackBufferSurface();
 	}
 	else{
-		s = dxw.GetPrimarySurface();
+		s = dxwss.GetPrimarySurface();
 	}
 	if(!s) return;
 

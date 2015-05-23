@@ -91,18 +91,6 @@ public: // methods
 	BOOL HandleFPS(void);
 	BOOL ishWndFPS(HWND);
 	DWORD GetTickCount(void);
-	char *ExplainSurfaceRole(LPDIRECTDRAWSURFACE);
-	void ClearSurfaceList();
-	void MarkPrimarySurface(LPDIRECTDRAWSURFACE, int);
-	BOOL IsAPrimarySurface(LPDIRECTDRAWSURFACE);
-	void UnrefSurface(LPDIRECTDRAWSURFACE);
-	LPDIRECTDRAWSURFACE GetPrimarySurface(void);
-	void MarkBackBufferSurface(LPDIRECTDRAWSURFACE, int);
-	BOOL IsABackBufferSurface(LPDIRECTDRAWSURFACE);
-	LPDIRECTDRAWSURFACE GetBackBufferSurface(void);
-	void MarkRegularSurface(LPDIRECTDRAWSURFACE);
-	void SetPrimarySurface(void);
-	void ResetPrimarySurface(void);
 	void GetSystemTime(LPSYSTEMTIME);
 	void GetSystemTimeAsFileTime(LPFILETIME);
 	DWORD StretchTime(DWORD);
@@ -164,7 +152,6 @@ public: // simple data variables
 	DWORD SwapEffect;
 	char *gsModules;
 	int TimeShift;
-	LPDIRECTDRAWSURFACE lpDDSPrimary;
 	short iPosX;
 	short iPosY;
 	short iSizX;
@@ -187,16 +174,10 @@ protected:
 	DWORD dwScreenHeight;
 	BOOL FullScreen;
 	HWND hWnd, hWndFPS;
-	SurfaceDB_Type SurfaceDB[DDSQLEN+1];
-	//DWORD PrimSurfaces[DDSQLEN+1];
-	//DWORD BackSurfaces[DDSQLEN+1];
 	HBITMAP VirtualPic;
 	RECT VirtualPicRect;
 
 private:
-	void MarkSurfaceByRole(LPDIRECTDRAWSURFACE, USHORT, USHORT);
-	LPDIRECTDRAWSURFACE GetSurfaceByRole(USHORT);
-	void SetSurfaceEntry(LPDIRECTDRAWSURFACE, USHORT, USHORT);
 	BOOL MustShowOverlay;
 	void ShowFPS(HDC, int, int);
 	void ShowTimeStretching(HDC, int, int);
@@ -207,7 +188,64 @@ private:
 	int iRefreshDelayCount;
 };
 
+class dxwSStack
+{
+public:
+    dxwSStack();
+    virtual ~dxwSStack();
+
+public:
+	char *ExplainSurfaceRole(LPDIRECTDRAWSURFACE);
+	void ClearSurfaceList();
+	void PushPrimarySurface(LPDIRECTDRAWSURFACE, int);
+	BOOL IsAPrimarySurface(LPDIRECTDRAWSURFACE);
+	void UnrefSurface(LPDIRECTDRAWSURFACE);
+	LPDIRECTDRAWSURFACE GetPrimarySurface(void);
+	void PushBackBufferSurface(LPDIRECTDRAWSURFACE, int);
+	BOOL IsABackBufferSurface(LPDIRECTDRAWSURFACE);
+	LPDIRECTDRAWSURFACE GetBackBufferSurface(void);
+	void PopSurface(LPDIRECTDRAWSURFACE);
+
+protected:
+	SurfaceDB_Type SurfaceDB[DDSQLEN+1];
+	LPDIRECTDRAWSURFACE lpDDSPrimary;
+	LPDIRECTDRAWSURFACE lpDDSBackBuffer;
+
+private:
+	void PushSurface(LPDIRECTDRAWSURFACE, USHORT, USHORT);
+	LPDIRECTDRAWSURFACE GetSurfaceByRole(USHORT);
+	void SetSurfaceEntry(LPDIRECTDRAWSURFACE, USHORT, USHORT);
+};
+
+typedef struct {
+	HWND hwnd;
+	WNDPROC wndproc;
+	int w;
+	int h;
+} wndstack_entry;
+
+class dxwWStack
+{
+public:
+    dxwWStack();
+    virtual ~dxwWStack();
+
+public:
+	void Put(HWND, WNDPROC, int, int);
+	void PutProc(HWND, WNDPROC);
+	void PutSize(HWND, int, int);
+	BOOL GetSize(HWND, int *, int *);
+	WNDPROC GetProc(HWND);
+
+private:
+	wndstack_entry *WhndStack;
+	int WhndTOS;
+	int WhndSize;
+};
+
 extern dxwCore dxw;
+extern dxwSStack dxwss;
+extern dxwWStack dxwws;
 
 typedef enum {
 	SYSLIBIDX_KERNEL32 = 0,

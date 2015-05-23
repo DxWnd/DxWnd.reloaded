@@ -8,12 +8,6 @@
 #include "resource.h"
 #include "d3d9.h"
 
-#if 1
-#define OutTraceSDB OutTrace
-#else
-#define OutTraceSDB if(0) OutTrace
-#endif
-
 /* ------------------------------------------------------------------ */
 // Internal function pointers
 /* ------------------------------------------------------------------ */
@@ -36,7 +30,6 @@ static LARGE_INTEGER TimeShifter64Coarse(LARGE_INTEGER, int);
 dxwCore::dxwCore()
 {
 	// initialization stuff ....
-	extern void WinDBInit();
 	FullScreen=FALSE;
 	SethWnd(NULL);
 	SetScreenSize();
@@ -46,12 +39,9 @@ dxwCore::dxwCore()
 	bActive = TRUE;
 	bDInputAbs = 0;
 	TimeShift = 0;
-	lpDDSPrimary = NULL;
-	memset(SurfaceDB, 0, sizeof(SurfaceDB));
 	ResetEmulatedDC();
 	MustShowOverlay=FALSE;
 	TimerEvent.dwTimerType = TIMER_TYPE_NONE;
-	WinDBInit();
 	// initialization of default vsync emulation array
 	iRefreshDelays[0]=16;
 	iRefreshDelays[1]=17;
@@ -226,234 +216,6 @@ void dxwCore::DumpDesktopStatus()
 		pfd.cRedShift, pfd.cGreenShift, pfd.cBlueShift, pfd.cAlphaShift,
 		ColorMask
 	);
-}
-
-
-
-/* ------------------------------------------------------------------ */
-// Primary surfaces auxiliary functions
-/* ------------------------------------------------------------------ */
-
-//#define DXW_SURFACE_STACK_TRACING
-
-static char *sRole(USHORT role)
-{
-	char *s;
-	switch (role){
-		case 0: s="(NULL)"; break; // should never happen ...
-		case SURFACE_ROLE_PRIMARY: s="(PRIM)"; break;
-		case SURFACE_ROLE_BACKBUFFER: s="(BACK)"; break;
-		default: s="??"; break; // should never happen ...
-	}
-	return s;
-}
-
-#ifdef DXW_SURFACE_STACK_TRACING
-static void CheckSurfaceList(SurfaceDB_Type *SurfaceDB)
-{
-	char sMsg[81];
-	int iPCount = 0;
-	int iBCount = 0;
-	for (int i=0;i<DDSQLEN;i++) {
-		if (SurfaceDB[i].lpdds == NULL) break;
-		if ((SurfaceDB[i].uRole == SURFACE_ROLE_PRIMARY)	&& SurfaceDB[i].uRef) iPCount++;
-		if ((SurfaceDB[i].uRole == SURFACE_ROLE_BACKBUFFER) && SurfaceDB[i].uRef) iBCount++;
-	}
-	if(iPCount > 1) {
-		sprintf(sMsg, "Primary count = %d", iPCount);
-		MessageBox(0, sMsg, "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
-	}
-	if(iBCount > 1) {
-		sprintf(sMsg, "Backbuffer count = %d", iPCount);
-		MessageBox(0, sMsg, "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
-	}
-}
-
-static void DumpSurfaceList(SurfaceDB_Type *SurfaceDB)
-{
-	for (int i=0;i<DDSQLEN;i++) {
-		if (SurfaceDB[i].lpdds == NULL) break;
-		OutTrace("--- SURFACELIST DUMP: i=%d lpssd=%x%s ref=%d vers=%d\n", i, 
-			SurfaceDB[i].lpdds, sRole(SurfaceDB[i].uRole), SurfaceDB[i].uRef, SurfaceDB[i].uVersion);
-	}
-}
-#endif
-
-char *dxwCore::ExplainSurfaceRole(LPDIRECTDRAWSURFACE ps)
-{
-	int i;
-	for (i=0;i<DDSQLEN;i++) {
-		if (SurfaceDB[i].lpdds==ps) return sRole(SurfaceDB[i].uRole);
-		if (SurfaceDB[i].lpdds==0) break;
-	}
-	// this should NEVER happen, but ...
-	extern LPDIRECTDRAWSURFACE lpDDSEmu_Back, lpDDSEmu_Prim;
-	if(lpDDSEmu_Back && (ps==lpDDSEmu_Back)) return "(emu.BACK)";
-	if(lpDDSEmu_Prim && (ps==lpDDSEmu_Prim)) return "(emu.PRIM)";
-	// ... just in case!
-	return "";
-}
-
-void dxwCore::ClearSurfaceList()
-{
-#ifdef DXW_SURFACE_STACK_TRACING
-	OutTrace(">>> SURFACELIST CLEAR ALL\n");
-#endif
-	for (int i=0;i<DDSQLEN;i++) {
-		SurfaceDB[i].lpdds = NULL;
-		SurfaceDB[i].uRef = FALSE;
-		SurfaceDB[i].uRole = 0;
-		SurfaceDB[i].uVersion = 0;
-	}
-}
-
-void dxwCore::UnrefSurface(LPDIRECTDRAWSURFACE ps)
-{
-	int i;
-	// look for entry
-	for (i=0;i<DDSQLEN;i++) 
-		if ((SurfaceDB[i].lpdds==ps) || SurfaceDB[i].lpdds==0) break; 
-	// if found, delete it by left-copying each entry until end of array
-	if (SurfaceDB[i].lpdds == ps) {
-#ifdef DXW_SURFACE_STACK_TRACING
-		OutTraceSDB(">>> SURFACELIST UNREF: lpdds=%x%s ref=%x vers=%d\n", ps, sRole(SurfaceDB[i].uRole), SurfaceDB[i].uRef, SurfaceDB[i].uVersion);
-#endif
-		SurfaceDB[i].uRef = FALSE;
-	}
-#ifdef DXW_SURFACE_STACK_TRACING
-	DumpSurfaceList(SurfaceDB);
-#endif
-}
-
-void dxwCore::MarkSurfaceByRole(LPDIRECTDRAWSURFACE ps, USHORT role, USHORT version)
-{
-	int i;
-	SurfaceDB_Type *e;
-#ifdef DXW_SURFACE_STACK_TRACING
-	OutTraceSDB(">>> SURFACELIST MARK: lpdds=%x%s vers=%d\n", ps, sRole(role), version);
-#endif
-	for (i=0;i<DDSQLEN;i++) {
-		e=&SurfaceDB[i];
-		if ((e->lpdds==ps) || (e->lpdds==(DWORD)0)) break; // got matching entry or end of the list
-	}
-	if(i == DDSQLEN) {
-		MessageBox(0, "Surface stack is full", "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
-		return;
-	}
-	e->lpdds=ps;
-	e->uRole = role;
-	e->uRef = TRUE;
-	e->uVersion = version;
-#ifdef DXW_SURFACE_STACK_TRACING
-	DumpSurfaceList(SurfaceDB);
-#endif
-}
-	
-void dxwCore::MarkPrimarySurface(LPDIRECTDRAWSURFACE ps, int version)
-{
-	MarkSurfaceByRole(ps, SURFACE_ROLE_PRIMARY, (USHORT)version);
-}
-
-void dxwCore::MarkBackBufferSurface(LPDIRECTDRAWSURFACE ps, int version)
-{
-	MarkSurfaceByRole(ps, SURFACE_ROLE_BACKBUFFER, (USHORT)version);
-}
-
-void dxwCore::MarkRegularSurface(LPDIRECTDRAWSURFACE ps)
-{
-	int i;
-	// look for entry
-	for (i=0;i<DDSQLEN;i++) {
-		if (SurfaceDB[i].lpdds==0) return;
-		if (SurfaceDB[i].lpdds==ps) break; 
-	}
-	// if found, delete it by left-copying each entry until end of array
-	if (SurfaceDB[i].lpdds==ps){
-#ifdef DXW_SURFACE_STACK_TRACING
-		OutTraceSDB(">>> SURFACELIST CLEAR: i=%d lpdds=%x%s ref=%x vers=%d\n", 
-			i, ps, sRole(SurfaceDB[i].uRole), SurfaceDB[i].uRef, SurfaceDB[i].uVersion);
-#endif
-		for (; i<DDSQLEN; i++){
-			SurfaceDB[i]=SurfaceDB[i+1];
-			if (SurfaceDB[i].lpdds==0) break;
-		}
-		SurfaceDB[DDSQLEN].lpdds=0;
-		SurfaceDB[DDSQLEN].uRole=0;
-		SurfaceDB[DDSQLEN].uRef=0;
-		SurfaceDB[DDSQLEN].uVersion=0;
-	}
-#ifdef DXW_SURFACE_STACK_TRACING
-	DumpSurfaceList(&SurfaceDB[0]);
-#endif
-}
-
-// Note: since MS itself declares that the object refcount is not reliable and should
-// be used for debugging only, it's not safe to rely on refcount==0 when releasing a
-// surface to terminate its classification as primary. As an alternate and more reliable
-// way, we use UnmarkPrimarySurface each time you create a new not primary surface, 
-// eliminating the risk that a surface previously classified as primary and then closed
-// had the same surface handle than this new one that is not primary at all.
-
-BOOL dxwCore::IsAPrimarySurface(LPDIRECTDRAWSURFACE ps)
-{
-	int i;
-	// treat NULL surface ptr as a non primary
-	if(!ps) return FALSE;
-	for (i=0;i<DDSQLEN;i++) {
-		if (SurfaceDB[i].lpdds==0) return FALSE;
-		if (SurfaceDB[i].lpdds==ps) return (SurfaceDB[i].uRole == SURFACE_ROLE_PRIMARY);
-	}
-	return FALSE;
-}
-
-BOOL dxwCore::IsABackBufferSurface(LPDIRECTDRAWSURFACE ps)
-{
-	int i;
-	// treat NULL surface ptr as a non primary
-	if(!ps) return FALSE;
-	for (i=0;i<DDSQLEN;i++) {
-		if (SurfaceDB[i].lpdds==0) return FALSE;
-		if (SurfaceDB[i].lpdds==ps) return (SurfaceDB[i].uRole == SURFACE_ROLE_BACKBUFFER);
-	}
-	return FALSE;
-}
-
-LPDIRECTDRAWSURFACE dxwCore::GetSurfaceByRole(USHORT role)
-{
-	// Get a surface marked for the desired role (either PRIMARY or BACKBUFFER) and
-	// whith a not null reference counter. In case of multiple choices, it has to
-	// return the most recent reference!!!
-	// tested with "101 the Airborne Invasion of Normandy" and "Armored Fist 3"
-	int i;
-	LPDIRECTDRAWSURFACE ret = NULL;
-#ifdef DXW_SURFACE_STACK_TRACING
-	if (IsAssertEnabled) CheckSurfaceList(SurfaceDB);
-#endif
-	for (i=0;i<DDSQLEN;i++) {
-		if ((SurfaceDB[i].uRole == role) && (SurfaceDB[i].uRef)) ret = SurfaceDB[i].lpdds;
-		if (SurfaceDB[i].lpdds==NULL) break;
-	}
-	return ret;
-}
-
-LPDIRECTDRAWSURFACE dxwCore::GetPrimarySurface(void)
-{
-	return GetSurfaceByRole(SURFACE_ROLE_PRIMARY);
-}
-
-LPDIRECTDRAWSURFACE dxwCore::GetBackBufferSurface(void)
-{
-	return GetSurfaceByRole(SURFACE_ROLE_BACKBUFFER);
-}
-
-void dxwCore::SetPrimarySurface(void)
-{
-	if (!lpDDSPrimary) lpDDSPrimary=GetPrimarySurface();
-}
-
-void dxwCore::ResetPrimarySurface(void)
-{
-	lpDDSPrimary=NULL;
 }
 
 void dxwCore::InitWindowPos(int x, int y, int w, int h)
@@ -1118,7 +880,7 @@ void dxwCore::ScreenRefresh(void)
 	t = tn;
 
 	// if not too early, refresh primary surface ....
-	lpDDSPrim=dxw.GetPrimarySurface();
+	lpDDSPrim=dxwss.GetPrimarySurface();
 	if (lpDDSPrim) extBlt(lpDDSPrim, NULL, lpDDSPrim, NULL, 0, NULL);
 
 	// v2.02.44 - used for what? Commenting out seems to fix the palette update glitches  
@@ -1793,7 +1555,7 @@ HDC dxwCore::AcquireEmulatedDC(LPDIRECTDRAWSURFACE lpdds)
 	typedef HRESULT (WINAPI *GetDC_Type) (LPDIRECTDRAWSURFACE, HDC FAR *);
 	extern GetDC_Type pGetDC;
 	if((*pGetDC)(lpdds, &ddc))
-	OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	return AcquireEmulatedDC(ddc);
 }
 

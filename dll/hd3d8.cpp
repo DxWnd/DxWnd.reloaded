@@ -27,6 +27,7 @@ void D3D8TextureHandling(void *arg, int Level)
 	IDirect3DSurface8 *pSurfaceLevel;
 	D3DSURFACE_DESC Desc;
 	D3DLOCKED_RECT LockedRect;
+	//OutTrace("D3D8TextureHandling: arg=%x level=%d\n", (DWORD)arg, Level);
 	if(res=lpd3dtex->GetSurfaceLevel(Level, &pSurfaceLevel)){
 		OutTraceE("Texture::GetSurfaceLevel ERROR: res=%d(%s)\n", res, ExplainDDError(res));
 		return;

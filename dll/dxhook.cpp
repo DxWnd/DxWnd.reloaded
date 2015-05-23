@@ -25,6 +25,8 @@
 #define SKIPIMEWINDOW TRUE
 
 dxwCore dxw;
+dxwSStack dxwss;
+dxwWStack dxwws;
 
 typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
 typedef int (*Preparedisasm_Type)(void);
@@ -594,18 +596,26 @@ void HookWindowProc(HWND hwnd)
 {
 	WNDPROC pWindowProc;
 	pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
+	// don't hook twice ....	
 	if ((pWindowProc == extWindowProc) ||
 		(pWindowProc == extChildWindowProc) ||
 		(pWindowProc == extDialogWindowProc)){
 		// hooked already !!!
 		OutTraceDW("GetWindowLong: hwnd=%x WindowProc HOOK already in place\n", hwnd);
+		return;
 	}
-	else {// don't hook twice ....
-		long lres;
-		WinDBPutProc(hwnd, pWindowProc);
-		lres=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
-		OutTraceDW("SetWindowLong: hwnd=%x HOOK WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
+
+	// v2.03.22: don't remap WindowProc in case of special address 0xFFFFnnnn. 
+	// This makes "The Hulk demo" work avoiding WindowProc recursion and stack overflow
+	if (((DWORD)pWindowProc & 0xFFFF0000) == 0xFFFF0000){
+		OutTraceDW("GetWindowLong: hwnd=%x WindowProc HOOK %x not updated\n", hwnd, pWindowProc);
+		return;
 	}
+
+	long lres;
+	dxwws.PutProc(hwnd, pWindowProc);
+	lres=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
+	OutTraceDW("SetWindowLong: hwnd=%x HOOK WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
 }
 
 void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
@@ -670,8 +680,8 @@ LRESULT CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPA
 		t=tn;
 	}
 
-	pWindowProc=WinDBGetProc(hwnd);
-	if(pWindowProc) return(*pCallWindowProc)(pWindowProc, hwnd, message, wparam, lparam);
+	pWindowProc=dxwws.GetProc(hwnd);
+	if(pWindowProc) return(*pCallWindowProcA)(pWindowProc, hwnd, message, wparam, lparam);
 	char *sMsg="ASSERT: DialogWinMsg pWindowProc=NULL !!!\n";
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "WindowProc", MB_OK | MB_ICONEXCLAMATION);
@@ -726,10 +736,10 @@ LRESULT CALLBACK extChildWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 		}
 	}
 
-	pWindowProc=WinDBGetProc(hwnd);
+	pWindowProc=dxwws.GetProc(hwnd);
 	
 	// v2.02.82: use CallWindowProc that handles WinProc handles
-	if(pWindowProc) return(*pCallWindowProc)(pWindowProc, hwnd, message, wparam, lparam);
+	if(pWindowProc) return(*pCallWindowProcA)(pWindowProc, hwnd, message, wparam, lparam);
 	// should never get here ....
 	OutTraceDW("ChildWindowProc: no WndProc for CHILD hwnd=%x\n", hwnd);
 	return DefWindowProc(hwnd, message, wparam, lparam);
@@ -1116,15 +1126,15 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	}
 	if (dxw.dwFlags1 & AUTOREFRESH) dxw.ScreenRefresh();
 
-	pWindowProc=WinDBGetProc(hwnd);
+	pWindowProc=dxwws.GetProc(hwnd);
 	//OutTraceB("WindowProc: pWindowProc=%x extWindowProc=%x message=%x(%s) wparam=%x lparam=%x\n", 
 	//	(*pWindowProc), extWindowProc, message, ExplainWinMessage(message), wparam, lparam);
 	if(pWindowProc) {
 		LRESULT ret;
 
 		// v2.02.36: use CallWindowProc that handles WinProc handles
-		ret=(*pCallWindowProc)(pWindowProc, hwnd, message, wparam, lparam);
-		
+		ret=(*pCallWindowProcA)(pWindowProc, hwnd, message, wparam, lparam);
+
 		// save last NCHITTEST cursor position for use with KEEPASPECTRATIO scaling
 		if(message==WM_NCHITTEST) LastCursorPos=ret;
 		// v2.1.89: if FORCEWINRESIZE add standard processing for the missing WM_NC* messages

@@ -23,13 +23,6 @@ static void Stopper(char *s, int line)
 #define STOPPER(s)
 #endif
 
-/*
-	dlg->m_DCEmulationMode = 0;
-	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
-	if(t->flags3 & GDIEMULATEDC) dlg->m_DCEmulationMode = 2;
-	if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
-*/
-
 typedef BOOL	(WINAPI *ExtTextOutW_Type)(HDC, int, int, UINT, const RECT *, LPCWSTR, UINT, const INT *);
 typedef BOOL	(WINAPI *ExtTextOutA_Type)(HDC, int, int, UINT, const RECT *, LPCSTR, UINT, const INT *);
 BOOL WINAPI extExtTextOutW(HDC, int, int, UINT, const RECT *, LPCWSTR, UINT, const INT *);
@@ -155,19 +148,6 @@ static HookEntry_Type EmulateHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type DDHooks[]={
-	{HOOK_IAT_CANDIDATE, "CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extDDCreateCompatibleDC},
-	{HOOK_IAT_CANDIDATE, "DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extDDDeleteDC},
-	{HOOK_IAT_CANDIDATE, "CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDC, (FARPROC)extDDCreateDC},
-	{HOOK_IAT_CANDIDATE, "BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extDDBitBlt},
-	{HOOK_IAT_CANDIDATE, "StretchBlt", (FARPROC)StretchBlt, (FARPROC *)&pGDIStretchBlt, (FARPROC)extDDStretchBlt},
-	{HOOK_IAT_CANDIDATE, "GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
-
-	// {HOOK_IAT_CANDIDATE, "PatBlt", (FARPROC)PatBlt, (FARPROC *)&pGDIPatBlt, (FARPROC)extDDPatBlt}, // missing one ...
-	// {HOOK_IAT_CANDIDATE, "MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extDDMaskBlt}, // missing one ...
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
 static HookEntry_Type TextHooks[]={
 	{HOOK_IAT_CANDIDATE, "CreateFontA", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
 	{HOOK_IAT_CANDIDATE, "CreateFontIndirectA", (FARPROC)CreateFontIndirectA, (FARPROC *)&pGDICreateFontIndirect, (FARPROC)extCreateFontIndirect},
@@ -206,7 +186,7 @@ void HookGDI32Init()
 {
 	HookLibInit(Hooks);
 	HookLibInit(RemapHooks);
-	HookLibInit(DDHooks);
+	HookLibInit(ScaledHooks);
 	HookLibInit(EmulateHooks);
 	HookLibInit(TextHooks);
 	HookLibInit(GammaHooks);
@@ -220,7 +200,6 @@ void HookGDI32(HMODULE module)
 	if (dxw.dwFlags1 & CLIENTREMAPPING)		HookLibrary(module, RemapHooks, libname);
 	if (dxw.dwFlags2 & GDISTRETCHED)		HookLibrary(module, ScaledHooks, libname);
 	if (dxw.dwFlags3 & GDIEMULATEDC)		HookLibrary(module, EmulateHooks, libname);	
-	if (dxw.dwFlags1 & MAPGDITOPRIMARY)		HookLibrary(module, DDHooks, libname);
 	if (dxw.dwFlags1 & FIXTEXTOUT)			HookLibrary(module, TextHooks, libname);
 	if (dxw.dwFlags2 & DISABLEGAMMARAMP)	HookLibrary(module, GammaHooks, libname);
 	// v2.02.33 - for "Stratego" compatibility option
@@ -237,7 +216,6 @@ FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if (dxw.dwFlags1 & CLIENTREMAPPING)		if(addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
 	if (dxw.dwFlags2 & GDISTRETCHED)		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;
 	if (dxw.dwFlags3 & GDIEMULATEDC)		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr;
-	if (dxw.dwFlags1 & MAPGDITOPRIMARY)		if (addr=RemapLibrary(proc, hModule, DDHooks)) return addr;
 	if (dxw.dwFlags1 & FIXTEXTOUT)			if(addr=RemapLibrary(proc, hModule, TextHooks)) return addr;
 	if (dxw.dwFlags2 & DISABLEGAMMARAMP)	if(addr=RemapLibrary(proc, hModule, GammaHooks)) return addr;
 	// v2.02.33 - for "Stratego" compatibility option
@@ -495,61 +473,6 @@ BOOL WINAPI extGDIRestoreDC(HDC hdc, int nSavedDC)
 // maps the GDI palette to the buffered DirectDraw one. This fixes the screen 
 // output for "Dementia" (a.k.a. "Armed & Delirious").
 
-HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *plpal)
-{
-	HPALETTE ret;
-
-	OutTraceDW("GDI.CreatePalette: plpal=%x version=%x NumEntries=%d\n", plpal, plpal->palVersion, plpal->palNumEntries);
-	if(IsDebug) dxw.DumpPalette(plpal->palNumEntries, (LPPALETTEENTRY)plpal->palPalEntry);
-	ret=(*pGDICreatePalette)(plpal);
-	OutTraceDW("GDI.CreatePalette: hPalette=%x\n", ret);
-	return ret;
-}
-
-HPALETTE hDesktopPalette=NULL;
-
-HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
-{
-	HPALETTE ret;
-
-	if(hdc==dxw.RealHDC) hdc= dxw.VirtualHDC;
-
-	ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
-	OutTraceDW("GDI.SelectPalette: hdc=%x hpal=%x ForceBackground=%x ret=%x\n", hdc, hpal, bForceBackground, ret);
-	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
-		OutTraceDW("GDI.SelectPalette: register desktop palette hpal=%x\n", hpal);
-		hDesktopPalette=hpal;
-	}
-	return ret;
-}
-
-BOOL WINAPI extAnimatePalette(HPALETTE hpal, UINT iStartIndex, UINT cEntries, const PALETTEENTRY *ppe)
-{
-	// Invoked by "Pharaoh's Ascent 1.4"
-	STOPPER("AnimatePalette");
-	return TRUE;
-}
-
-UINT WINAPI extRealizePalette(HDC hdc)
-{
-	UINT ret;
-	extern void mySetPalette(int, int, LPPALETTEENTRY);
-
-	OutTraceDW("GDI.RealizePalette: hdc=%x\n", hdc);
-	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
-		PALETTEENTRY PalEntries[256];
-		UINT nEntries;
-		nEntries=(*pGetPaletteEntries)(hDesktopPalette, 0, 256, PalEntries);
-		mySetPalette(0, nEntries, PalEntries); 
-		if(IsDebug) dxw.DumpPalette(nEntries, PalEntries);
-		ret=DD_OK;
-	}
-	else
-		ret=(*pGDIRealizePalette)(hdc);
-	OutTraceDW("GDI.RealizePalette: hdc=%x ret=%x\n", hdc, ret);
-	return ret;
-}
-
 // In emulated mode (when color depyth is 8BPP ?) it may happen that the game
 // expects to get the requested system palette entries, while the 32BPP screen
 // returns 0. "Mission Force Cyberstorm" is one of these. Returning the same
@@ -622,6 +545,61 @@ static PALETTEENTRY dp[256]={ // default palette, captured on my PC with video m
 	{0x00,0x00,0xff,0x00},{0xff,0x00,0xff,0x00},{0x00,0xff,0xff,0x00},{0xff,0xff,0xff,0x00}
 };
 
+HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *plpal)
+{
+	HPALETTE ret;
+
+	OutTraceDW("GDI.CreatePalette: plpal=%x version=%x NumEntries=%d\n", plpal, plpal->palVersion, plpal->palNumEntries);
+	if(IsDebug) dxw.DumpPalette(plpal->palNumEntries, (LPPALETTEENTRY)plpal->palPalEntry);
+	ret=(*pGDICreatePalette)(plpal);
+	OutTraceDW("GDI.CreatePalette: hPalette=%x\n", ret);
+	return ret;
+}
+
+HPALETTE hDesktopPalette=NULL;
+
+HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
+{
+	HPALETTE ret;
+
+	if(hdc==dxw.RealHDC) hdc= dxw.VirtualHDC;
+
+	ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
+	OutTraceDW("GDI.SelectPalette: hdc=%x hpal=%x ForceBackground=%x ret=%x\n", hdc, hpal, bForceBackground, ret);
+	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
+		OutTraceDW("GDI.SelectPalette: register desktop palette hpal=%x\n", hpal);
+		hDesktopPalette=hpal;
+	}
+	return ret;
+}
+
+BOOL WINAPI extAnimatePalette(HPALETTE hpal, UINT iStartIndex, UINT cEntries, const PALETTEENTRY *ppe)
+{
+	// Invoked by "Pharaoh's Ascent 1.4"
+	STOPPER("AnimatePalette");
+	return TRUE;
+}
+
+UINT WINAPI extRealizePalette(HDC hdc)
+{
+	UINT ret;
+	extern void mySetPalette(int, int, LPPALETTEENTRY);
+
+	OutTraceDW("GDI.RealizePalette: hdc=%x\n", hdc);
+	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
+		PALETTEENTRY PalEntries[256];
+		UINT nEntries;
+		nEntries=(*pGetPaletteEntries)(hDesktopPalette, 0, 256, PalEntries);
+		mySetPalette(0, nEntries, PalEntries); 
+		if(IsDebug && nEntries) dxw.DumpPalette(nEntries, PalEntries);
+		ret=nEntries;
+	}
+	else
+		ret=(*pGDIRealizePalette)(hdc);
+	OutTraceDW("GDI.RealizePalette: hdc=%x ret=%x\n", hdc, ret);
+	return ret;
+}
+
 UINT WINAPI extGetSystemPaletteEntries(HDC hdc, UINT iStartIndex, UINT nEntries, LPPALETTEENTRY lppe)
 {
 	int ret;
@@ -636,234 +614,6 @@ UINT WINAPI extGetSystemPaletteEntries(HDC hdc, UINT iStartIndex, UINT nEntries,
 		OutTraceDW("GetSystemPaletteEntries: FIXED ret=%d\n", ret);
 	}
 	if(IsDebug) dxw.DumpPalette(nEntries, &lppe[iStartIndex]);
-	return ret;
-}
-
-/* -------------------------------------------------------------------- */
-// directdraw supported GDI calls
-/* -------------------------------------------------------------------- */
-
-// PrimHDC: DC handle of the selected DirectDraw primary surface. NULL when invalid.
-extern HDC PrimHDC;
-
-HDC WINAPI extDDCreateCompatibleDC(HDC hdc)
-{
-	HDC RetHdc;
-	extern GetDC_Type pGetDC;
-
-	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
-
-	if(dxw.IsDesktop(WindowFromDC(hdc)) && dxw.IsFullScreen()) {
-		dxw.SetPrimarySurface();
-		if(!PrimHDC && dxw.lpDDSPrimary){
-			HRESULT res;
-			STOPPER("null PrimHDC");
-			res=(*pGetDC)(dxw.lpDDSPrimary, &PrimHDC);
-			if(res) OutTraceE("GDI.CreateCompatibleDC ERROR: GetDC lpdds=%x err=%d(%s) at %d\n", dxw.lpDDSPrimary, res, ExplainDDError(res), __LINE__);
-		}
-		OutTraceDW("GDI.CreateCompatibleDC: duplicating primary surface HDC lpDDSPrimary=%x SrcHdc=%x\n", dxw.lpDDSPrimary, PrimHDC); 
-		RetHdc=(*pGDICreateCompatibleDC)(PrimHDC);
-	} 
-	else
-		RetHdc=(*pGDICreateCompatibleDC)(hdc);
-
-	if(RetHdc)
-		OutTraceDW("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
-	else
-		OutTraceE("GDI.CreateCompatibleDC ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-
-	return RetHdc;
-}
-
-BOOL WINAPI extDDDeleteDC(HDC hdc)
-{
-	BOOL res;
-
-	OutTraceDW("GDI.DeleteDC: hdc=%x\n", hdc);
-
-	res=(*pGDIDeleteDC)(hdc);
-	if(!res) OutTraceE("GDI.DeleteDC: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	return res;
-}
-
-static HDC WINAPI winDDGetDC(HWND hwnd, char *api)
-{
-	HDC hdc;
-	HRESULT res;
-	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
-
-	OutTraceDW("%s: hwnd=%x\n", api, hwnd);
-
-	dxw.ResetPrimarySurface();
-	dxw.SetPrimarySurface();
-	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
-
-	if(dxw.lpDDSPrimary){ 
-		if (PrimHDC){
-			OutTraceDW("%s: reusing primary hdc\n", api);
-			(*pUnlockMethod(dxw.lpDDSPrimary))(dxw.lpDDSPrimary, NULL);
-			hdc=PrimHDC;
-		}
-		else{
-			OutTraceDW("%s: get hdc from PRIMARY surface lpdds=%x\n", api, dxw.lpDDSPrimary);
-			res=extGetDC(dxw.lpDDSPrimary,&hdc);
-			if(res) {
-				OutTraceE("%s: GetDC(%x) ERROR %x(%s) at %d\n", api, dxw.lpDDSPrimary, res, ExplainDDError(res), __LINE__);
-				if(res==DDERR_DCALREADYCREATED){
-					// try recovery....
-					(*pReleaseDC)(dxw.lpDDSPrimary,NULL);
-					res=extGetDC(dxw.lpDDSPrimary,&hdc);
-				}
-				if(res)return 0;
-			}
-			PrimHDC=hdc;
-		}
-	}
-	else {
-		hdc=(*pGDIGetDC)(hwnd ? hwnd : dxw.GethWnd());
-		OutTraceDW("%s: returning window DC handle hwnd=%x hdc=%x\n", api, hwnd, hdc);
-		PrimHDC=NULL;
-	}
-
-	if(hdc)
-		OutTraceDW("%s: hwnd=%x hdc=%x\n", api, hwnd, hdc);
-	else
-		OutTraceE("%s: ERROR err=%d at %d\n", api, GetLastError, __LINE__);
-	return(hdc);
-}
-
-HDC WINAPI extDDCreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMODE *InitData)
-{
-	HDC RetHDC;
-	OutTraceDW("GDI.CreateDC: Driver=%s Device=%s Output=%s InitData=%x\n", 
-		Driver?Driver:"(NULL)", Device?Device:"(NULL)", Output?Output:"(NULL)", InitData);
-
-	if (!Driver || !strncmp(Driver,"DISPLAY",7)) {
-		//HDC PrimHDC;
-		LPDIRECTDRAWSURFACE lpdds;
-		OutTraceDW("GDI.CreateDC: returning primary surface DC\n");
-		lpdds=dxw.GetPrimarySurface();
-		(*pGetDC)(lpdds, &PrimHDC);
-		RetHDC=(*pGDICreateCompatibleDC)(PrimHDC);
-		(*pReleaseDC)(lpdds, PrimHDC);
-	}
-	else{
-		RetHDC=(*pGDICreateDC)(Driver, Device, Output, InitData);
-	}
-	if(RetHDC)
-		OutTraceDW("GDI.CreateDC: returning HDC=%x\n", RetHDC);
-	else
-		OutTraceE("GDI.CreateDC ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-	return RetHDC;
-}
-
-HDC WINAPI extDDGetDC(HWND hwnd)
-{
-	HDC ret;
-	ret=winDDGetDC(hwnd, "GDI.GetDC");
-	return ret;
-}
-
-HDC WINAPI extDDGetDCEx(HWND hwnd, HRGN hrgnClip, DWORD flags)
-{
-	HDC ret;
-	ret=winDDGetDC(hwnd, "GDI.GetDCEx");
-	return ret;
-}
-
-HDC WINAPI extDDGetWindowDC(HWND hwnd)
-{
-	HDC ret;
-	ret=winDDGetDC(hwnd, "GDI.GetWindowDC");
-	return ret;
-}
-
-int WINAPI extDDReleaseDC(HWND hwnd, HDC hDC)
-{
-	int res;
-	extern HRESULT WINAPI extReleaseDC(LPDIRECTDRAWSURFACE, HDC);
-
-	OutTraceDW("GDI.ReleaseDC(DD): hwnd=%x hdc=%x\n", hwnd, hDC);
-	res=0;
-	if ((hDC == PrimHDC) || (hwnd==0)){
-		dxw.SetPrimarySurface();
-		OutTraceDW("GDI.ReleaseDC(DD): refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimary);
-		if(!dxw.lpDDSPrimary) return 0;
-		extReleaseDC(dxw.lpDDSPrimary, hDC);
-		PrimHDC=NULL;
-		res=1; // 1 = OK
-	}
-	else {
-		res=(*pGDIReleaseDC)(hwnd, hDC);
-		if (!res) OutTraceE("GDI.ReleaseDC: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	}
-	return(res);
-}
-
-BOOL WINAPI extDDBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
-{
-	BOOL ret;
-	HRESULT res;
-	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
-
-	OutTraceDW("GDI.BitBlt(PRIMARY): HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
-		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop, ExplainROP(dwRop));
-
-	ret=TRUE; // OK
-
-	if(dxw.IsDesktop(WindowFromDC(hdcDest))) {
-		OutTrace("hdcDest=%x PrimHDC=%x\n", hdcDest, PrimHDC);
-		hdcDest=PrimHDC;
-		if(hdcDest==0) {
-			dxw.ResetPrimarySurface();
-			dxw.SetPrimarySurface();
-			extGetDC(dxw.lpDDSPrimary, &PrimHDC);
-			hdcDest=PrimHDC;
-		}
-		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-		if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-		dxw.ScreenRefresh();
-		return ret;
-	}
-
-	// proxy ...
-	res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	return ret;
-}
-
-BOOL WINAPI extDDStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, 
-							 HDC hdcSrc, int nXSrc, int nYSrc, int nWSrc, int nHSrc, DWORD dwRop)
-{
-	BOOL ret;
-	RECT ClientRect;
-	extern HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE, HDC FAR *);
-
-	OutTraceDW("GDI.StretchBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d nWSrc=%x nHSrc=%x dwRop=%x\n", 
-		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
-
-	//if(dxw.IsDesktop(WindowFromDC(hdcDest))) {
-	//	hdcDest=PrimHDC;
-	//	if(hdcDest==0) {
-	//		dxw.ResetPrimarySurface();
-	//		dxw.SetPrimarySurface();
-	//		extGetDC(dxw.lpDDSPrimary, &PrimHDC);
-	//		hdcDest=PrimHDC;
-	//	}
-	//}
-
-	if(hdcDest != hdcSrc){
-		(*pGetClientRect)(dxw.GethWnd(),&ClientRect);
-		ret=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
-		if(!ret) {
-			OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-			return ret;
-		}
-	}
-	//dxw.SetPrimarySurface();
-	//OutTraceDW("GDI.StretchBlt: refreshing primary surface lpdds=%x\n",dxw.lpDDSPrimary);
-	//sBlt("GDI.StretchBlt", dxw.lpDDSPrimary, NULL, dxw.lpDDSPrimary, NULL, 0, NULL, 0);
-	//res=(*pUnlockMethod(dxw.lpDDSPrimary))(dxw.lpDDSPrimary, NULL);
 	return ret;
 }
 
