@@ -9,6 +9,7 @@ char *hexdump(unsigned char *Buffer, int len)
 	static char sHexBuffer[3*MAX_HEXDUMP+12];
 	char *s;
 	int iMaxI;
+	if(!Buffer) return "(NULL)";
 	s=sHexBuffer;
 	iMaxI = len;
 	if(iMaxI > MAX_HEXDUMP) iMaxI = MAX_HEXDUMP;

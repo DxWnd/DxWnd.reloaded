@@ -9,8 +9,8 @@
 #undef DXWDECLARATIONS
 
 static HookEntry_Type Hooks[]={
-	//{"ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
-	//{"ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
+	//{HOOK_HOT_CANDIDATE, "ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
+	//{HOOK_HOT_CANDIDATE, "ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -31,15 +31,18 @@ LRESULT WINAPI extICSendMessage(HIC hic, UINT wMsg, DWORD_PTR dw1, DWORD_PTR dw2
 {
 	LRESULT res;
 	OutTraceDW("ICSendMessage: hic=%x wMsg=%x dw1=%x dw2=%x\n", hic, wMsg, dw1, dw2);
-	return 0;
 	res=(*pICSendMessage)(hic, wMsg, dw1, dw2);
+	OutTraceDW("ICSendMessage: ret=%x\n", res);
 	return res;
 }
 
 HIC WINAPI extICOpen(DWORD fccType, DWORD fccHandler, UINT wMode)
 {
+	HIC res;
 	OutTraceDW("ICOpen: fccType=%x fccHandler=%x wMode=%x\n", fccType, fccHandler, wMode);
-	return (HIC)0;
+	res=(*pICOpen)(fccType, fccHandler, wMode);
+	OutTraceDW("ICOpen: ret=%x\n", res);
+	return res;
 }
 
 /*

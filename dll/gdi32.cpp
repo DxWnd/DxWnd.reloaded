@@ -1096,7 +1096,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 	}
 	//else
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
-		// blitting toprimary surface !!!
+		// blitting to primary surface !!!
 		DWORD OrigWidth, OrigHeight;
 		int OrigXDest, OrigYDest;
 		OrigWidth=dwWidth;

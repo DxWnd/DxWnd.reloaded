@@ -813,3 +813,8 @@ eliminated GDI over directdraw emulation (MAPGDITOPRIMARY flag)
 add: support for texture D3DFMT_L8 dump ("Turok")
 fix: eliminate a possible divide by zero error
 fix: avoid intercepting WindowProc routines when set to special values 0xFFFFxxxx - makes "The Hulk" demo working
+
+v2.03.23:
+fix: implemented the correct interface of registry query calls that can be used to know the key data length 
+fix: hexdump routine with NULL input used in registry operation log was causing crash
+add: preliminary hooking for user32.dll desktop routines, like CreateDesktop() - makes "STCC Swedish TouringCar Championship" working

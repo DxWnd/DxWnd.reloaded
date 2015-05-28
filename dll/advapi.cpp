@@ -7,6 +7,10 @@
 #include "dxhook.h"
 #include "dxhelper.h"
 
+typedef LONG (WINAPI *RegFlushKey_Type)(HKEY);
+LONG WINAPI extRegFlushKey(HKEY);
+RegFlushKey_Type pRegFlushKey = NULL;
+
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "RegOpenKeyExA", NULL, (FARPROC *)&pRegOpenKeyEx, (FARPROC)extRegOpenKeyEx},
 	{HOOK_IAT_CANDIDATE, "RegCloseKey", NULL, (FARPROC *)&pRegCloseKey, (FARPROC)extRegCloseKey},
@@ -14,6 +18,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "RegCreateKeyA", NULL, (FARPROC *)&pRegCreateKey, (FARPROC)extRegCreateKey},
 	{HOOK_IAT_CANDIDATE, "RegCreateKeyExA", NULL, (FARPROC *)&pRegCreateKeyEx, (FARPROC)extRegCreateKeyEx},
 	{HOOK_IAT_CANDIDATE, "RegSetValueExA", NULL, (FARPROC *)&pRegSetValueEx, (FARPROC)extRegSetValueEx},
+	{HOOK_IAT_CANDIDATE, "RegFlushKey", NULL, (FARPROC *)&pRegFlushKey, (FARPROC)extRegFlushKey},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -165,7 +170,8 @@ LONG WINAPI extRegQueryValueEx(
 {
 	LONG res;
 
-	OutTraceR("RegQueryValueEx: hKey=%x(\"%s\") ValueName=\"%s\" Reserved=%x\n", hKey, hKey2String(hKey), lpValueName, lpReserved);
+	OutTraceR("RegQueryValueEx: hKey=%x(\"%s\") ValueName=\"%s\" Reserved=%x lpType=%x lpData=%x lpcbData=%x\n", 
+		hKey, hKey2String(hKey), lpValueName, lpReserved, lpType, lpData, lpcbData);
 	if (!IsFake(hKey)){
 		res=(*pRegQueryValueEx)(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 		if(IsTraceR){
@@ -202,6 +208,7 @@ LONG WINAPI extRegQueryValueEx(
 	char RegBuf[MAX_PATH+1];
 	char *pData;
 	HKEY hCurKey=HKEY_FAKE+1;
+	DWORD cbData=0;
 	regf=OpenFakeRegistry();
 	if(regf==NULL) return res;
 	if(!lpValueName)lpValueName="";
@@ -221,20 +228,24 @@ LONG WINAPI extRegQueryValueEx(
 					res=ERROR_FILE_NOT_FOUND;
 					pData=&RegBuf[strlen(lpValueName)+3];
 					lpb = lpData;
+					if(lpcbData) {
+						cbData = *lpcbData;
+						*lpcbData=0;
+					}
 					if(*pData=='"'){ // string value
 						if(lpType) *lpType=REG_SZ;
-						if(lpData){
-							*lpcbData=0;
+						pData++;
+						while(*pData && (*pData != '"')){
+							if(*pData=='\\') pData++;
+							if(lpData && lpcbData) if(*lpcbData < cbData) *lpb++=*pData;
 							pData++;
-							while(*pData && (*pData != '"')){
-								if(*pData=='\\') pData++;
-								*lpb++=*pData++;
-								if(lpcbData) *lpcbData++;
-							}
-							*lpb = 0; // string terminator
+							if(lpcbData) (*lpcbData)++;
 						}
-						OutTraceR("RegQueryValueEx: type=REG_SZ Data=\"%s\"\n", lpData ? (char *)lpData : "(NULL)");
-						res=ERROR_SUCCESS;
+						if(lpcbData) (*lpcbData)++; // extra space for string terminator ?
+						if(lpData && lpcbData) if(*lpcbData < cbData) *lpb = 0; // string terminator
+						OutTraceR("RegQueryValueEx: type=REG_SZ cbData=%x Data=\"%s\"\n", 
+							lpcbData ? *lpcbData : 0, lpData ? (char *)lpData : "(NULL)");
+						res=(*lpcbData > cbData) ? ERROR_MORE_DATA : ERROR_SUCCESS;
 						break;
 					}
 					if(!strncmp(pData,"dword:",strlen("dword:"))){ //dword value
@@ -242,10 +253,17 @@ LONG WINAPI extRegQueryValueEx(
 						if(lpType) *lpType=REG_DWORD;
 						pData+=strlen("dword:");
 						sscanf(pData, "%x", &val);
-						if(lpData) memcpy(lpData, &val, sizeof(DWORD));
-						if(lpcbData) *lpcbData=sizeof(DWORD);
-						OutTraceR("RegQueryValueEx: type=REG_DWORD Data=0x%x\n", val);
-						res=ERROR_SUCCESS;
+						if(lpData) {
+							if (cbData >= sizeof(DWORD)) {
+								memcpy(lpData, &val, sizeof(DWORD));
+								res=ERROR_SUCCESS;
+							}
+							else
+								res=ERROR_MORE_DATA;
+						}
+						if (lpcbData) *lpcbData=sizeof(DWORD);
+						OutTraceR("RegQueryValueEx: type=REG_DWORD cbData=%x Data=0x%x\n", 
+							lpcbData ? *lpcbData : 0, val);
 						break;
 					}
 					if(!strncmp(pData,"hex:",strlen("hex:"))){ //hex value
@@ -253,28 +271,27 @@ LONG WINAPI extRegQueryValueEx(
 						if(lpType) *lpType=REG_BINARY;
 						p = (BYTE *)pData;
 						p+=strlen("hex:");
-						if(lpcbData) *lpcbData=0;
 						while(TRUE){
-							p[strlen((char *)p)-1]=0; // eliminates \n
-							if(lpData){
-								while(strlen((char *)p)>1){
+							p[strlen((char *)p)-1]=0; // eliminates \n at the end of line
+							while(strlen((char *)p)>1){
+								if((*lpcbData < cbData) && lpData){
 									sscanf((char *)p, "%x,", (char *)lpb);
-									p+=3;
 									lpb++;
-									if(lpcbData) (*lpcbData)++;
 								}
-								if(p[strlen((char *)p)-1]=='\\'){
-									fgets(RegBuf, 256, regf);
-									pData = RegBuf;
-									p = (BYTE *)pData;
-								}
-								else break;
+								p+=3;
+								if(lpcbData) (*lpcbData)++;
 							}
+							if(p[strlen((char *)p)-1]=='\\'){
+								fgets(RegBuf, 256, regf);
+								pData = RegBuf;
+								p = (BYTE *)pData;
+							}
+							else break;
 						}
 						OutTraceR("RegQueryValueEx: type=REG_BINARY cbData=%d Data=%s\n", 
 							lpcbData ? *lpcbData : 0, 
 							lpData ? "(NULL)" : hexdump(lpData, *lpcbData));
-						res=ERROR_SUCCESS;
+						res=(*lpcbData > cbData) ? ERROR_MORE_DATA : ERROR_SUCCESS;
 						break;
 					}
 				}
@@ -292,6 +309,13 @@ LONG WINAPI extRegCloseKey(HKEY hKey)
 	OutTraceR("RegCloseKey: hKey=%x\n", hKey);
 	if (IsFake(hKey)) return ERROR_SUCCESS;
 	return (*pRegCloseKey)(hKey);
+}
+
+LONG WINAPI extRegFlushKey(HKEY hKey)
+{
+	OutTraceR("RegFlushKey: hKey=%x\n", hKey);
+	if (IsFake(hKey)) return ERROR_SUCCESS;
+	return (*pRegFlushKey)(hKey);
 }
 
 LONG WINAPI extRegSetValueEx(HKEY hKey, LPCTSTR lpValueName, DWORD Reserved, DWORD dwType, const BYTE *lpData, DWORD cbData)

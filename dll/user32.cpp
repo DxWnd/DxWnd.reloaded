@@ -48,6 +48,18 @@ HRESULT WINAPI extMessageBoxTimeoutW(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
 typedef BOOL (WINAPI *IsIconic_Type)(HWND);
 IsIconic_Type pIsIconic = NULL;
 BOOL WINAPI extIsIconic(HWND);
+typedef HDESK (WINAPI *CreateDesktop_Type)(LPCTSTR, LPCTSTR, DEVMODE *, DWORD, ACCESS_MASK, LPSECURITY_ATTRIBUTES);
+CreateDesktop_Type pCreateDesktop = NULL;
+HDESK WINAPI extCreateDesktop(LPCTSTR, LPCTSTR, DEVMODE *, DWORD, ACCESS_MASK, LPSECURITY_ATTRIBUTES);
+typedef BOOL (WINAPI *SwitchDesktop_Type)(HDESK);
+SwitchDesktop_Type pSwitchDesktop = NULL;
+BOOL WINAPI extSwitchDesktop(HDESK);
+typedef HDESK (WINAPI *OpenDesktop_Type)(LPTSTR, DWORD, BOOL, ACCESS_MASK);
+OpenDesktop_Type pOpenDesktop = NULL;
+HDESK WINAPI extOpenDesktop(LPTSTR, DWORD, BOOL, ACCESS_MASK);
+typedef BOOL (WINAPI *CloseDesktop_Type)(HDESK);
+CloseDesktop_Type pCloseDesktop = NULL;
+BOOL WINAPI extCloseDesktop(HDESK);
 
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
@@ -115,6 +127,11 @@ static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutW", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutW, (FARPROC)extMessageBoxTimeoutW},
 
 	//{HOOK_HOT_CANDIDATE, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
+
+	{HOOK_IAT_CANDIDATE, "CreateDesktopA", (FARPROC)CreateDesktopA, (FARPROC *)&pCreateDesktop, (FARPROC)extCreateDesktop},
+	{HOOK_IAT_CANDIDATE, "SwitchDesktop", (FARPROC)SwitchDesktop, (FARPROC *)&pSwitchDesktop, (FARPROC)extSwitchDesktop},
+	{HOOK_IAT_CANDIDATE, "OpenDesktopA", (FARPROC)OpenDesktopA, (FARPROC *)&pOpenDesktop, (FARPROC)extOpenDesktop},
+	{HOOK_IAT_CANDIDATE, "CloseDesktop", (FARPROC)CloseDesktop, (FARPROC *)&pCloseDesktop, (FARPROC)extCloseDesktop},
 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
@@ -2897,4 +2914,31 @@ BOOL WINAPI extIsIconic(HWND hWnd)
 	OutTrace("IsIconic: hwnd=%x ret=%x\n", hWnd, ret);
 	//return FALSE;
 	return ret;
+}
+
+HDESK WINAPI extCreateDesktop( LPCTSTR lpszDesktop, LPCTSTR lpszDevice, DEVMODE *pDevmode, DWORD dwFlags, ACCESS_MASK dwDesiredAccess, LPSECURITY_ATTRIBUTES lpsa)
+{
+	//OutTrace("CreateDesktop: SUPPRESS Desktop=%s Device=%s flags=%x access=%x\n", lpszDesktop, lpszDevice, dwFlags, dwDesiredAccess);
+	OutTraceDW("CreateDesktop: SUPPRESS flags=%x access=%x\n", dwFlags, dwDesiredAccess);
+	return (HDESK)0xDEADBEEF; // fake handle
+	//return (HDESK)NULL; // fake handle
+}
+
+BOOL WINAPI extSwitchDesktop(HDESK hDesktop)
+{
+	OutTraceDW("SwitchDesktop: SUPPRESS hDesktop=%x\n", hDesktop);
+	return TRUE;
+}
+
+HDESK WINAPI extOpenDesktop(LPTSTR lpszDesktop, DWORD dwFlags, BOOL fInherit, ACCESS_MASK dwDesiredAccess)
+{
+	OutTraceDW("CreateDesktop: SUPPRESS flags=%x access=%x\n", dwFlags, dwDesiredAccess);
+	return (HDESK)0xDEADBEEF; // fake handle
+	//return (HDESK)NULL; // fake handle
+}
+
+BOOL WINAPI extCloseDesktop(HDESK hDesktop)
+{
+	OutTraceDW("CloseDesktop: SUPPRESS hDesktop=%x\n", hDesktop);
+	return TRUE;
 }

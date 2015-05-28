@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.22"
+#define VERSION "2.03.23"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS
