@@ -132,6 +132,12 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 			OutTraceB("mciSendCommand: fixed rect=(%d,%d),(%d,%d)\n",
 				pr->rc.left, pr->rc.top, pr->rc.right, pr->rc.bottom);
 			break;
+		case MCI_PLAY:
+			if(dxw.dwFlags6 & NOMOVIES) return 0; // ???
+			break;
+		case MCI_OPEN:
+			if(dxw.dwFlags6 & NOMOVIES) return 275; // quite brutal, but working ....
+			break;
 		}
 	}
 

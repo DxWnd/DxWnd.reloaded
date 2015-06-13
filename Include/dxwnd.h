@@ -9,7 +9,6 @@
 
 #define ONEPIXELFIX 1 
 #define HOOKDDRAWNONE 12
-#define HANDLEFLIPTOGDI 1
 
 // first flags DWORD dwFlags1:
 #define UNNOTIFY			0x00000001 
@@ -185,6 +184,8 @@
 #define FORCESWAPEFFECT		0x00000001 // in D3D8/9, forces the SwapEffect value in CreateDevice/Reset operations
 #define LEGACYALLOC			0x00000002 // reserve legacy memory segments
 #define NODESTROYWINDOW		0x00000004 // suppress the main window destruction
+#define NOMOVIES			0x00000008 // suppress MCI Movies
+#define SUPPRESSRELEASE		0x00000010 // Avoid releasing critical emulated surfaces - the backbuffer
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

@@ -880,21 +880,36 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 
 	OutTraceD3D("CreateDevice(D3D2): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
 		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
-	res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
-	if(res) {
+	do { // fake loop
+		// first attempt
+		res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
+		if(res==DD_OK) break; // no error, break
 		OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
-			dxw.dwFlags1 &= ~EMULATESURFACE;
-			dxw.dwFlags1 |= LOCKEDSURFACE;
-			res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
-			if (res) OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			else OutTraceD3D("CreateDevice(D3D2): Emulation OFF\n");
-		}
-		if(res) return res;
-	}
+		if(!(dxw.dwFlags1 & EMULATESURFACE)) break; // no more tricks ....
+		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+
+		OutTraceD3D("CreateDevice(D3D2): SYSMEMORY OFF\n");
+		dxw.dwFlags5 |= NOSYSTEMEMULATED;
+		res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
+		if(res==DD_OK) break;
+		OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+
+		OutTraceD3D("CreateDevice(D3D2): Emulation OFF\n");
+		dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
+		dxw.dwFlags1 &= ~EMULATESURFACE;
+		dxw.dwFlags1 |= LOCKEDSURFACE;
+		res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
+		if(res==DD_OK) break;
+		OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	} while (FALSE);
 		
-	OutTraceD3D("CreateDevice(D3D2): lpd3dd=%x\n", lpd3d, *lplpd3dd);
-	HookDirect3DDevice((void **)lplpd3dd, 2);
+	if(res == DD_OK){
+		OutTraceD3D("CreateDevice(D3D2): lpd3dd=%x\n", lpd3d, *lplpd3dd);
+		HookDirect3DDevice((void **)lplpd3dd, 2); 
+	}
+
 	return res;
 }
 
@@ -904,21 +919,35 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 
 	OutTraceD3D("CreateDevice(D3D3): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
 		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
-	res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
-	if(res) {
+	do { // fake loop
+		// first attempt
+		res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
+		if(res==DD_OK) break; // no error, break
 		OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
-			dxw.dwFlags1 &= ~EMULATESURFACE;
-			dxw.dwFlags1 |= LOCKEDSURFACE;
-			res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
-			if (res) OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			else OutTraceD3D("CreateDevice(D3D3): Emulation OFF\n");
-		}
-		if(res) return res;
-	}
+		if(!(dxw.dwFlags1 & EMULATESURFACE)) break; // no more tricks ....
+		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+
+		OutTraceD3D("CreateDevice(D3D3): SYSMEMORY OFF\n");
+		dxw.dwFlags5 |= NOSYSTEMEMULATED;
+		res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
+		if(res==DD_OK) break;
+		OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+
+		OutTraceD3D("CreateDevice(D3D3): Emulation OFF\n");
+		dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
+		dxw.dwFlags1 &= ~EMULATESURFACE;
+		dxw.dwFlags1 |= LOCKEDSURFACE;
+		res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
+		if(res==DD_OK) break;
+		OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	} while (FALSE);
 		
-	OutTraceD3D("CreateDevice(D3D3): lpd3dd=%x\n", lpd3d, *lplpd3dd);
-	HookDirect3DDevice((void **)lplpd3dd, 3); 
+	if(res == DD_OK){
+		OutTraceD3D("CreateDevice(D3D3): lpd3dd=%x\n", lpd3d, *lplpd3dd);
+		HookDirect3DDevice((void **)lplpd3dd, 3); 
+	}
 
 	return res;
 }
@@ -932,21 +961,36 @@ HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7
 
 	OutTraceD3D("CreateDevice(D3D7): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
 		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
-	res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
-	if(res) {
-		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
-			dxw.dwFlags1 &= ~EMULATESURFACE;
-			dxw.dwFlags1 |= LOCKEDSURFACE;
-			res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
-			if (res) OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			else OutTraceD3D("CreateDevice(D3D7): Emulation OFF\n");
-		}
-		if(res) return res;
-	}
 
-	OutTraceD3D("CreateDevice(D3D7): lpd3dd=%x\n", lpd3d, *lplpd3dd);
-	HookDirect3DDevice((void **)lplpd3dd, 7); 
+	do { // fake loop
+		// first attempt
+		res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
+		if(res==DD_OK) break; // no error, break
+		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if(!(dxw.dwFlags1 & EMULATESURFACE)) break; // no more tricks ....
+		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+
+		OutTraceD3D("CreateDevice(D3D7): SYSMEMORY OFF\n");
+		dxw.dwFlags5 |= NOSYSTEMEMULATED;
+		res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
+		if(res==DD_OK) break;
+		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+
+		OutTraceD3D("CreateDevice(D3D7): Emulation OFF\n");
+		dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
+		dxw.dwFlags1 &= ~EMULATESURFACE;
+		dxw.dwFlags1 |= LOCKEDSURFACE;
+		res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
+		if(res==DD_OK) break;
+		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	} while (FALSE);
+		
+	if(res == DD_OK){
+		OutTraceD3D("CreateDevice(D3D7): lpd3dd=%x\n", lpd3d, *lplpd3dd);
+		HookDirect3DDevice((void **)lplpd3dd, 7); 
+	}
 
 	return res;
 }

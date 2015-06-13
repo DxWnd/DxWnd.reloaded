@@ -22,10 +22,8 @@ DWORD dwBackBufferCaps;
 extern void TextureHandling(LPDIRECTDRAWSURFACE);
 ColorConversion_Type pColorConversion = NULL;
 
-#ifdef HANDLEFLIPTOGDI
 HDC hFlippedDC = NULL;
 BOOL bFlippedDC = FALSE;
-#endif
 
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -249,6 +247,7 @@ GammaRamp_Type pDDSetGammaRamp;
 
 #define MAXBACKBUFFERS 4
 
+extern PALETTEENTRY DefaultSystemPalette[256];
 LPDIRECTDRAWSURFACE lpDDSEmu_Prim=NULL;
 LPDIRECTDRAWSURFACE lpDDSEmu_Back=NULL;
 LPDIRECTDRAWSURFACE lpDDZBuffer=NULL;
@@ -257,7 +256,6 @@ LPDIRECTDRAWSURFACE lpDDZBuffer=NULL;
 LPDIRECTDRAW lpPrimaryDD=NULL;
 int iBakBufferVersion;
 LPDIRECTDRAWPALETTE lpDDP=NULL;
-
 // v2.02.37: globals to store requested main surface capabilities 
 DDSURFACEDESC2 DDSD_Prim;
 DWORD DDZBufferCaps;
@@ -1597,6 +1595,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 	}
 
 	if(lpPrimaryDD==NULL) lpPrimaryDD=*lplpdd; // do not override the value set when creating the primary surface!
+
 	return DD_OK;
 }
 
@@ -1975,6 +1974,10 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	if(res) OutTraceE("SetDisplayMode: error=%x\n", res);
 
 	SetVSyncDelays(lpdd);
+	// set a default palette ???
+	if(dxw.VirtualPixelFormat.dwRGBBitCount == 8) 
+		mySetPalette(0, 256, DefaultSystemPalette);
+
 	return DD_OK;
 }
 
@@ -2139,7 +2142,7 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	}
 
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) { // z-buffer surface - set to memory
-		lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER); 
+		lpddsd->ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER);  
 		return;
 	}
 
@@ -2191,6 +2194,17 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags5 & NOSYSTEMEMULATED) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+
+	extern BOOL bInCreateDevice;
+	//if (bInCreateDevice) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	//if (bInCreateDevice) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_3DDEVICE;
+
+	// this would make STCC work in emulated mode, but SLOW!!!!
+	//if(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) {
+	//	ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	//	//ddsd.ddsCaps.dwCaps |= (DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+	//}
+
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 
@@ -2224,7 +2238,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	// DDSCAPS_SYSTEMMEMORY makes operations faster, but it is not always good...
 	dwBackBufferCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
-	if(dxw.dwFlags5 & NOSYSTEMEMULATED) dwBackBufferCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	// if(dxw.dwFlags5 & NOSYSTEMEMULATED) dwBackBufferCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	if(dxw.dwFlags5 & GSKYHACK) dwBackBufferCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
 
 	if(dxw.dwFlags5 & GDIMODE) return DD_OK;
@@ -3367,8 +3381,8 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 		OutTraceE("CreatePalette: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
-	else OutTraceDDRAW("CreatePalette: OK lpddp=%x\n", *lplpddp);
 
+	OutTraceDDRAW("CreatePalette: OK lpddp=%x\n", *lplpddp);
 	HookDDPalette(lplpddp);
 	return 0;
 }
@@ -3794,11 +3808,9 @@ HRESULT WINAPI extFlipToGDISurface(LPDIRECTDRAW lpdd)
 	// res=(*pFlipToGDISurface)(lpdd);
 	// if (res) OutTraceE("FlipToGDISurface: ERROR res=%x(%s), skipping\n", res, ExplainDDError(res));
 	// pretend you flipped anyway....
-#ifdef HANDLEFLIPTOGDI
 	bFlippedDC = TRUE;
-#endif
 
-	return 0;
+	return DD_OK;
 }
 
 HRESULT WINAPI extGetGDISurface(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
@@ -3968,6 +3980,7 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 	NewContext_Type NewContext;
 
 	OutTraceDDRAW("EnumDisplayModes(D): lpdd=%x flags=%x lpddsd=%x callback=%x\n", lpdd, dwflags, lpddsd, cb);
+	if(lpddsd) OutTraceDDRAW("EnumDisplayModes(D): %s\n", LogSurfaceAttributes(lpddsd, "EnumDisplayModes", __LINE__));
 
 	if(dxw.dwFlags4 & NATIVERES){
 		NewContext.dwWidth = 0;
@@ -3997,12 +4010,16 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 		EmuDesc.dwSize=dwSize;
 		EmuDesc.dwFlags=DDSD_PIXELFORMAT|DDSD_REFRESHRATE|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH; 
 		SupportedRes = (dxw.dwFlags4 & SUPPORTHDTV) ? &SupportedHDTVRes[0] : &SupportedSVGARes[0];
+		res=DD_OK;
 		for (ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
 			EmuDesc.dwHeight=SupportedRes[ResIdx].h;
 			EmuDesc.dwWidth=SupportedRes[ResIdx].w;
 			EmuDesc.ddpfPixelFormat.dwSize=sizeof(DDPIXELFORMAT);
 			EmuDesc.ddpfPixelFormat.dwFlags=DDPF_RGB;
 			for (DepthIdx=0; SupportedDepths[DepthIdx]; DepthIdx++) {
+				// v2.03.24: if lpddsd is not null, compatible colr depth must be selected. Skip incompatible ones.
+				// Fixes "Total Annihilation Kingdoms" crash
+				if(lpddsd && (lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwRGBBitCount != SupportedDepths[DepthIdx])) continue;
 				EmuDesc.ddpfPixelFormat.dwRGBBitCount=SupportedDepths[DepthIdx];
 				EmuDesc.lPitch=SupportedRes[ResIdx].w * SupportedDepths[DepthIdx] / 8;
 				FixPixelFormat(EmuDesc.ddpfPixelFormat.dwRGBBitCount, &(EmuDesc.ddpfPixelFormat));
@@ -4111,6 +4128,12 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	IsBack=dxwss.IsABackBufferSurface(lpdds);
+
+	// fix for Tetris World .... ???
+	if (IsBack && (dxw.dwFlags6 & SUPPRESSRELEASE)) {
+		OutTraceDDRAW("Release(S): SUPPRESS lpdds=%x%s res=0\n", lpdds, dxwss.ExplainSurfaceRole(lpdds));
+		return 0;
+	}
 
 	res = (*pReleaseS)(lpdds);
 
@@ -4312,6 +4335,7 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 		caps->dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
 		caps->dwCaps |= DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE; // primary surfaces must be this way
 		caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
+		if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= DDSCAPS_LOCALVIDMEM;
 		}
 
 	if (IsBack) {
@@ -4320,6 +4344,7 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 		// v2.03.11: added DDSCAPS_FLIP capability to backbuffer surface: "Ignition" checks for it before Flip-ping to primary
 		caps->dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM); // you never know....
 		caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
+		if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= DDSCAPS_LOCALVIDMEM;
 	}
 
 	if ((caps->dwCaps & DDSCAPS_ZBUFFER) || (lpdds == lpDDZBuffer)){
@@ -4334,7 +4359,7 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 			caps->dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
 		}
 	}
-
+	
 	if(IsFixed) OutTraceDW("GetCaps(S%d): lpdds=%x FIXED %s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 	return res;
 }
@@ -4513,6 +4538,7 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 		lpddsd->ddsCaps.dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
 		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE); // primary surfaces must be this way
 		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
+		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
 		lpddsd->dwBackBufferCount=DDSD_Prim.dwBackBufferCount;
 		lpddsd->dwHeight=dxw.GetScreenHeight();
 		lpddsd->dwWidth=dxw.GetScreenWidth();
@@ -4523,6 +4549,7 @@ HRESULT WINAPI extGetSurfaceDesc(GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDR
 		IsFixed=TRUE;
 		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); // you never know....
 		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
+		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
 	}
 
 	if (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
@@ -4750,8 +4777,8 @@ HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPD
 		return res; 
 	}
 
-		OutTraceDW("GetAvailableVidMem(D): DDSCaps=%x(%s) Total=%x Free=%x\n", 
-			*lpDDSCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
+	OutTraceDW("GetAvailableVidMem(D): DDSCaps=%x(%s) Total=%x Free=%x\n", 
+		*lpDDSCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
 
 	if(!(dxw.dwFlags2 & LIMITRESOURCES)) return res;
 	
@@ -4763,24 +4790,24 @@ HRESULT WINAPI extGetAvailableVidMem(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPD
 	}
 	
 	// check for memory value overflow - see "Mageslayer" and "Take no Prisoners"
-			DWORD dwLocalTotal;
-			if(lpdwTotal == NULL) {
-				lpdwTotal = &dwLocalTotal; // point to usable memory....
-				res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree); // do it again to get total memory
+	DWORD dwLocalTotal;
+	if(lpdwTotal == NULL) {
+		lpdwTotal = &dwLocalTotal; // point to usable memory....
+		res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree); // do it again to get total memory
+	}
+	if(*lpdwTotal > dwMaxMem){
+		if(lpdwFree != NULL){
+			DWORD dwDiff = *lpdwTotal - *lpdwFree;
+			if(dwDiff > dwMaxMem){
+				*lpdwFree = dwMaxMem;
 			}
-			if(*lpdwTotal > dwMaxMem){
-				if(lpdwFree != NULL){
-					DWORD dwDiff = *lpdwTotal - *lpdwFree;
-					if(dwDiff > dwMaxMem){
-						*lpdwFree = dwMaxMem;
-					}
-					else{
-						*lpdwFree = dwMaxMem - dwDiff;
-					}
-				}
-				*lpdwTotal = dwMaxMem;
-				OutTraceDW("GetAvailableVidMem(D): FIXED Total=%x Free=%x\n", *lpdwTotal, *lpdwFree);
+			else{
+				*lpdwFree = dwMaxMem - dwDiff;
 			}
+		}
+		*lpdwTotal = dwMaxMem;
+		OutTraceDW("GetAvailableVidMem(D): FIXED Total=%x Free=%x\n", *lpdwTotal, *lpdwFree);
+	}
 
 	return res; 
 }

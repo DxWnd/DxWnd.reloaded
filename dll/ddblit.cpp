@@ -273,7 +273,9 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		// Try to handle HDC lock concurrency....		
 		if(res==DDERR_SURFACEBUSY){
 			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
-			if(res) OutTraceE("Unlock ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpddssrc, res, ExplainDDError(res));
+			res=(*pUnlockMethod(lpdds))(lpdds, NULL); // v2.03.24 reintroduced because of "Virtua Cop"
+			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpdds, res, ExplainDDError(res));
 			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);

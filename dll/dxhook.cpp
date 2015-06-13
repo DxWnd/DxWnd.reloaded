@@ -105,8 +105,8 @@ static char *Flag5Names[32]={
 };
 
 static char *Flag6Names[32]={
-	"FORCESWAPEFFECT", "LEGACYALLOC", "NODESTROYWINDOW", "",
-	"", "", "", "",
+	"FORCESWAPEFFECT", "LEGACYALLOC", "NODESTROYWINDOW", "NOMOVIES",
+	"SUPPRESSRELEASE", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1707,7 +1707,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	if(dxw.dwFlags5 & HYBRIDMODE) {
 		// special mode settings ....
 		dxw.dwFlags1 |= EMULATESURFACE;
-		dxw.dwFlags5 |= NOSYSTEMEMULATED;
+		// dxw.dwFlags5 |= NOSYSTEMEMULATED;
 		dxw.dwFlags2 |= SETCOMPATIBILITY;
 		dxw.dwFlags5 &= ~(BILINEARFILTER | AEROBOOST); 
 	}

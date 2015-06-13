@@ -63,12 +63,12 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "ScaleWindowExtEx", (FARPROC)ScaleWindowExtEx, (FARPROC *)&pGDIScaleWindowExtEx, (FARPROC)extScaleWindowExtEx},
 	{HOOK_IAT_CANDIDATE, "SaveDC", (FARPROC)SaveDC, (FARPROC *)&pGDISaveDC, (FARPROC)extGDISaveDC},
 	{HOOK_IAT_CANDIDATE, "RestoreDC", (FARPROC)RestoreDC, (FARPROC *)&pGDIRestoreDC, (FARPROC)extGDIRestoreDC},
-	{HOOK_IAT_CANDIDATE, "AnimatePalette", (FARPROC)AnimatePalette, (FARPROC *)&pAnimatePalette, (FARPROC)extAnimatePalette},
-	{HOOK_IAT_CANDIDATE, "CreatePalette", (FARPROC)CreatePalette, (FARPROC *)&pGDICreatePalette, (FARPROC)extGDICreatePalette},
-	{HOOK_IAT_CANDIDATE, "SelectPalette", (FARPROC)SelectPalette, (FARPROC *)&pGDISelectPalette, (FARPROC)extSelectPalette},
-	{HOOK_IAT_CANDIDATE, "RealizePalette", (FARPROC)RealizePalette, (FARPROC *)&pGDIRealizePalette, (FARPROC)extRealizePalette},
-	{HOOK_IAT_CANDIDATE, "GetSystemPaletteEntries", (FARPROC)GetSystemPaletteEntries, (FARPROC *)&pGDIGetSystemPaletteEntries, (FARPROC)extGetSystemPaletteEntries},
-	{HOOK_IAT_CANDIDATE, "SetSystemPaletteUse", (FARPROC)SetSystemPaletteUse, (FARPROC *)&pSetSystemPaletteUse, (FARPROC)extSetSystemPaletteUse},
+	{HOOK_HOT_CANDIDATE, "AnimatePalette", (FARPROC)AnimatePalette, (FARPROC *)&pAnimatePalette, (FARPROC)extAnimatePalette},
+	{HOOK_HOT_CANDIDATE, "CreatePalette", (FARPROC)CreatePalette, (FARPROC *)&pGDICreatePalette, (FARPROC)extGDICreatePalette},
+	{HOOK_HOT_CANDIDATE, "SelectPalette", (FARPROC)SelectPalette, (FARPROC *)&pGDISelectPalette, (FARPROC)extSelectPalette},
+	{HOOK_HOT_CANDIDATE, "RealizePalette", (FARPROC)RealizePalette, (FARPROC *)&pGDIRealizePalette, (FARPROC)extRealizePalette},
+	{HOOK_HOT_CANDIDATE, "GetSystemPaletteEntries", (FARPROC)GetSystemPaletteEntries, (FARPROC *)&pGDIGetSystemPaletteEntries, (FARPROC)extGetSystemPaletteEntries},
+	{HOOK_HOT_CANDIDATE, "SetSystemPaletteUse", (FARPROC)SetSystemPaletteUse, (FARPROC *)&pSetSystemPaletteUse, (FARPROC)extSetSystemPaletteUse},
 	{HOOK_IAT_CANDIDATE, "StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits},
 	//{HOOK_IAT_CANDIDATE, "SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
 	//{HOOK_IAT_CANDIDATE, "CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
@@ -468,6 +468,12 @@ BOOL WINAPI extGDIRestoreDC(HDC hdc, int nSavedDC)
 }
 
 /* --------------------------------------------------------------------------- */
+/*     Palette handling                                                        */
+/* --------------------------------------------------------------------------- */
+
+extern HDC hFlippedDC;
+extern BOOL bFlippedDC;
+extern void mySetPalette(int, int, LPPALETTEENTRY);
 
 // v2.1.75: Hooking for GDI32 CreatePalette, SelectPalette, RealizePalette: 
 // maps the GDI palette to the buffered DirectDraw one. This fixes the screen 
@@ -478,7 +484,7 @@ BOOL WINAPI extGDIRestoreDC(HDC hdc, int nSavedDC)
 // returns 0. "Mission Force Cyberstorm" is one of these. Returning the same
 // value as nEntries, even though lppe is untouched, fixes the problem.
 
-static PALETTEENTRY dp[256]={ // default palette, captured on my PC with video mode set to 8BPP
+PALETTEENTRY DefaultSystemPalette[256]={ // default palette, captured on my PC with video mode set to 8BPP
 	{0x00,0x00,0x00,0x00},{0x80,0x00,0x00,0x00},{0x00,0x80,0x00,0x00},{0x80,0x80,0x00,0x00},
 	{0x00,0x00,0x80,0x00},{0x80,0x00,0x80,0x00},{0x00,0x80,0x80,0x00},{0xc0,0xc0,0xc0,0x00},
 	{0xa0,0xa0,0xa0,0x00},{0xf0,0xf0,0xf0,0x00},{0xc0,0xdc,0xc0,0x00},{0xa6,0xca,0xf0,0x00},
@@ -562,14 +568,26 @@ HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
 {
 	HPALETTE ret;
 
+	OutTraceDW("GDI.SelectPalette: hdc=%x hpal=%x ForceBackground=%x\n", hdc, hpal, bForceBackground);
 	if(hdc==dxw.RealHDC) hdc= dxw.VirtualHDC;
 
-	ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
-	OutTraceDW("GDI.SelectPalette: hdc=%x hpal=%x ForceBackground=%x ret=%x\n", hdc, hpal, bForceBackground, ret);
-	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
-		OutTraceDW("GDI.SelectPalette: register desktop palette hpal=%x\n", hpal);
+	if(dxw.dwFlags1 & EMULATESURFACE){
 		hDesktopPalette=hpal;
+		PALETTEENTRY lppe[256];
+		int nEntries;
+		if(bFlippedDC) hdc = hFlippedDC;
+		ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
+		nEntries=(*pGetPaletteEntries)(hpal, 0, 256, lppe);
+		//mySetPalette(0, nEntries, lppe); 
+		//OutTraceDW("GDI.SelectPalette: register desktop palette hpal=%x nEntries=%d\n", hpal, nEntries);
+		OutTraceDW("GDI.SelectPalette: remapped hdc=%x hpal=%x nEntries=%d\n", hdc, hpal, nEntries);
+		if(IsDebug && nEntries) dxw.DumpPalette(nEntries, lppe);
 	}
+	else{
+		ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
+		OutTraceDW("GDI.SelectPalette: ret=%x\n", ret);
+	}
+
 	return ret;
 }
 
@@ -583,20 +601,25 @@ BOOL WINAPI extAnimatePalette(HPALETTE hpal, UINT iStartIndex, UINT cEntries, co
 UINT WINAPI extRealizePalette(HDC hdc)
 {
 	UINT ret;
-	extern void mySetPalette(int, int, LPPALETTEENTRY);
 
 	OutTraceDW("GDI.RealizePalette: hdc=%x\n", hdc);
-	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
+
+	if(dxw.dwFlags1 & EMULATESURFACE){
 		PALETTEENTRY PalEntries[256];
 		UINT nEntries;
+		if(bFlippedDC) hdc = hFlippedDC;
+		ret=(*pGDIRealizePalette)(hdc);
+		OutTraceDW("GDI.RealizePalette: RealizePalette on hdc=%x ret=%d\n", hdc, ret);
 		nEntries=(*pGetPaletteEntries)(hDesktopPalette, 0, 256, PalEntries);
+		OutTraceDW("GDI.RealizePalette: GetPaletteEntries on hdc=%x ret=%d\n", hdc, nEntries);
 		mySetPalette(0, nEntries, PalEntries); 
-		if(IsDebug && nEntries) dxw.DumpPalette(nEntries, PalEntries);
+		if(IsDebug && nEntries) dxw.DumpPalette(nEntries, PalEntries);  
 		ret=nEntries;
 	}
 	else
 		ret=(*pGDIRealizePalette)(hdc);
-	OutTraceDW("GDI.RealizePalette: hdc=%x ret=%x\n", hdc, ret);
+
+	OutTraceDW("GDI.RealizePalette: hdc=%x nEntries=%d\n", hdc, ret);
 	return ret;
 }
 
@@ -609,12 +632,39 @@ UINT WINAPI extGetSystemPaletteEntries(HDC hdc, UINT iStartIndex, UINT nEntries,
 	OutTraceDW("GetSystemPaletteEntries: ret=%d\n", ret);
 	if((ret == 0) && (dxw.dwFlags1 & EMULATESURFACE)) {
 		// use static default data...
-		for(UINT idx=0; idx<nEntries; idx++) lppe[idx]=dp[iStartIndex+idx]; 
+		for(UINT idx=0; idx<nEntries; idx++) lppe[idx]=DefaultSystemPalette[iStartIndex+idx]; 
 		ret = nEntries;
 		OutTraceDW("GetSystemPaletteEntries: FIXED ret=%d\n", ret);
 	}
 	if(IsDebug) dxw.DumpPalette(nEntries, &lppe[iStartIndex]);
 	return ret;
+}
+
+UINT WINAPI extSetSystemPaletteUse(HDC hdc, UINT uUsage)
+{
+	//BOOL res;
+	OutTraceDW("GDI.SetSystemPaletteUse: hdc=%x Usage=%x(%s)\n", hdc, uUsage, ExplainPaletteUse(uUsage));
+	return SYSPAL_NOSTATIC256;
+}
+
+UINT WINAPI extGetPaletteEntries(HPALETTE hpal, UINT iStartIndex, UINT nEntries, LPPALETTEENTRY lppe)
+{
+	UINT res;
+	OutTraceDW("GDI.GetPaletteEntries: hpal=%x iStartIndex=%d nEntries=%d\n", hpal, iStartIndex, nEntries);
+	res=(*pGetPaletteEntries)(hpal, iStartIndex, nEntries, lppe);
+	OutTraceDW("GDI.GetPaletteEntries: res-nEntries=%d\n", res);
+	if(IsDebug && res) dxw.DumpPalette(res, &lppe[iStartIndex]);
+	//mySetPalette(0, nEntries, lppe); 
+	return res;
+}
+
+UINT WINAPI extGetSystemPaletteUse(HDC hdc)
+{
+	UINT res;
+	OutTraceDW("GDI.GetSystemPaletteUse: hdc=%x\n", hdc);
+	res=(*pGetSystemPaletteUse)(hdc);
+	OutTraceDW("GetSystemPaletteUse: res=%x(%s)\n", res, ExplainPaletteUse(res));
+	return res;
 }
 
 HDC WINAPI extGDICreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMODE *InitData)
@@ -1509,30 +1559,6 @@ int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
 	}
 	res=(*pAddFontResourceW)(lpszFontFile);
 	if(!res) OutTraceE("AddFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	return res;
-}
-
-UINT WINAPI extSetSystemPaletteUse(HDC hdc, UINT uUsage)
-{
-	//BOOL res;
-	OutTraceDW("GDI.SetSystemPaletteUse: hdc=%x Usage=%x(%s)\n", hdc, uUsage, ExplainPaletteUse(uUsage));
-	return SYSPAL_NOSTATIC256;
-}
-
-UINT WINAPI extGetPaletteEntries(HPALETTE hpal, UINT iStartIndex, UINT nEntries, LPPALETTEENTRY lppe)
-{
-	UINT res;
-	OutTraceDW("GDI.GetPaletteEntries: hpal=%x iStartIndex=%d nEntries=%d\n", hpal, iStartIndex, nEntries);
-	res=(*pGetPaletteEntries)(hpal, iStartIndex, nEntries, lppe);
-	return res;
-}
-
-UINT WINAPI extGetSystemPaletteUse(HDC hdc)
-{
-	UINT res;
-	OutTraceDW("GDI.GetSystemPaletteUse: hdc=%x\n", hdc);
-	res=(*pGetSystemPaletteUse)(hdc);
-	OutTraceDW("GetSystemPaletteUse: res=%x(%s)\n", res, ExplainPaletteUse(res));
 	return res;
 }
 

@@ -18,6 +18,8 @@ BOOL IsChangeDisplaySettingsHotPatched = FALSE;
 #define GDIMODE_STRETCHED  0
 #define GDIMODE_EMULATED   1
 int GDIEmulationMode = 0;
+extern BOOL bFlippedDC;
+extern HDC hFlippedDC;
 
 //typedef BOOL (WINAPI *ValidateRect_Type)(HWND, const RECT *);
 //BOOL WINAPI extValidateRect(HWND, const RECT *);
@@ -133,22 +135,26 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "OpenDesktopA", (FARPROC)OpenDesktopA, (FARPROC *)&pOpenDesktop, (FARPROC)extOpenDesktop},
 	{HOOK_IAT_CANDIDATE, "CloseDesktop", (FARPROC)CloseDesktop, (FARPROC *)&pCloseDesktop, (FARPROC)extCloseDesktop},
 
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
-static HookEntry_Type NoGDIHooks[]={
-	{HOOK_IAT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
-	{HOOK_IAT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
-static HookEntry_Type EmulateHooks[]={
-	{HOOK_IAT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
-	{HOOK_IAT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
 	{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
 	{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)GetDCEx, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
 	{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC}, 
 	{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
+
+	{HOOK_HOT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
+	{HOOK_HOT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
+
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type NoGDIHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type EmulateHooks[]={
+	//{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
+	//{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)GetDCEx, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
+	//{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC}, 
+	//{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
 	//{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
@@ -159,12 +165,10 @@ static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "DrawTextA", (FARPROC)DrawTextA, (FARPROC *)&pDrawText, (FARPROC)extDrawTextA},
 	{HOOK_IAT_CANDIDATE, "DrawTextExA", (FARPROC)DrawTextExA, (FARPROC *)&pDrawTextEx, (FARPROC)extDrawTextExA},
 	{HOOK_IAT_CANDIDATE, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
-	{HOOK_IAT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
-	{HOOK_IAT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
-	{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
-	{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)NULL, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
-	{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC},
-	{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
+	//{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
+	//{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)NULL, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
+	//{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC},
+	//{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
 	{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
 	//{HOOK_IAT_CANDIDATE, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
@@ -1922,8 +1926,6 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 		lochwnd=dxw.GethWnd();
 	}
 
-#ifdef HANDLEFLIPTOGDI
-	extern BOOL bFlippedDC;
 	if(bFlippedDC) {
 		extern HDC hFlippedDC;
 		LPDIRECTDRAWSURFACE lpDDSPrim;
@@ -1932,7 +1934,6 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 		OutTraceDW("%s: remapping flipped GDI lpDDSPrim=%x hdc=%x\n", ApiName, lpDDSPrim, hFlippedDC);
 		if(hFlippedDC) return hFlippedDC;
 	}
-#endif
 
 	switch(GDIEmulationMode){
 		case GDIMODE_STRETCHED:
@@ -1998,9 +1999,6 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 
 	if (dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 
-#ifdef HANDLEFLIPTOGDI
-	extern BOOL bFlippedDC;
-	extern HDC hFlippedDC;
 	if(bFlippedDC && (hDC == hFlippedDC)) {
 		HRESULT ret;
 		OutTraceDW("GDI.ReleaseDC: releasing flipped GDI hdc=%x\n", hDC);
@@ -2009,7 +2007,6 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 		else dxw.ScreenRefresh();
 		return (ret == DD_OK);
 	}
-#endif
 
 	switch(GDIEmulationMode){
 		case GDIMODE_STRETCHED:

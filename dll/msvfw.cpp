@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS 1
+
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
@@ -11,6 +13,7 @@
 static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
 	//{HOOK_HOT_CANDIDATE, "ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
+	//{HOOK_HOT_CANDIDATE, "MCIWndCreateA", (FARPROC)NULL, (FARPROC *)&pMCIWndCreateA, (FARPROC)extMCIWndCreateA}, // "Man in Black" - beware: this is NOT STDCALL!!!
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -127,3 +130,50 @@ Library					Vfw32.lib
 DLL						Msvfw32.dll 
 
 */
+static char *ExplainMCIWndCreateFlags(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"MCIWNDF_");
+	if (c & MCIWNDF_NOAUTOSIZEWINDOW) strcat(eb, "NOAUTOSIZEWINDOW+");
+	if (c & MCIWNDF_NOPLAYBAR) strcat(eb, "NOPLAYBAR+");
+	if (c & MCIWNDF_NOAUTOSIZEMOVIE) strcat(eb, "NOAUTOSIZEMOVIE+");
+	if (c & MCIWNDF_NOMENU) strcat(eb, "NOMENU+");
+	if (c & MCIWNDF_SHOWNAME) strcat(eb, "SHOWNAME+");
+	if (c & MCIWNDF_SHOWPOS) strcat(eb, "SHOWPOS+");
+	if (c & MCIWNDF_SHOWMODE) strcat(eb, "SHOWMODE+");
+	if (c & MCIWNDF_NOTIFYMODE) strcat(eb, "NOTIFYMODE+");
+	if (c & MCIWNDF_NOTIFYPOS) strcat(eb, "NOTIFYPOS+");
+	if (c & MCIWNDF_NOTIFYSIZE) strcat(eb, "NOTIFYSIZE+");
+	if (c & MCIWNDF_NOTIFYERROR) strcat(eb, "NOTIFYERROR+");
+	if (c & MCIWNDF_NOTIFYMEDIAW) strcat(eb, "NOTIFYMEDIAW+");
+	if (c & MCIWNDF_NOTIFYANSI) strcat(eb, "NOTIFYANSI+");
+	if (c & MCIWNDF_RECORD) strcat(eb, "RECORD+");
+	if (c & MCIWNDF_NOERRORDLG) strcat(eb, "NOERRORDLG+");
+	if (c & MCIWNDF_NOOPEN) strcat(eb, "NOOPEN+");
+	l=strlen(eb);
+	if (l>strlen("MCIWNDF_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
+HWND extMCIWndCreateA(HWND hwndParent, HINSTANCE hInstance, DWORD dwStyle, LPCTSTR szFile)
+{
+	HWND g_hwndMCIWnd;
+	OutTraceDW("MCIWndCreateA: hwnd=%x hInst=%x style=%x(%s) file=%s\n", 
+		hwndParent, hInstance, dwStyle, ExplainMCIWndCreateFlags(dwStyle), szFile);
+	if(dxw.dwFlags6 & NOMOVIES) return NULL;
+
+	g_hwndMCIWnd = (*pMCIWndCreateA)(hwndParent, hInstance, dwStyle, szFile);
+
+	// look at https://msdn.microsoft.com/en-us/library/windows/desktop/dd757178%28v=vs.85%29.aspx
+
+	if(dxw.dwFlags5 & REMAPMCI){
+		(*pSetWindowPos)(g_hwndMCIWnd,           // window to resize 
+		NULL,                          // z-order: don't care 
+		(800-640)/2, (600-480)/2, 640, 480,
+		SWP_NOZORDER | SWP_NOACTIVATE); 
+	}
+
+	return g_hwndMCIWnd;
+}

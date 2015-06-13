@@ -1,0 +1,16 @@
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\]
+[HKEY_LOCAL_MACHINE\SOFTWARE\DreamWorks Interactive]
+[HKEY_LOCAL_MACHINE\SOFTWARE\DreamWorks Interactive\ChaosIsland]
+"Data Drive"=".\\"
+"PID"="71239-442-3367621-91206"
+"Installed Directory"=".\\"
+"Run File"=".\\"
+"InstallType"=dword:00000001
+"KBPS_OTHER"=dword:00000000
+"KBPS"=dword:00000000
+"Installed"=dword:00000001
+"NextTip"=dword:00000001
+"StartupTips"=dword:00000001
+"FPS"=dword:00000003
+

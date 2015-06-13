@@ -398,6 +398,14 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		if (curr.y >= (LONG)dxw.GetScreenHeight()-CLIP_TOLERANCE) curr.y=dxw.GetScreenHeight()-1;
 	}
 
+	//if(0){ // Scrolling Slow-down
+	//	if(	(curr.x <= 0) ||
+	//		(curr.x >= (LONG)(dxw.GetScreenWidth()-1)) ||
+	//		(curr.y <= 0) ||
+	//		(curr.y >= (LONG)(dxw.GetScreenHeight()-1)))
+	//		(*pSleep)(800);
+	//}
+
 	return curr;
 }
 
@@ -851,6 +859,8 @@ POINT dxwCore::SubCoordinates(POINT p1, POINT p2)
 	return ps;
 }
 
+//#define DUMPALLPALETTECHANGES TRUE
+
 void dxwCore::DumpPalette(DWORD dwcount, LPPALETTEENTRY lpentries)
 {
 	char sInfo[(14*256)+1];
@@ -860,6 +870,15 @@ void dxwCore::DumpPalette(DWORD dwcount, LPPALETTEENTRY lpentries)
 		lpentries[idx].peRed, lpentries[idx].peGreen, lpentries[idx].peBlue, lpentries[idx].peFlags);
 	strcat(sInfo,"\n");
 	OutTrace(sInfo);
+
+#ifdef DUMPALLPALETTECHANGES
+	if(DUMPALLPALETTECHANGES){
+		extern DXWNDSTATUS *pStatus;
+		for(DWORD idx=0; idx<dwcount; idx++)  
+			pStatus->Palette[idx]= lpentries[idx];
+		Sleep(2000);
+	}
+#endif
 }
 
 void dxwCore::ScreenRefresh(void)

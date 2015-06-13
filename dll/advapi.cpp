@@ -327,6 +327,7 @@ LONG WINAPI extRegSetValueEx(HKEY hKey, LPCTSTR lpValueName, DWORD Reserved, DWO
 			case REG_DWORD: OutTrace("%s Data=%x\n", sInfo, *(DWORD *)lpData); break;
 			case REG_NONE: OutTrace("%s Data=\"%s\"\n", sInfo, lpData); break;
 			case REG_BINARY: OutTrace("%s Data=%s\n", sInfo, hexdump((BYTE *)lpData, cbData)); break;
+			case REG_SZ: OutTrace("%s Data=\"%*.*s\"\n", sInfo, cbData-1, cbData-1, lpData); break;
 			default: OutTrace("%s\n", sInfo);
 		}
 	}

@@ -818,3 +818,11 @@ v2.03.23:
 fix: implemented the correct interface of registry query calls that can be used to know the key data length 
 fix: hexdump routine with NULL input used in registry operation log was causing crash
 add: preliminary hooking for user32.dll desktop routines, like CreateDesktop() - makes "STCC Swedish TouringCar Championship" working
+
+v2.03.24:
+fix: added missing log for RegSetValueEx key value when type is REG_SZ (string)
+fix: handling of DDERR_SURFACEBUSY error in blit operations, recovers "Virtua Cop"
+fix: several changes in palette handling, improve (but don't fix!) "Man in Black" palette rendering
+fix: EnumDisplayMode hooker, passing wrong vodeo modes to the callback routine. Fixes "Total Annihilation Kingdoms" crash
+fix: DxWnd GUI build with very large width, causing slow interface responsiveness.
+add: added the "Suppress Release on backbuffer" that makes "Tetris Worlds" working, avoiding to release the backbuffer surface too many times.

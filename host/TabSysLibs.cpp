@@ -40,6 +40,7 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 
 	// MCI
 	DDX_Check(pDX, IDC_REMAPMCI, cTarget->m_RemapMCI);
+	DDX_Check(pDX, IDC_NOMOVIES, cTarget->m_NoMovies);
 
 	// Kernel32
 	DDX_Radio(pDX, IDC_SONDEFAULT, cTarget->m_SonProcessMode);
