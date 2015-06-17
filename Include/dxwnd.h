@@ -175,7 +175,7 @@
 #define STRESSRESOURCES		0x02000000 // simulates a lack of resources condition, for testing (debug opt.)
 #define MESSAGEPUMP			0x04000000 // inserts a "message pump" loop between repeated operation that may stop the task on Win7 and greater
 #define TEXTUREFORMAT		0x08000000 // Apply virtual pixel format to texture surfaces without DDSD_PIXELFORMAT attribute
-#define GSKYHACK			0x10000000 // use VIDEOMEMORY+LOCALVIDMEM capability to turn hw acceleration on ...
+//#define GSKYHACK			0x10000000 // use VIDEOMEMORY+LOCALVIDMEM capability to turn hw acceleration on ...
 #define LOCKRESERVEDPALETTE 0x20000000 // lock the reserved palette entries (usually 20: 0-9 and 246-255)
 #define UNLOCKZORDER		0x40000000 // Inhibit attempts to keep the main win on top of ZORDER by stripping BringWindowToTop and SetForegroundWindow calls
 #define EASPORTSHACK		0X80000000 // Hack to intercept and neutralize some of the hooks set internally by EA Sports games

@@ -2238,8 +2238,8 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	// DDSCAPS_SYSTEMMEMORY makes operations faster, but it is not always good...
 	dwBackBufferCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
-	// if(dxw.dwFlags5 & NOSYSTEMEMULATED) dwBackBufferCaps &= ~DDSCAPS_SYSTEMMEMORY;
-	if(dxw.dwFlags5 & GSKYHACK) dwBackBufferCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+	// this is important to avoid that certain D3D operations will abort - see "Forsaken" problem
+	if(dxw.dwFlags5 & NOSYSTEMEMULATED) dwBackBufferCaps = DDSCAPS_OFFSCREENPLAIN;
 
 	if(dxw.dwFlags5 & GDIMODE) return DD_OK;
 
@@ -2905,19 +2905,19 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	ddsd.ddsCaps.dwCaps = dwBackBufferCaps;
 	res=(*pCreateSurface)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
 	if(res) {
-		OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		OutTraceB("CreateSurface: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Gateway]", __LINE__));
+		OutTraceE("PrimaryStretchBlt: CreateSurface ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		OutTraceB("PrimaryStretchBlt: CreateSurface %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Gateway]", __LINE__));
 		return res;
 	}
 	// stretch-blit to target size on OFFSCREENPLAIN temp surface
 	res= (*pBlt)(lpddsTmp, &TmpRect, lpddssrc, lpsrcrect, DDBLT_WAIT, 0);
 	if(res) {
-		OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		OutTraceE("PrimaryStretchBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	}
 	else {
 		// fast-blit to primary
 		res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
-		if(res) OutTraceE("Blt: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if(res) OutTraceE("PrimaryStretchBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	}
 	(*pReleaseS)(lpddsTmp);
 	return res;
@@ -3005,7 +3005,7 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	// capabilities must cope with primary / backbuffer surface capabilities to get speedy operations
 	ddsd.ddsCaps.dwCaps = dwBackBufferCaps;
 	res=(*pCreateSurface)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
-	if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	if(res) OutTraceE("PrimaryBilinearBlt: CreateSurface ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 
 	// get informations
 	memset(&ddsd,0,dwSize);
@@ -3013,7 +3013,7 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0);
 	if(res) {
-		OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		OutTraceE("PrimaryBilinearBlt: Lock ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return DD_OK;
 	}
 	bSourceBuf = (BYTE *)ddsd.lpSurface;
@@ -3023,7 +3023,7 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	res=(*pLock)(lpddsTmp, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0);
 	if(res) {
-		OutTraceE("Lock: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		OutTraceE("PrimaryBilinearBlt: Lock ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return DD_OK;
 	}
 	bDestBuf = (BYTE *)ddsd.lpSurface;
@@ -3070,7 +3070,7 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 	(*pUnlockMethod(lpddsTmp))(lpddsTmp, NULL);
 	res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
-	if(res) OutTraceE("BltFast: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	if(res) OutTraceE("PrimaryBilinearBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	(*pReleaseS)(lpddsTmp);	
 	if(lpddsCopy) (*pReleaseS)(lpddsCopy);
 	return res;

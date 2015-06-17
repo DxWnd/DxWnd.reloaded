@@ -300,7 +300,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
 	if(dlg->m_TextureFormat) t->flags5 |= TEXTUREFORMAT;
-	if(dlg->m_GSkyHack) t->flags5 |= GSKYHACK;
 	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
 	if(dlg->m_EnableClipping) t->flags |= ENABLECLIPPING;
 	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
@@ -519,7 +518,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
 	dlg->m_TextureFormat = t->flags5 & TEXTUREFORMAT ? 1 : 0;
-	dlg->m_GSkyHack = t->flags5 & GSKYHACK ? 1 : 0;
 	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
 	dlg->m_EnableClipping = t->flags & ENABLECLIPPING ? 1 : 0;
 	dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;

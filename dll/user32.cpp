@@ -1919,6 +1919,8 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 	HDC ret;
 	HWND lochwnd;
 
+	if(!dxw.IsFullScreen()) return(*pGDIGetDC)(hwnd);	
+
 	lochwnd=hwnd;
 
 	if (dxw.IsRealDesktop(hwnd)) {

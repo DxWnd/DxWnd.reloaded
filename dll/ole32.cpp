@@ -117,8 +117,13 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 #else
 		LPDIRECTDRAW lpOldDDraw;
 		case 0x6C14DB80:
+			// must go through DirectDrawCreate: needed for "Darius Gaiden"
 			OutTraceDW("CoCreateInstance: IID_DirectDraw RIID\n");
-			HookDDSession((LPDIRECTDRAW *)ppv, 1);
+			res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
+			if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
+			res=lpOldDDraw->QueryInterface(IID_IDirectDraw, (LPVOID *)ppv);
+			if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
+			lpOldDDraw->Release();
 			break;
 		case 0xB3A6F3E0:
 			OutTraceDW("CoCreateInstance: IID_DirectDraw2 RIID\n");

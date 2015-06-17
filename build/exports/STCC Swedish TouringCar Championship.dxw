@@ -1,17 +1,17 @@
 [target]
-title0=Dune 2000
-path0=D:\Games\Dune 2000\DUNE2000.DAT
-launchpath0=D:\Games\Dune 2000\DUNE2000.EXE
+title0=STCC Swedish TouringCar Championship
+path0=D:\Games\STCC\STCC.exe
+launchpath0=
 module0=
 opengllib0=
-notes0=
+notes0=Still slow and choppy in emulation mode
 ver0=0
 coord0=0
-flag0=671105058
-flagg0=1207959568
+flag0=136314914
+flagg0=1207959552
 flagh0=20
-flagi0=4194308
-flagj0=128
+flagi0=138412036
+flagj0=4256
 flagk0=0
 tflag0=0
 initx0=0

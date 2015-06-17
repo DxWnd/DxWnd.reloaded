@@ -104,7 +104,6 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_DisableGammaRamp = FALSE;
 	m_AutoRefresh = FALSE;
 	m_TextureFormat = FALSE;
-	m_GSkyHack = FALSE;
 	m_FixWinFrame = FALSE;
 	m_EnableClipping = FALSE;
 	m_CursorClipping = FALSE;

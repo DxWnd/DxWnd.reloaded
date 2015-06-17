@@ -125,6 +125,7 @@ typedef HRESULT (WINAPI *DeleteViewport1_Type)(void *, LPDIRECT3DVIEWPORT);
 typedef HRESULT (WINAPI *NextViewport1_Type)(void *, LPDIRECT3DVIEWPORT, LPDIRECT3DVIEWPORT *, DWORD);
 typedef HRESULT (WINAPI *DeleteViewport2_Type)(void *, LPDIRECT3DVIEWPORT2);
 typedef HRESULT (WINAPI *NextViewport2_Type)(void *, LPDIRECT3DVIEWPORT2, LPDIRECT3DVIEWPORT2 *, DWORD);
+typedef HRESULT (WINAPI *ViewportClear_Type)(void *, DWORD, LPD3DRECT, DWORD);
 
 InitializeVP_Type pInitializeVP = NULL;
 SetViewport_Type pSetViewport = NULL;
@@ -141,6 +142,7 @@ DeleteViewport1_Type pDeleteViewport1 = NULL;
 NextViewport1_Type pNextViewport1 = NULL;
 DeleteViewport2_Type pDeleteViewport2 = NULL;
 NextViewport2_Type pNextViewport2 = NULL;
+ViewportClear_Type pViewportClear = NULL;
 
 HRESULT WINAPI extInitialize(void *);
 HRESULT WINAPI extEnumDevices(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
@@ -158,6 +160,7 @@ HRESULT WINAPI extDeleteViewport1(void *, LPDIRECT3DVIEWPORT);
 HRESULT WINAPI extNextViewport1(void *, LPDIRECT3DVIEWPORT, LPDIRECT3DVIEWPORT *, DWORD);
 HRESULT WINAPI extDeleteViewport2(void *, LPDIRECT3DVIEWPORT2);
 HRESULT WINAPI extNextViewport2(void *, LPDIRECT3DVIEWPORT2, LPDIRECT3DVIEWPORT2 *, DWORD);
+HRESULT WINAPI extViewportClear(void *, DWORD, LPD3DRECT, DWORD);
 
 HRESULT WINAPI extInitializeVP(void *, LPDIRECT3D);
 HRESULT WINAPI extSetViewport(void *, LPD3DVIEWPORT);
@@ -535,6 +538,9 @@ void HookViewport(LPDIRECT3DVIEWPORT *lpViewport, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpViewport +  12), extInitializeVP, (void **)&pInitializeVP, "Initialize(VP1)");
 		SetHook((void *)(**(DWORD **)lpViewport +  16), extGetViewport, (void **)&pGetViewport, "GetViewport(1)");
 		SetHook((void *)(**(DWORD **)lpViewport +  20), extSetViewport, (void **)&pSetViewport, "SetViewport(1)");
+
+		// to do: why Clear method crashes in "Forsaken" in emulation and GDI mode???
+		// SetHook((void *)(**(DWORD **)lpViewport +  48), extViewportClear, (void **)&pViewportClear, "Clear(1)");
 		break;
 	case 2:
 		SetHook((void *)(**(DWORD **)lpViewport +  12), extInitializeVP, (void **)&pInitializeVP, "Initialize(VP2)");
@@ -1573,7 +1579,7 @@ HRESULT WINAPI extEnumZBufferFormats(void *lpd3d, REFCLSID riidDevice, LPD3DENUM
 {
 	HRESULT ret;
 	CallbackZBufArg Arg;
-	OutTrace("Direct3D::EnumZBufferFormats d3d=%x clsid=%x context=%x\n", lpd3d, riidDevice.Data1, lpContext);
+	OutTraceD3D("Direct3D::EnumZBufferFormats d3d=%x clsid=%x context=%x\n", lpd3d, riidDevice.Data1, lpContext);
 	Arg.cb= &lpEnumCallback;
 	Arg.arg=lpContext;
 	ret = (*pEnumZBufferFormats)(lpd3d, riidDevice, (LPD3DENUMPIXELFORMATSCALLBACK)extZBufferProxy, (LPVOID)&Arg);
@@ -1581,3 +1587,24 @@ HRESULT WINAPI extEnumZBufferFormats(void *lpd3d, REFCLSID riidDevice, LPD3DENUM
 	return ret;
 }
 
+// Beware: using service surfaces with DDSCAPS_SYSTEMMEMORY capability may lead to crashes in D3D operations
+// like Vievport::Clear() in "Forsaken" set in emulation AERO-friendly mode. To avoid the problem, you can 
+// suppress the offending cap by use of the NOSYSTEMEMULATED flag
+
+HRESULT WINAPI extViewportClear(void *lpd3dvp, DWORD p1, LPD3DRECT lpRect, DWORD p2)
+{
+	HRESULT ret;
+
+	if(IsTraceD3D){
+		char sRect[81];
+		if (lpRect) sprintf(sRect, "(%d,%d)-(%d,%d)", lpRect->x1, lpRect->y1, lpRect->x2, lpRect->y2);
+		else strcpy(sRect, "(NULL)");
+		OutTrace("Viewport::Clear lpd3dvp=%x p1=%x p2=%x rect=%s\n", lpd3dvp, p1, p2, sRect);
+	}
+
+	// proxying the call ....
+	ret = (*pViewportClear)(lpd3dvp, p1, lpRect, p2);
+
+	OutTraceD3D("Viewport::Clear ret=%x\n", ret);
+	return ret;
+}

@@ -826,3 +826,8 @@ fix: several changes in palette handling, improve (but don't fix!) "Man in Black
 fix: EnumDisplayMode hooker, passing wrong vodeo modes to the callback routine. Fixes "Total Annihilation Kingdoms" crash
 fix: DxWnd GUI build with very large width, causing slow interface responsiveness.
 add: added the "Suppress Release on backbuffer" that makes "Tetris Worlds" working, avoiding to release the backbuffer surface too many times.
+
+v2.03.25:
+fix: CoCreateInstance hooking for IDirectDraw interface: fixes "Darius Gaiden"
+fix: BackBufferCaps value for NOSYSTEMEMULATED option. Fixes "Forsaken" crashes in AERO mode.
+fix: GDI GetDC and GetWindowDC must not redirect the zero hWnd to the current main window if not in fullscreen mode.

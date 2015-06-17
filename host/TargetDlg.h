@@ -80,7 +80,6 @@ public:
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;
 	BOOL	m_TextureFormat;
-	BOOL	m_GSkyHack;
 	BOOL	m_FixWinFrame;
 	BOOL	m_EnableClipping;
 	BOOL	m_CursorClipping;

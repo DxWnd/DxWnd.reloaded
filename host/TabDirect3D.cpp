@@ -34,6 +34,7 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
+	DDX_Check(pDX, IDC_NOSYSTEMEMULATED, cTarget->m_NoSystemEmulated);
 
 	// Texture management
 	DDX_Radio(pDX, IDC_TEXTURENONE, cTarget->m_TextureHandling);
