@@ -57,6 +57,7 @@ public:
 	BOOL	m_HookDLLs;
 	BOOL	m_EmulateRegistry;
 	BOOL	m_OverrideRegistry;
+	BOOL	m_Wow64Registry;
 	BOOL	m_FullScreenOnly;
 	BOOL	m_FilterMessages;
 	BOOL	m_PeekAllMessages;
@@ -88,6 +89,7 @@ public:
 	BOOL	m_HookGlide;
 	BOOL	m_RemapMCI;
 	BOOL	m_NoMovies;
+	BOOL	m_FixMoviesColor;
 	BOOL	m_SuppressRelease;
 	BOOL	m_KeepCursorWithin;
 	BOOL	m_KeepCursorFixed;

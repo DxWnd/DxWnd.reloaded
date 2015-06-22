@@ -2438,7 +2438,7 @@ typedef struct _DDOPTSURFACEDESC
 /*
  * The surface's optimized pixelformat is compressed
  */
-#define DDOSDCAPS_OPTCOMPRESSED                 0x00000001l
+#define DDSDCAPS_PRIMARYSURFACE                 0x00000001l
 
 /*
  * The surface's optimized pixelformat is reordered

@@ -63,6 +63,10 @@ typedef BOOL (WINAPI *CloseDesktop_Type)(HDESK);
 CloseDesktop_Type pCloseDesktop = NULL;
 BOOL WINAPI extCloseDesktop(HDESK);
 
+typedef INT_PTR (WINAPI *DialogBoxParamA_Type)(HINSTANCE, LPCTSTR, HWND, DLGPROC, LPARAM);
+DialogBoxParamA_Type pDialogBoxParamA = NULL;
+INT_PTR WINAPI extDialogBoxParamA(HINSTANCE, LPCTSTR, HWND, DLGPROC, LPARAM);
+
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
 GetDIBColorTable_Type pGetDIBColorTable = NULL;
@@ -142,6 +146,8 @@ static HookEntry_Type Hooks[]={
 
 	{HOOK_HOT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
 	{HOOK_HOT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
+
+	{HOOK_IAT_CANDIDATE, "DialogBoxParamA", (FARPROC)NULL, (FARPROC *)&pDialogBoxParamA, (FARPROC)extDialogBoxParamA},
 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
@@ -309,7 +315,6 @@ static void Stopper(char *s, int line)
 // PrimHDC: DC handle of the selected DirectDraw primary surface. NULL when invalid.
 HDC PrimHDC=NULL;
 
-BOOL isWithinDialog=FALSE;
 LPRECT lpClipRegion=NULL;
 RECT ClipRegion;
 int LastCurPosX, LastCurPosY;
@@ -2095,11 +2100,13 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpTemplate, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM lParamInit)
 {
 	HWND RetHWND;
-	isWithinDialog=TRUE;
+	BOOL FullScreen;
+	FullScreen = dxw.IsFullScreen();
 	OutTraceDW("CreateDialogIndirectParam: hInstance=%x lpTemplate=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, "tbd", hWndParent, lpDialogFunc, lParamInit);
 	if(dxw.IsFullScreen() && hWndParent==NULL) hWndParent=dxw.GethWnd();
 	RetHWND=(*pCreateDialogIndirectParam)(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit);
+	dxw.SetFullScreen(FullScreen);
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL
 	if(lpDialogFunc) {	
@@ -2109,19 +2116,19 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 	}
 
 	OutTraceDW("CreateDialogIndirectParam: hwnd=%x\n", RetHWND);
-	isWithinDialog=FALSE;
-	//if (IsDebug) EnumChildWindows(RetHWND, (WNDENUMPROC)TraceChildWin, (LPARAM)RetHWND);
 	return RetHWND;
 }
 
 HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM lParamInit)
 {
 	HWND RetHWND;
-	isWithinDialog=TRUE;
+	BOOL FullScreen;
+	FullScreen = dxw.IsFullScreen();
 	OutTraceDW("CreateDialogParam: hInstance=%x lpTemplateName=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, "tbd", hWndParent, lpDialogFunc, lParamInit);
 	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
 	RetHWND=(*pCreateDialogParam)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, lParamInit);
+	dxw.SetFullScreen(FullScreen);
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL: fix for "LEGO Stunt Rally"
 	if(lpDialogFunc) {
@@ -2131,16 +2138,14 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	}
 
 	OutTraceDW("CreateDialogParam: hwnd=%x\n", RetHWND);
-	isWithinDialog=FALSE;
-	//if (IsDebug) EnumChildWindows(RetHWND, (WNDENUMPROC)TraceChildWin, (LPARAM)RetHWND);
 	return RetHWND;
 }
 
 BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL bRepaint)
 {
 	BOOL ret;
-	OutTraceDW("MoveWindow: hwnd=%x xy=(%d,%d) size=(%d,%d) repaint=%x indialog=%x fullscreen=%x\n",
-		hwnd, X, Y, nWidth, nHeight, bRepaint, isWithinDialog, dxw.IsFullScreen());
+	OutTraceDW("MoveWindow: hwnd=%x xy=(%d,%d) size=(%d,%d) repaint=%x fullscreen=%x\n",
+		hwnd, X, Y, nWidth, nHeight, bRepaint, dxw.IsFullScreen());
 
 	if(dxw.Windowize){
 		if(dxw.IsDesktop(hwnd)){
@@ -2940,4 +2945,16 @@ BOOL WINAPI extCloseDesktop(HDESK hDesktop)
 {
 	OutTraceDW("CloseDesktop: SUPPRESS hDesktop=%x\n", hDesktop);
 	return TRUE;
+}
+
+INT_PTR WINAPI extDialogBoxParamA(HINSTANCE hInstance, LPCTSTR lpTemplateName, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM dwInitParam)
+{
+	BOOL ret, FullScreen;
+	FullScreen = dxw.IsFullScreen();
+	OutTraceDW("DialogBoxParamA: FullScreen=%x\n", FullScreen);
+	dxw.SetFullScreen(FALSE);
+	ret = (*pDialogBoxParamA)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, dwInitParam);
+	dxw.SetFullScreen(FullScreen);
+	OutTraceDW("DialogBoxParamA: ret=%x\n", ret);
+	return ret;
 }

@@ -284,8 +284,53 @@ typedef enum {
 //	SYSLIBIDX_GLIDE,
 //	SYSLIBIDX_GLIDE2X,
 //	SYSLIBIDX_GLIDE3X,
+	SYSLIBIDX_COMDLG32,
 	SYSLIBIDX_MAX } 
 enum_syslibraries;
+
+#ifdef SYSLIBNAMES_DEFINES
+char *SysNames[]={
+	"kernel32",
+	"USER32",
+	"GDI32",
+	"imelib",
+	"ADVAPI32",
+	"ole32",
+	"ddraw",
+	"d3d8",
+	"d3d9",
+	"d3d10",
+	"d3d10_1",
+	"d3d11",
+	"opengl32",
+	"msvfw32",
+	"smackw32",
+	"version",
+	"dplayx",
+	"dsound",
+	"winmm",
+	"imm32",
+	"wsock32",
+	"dinput",
+	"dinput8",
+	"shfolder",
+	"shell32",
+	"ws2_32",
+	"tapi32",
+	"netapi32",
+	"wintrust",
+	"d3dim",
+	"d3dim700",
+	"imagehlp",
+//	"+glide",
+//	"+glide2x",
+//	"+glide3x",
+	"comdlg32",
+	NULL
+};	
+#else
+extern char *SysNames[];
+#endif 
 
 typedef enum {
 	DXVK_NONE=0,

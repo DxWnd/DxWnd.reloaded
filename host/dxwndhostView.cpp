@@ -173,6 +173,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookDLLs) t->flags3 |= HOOKDLLS;
 	if(dlg->m_EmulateRegistry) t->flags3 |= EMULATEREGISTRY;
 	if(dlg->m_OverrideRegistry) t->flags4 |= OVERRIDEREGISTRY;
+	if(dlg->m_Wow64Registry) t->flags6 |= WOW64REGISTRY;
 	if(dlg->m_HookEnabled) t->flags3 |= HOOKENABLED;
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
@@ -308,6 +309,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
 	if(dlg->m_RemapMCI) t->flags5 |= REMAPMCI;
 	if(dlg->m_NoMovies) t->flags6 |= NOMOVIES;
+	if(dlg->m_FixMoviesColor) t->flags6 |= FIXMOVIESCOLOR;
 	if(dlg->m_SuppressRelease) t->flags6 |= SUPPRESSRELEASE;
 	if(dlg->m_KeepCursorWithin) t->flags |= KEEPCURSORWITHIN;
 	if(dlg->m_KeepCursorFixed) t->flags2 |= KEEPCURSORFIXED;
@@ -405,6 +407,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookDLLs = t->flags3 & HOOKDLLS ? 1 : 0;
 	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
 	dlg->m_OverrideRegistry = t->flags4 & OVERRIDEREGISTRY ? 1 : 0;
+	dlg->m_Wow64Registry = t->flags6 & WOW64REGISTRY ? 1 : 0;
 	dlg->m_HookEnabled = t->flags3 & HOOKENABLED ? 1 : 0;
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
@@ -526,6 +529,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookGlide = t->flags4 & HOOKGLIDE ? 1 : 0;
 	dlg->m_RemapMCI = t->flags5 & REMAPMCI ? 1 : 0;
 	dlg->m_NoMovies = t->flags6 & NOMOVIES ? 1 : 0;
+	dlg->m_FixMoviesColor = t->flags6 & FIXMOVIESCOLOR ? 1 : 0;
 	dlg->m_SuppressRelease = t->flags6 & SUPPRESSRELEASE ? 1 : 0;
 	dlg->m_KeepCursorWithin = t->flags & KEEPCURSORWITHIN ? 1 : 0;
 	dlg->m_KeepCursorFixed = t->flags2 & KEEPCURSORFIXED ? 1 : 0;

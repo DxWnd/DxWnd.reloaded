@@ -152,6 +152,8 @@ LONG WINAPI extRegOpenKeyEx(
 		if(res == ERROR_SUCCESS) return res;
 	}
 
+	if(dxw.dwFlags6 & WOW64REGISTRY) ulOptions |= KEY_WOW64_64KEY;
+
 	res=(*pRegOpenKeyEx)(hKey, lpSubKey, ulOptions, samDesired, phkResult);
 	OutTraceR("RegOpenKeyEx: res=%x phkResult=%x\n", res, phkResult ? *phkResult : 0); 
 

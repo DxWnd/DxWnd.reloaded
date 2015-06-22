@@ -230,6 +230,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\comdlg32.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\d3dtexture.cpp"
 				>
 			</File>

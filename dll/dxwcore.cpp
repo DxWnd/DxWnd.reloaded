@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define SYSLIBNAMES_DEFINES
 
 #include <stdio.h>
 #include "dxwnd.h"
@@ -1428,45 +1429,7 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 {
 	int idx;
 	char *lpName, *lpNext;
-	char *SysNames[]={
-		"kernel32",
-		"USER32",
-		"GDI32",
-		"imelib",
-		"ADVAPI32",
-		"ole32",
-		"ddraw",
-		"d3d8",
-		"d3d9",
-		"d3d10",
-		"d3d10_1",
-		"d3d11",
-		"opengl32",
- 		"msvfw32",
-		"smackw32",
-		"version",
-		"dplayx",
-		"dsound",
-		"winmm",
-		"imm32",
-		"wsock32",
-		"dinput",
-		"dinput8",
-		"shfolder",
-		"shell32",
-		"ws2_32",
-		"tapi32",
-		"netapi32",
-		"wintrust",
-		"d3dim",
-		"d3dim700",
-		"imagehlp",
-//		"+glide",
-//		"+glide2x",
-//		"+glide3x",
-		NULL
-	};	
-	
+
 	lpName=lpFileName;
 	while (lpNext=strchr(lpName,'\\')) lpName=lpNext+1;
 	for(idx=0; SysNames[idx]; idx++){

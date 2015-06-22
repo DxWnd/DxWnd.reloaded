@@ -14,6 +14,7 @@ static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
 	//{HOOK_HOT_CANDIDATE, "ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
 	//{HOOK_HOT_CANDIDATE, "MCIWndCreateA", (FARPROC)NULL, (FARPROC *)&pMCIWndCreateA, (FARPROC)extMCIWndCreateA}, // "Man in Black" - beware: this is NOT STDCALL!!!
+	{HOOK_HOT_CANDIDATE, "ICGetDisplayFormat", (FARPROC)NULL, (FARPROC *)&pICGetDisplayFormat, (FARPROC)extICGetDisplayFormat}, // "Man in Black" - beware: this is NOT STDCALL!!!
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -176,4 +177,24 @@ HWND extMCIWndCreateA(HWND hwndParent, HINSTANCE hInstance, DWORD dwStyle, LPCTS
 	}
 
 	return g_hwndMCIWnd;
+}
+
+HIC WINAPI extICGetDisplayFormat(HIC hic, LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut, int BitDepth, int dx, int dy)
+{
+	HIC ret;
+	OutTraceDW("ICGetDisplayFormat: hic=%x bitdepth=%d dx=%d dy=%d indepth=%d\n", hic, BitDepth, dx, dy, lpbiIn->biBitCount);
+
+	ret=(*pICGetDisplayFormat)(hic, lpbiIn, lpbiOut, BitDepth, dx, dy);
+	if(ret){
+		OutTraceDW("ICGetDisplayFormat: ret=%x outdepth=%d\n", hic, lpbiOut->biBitCount);
+		if(dxw.dwFlags6 & FIXMOVIESCOLOR){
+			lpbiOut->biBitCount = (WORD)dxw.VirtualPixelFormat.dwRGBBitCount;
+			OutTraceDW("ICGetDisplayFormat: FIXED outdepth=%d\n", lpbiOut->biBitCount);
+		}
+	}
+	else {
+		OutTraceDW("ICGetDisplayFormat ERROR: err=%d\n", GetLastError());
+	}
+
+	return ret;
 }

@@ -47,6 +47,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	// Registry management
 	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
 	DDX_Check(pDX, IDC_OVERRIDEREGISTRY, cTarget->m_OverrideRegistry);
+	DDX_Check(pDX, IDC_WOW64REGISTRY, cTarget->m_Wow64Registry);
 }
 
 BEGIN_MESSAGE_MAP(CTabCompat, CDialog)

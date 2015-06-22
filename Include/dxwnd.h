@@ -186,6 +186,8 @@
 #define NODESTROYWINDOW		0x00000004 // suppress the main window destruction
 #define NOMOVIES			0x00000008 // suppress MCI Movies
 #define SUPPRESSRELEASE		0x00000010 // Avoid releasing critical emulated surfaces - the backbuffer
+#define FIXMOVIESCOLOR		0x00000020 // Fixes vfw movies color depth forcing the virtual value 
+#define WOW64REGISTRY		0x00000040 // Sets KEY_WOW64_64KEY registry flag
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

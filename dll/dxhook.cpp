@@ -106,7 +106,7 @@ static char *Flag5Names[32]={
 
 static char *Flag6Names[32]={
 	"FORCESWAPEFFECT", "LEGACYALLOC", "NODESTROYWINDOW", "NOMOVIES",
-	"SUPPRESSRELEASE", "", "", "",
+	"SUPPRESSRELEASE", "FIXMOVIESCOLOR", "WOW64REGISTRY", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1375,8 +1375,10 @@ void HookModule(HMODULE base, int dxversion)
 		(dxw.dwFlags4 & OVERRIDEREGISTRY) || 
 		(dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
+	HookAVIFil32(base);
 	//HookSmackW32(base);
 	//HookDirectSound(base);
+	//HookComDlg32(base);
 }
 
 #define USEWINNLSENABLE

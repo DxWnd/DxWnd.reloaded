@@ -831,3 +831,8 @@ v2.03.25:
 fix: CoCreateInstance hooking for IDirectDraw interface: fixes "Darius Gaiden"
 fix: BackBufferCaps value for NOSYSTEMEMULATED option. Fixes "Forsaken" crashes in AERO mode.
 fix: GDI GetDC and GetWindowDC must not redirect the zero hWnd to the current main window if not in fullscreen mode.
+
+v2.03.26:
+add: Added "Set KEY_WOW64_64KEY flag" flag to registry operations. It could prove useful for old programs on recent W64 platforms.
+add: Added "fix movies color depth" flag. It fixes some problems when windows multimedia functions detect and process the actual video color mode and they should rather consider the virtual value. Fixes "Killing Time" intro movies decoding.
+fix: suppressed hooking for comdlg32.dll module. Common dialogues never need to be altered. Fixes "Road Rash" save/load game dialog problems.
