@@ -1,8 +1,0 @@
-darius gaiden - CoCreateInstance used instead of DirectDrawCreate??? fixed
-
-Crimson Skies - fixed
-
-Echelon ???
-
-Forsaken: why the Viewport::Clear method crashes? see d3d7.cpp
-dipende dall' aver attivato AEROBOOST. Tolto quello, va .....

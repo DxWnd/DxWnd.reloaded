@@ -172,6 +172,7 @@ public:
 	BOOL	m_DiabloTweak;
 	BOOL	m_EASportsHack;
 	BOOL	m_LegacyAlloc;
+	BOOL	m_DisableMaxWinMode;
 	BOOL	m_NoImagehlp;
 	BOOL	m_ForcesHEL;
 	BOOL	m_ForcesSwapEffect;

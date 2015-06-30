@@ -35,17 +35,6 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type wglHooks[]={
-	{HOOK_IAT_CANDIDATE, "glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
-	{HOOK_IAT_CANDIDATE, "glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
-	{HOOK_IAT_CANDIDATE, "glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
-	{HOOK_IAT_CANDIDATE, "glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
-	{HOOK_IAT_CANDIDATE, "glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
-	{HOOK_IAT_CANDIDATE, "glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
-	{HOOK_IAT_CANDIDATE, "glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
 FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
@@ -55,7 +44,7 @@ FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 	return NULL;
 }
 
-static FARPROC wglRemapLibrary(LPCSTR proc, HookEntry_Type *Hooks)
+PROC Remap_wgl_ProcAddress(LPCSTR proc)
 {
 	int i;
 	HookEntry_Type *Hook;
@@ -67,13 +56,6 @@ static FARPROC wglRemapLibrary(LPCSTR proc, HookEntry_Type *Hooks)
 			return Hook->HookerAddress;
 		}
 	}
-	return NULL;
-}
-
-PROC Remap_wgl_ProcAddress(LPCSTR proc)
-{
-	FARPROC addr;
-	if(addr=wglRemapLibrary(proc, wglHooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
 }
@@ -93,73 +75,21 @@ void ForceHookOpenGL(HMODULE base) // to do .....
 		return;
 	}
 
-	pglViewport=(glViewport_Type)GetProcAddress(hGlLib, "glViewport");
-	if(pglViewport) {
-		HookAPI(base, "opengl32", pglViewport, "glViewport", extglViewport);
-		extglViewport(dxw.iPosX,dxw.iPosY,dxw.iSizX,dxw.iSizY);
+	int i;
+	HookEntry_Type *Hook;
+	for(i=0; Hooks[i].APIName; i++){
+		Hook=&Hooks[i];
+		Hook->OriginalAddress = GetProcAddress(hGlLib, Hook->APIName);
+		if(Hook->OriginalAddress) {
+			HookAPI(base, "opengl32", Hook->StoreAddress, Hook->APIName, Hook->HookerAddress);
+		}
 	}
-	pwglGetProcAddress=(wglGetProcAddress_Type)GetProcAddress(hGlLib, "wglGetProcAddress");
-	if(pwglGetProcAddress) {
-		HookAPI(base, "opengl32", pwglGetProcAddress, "wglGetProcAddress", extwglGetProcAddress);
-		extwglGetProcAddress("wglGetProcAddress");
-	}
-	pglScissor=(glScissor_Type)GetProcAddress(hGlLib, "glScissor");
-	if(pglScissor) {
-		HookAPI(base, "opengl32", pglScissor, "glScissor", extglScissor);
-	}
-	pglGetIntegerv=(glGetIntegerv_Type)GetProcAddress(hGlLib, "glGetIntegerv");
-	if(pglGetIntegerv) {
-		HookAPI(base, "opengl32", pglGetIntegerv, "glGetIntegerv", extglGetIntegerv);
-	}
-	pglDrawBuffer=(glDrawBuffer_Type)GetProcAddress(hGlLib, "glDrawBuffer");
-	if(pglDrawBuffer) {
-		HookAPI(base, "opengl32", pglDrawBuffer, "glDrawBuffer", extglDrawBuffer);
-	}
-	pglPolygonMode=(glPolygonMode_Type)GetProcAddress(hGlLib, "glPolygonMode");
-	if(pglPolygonMode) {
-		HookAPI(base, "opengl32", pglPolygonMode, "glPolygonMode", extglPolygonMode);
-	}
-	pglGetFloatv=(glGetFloatv_Type)GetProcAddress(hGlLib, "glGetFloatv");
-	if(pglGetFloatv) {
-		HookAPI(base, "opengl32", pglGetFloatv, "glGetFloatv", extglGetFloatv);
-	}
-	pglClear=(glClear_Type)GetProcAddress(hGlLib, "glClear");
-	if(pglClear) {
-		HookAPI(base, "opengl32", pglClear, "glClear", extglClear);
-	}
-	pwglCreateContext=(wglCreateContext_Type)GetProcAddress(hGlLib, "wglCreateContext");
-	if(pwglCreateContext) {
-		HookAPI(base, "opengl32", pwglCreateContext, "wglCreateContext", extwglCreateContext);
-	}
-	pwglMakeCurrent=(wglMakeCurrent_Type)GetProcAddress(hGlLib, "wglMakeCurrent");
-	if(pwglMakeCurrent) {
-		HookAPI(base, "opengl32", pwglMakeCurrent, "wglMakeCurrent", extwglMakeCurrent);
-	}
+	return;
 }
 
 void HookOpenGL(HMODULE module, char *customlib) 
 {
-	void *tmp;
-	tmp = HookAPI(module, customlib, NULL, "glViewport", extglViewport);
-	if(tmp) pglViewport = (glViewport_Type)tmp;
-	tmp = HookAPI(module, customlib, NULL, "glScissor", extglScissor);
-	if(tmp) pglScissor = (glScissor_Type)tmp;
-	tmp = HookAPI(module, customlib, NULL, "glGetIntegerv", extglGetIntegerv);
-	if(tmp) pglGetIntegerv = (glGetIntegerv_Type)tmp;
-	tmp = HookAPI(module, customlib, NULL, "glDrawBuffer", extglDrawBuffer);
-	if(tmp) pglDrawBuffer = (glDrawBuffer_Type)tmp;	
-	tmp = HookAPI(module, customlib, NULL, "glPolygonMode", extglPolygonMode);
-	if(tmp) pglPolygonMode = (glPolygonMode_Type)tmp;	
-	tmp = HookAPI(module, customlib, NULL, "glGetFloatv", extglGetFloatv);
-	if(tmp) pglGetFloatv = (glGetFloatv_Type)tmp;	
-	tmp = HookAPI(module, customlib, NULL, "glClear", extglClear);
-	if(tmp) pglClear = (glClear_Type)tmp;	
-	tmp = HookAPI(module, customlib, NULL, "wglCreateContext", extwglCreateContext);
-	if(tmp) pwglCreateContext = (wglCreateContext_Type)tmp;	
-	tmp = HookAPI(module, customlib, NULL, "wglGetProcAddress", extwglGetProcAddress);
-	if(tmp) pwglGetProcAddress = (wglGetProcAddress_Type)tmp;
-	tmp = HookAPI(module, customlib, NULL, "wglMakeCurrent", extwglMakeCurrent);
-	if(tmp) pwglMakeCurrent = (wglMakeCurrent_Type)tmp;
+	HookLibrary(module, Hooks, customlib);
 }
 
 void HookOpenGLLibs(HMODULE module, char *customlib)

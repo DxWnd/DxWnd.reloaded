@@ -14,9 +14,18 @@
 
 BOOL IsWithinMCICall = FALSE;
 
+typedef MCIDEVICEID (WINAPI *mciGetDeviceIDA_Type)(LPCTSTR);
+mciGetDeviceIDA_Type pmciGetDeviceIDA = NULL;
+MCIDEVICEID WINAPI extmciGetDeviceIDA(LPCTSTR);
+typedef MCIDEVICEID (WINAPI *mciGetDeviceIDW_Type)(LPCWSTR);
+mciGetDeviceIDW_Type pmciGetDeviceIDW = NULL;
+MCIDEVICEID WINAPI extmciGetDeviceIDW(LPCWSTR);
+
 static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
 	{HOOK_HOT_CANDIDATE, "mciSendCommandW", NULL, (FARPROC *)&pmciSendCommandW, (FARPROC)extmciSendCommandW},
+	{HOOK_HOT_CANDIDATE, "mciGetDeviceIDA", NULL, (FARPROC *)&pmciGetDeviceIDA, (FARPROC)extmciGetDeviceIDA},
+	{HOOK_HOT_CANDIDATE, "mciGetDeviceIDW", NULL, (FARPROC *)&pmciGetDeviceIDW, (FARPROC)extmciGetDeviceIDW},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -114,7 +123,10 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 				pw->hWnd, pw->nCmdShow);
 			//fdwCommand |= MCI_ANIM_WINDOW_ENABLE_STRETCH;
 			//fdwCommand &= ~MCI_ANIM_WINDOW_DISABLE_STRETCH;
-			if(dxw.IsDesktop(pw->hWnd)) pw->hWnd = dxw.GethWnd();
+			if(dxw.IsRealDesktop(pw->hWnd)) {
+				pw->hWnd = dxw.GethWnd();
+				OutTraceB("mciSendCommand: REDIRECT hwnd=%x\n", pw->hWnd);
+			}
 			break;
 		case MCI_PUT:
 			RECT client;
@@ -215,3 +227,18 @@ MCIERROR WINAPI extmciSendStringW(LPCWSTR lpszCommand, LPWSTR lpszReturnString, 
 	return ret;
 }
 
+MCIDEVICEID WINAPI extmciGetDeviceIDA(LPCTSTR lpszDevice)
+{
+	MCIDEVICEID ret;
+	ret = (*pmciGetDeviceIDA)(lpszDevice);
+	OutTraceDW("mciGetDeviceIDA: device=\"%s\" ret=%x\n", lpszDevice, ret);
+	return ret;
+}
+
+MCIDEVICEID WINAPI extmciGetDeviceIDW(LPCWSTR lpszDevice)
+{
+	MCIDEVICEID ret;
+	ret = (*pmciGetDeviceIDW)(lpszDevice);
+	OutTraceDW("mciGetDeviceIDW: device=\"%ls\" ret=%x\n", lpszDevice, ret);
+	return ret;
+}

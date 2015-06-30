@@ -50,6 +50,9 @@ HRESULT WINAPI extMessageBoxTimeoutW(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
 typedef BOOL (WINAPI *IsIconic_Type)(HWND);
 IsIconic_Type pIsIconic = NULL;
 BOOL WINAPI extIsIconic(HWND);
+typedef BOOL (WINAPI *IsZoomed_Type)(HWND);
+IsZoomed_Type pIsZoomed = NULL;
+BOOL WINAPI extIsZoomed(HWND);
 typedef HDESK (WINAPI *CreateDesktop_Type)(LPCTSTR, LPCTSTR, DEVMODE *, DWORD, ACCESS_MASK, LPSECURITY_ATTRIBUTES);
 CreateDesktop_Type pCreateDesktop = NULL;
 HDESK WINAPI extCreateDesktop(LPCTSTR, LPCTSTR, DEVMODE *, DWORD, ACCESS_MASK, LPSECURITY_ATTRIBUTES);
@@ -132,8 +135,6 @@ static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutA", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutA, (FARPROC)extMessageBoxTimeoutA},
 	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutW", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutW, (FARPROC)extMessageBoxTimeoutW},
 
-	//{HOOK_HOT_CANDIDATE, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
-
 	{HOOK_IAT_CANDIDATE, "CreateDesktopA", (FARPROC)CreateDesktopA, (FARPROC *)&pCreateDesktop, (FARPROC)extCreateDesktop},
 	{HOOK_IAT_CANDIDATE, "SwitchDesktop", (FARPROC)SwitchDesktop, (FARPROC *)&pSwitchDesktop, (FARPROC)extSwitchDesktop},
 	{HOOK_IAT_CANDIDATE, "OpenDesktopA", (FARPROC)OpenDesktopA, (FARPROC *)&pOpenDesktop, (FARPROC)extOpenDesktop},
@@ -148,6 +149,9 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
 
 	{HOOK_IAT_CANDIDATE, "DialogBoxParamA", (FARPROC)NULL, (FARPROC *)&pDialogBoxParamA, (FARPROC)extDialogBoxParamA},
+
+	//{HOOK_IAT_CANDIDATE, "IsZoomed", (FARPROC)NULL, (FARPROC *)&pIsZoomed, (FARPROC)extIsZoomed},
+	//{HOOK_HOT_CANDIDATE, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
@@ -2911,15 +2915,6 @@ HRESULT WINAPI extMessageBoxTimeoutW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaptio
 	return res;
 }
 
-BOOL WINAPI extIsIconic(HWND hWnd)
-{
-	BOOL ret;
-	ret = (*pIsIconic)(hWnd);
-	OutTrace("IsIconic: hwnd=%x ret=%x\n", hWnd, ret);
-	//return FALSE;
-	return ret;
-}
-
 HDESK WINAPI extCreateDesktop( LPCTSTR lpszDesktop, LPCTSTR lpszDevice, DEVMODE *pDevmode, DWORD dwFlags, ACCESS_MASK dwDesiredAccess, LPSECURITY_ATTRIBUTES lpsa)
 {
 	//OutTrace("CreateDesktop: SUPPRESS Desktop=%s Device=%s flags=%x access=%x\n", lpszDesktop, lpszDevice, dwFlags, dwDesiredAccess);
@@ -2956,5 +2951,23 @@ INT_PTR WINAPI extDialogBoxParamA(HINSTANCE hInstance, LPCTSTR lpTemplateName, H
 	ret = (*pDialogBoxParamA)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, dwInitParam);
 	dxw.SetFullScreen(FullScreen);
 	OutTraceDW("DialogBoxParamA: ret=%x\n", ret);
+	return ret;
+}
+
+BOOL WINAPI extIsZoomed(HWND hWnd)
+{
+	BOOL ret;
+	ret = (*pIsZoomed)(hWnd);
+	OutTrace("IsZoomed: hwnd=%x ret=%x\n", hWnd, ret);
+	//if(dxw.IsFullScreen()) ret = FALSE;
+	return ret;
+}
+
+BOOL WINAPI extIsIconic(HWND hWnd)
+{
+	BOOL ret;
+	ret = (*pIsIconic)(hWnd);
+	OutTrace("IsIconic: hwnd=%x ret=%x\n", hWnd, ret);
+	//return FALSE;
 	return ret;
 }

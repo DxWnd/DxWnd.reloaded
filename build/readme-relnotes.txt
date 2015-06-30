@@ -836,3 +836,9 @@ v2.03.26:
 add: Added "Set KEY_WOW64_64KEY flag" flag to registry operations. It could prove useful for old programs on recent W64 platforms.
 add: Added "fix movies color depth" flag. It fixes some problems when windows multimedia functions detect and process the actual video color mode and they should rather consider the virtual value. Fixes "Killing Time" intro movies decoding.
 fix: suppressed hooking for comdlg32.dll module. Common dialogues never need to be altered. Fixes "Road Rash" save/load game dialog problems.
+
+v2.03.27:
+add: dxwnd proxyes to get standalone windowed mode (ask for instructions)
+fix: added SetAppCompatData(1, 0) to AERO compatibility for lock operations - improves AERO compatibility, e.g. "Age of Empires" intro movie
+add: added "Disable max window mode" flag for better compatibility with Win8/8.1
+fix: cleaned up some opengl hooking code. Mind possible regressions ....

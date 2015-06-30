@@ -188,6 +188,7 @@
 #define SUPPRESSRELEASE		0x00000010 // Avoid releasing critical emulated surfaces - the backbuffer
 #define FIXMOVIESCOLOR		0x00000020 // Fixes vfw movies color depth forcing the virtual value 
 #define WOW64REGISTRY		0x00000040 // Sets KEY_WOW64_64KEY registry flag
+#define DISABLEMAXWINMODE	0x00000080 // invoke ddraw SetAppCompatData(12,0) to set DisableMaxWindowedMode
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

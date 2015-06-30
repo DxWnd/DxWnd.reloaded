@@ -611,8 +611,16 @@ static void ddSetCompatibility()
 	hinst=LoadLibrary("ddraw.dll");
 	pSetAppCompatData=(SetAppCompatData_Type)(*pGetProcAddress)(hinst, "SetAppCompatData");
 	if(pSetAppCompatData) {
-		res=(*pSetAppCompatData)(2, 0);
-		OutTraceDW("HookDirectDraw: SetAppCompatData(2,0) ret=%x(%s)\n", res, ExplainDDError(res));
+		if (dxw.dwFlags2 & SETCOMPATIBILITY){
+			// v2.03.27: set DWM Off for both primary Lock and Blt. Good for Age of Empires intro movie!
+			res=(*pSetAppCompatData)(1, 0);
+			res=(*pSetAppCompatData)(2, 0);
+			OutTraceDW("HookDirectDraw: SetAppCompatData(2,0) ret=%x(%s)\n", res, ExplainDDError(res));
+		}
+		if (dxw.dwFlags6 & DISABLEMAXWINMODE){
+			res=(*pSetAppCompatData)(12, 0);
+			OutTraceDW("HookDirectDraw: SetAppCompatData(12,0) ret=%x(%s)\n", res, ExplainDDError(res));
+		}
 	}
 	else
 		OutTraceDW("HookDirectDraw: missing SetAppCompatData call\n");
@@ -621,7 +629,8 @@ static void ddSetCompatibility()
 
 int HookDirectDraw(HMODULE module, int version)
 {
-	if(dxw.dwFlags2 & SETCOMPATIBILITY) {
+	if ((dxw.dwFlags2 & SETCOMPATIBILITY) ||
+		(dxw.dwFlags6 & DISABLEMAXWINMODE)){
 		static BOOL AlreadyDone = FALSE;
 		if(!AlreadyDone){
 			ddSetCompatibility();

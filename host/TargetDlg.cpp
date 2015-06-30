@@ -47,6 +47,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_DiabloTweak = FALSE;
 	m_EASportsHack = FALSE;
 	m_LegacyAlloc = FALSE;
+	m_DisableMaxWinMode = FALSE;
 	m_NoImagehlp = FALSE;
 	m_ReplacePrivOps = FALSE;
 	m_ForcesHEL = FALSE;

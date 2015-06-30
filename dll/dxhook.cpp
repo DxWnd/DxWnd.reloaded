@@ -106,7 +106,7 @@ static char *Flag5Names[32]={
 
 static char *Flag6Names[32]={
 	"FORCESWAPEFFECT", "LEGACYALLOC", "NODESTROYWINDOW", "NOMOVIES",
-	"SUPPRESSRELEASE", "FIXMOVIESCOLOR", "WOW64REGISTRY", "",
+	"SUPPRESSRELEASE", "FIXMOVIESCOLOR", "WOW64REGISTRY", "DISABLEMAXWINMODE",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
