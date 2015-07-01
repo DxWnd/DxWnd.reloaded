@@ -50,7 +50,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/IInclude"
 				Optimization="0"
-				AdditionalIncludeDirectories="../Include"
+				AdditionalIncludeDirectories=".;../Include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DXWND_EXPORTS"
 				MinimalRebuild="true"
 				ExceptionHandling="2"
@@ -77,10 +77,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shlwapi.lib odbc32.lib odbccp32.lib"
+				AdditionalDependencies="shlwapi.lib odbc32.lib odbccp32.lib libMinHook.x86.lib"
 				OutputFile="../Debug/dxwnd.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories=""
+				IgnoreAllDefaultLibraries="false"
+				IgnoreDefaultLibraryNames=""
 				ModuleDefinitionFile=".\dxwnd.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/dxwnd.pdb"
@@ -175,6 +178,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies=" libMinHook.x86.lib"
 				OutputFile="../Release/dxwnd.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -395,6 +399,10 @@
 			</File>
 			<File
 				RelativePath=".\imelib.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inject.cpp"
 				>
 			</File>
 			<File

@@ -206,7 +206,6 @@ FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 //
 //--------------------------------------------------------------------------------------------
 
-extern DEVMODE *pSetDevMode;
 extern DWORD PaletteEntries[256];
 extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
 extern HRESULT WINAPI sBlt(char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
@@ -314,31 +313,6 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 				OutTrace(" res=%d\n",res); break;
 			default:
 				OutTrace(" res=0x%04x\n",res); break;
-		}
-	}
-
-	// if you have a bypassed setting, use it first!
-	if(pSetDevMode){
-		switch(nindex){
-		case BITSPIXEL:
-		case COLORRES:
-			res = pSetDevMode->dmBitsPerPel;
-			OutTraceDW("GetDeviceCaps: fix(1) BITSPIXEL/COLORRES cap=%x\n",res);
-			return res;
-		case HORZRES:
-			if(dxw.Windowize){
-				res = pSetDevMode->dmPelsWidth;
-				OutTraceDW("GetDeviceCaps: fix(1) HORZRES cap=%d\n", res);
-				return res;
-			}
-			break;
-		case VERTRES:
-			if(dxw.Windowize){
-				res = pSetDevMode->dmPelsHeight;
-				OutTraceDW("GetDeviceCaps: fix(1) VERTRES cap=%d\n", res);
-				return res;
-			}
-			break;
 		}
 	}
 

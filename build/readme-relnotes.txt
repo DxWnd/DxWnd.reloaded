@@ -681,3 +681,28 @@ fix: catched several sporadic errors before they could crash the application
 fix: GetAttachedSurface() now retrieves a backbuffer from the list, instead of referencing the last one - this fixes "Tomb Raider III" GOG release in non emulated mode.
 add: "Normalize performance counter" flag to fix an improper use of QueryPerformanceCounter() made by "Cyber Gladiators"
 add: "GDI Color conversion" debug flag
+
+v2.03.07
+fix: key matching for virtual registry now made case insensitive (needed for "Die Hard Trilogy")
+fix: handling of null values passed to extRegQueryValueEx as lpType and lpData arguments (needed for "Die Hard Trilogy")
+fix: DirectDrawSurface::GetPalette returns the virtual palette when applied to virtual primary / backup surfaces (needed for "Die Hard Trilogy")
+fix: fixed dump for 8BPP palettized textures (needed for "Die Hard Trilogy")
+fix: handling (with no operation) of D3DFMT_Q8W8V8U8 texture type and other bumpmap formats (used by "Tiger Woods PGA Tour 08")
+fix: handling of LIMITRESOURCES flag for DirectDraw::GetCaps method when memory exceeds 0x70000000 bytes
+fix: handling of LIMITRESOURCES flag for Direct3DDevice::GetAvailableTextureMem method when memory exceeds 1GB
+fix: don't change screen resolution in SetDisplayMode when wrong (negative) values are passed. Fixes a problem in binkplayer.exe
+fix: fixed OutTrace to avoid possible infinite recursion when loading C runtime libraries and logging LoadLibrary activity
+fix: eliminated critical races when using DLL injection, thank to Luigi Auriemma's suggestion (inject an endless loop in the main thread and remove it at the end of injection)
+fix: implemented DLL injection according to Luigi Auriemma's schema in CreateProcess hooking routine (needed for "Die Hard Trilogy")
+fix: using MinHook library to acquire compatibility with all APIs
+fix: hooked GetExitCodeProcess to handle "SUPPRESSCHILD" special case
+fix: using hot patching for SystemParametersInfo APIs
+fix: in SystemParametersInfo suppressed invalid operations in window mode: SPI_SETKEYBOARDDELAY SPI_SETKEYBOARDSPEED
+add: son process handling with 4 different cases: 2 old cases (default case and "SUPPRESSCHILD") plus "INJECTSON" and "ENABLESONHOOK" to hook the son process without/with DLL injection
+add: debug color conversion mode through GDI routines
+add: multi-hooking for multiple processes contemporarily, adding the line "multiprocesshook=1" in [window] section of dxwnd.ini. Use at your own risk!
+add: partial logging of Direct3DDevice::GetDeviceCaps output (to be completed)
+add: handling of notes in the DxWnd GUI (configuration notes tab)
+mod: when log is not possible on program's folder, it is no longer written in %TEMP% dir, is now written in DxWnd local dir.
+
+

@@ -1507,6 +1507,14 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 			c2->dwCKeyCaps, ExplainDDCKeyCaps(c2->dwCKeyCaps));
 	}
 
+	if(dxw.dwFlags2 & LIMITRESOURCES){ // check for memory value overflow
+		const DWORD dwMaxMem = 0x70000000; 
+		if(c1->dwVidMemTotal > dwMaxMem) c1->dwVidMemTotal = dwMaxMem;
+		if(c1->dwVidMemFree  > dwMaxMem) c1->dwVidMemFree  = dwMaxMem;
+		if(c2->dwVidMemTotal > dwMaxMem) c2->dwVidMemTotal = dwMaxMem;
+		if(c2->dwVidMemFree  > dwMaxMem) c2->dwVidMemFree  = dwMaxMem;
+	}
+
 	if((dxw.dwFlags3 & FORCESHEL) && c1) {
 		DDCAPS_DX7 swcaps; // DDCAPS_DX7 because it is the bigger in size
 		int size;
@@ -1517,7 +1525,16 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 			c2=&swcaps;
 			res=(*pGetCapsD)(lpdd, NULL, c2);
 		}
+		DWORD dwVidMemTotal=c1->dwVidMemTotal;
+		DWORD dwVidMemFree=c1->dwVidMemFree;
 		memcpy((void *)c1, (void *)c2, size);
+#if 0
+		if(c1->dwVidMemTotal == 0) c1->dwVidMemTotal=0x40000000; // about 1GB - aqrit's suggestion
+		if(c1->dwVidMemFree  == 0) c1->dwVidMemFree =0x40000000; // about 1GB - aqrit's suggestion
+#else
+		if(c1->dwVidMemTotal == 0) c1->dwVidMemTotal=dwVidMemTotal; 
+		if(c1->dwVidMemFree  == 0) c1->dwVidMemFree =dwVidMemFree; 
+#endif
 	}
 
 	if(dxw.dwFlags3 & CAPMASK) MaskCapsD(c1, c2);
@@ -1902,7 +1919,8 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	}
 
 	if(dwLocalTexVersion) {
-		if(dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK)) TextureHandling((LPDIRECTDRAWSURFACE)lpdds);
+		// Texture Handling on QueryInterface
+		if(dxw.dwFlags5 & TEXTUREMASK) TextureHandling((LPDIRECTDRAWSURFACE)lpdds);
 		HookTexture(obp, dwLocalTexVersion);
 	}
 
@@ -1923,6 +1941,10 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 		if (version==2) OutTrace(" dwRefresh=%i dwFlags=%x\n", dwrefreshrate, dwflags);
 		else OutTrace("\n");
 	}
+
+	// binkplayer fix
+	if((int)dwwidth < 0) dwwidth = dxw.GetScreenWidth();
+	if((int)dwheight < 0) dwheight = dxw.GetScreenHeight();
 
 	dxw.SetScreenSize(dwwidth, dwheight);
 	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
@@ -3265,7 +3287,10 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 			if (lpddssrc) DescribeSurface(lpddssrc, 0, "[SRC]" , __LINE__); // lpddssrc could be NULL!!!
 		}
 		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
-		if(dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK)) TextureHandling(lpdds);
+		if(dxw.dwFlags5 & TEXTUREMASK) {
+			// Texture Handling on Blt
+			TextureHandling(lpdds);
+		}
 		return res;
 	}
 
@@ -3681,10 +3706,22 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 HRESULT WINAPI extGetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
 {
 	HRESULT res;
+	BOOL isPrim, isBack;
 
-	OutTraceDDRAW("GetPalette: lpdds=%x\n", lpdds);
+	isPrim=dxw.IsAPrimarySurface(lpdds);
+	isBack=dxw.IsABackBufferSurface(lpdds);
+	OutTraceDDRAW("GetPalette: lpdds=%x%s%s\n", lpdds, isPrim?"(PRIM)":"", isBack?"(BACK)":"");
 
 	res=(*pGetPalette)(lpdds, lplpddp);
+
+	// v2.03.07: in "Die Hard Trilogy" the backbuffer surface is queryed for the palette
+	if((dxw.dwFlags1 & EMULATESURFACE) && (res == DDERR_NOPALETTEATTACHED) && (isPrim||isBack)){
+		OutTraceDW("GetPalette: retrieve PRIMARY palette for emulated surface lpDDP=%x\n", lpDDP);
+		*lplpddp = lpDDP;
+		lpDDP->AddRef();
+		res=DD_OK;
+	}
+
 	if (res) OutTraceE("GetPalette: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	else OutTraceDDRAW("GetPalette: OK\n");
 	return res;
@@ -3938,7 +3975,10 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 
-	if((dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK)) && (!IsPrim)) TextureHandling(lpdds);
+	if((dxw.dwFlags5 & TEXTUREMASK) && (!IsPrim)) {
+		// Texture Handling on Unlock
+		TextureHandling(lpdds);
+	}
 	return res;
 }
 

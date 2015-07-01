@@ -166,6 +166,8 @@
 #define NORMALIZEPERFCOUNT	0x00020000 // Normalize Performance Counter to a Performance Frequency of 1MHz
 #define HYBRIDMODE			0x00040000 // ?????
 #define GDICOLORCONV		0x00080000 // do color conversion using GDI
+#define INJECTSON			0x00100000 // when starting a son process, inject dxwnd.dll at the beginning of execution
+#define ENABLESONHOOK		0x00200000 // forward hooking capability to son processes
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -232,6 +234,7 @@ typedef struct
 	int TimeShift;
 	short CursorX, CursorY;
 	PALETTEENTRY Palette[256];
+	BOOL AllowMultiTask;
 } DXWNDSTATUS;
 
 extern DXWNDSTATUS DxWndStatus;
@@ -244,6 +247,7 @@ int GetHookStatus(DXWNDSTATUS *);
 DXWNDSTATUS *GetHookInfo();
 void HookInit(TARGETMAP *, HWND);
 
+char *GetDxWndPath();
 void *SetHook(void *, void *);
 void SetHook(void *, void *, void **, char *);
 void OutTrace(const char *, ...);

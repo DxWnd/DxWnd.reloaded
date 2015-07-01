@@ -31,6 +31,7 @@ public:
 	int		m_DCEmulationMode;
 	int		m_MouseVisibility;
 	int		m_TextureHandling;
+	int		m_SonProcessMode;
 	BOOL	m_HookDI;
 	BOOL	m_ModifyMouse;
 	BOOL	m_OutProxyTrace;
@@ -66,6 +67,7 @@ public:
 	CString	m_Module;
 	CString	m_Title;
 	CString	m_OpenGLLib;
+	CString	m_Notes;
 	BOOL	m_SaveLoad;
 	BOOL	m_SlowDown;
 	BOOL	m_BlitFromBackBuffer;
@@ -164,7 +166,7 @@ public:
 	BOOL	m_FixRefCounter;
 	BOOL	m_ReturnNullRef;
 	BOOL	m_NoD3DReset;
-	BOOL	m_SuppressChild;
+	//BOOL	m_SuppressChild;
 	BOOL	m_HideDesktop;
 	BOOL	m_LockSysColors;
 	BOOL	m_SingleProcAffinity;

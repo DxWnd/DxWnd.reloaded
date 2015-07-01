@@ -5,6 +5,8 @@
 #include <conio.h>
 #include <stdio.h>
 
+#include <Winternl.h>
+
 #define WIN32_LEAN_AND_MEAN
 
 #define true 1
@@ -36,28 +38,35 @@ BOOL Inject(DWORD pID, const char * DLL_NAME)
 	return true;
 }
 
-DWORD GetTargetThreadIDFromProcName(const char * ProcName)
-{
-	PROCESSENTRY32 pe;
-	HANDLE thSnapShot;
-	BOOL retval, ProcFound = false;
-	thSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if(thSnapShot == INVALID_HANDLE_VALUE)
-	{
-		MessageBox(NULL, "Error: Unable to create toolhelp snapshot!", "2MLoader", MB_OK);
-		//printf("Error: Unable to create toolhelp snapshot!");
-		return false;
-	}
-	pe.dwSize = sizeof(PROCESSENTRY32);
-	retval = Process32First(thSnapShot, &pe);
-	while(retval)
-	{
-		if(StrStrI(pe.szExeFile, ProcName))
-		{
-			return pe.th32ProcessID;
-		}
-		retval = Process32Next(thSnapShot, &pe);
-	}
-	return 0;
-}
+#define STATUS_SUCCESS    ((NTSTATUS)0x000 00000L)
+#define ThreadQuerySetWin32StartAddress 9
 
+LPVOID GetThreadStartAddress(HANDLE hThread)
+{
+    NTSTATUS ntStatus;
+    HANDLE hDupHandle;
+	HMODULE hLibNTHandle;
+    LPVOID dwStartAddress;
+
+	typedef NTSTATUS (WINAPI *NtQueryInformationThread_Type)(HANDLE, THREADINFOCLASS, PVOID, ULONG, PULONG);
+	hLibNTHandle = GetModuleHandle("ntdll.dll");
+	if(!hLibNTHandle) return 0;
+	
+	NtQueryInformationThread_Type NtQueryInformationThread = 
+		(NtQueryInformationThread_Type)GetProcAddress(hLibNTHandle, "NtQueryInformationThread");
+
+    if(NtQueryInformationThread == NULL) return 0;
+
+    HANDLE hCurrentProcess = GetCurrentProcess();
+    if(!DuplicateHandle(hCurrentProcess, hThread, hCurrentProcess, &hDupHandle, THREAD_QUERY_INFORMATION, FALSE, 0)){
+        SetLastError(ERROR_ACCESS_DENIED);
+        return 0;
+    }
+
+    ntStatus = NtQueryInformationThread(hDupHandle, (THREADINFOCLASS)ThreadQuerySetWin32StartAddress, &dwStartAddress, sizeof(DWORD), NULL);
+    CloseHandle(hDupHandle);
+	CloseHandle(hLibNTHandle);
+    //if(ntStatus != STATUS_SUCCESS) return 0;
+
+    return dwStartAddress;
+}

@@ -54,8 +54,9 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
 	{HOOK_HOT_CANDIDATE, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
 	{HOOK_IAT_CANDIDATE, "IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
-	{HOOK_IAT_CANDIDATE, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
-	{HOOK_IAT_CANDIDATE, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
+	// hot by MinHook since v2.03.07
+	{HOOK_HOT_CANDIDATE, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
+	{HOOK_HOT_CANDIDATE, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
 	//{HOOK_HOT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
 	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)NULL, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	//{HOOK_IAT_CANDIDATE, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
@@ -245,7 +246,6 @@ int LastCurPosX, LastCurPosY;
 
 extern GetDC_Type pGetDC;
 extern ReleaseDC_Type pReleaseDC;
-extern DEVMODE *pSetDevMode;
 //extern void FixWindowFrame(HWND);
 extern HRESULT WINAPI sBlt(char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
 
@@ -411,18 +411,8 @@ void dxwFixMinMaxInfo(char *ApiName, HWND hwnd, LPARAM lParam)
 			lpmmi->ptMaxPosition.x, lpmmi->ptMaxPosition.y, lpmmi->ptMaxSize.x, lpmmi->ptMaxSize.y);
 		lpmmi->ptMaxPosition.x=0;
 		lpmmi->ptMaxPosition.y=0;
-		if(pSetDevMode){
-			lpmmi->ptMaxSize.x = pSetDevMode->dmPelsWidth;
-			lpmmi->ptMaxSize.y = pSetDevMode->dmPelsHeight;
-		}
-		else{
-			lpmmi->ptMaxSize.x = dxw.GetScreenWidth();
-			lpmmi->ptMaxSize.y = dxw.GetScreenHeight();
-		}
-
-		// allow for initial dimensions ....
-		//if(lpmmi->ptMaxSize.x < dxw.iSizX) lpmmi->ptMaxSize.x = dxw.iSizX;
-		//if(lpmmi->ptMaxSize.y < dxw.iSizY) lpmmi->ptMaxSize.y = dxw.iSizY;
+		lpmmi->ptMaxSize.x = dxw.GetScreenWidth();
+		lpmmi->ptMaxSize.y = dxw.GetScreenHeight();
 
 		OutTraceDW("%s: SET PREVENTMAXIMIZE MaxPosition=(%d,%d) MaxSize=(%d,%d)\n", ApiName, 
 			lpmmi->ptMaxPosition.x, lpmmi->ptMaxPosition.y, lpmmi->ptMaxSize.x, lpmmi->ptMaxSize.y);
@@ -1114,24 +1104,6 @@ int WINAPI extGetSystemMetrics(int nindex)
 		return res;
 	}
 
-	// if you have a bypassed setting, use it first!
-	if(pSetDevMode){
-		switch(nindex){
-		case SM_CXFULLSCREEN:
-		case SM_CXSCREEN:
-		case SM_CXVIRTUALSCREEN: // v2.02.31
-			res = pSetDevMode->dmPelsWidth;
-			OutTraceDW("GetDeviceCaps: fix HORZRES cap=%d\n", res);
-			return res;
-		case SM_CYFULLSCREEN:
-		case SM_CYSCREEN:
-		case SM_CYVIRTUALSCREEN: // v2.02.31
-			res = pSetDevMode->dmPelsHeight;
-			OutTraceDW("GetDeviceCaps: fix VERTRES cap=%d\n", res);
-			return res;
-		}
-	}
-
 	switch(nindex){
 	case SM_CXFULLSCREEN:
 	case SM_CXSCREEN:
@@ -1698,32 +1670,26 @@ LONG WINAPI extEnumDisplaySettings(LPCTSTR lpszDeviceName, DWORD iModeNum, DEVMO
 {
 	LONG res;
 	OutTraceDW("EnumDisplaySettings: Devicename=%s ModeNum=%x\n", lpszDeviceName, iModeNum);
-	if(pSetDevMode && iModeNum==ENUM_CURRENT_SETTINGS){
-		lpDevMode=pSetDevMode;
-		return 1;
-	}
-	else{
-		res=(*pEnumDisplaySettings)(lpszDeviceName, iModeNum, lpDevMode);
-		if(dxw.dwFlags4 & LIMITSCREENRES){
-			#define HUGE 100000
-			DWORD maxw, maxh;
-			maxw = maxh = HUGE;
-			switch(dxw.MaxScreenRes){
-				case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
-				case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
-				case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
-				case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
-				case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
-				case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
-			}
-			if((lpDevMode->dmPelsWidth > maxw) || (lpDevMode->dmPelsHeight > maxh)){
-				OutTraceDW("EnumDisplaySettings: limit device size=(%d,%d)\n", maxw, maxh);
-				lpDevMode->dmPelsWidth = maxw;
-				lpDevMode->dmPelsHeight = maxh;
-			}
+	res=(*pEnumDisplaySettings)(lpszDeviceName, iModeNum, lpDevMode);
+	if(dxw.dwFlags4 & LIMITSCREENRES){
+		#define HUGE 100000
+		DWORD maxw, maxh;
+		maxw = maxh = HUGE;
+		switch(dxw.MaxScreenRes){
+			case DXW_NO_LIMIT: maxw=HUGE; maxh=HUGE; break;
+			case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
+			case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
+			case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
+			case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
+			case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
 		}
-		return res;
+		if((lpDevMode->dmPelsWidth > maxw) || (lpDevMode->dmPelsHeight > maxh)){
+			OutTraceDW("EnumDisplaySettings: limit device size=(%d,%d)\n", maxw, maxh);
+			lpDevMode->dmPelsWidth = maxw;
+			lpDevMode->dmPelsHeight = maxh;
+		}
 	}
+	return res;
 }
 
 LONG WINAPI extChangeDisplaySettingsA(DEVMODEA *lpDevMode, DWORD dwflags)
@@ -2614,7 +2580,14 @@ BOOL WINAPI extIsWindowVisible(HWND hwnd)
 BOOL WINAPI extSystemParametersInfoA(UINT uiAction, UINT uiParam, PVOID pvParam, UINT fWinIni)
 {
 	BOOL ret;
-	OutTraceDW("SystemParametersInfo: Action=%x Param=%x WinIni=%x\n", uiAction, uiParam, fWinIni);
+	OutTraceDW("SystemParametersInfoA: Action=%x Param=%x WinIni=%x\n", uiAction, uiParam, fWinIni);
+	switch(uiAction){
+		case SPI_SETKEYBOARDDELAY:
+		case SPI_SETKEYBOARDSPEED:
+			OutTraceDW("SystemParametersInfoA: bypass action=%x\n", uiAction);
+			return TRUE;
+			break;
+	}
 	ret=(*pSystemParametersInfoA)(uiAction, uiParam, pvParam, fWinIni);
 	if(uiAction==SPI_GETWORKAREA){
 		LPRECT cli = (LPRECT)pvParam;
@@ -2622,7 +2595,7 @@ BOOL WINAPI extSystemParametersInfoA(UINT uiAction, UINT uiParam, PVOID pvParam,
 		cli->left = 0;
 		cli->bottom = dxw.GetScreenHeight();
 		cli->right = dxw.GetScreenWidth();
-		OutTraceDW("SystemParametersInfo: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
+		OutTraceDW("SystemParametersInfoA: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
 	}
 	return ret;
 }
@@ -2630,7 +2603,14 @@ BOOL WINAPI extSystemParametersInfoA(UINT uiAction, UINT uiParam, PVOID pvParam,
 BOOL WINAPI extSystemParametersInfoW(UINT uiAction, UINT uiParam, PVOID pvParam, UINT fWinIni)
 {
 	BOOL ret;
-	OutTraceDW("SystemParametersInfo: Action=%x Param=%x WinIni=%x\n", uiAction, uiParam, fWinIni);
+	OutTraceDW("SystemParametersInfoW: Action=%x Param=%x WinIni=%x\n", uiAction, uiParam, fWinIni);
+	switch(uiAction){
+		case SPI_SETKEYBOARDDELAY:
+		case SPI_SETKEYBOARDSPEED:
+			OutTraceDW("SystemParametersInfoW: bypass action=%x\n", uiAction);
+			return TRUE;
+			break;
+	}
 	ret=(*pSystemParametersInfoW)(uiAction, uiParam, pvParam, fWinIni);
 	if(uiAction==SPI_GETWORKAREA){
 		LPRECT cli = (LPRECT)pvParam;
@@ -2638,7 +2618,7 @@ BOOL WINAPI extSystemParametersInfoW(UINT uiAction, UINT uiParam, PVOID pvParam,
 		cli->left = 0;
 		cli->bottom = dxw.GetScreenHeight();
 		cli->right = dxw.GetScreenWidth();
-		OutTraceDW("SystemParametersInfo: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
+		OutTraceDW("SystemParametersInfoW: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
 	}
 	return ret;
 }

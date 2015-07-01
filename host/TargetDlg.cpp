@@ -52,7 +52,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_FixRefCounter = TRUE; // default true !!
 	m_ReturnNullRef = FALSE;
 	m_NoD3DReset = FALSE;
-	m_SuppressChild = FALSE;
+	//m_SuppressChild = FALSE;
 	m_HideDesktop = FALSE;
 	m_LockSysColors = FALSE;
 	m_ForceYUVtoRGB = FALSE;
@@ -193,6 +193,7 @@ BOOL CTargetDlg::OnInitDialog()
 	m_tabdxTabCtrl.InsertItem(i++, _T("Log"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Libs"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Compat"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Notes"));
 	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T("Debug"));
 #else
 	char sCaption[48+1];
@@ -213,6 +214,8 @@ BOOL CTargetDlg::OnInitDialog()
 	LoadString(AfxGetResourceHandle(), DXW_TAB_LIBS, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_COMPAT, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_NOTES, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_DEBUG, sCaption, sizeof(sCaption));
 	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));

@@ -9,6 +9,7 @@
 
 //#undef IsTraceDW
 //#define IsTraceDW TRUE
+#define LOCKINJECTIONTHREADS
 
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 
@@ -735,42 +736,145 @@ BOOL WINAPI extCreateProcessA(
 )
 {
 	BOOL res;
+#ifdef LOCKINJECTIONTHREADS
+	DWORD StartingCode;
+	LPVOID StartAddress = 0;
+	extern LPVOID GetThreadStartAddress(HANDLE);
+#endif
 	OutTraceDW("CreateProcess: ApplicationName=\"%s\" CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
 	if(dxw.dwFlags4 & SUPPRESSCHILD) {
 		OutTraceDW("CreateProcess: SUPPRESS\n");
-	return TRUE;
+		return TRUE;
+	}
+
+	if(dxw.dwFlags5 & (INJECTSON|ENABLESONHOOK)) {
+		extern HANDLE hLockMutex;
+		ReleaseMutex(hLockMutex);
+	}
+
+	if(dxw.dwFlags5 & INJECTSON) {
+		DEBUG_EVENT debug_event ={0};
+		char path[MAX_PATH];
+		extern char *GetFileNameFromHandle(HANDLE);
+		DWORD dwContinueStatus = DBG_CONTINUE;
+		extern BOOL Inject(DWORD, const char *);
+
+		//dwCreationFlags |= DEBUG_ONLY_THIS_PROCESS;
+		dwCreationFlags |= (DEBUG_ONLY_THIS_PROCESS|DEBUG_PROCESS);
+
+		res=(*pCreateProcessA)(
+			lpApplicationName, lpCommandLine,
+			lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+			dwCreationFlags, lpEnvironment,
+			lpCurrentDirectory, lpStartupInfo, lpProcessInformation
+		);
+		OutTrace("CreateProcess res=%x\n", res);
+		BOOL bContinueDebugging = TRUE;
+		while(bContinueDebugging)
+		{ 
+			if (!WaitForDebugEvent(&debug_event, INFINITE)) break;
+			switch(debug_event.dwDebugEventCode){
+			case EXIT_PROCESS_DEBUG_EVENT:
+				bContinueDebugging=false;
+				OutTrace("CreateProcess: process terminated\n", res);
+				break;
+			case CREATE_PROCESS_DEBUG_EVENT:
+				GetModuleFileName(GetModuleHandle("dxwnd"), path, MAX_PATH);
+				OutTrace("CreateProcess: injecting path=%s\n", path);
+				if(!Inject(lpProcessInformation->dwProcessId, path)){
+					OutTrace("CreateProcess: Injection ERROR pid=%x dll=%s\n", lpProcessInformation->dwProcessId, path);
+				}
+#ifdef LOCKINJECTIONTHREADS
+					extern LPVOID GetThreadStartAddress(HANDLE);
+					DWORD TargetHandle;
+					DWORD EndlessLoop;
+					EndlessLoop=0x9090FEEB;
+					SIZE_T BytesCount;
+					TargetHandle = (DWORD)OpenProcess(
+						PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, 
+						FALSE, 
+						lpProcessInformation->dwProcessId);
+					if(TargetHandle){
+						StartAddress = GetThreadStartAddress(lpProcessInformation->hThread);
+						OutTrace("CreateProcess: StartAddress=%x\n", StartAddress);
+						if(StartAddress){
+							if(!ReadProcessMemory(lpProcessInformation->hProcess, StartAddress, &StartingCode, 4, &BytesCount)){ 
+								OutTrace("CreateProcess: ReadProcessMemory error=%d\n", GetLastError());
+							}
+							OutTrace("CreateProcess: StartCode=%x\n", StartingCode);
+							if(!WriteProcessMemory(lpProcessInformation->hProcess, StartAddress, &EndlessLoop, 4, &BytesCount)){
+								OutTrace("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
+							}
+						}
+					}
+#endif				OutTrace("CreateProcess: injection terminated\n", res);
+				break;
+			case EXIT_THREAD_DEBUG_EVENT:
+#ifdef LOCKINJECTIONTHREADS
+				if(TargetHandle && StartAddress){
+					if(!WriteProcessMemory(lpProcessInformation->hProcess, StartAddress, &StartingCode, 4, &BytesCount)){
+						OutTrace("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
+					}
+					CloseHandle((HANDLE)TargetHandle);
+				}
+#endif
+				bContinueDebugging=false;
+			default:
+				break;
+			}
+			if(bContinueDebugging){
+				ContinueDebugEvent(debug_event.dwProcessId, 
+					debug_event.dwThreadId, 
+					dwContinueStatus);
+			}
+			else{
+				DebugSetProcessKillOnExit(FALSE);
+				ContinueDebugEvent(debug_event.dwProcessId, debug_event.dwThreadId, DBG_CONTINUE); 
+				DebugActiveProcessStop(debug_event.dwProcessId);
+			}
+		}
+		OutTrace("CreateProcess: detached\n", res);
+	}
+	else{
+		res=(*pCreateProcessA)(
+			lpApplicationName, 
+			lpCommandLine, 
+			lpProcessAttributes,
+			lpThreadAttributes,
+			bInheritHandles,
+			dwCreationFlags,
+			lpEnvironment,
+			lpCurrentDirectory,
+			lpStartupInfo,
+			lpProcessInformation
+		);
+	}
+
+	if(!res) OutTraceE("CreateProcess: ERROR err=%d\n", GetLastError());
+	return res;
 }
 
-#if 0
-	// useless: DxWnd should hook to two processes contemporarily ....
-	// problem: binkplay seems to detect the screen actual size 
-	if(TRUE){
-		// get rid of /R option from binkplay argument line
-		if(!strncmp(lpCommandLine, "binkplay.exe ", strlen("binkplay.exe "))){
-			char *rCommand;
-			rCommand = strstr(lpCommandLine, "/R ");
-			if(rCommand) memset(rCommand, ' ', strlen("/R "));
-			OutTraceDW("CreateProcess: ApplicationName=\"%s\" CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
+BOOL WINAPI extGetExitCodeProcess(HANDLE hProcess, LPDWORD lpExitCode)
+{
+	BOOL res;
+
+	OutTraceDW("GetExitCodeProcess: hProcess=%x\n", hProcess);
+
+	if(dxw.dwFlags4 & SUPPRESSCHILD) {
+		OutTraceDW("GetExitCodeProcess: FAKE exit code=0\n");
+		lpExitCode = 0;
+		return TRUE;
+	}
+
+	res=(*pGetExitCodeProcess)(hProcess, lpExitCode);
+	if(dxw.dwFlags5 & (INJECTSON|ENABLESONHOOK)) {
+		if(*lpExitCode != STILL_ACTIVE){
+			OutTraceDW("GetExitCodeProcess: locking mutex\n");
+			extern HANDLE hLockMutex;
+			WaitForSingleObject(hLockMutex, 0);
 		}
 	}
-#endif
-
-//#define RELEASEHOOKTOSONPROCESS TRUE
-//	extern void UnhookProc();
-//	if(RELEASEHOOKTOSONPROCESS) UnhookProc();
-	res=(*pCreateProcessA)(
-		lpApplicationName, 
-		lpCommandLine, 
-		lpProcessAttributes,
-		lpThreadAttributes,
-		bInheritHandles,
-		dwCreationFlags,
-		lpEnvironment,
-		lpCurrentDirectory,
-		lpStartupInfo,
-		lpProcessInformation
-	);
-	if(!res) OutTraceE("CreateProcess: ERROR err=%d\n", GetLastError());
+	OutTraceDW("GetExitCodeProcess: hProcess=%x ExitCode=%x res=%x\n", hProcess, *lpExitCode, res);
 	return res;
 }
 

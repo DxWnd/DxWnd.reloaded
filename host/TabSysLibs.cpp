@@ -40,6 +40,9 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 
 	// MCI
 	DDX_Check(pDX, IDC_REMAPMCI, cTarget->m_RemapMCI);
+
+	// Kernel32
+	DDX_Radio(pDX, IDC_SONDEFAULT, cTarget->m_SonProcessMode);
 }
 
 BEGIN_MESSAGE_MAP(CTabSysLibs, CDialog)

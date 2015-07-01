@@ -1,0 +1,69 @@
+
+[HKEY_LOCAL_MACHINE]
+[HKEY_LOCAL_MACHINE\SOFTWARE]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard]
+"Install Directory"="d:\\games\\Die Hard Trilogy"
+"FMV Installed"=dword:00000000
+"Data Installed"=dword:00000001
+"Abnormal Termination"=dword:00000000
+"StartupFolder"="Fox Interactive"
+"Version"="1.00"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\Configuration]
+"complexity"=dword:00000000
+"cutoff"=dword:00000000
+"perspective"=dword:00000000
+"Quality"=dword:00000000
+"Use Hardware"=dword:00000000
+"Preferred Height"=dword:00000258
+"Preferred Width"=dword:00000320
+"lighting"=dword:00000001
+"texture quality"=dword:00000000
+"Language"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d1]
+"Input"=dword:00000000
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d1\Keyboard]
+"keyboard"=dword:00000001
+"speed"=dword:00000000
+"sensitivity"=dword:00000000
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d1\Joystick]
+"joystick"=dword:00000001
+"speed"=dword:00000000
+"sensitivity"=dword:00000000
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d1\Mouse]
+"mouse"=dword:00000001
+"speed"=dword:00000000
+"sensitivity"=dword:00000000
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2]
+"Input"=dword:00000000
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Keyboard]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Keyboard\speed]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Keyboard\sensitivity]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Joystick]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Joystick\speed]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Joystick\sensitivity]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Mouse]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Mouse\speed]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d2\Mouse\sensitivity]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3]
+"Input"=dword:00000000
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Keyboard]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Keyboard\speed]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Keyboard\sensitivity]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Joystick]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Joystick\speed]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Joystick\sensitivity]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Mouse]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Mouse\speed]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\d3\Mouse\sensitivity]
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Die Hard\Sound]
+"Music Volume"=dword:000000ff
+"Music Mute"=dword:00000000
+"SFX Volume"=dword:000000ff
+"SFX Mute"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Fox Interactive]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Fox Interactive\Die Hard Trilogy]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Fox Interactive\Die Hard Trilogy\1.0]

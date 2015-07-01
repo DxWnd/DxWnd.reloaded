@@ -20,6 +20,7 @@
 #include "Winnls32.h"
 #include "Mmsystem.h"
 #include "disasm.h"
+#include "MinHook.h" 
 
 #define SKIPIMEWINDOW TRUE
 
@@ -41,8 +42,6 @@ extern void *IATPatch(HMODULE, char *, void *, const char *, void *);
 void HookModule(HMODULE, int);
 static void RecoverScreenMode();
 static void LockScreenMode(DWORD, DWORD, DWORD);
-DEVMODE SetDevMode;
-DEVMODE *pSetDevMode=NULL;
 
 extern HANDLE hTraceMutex;
 
@@ -97,8 +96,8 @@ static char *Flag5Names[32]={
 	"NOBLT", "NOSYSTEMEMULATED", "DOFASTBLT", "AEROBOOST",
 	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
 	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
-	"TEXTURETRANSP", "", "", "",
-	"", "", "", "",
+	"TEXTURETRANSP", "NORMALIZEPERFCOUNT", "HYBRIDMODE", "GDICOLORCONV",
+	"INJECTSON", "ENABLESONHOOK", "", "",
 	"", "", "", "",
 	"", "", "", "",
 };
@@ -113,6 +112,26 @@ static char *TFlagNames[32]={
 	"", "", "", "",
 	"", "", "", "",
 };
+
+char *GetDxWndPath()
+{
+	static BOOL DoOnce = TRUE;
+	static char sFolderPath[MAX_PATH];
+
+	if(DoOnce){
+		DWORD dwAttrib;		
+		dwAttrib = GetFileAttributes("dxwnd.dll");
+		if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
+			MessageBox(0, "DXWND: ERROR can't locate itself", "ERROR", MB_OK | MB_ICONEXCLAMATION);
+			exit(0);
+		}
+		GetModuleFileName(GetModuleHandle("dxwnd"), sFolderPath, MAX_PATH);
+		sFolderPath[strlen(sFolderPath)-strlen("dxwnd.dll")] = 0; // terminate the string just before "dxwnd.dll"
+		DoOnce = FALSE;
+	}
+
+	return sFolderPath;
+}
 
 static void OutTraceHeader(FILE *fp)
 {
@@ -139,9 +158,12 @@ void OutTrace(const char *format, ...)
 	va_list al;
 	static char path[MAX_PATH];
 	static FILE *fp=NULL; // GHO: thread safe???
+	DWORD tFlags;
 
 	// check global log flag
 	if(!(dxw.dwTFlags & OUTTRACE)) return;
+	tFlags = dxw.dwTFlags;
+	dxw.dwTFlags = 0x0; // to avoid possible log recursion while loading C runtime libraries!!!
 
 	WaitForSingleObject(hTraceMutex, INFINITE);
 	if (fp == NULL){
@@ -149,14 +171,12 @@ void OutTrace(const char *format, ...)
 		strcat(path, "\\dxwnd.log");
 		fp = fopen(path, "a+");
 		if (fp==NULL){ // in case of error (e.g. current dir on unwritable CD unit)... 
-			strcpy(path, getenv("TEMP"));
+			strcpy(path, GetDxWndPath());
 			strcat(path, "\\dxwnd.log");
 			fp = fopen(path, "a+");
 		}
-		if (fp==NULL){ // last chance: do not log... 
-			dxw.dwTFlags &= ~OUTTRACE; // turn flag OFF
-			return;
-		}
+		if (fp==NULL)
+			return; // last chance: do not log... 
 		else 
 			OutTraceHeader(fp);
 	}
@@ -166,6 +186,7 @@ void OutTrace(const char *format, ...)
 	ReleaseMutex(hTraceMutex);
 
 	fflush(fp); 
+	dxw.dwTFlags = tFlags; // restore settings
 }
 
 #ifdef CHECKFORCOMPATIBILITYFLAGS

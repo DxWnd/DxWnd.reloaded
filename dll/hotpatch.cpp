@@ -5,12 +5,47 @@
 // 1 = already patched
 // addr = address of the original function
 
+#define USEMINHOOK
+
 #include <windows.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
+#ifdef USEMINHOOK
+#include "MinHook.h"
+#endif
 
 void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 {
+#ifdef USEMINHOOK
+	void *pProc;
+	static BOOL DoOnce = TRUE;
+
+	if(DoOnce){
+		if (MH_Initialize() != MH_OK) {
+			OutTraceE("HotPatch: MH_Initialize FAILED\n");
+			// What to do here? No recovery action ...
+			return 0;
+		}
+		DoOnce = FALSE;
+	}
+
+	OutTraceH("HotPatch: api=%s addr=%x hook=%x\n", apiname, apiproc, hookproc);
+	
+	if(!strcmp(apiname, "GetProcAddress")) return 0; // do not mess with this one!
+
+	if (MH_CreateHook(apiproc, hookproc, reinterpret_cast<void**>(&pProc)) != MH_OK){
+		OutTraceH("HotPatch: MH_CreateHook FAILED\n");
+        return 0;
+	}
+
+	if (MH_EnableHook(apiproc) != MH_OK){
+		OutTraceH("HotPatch: MH_EnableHook FAILED\n");
+        return 0;
+	}
+
+	OutTrace("HotPatch: api=%s addr=%x->%x hook=%x\n", apiname, apiproc, pProc, hookproc);
+	return pProc;
+#else
 	DWORD dwPrevProtect;
 	BYTE* patch_address;
 	void *orig_address;
@@ -62,4 +97,5 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
 	OutTrace("HotPatch: api=%s addr=%x->%x hook=%x\n", apiname, apiproc, orig_address, hookproc);
 	return orig_address;
+#endif
 }

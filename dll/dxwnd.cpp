@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <windows.h>
 #include <stdlib.h>
@@ -24,10 +25,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define VERSION "2.03.06"
-#define DXWACTIVATESINGLETASK 1 // comment to allow multiple task activations
+#include "TlHelp32.h"
+
+#define VERSION "2.03.07"
 
 #define DDTHREADLOCK 1
+//#define LOCKTHREADS
 
 LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam);
 
@@ -60,12 +63,46 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
 
     if(dwreason != DLL_PROCESS_ATTACH) return TRUE;
 
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST); // trick to reduce concurrency problems at program startup
+
+#ifdef LOCKTHREADS
+	DWORD currentPID = GetCurrentProcessId();
+	DWORD currentTID = GetCurrentThreadId();
+	if(currentTID && currentPID){
+		int ThreadCount=0;
+		HANDLE hThreadSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, NULL);
+		if(hThreadSnapshot != INVALID_HANDLE_VALUE){
+			DWORD result = 0;
+			THREADENTRY32 tEntry;
+			tEntry.dwSize = sizeof(THREADENTRY32);		
+			for (BOOL success = Thread32First(hThreadSnapshot, &tEntry);
+				!result && success && GetLastError() != ERROR_NO_MORE_FILES;
+				success = Thread32Next(hThreadSnapshot, &tEntry)){
+				if ((tEntry.th32ThreadID != currentTID) && (tEntry.th32OwnerProcessID == currentPID)){
+					HANDLE th;
+					th=OpenThread(THREAD_SUSPEND_RESUME, FALSE, tEntry.th32ThreadID);
+					ThreadCount++;
+					SuspendThread(th);
+					CloseHandle(th);
+				}
+			}
+			CloseHandle(hThreadSnapshot);
+			//char sMsg[81];
+			//sprintf(sMsg,"suspended threads=%d", ThreadCount);
+			//MessageBox(0, sMsg, "info", MB_OK | MB_ICONEXCLAMATION);
+		}
+	}
+#endif
+
 	hInst = (HINSTANCE)hmodule;
 	// optimization: disables DLL_THREAD_ATTACH and DLL_THREAD_DETACH notifications for the specified DLL
 	DisableThreadLibraryCalls((HMODULE)hmodule);
 	hMapping = CreateFileMapping((HANDLE)0xffffffff, NULL, PAGE_READWRITE,
 		0, sizeof(DxWndStatus)+sizeof(TARGETMAP)*MAXTARGETS, "UniWind_TargetList");
-	if(!hMapping) return false;
+	if(!hMapping) {
+		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
+		return false;
+	}
 	// v2.0.2.75: beware: some tasks (namely, Flash player) get dxwnd.dll loaded, but can't create the file mapping
 	// this situation has to be intercepted, or it can cause the dll to cause faults that may crash the program.
 	pStatus = (DXWNDSTATUS *)MapViewOfFile(hMapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(DXWNDSTATUS)+sizeof(TARGETMAP)*MAXTARGETS);
@@ -82,7 +119,44 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
 		if(!hDDLockMutex) hDDLockMutex = CreateMutex(0, FALSE, "DDLock_Mutex");
 	}
 	InjectHook();
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
+
+#ifdef LOCKTHREADS
+	if(currentTID && currentPID){
+		int ThreadCount=0;
+		HANDLE hThreadSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, NULL);
+		if(hThreadSnapshot != INVALID_HANDLE_VALUE){
+			DWORD result = 0;
+			THREADENTRY32 tEntry;
+			tEntry.dwSize = sizeof(THREADENTRY32);		
+			for (BOOL success = Thread32First(hThreadSnapshot, &tEntry);
+				!result && success && GetLastError() != ERROR_NO_MORE_FILES;
+				success = Thread32Next(hThreadSnapshot, &tEntry)){
+				if ((tEntry.th32ThreadID != currentTID) && (tEntry.th32OwnerProcessID == currentPID)){
+					HANDLE th;
+					th=OpenThread(THREAD_SUSPEND_RESUME, FALSE, tEntry.th32ThreadID);
+					ThreadCount++;
+					ResumeThread(th);
+					CloseHandle(th);
+				}
+			}
+			CloseHandle(hThreadSnapshot);
+			//char sMsg[81];
+			//sprintf(sMsg,"resumed threads=%d", ThreadCount);
+			//MessageBox(0, sMsg, "info", MB_OK | MB_ICONEXCLAMATION);
+		}
+	}
+#endif
+
 	return true;
+}
+
+static BOOL GetMultiTaskEnabling(){
+	char inipath[MAX_PATH];
+	GetModuleFileName(GetModuleHandle("dxwnd"), inipath, MAX_PATH);
+	inipath[strlen(inipath)-strlen("dxwnd.dll")] = 0; // terminate the string just before "dxwnd.dll"
+	strcat(inipath, "dxwnd.ini");
+	return GetPrivateProfileInt("window", "multiprocesshook", 0, inipath);
 }
 
 int SetTarget(TARGETMAP *targets){
@@ -97,6 +171,7 @@ int SetTarget(TARGETMAP *targets){
 	memset((void *)&(pStatus->pfd), 0, sizeof(DDPIXELFORMAT));
 	pStatus->Height = pStatus->Width = 0;
 	pStatus->DXVersion = 0;
+	pStatus->AllowMultiTask=GetMultiTaskEnabling();
 	for(i = 0; targets[i].path[0]; i ++){
 		//OutTraceDW("SetTarget entry %s\n",pMapping[i].path);
 		pMapping[i] = targets[i];
@@ -193,14 +268,15 @@ LRESULT CALLBACK HookProc(int ncode, WPARAM wparam, LPARAM lparam)
 				// no good trying to insert fancy dialog boxes: the window
 				// isn't ready yet, and the operation fails.
 
-#ifdef DXWACTIVATESINGLETASK
-				if(WaitForSingleObject(hLockMutex, 0)==WAIT_TIMEOUT){
-					ReleaseMutex(hMutex);
-					exit(0);
+				// V2.03.07: allow multiple process hooking depending on config
+				if(!(pStatus->AllowMultiTask)){
+					if(WaitForSingleObject(hLockMutex, 0)==WAIT_TIMEOUT){
+						ReleaseMutex(hMutex);
+						exit(0);
+					}
 				}
-#else
-				WaitForSingleObject(hLockMutex, 0);
-#endif				
+				else
+					WaitForSingleObject(hLockMutex, 0);
 
 				pStatus->Status=DXW_RUNNING;
 				pStatus->TaskIdx=i;

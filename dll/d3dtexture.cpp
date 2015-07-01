@@ -217,6 +217,16 @@ void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 			case D3DFMT_DXT5: 
 				hash = HashSurface((BYTE *)LockedRect.pBits, LockedRect.Pitch / 4, Desc.Width / 4, Desc.Height); 
 				break;
+			case D3DFMT_V8U8:
+			case D3DFMT_Q8W8V8U8: // Tiger Woods PGA Tour 08
+			case D3DFMT_V16U16:
+			case D3DFMT_Q16W16V16U16:
+			case D3DFMT_CxV8U8:
+			case D3DFMT_L6V5U5:
+			case D3DFMT_X8L8V8U8:
+			case D3DFMT_A2W10V10U10:
+				// Bumpmap surfaces, dump is meaningless .....
+				break;
 			default:
 				char sMsg[80+1];
 				static BOOL DoOnce = TRUE;

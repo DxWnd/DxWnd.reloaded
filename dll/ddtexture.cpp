@@ -21,26 +21,6 @@ extern int Set_dwSize_From_Surface(LPDIRECTDRAWSURFACE);
 
 #define GRIDSIZE 16
 
-char *GetDxWndPath()
-{
-	static BOOL DoOnce = TRUE;
-	static char sFolderPath[MAX_PATH];
-
-	if(DoOnce){ // first time through, build the texture dir if not done yet
-		DWORD dwAttrib;		
-		dwAttrib = GetFileAttributes("dxwnd.dll");
-		if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-			MessageBox(0, "DXWND: ERROR can't locate itself", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-			exit(0);
-		}
-		GetModuleFileName(GetModuleHandle("dxwnd"), sFolderPath, MAX_PATH);
-		sFolderPath[strlen(sFolderPath)-strlen("dxwnd.dll")] = 0; // terminate the string just before "dxwnd.dll"
-		DoOnce = FALSE;
-	}
-
-	return sFolderPath;
-}
-
 /* RS Hash Function */
 
 static unsigned int Hash(BYTE *buf, int len)
@@ -76,6 +56,9 @@ static char *SurfaceType(DDPIXELFORMAT ddpfPixelFormat)
 	char sColorType[21];
 	DWORD mask;
 	int i, count;
+
+	if(ddpfPixelFormat.dwRGBBitCount == 8) return "RGB8";
+
 	strcpy(sSurfaceType, "");
 	// red
 	mask=ddpfPixelFormat.dwRBitMask;
@@ -251,9 +234,11 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		pbi.bV4Height = - pbi.bV4Height;
 		pbi.bV4Planes = 1;
 		pbi.bV4V4Compression = BI_BITFIELDS;
+		if(pbi.bV4BitCount == 8) pbi.bV4V4Compression = BI_RGB;
 		pbi.bV4XPelsPerMeter = 1;
 		pbi.bV4YPelsPerMeter = 1;
 		pbi.bV4ClrUsed = 0;
+		if(pbi.bV4BitCount == 8) pbi.bV4ClrUsed = 256;
 		pbi.bV4ClrImportant = 0;
 		pbi.bV4RedMask = ddsd.ddpfPixelFormat.dwRBitMask;
 		pbi.bV4GreenMask = ddsd.ddpfPixelFormat.dwGBitMask;
@@ -288,8 +273,22 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		// Copy the BITMAPFILEHEADER into the .BMP file.  
 		fwrite((LPVOID)&hdr, sizeof(BITMAPFILEHEADER), 1, hf);
 
-		// Copy the BITMAPINFOHEADER and RGBQUAD array into the file.  
-		fwrite((LPVOID)&pbi, sizeof(BITMAPV4HEADER) + pbi.bV4ClrUsed * sizeof (RGBQUAD), 1, hf);
+		// Copy the BITMAPINFOHEADER array into the file.  
+		fwrite((LPVOID)&pbi, sizeof(BITMAPV4HEADER), 1, hf);
+
+		// Copy the RGBQUAD array into the file.  
+		if(pbi.bV4ClrUsed){
+			//DWORD PaletteEntries[256];
+			//LPDIRECTDRAWSURFACE lpDDS=NULL;
+			//LPDIRECTDRAWPALETTE lpDDP=NULL;
+			//lpDDS=dxw.GetPrimarySurface();
+			//if(lpDDS) lpDDS->GetPalette(&lpDDP);
+			//if(lpDDP) lpDDP->GetEntries(0, 0, 256, (LPPALETTEENTRY)PaletteEntries);
+			//for(int i=0; i<256; i++) PaletteEntries[i]=0xff0000;
+			extern DWORD PaletteEntries[256];
+			fwrite((LPVOID)PaletteEntries, pbi.bV4ClrUsed * sizeof (RGBQUAD), 1, hf);
+			//fwrite((LPBYTE)PaletteEntries, pbi.bV4ClrUsed * sizeof (RGBQUAD), 1, hf);
+		}
 
 		// Copy the array of color indices into the .BMP file.  
 		for(int y=0; y<(int)ddsd.dwHeight; y++)

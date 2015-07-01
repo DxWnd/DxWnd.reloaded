@@ -91,6 +91,7 @@ DisableD3DSpy_Type pDisableD3DSpy = 0;
 
 // IDirect3DDevice8/9 methods
 
+typedef UINT	(WINAPI *GetAvailableTextureMem_Type)(void *);
 typedef HRESULT (WINAPI *TestCooperativeLevel_Type)(void *);
 typedef HRESULT (WINAPI *GetDirect3D8_Type)(void *, void **);
 typedef HRESULT (WINAPI *GetDirect3D9_Type)(void *, void **);
@@ -110,6 +111,7 @@ typedef HRESULT (WINAPI *CreateTexture8_Type)(void *, UINT, UINT, UINT, DWORD, D
 typedef HRESULT (WINAPI *CreateTexture9_Type)(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **, HANDLE *);
 typedef HRESULT (WINAPI *CopyRects_Type)(void *, void *, CONST RECT *, UINT, void *, CONST POINT *);
 
+UINT	WINAPI extGetAvailableTextureMem(void *);
 HRESULT WINAPI extTestCooperativeLevel(void *);
 HRESULT WINAPI extGetDirect3D8(void *, void **);
 HRESULT WINAPI extGetDirect3D9(void *, void **);
@@ -130,6 +132,7 @@ HRESULT WINAPI extCreateTexture8(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3D
 HRESULT WINAPI extCreateTexture9(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **, HANDLE *);
 HRESULT WINAPI extCopyRects(void *, void *, CONST RECT *, UINT, void *, CONST POINT *);
 
+GetAvailableTextureMem_Type pGetAvailableTextureMem = 0;
 TestCooperativeLevel_Type pTestCooperativeLevel = 0;
 GetDirect3D8_Type pGetDirect3D8 = 0;
 GetDirect3D9_Type pGetDirect3D9 = 0;
@@ -195,7 +198,6 @@ HRESULT WINAPI extQueryInterfaceD3D8(void *, REFIID, void** );
 HRESULT WINAPI extQueryInterfaceDev8(void *, REFIID, void** );
 HRESULT WINAPI extQueryInterfaceD3D9(void *, REFIID, void** );
 HRESULT WINAPI extQueryInterfaceDev9(void *, REFIID, void** );
-
 
 HRESULT WINAPI extEnumAdapterModes8(void *, UINT, UINT , D3DDISPLAYMODE *);
 HRESULT WINAPI extEnumAdapterModes9(void *, UINT, D3DFORMAT, UINT , D3DDISPLAYMODE *);
@@ -361,7 +363,7 @@ int HookDirect3D(HMODULE module, int version){
 	ID3D11Device *lpd3d11;
 	HRESULT res;
 
-	OutTrace("HookDirect3D: module=%x version=%d\n", module, version);
+	OutTraceDW("HookDirect3D: module=%x version=%d\n", module, version);
 	switch(version){
 	case 0:
 		HookLibrary(module, d3d8Hooks, "d3d8.dll");
@@ -434,6 +436,8 @@ void HookD3DDevice8(void** ppD3Ddev8)
 {
 	OutTraceD3D("Device hook for IID_IDirect3DDevice8 interface\n");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 +  0), extQueryInterfaceDev8, (void **)&pQueryInterfaceDev8, "QueryInterface(D8)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 12), extTestCooperativeLevel, (void **)&pTestCooperativeLevel, "TestCooperativeLevel(D8)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 16), extGetAvailableTextureMem, (void **)&pGetAvailableTextureMem, "GetAvailableTextureMem(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 24), extGetDirect3D8, (void **)&pGetDirect3D8, "GetDirect3D(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 32), extGetDisplayMode8, (void **)&pGetDisplayMode8, "GetDisplayMode(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 44), extSetCursorPosition8, (void **)&pSetCursorPosition8, "SetCursorPosition(D8)");
@@ -472,6 +476,8 @@ void HookD3DDevice9(void** ppD3Ddev9)
 {
 	OutTraceD3D("Device hook for IID_IDirect3DDevice9 interface\n");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  0), extQueryInterfaceDev9, (void **)&pQueryInterfaceDev9, "QueryInterface(D9)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 12), extTestCooperativeLevel, (void **)&pTestCooperativeLevel, "TestCooperativeLevel(D9)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 16), extGetAvailableTextureMem, (void **)&pGetAvailableTextureMem, "GetAvailableTextureMem(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 24), extGetDirect3D9, (void **)&pGetDirect3D9, "GetDirect3D(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 32), extGetDisplayMode9, (void **)&pGetDisplayMode9, "GetDisplayMode(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 44), extSetCursorPosition9, (void **)&pSetCursorPosition9, "SetCursorPosition(D9)");
@@ -508,9 +514,6 @@ void HookD3DDevice9(void** ppD3Ddev9)
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  4), extAddRef9, (void **)&pAddRef9, "AddRef(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  8), extRelease9, (void **)&pRelease9, "Release(D9)");
-	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 12), extTestCooperativeLevel, (void **)&pTestCooperativeLevel, "TestCooperativeLevel(D9)");
-	
-
 }
 
 // WIP
@@ -1708,70 +1711,170 @@ HRESULT WINAPI voidDirect3DShaderValidatorCreate9(void)
 
 HRESULT WINAPI extRegisterSoftwareDevice(void *lpd3d, void *pInitializeFunction)
 {
-	OutTrace("RegisterSoftwareDevice: d3d=%x\n", lpd3d);
+	OutTraceD3D("RegisterSoftwareDevice: d3d=%x\n", lpd3d);
 	return (*pRegisterSoftwareDevice)(lpd3d, pInitializeFunction);
 }
 
 UINT WINAPI extGetAdapterModeCount(void *lpd3d, UINT Adapter, D3DFORMAT Format) 
 {
-	OutTrace("GetAdapterModeCount: d3d=%x adapter=%d\n", lpd3d, Adapter);
+	OutTraceD3D("GetAdapterModeCount: d3d=%x adapter=%d\n", lpd3d, Adapter);
 	return (*pGetAdapterModeCount)(lpd3d, Adapter, Format);
 }
 
 HRESULT WINAPI extCheckDeviceType(void *lpd3d, UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
 {
-	OutTrace("CheckDeviceType: d3d=%x adapter=%d windowed=%x\n", lpd3d, Adapter, bWindowed);
+	OutTraceD3D("CheckDeviceType: d3d=%x adapter=%d windowed=%x\n", lpd3d, Adapter, bWindowed);
 	return (*pCheckDeviceType)(lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed);
 }
 
 HRESULT WINAPI extCheckDeviceFormat(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, DWORD Usage, D3DRESOURCETYPE RType, D3DFORMAT CheckFormat)
 {
-	OutTrace("CheckDeviceFormat: d3d=%x adapter=%d\n", lpd3d, Adapter);
+	OutTraceD3D("CheckDeviceFormat: d3d=%x adapter=%d\n", lpd3d, Adapter);
 	return (*pCheckDeviceFormat)(lpd3d, Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
 }
 
 HRESULT WINAPI extCheckDeviceMultiSampleType(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SurfaceFormat, BOOL Windowed, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD *pQualityLevels)
 {
-	OutTrace("CheckDeviceMultiSampleType: d3d=%x adapter=%d windowed=%x\n", lpd3d, Adapter, Windowed);
+	OutTraceD3D("CheckDeviceMultiSampleType: d3d=%x adapter=%d windowed=%x\n", lpd3d, Adapter, Windowed);
 	return (*pCheckDeviceMultiSampleType)(lpd3d, Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, pQualityLevels);
 }
 
 HRESULT WINAPI extCheckDepthStencilMatch(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, D3DFORMAT RenderTargetFormat, D3DFORMAT DepthStencilFormat) 
 {
-	OutTrace("CheckDepthStencilMatch: d3d=%x adapter=%d\n", lpd3d, Adapter);
+	OutTraceD3D("CheckDepthStencilMatch: d3d=%x adapter=%d\n", lpd3d, Adapter);
 	return (*pCheckDepthStencilMatch)(lpd3d, Adapter, DeviceType, AdapterFormat, RenderTargetFormat, DepthStencilFormat);
 }
 
 HRESULT WINAPI extCheckDeviceFormatConversion(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SourceFormat, D3DFORMAT TargetFormat)
 {
-	OutTrace("CheckDeviceFormatConversion: d3d=%x adapter=%d\n", lpd3d, Adapter);
+	OutTraceD3D("CheckDeviceFormatConversion: d3d=%x adapter=%d\n", lpd3d, Adapter);
 	return (*pCheckDeviceFormatConversion)(lpd3d, Adapter, DeviceType, SourceFormat, TargetFormat);
+}
+
+static char *ExplainD3D9DeviceType(D3DDEVTYPE DeviceType)
+{
+	char *s;
+	switch(DeviceType){
+		case D3DDEVTYPE_HAL: s="HAL"; break;
+		case D3DDEVTYPE_NULLREF: s="NULLREF"; break;
+		case D3DDEVTYPE_REF: s="REF"; break;
+		case D3DDEVTYPE_SW: s="SW"; break;
+		default: s="unknown"; break;
+	}
+	return s;
 }
 
 HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps)
 {
-	OutTrace("GetDeviceCaps: d3d=%x adapter=%d\n", lpd3d, Adapter);
-	return (*pD3DGetDeviceCaps)(lpd3d, Adapter, DeviceType, pCaps);
+	HRESULT res;
+	OutTraceD3D("GetDeviceCaps: d3d=%x adapter=%d devtype=%x(%s)\n", lpd3d, Adapter, DeviceType, ExplainD3D9DeviceType(DeviceType));
+	res=(*pD3DGetDeviceCaps)(lpd3d, Adapter, DeviceType, pCaps);
+	if(res){
+		OutTraceE("GetDeviceCaps: ERROR: err=%x\n", res);
+	}
+	else{
+		if(IsDebug){
+			OutTrace("GetDeviceCaps: DeviceType=%x(%s) Caps=%x Caps2=%x Caps3=%x PresentationIntervals=%x CursorCaps=%x DevCaps=%x\n",
+				pCaps->DeviceType, ExplainD3D9DeviceType(pCaps->DeviceType), pCaps->Caps, pCaps->Caps2, pCaps->Caps3, pCaps->PresentationIntervals,
+				pCaps->CursorCaps, pCaps->DevCaps);
+			OutTrace("GetDeviceCaps: PrimitiveMiscCaps=%x RasterCaps=%x ZCmpCaps=%x SrcBlendCaps=%x DestBlendCaps=%x AlphaCmpCaps=%x\n",
+				pCaps->PrimitiveMiscCaps, pCaps->RasterCaps, pCaps->ZCmpCaps, pCaps->SrcBlendCaps, pCaps->DestBlendCaps, pCaps->AlphaCmpCaps); 
+			OutTrace("GetDeviceCaps: AlphaCmpCaps=%x ShadeCaps=%x TextureCaps=%x TextureFilterCaps=%x CubeTextureFilterCaps=%x VolumeTextureFilterCaps=%x\n",
+				pCaps->AlphaCmpCaps, pCaps->ShadeCaps, pCaps->TextureCaps, pCaps->TextureFilterCaps, pCaps->CubeTextureFilterCaps, pCaps->VolumeTextureFilterCaps); 
+			OutTrace("GetDeviceCaps: TextureAddressCaps=%x VolumeTextureAddressCaps=%x LineCaps=%x StencilCaps=%x FVFCaps=%x TextureOpCaps=%x VertexProcessingCaps=%x\n",
+				pCaps->TextureAddressCaps, pCaps->VolumeTextureAddressCaps, pCaps->LineCaps, pCaps->StencilCaps, pCaps->FVFCaps, pCaps->TextureOpCaps, pCaps->VertexProcessingCaps);
+			OutTrace("GetDeviceCaps: MaxTexture(Width x Height)=(%dx%d) MaxVolumeExtent=%d MaxTextureRepeat=%d MaxTextureAspectRatio=%d MaxAnisotropy=%d\n",
+				pCaps->MaxTextureWidth, pCaps->MaxTextureHeight, pCaps->MaxVolumeExtent, pCaps->MaxTextureRepeat, pCaps->MaxTextureAspectRatio, pCaps->MaxAnisotropy);
+			OutTrace("GetDeviceCaps: MaxActiveLights=%d MaxUserClipPlanes=%x MaxUserClipPlanes=%x\n",
+				pCaps->MaxActiveLights, pCaps->MaxUserClipPlanes, pCaps->MaxUserClipPlanes);
+/*
+    float   MaxVertexW;
+
+    float   GuardBandLeft;
+    float   GuardBandTop;
+    float   GuardBandRight;
+    float   GuardBandBottom;
+
+    float   ExtentsAdjust;
+
+    DWORD   MaxTextureBlendStages;
+    DWORD   MaxSimultaneousTextures;
+
+    DWORD   ;
+    DWORD   ;
+    DWORD   ;
+    DWORD   MaxVertexBlendMatrices;
+    DWORD   MaxVertexBlendMatrixIndex;
+
+    float   MaxPointSize;
+
+    DWORD   MaxPrimitiveCount;          // max number of primitives per DrawPrimitive call
+    DWORD   MaxVertexIndex;
+    DWORD   MaxStreams;
+    DWORD   MaxStreamStride;            // max stride for SetStreamSource
+
+    DWORD   VertexShaderVersion;
+    DWORD   MaxVertexShaderConst;       // number of vertex shader constant registers
+
+    DWORD   PixelShaderVersion;
+    float   PixelShader1xMaxValue;      // max value storable in registers of ps.1.x shaders
+
+    // Here are the DX9 specific ones
+    DWORD   DevCaps2;
+
+    float   MaxNpatchTessellationLevel;
+    DWORD   Reserved5;
+
+    UINT    MasterAdapterOrdinal;       // ordinal of master adaptor for adapter group
+    UINT    AdapterOrdinalInGroup;      // ordinal inside the adapter group
+    UINT    NumberOfAdaptersInGroup;    // number of adapters in this adapter group (only if master)
+    DWORD   DeclTypes;                  // Data types, supported in vertex declarations
+    DWORD   NumSimultaneousRTs;         // Will be at least 1
+    DWORD   StretchRectFilterCaps;      // Filter caps supported by StretchRect
+    D3DVSHADERCAPS2_0 VS20Caps;
+    D3DPSHADERCAPS2_0 PS20Caps;
+    DWORD   VertexTextureFilterCaps;    // D3DPTFILTERCAPS for IDirect3DTexture9's for texture, used in vertex shaders
+    DWORD   MaxVShaderInstructionsExecuted; // maximum number of vertex shader instructions that can be executed
+    DWORD   MaxPShaderInstructionsExecuted; // maximum number of pixel shader instructions that can be executed
+    DWORD   MaxVertexShader30InstructionSlots; 
+    DWORD   MaxPixelShader30InstructionSlots;
+	*/
+		}
+	}
+	return res;
 }
 
 HMONITOR WINAPI extGetAdapterMonitor(void *lpd3d, UINT Adapter)
 {
-	OutTrace("GetAdapterMonitor: d3d=%x adapter=%d\n", lpd3d, Adapter);
+	OutTraceD3D("GetAdapterMonitor: d3d=%x adapter=%d\n", lpd3d, Adapter);
 	return (*pGetAdapterMonitor)(lpd3d, Adapter);
+}
+
+UINT WINAPI extGetAvailableTextureMem(void *lpd3dd)
+{
+	const UINT TextureMemoryLimit = 1024 * 1024 * 1024; // 1GB
+	// const DWORD dwMaxMem = 0x70000000; = 1.8G
+	UINT AvailableTextureMem = (*pGetAvailableTextureMem)(lpd3dd);
+	OutTraceD3D("GetAvailableTextureMem: lpd3dd=%x AvailableTextureMem=%u(%dMB)\n", lpd3dd, AvailableTextureMem, AvailableTextureMem>>20);
+	if((dxw.dwFlags2 & LIMITRESOURCES) && (AvailableTextureMem > TextureMemoryLimit)){
+		OutTraceDW("GetAvailableTextureMem: LIMIT AvailableTextureMem=%u->%u\n", AvailableTextureMem, TextureMemoryLimit);
+		AvailableTextureMem = TextureMemoryLimit;
+	}
+	return AvailableTextureMem;
 }
 
 HRESULT WINAPI extTestCooperativeLevel(void *lpd3dd)
 {
 	HRESULT res;
 	res = (*pTestCooperativeLevel)(lpd3dd);
-	OutTrace("TestCooperativeLevel: d3dd=%x res=%x\n", lpd3dd, res);
+	OutTraceB("TestCooperativeLevel: d3dd=%x res=%x\n", lpd3dd, res);
 	return res;
 }
 
 HRESULT WINAPI extGetSwapChain(void *lpd3dd, UINT iSwapChain, IDirect3DSwapChain9** pSwapChain)
 {
 	HRESULT res;
-	OutTrace("GetSwapChain: d3dd=%x SwapChain=%d\n", lpd3dd, iSwapChain);
+	OutTraceD3D("GetSwapChain: d3dd=%x SwapChain=%d\n", lpd3dd, iSwapChain);
 	res = (*pGetSwapChain)(lpd3dd, iSwapChain, pSwapChain);
 	return res;
 }
@@ -1780,14 +1883,14 @@ UINT WINAPI extGetNumberOfSwapChains(void *lpd3dd)
 {
 	UINT res;
 	res = (*pGetNumberOfSwapChains)(lpd3dd);
-	OutTrace("GetNumberOfSwapChains: d3dd=%x res=%d\n", lpd3dd, res);
+	OutTraceD3D("GetNumberOfSwapChains: d3dd=%x res=%d\n", lpd3dd, res);
 	return res;
 }
 
 HRESULT WINAPI extBeginStateBlock8(void *lpd3dd)
 {
 	HRESULT res;
-	OutTrace("BeginStateBlock(8): d3dd=%x\n", lpd3dd);
+	OutTraceD3D("BeginStateBlock(8): d3dd=%x\n", lpd3dd);
 	res = (*pBeginStateBlock8)(lpd3dd);
 	HookD3DDevice8(&lpd3dd);
 	return res;
@@ -1799,7 +1902,7 @@ HRESULT WINAPI extBeginStateBlock9(void *lpd3dd)
 	// you need to hook the device object again. This operation fixes the switch to fullscreen mode
 	// in "Freedom Force vs. the Third Reich".
 	HRESULT res;
-	OutTrace("BeginStateBlock(9): d3dd=%x\n", lpd3dd);
+	OutTraceD3D("BeginStateBlock(9): d3dd=%x\n", lpd3dd);
 	res = (*pBeginStateBlock9)(lpd3dd);
 	HookD3DDevice9(&lpd3dd);
 	return res;
@@ -1808,7 +1911,7 @@ HRESULT WINAPI extBeginStateBlock9(void *lpd3dd)
 HRESULT WINAPI extEndStateBlock8(void *lpd3dd, DWORD *pToken)
 {
 	HRESULT res;
-	OutTrace("EndStateBlock(8): d3dd=%x\n", lpd3dd);
+	OutTraceD3D("EndStateBlock(8): d3dd=%x\n", lpd3dd);
 	res = (*pEndStateBlock8)(lpd3dd, pToken);
 	return res;
 }
@@ -1816,7 +1919,7 @@ HRESULT WINAPI extEndStateBlock8(void *lpd3dd, DWORD *pToken)
 HRESULT WINAPI extEndStateBlock9(void *lpd3dd, IDirect3DStateBlock9** ppSB)
 {
 	HRESULT res;
-	OutTrace("EndStateBlock(9): d3dd=%x\n", lpd3dd);
+	OutTraceD3D("EndStateBlock(9): d3dd=%x\n", lpd3dd);
 	res = (*pEndStateBlock9)(lpd3dd, ppSB);
 	return res;
 }

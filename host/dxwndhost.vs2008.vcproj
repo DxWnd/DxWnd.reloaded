@@ -422,6 +422,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TabNotes.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\TabProgram.cpp"
 				>
 			</File>
@@ -536,6 +540,10 @@
 			</File>
 			<File
 				RelativePath=".\TabLogs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabNotes.h"
 				>
 			</File>
 			<File
