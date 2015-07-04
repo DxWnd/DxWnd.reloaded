@@ -683,6 +683,20 @@ HRESULT WINAPI extGetAdapterIdentifier9(void *pd3dd, UINT Adapter, DWORD Flags, 
 	return res;
 }
 
+static char *ExplainSwapEffect(DWORD f)
+{
+	char *s;
+	switch(f){
+		case D3DSWAPEFFECT_DISCARD: s="DISCARD"; break;
+		case D3DSWAPEFFECT_FLIP:	s="FLIP"; break;
+		case D3DSWAPEFFECT_COPY:	s="COPY"; break;
+		case D3DSWAPEFFECT_OVERLAY: s="OVERLAY"; break;
+		case D3DSWAPEFFECT_FLIPEX:	s="FLIPEX"; break;
+		default:					s="unknown"; break;
+	}
+	return s;
+}
+
 HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 {
 	HRESULT res;
@@ -692,9 +706,11 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 	void *pD3D;
 
 	memcpy(param, pPresParam, (dwD3DVersion == 9)?56:52);
+	dxw.SetScreenSize(param[0], param[1]);
 
 	if(IsTraceD3D){
 		tmp = param;
+		DWORD SwapEffect;
 		OutTrace("D3D%d::Reset\n", dwD3DVersion);
 		OutTrace("    BackBufferWidth = %i\n", *(tmp ++));
 		OutTrace("    BackBufferHeight = %i\n", *(tmp ++));
@@ -702,7 +718,8 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 		OutTrace("    BackBufferCount = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleType = %i\n", *(tmp ++));
 		if(dwD3DVersion == 9) OutTrace("    MultiSampleQuality = %i\n", *(tmp ++));
-		OutTrace("    SwapEffect = 0x%x\n", *(tmp ++));
+		SwapEffect = *(tmp ++);
+		OutTrace("    SwapEffect = 0x%x(%s)\n", SwapEffect, ExplainSwapEffect(SwapEffect));
 		OutTrace("    hDeviceWindow = 0x%x\n", *(tmp ++));
 		OutTrace("    Windowed = %i\n", *(tmp ++));
 		OutTrace("    EnableAutoDepthStencil = %i\n", *(tmp ++));
@@ -804,7 +821,7 @@ HRESULT WINAPI extReset(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
 {
 	HRESULT res;
-	RECT RemappedRect;
+	RECT RemappedSrcRect, RemappedDstRect;
 	if(IsDebug){
 		char sSourceRect[81];
 		char sDestRect[81];
@@ -814,13 +831,27 @@ HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDes
 		else strcpy(sDestRect, "(NULL)");
 		OutTraceB("Present: SourceRect=%s DestRect=%s hDestWndOverride=%x\n", sSourceRect, sDestRect, hDestWindowOverride);
 	}
+
 	// frame counter handling....
 	if (dxw.HandleFPS()) return D3D_OK;
 	if (dxw.dwFlags1 & SAVELOAD) dxw.VSyncWait();
-	// v2.03.15 - fix target RECT region
+
 	if(dxw.dwFlags2 & FULLRECTBLT) pSourceRect = pDestRect = NULL;
-	RemappedRect=dxw.MapClientRect((LPRECT)pDestRect);
-	res=(*pPresent)(pd3dd, pSourceRect, &RemappedRect, hDestWindowOverride, pDirtyRegion);
+	if(dxw.Windowize){
+		// v2.03.15 - fix target RECT region
+		RemappedDstRect=dxw.MapClientRect((LPRECT)pDestRect);
+		pDestRect = &RemappedDstRect;
+		OutTraceB("Present: FIXED DestRect=(%d,%d)-(%d,%d)\n", RemappedDstRect.left, RemappedDstRect.top, RemappedDstRect.right, RemappedDstRect.bottom);
+		// in case of NOD3DRESET, remap source rect. Unfortunately, this doesn't work in fullscreen mode ....
+		if((dxw.dwFlags4 & NOD3DRESET) && (pSourceRect == NULL)){ 
+			RemappedSrcRect = dxw.GetScreenRect();
+			pSourceRect = &RemappedSrcRect;
+			OutTraceB("Present: NOD3DRESET FIXED SourceRect=(%d,%d)-(%d,%d)\n", RemappedSrcRect.left, RemappedSrcRect.top, RemappedSrcRect.right, RemappedSrcRect.bottom);
+		}
+	}
+
+	res=(*pPresent)(pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+	if(res) OutTraceE("Present: err=%x(%s)\n", res, ExplainDDError(res));
 	dxw.ShowOverlay();
 	return res;
 }
@@ -972,6 +1003,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 
 	if(IsTraceD3D){
 		tmp = param;
+		DWORD SwapEffect;
 		OutTrace("D3D%d::CreateDevice\n", dwD3DVersion);
 		OutTrace("  Adapter = %i\n", adapter);
 		OutTrace("  DeviceType = %i\n", devicetype);
@@ -983,7 +1015,8 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		OutTrace("    BackBufferCount = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleType = %i\n", *(tmp ++));
 		if(dwD3DVersion == 9) OutTrace("    MultiSampleQuality = %i\n", *(tmp ++));
-		OutTrace("    SwapEffect = 0x%x\n", *(tmp ++));
+		SwapEffect = *(tmp ++);
+		OutTrace("    SwapEffect = 0x%x(%s)\n", SwapEffect, ExplainSwapEffect(SwapEffect));
 		OutTrace("    hDeviceWindow = 0x%x\n", *(tmp ++));
 		OutTrace("    Windowed = %i\n", *(tmp ++));
 		OutTrace("    EnableAutoDepthStencil = %i\n", *(tmp ++));
@@ -1000,6 +1033,19 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
+
+	if((dxw.dwFlags4 & NOD3DRESET) && dxw.Windowize){ 
+		RECT desktop;
+		// Get a handle to the desktop window
+		const HWND hDesktop = (*pGetDesktopWindow)();
+		// Get the size of screen to the variable desktop
+		(*pGetWindowRect)(hDesktop, &desktop);
+		// The top left corner will have coordinates (0,0)
+		// and the bottom right corner will have coordinates
+		// (horizontal, vertical)
+		param[0] = desktop.right;
+		param[1] = desktop.bottom;			
+	}
 
 	if(dwD3DVersion == 9){
 		if(dxw.Windowize){
@@ -1084,8 +1130,9 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 
 	if(dxw.Windowize) hfocuswindow=FixD3DWindowFrame(hfocuswindow);
 
-	tmp = param;
 	if(IsTraceD3D){
+	    tmp = param;
+		DWORD SwapEffect;
 		OutTrace("D3D%d::CreateDeviceEx\n", dwD3DVersion);
 		OutTrace("  Adapter = %i\n", adapter);
 		OutTrace("  DeviceType = %i\n", devicetype);
@@ -1097,7 +1144,8 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 		OutTrace("    BackBufferCount = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleType = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleQuality = %i\n", *(tmp ++));
-		OutTrace("    SwapEffect = 0x%x\n", *(tmp ++));
+		SwapEffect = *(tmp ++);
+		OutTrace("    SwapEffect = 0x%x(%s)\n", SwapEffect, ExplainSwapEffect(SwapEffect));
 		OutTrace("    hDeviceWindow = 0x%x\n", *(tmp ++));
 		OutTrace("    Windowed = %i\n", *(tmp ++));
 		OutTrace("    EnableAutoDepthStencil = %i\n", *(tmp ++));
@@ -1112,6 +1160,19 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
+
+	if((dxw.dwFlags4 & NOD3DRESET) && dxw.Windowize){ 
+		RECT desktop;
+		// Get a handle to the desktop window
+		const HWND hDesktop = (*pGetDesktopWindow)();
+		// Get the size of screen to the variable desktop
+		(*pGetWindowRect)(hDesktop, &desktop);
+		// The top left corner will have coordinates (0,0)
+		// and the bottom right corner will have coordinates
+		// (horizontal, vertical)
+		param[0] = desktop.right;
+		param[1] = desktop.bottom;			
+	}
 
 	if(dxw.Windowize){
 		//param[7] = 0;			//hDeviceWindow
@@ -1217,8 +1278,9 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 	dxw.SetScreenSize(param[0], param[1]);
 	if(dxw.Windowize) FixD3DWindowFrame(dxw.GethWnd());
 
-	tmp = param;
 	if(IsTraceD3D){
+	    tmp = param;
+		DWORD SwapEffect;
 		OutTrace("D3D%d::CreateAdditionalSwapChain\n", dwD3DVersion);
 		OutTrace("    BackBufferWidth = %i\n", *(tmp ++));
 		OutTrace("    BackBufferHeight = %i\n", *(tmp ++));
@@ -1226,7 +1288,8 @@ HRESULT WINAPI extCreateAdditionalSwapChain(void *lpd3dd, D3DPRESENT_PARAMETERS 
 		OutTrace("    BackBufferCount = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleType = %i\n", *(tmp ++));
 		if(dwD3DVersion == 9) OutTrace("    MultiSampleQuality = %i\n", *(tmp ++));
-		OutTrace("    SwapEffect = 0x%x\n", *(tmp ++));
+		SwapEffect = *(tmp ++);
+		OutTrace("    SwapEffect = 0x%x(%s)\n", SwapEffect, ExplainSwapEffect(SwapEffect));
 		OutTrace("    hDeviceWindow = 0x%x\n", *(tmp ++));
 		OutTrace("    Windowed = %i\n", *(tmp ++));
 		OutTrace("    EnableAutoDepthStencil = %i\n", *(tmp ++));
@@ -1984,6 +2047,7 @@ HRESULT WINAPI extGetSwapChain(void *lpd3dd, UINT iSwapChain, IDirect3DSwapChain
 	HRESULT res;
 	OutTraceD3D("GetSwapChain: d3dd=%x SwapChain=%d\n", lpd3dd, iSwapChain);
 	res = (*pGetSwapChain)(lpd3dd, iSwapChain, pSwapChain);
+	if(res) OutTraceE("GetSwapChain ERROR: res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
 

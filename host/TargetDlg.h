@@ -167,6 +167,7 @@ public:
 	BOOL	m_SetCompatibility;
 	BOOL	m_AEROBoost;
 	BOOL	m_DiabloTweak;
+	BOOL	m_EASportsHack;
 	BOOL	m_NoImagehlp;
 	BOOL	m_ForcesHEL;
 	BOOL	m_ColorFix;
@@ -177,6 +178,7 @@ public:
 	BOOL	m_NoD3DReset;
 	//BOOL	m_SuppressChild;
 	BOOL	m_HideDesktop;
+	BOOL	m_UnlockZOrder;
 	BOOL	m_LockSysColors;
 	BOOL	m_LockReservedPalette;
 	BOOL	m_SingleProcAffinity;

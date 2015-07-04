@@ -98,8 +98,8 @@ static char *Flag5Names[32]={
 	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
 	"TEXTURETRANSP", "NORMALIZEPERFCOUNT", "HYBRIDMODE", "GDICOLORCONV",
 	"INJECTSON", "ENABLESONHOOK", "FREEZEINJECTEDSON", "GDIMODE",
-	"CENTERTOWIN", "MESSAGEPUMP", "TEXTUREFORMAT", "GSKYHACK",
-	"LOCKRESERVEDPALETTE", "", "", "",
+	"CENTERTOWIN", "STRESSRESOURCES", "MESSAGEPUMP", "TEXTUREFORMAT", 
+	"GSKYHACK", "LOCKRESERVEDPALETTE", "UNLOCKZORDER", "EASPORTSHACK",
 };
 
 static char *TFlagNames[32]={
@@ -1846,7 +1846,9 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if (dxw.dwFlags1 & MESSAGEPROC){
 		extern HINSTANCE hInst;
-		hMouseHook=SetWindowsHookEx(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
+		typedef HHOOK (WINAPI *SetWindowsHookEx_Type)(int, HOOKPROC, HINSTANCE, DWORD);
+		extern SetWindowsHookEx_Type pSetWindowsHookEx;
+		hMouseHook=(*pSetWindowsHookEx)(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
 		if(hMouseHook==NULL) OutTraceE("SetWindowsHookEx WH_GETMESSAGE failed: error=%d\n", GetLastError());
 	}
 

@@ -271,6 +271,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
+	if(dlg->m_EASportsHack) t->flags5 |= EASPORTSHACK;
 	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
@@ -281,6 +282,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoD3DReset) t->flags4 |= NOD3DRESET;
 	//if(dlg->m_SuppressChild) t->flags4 |= SUPPRESSCHILD;
 	if(dlg->m_HideDesktop) t->flags4 |= HIDEDESKTOP;
+	if(dlg->m_UnlockZOrder) t->flags5 |= UNLOCKZORDER;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
 	if(dlg->m_LockReservedPalette) t->flags5 |= LOCKRESERVEDPALETTE;
 	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
@@ -468,6 +470,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
+	dlg->m_EASportsHack = t->flags5 & EASPORTSHACK ? 1 : 0;
 	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
@@ -478,6 +481,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoD3DReset = t->flags4 & NOD3DRESET ? 1 : 0;
 	//dlg->m_SuppressChild = t->flags4 & SUPPRESSCHILD ? 1 : 0;
 	dlg->m_HideDesktop = t->flags4 & HIDEDESKTOP ? 1 : 0;
+	dlg->m_UnlockZOrder = t->flags5 & UNLOCKZORDER ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
 	dlg->m_LockReservedPalette = t->flags5 & LOCKRESERVEDPALETTE ? 1 : 0;
 	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;

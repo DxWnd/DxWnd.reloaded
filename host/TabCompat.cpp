@@ -39,6 +39,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOPERFCOUNTER, cTarget->m_NoPerfCounter);
 	DDX_Check(pDX, IDC_HIDECDROMEMPTY, cTarget->m_HideCDROMEmpty);
 	DDX_Check(pDX, IDC_DIABLOTWEAK, cTarget->m_DiabloTweak);
+	DDX_Check(pDX, IDC_EASPORTSHACK, cTarget->m_EASportsHack);
 	DDX_Check(pDX, IDC_NOIMAGEHLP, cTarget->m_NoImagehlp);
 	DDX_Check(pDX, IDC_REPLACEPRIVOPS, cTarget->m_ReplacePrivOps);
 

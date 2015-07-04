@@ -872,6 +872,17 @@ void dxwCore::UnmapWindow(LPRECT rect)
 	rect->bottom= ((rect->bottom  - upleft.y) * (int)dwScreenHeight) / client.bottom;
 }
 
+void dxwCore::UnmapWindow(LPPOINT point)
+{
+	RECT client;
+	POINT upleft = {0,0};
+	if(!(*pGetClientRect)(hWnd, &client)) return;
+	(*pClientToScreen)(hWnd, &upleft);
+	if((client.right == 0) || (client.bottom == 0)) return;
+	point->x= ((point->x  - upleft.x) * (int)dwScreenWidth) / client.right;
+	point->y= ((point->y  - upleft.y) * (int)dwScreenHeight) / client.bottom;
+}
+
 POINT dxwCore::ClientOffset(HWND hwnd)
 {
 	RECT desktop;

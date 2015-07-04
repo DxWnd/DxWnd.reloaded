@@ -771,3 +771,9 @@ fix: d3d Present method, to properly scale to window size (fixes "Silent Hunter 
 fix: GetMonitorInfo hooker: in windowed mode the call may fail, a virtual size and ok retcode should be returned
 fix: Blt method recovering errors when D3D CreateAdditionalSwapChain method fails: allow to see the intro movies of "Silent Hunter III".
 fix: added some missing D3D errorcode labels in log file
+
+v2.03.16
+fix: MapWindowPoints hook - added coordinate scaling (fixes "NBA Live 99" components size and position)
+fix: using "Suppress D3D8/9 reset" sets the backbuffer area as large as the whole desktop to avoid clipping
+add: added "Unlock Z-order" flag to avoid window to stay locked on top of z-order (useful for "NBA Live 99")
+add: added "EA Sprots hack" flag to suppress some interfering hooks set by EA games internally (useful for "NBA Live 99")

@@ -18,7 +18,7 @@ typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTE
 CreateProcessA_Type pCreateProcessA = NULL;
 
 // v2.02.96: the GetSystemInfo API is NOT hot patchable on Win7. This can cause problems because it can't be hooked by simply
-// enabling hot patch. A solution is making all LiadLibrary* calls hot patchable, so that when loading the module, the call
+// enabling hot patch. A solution is making all LoadLibrary* calls hot patchable, so that when loading the module, the call
 // can be hooked by the IAT lookup. This fixes a problem after movie playing in Wind Fantasy SP.
 
 static HookEntry_Type Hooks[]={
@@ -761,9 +761,10 @@ HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwS
 
 BOOL WINAPI extCloseHandle(HANDLE hObject)
 {
+	BOOL ret;
 	OutTrace("CloseHandle: hFile=%x\n", hObject);
-
-	return (*pCloseHandle)(hObject);
+	if (hObject && (hObject != (HANDLE)-1)) __try {ret=CloseHandle(hObject);} __except(EXCEPTION_EXECUTE_HANDLER){};
+	return ret;
 }
 
 DWORD WINAPI extSetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)

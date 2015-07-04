@@ -187,10 +187,11 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 				// to do: handle possible situations with surface 2 / 4 / 7 types
 				DDSURFACEDESC ddsd;
 				LPDIRECTDRAWSURFACE lpddsTmp;
+				extern GetSurfaceDesc_Type pGetSurfaceDesc1;
 				if (IsDebug) BlitTrace("KEYSRC", lpsrcrect, &destrect, __LINE__);
 				memset(&ddsd, 0, sizeof(ddsd));
 				ddsd.dwSize = sizeof(ddsd);
-				lpddssrc->GetSurfaceDesc(&ddsd);
+				(*pGetSurfaceDesc1)(lpddssrc, &ddsd);
 				res=(*pCreateSurface1)(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
 				if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				// copy background

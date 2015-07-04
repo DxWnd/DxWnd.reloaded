@@ -3930,7 +3930,7 @@ typedef struct {
 	int h;
 } SupportedRes_Type;
 
-static SupportedRes_Type SupportedSVGARes[10]= {
+static SupportedRes_Type SupportedSVGARes[11]= {
 	{320,200},
 	{320,240},
 	{512,384},		// needed by "Outcast" loading screen
@@ -3940,6 +3940,7 @@ static SupportedRes_Type SupportedSVGARes[10]= {
 	{800,600},
 	{1024,768},		// XGA
 	{1280,800},		// WXGA
+	{1600,1200},	// UXGA, needed by "LEGO Star Wars" in high res mode
 	{0,0}
 };
 

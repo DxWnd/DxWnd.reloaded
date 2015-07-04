@@ -12,7 +12,7 @@
 #include "hddraw.h"
 #include "dxhelper.h"
 
-#define FIXCHILDSIZE TRUE
+#define FIXCHILDSIZE FALSE
 
 BOOL IsChangeDisplaySettingsHotPatched = FALSE;
 
@@ -23,6 +23,19 @@ BOOL IsChangeDisplaySettingsHotPatched = FALSE;
 //typedef BOOL (WINAPI *EnumDisplayMonitors_Type)(HDC, LPCRECT, MONITORENUMPROC, LPARAM);
 //EnumDisplayMonitors_Type pEnumDisplayMonitors = NULL;
 //BOOL WINAPI extEnumDisplayMonitors(HDC, LPCRECT, MONITORENUMPROC, LPARAM);
+
+typedef BOOL (WINAPI *BringWindowToTop_Type)(HWND);
+BringWindowToTop_Type pBringWindowToTop = NULL;
+BOOL WINAPI extBringWindowToTop(HWND);
+typedef BOOL (WINAPI *SetForegroundWindow_Type)(HWND);
+SetForegroundWindow_Type pSetForegroundWindow = NULL;
+BOOL WINAPI extSetForegroundWindow(HWND);
+typedef HHOOK (WINAPI *SetWindowsHookEx_Type)(int, HOOKPROC, HINSTANCE, DWORD);
+SetWindowsHookEx_Type pSetWindowsHookEx = NULL;
+HHOOK WINAPI extSetWindowsHookEx(int, HOOKPROC, HINSTANCE, DWORD);
+typedef BOOL (WINAPI *PostMessageA_Type)(HWND, UINT, WPARAM, LPARAM);
+PostMessageA_Type pPostMessageA = NULL;
+BOOL WINAPI extPostMessageA(HWND, UINT, WPARAM, LPARAM);
 
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
@@ -78,6 +91,14 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "GetDIBColorTable", (FARPROC)GetDIBColorTable, (FARPROC *)&pGetDIBColorTable, (FARPROC)extGetDIBColorTable},
 	{HOOK_HOT_CANDIDATE, "SetDIBColorTable", (FARPROC)SetDIBColorTable, (FARPROC *)&pSetDIBColorTable, (FARPROC)extSetDIBColorTable},
 #endif
+	
+	{HOOK_HOT_CANDIDATE, "BringWindowToTop", (FARPROC)BringWindowToTop, (FARPROC *)&pBringWindowToTop, (FARPROC)extBringWindowToTop},
+	{HOOK_HOT_CANDIDATE, "SetForegroundWindow", (FARPROC)SetForegroundWindow, (FARPROC *)&pSetForegroundWindow, (FARPROC)extSetForegroundWindow},
+	{HOOK_HOT_CANDIDATE, "ChildWindowFromPoint", (FARPROC)ChildWindowFromPoint, (FARPROC *)&pChildWindowFromPoint, (FARPROC)extChildWindowFromPoint},
+	{HOOK_HOT_CANDIDATE, "ChildWindowFromPointEx", (FARPROC)ChildWindowFromPointEx, (FARPROC *)&pChildWindowFromPointEx, (FARPROC)extChildWindowFromPointEx},
+	{HOOK_HOT_CANDIDATE, "WindowFromPoint", (FARPROC)WindowFromPoint, (FARPROC *)&pWindowFromPoint, (FARPROC)extWindowFromPoint},
+	{HOOK_HOT_CANDIDATE, "SetWindowsHookExA", (FARPROC)SetWindowsHookExA, (FARPROC *)&pSetWindowsHookEx, (FARPROC)extSetWindowsHookEx},
+
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -386,7 +407,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 			dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
 			hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 			AdjustWindowRectEx(&full, dwStyle, (hMenu!=NULL), dwExStyle);
-			if (hMenu) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
+			if (hMenu && (hMenu != (HMENU)-1)) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
 			BorderX= full.right - full.left - client.right;
 			BorderY= full.bottom - full.top - client.bottom;
 			OutTraceDW("%s: KEEPASPECTRATIO window borders=(%d,%d)\n", ApiName, BorderX, BorderY);
@@ -737,7 +758,7 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
 	hMenu = (dwCurStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 	AdjustWindowRectEx(&rect, dwCurStyle, (hMenu!=NULL), dwExStyle);
-	if (hMenu) CloseHandle(hMenu);
+	if (hMenu && (hMenu != (HMENU)-1)) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
 	cx=rect.right; cy=rect.bottom;
 	OutTraceDW("SetWindowPos: main form hwnd=%x fixed size=(%d,%d)\n", hwnd, cx, cy);
 
@@ -1073,6 +1094,7 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 	int ret;
 	// a rarely used API, but responsible for a painful headache: needs hooking for "Commandos 2", "Alien Nations".
 	// used also in "Full Pipe" activemovie
+	// used also in "NBA Live 99" menu screen	
 
 	OutTraceDW("MapWindowPoints: hWndFrom=%x%s hWndTo=%x%s cPoints=%d FullScreen=%x\n", 
 		hWndFrom, dxw.IsDesktop(hWndFrom)?"(DESKTOP)":"",
@@ -1089,14 +1111,25 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 		if(dxw.IsRealDesktop(hWndFrom)) hWndFrom=dxw.GethWnd();
 	}
 	
-	// should scale the retcode and every point ???
 	ret=(*pMapWindowPoints)(hWndFrom, hWndTo, lpPoints, cPoints);
+	// v2.03.16: now must scale every point (fixes "NBA Live 99")
+	for(pi=0; pi<cPoints; pi++){
+		dxw.UnmapClient(&lpPoints[pi]);
+	}
 
 	if(IsDebug){
 		OutTrace("Mapped points: ");
 		for(pi=0; pi<cPoints; pi++) OutTrace("(%d,%d)", lpPoints[pi].x, lpPoints[pi].y);
 		OutTrace("\n");
 	}
+
+	// If the function succeeds, the low-order word of the return value is the number of pixels 
+	// added to the horizontal coordinate of each source point in order to compute the horizontal 
+	// coordinate of each destination point. (In addition to that, if precisely one of hWndFrom 
+	// and hWndTo is mirrored, then each resulting horizontal coordinate is multiplied by -1.) 
+	// The high-order word is the number of pixels added to the vertical coordinate of each source
+	// point in order to compute the vertical coordinate of each destination point.
+
 	OutTraceDW("MapWindowPoints: ret=%x (%d,%d)\n", ret, (ret&0xFFFF0000)>>16, ret&0x0000FFFF);
 	return ret;
 }
@@ -2136,8 +2169,8 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 {
 	BOOL ret;
 
-	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x\n", hwnd, lpPaint, lpPaint->hdc);
-
+	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.rcpaint=(%d,%d)-(%d-%d) lpPaint.hdc=%x\n", 
+		hwnd, lpPaint, lpPaint->rcPaint.left, lpPaint->rcPaint.top, lpPaint->rcPaint.right, lpPaint->rcPaint.bottom, lpPaint->hdc);
 	ret=(*pEndPaint)(hwnd, lpPaint);
 	OutTraceDW("GDI.EndPaint: hwnd=%x ret=%x\n", hwnd, ret);
 	if(!ret) OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
@@ -2738,7 +2771,7 @@ HWND WINAPI extWindowFromPoint(POINT Point)
 	HWND ret;
 	OutTraceDW("WindowFromPoint: point=(%d,%d)\n", Point.x, Point.y); 
 	if(dxw.IsFullScreen()){
-		dxw.UnmapClient(&Point);
+		dxw.UnmapWindow(&Point);
 		OutTraceDW("WindowFromPoint: FIXED point=(%d,%d)\n", Point.x, Point.y);
 	}
 	ret = (*pWindowFromPoint)(Point);
@@ -2750,7 +2783,7 @@ HWND WINAPI extChildWindowFromPoint(HWND hWndParent, POINT Point)
 {
 	HWND ret;
 	OutTraceDW("ChildWindowFromPoint: hWndParent=%x point=(%d,%d)\n", hWndParent, Point.x, Point.y); 
-	if(dxw.IsDesktop(hWndParent) && dxw.IsFullScreen()){
+	if(dxw.IsDesktop(hWndParent) && dxw.IsFullScreen() && dxw.Windowize){
 		dxw.UnmapClient(&Point);
 		OutTraceDW("ChildWindowFromPoint: FIXED point=(%d,%d)\n", Point.x, Point.y);
 	}
@@ -2763,7 +2796,7 @@ HWND WINAPI extChildWindowFromPointEx(HWND hWndParent, POINT Point, UINT uFlags)
 {
 	HWND ret;
 	OutTraceDW("ChildWindowFromPoint: hWndParent=%x point=(%d,%d) flags=%x\n", hWndParent, Point.x, Point.y, uFlags); 
-	if(dxw.IsDesktop(hWndParent) && dxw.IsFullScreen()){
+	if(dxw.IsDesktop(hWndParent) && dxw.IsFullScreen() && dxw.Windowize){
 		dxw.UnmapClient(&Point);
 		OutTraceDW("ChildWindowFromPointEx: FIXED point=(%d,%d)\n", Point.x, Point.y);
 	}
@@ -2941,3 +2974,66 @@ int WINAPI extGetWindowTextA(HWND hWnd, LPTSTR lpString, int nMaxCount)
 	return ret;
 }
 #endif
+
+BOOL WINAPI extBringWindowToTop(HWND hwnd)
+{
+	BOOL res;
+	OutTraceDW("BringWindowToTop: hwnd=%x\n", hwnd);
+	if(dxw.dwFlags5 & UNLOCKZORDER) return TRUE;
+	res=(*pBringWindowToTop)(hwnd);
+	return res;
+}
+
+BOOL WINAPI extSetForegroundWindow(HWND hwnd)
+{
+	BOOL res;
+	OutTraceDW("SetForegroundWindow: hwnd=%x\n", hwnd);
+	if(dxw.dwFlags5 & UNLOCKZORDER) return TRUE;
+	res=(*pSetForegroundWindow)(hwnd);
+	return res;
+}
+
+HOOKPROC glpMouseHookProcessFunction;
+HOOKPROC glpMessageHookProcessFunction;
+/*
+LRESULT CALLBACK extMouseHookProc(int code, WPARAM wParam, LPARAM lParam)
+{
+	LRESULT ret;
+	OutTrace("HookProc intercepted: code=%x wParam=%x lParam=%x\n", code, wParam, lParam);
+    MOUSEHOOKSTRUCT * pMouseStruct = (MOUSEHOOKSTRUCT *)lParam;
+    if (pMouseStruct != NULL){
+		dxw.UnmapWindow(&(pMouseStruct->pt));
+    }	
+	ret= (*glpMouseHookProcessFunction)(code, wParam, lParam);
+	return ret;
+}
+*/
+
+LRESULT CALLBACK extMessageHookProc(int code, WPARAM wParam, LPARAM lParam)
+{
+	LRESULT ret;
+	OutTrace("MessageHookProc: code=%x wParam=%x lParam=%x\n", code, wParam, lParam);
+    MSG * pMessage = (MSG *)lParam;
+	ret = NULL;
+	if(pMessage){
+		UINT message = pMessage->message;
+		if ((message >= 0x600) ||											// custom messages
+			((message >= WM_KEYFIRST) && (message <= WM_KEYLAST)))			// keyboard messages
+			ret = (*glpMessageHookProcessFunction)(code, wParam, lParam);
+	}
+	return ret;
+}
+
+HHOOK WINAPI extSetWindowsHookEx(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWORD dwThreadId)
+{
+	HHOOK ret;
+	if(dxw.dwFlags5 & EASPORTSHACK){
+		if(idHook == WH_MOUSE) return NULL;
+		if(idHook == WH_GETMESSAGE) {
+			glpMessageHookProcessFunction = lpfn;
+			lpfn=extMessageHookProc;
+		}
+	}
+	ret=(*pSetWindowsHookEx)(idHook, lpfn, hMod, dwThreadId);
+	return ret;
+}
