@@ -1421,7 +1421,7 @@ char *ExplainGetDCExFlags(DWORD c)
 
 char *ExplainPaletteUse(UINT uUsage)
 {
-	char *eb = SYSPAL_ERROR;
+	char *eb = "SYSPAL_ERROR";
 	switch(uUsage){
 		case SYSPAL_STATIC: eb="SYSPAL_STATIC"; break;
 		case SYSPAL_NOSTATIC: eb="SYSPAL_NOSTATIC"; break;

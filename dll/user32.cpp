@@ -620,7 +620,6 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		OutTraceDW("InvalidateRect: hwnd=%x rect=NULL erase=%x\n",
 		hwnd, bErase);
 
-
 	if(dxw.IsFullScreen()) {
 		switch(GDIEmulationMode){
 			case GDIMODE_STRETCHED:
@@ -2086,20 +2085,26 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	// if not in fullscreen mode, that's all!
 	if(!dxw.IsFullScreen()) return hdc;
 
-	// on CLIENTREMAPPING, resize the paint area to virtual screen size
-	//if(dxw.dwFlags1 & CLIENTREMAPPING) lpPaint->rcPaint=dxw.GetScreenRect();
-	if(dxw.dwFlags1 & CLIENTREMAPPING) dxw.UnmapClient(&(lpPaint->rcPaint));
 
-	switch(GDIEmulationMode){
-		case GDIMODE_STRETCHED:
-			break;
-		case GDIMODE_EMULATED:
-			HDC EmuHDC; 
-			EmuHDC = dxw.AcquireEmulatedDC(hwnd); 
-			lpPaint->hdc=EmuHDC;
-			hdc = EmuHDC;
-			break;
+	if(bFlippedDC) {
+		hdc = dxw.AcquireSharedDC(hwnd);
 	}
+	else {
+		switch(GDIEmulationMode){
+			case GDIMODE_STRETCHED:
+				// on CLIENTREMAPPING, resize the paint area to virtual screen size
+				//if(dxw.dwFlags1 & CLIENTREMAPPING) lpPaint->rcPaint=dxw.GetScreenRect();
+				if(dxw.dwFlags1 & CLIENTREMAPPING) dxw.UnmapClient(&(lpPaint->rcPaint));
+				break;
+			case GDIMODE_EMULATED:
+				HDC EmuHDC; 
+				EmuHDC = dxw.AcquireEmulatedDC(hwnd); 
+				lpPaint->hdc=EmuHDC;
+				hdc = EmuHDC;
+				break;
+		}
+	}
+
 		
 	OutTraceDW("GDI.BeginPaint: hdc=%x rcPaint=(%d,%d)-(%d,%d)\n", 
 		hdc, lpPaint->rcPaint.left, lpPaint->rcPaint.top, lpPaint->rcPaint.right, lpPaint->rcPaint.bottom);

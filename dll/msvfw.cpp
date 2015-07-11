@@ -16,6 +16,18 @@ DWORD WINAPI extICDrawBegin(HIC, DWORD, HPALETTE, HWND,  HDC, int, int, int, int
 typedef BOOL (WINAPI *DrawDibDraw_Type)(HDRAWDIB, HDC, int, int, int, int, LPBITMAPINFOHEADER, LPVOID, int, int, int, int, UINT);
 DrawDibDraw_Type pDrawDibDraw = NULL;
 BOOL WINAPI extDrawDibDraw(HDRAWDIB, HDC, int, int, int, int, LPBITMAPINFOHEADER, LPVOID, int, int, int, int, UINT);
+typedef BOOL (WINAPI *DrawDibBegin_Type)(HDRAWDIB, HDC, int, int, LPBITMAPINFOHEADER, int, int, UINT);
+DrawDibBegin_Type pDrawDibBegin = NULL;
+BOOL WINAPI extDrawDibBegin(HDRAWDIB, HDC, int, int, LPBITMAPINFOHEADER, int, int, UINT);
+typedef BOOL (WINAPI *DrawDibStart_Type)(HDRAWDIB, LONG);
+DrawDibStart_Type pDrawDibStart = NULL;
+BOOL WINAPI extDrawDibStart(HDRAWDIB, LONG);
+typedef BOOL (WINAPI *DrawDibStop_Type)(HDRAWDIB);
+DrawDibStop_Type pDrawDibStop = NULL;
+BOOL WINAPI extDrawDibStop(HDRAWDIB);
+typedef BOOL (WINAPI *DrawDibEnd_Type)(HDRAWDIB);
+DrawDibEnd_Type pDrawDibEnd = NULL;
+BOOL WINAPI extDrawDibEnd(HDRAWDIB);
 
 static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
@@ -24,6 +36,10 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "ICGetDisplayFormat", (FARPROC)NULL, (FARPROC *)&pICGetDisplayFormat, (FARPROC)extICGetDisplayFormat}, // "Man in Black" - beware: this is NOT STDCALL!!!
 	{HOOK_HOT_CANDIDATE, "ICDrawBegin", (FARPROC)NULL, (FARPROC *)&pICDrawBegin, (FARPROC)extICDrawBegin}, 
 	{HOOK_HOT_CANDIDATE, "DrawDibDraw", (FARPROC)NULL, (FARPROC *)&pDrawDibDraw, (FARPROC)extDrawDibDraw}, 
+	{HOOK_HOT_CANDIDATE, "DrawDibBegin", (FARPROC)NULL, (FARPROC *)&pDrawDibBegin, (FARPROC)extDrawDibBegin}, 
+	{HOOK_HOT_CANDIDATE, "DrawDibStart", (FARPROC)NULL, (FARPROC *)&pDrawDibStart, (FARPROC)extDrawDibStart}, 
+	{HOOK_HOT_CANDIDATE, "DrawDibStop", (FARPROC)NULL, (FARPROC *)&pDrawDibStop, (FARPROC)extDrawDibStop}, 
+	{HOOK_HOT_CANDIDATE, "DrawDibEnd", (FARPROC)NULL, (FARPROC *)&pDrawDibEnd, (FARPROC)extDrawDibEnd}, 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -237,3 +253,42 @@ BOOL WINAPI extDrawDibDraw(HDRAWDIB hdd, HDC hdc, int xDst, int yDst, int dxDst,
 	ret = (*pDrawDibDraw)(hdd, hdc, xDst, yDst, dxDst, dyDst, lpbi, lpBits, xSrc, ySrc, dxSrc, dySrc, wFlags);
 	return ret;
 }
+BOOL WINAPI extDrawDibBegin(HDRAWDIB hdd, HDC hdc, int dxDest, int dyDest, LPBITMAPINFOHEADER lpbi, int dxSrc, int dySrc, UINT wFlags)
+{
+	// Reah game transitions
+	BOOL ret;
+	OutTrace("DrawDibBegin: hdd=%x hdc=%x DEST size=(%d,%d) SRC size=(%d,%d) flags=%x\n",
+		hdd, hdc, dxDest, dyDest, dxSrc, dySrc, wFlags);
+	ret = (*pDrawDibBegin)(hdd, hdc, dxDest, dyDest, lpbi, dxSrc, dySrc, wFlags);
+	return ret;
+}
+
+BOOL WINAPI extDrawDibStart(HDRAWDIB hdd, LONG rate)
+{
+	// Reah game transitions
+	BOOL ret;
+	OutTrace("DrawDibStart: hdd=%x rate=%x\n", hdd, rate);
+	ret = (*pDrawDibStart)(hdd, rate);
+	return ret;
+}
+
+BOOL WINAPI extDrawDibStop(HDRAWDIB hdd)
+{
+	// Reah game transitions
+	BOOL ret;
+	OutTrace("DrawDibStop: hdd=%x\n", hdd);
+	ret = (*pDrawDibStop)(hdd);
+	return ret;
+}
+
+BOOL WINAPI extDrawDibEnd(HDRAWDIB hdd)
+{
+	// Reah game transitions
+	BOOL ret;
+	OutTrace("DrawDibEnd: hdd=%x\n", hdd);
+	ret = (*pDrawDibEnd)(hdd);
+	return ret;
+}
+
+
+

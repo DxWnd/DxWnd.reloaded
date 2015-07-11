@@ -952,3 +952,12 @@ fix: added emulation of PixelFormat in getPixelFormat hooker. Needed for "Arx Fa
 add: added virtual joystick feature. Required to play "Tie Fighter 95" with no real joystick
 v2.03.43.fix1
 fix: recovered virtual joystick buttons
+
+v2.03.44
+fix: GetSystemPaletteUse error message
+fix: transparent virtual joystick icons
+fix: RealizePalette hooker crash in "Super Real Mahjong P7"
+fix: complete recoding of GDI BitBlt, StretchBlt and PatBlt hookers: it fixes "Reah" problems
+fix: changes in USER32 BeginPaint hooker to support DC sharing with ddraw
+fix: increased configuration panels heigth do avoid clipping when desktop font size is set to 125%
+

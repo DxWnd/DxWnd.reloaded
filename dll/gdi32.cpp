@@ -9,6 +9,10 @@
 
 #include "stdio.h"
 
+#define GDIMODE_STRETCHED  0
+#define GDIMODE_EMULATED   1
+extern int GDIEmulationMode;
+
 static void Stopper(char *s, int line)
 {
 	char sMsg[81];
@@ -616,7 +620,7 @@ UINT WINAPI extRealizePalette(HDC hdc)
 		HRESULT res;
 		extern LPDIRECTDRAWPALETTE lpDDP;
 		extern SetEntries_Type pSetEntries;
-		res=(*pSetEntries)(lpDDP, 0, 0, 256, PalEntries);
+		if(lpDDP && pSetEntries) res=(*pSetEntries)(lpDDP, 0, 0, 256, PalEntries);
 	}
 	else
 		ret=(*pGDIRealizePalette)(hdc);
@@ -758,6 +762,7 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
 {
 	BOOL res;
+	BOOL IsToScreen;
 
 	OutTraceDW("GDI.BitBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d dwRop=%x(%s)\n", 
 		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop, ExplainROP(dwRop));
@@ -771,44 +776,40 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 
 	if(dxw.dwFlags3 & GDIEMULATEDC){
 		if (hdcDest==dxw.RealHDC) hdcDest=dxw.VirtualHDC;
-		//return (*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+		OutTraceB("GDI.BitBlt: DEBUG emulated hdc dest=%x->%x\n", dxw.RealHDC, hdcDest);
 	}
 
-	SetStretchBltMode(hdcDest, HALFTONE);
-	if (OBJ_DC == GetObjectType(hdcDest)){
-		//if(dxw.IsRealDesktop(WindowFromDC(hdcDest))) hdcDest=GetDC(dxw.GethWnd()); // ??????
-		if (dxw.HandleFPS()) return TRUE;
-		if (dxw.dwFlags3 & NOGDIBLT) return TRUE;
-		if(dxw.IsFullScreen()){
-			int nWDest, nHDest;
-			nWDest= nWidth;
-			nHDest= nHeight;
-			dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
-			res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
-			dxw.ShowOverlay(hdcDest);
-			OutTrace("Debug: DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
-		}
-		else if(WindowFromDC(hdcDest)==NULL){
-				// V2.02.31: See StretchBlt.
+	if(hdcDest == NULL){
+		// happens in Reah, hdc is NULL despite the fact that BeginPaint returns a valid DC. Too bad, we recover here ...
+		hdcDest = (*pGDIGetDC)(dxw.GethWnd());
+		OutTraceB("GDI.BitBlt: DEBUG hdc dest=NULL->%x\n", hdcDest);
+	}
+
+	IsToScreen=(OBJ_DC == GetObjectType(hdcDest));
+	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
+	if(dxw.IsFullScreen()) {
+		switch(GDIEmulationMode){
+			case GDIMODE_STRETCHED: {
 				int nWDest, nHDest;
 				nWDest= nWidth;
 				nHDest= nHeight;
-				dxw.MapWindow(&nXDest, &nYDest, &nWDest, &nHDest);
+				dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
 				res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
-				dxw.ShowOverlay(hdcDest);
-				OutTrace("Debug: NULL dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
-			}
-			else{
+				OutTraceB("GDI.BitBlt: DEBUG DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
+				}
+				break;
+			case GDIMODE_EMULATED:
+			default:
 				res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-				OutTrace("Debug: PROXY dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWidth, nHeight);
-			}
+				break;
 		}
+	}
 	else {
 		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	}
 
+	if(res && IsToScreen) dxw.ShowOverlay(hdcDest);
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-
 	return res;
 }
 
@@ -823,29 +824,42 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	OutTraceB("GDI.PatBlt: DEBUG FullScreen=%x target hdctype=%x(%s) hwnd=%x\n", 
 		dxw.IsFullScreen(), GetObjectType(hdcDest), ExplainDCType(GetObjectType(hdcDest)), WindowFromDC(hdcDest));
 
-	IsToScreen=FALSE;
-	res=0;
-	if (OBJ_DC == GetObjectType(hdcDest)){
-		IsToScreen=TRUE;
-		if (dxw.HandleFPS()) return TRUE;
-		if (dxw.dwFlags3 & NOGDIBLT) return TRUE;
-		if (dxw.IsFullScreen()){ 
-			dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
-			dxw.ShowOverlay(hdcDest);
-			res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
-		}
-		else if(WindowFromDC(hdcDest)==NULL){
-			// V2.02.31: See StretchBlt.
-			dxw.MapWindow(&nXDest, &nYDest, &nWidth, &nHeight);
-			res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
+	if(dxw.dwFlags3 & GDIEMULATEDC){
+		if (hdcDest==dxw.RealHDC) hdcDest=dxw.VirtualHDC;
+		OutTraceB("GDI.PatBlt: DEBUG emulated hdc dest=%x->%x\n", dxw.RealHDC, hdcDest);
+	}
+
+	if(hdcDest == NULL){
+		// happens in Reah, hdc is NULL despite the fact that BeginPaint returns a valid DC. Too bad, we recover here ...
+		hdcDest = (*pGDIGetDC)(dxw.GethWnd());
+		OutTraceB("GDI.PatBlt: DEBUG hdc dest=NULL->%x\n", hdcDest);
+	}
+
+	IsToScreen=(OBJ_DC == GetObjectType(hdcDest));
+	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
+	if(dxw.IsFullScreen()) {
+		switch(GDIEmulationMode){
+			case GDIMODE_STRETCHED: {
+				int nWDest, nHDest;
+				nWDest= nWidth;
+				nHDest= nHeight;
+				dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+				res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, dwRop);
+				OutTraceB("GDI.PatBlt: DEBUG DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
+				}
+				break;
+			case GDIMODE_EMULATED:
+			default:
+				res=(*pGDIPatBlt)(hdcDest,  nXDest, nYDest, nWidth, nHeight, dwRop);
+				break;
 		}
 	}
 	else {
-		res=(*pGDIPatBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
+		res=(*pGDIPatBlt)(hdcDest,  nXDest, nYDest, nWidth, nHeight, dwRop);
 	}
-	if (IsToScreen) dxw.ShowOverlay(hdcDest);
-	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 
+	if(res && IsToScreen) dxw.ShowOverlay(hdcDest);
+	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
 
@@ -861,24 +875,41 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 	OutTraceB("GDI.StretchBlt: DEBUG FullScreen=%x target hdctype=%x(%s) hwnd=%x\n", 
 		dxw.IsFullScreen(), GetObjectType(hdcDest), ExplainDCType(GetObjectType(hdcDest)), WindowFromDC(hdcDest));
 
-	IsToScreen=FALSE;
-	if (OBJ_DC == GetObjectType(hdcDest)){
-		if (dxw.HandleFPS()) return TRUE;
-		if (dxw.dwFlags3 & NOGDIBLT) return TRUE;
-		IsToScreen=TRUE;
-		if(dxw.IsFullScreen()){
-			dxw.MapClient(&nXDest, &nYDest, &nWidth, &nHeight);
-		}
-		else if(WindowFromDC(hdcDest)==NULL){
-			// V2.02.31: In "Silent Hunter II" intro movie, QuickTime 5 renders the video on the PrimarySurface->GetDC device context,
-			// that is a memory device type associated to NULL (desktop) window, through GDI StretchBlt api. So, you shoud compensate
-			// by scaling and offsetting to main window.
-			dxw.MapWindow(&nXDest, &nYDest, &nWidth, &nHeight);
-		}
+	if(dxw.dwFlags3 & GDIEMULATEDC){
+		if (hdcDest==dxw.RealHDC) hdcDest=dxw.VirtualHDC;
+		OutTraceB("GDI.StretchBlt: DEBUG emulated hdc dest=%x->%x\n", dxw.RealHDC, hdcDest);
 	}
 
-	res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
-	if (IsToScreen) dxw.ShowOverlay(hdcDest);
+	if(hdcDest == NULL){
+		// happens in Reah, hdc is NULL despite the fact that BeginPaint returns a valid DC. Too bad, we recover here ...
+		hdcDest = (*pGDIGetDC)(dxw.GethWnd());
+		OutTraceB("GDI.StretchBlt: DEBUG hdc dest=NULL->%x\n", hdcDest);
+	}
+
+	IsToScreen=(OBJ_DC == GetObjectType(hdcDest));
+	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
+	if(dxw.IsFullScreen()) {
+		switch(GDIEmulationMode){
+			case GDIMODE_STRETCHED: {
+				int nWDest, nHDest;
+				nWDest= nWidth;
+				nHDest= nHeight;
+				dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+				res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+				OutTraceB("GDI.StretchBlt: DEBUG DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
+				}
+				break;
+			case GDIMODE_EMULATED:
+			default:
+				res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+				break;
+		}
+	}
+	else {
+		res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+	}
+
+	if(res && IsToScreen) dxw.ShowOverlay(hdcDest);
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }

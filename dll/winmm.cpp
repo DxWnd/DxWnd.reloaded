@@ -339,12 +339,18 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 	dwButtons = 0;
 	if (GetKeyState(VK_LBUTTON) < 0) dwButtons |= JOY_BUTTON1;
 	if (GetKeyState(VK_RBUTTON) < 0) dwButtons |= JOY_BUTTON2;
+	if (GetKeyState(VK_MBUTTON) < 0) dwButtons |= JOY_BUTTON3;
 	POINT pt;
 	if(hwnd=dxw.GethWnd()){
 		RECT client;
 		POINT upleft = {0,0};
 		(*pGetClientRect)(hwnd, &client);
 		(*pClientToScreen)(hwnd, &upleft);
+		if(dwButtons & JOY_BUTTON3){
+			// center joystick ...
+			dwButtons &= ~JOY_BUTTON3;
+			(*pSetCursorPos)(upleft.x + (client.right >> 1), upleft.y + (client.bottom >> 1));
+		}
 		(*pGetCursorPos)(&pt);
 		pt.x -= upleft.x;
 		pt.y -= upleft.y;
@@ -391,7 +397,6 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 	RECT client;
 	RECT win;
 	POINT PrevViewPort;
-	int StretchMode;
 
 	// don't show when system cursor is visible
 	CURSORINFO ci;
@@ -422,16 +427,12 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 
 	(*pGetWindowRect)(dxw.GethWnd(), &win);
 
-	//if(!pSetViewportOrgEx) pSetViewportOrgEx=SetViewportOrgEx;
 	(*pSetViewportOrgEx)(hClientDC, 0, 0, &PrevViewPort);
-	StretchMode=GetStretchBltMode(hClientDC);
-	SetStretchBltMode(hClientDC, HALFTONE);
 	int w, h;
-	w=36;
-	h=36;
-	(*pGDIStretchBlt)(hClientDC, x-(w>>1), y-(h>>1), w, h, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
+	w=bm.bmWidth;
+	h=bm.bmHeight; 
+	(*pGDIBitBlt)(hClientDC, x-(w>>1), y-(h>>1), w, h, hdcMem, 0, 0, SRCPAINT);
 
-	SetStretchBltMode(hClientDC, StretchMode);
 	(*pSetViewportOrgEx)(hClientDC, PrevViewPort.x, PrevViewPort.y, NULL);
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
