@@ -59,6 +59,7 @@ HRESULT WINAPI extEnumZBufferFormats(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALL
 
 // Direct3DDevice-n interfaces
 
+typedef HRESULT (WINAPI *QueryInterfaceD3D_Type)(void *, REFIID, LPVOID *);
 typedef HRESULT (WINAPI *D3DInitialize_Type)(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
 typedef HRESULT (WINAPI *D3DGetCaps_Type)(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
 typedef HRESULT (WINAPI *D3DGetCaps3_Type)(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
@@ -79,6 +80,7 @@ typedef HRESULT (WINAPI *SetTexture7_Type)(void *, DWORD, LPDIRECTDRAWSURFACE7);
 typedef HRESULT (WINAPI *SwapTextureHandles_Type)(void *, LPDIRECT3DTEXTURE, LPDIRECT3DTEXTURE);
 typedef HRESULT (WINAPI *SwapTextureHandles2_Type)(void *, LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
 
+QueryInterfaceD3_Type pQueryInterfaceD3D = NULL;
 D3DInitialize_Type pD3DInitialize = NULL;
 D3DGetCaps_Type pD3DGetCaps = NULL;
 D3DGetCaps3_Type pGetCaps3 = NULL;
@@ -168,6 +170,7 @@ HRESULT WINAPI extGetViewport(void *, LPD3DVIEWPORT);
 HRESULT WINAPI extSetMaterial(void *, LPD3DMATERIAL);
 HRESULT WINAPI extGetMaterial(void *, LPD3DMATERIAL);
 HRESULT WINAPI extQueryInterfaceD3(void *, REFIID, LPVOID *);
+HRESULT WINAPI extQueryInterfaceD3D(void *, REFIID, LPVOID *);
 
 HRESULT WINAPI extD3DInitialize(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
 HRESULT WINAPI extD3DGetCaps(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
@@ -410,7 +413,6 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 	}
 } 
 
-
 void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 {
 	OutTraceD3D("HookDirect3DDevice: d3ddev=%x d3dversion=%d\n", lpd3ddev, d3dversion);
@@ -418,7 +420,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 
 	switch(d3dversion){
 	case 1:
-		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  16), extGetCaps1, (void **)&pGetCaps1, "GetCaps(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extAddViewport1, (void **)&pAddViewport1, "AddViewport(1)");
@@ -428,7 +430,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extEndScene1, (void **)&pEndScene1, "EndScene(1)");
 		break;
 	case 2:
-		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps2, (void **)&pGetCaps2, "GetCaps(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extAddViewport2, (void **)&pAddViewport2, "AddViewport(2)");
@@ -446,7 +448,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		}		
 		break;
 	case 3:
-		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps3, (void **)&pGetCaps3, "GetCaps(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extAddViewport3, (void **)&pAddViewport3, "AddViewport(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extBeginScene3, (void **)&pBeginScene3, "BeginScene(3)");
@@ -463,7 +465,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		}		
 		break;
 	case 7:
-		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3D)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
@@ -639,6 +641,14 @@ HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID *ppvObj)
 		SetHook((void *)(**(DWORD **)ppvObj +  32), extCreateDevice7, (void **)&pCreateDevice7, "CreateDevice(D3D7)");
 		break;
 	}
+	return res;
+}
+
+HRESULT WINAPI extQueryInterfaceD3D(void *lpd3ddev, REFIID riid, LPVOID *ppvObj)
+{
+	HRESULT res;
+	OutTraceD3D("QueryInterface(D3D): d3ddev=%x REFIID=%x obj=%x\n", lpd3ddev, riid.Data1, ppvObj);
+	res=(*pQueryInterfaceD3)(lpd3ddev, riid, ppvObj);
 	return res;
 }
 

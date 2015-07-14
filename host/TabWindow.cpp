@@ -44,6 +44,7 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FIXD3DFRAME, cTarget->m_FixD3DFrame);
 	DDX_Check(pDX, IDC_NOWINDOWMOVE, cTarget->m_NoWindowMove);
 	DDX_Check(pDX, IDC_HIDEDESKTOP, cTarget->m_HideDesktop);
+	DDX_Check(pDX, IDC_HIDETASKBAR, cTarget->m_HideTaskbar);
 	DDX_Check(pDX, IDC_UNLOCKZORDER, cTarget->m_UnlockZOrder);
 	DDX_Check(pDX, IDC_NODESTROYWINDOW, cTarget->m_NoDestroyWindow);
 

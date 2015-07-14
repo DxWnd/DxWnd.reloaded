@@ -1055,6 +1055,14 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
+	case WM_QUIT:
+	case WM_DESTROY:
+	case WM_CLOSE:
+		if(dxw.dwFlags6 & HIDETASKBAR){
+			extern void gShowHideTaskBar(BOOL);
+			gShowHideTaskBar(FALSE);
+		}
+		break;
 	// commented out: WM_CLOSE just issue a request to close the window, not the process! It should be WM_QUIT....
 	//case WM_CLOSE:
 	//	OutTraceDW("WindowProc: WM_CLOSE - terminating process\n");

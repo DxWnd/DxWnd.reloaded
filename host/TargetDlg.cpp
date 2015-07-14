@@ -59,6 +59,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_ReturnNullRef = FALSE;
 	m_NoD3DReset = FALSE;
 	m_HideDesktop = FALSE;
+	m_HideTaskbar = FALSE;
 	m_UnlockZOrder = FALSE;
 	m_NoDestroyWindow = FALSE;
 	m_LockSysColors = FALSE;

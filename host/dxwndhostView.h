@@ -73,6 +73,8 @@ protected:
 	afx_msg void OnWindowRestore();
 	afx_msg void OnWindowMinimize();
 	afx_msg void OnWindowClose();
+	afx_msg void OnTaskbarHide();
+	afx_msg void OnTaskbarShow();
 	afx_msg void OnSort();
 	afx_msg void OnViewLog();
 	afx_msg void OnDeleteLog();

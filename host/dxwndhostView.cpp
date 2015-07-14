@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "shlwapi.h"
 #include "TlHelp32.h"
+#include "CoolUtils.h"
 
 #include "dxwndhost.h"
 
@@ -103,7 +104,9 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_WINDOW_MINIMIZE, OnWindowMinimize)
 	ON_COMMAND(ID_WINDOW_RESTORE, OnWindowRestore)
 	ON_COMMAND(ID_WINDOW_CLOSE, OnWindowClose)
-	ON_COMMAND(ID_ADD, OnAdd)
+	ON_COMMAND(ID_WINDOW_MINIMIZE, OnWindowMinimize)
+	ON_COMMAND(ID_TASKBAR_HIDE, OnTaskbarHide)
+	ON_COMMAND(ID_TASKBAR_SHOW, OnTaskbarShow)
 	ON_COMMAND(ID_MODIFY, OnModify)
 	ON_COMMAND(ID_PEXPORT, OnExport)
 	ON_COMMAND(ID_PKILL, OnProcessKill)
@@ -288,6 +291,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ReturnNullRef) t->flags4 |= RETURNNULLREF;
 	if(dlg->m_NoD3DReset) t->flags4 |= NOD3DRESET;
 	if(dlg->m_HideDesktop) t->flags4 |= HIDEDESKTOP;
+	if(dlg->m_HideTaskbar) t->flags6 |= HIDETASKBAR;
 	if(dlg->m_UnlockZOrder) t->flags5 |= UNLOCKZORDER;
 	if(dlg->m_NoDestroyWindow) t->flags6 |= NODESTROYWINDOW;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
@@ -495,6 +499,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ReturnNullRef = t->flags4 & RETURNNULLREF ? 1 : 0;
 	dlg->m_NoD3DReset = t->flags4 & NOD3DRESET ? 1 : 0;
 	dlg->m_HideDesktop = t->flags4 & HIDEDESKTOP ? 1 : 0;
+	dlg->m_HideTaskbar = t->flags6 & HIDETASKBAR ? 1 : 0;
 	dlg->m_UnlockZOrder = t->flags5 & UNLOCKZORDER ? 1 : 0;
 	dlg->m_NoDestroyWindow = t->flags6 & NODESTROYWINDOW ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
@@ -1399,6 +1404,16 @@ void CDxwndhostView::OnWindowClose()
 	if ((GetHookStatus(&DxWndStatus) == DXW_RUNNING) && (DxWndStatus.hWnd!=NULL))
 		//::PostMessage(DxWndStatus.hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
 		::PostMessage(find_main_window(DxWndStatus.dwPid), WM_SYSCOMMAND, SC_CLOSE, 0);
+}
+
+void CDxwndhostView::OnTaskbarHide() 
+{
+	gShowHideTaskBar(TRUE);
+}
+
+void CDxwndhostView::OnTaskbarShow() 
+{
+	gShowHideTaskBar(FALSE);
 }
 
 void CDxwndhostView::OnKill() 

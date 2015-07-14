@@ -847,3 +847,7 @@ v2.03.28:
 add: added "Lock / Unlock pitch fix" flag to compensate for pitch change in emulation mode. Fixes "Snowboard racer" slanted graphic
 add: added "Width not power of 2 fix" flag to compensate for pitch change in emulation mode. Fixes "Microsoft Midtown Madness" slanted graphic
 add: debug flag "Highlight Locked surfaces" to highlight service surfaces that are Lock-ed and Unlock-ed.
+
+v2.03.29:
+fix: wrong d3d7 hook, now "Echelon" works again.
+add: "hide taskbar" option. A little experimental, so far. If the game crashes, the taskbar may not be reactivated: use menu commands to recover.

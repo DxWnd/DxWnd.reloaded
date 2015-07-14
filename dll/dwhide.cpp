@@ -3,6 +3,53 @@
 #include <stdio.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
+#include "syslibs.h"
+#include "dxhelper.h"
+
+/****************************************************************************
+ *	Function Name	: gShowHideTaskBar()									*
+ *	Parameters		: BOOL bHide (flag to toggle Show/Hide of Taskbar)		*
+ *	Return type		: void													*
+ *	Purpose			: Function is used to Show/Hide the TaskBar				*
+ *	Author			: Ashutosh R. Bhatikar (ARB)							*
+ *	Date written	: 20th December 2000									*
+ *	Modification History :													*
+ *	Date of modification					Reason							*
+ *  25th December 2000				Added methods to Show/Hide menu			*
+ ****************************************************************************/
+
+void gShowHideTaskBar(BOOL bHide /*=FALSE*/)
+{
+	RECT rectWorkArea;
+	RECT rectTaskBar;
+	static HWND pWnd = NULL;
+	static HWND pStart = NULL;
+
+	if(!pWnd) {
+		pWnd = FindWindow("Shell_TrayWnd", "");
+		// WinXP find
+		pStart = FindWindowEx(pWnd, NULL, "Button", NULL);
+		// if unsuccessful, do a Win7/8 find
+		if(!pStart) pStart = FindWindowEx((*pGetDesktopWindow)(), NULL, "Button", "Start");
+	}
+
+	(*pSystemParametersInfoA)(SPI_GETWORKAREA,0, (LPVOID)&rectWorkArea, 0);
+	(*pGetWindowRect)(pWnd, &rectTaskBar);
+	if( bHide ){
+		// Code to Hide the System Task Bar
+		rectWorkArea.bottom += (rectTaskBar.bottom - rectTaskBar.top);
+		(*pSystemParametersInfoA)(SPI_SETWORKAREA, 0, (LPVOID)&rectWorkArea, 0);
+		ShowWindow(pWnd, SW_HIDE);
+		ShowWindow(pStart, SW_HIDE);
+	}
+	else{
+		// Code to Show the System Task Bar
+		rectWorkArea.bottom -= (rectTaskBar.bottom - rectTaskBar.top);
+		(*pSystemParametersInfoA)(SPI_SETWORKAREA, 0, (LPVOID)&rectWorkArea, 0);
+		ShowWindow(pWnd, SW_SHOW);
+		ShowWindow(pStart, SW_SHOW);
+	}
+}
 
 static bool quit = false;
 
@@ -81,6 +128,14 @@ void dxwCore::HideDesktop(HWND hwnd)
 	if(!(*pGetWindowRect)((*pGetDesktopWindow)(), &wDesktop)) {
 		OutTrace("GetWindowRect ERROR hwnd=%x err=%d\n", NULL, GetLastError());
 		return;
+	}
+
+	if(dxw.dwFlags6 & HIDETASKBAR){
+		wDesktop.left = 0;
+		wDesktop.top = 0;
+		wDesktop.right = (*pGetSystemMetrics)(SM_CXSCREEN);
+		wDesktop.bottom = (*pGetSystemMetrics)(SM_CYSCREEN);
+		gShowHideTaskBar(TRUE);
 	}
 
 	// this is tricky: if you create a window with zero style, the manager seems to apply a default
