@@ -47,6 +47,7 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HIDETASKBAR, cTarget->m_HideTaskbar);
 	DDX_Check(pDX, IDC_UNLOCKZORDER, cTarget->m_UnlockZOrder);
 	DDX_Check(pDX, IDC_NODESTROYWINDOW, cTarget->m_NoDestroyWindow);
+	DDX_Check(pDX, IDC_ACTIVATEAPP, cTarget->m_ActivateApp);
 
 	// color management
 	DDX_Check(pDX, IDC_INIT8BPP, cTarget->m_Init8BPP);

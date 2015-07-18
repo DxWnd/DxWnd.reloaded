@@ -1604,7 +1604,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 	}
 
 	if(lpPrimaryDD==NULL) lpPrimaryDD=*lplpdd; // do not override the value set when creating the primary surface!
-
+	bFlippedDC = FALSE; // v02.03.30
 	return DD_OK;
 }
 
@@ -1677,6 +1677,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	}
 
 	if(lpPrimaryDD==NULL) lpPrimaryDD=*lplpdd; // do not override the value set when creating the primary surface!
+	bFlippedDC = FALSE; // v02.03.30: fix for Powerslide
 	return DD_OK;
 }
 

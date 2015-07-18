@@ -851,3 +851,8 @@ add: debug flag "Highlight Locked surfaces" to highlight service surfaces that a
 v2.03.29:
 fix: wrong d3d7 hook, now "Echelon" works again.
 add: "hide taskbar" option. A little experimental, so far. If the game crashes, the taskbar may not be reactivated: use menu commands to recover.
+
+v2.03.30:
+fix: reset for flipped DC retrieved from ddraw interface after ddraw creation. Fixes "Powerslide".
+add: added "Send WM_ACTIVATEAPP message" flag: fixes "Championship Manager 03 04" mouse and "Thorgal" lock
+fix: FillRect hooker. Good for "Premier Manager 98" and "Premier Manager 97".

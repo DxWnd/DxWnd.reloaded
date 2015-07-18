@@ -292,6 +292,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoD3DReset) t->flags4 |= NOD3DRESET;
 	if(dlg->m_HideDesktop) t->flags4 |= HIDEDESKTOP;
 	if(dlg->m_HideTaskbar) t->flags6 |= HIDETASKBAR;
+	if(dlg->m_ActivateApp) t->flags6 |= ACTIVATEAPP;
 	if(dlg->m_UnlockZOrder) t->flags5 |= UNLOCKZORDER;
 	if(dlg->m_NoDestroyWindow) t->flags6 |= NODESTROYWINDOW;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
@@ -500,6 +501,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoD3DReset = t->flags4 & NOD3DRESET ? 1 : 0;
 	dlg->m_HideDesktop = t->flags4 & HIDEDESKTOP ? 1 : 0;
 	dlg->m_HideTaskbar = t->flags6 & HIDETASKBAR ? 1 : 0;
+	dlg->m_ActivateApp = t->flags6 & ACTIVATEAPP ? 1 : 0;
 	dlg->m_UnlockZOrder = t->flags5 & UNLOCKZORDER ? 1 : 0;
 	dlg->m_NoDestroyWindow = t->flags6 & NODESTROYWINDOW ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
@@ -1034,9 +1036,16 @@ void CDxwndhostView::OnExport()
 	CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
+		DWORD TFlags;
+		TARGETMAP *TargetMap;
 		strcpy(path, dlg.GetPathName().GetBuffer());
 		//MessageBox(path, "PathName", MB_OK);
+		// export with no trace flags active
+		TargetMap = &TargetMaps[i];
+		TFlags = TargetMap->tflags;
+		TargetMap->tflags = 0;
 		SaveConfigItem(&TargetMaps[i], &TitleMaps[i], 0, path);
+		TargetMap->tflags = TFlags;
 		if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) {
 			GetFolderFromPath(path);
 			WritePrivateProfileString("window", "exportpath", path, InitPath);

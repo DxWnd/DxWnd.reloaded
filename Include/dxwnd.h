@@ -192,6 +192,7 @@
 #define FIXPITCH			0x00000100 // Fixes surface filling made with no concern to actual pitch value
 #define POWER2WIDTH			0x00000200 // Fixes .....
 #define HIDETASKBAR			0x00000400 // Hides taskbar & start menu during game execution
+#define ACTIVATEAPP			0x00000800 // sends WM_ACTIVATEAPP message after every WM_WINPOSCHANGED message
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

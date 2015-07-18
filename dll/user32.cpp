@@ -153,6 +153,8 @@ static HookEntry_Type Hooks[]={
 	//{HOOK_IAT_CANDIDATE, "IsZoomed", (FARPROC)NULL, (FARPROC *)&pIsZoomed, (FARPROC)extIsZoomed},
 	//{HOOK_HOT_CANDIDATE, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
 
+	{HOOK_HOT_CANDIDATE, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
+
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -174,7 +176,7 @@ static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
 	{HOOK_IAT_CANDIDATE, "DrawTextA", (FARPROC)DrawTextA, (FARPROC *)&pDrawText, (FARPROC)extDrawTextA},
 	{HOOK_IAT_CANDIDATE, "DrawTextExA", (FARPROC)DrawTextExA, (FARPROC *)&pDrawTextEx, (FARPROC)extDrawTextExA},
-	{HOOK_IAT_CANDIDATE, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
+	//{HOOK_HOT_CANDIDATE, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
 	//{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
 	//{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)NULL, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
 	//{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC},
@@ -1689,11 +1691,16 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 		return TRUE;
 	}
 
-
 	memcpy(&rc, lprc, sizeof(rc));
 
 	if(dxw.IsRealDesktop(WindowFromDC(hdc))) {
-		OutTraceDW("FillRect: remapped hdc to virtual desktop\n");
+		HWND VirtualDesktop;
+		VirtualDesktop=dxw.GethWnd();
+		if(VirtualDesktop==NULL){
+			OutTraceDW("FillRect: no virtual desktop\n");
+			return TRUE;
+		}
+		OutTraceDW("FillRect: remapped hdc to virtual desktop hwnd=%x\n", dxw.GethWnd());
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
 	}
 
@@ -1701,11 +1708,14 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 		// when not in fullscreen mode, just proxy the call
 		// but check coordinates: some games may use excessive coordinates: see "Premier Manager 98"
 		RECT client;
-		(*pGetClientRect)(WindowFromDC(hdc), &client);
+		HWND hwnd;
+		hwnd=WindowFromDC(hdc);
+		(*pGetClientRect)(hwnd, &client);
 		if(rc.left < 0) rc.left=0;
 		if(rc.top < 0) rc.top=0;
 		if(rc.right > client.right) rc.right=client.right;
 		if(rc.bottom > client.bottom) rc.bottom=client.bottom;
+		OutTraceDW("FillRect: remapped hdc from hwnd=%x to rect=(%d,%d)-(%d,%d)\n", hwnd, rc.left, rc.top, rc.right, rc.bottom);
 		return (*pFillRect)(hdc, &rc, hbr);
 	}
 

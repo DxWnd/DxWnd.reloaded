@@ -107,7 +107,7 @@ static char *Flag5Names[32]={
 static char *Flag6Names[32]={
 	"FORCESWAPEFFECT", "LEGACYALLOC", "NODESTROYWINDOW", "NOMOVIES",
 	"SUPPRESSRELEASE", "FIXMOVIESCOLOR", "WOW64REGISTRY", "DISABLEMAXWINMODE",
-	"FIXPITCH", "POWER2WIDTH", "", "",
+	"FIXPITCH", "POWER2WIDTH", "HIDETASKBAR", "ACTIVATEAPP",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -942,6 +942,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 					POINT fo = dxw.GetFrameOffset();
 					(*pMoveWindow)(hControlParentWnd, wp->x+fo.x, wp->y+fo.y, wp->cx, wp->cy, TRUE);
 				}
+			}
+			// v2.03.30: in window mode, it seems that the WM_ACTIVATEAPP message is not sent to the main win.
+			// this PostMessage call recovers "Thorgal" block at the end of intro movie and "Championship Manager 03 04" cursor
+			if((message==WM_WINDOWPOSCHANGED) && (dxw.dwFlags6 & ACTIVATEAPP)){
+				PostMessage(hwnd, WM_ACTIVATEAPP, 1, 0);
 			}
 		}
 		break;

@@ -187,6 +187,7 @@ public:
 	BOOL	m_NoD3DReset;
 	BOOL	m_HideDesktop;
 	BOOL	m_HideTaskbar;
+	BOOL	m_ActivateApp;
 	BOOL	m_UnlockZOrder;
 	BOOL	m_NoDestroyWindow;
 	BOOL	m_LockSysColors;
