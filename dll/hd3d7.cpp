@@ -904,15 +904,15 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 		if(!(dxw.dwFlags1 & EMULATESURFACE)) break; // no more tricks ....
 		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
 
-		OutTraceD3D("CreateDevice(D3D2): SYSMEMORY OFF\n");
-		dxw.dwFlags5 |= NOSYSTEMEMULATED;
-		res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
-		if(res==DD_OK) break;
-		OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+		//OutTraceD3D("CreateDevice(D3D2): SYSMEMORY OFF\n");
+		//dxw.dwFlags6 |= NOSYSMEMPRIMARY;
+		//res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
+		//if(res==DD_OK) break;
+		//OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		//if(!(dxw.dwFlags1 & AUTOMATIC)) break;
 
 		OutTraceD3D("CreateDevice(D3D2): Emulation OFF\n");
-		dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
+		//dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
 		dxw.dwFlags1 &= ~EMULATESURFACE;
 		dxw.dwFlags1 |= LOCKEDSURFACE;
 		res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
@@ -943,15 +943,15 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 		if(!(dxw.dwFlags1 & EMULATESURFACE)) break; // no more tricks ....
 		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
 
-		OutTraceD3D("CreateDevice(D3D3): SYSMEMORY OFF\n");
-		dxw.dwFlags5 |= NOSYSTEMEMULATED;
-		res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
-		if(res==DD_OK) break;
-		OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+		//OutTraceD3D("CreateDevice(D3D3): SYSMEMORY OFF\n");
+		//dxw.dwFlags5 |= NOSYSTEMEMULATED;
+		//res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
+		//if(res==DD_OK) break;
+		//OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		//if(!(dxw.dwFlags1 & AUTOMATIC)) break;
 
 		OutTraceD3D("CreateDevice(D3D3): Emulation OFF\n");
-		dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
+		//dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
 		dxw.dwFlags1 &= ~EMULATESURFACE;
 		dxw.dwFlags1 |= LOCKEDSURFACE;
 		res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
@@ -986,15 +986,15 @@ HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7
 		if(!(dxw.dwFlags1 & EMULATESURFACE)) break; // no more tricks ....
 		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
 
-		OutTraceD3D("CreateDevice(D3D7): SYSMEMORY OFF\n");
-		dxw.dwFlags5 |= NOSYSTEMEMULATED;
-		res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
-		if(res==DD_OK) break;
-		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		if(!(dxw.dwFlags1 & AUTOMATIC)) break;
+		//OutTraceD3D("CreateDevice(D3D7): SYSMEMORY OFF\n");
+		//dxw.dwFlags5 |= NOSYSTEMEMULATED;
+		//res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
+		//if(res==DD_OK) break;
+		//OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		//if(!(dxw.dwFlags1 & AUTOMATIC)) break;
 
 		OutTraceD3D("CreateDevice(D3D7): Emulation OFF\n");
-		dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
+		//dxw.dwFlags5 &= ~NOSYSTEMEMULATED;
 		dxw.dwFlags1 &= ~EMULATESURFACE;
 		dxw.dwFlags1 |= LOCKEDSURFACE;
 		res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
@@ -1599,7 +1599,7 @@ HRESULT WINAPI extEnumZBufferFormats(void *lpd3d, REFCLSID riidDevice, LPD3DENUM
 
 // Beware: using service surfaces with DDSCAPS_SYSTEMMEMORY capability may lead to crashes in D3D operations
 // like Vievport::Clear() in "Forsaken" set in emulation AERO-friendly mode. To avoid the problem, you can 
-// suppress the offending cap by use of the NOSYSTEMEMULATED flag
+// suppress the offending cap by use of the NOSYSMEMPRIMARY or NOSYSMEMBACKBUF flags
 
 HRESULT WINAPI extViewportClear(void *lpd3dvp, DWORD p1, LPD3DRECT lpRect, DWORD p2)
 {

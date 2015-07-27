@@ -2203,7 +2203,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
-	if(dxw.dwFlags5 & NOSYSTEMEMULATED) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	if(dxw.dwFlags6 & NOSYSMEMPRIMARY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
 	extern BOOL bInCreateDevice;
 	//if (bInCreateDevice) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
@@ -2249,7 +2249,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	dwBackBufferCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	// this is important to avoid that certain D3D operations will abort - see "Forsaken" problem
-	if(dxw.dwFlags5 & NOSYSTEMEMULATED) dwBackBufferCaps = DDSCAPS_OFFSCREENPLAIN;
+	if(dxw.dwFlags6 & NOSYSMEMBACKBUF) dwBackBufferCaps = DDSCAPS_OFFSCREENPLAIN;
 
 	if(dxw.dwFlags5 & GDIMODE) return DD_OK;
 
@@ -2393,7 +2393,7 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 	if(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // necessary: Martian Gotic crashes otherwise
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
-	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	if(dxw.dwFlags6 & NOSYSMEMBACKBUF) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	GetPixFmt(&ddsd);
@@ -2431,6 +2431,7 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	else
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
 	if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+	if(dxw.dwFlags6 & NOSYSMEMBACKBUF) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	if (dxw.dwFlags2 & BACKBUFATTACH) {
@@ -2480,8 +2481,6 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	// with the same type, so that assuming an identical lPitch and memcopy-ing from one buffer to the 
 	// other is a legitimate operation. 
 	if(ddsd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // v2.03.03 !!
-	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
-	if(dxw.dwFlags5 & NOSYSTEMMEMORY) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 
 	if(dxw.dwFlags6 & POWER2WIDTH){ // v2.03.28: POWER2WIDTH to fix "Midtown Madness" in surface emulation mode
 		if(((ddsd.dwFlags & (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) == (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH)) &&
@@ -3184,7 +3183,6 @@ HRESULT WINAPI extFlip(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddssrc, 
 			if (res) OutTraceDW("Flip: GetSurfaceDesc res=%x at %d\n",res, __LINE__);
 
 			// replace these CAPS (good for seven kingdoms II) with same as lpdds surface
-			//ddsc.dwCaps=DDSCAPS_OFFSCREENPLAIN+DDSCAPS_SYSTEMMEMORY;
 			ddsc.dwCaps=sd.ddsCaps.dwCaps;
 
 			res=lpdds->GetAttachedSurface(&ddsc, &lpddsAttached);

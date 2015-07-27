@@ -150,9 +150,9 @@
 #define DIABLOTWEAK			0x00000001 // ... ??? ...
 #define CLEARTARGET			0x00000002 // forces a D3D clean on target surface upon each BeginScene invocation
 #define NOWINPOSCHANGES		0x00000004 // suppress WM_WINDOWPOSCHANGING/CHANGED messages (RollerCoaster Tycoon...)
-#define NOSYSTEMMEMORY		0x00000008 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on surfaces
+//#define NOSYSTEMMEMORY		0x00000008 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on surfaces
 #define NOBLT				0x00000010 // suppress blit to primary surface
-#define NOSYSTEMEMULATED	0x00000020 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated front & backbuffer surfaces
+//#define NOSYSTEMEMULATED	0x00000020 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated front & backbuffer surfaces
 #define DOFASTBLT			0x00000040 // use FastBlt to primary surface
 #define AEROBOOST			0x00000080 // Optimize for AERO environment: does all stretching in sysmemory surfaces
 #define QUARTERBLT			0x00000100 // Consider a screen update (to count or limit FPS) only  blt operations bigger than a quarter of the whole primary surface
@@ -193,6 +193,8 @@
 #define POWER2WIDTH			0x00000200 // Fixes .....
 #define HIDETASKBAR			0x00000400 // Hides taskbar & start menu during game execution
 #define ACTIVATEAPP			0x00000800 // sends WM_ACTIVATEAPP message after every WM_WINPOSCHANGED message
+#define NOSYSMEMPRIMARY		0x00001000 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated primary surface
+#define NOSYSMEMBACKBUF		0x00002000 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated backbuffer surface
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

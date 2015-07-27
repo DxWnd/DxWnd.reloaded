@@ -856,3 +856,8 @@ v2.03.30:
 fix: reset for flipped DC retrieved from ddraw interface after ddraw creation. Fixes "Powerslide".
 add: added "Send WM_ACTIVATEAPP message" flag: fixes "Championship Manager 03 04" mouse and "Thorgal" lock
 fix: FillRect hooker. Good for "Premier Manager 98" and "Premier Manager 97".
+fix: revised the DDSCAPS_SYSTEMMEMORY suppression, now separated for primary & backbuffer surfaces
+
+v2.03.31:
+fix: handling of "No SYSTEMMEMORY on BackBuffer" flag for no-emulation mode: necessary to run "Microsoft Motocross Madness 2" in this mode.
+fix: allowing hot patching to GetCursorPos() user32.dll call. This allows correct mouse control with obfuscated exes, like the chinese RPG "Paladin 3".

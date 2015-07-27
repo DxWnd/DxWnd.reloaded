@@ -325,8 +325,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressDXErrors) t->flags |= SUPPRESSDXERRORS;
 	if(dlg->m_MarkBlit) t->flags3 |= MARKBLIT;
 	if(dlg->m_MarkLock) t->flags3 |= MARKLOCK;
-	if(dlg->m_NoSystemMemory) t->flags5 |= NOSYSTEMMEMORY;
-	if(dlg->m_NoSystemEmulated) t->flags5 |= NOSYSTEMEMULATED;
+	if(dlg->m_NoSysMemPrimary) t->flags6 |= NOSYSMEMPRIMARY;
+	if(dlg->m_NoSysMemBackBuf) t->flags6 |= NOSYSMEMBACKBUF;
 	if(dlg->m_NoBlt) t->flags5 |= NOBLT;
 	if(dlg->m_FastBlt) t->flags5 |= DOFASTBLT;
 	if(dlg->m_GDIColorConv) t->flags5 |= GDICOLORCONV;
@@ -551,8 +551,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressDXErrors = t->flags & SUPPRESSDXERRORS ? 1 : 0;
 	dlg->m_MarkBlit = t->flags3 & MARKBLIT ? 1 : 0;
 	dlg->m_MarkLock = t->flags3 & MARKLOCK ? 1 : 0;
-	dlg->m_NoSystemMemory = t->flags5 & NOSYSTEMMEMORY ? 1 : 0;
-	dlg->m_NoSystemEmulated = t->flags5 & NOSYSTEMEMULATED ? 1 : 0;
+	dlg->m_NoSysMemPrimary = t->flags6 & NOSYSMEMPRIMARY ? 1 : 0;
+	dlg->m_NoSysMemBackBuf = t->flags6 & NOSYSMEMBACKBUF ? 1 : 0;
 	dlg->m_NoBlt = t->flags5 & NOBLT ? 1 : 0;
 	dlg->m_FastBlt = t->flags5 & DOFASTBLT ? 1 : 0;
 	dlg->m_GDIColorConv = t->flags5 & GDICOLORCONV ? 1 : 0;

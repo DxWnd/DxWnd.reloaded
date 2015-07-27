@@ -97,8 +97,8 @@ public:
 	BOOL	m_SuppressDXErrors;
 	BOOL	m_MarkBlit;
 	BOOL	m_MarkLock;
-	BOOL	m_NoSystemMemory;
-	BOOL	m_NoSystemEmulated;
+	BOOL	m_NoSysMemPrimary;
+	BOOL	m_NoSysMemBackBuf;
 	BOOL	m_NoBlt;
 	BOOL	m_BilinearBlt;
 	BOOL	m_FastBlt;

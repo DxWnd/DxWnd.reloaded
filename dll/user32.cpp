@@ -205,7 +205,7 @@ static HookEntry_Type PeekAllHooks[]={
 };
 
 static HookEntry_Type MouseHooks[]={
-	{HOOK_IAT_CANDIDATE, "GetCursorPos", (FARPROC)GetCursorPos, (FARPROC *)&pGetCursorPos, (FARPROC)extGetCursorPos},
+	{HOOK_HOT_CANDIDATE, "GetCursorPos", (FARPROC)GetCursorPos, (FARPROC *)&pGetCursorPos, (FARPROC)extGetCursorPos},
 	{HOOK_IAT_CANDIDATE, "GetCursorInfo", (FARPROC)GetCursorInfo, (FARPROC *)&pGetCursorInfo, (FARPROC)extGetCursorInfo},
 	{HOOK_IAT_CANDIDATE, "SetCursor", (FARPROC)SetCursor, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor},
 	{HOOK_IAT_CANDIDATE, "SendMessageA", (FARPROC)SendMessageA, (FARPROC *)&pSendMessageA, (FARPROC)extSendMessageA}, 
