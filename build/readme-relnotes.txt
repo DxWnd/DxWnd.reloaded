@@ -867,3 +867,8 @@ add: flags "Ask confirmation on window close" and "Terminate on window close"
 fix: implemented surface stack cleanup on overflow: this should allow "European Air War" to run through several seasons.
 debug: added a few diagnostic messages to trap possible errors in DLL injection functions
 fix: recovered the menu Edit->Add command that went disabled
+
+v2.03.33:
+add: new surface handling, more similar to D3DWindower. The previous mode can be activated by setting the "Flip emulation" flag. The new mode can successfully manage "Microsoft Motocross Madness 2".
+fix: Reelease operation for primary surface when used for GDI GetDC operation
+fix: protections for GDI ReleaseDC operations against null window or DC

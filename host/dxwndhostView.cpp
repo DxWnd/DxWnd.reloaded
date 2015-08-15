@@ -326,6 +326,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_KeepCursorFixed) t->flags2 |= KEEPCURSORFIXED;
 	if(dlg->m_UseRGB565) t->flags |= USERGB565;
 	if(dlg->m_SuppressDXErrors) t->flags |= SUPPRESSDXERRORS;
+	if(dlg->m_FlipEmulation) t->flags6 |= FLIPEMULATION;
 	if(dlg->m_MarkBlit) t->flags3 |= MARKBLIT;
 	if(dlg->m_MarkLock) t->flags3 |= MARKLOCK;
 	if(dlg->m_NoSysMemPrimary) t->flags6 |= NOSYSMEMPRIMARY;
@@ -554,6 +555,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_KeepCursorFixed = t->flags2 & KEEPCURSORFIXED ? 1 : 0;
 	dlg->m_UseRGB565 = t->flags & USERGB565 ? 1 : 0;
 	dlg->m_SuppressDXErrors = t->flags & SUPPRESSDXERRORS ? 1 : 0;
+	dlg->m_FlipEmulation = t->flags6 & FLIPEMULATION ? 1 : 0;
 	dlg->m_MarkBlit = t->flags3 & MARKBLIT ? 1 : 0;
 	dlg->m_MarkLock = t->flags3 & MARKLOCK ? 1 : 0;
 	dlg->m_NoSysMemPrimary = t->flags6 & NOSYSMEMPRIMARY ? 1 : 0;

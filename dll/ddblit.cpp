@@ -19,6 +19,8 @@ extern CreateSurface1_Type pCreateSurface3;
 extern CreateSurface2_Type pCreateSurface4;
 extern CreateSurface2_Type pCreateSurface7;
 extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
+extern HDC hFlippedDC;
+extern ReleaseDC_Type pReleaseDC;
 
 extern void BlitError(HRESULT, LPRECT, LPRECT, int);
 extern void BlitTrace(char *, LPRECT, LPRECT, int);
@@ -239,12 +241,12 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		emurect.bottom = dxw.GetScreenHeight();
 	}
 
-	res=0;
+	res=DD_OK;
 	// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 	if (lpdds != lpddssrc){
 		if (IsDebug) BlitTrace("SRC2EMU", &emurect, &destrect, __LINE__);
 		if(destrect.top == -32000) return DD_OK; // happens when window is minimized & do not notify on task switch ...
-	        if(lpdds->IsLost()) lpdds->Restore(); // lpDDSEmu_Back could get lost .....
+	    if(lpdds->IsLost()) lpdds->Restore(); // lpDDSEmu_Back could get lost .....
 		res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 	}
 
@@ -272,10 +274,13 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 
 		// Try to handle HDC lock concurrency....		
 		if(res==DDERR_SURFACEBUSY){
+			(*pReleaseDC)(lpdds, hFlippedDC);
+#if 0
 			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpddssrc, res, ExplainDDError(res));
 			res=(*pUnlockMethod(lpdds))(lpdds, NULL); // v2.03.24 reintroduced because of "Virtua Cop"
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpdds, res, ExplainDDError(res));
+#endif
 			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
@@ -287,7 +292,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 
 	LPDIRECTDRAWSURFACE lpDDSSource;
 	if (res=(*pColorConversion)(lpdds, emurect, &lpDDSSource)) {
-		OutTraceE("sBlt ERROR: Color conversion failed res=%d(%s)\n", res, ExplainDDError(res));
+		OutTraceE("sBlt ERROR: Color conversion failed res=%x(%s)\n", res, ExplainDDError(res));
 		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 		return res;
 	}

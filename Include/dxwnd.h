@@ -197,6 +197,7 @@
 #define NOSYSMEMBACKBUF		0x00002000 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated backbuffer surface
 #define CONFIRMONCLOSE		0x00004000 // on close button, ask the user before closing the window / terminating the program
 #define TERMINATEONCLOSE	0x00008000 // on WM_CLOSE message, also terminates the program
+#define FLIPEMULATION		0x00010000 // create virtual primary and backbuffer as un-attached surfaces and replace Flip with Blt
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

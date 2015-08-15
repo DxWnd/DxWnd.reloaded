@@ -97,6 +97,7 @@ public:
 	BOOL	m_KeepCursorFixed;
 	BOOL	m_UseRGB565;
 	BOOL	m_SuppressDXErrors;
+	BOOL	m_FlipEmulation;
 	BOOL	m_MarkBlit;
 	BOOL	m_MarkLock;
 	BOOL	m_NoSysMemPrimary;

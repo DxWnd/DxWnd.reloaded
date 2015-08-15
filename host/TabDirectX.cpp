@@ -40,9 +40,8 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOPALETTEUPDATE, cTarget->m_NoPaletteUpdate);
 	DDX_Check(pDX, IDC_NOPIXELFORMAT, cTarget->m_NoPixelFormat);
 	DDX_Check(pDX, IDC_NOALPHACHANNEL, cTarget->m_NoAlphaChannel);
-	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
-	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
 	DDX_Check(pDX, IDC_NOFLIPEMULATION, cTarget->m_NoFlipEmulation);
+	DDX_Check(pDX, IDC_FLIPEMULATION, cTarget->m_FlipEmulation);
 	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
 	DDX_Check(pDX, IDC_CENTERTOWIN, cTarget->m_CenterToWin);
 	DDX_Check(pDX, IDC_SETCOMPATIBILITY, cTarget->m_SetCompatibility);

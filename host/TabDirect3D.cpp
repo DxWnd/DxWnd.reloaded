@@ -34,6 +34,8 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
+	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
+	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
 
 	// Ddraw tweaks
 	DDX_Check(pDX, IDC_NOSYSMEMPRIMARY, cTarget->m_NoSysMemPrimary);

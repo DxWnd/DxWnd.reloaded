@@ -2019,9 +2019,13 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 	OutTraceDW("GDI.ReleaseDC: hwnd=%x hdc=%x\n", hwnd, hDC);
 
 	if (dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
+	if(hwnd == 0) return(TRUE);
 
 	if(bFlippedDC && (hDC == hFlippedDC)) {
 		HRESULT ret;
+		LPDIRECTDRAWSURFACE lpDDSPrim;
+		lpDDSPrim = dxwss.GetPrimarySurface();
+		if(!lpDDSPrim) return(TRUE);
 		OutTraceDW("GDI.ReleaseDC: releasing flipped GDI hdc=%x\n", hDC);
 		ret=(*pReleaseDC)(dxwss.GetPrimarySurface(), hDC);
 		if (ret) OutTraceE("GDI.ReleaseDC ERROR: err=%x(%s) at %d\n", ret, ExplainDDError(ret), __LINE__);
