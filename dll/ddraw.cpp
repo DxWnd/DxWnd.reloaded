@@ -2191,10 +2191,15 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 	if(lpDDSEmu_Prim==NULL){
 		ClearSurfaceDesc((void *)&ddsd, dxversion);
 		ddsd.dwFlags = DDSD_CAPS; 
-		//ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+		// try DDSCAPS_SYSTEMMEMORY first, then suppress it if not supported
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE|DDSCAPS_SYSTEMMEMORY;
 		OutTraceDW("CreateSurface: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuPrim]", __LINE__));
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
+		if(res==DDERR_INCOMPATIBLEPRIMARY) {
+			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+			OutTraceDW("CreateSurface: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuPrim]", __LINE__));
+			res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
+		}
 		if(res==DDERR_PRIMARYSURFACEALREADYEXISTS){
 			OutTraceDW("CreateSurface: ASSERT DDSEmu_Prim already exists\n");
 			if(dxw.Windowize){
@@ -2237,8 +2242,12 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 		}
 
 		OutTraceDW("CreateSurface: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuBack]", __LINE__));
-
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Back, 0);
+		if(res) {
+			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+			OutTraceDW("CreateSurface: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuBack]", __LINE__));
+			res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Back, 0);
+		}
 		if(res){
 			OutTraceE("CreateSurface: CreateSurface ERROR on DDSEmuBack : res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			if(res==DDERR_INVALIDPIXELFORMAT) DumpPixFmt(&ddsd);
@@ -2563,14 +2572,18 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX);
 	// v2.02.93: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
-	if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) 
+	if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) {
 		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
-	else
+	}
+	else {
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
-	if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+		if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+		ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+	}
 	if(dxw.dwFlags6 & NOSYSMEMBACKBUF) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
 	ddsd.dwHeight = dxw.GetScreenHeight();
+
 	if (dxw.dwFlags2 & BACKBUFATTACH) {
 		LPDIRECTDRAWSURFACE lpPrim;
 		DDSURFACEDESC2 prim;
@@ -2945,7 +2958,7 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 			}
 		}
 	}
-	else  {
+	else {
 		// Virtual primary surfaces are created with no DDSCAPS_3DDEVICE caps, so don't look for it ....
 		if(IsPrim && (lpddsc->dwCaps & (DDSCAPS_BACKBUFFER|DDSCAPS_FLIP))) 
 			lpddsc->dwCaps &= ~DDSCAPS_3DDEVICE;
@@ -2954,10 +2967,22 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	// proxy the call...
 
 	res=(*pGetAttachedSurface)(lpdds, lpddsc, lplpddas);
-	if(res) 
+	if(res) {
+		// if possible, simulate a backbuffer attached to primary surface
+		if (IsPrim && (DDSD_Prim.dwBackBufferCount > 0) && (lpddsc->dwCaps & (DDSCAPS_BACKBUFFER|DDSCAPS_FLIP))){ 
+			LPDIRECTDRAWSURFACE lpBackBuffer;
+			lpBackBuffer = dxwss.GetBackBufferSurface();
+			if(lpBackBuffer){
+				*lplpddas = lpBackBuffer;
+				OutTraceDW("GetAttachedSurface(%d): SIMULATE attached to PRIM=%x\n", dxversion, lpdds); 
+				return DD_OK;
+			}
+		}
 		OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
-	else
+	}
+	else {
 		OutTraceDDRAW("GetAttachedSurface(%d): attached=%x\n", dxversion, *lplpddas); 
+	}
 
 	return res;
 	

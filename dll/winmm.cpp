@@ -176,9 +176,11 @@ MCIERROR WINAPI extmciSendStringA(LPCTSTR lpszCommand, LPTSTR lpszReturnString, 
 	if(IsWithinMCICall) return(*pmciSendStringA)(lpszCommand, lpszReturnString, cchReturn, hwndCallback); // just proxy ...
 	OutTraceDW("mciSendStringA: Command=\"%s\" Return=%x Callback=%x\n", lpszCommand, cchReturn, hwndCallback);
 	char sMovieNickName[81];
+	char sTail[81];
 	RECT rect;
-	if (sscanf(lpszCommand, "put %s destination at %ld %ld %ld %ld", 
-		sMovieNickName, &(rect.left), &(rect.top), &(rect.right), &(rect.bottom))==5){
+	sTail[0]=0;
+	if (sscanf(lpszCommand, "put %s destination at %ld %ld %ld %ld %s", 
+		sMovieNickName, &(rect.left), &(rect.top), &(rect.right), &(rect.bottom), sTail)>=5){
 		char NewCommand[256];
 		// v2.03.19 height / width fix
 		rect.right += rect.left; // convert width to position
@@ -186,7 +188,7 @@ MCIERROR WINAPI extmciSendStringA(LPCTSTR lpszCommand, LPTSTR lpszReturnString, 
 		rect=dxw.MapClientRect(&rect);
 		rect.right -= rect.left; // convert position to width
 		rect.bottom -= rect.top; // convert position to height
-		sprintf(NewCommand, "put %s destination at %d %d %d %d", sMovieNickName, rect.left, rect.top, rect.right, rect.bottom);
+		sprintf(NewCommand, "put %s destination at %d %d %d %d %s", sMovieNickName, rect.left, rect.top, rect.right, rect.bottom, sTail);
 		lpszCommand=NewCommand;
 		OutTraceDW("mciSendStringA: replaced Command=\"%s\"\n", lpszCommand);
 	}

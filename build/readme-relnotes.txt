@@ -872,3 +872,8 @@ v2.03.33:
 add: new surface handling, more similar to D3DWindower. The previous mode can be activated by setting the "Flip emulation" flag. The new mode can successfully manage "Microsoft Motocross Madness 2".
 fix: Reelease operation for primary surface when used for GDI GetDC operation
 fix: protections for GDI ReleaseDC operations against null window or DC
+
+v2.03.34:
+fix: handling of real primary/backbuffer surfaces in non-emulated modes and WinXP: now uses system memory if possible, video memory otherwise. 
+fix: simulation of backbuffer attach in non emulated modes.
+fix: mciSendString hooker, was losing a final command line argument
