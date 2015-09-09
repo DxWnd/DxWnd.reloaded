@@ -60,6 +60,7 @@ public:
 	BOOL	m_EmulateRegistry;
 	BOOL	m_OverrideRegistry;
 	BOOL	m_Wow64Registry;
+	BOOL	m_Wow32Registry;
 	BOOL	m_FullScreenOnly;
 	BOOL	m_FilterMessages;
 	BOOL	m_PeekAllMessages;
@@ -75,6 +76,7 @@ public:
 	CString	m_Title;
 	CString	m_OpenGLLib;
 	CString	m_Notes;
+	CString	m_Registry;
 	BOOL	m_SaveLoad;
 	BOOL	m_SlowDown;
 	BOOL	m_BlitFromBackBuffer;

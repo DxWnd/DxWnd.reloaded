@@ -200,6 +200,7 @@
 #define FLIPEMULATION		0x00010000 // create virtual primary and backbuffer as un-attached surfaces and replace Flip with Blt
 #define SETZBUFFERBITDEPTHS	0x00020000 // when not set, set the legacy dwZBufferBitDepths field in the directdraw capability from GetCaps()
 #define SHAREDDC			0x00040000 // enable sharing window DC and primary surface DC
+#define WOW32REGISTRY		0x00080000 // Sets KEY_WOW32_64KEY registry flag
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

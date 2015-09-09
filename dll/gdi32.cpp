@@ -715,7 +715,7 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	SetLastError(0);
 	RetHdc=(*pGDICreateCompatibleDC)(hdc);
 	LastError=GetLastError();
-	if(!LastError)
+	if(LastError == 0)
 		OutTraceDW("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
 	else
 		OutTraceE("GDI.CreateCompatibleDC ERROR: err=%d at %d\n", LastError, __LINE__);
@@ -756,20 +756,20 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 			OutTrace("Debug: DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
 		}
 		else if(WindowFromDC(hdcDest)==NULL){
-			// V2.02.31: See StretchBlt.
-			int nWDest, nHDest;
-			nWDest= nWidth;
-			nHDest= nHeight;
-			dxw.MapWindow(&nXDest, &nYDest, &nWDest, &nHDest);
-			res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
-			dxw.ShowOverlay(hdcDest);
-			OutTrace("Debug: NULL dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
+				// V2.02.31: See StretchBlt.
+				int nWDest, nHDest;
+				nWDest= nWidth;
+				nHDest= nHeight;
+				dxw.MapWindow(&nXDest, &nYDest, &nWDest, &nHDest);
+				res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
+				dxw.ShowOverlay(hdcDest);
+				OutTrace("Debug: NULL dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
+			}
+			else{
+				res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+				OutTrace("Debug: PROXY dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWidth, nHeight);
+			}
 		}
-		else{
-			res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-			OutTrace("Debug: PROXY dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWidth, nHeight);
-		}
-	}
 	else {
 		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 		OutTrace("Debug: MEM dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWidth, nHeight);

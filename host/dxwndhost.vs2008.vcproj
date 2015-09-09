@@ -434,6 +434,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TabRegistry.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\TabSysLibs.cpp"
 				>
 			</File>
@@ -552,6 +556,10 @@
 			</File>
 			<File
 				RelativePath=".\TabProgram.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabRegistry.h"
 				>
 			</File>
 			<File

@@ -31,6 +31,7 @@
 #include "TabOpenGL.h"
 #include "TabCompat.h"
 #include "TabColor.h"
+#include "TabRegistry.h"
 #include "TabNotes.h"
 #include "TabSysLibs.h"
 #include "TabDebug.h"
@@ -58,6 +59,7 @@ CDXTabCtrl::CDXTabCtrl()
 	m_tabPages[i++]=new CTabLogs;
 	m_tabPages[i++]=new CTabSysLibs;
 	m_tabPages[i++]=new CTabCompat;
+	m_tabPages[i++]=new CTabRegistry;
 	m_tabPages[i++]=new CTabNotes;
 	if (gbDebug) m_tabPages[i++]=new CTabDebug;
 
@@ -85,6 +87,7 @@ void CDXTabCtrl::Init()
 	m_tabPages[i++]->Create(IDD_TAB_LOG, this);
 	m_tabPages[i++]->Create(IDD_TAB_SYSLIBS, this);
 	m_tabPages[i++]->Create(IDD_TAB_COMPAT, this);
+	m_tabPages[i++]->Create(IDD_TAB_REGISTRY, this);
 	m_tabPages[i++]->Create(IDD_TAB_NOTES, this);
 	if (gbDebug) m_tabPages[i++]->Create(IDD_TAB_DEBUG, this);
 

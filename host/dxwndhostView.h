@@ -21,7 +21,7 @@ private:
 	void Resize(void);
 	void SaveConfigFile();
 	TARGETMAP TargetMaps[MAXTARGETS];
-	PRIVATEMAP TitleMaps[MAXTARGETS];
+	PRIVATEMAP PrivateMaps[MAXTARGETS];
 	char InitPath[MAX_PATH];
 	BOOL isUpdated;
 	DEVMODE InitDevMode;
@@ -79,6 +79,7 @@ protected:
 	afx_msg void OnViewLog();
 	afx_msg void OnDeleteLog();
 	afx_msg void OnDebugView();
+	afx_msg void OnSetRegistry();
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnRun();
 	afx_msg void OnClearAllLogs();

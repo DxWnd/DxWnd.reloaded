@@ -99,6 +99,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_EmulateRegistry = FALSE; 
 	m_OverrideRegistry = FALSE; 
 	m_Wow64Registry = FALSE; 
+	m_Wow32Registry = FALSE; 
 	m_FullScreenOnly = FALSE; 
 	m_FilterMessages = FALSE; 
 	m_PeekAllMessages = FALSE; 
@@ -245,6 +246,8 @@ BOOL CTargetDlg::OnInitDialog()
 	LoadString(AfxGetResourceHandle(), DXW_TAB_LIBS, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_COMPAT, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_REGISTRY, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_NOTES, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));

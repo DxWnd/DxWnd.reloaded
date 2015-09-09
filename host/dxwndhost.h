@@ -23,6 +23,7 @@ extern int MessageBoxLangArg(UINT, UINT, UINT, ...);
 // the (limited) IPC space and allow for more record entryes (currently 255).
 
 #define MAX_NOTES 1024
+#define MAX_REGISTRY 2048
 #define MAX_TITLE 80
 
 typedef struct PRIVATEMAP
@@ -30,6 +31,7 @@ typedef struct PRIVATEMAP
 	char title[MAX_TITLE+1];
 	char launchpath[MAX_PATH+1];
 	char notes[MAX_NOTES+1];
+	char registry[MAX_REGISTRY+1];
 }PRIVATEMAP;
 
 /////////////////////////////////////////////////////////////////////////////

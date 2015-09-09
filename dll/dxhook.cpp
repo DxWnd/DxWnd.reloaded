@@ -109,7 +109,7 @@ static char *Flag6Names[32]={
 	"SUPPRESSRELEASE", "FIXMOVIESCOLOR", "WOW64REGISTRY", "DISABLEMAXWINMODE",
 	"FIXPITCH", "POWER2WIDTH", "HIDETASKBAR", "ACTIVATEAPP",
 	"NOSYSMEMPRIMARY", "NOSYSMEMBACKBUF", "CONFIRMONCLOSE", "TERMINATEONCLOSE",
-	"FLIPEMULATION", "SETZBUFFERBITDEPTHS", "SHAREDDC", "",
+	"FLIPEMULATION", "SETZBUFFERBITDEPTHS", "SHAREDDC", "WOW32REGISTRY",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1383,6 +1383,7 @@ void HookModule(HMODULE base, int dxversion)
 	if(dxw.dwFlags4 & HOOKGLIDE) HookGlideLibs(base); 
 	if( (dxw.dwFlags3 & EMULATEREGISTRY) || 
 		(dxw.dwFlags4 & OVERRIDEREGISTRY) || 
+		(dxw.dwFlags6 & (WOW32REGISTRY|WOW64REGISTRY)) || 
 		(dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 	HookAVIFil32(base);
@@ -1485,7 +1486,8 @@ LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 			else {
 				// fix the message point coordinates
 				POINT upleft={0,0};
-				(*pClientToScreen)(dxw.GethWnd(), &upleft);
+				// v2.03.36: offset to be calculated from target window
+				(*pClientToScreen)(msg->hwnd, &upleft);
 				msg->pt = dxw.SubCoordinates(msg->pt, upleft);
 				msg->pt=dxw.FixCursorPos(msg->pt);
 				// beware: needs fix for mousewheel?

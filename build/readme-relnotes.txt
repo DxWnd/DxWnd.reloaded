@@ -888,3 +888,15 @@ fix: handling of NULL DC in non emulated modes: the NULL DC (corresponding to th
 fix: EnumDisplayModes was returning wrong modes list in SVGA mode.
 fix: applied the error suppression to the DeleteAttachedSurface hooker.
 fix: hooked User32 CreateRectRegion/Indirect calls. 
+
+v2.03.36:
+fix: fixed "fix movies color depth" flag for color depths greater than 8BPP. Fixes the "Horde 2 the Citadel" intro movie.
+add: added the "Set KEY_WOW64_32KEY flag" flag to prevent registry redirection for win32 applications
+add: virtual registry configuration integrated in DxWnd configuration and exported files
+add: hooking of RegEnumValue() call. Useful for "Star trek Generations"
+fix: fixed mouse handling through "Message processing" option for child windows. Fixes "Star Trek Armada" mouse problems
+fix: fixed GetDC hooker for child windows. Fixes some "Star Trek Armada" graphic problems
+fix: CreateCompatibleDC hooker printing wrong error messages in normal conditions
+fix: fixed DrawText, DrawTextEx hookers returning wrong RECT structure. Fixes "Star Trek Armada" text placement problems
+add: completed log messages for DrawTextEx, CreateDialogParam, DialogBoxParam and CreateDialogIndirectParam
+

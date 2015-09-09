@@ -10,6 +10,9 @@
 typedef LONG (WINAPI *RegFlushKey_Type)(HKEY);
 LONG WINAPI extRegFlushKey(HKEY);
 RegFlushKey_Type pRegFlushKey = NULL;
+typedef LONG (WINAPI *RegEnumValueA_Type)(HKEY, DWORD, LPTSTR, LPDWORD, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
+LONG WINAPI extRegEnumValueA(HKEY, DWORD, LPTSTR, LPDWORD, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
+RegEnumValueA_Type pRegEnumValueA = NULL;
 
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "RegOpenKeyExA", NULL, (FARPROC *)&pRegOpenKeyEx, (FARPROC)extRegOpenKeyEx},
@@ -19,6 +22,8 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "RegCreateKeyExA", NULL, (FARPROC *)&pRegCreateKeyEx, (FARPROC)extRegCreateKeyEx},
 	{HOOK_IAT_CANDIDATE, "RegSetValueExA", NULL, (FARPROC *)&pRegSetValueEx, (FARPROC)extRegSetValueEx},
 	{HOOK_IAT_CANDIDATE, "RegFlushKey", NULL, (FARPROC *)&pRegFlushKey, (FARPROC)extRegFlushKey},
+	// v2.3.36
+	{HOOK_IAT_CANDIDATE, "RegEnumValueA", NULL, (FARPROC *)&pRegEnumValueA, (FARPROC)extRegEnumValueA},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -152,7 +157,14 @@ LONG WINAPI extRegOpenKeyEx(
 		if(res == ERROR_SUCCESS) return res;
 	}
 
-	if(dxw.dwFlags6 & WOW64REGISTRY) ulOptions |= KEY_WOW64_64KEY;
+	if(dxw.dwFlags6 & WOW64REGISTRY){
+		ulOptions &= ~KEY_WOW64_32KEY;
+		ulOptions |= KEY_WOW64_64KEY;
+	}
+	if(dxw.dwFlags6 & WOW32REGISTRY){
+		ulOptions &= ~KEY_WOW64_64KEY;
+		ulOptions |= KEY_WOW64_32KEY;
+	}
 
 	res=(*pRegOpenKeyEx)(hKey, lpSubKey, ulOptions, samDesired, phkResult);
 	OutTraceR("RegOpenKeyEx: res=%x phkResult=%x\n", res, phkResult ? *phkResult : 0); 
@@ -367,4 +379,13 @@ LONG WINAPI extRegCreateKey(HKEY hKey, LPCTSTR lpSubKey, PHKEY phkResult)
 	}
 	else
 		return (*pRegCreateKey)(hKey, lpSubKey, phkResult);
+}
+
+LONG WINAPI extRegEnumValueA(HKEY hKey, DWORD dwIndex, LPTSTR lpValueName, LPDWORD lpcchValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
+{
+	LONG ret;
+	OutTrace("RegEnumValue: hKey=%x(%s) Index=%x\n", hKey, hKey2String(hKey), dwIndex);
+	ret=(*pRegEnumValueA)(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+	OutTrace("RegEnumValue: hKey=%x(%s) Index=%x ValueName=\"%s\", Type=%x ret=%x\n", hKey, hKey2String(hKey), dwIndex, lpValueName, lpType ? *lpType : 0, ret);
+	return ret;
 }

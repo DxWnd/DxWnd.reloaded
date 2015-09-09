@@ -45,7 +45,7 @@ char *strnncpy(char *dest, char *src, size_t count)
 
 static char *Escape(char *s)
 {
-	static char tmp[1024];
+	static char tmp[2048];
 	char *t = tmp;
 	for(; *s; s++){
 		if(*s=='\n'){
@@ -66,7 +66,7 @@ static char *Escape(char *s)
 
 static char *Unescape(char *s)
 {
-	static char tmp[1024];
+	static char tmp[2048];
 	char *t = tmp;
 	for(; *s; s++){
 		if((*s=='\\') && (*(s+1)=='n')){
@@ -180,6 +180,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_EmulateRegistry) t->flags3 |= EMULATEREGISTRY;
 	if(dlg->m_OverrideRegistry) t->flags4 |= OVERRIDEREGISTRY;
 	if(dlg->m_Wow64Registry) t->flags6 |= WOW64REGISTRY;
+	if(dlg->m_Wow32Registry) t->flags6 |= WOW32REGISTRY;
 	if(dlg->m_HookEnabled) t->flags3 |= HOOKENABLED;
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
@@ -425,6 +426,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
 	dlg->m_OverrideRegistry = t->flags4 & OVERRIDEREGISTRY ? 1 : 0;
 	dlg->m_Wow64Registry = t->flags6 & WOW64REGISTRY ? 1 : 0;
+	dlg->m_Wow32Registry = t->flags6 & WOW32REGISTRY ? 1 : 0;
 	dlg->m_HookEnabled = t->flags3 & HOOKENABLED ? 1 : 0;
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
@@ -652,6 +654,8 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	WritePrivateProfileString("target", key, TargetMap->OpenGLLib, InitPath);
 	sprintf_s(key, sizeof(key), "notes%i", i);
 	WritePrivateProfileString("target", key, Escape(PrivateMap->notes), InitPath);
+	sprintf_s(key, sizeof(key), "registry%i", i);
+	WritePrivateProfileString("target", key, Escape(PrivateMap->registry), InitPath);
 	sprintf_s(key, sizeof(key), "ver%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->dxversion);
 	WritePrivateProfileString("target", key, val, InitPath);
@@ -785,6 +789,8 @@ static void ClearTarget(int i, char *InitPath)
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "notes%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "registry%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
 }
 
 static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, char *InitPath)
@@ -805,6 +811,9 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	sprintf_s(key, sizeof(key), "notes%i", i);
 	GetPrivateProfileString("target", key, "", PrivateMap->notes, MAX_NOTES, InitPath);
 	strcpy(PrivateMap->notes, Unescape(PrivateMap->notes));
+	sprintf_s(key, sizeof(key), "registry%i", i);
+	GetPrivateProfileString("target", key, "", PrivateMap->registry, MAX_NOTES, InitPath);
+	strcpy(PrivateMap->registry, Unescape(PrivateMap->registry));
 	sprintf_s(key, sizeof(key), "ver%i", i);
 	TargetMap->dxversion = GetPrivateProfileInt("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "coord%i", i);
@@ -887,7 +896,7 @@ void CDxwndhostView::SaveConfigFile()
 
 	for(i = 0; i < MAXTARGETS; i ++){
 		if(!TargetMaps[i].path[0]) break;
-		SaveConfigItem(&TargetMaps[i], &TitleMaps[i], i, InitPath);
+		SaveConfigItem(&TargetMaps[i], &PrivateMaps[i], i, InitPath);
 	}
 	for(; i < MAXTARGETS; i ++) ClearTarget(i, InitPath);
 	this->isUpdated=FALSE;
@@ -977,17 +986,17 @@ void CDxwndhostView::OnInitialUpdate()
 	listctrl.InsertColumn(0, &listcol);
 
 	for(i = 0; i < MAXTARGETS; i ++){
-		if (!LoadConfigItem(&TargetMaps[i], &TitleMaps[i], i, InitPath)) break;
+		if (!LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], i, InitPath)) break;
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
-		listitem.pszText = TitleMaps[i].title;
+		listitem.pszText = PrivateMaps[i].title;
 		listitem.iImage = SetTargetIcon(TargetMaps[i]);
 		listctrl.InsertItem(&listitem);
 	}
 	for(; i < MAXTARGETS; i ++) {
 		TargetMaps[i].path[0] = 0;
-		TitleMaps[i].title[0] = 0;
+		PrivateMaps[i].title[0] = 0;
 	}
 	Resize();
 	SetTarget(TargetMaps);
@@ -997,7 +1006,7 @@ void CDxwndhostView::OnInitialUpdate()
 		this->OnHookStop();
 	if(m_StartToTray) this->OnGoToTrayIcon();
 	this->isUpdated=FALSE;
-	pTitles = &TitleMaps[0];
+	pTitles = &PrivateMaps[0];
 	pTargets= &TargetMaps[0];
 }
 
@@ -1043,7 +1052,7 @@ void CDxwndhostView::OnExport()
 	i = listctrl.GetNextSelectedItem(pos);
 	GetPrivateProfileString("window", "exportpath", NULL, path, MAX_PATH, InitPath);
 	//strcat_s(path, MAX_PATH, "\\");
-	strcat_s(path, MAX_PATH, TitleMaps[i].title);
+	strcat_s(path, MAX_PATH, PrivateMaps[i].title);
 	CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "dxwnd task config (*.dxw)|*.dxw|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
@@ -1055,7 +1064,7 @@ void CDxwndhostView::OnExport()
 		TargetMap = &TargetMaps[i];
 		TFlags = TargetMap->tflags;
 		TargetMap->tflags = 0;
-		SaveConfigItem(&TargetMaps[i], &TitleMaps[i], 0, path);
+		SaveConfigItem(&TargetMaps[i], &PrivateMaps[i], 0, path);
 		TargetMap->tflags = TFlags;
 		if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) {
 			GetFolderFromPath(path);
@@ -1095,12 +1104,12 @@ void CDxwndhostView::OnImport()
 		if(ImportExportPath[ofn.nFileOffset - 1] != '\0'){
 			// Single-Select
 			// "buffer" - name of file
-			if(LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, ImportExportPath)){
+			if(LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], 0, ImportExportPath)){
 				listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 				listitem.iItem = i;
 				listitem.iSubItem = 0;
 				listitem.iImage = SetTargetIcon(TargetMaps[i]);
-				listitem.pszText = TitleMaps[i].title;
+				listitem.pszText = PrivateMaps[i].title;
 				listctrl.InsertItem(&listitem);
 				if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) {
 					GetFolderFromPath(ImportExportPath);
@@ -1122,12 +1131,12 @@ void CDxwndhostView::OnImport()
 				if(i==MAXTARGETS) break;
 				strcpy(pathname, folder);
 				strcat(pathname, p);
-				if (LoadConfigItem(&TargetMaps[i], &TitleMaps[i], 0, pathname)){
+				if (LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], 0, pathname)){
 					listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 					listitem.iItem = i;
 					listitem.iSubItem = 0;
 					listitem.iImage = SetTargetIcon(TargetMaps[i]);
-					listitem.pszText = TitleMaps[i].title;
+					listitem.pszText = PrivateMaps[i].title;
 					listctrl.InsertItem(&listitem);
 					i++;
 				}
@@ -1151,21 +1160,23 @@ void CDxwndhostView::OnModify()
 	if(!listctrl.GetSelectedCount()) return;
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
-	dlg.m_Title = TitleMaps[i].title;
-	dlg.m_Notes = TitleMaps[i].notes;
-	dlg.m_LaunchPath = TitleMaps[i].launchpath;
+	dlg.m_Title = PrivateMaps[i].title;
+	dlg.m_Notes = PrivateMaps[i].notes;
+	dlg.m_Registry = PrivateMaps[i].registry;
+	dlg.m_LaunchPath = PrivateMaps[i].launchpath;
 	SetDlgFromTarget(&TargetMaps[i], &dlg);
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
-		strnncpy(TitleMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE); 
-		strnncpy(TitleMaps[i].notes, (char *)dlg.m_Notes.GetString(), MAX_NOTES);
-		strnncpy(TitleMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
+		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE); 
+		strnncpy(PrivateMaps[i].notes, (char *)dlg.m_Notes.GetString(), MAX_NOTES);
+		strnncpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString(), MAX_REGISTRY);
+		strnncpy(PrivateMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
 		listitem.iImage = SetTargetIcon(TargetMaps[i]);
-		listitem.pszText = TitleMaps[i].title;
+		listitem.pszText = PrivateMaps[i].title;
 		listctrl.SetItem(&listitem);
 		Resize();
 		SetTarget(TargetMaps);	
@@ -1269,6 +1280,31 @@ void CDxwndhostView::OnDebugView()
 	CloseHandle(pinfo.hThread);
 }
 
+void CDxwndhostView::OnSetRegistry() 
+{
+	int i;
+	CTargetDlg dlg;
+	POSITION pos;
+	CString	Registry;
+	FILE *regfp;
+
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!listctrl.GetSelectedCount()) return;
+	pos = listctrl.GetFirstSelectedItemPosition();
+	i = listctrl.GetNextSelectedItem(pos);
+	Registry = PrivateMaps[i].registry;
+
+	regfp=fopen("dxwnd.reg", "w");
+	if(regfp==NULL){
+		MessageBox("Error writing virtual registry file", "Error", MB_ICONERROR|MB_OK);
+		return;
+	}
+
+	fwrite(Registry.GetString(), Registry.GetLength(), 1, regfp);
+	fclose(regfp);
+}
+
 #define strcasecmp lstrcmpi
 
 void CDxwndhostView::OnSort() 
@@ -1294,14 +1330,14 @@ void CDxwndhostView::OnSort()
 	while(swapped){
 		swapped=0;
 		for(i=0; i<itemcount-1; i++){
-			if(strcasecmp(TitleMaps[i].title, TitleMaps[i+1].title)>0){
+			if(strcasecmp(PrivateMaps[i].title, PrivateMaps[i+1].title)>0){
 				// swap entries
 				MapEntry=TargetMaps[i];
 				TargetMaps[i]=TargetMaps[i+1];
 				TargetMaps[i+1]=MapEntry;
-				TitEntry=TitleMaps[i];
-				TitleMaps[i]=TitleMaps[i+1];
-				TitleMaps[i+1]=TitEntry;
+				TitEntry=PrivateMaps[i];
+				PrivateMaps[i]=PrivateMaps[i+1];
+				PrivateMaps[i+1]=TitEntry;
 				swapped=1;
 			}
 		}
@@ -1314,7 +1350,7 @@ void CDxwndhostView::OnSort()
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
 		listitem.iImage = SetTargetIcon(TargetMaps[i]);
-		listitem.pszText = TitleMaps[i].title;
+		listitem.pszText = PrivateMaps[i].title;
 		listctrl.SetItem(&listitem);
 		listctrl.InsertItem(&listitem);
 	}
@@ -1376,7 +1412,7 @@ void CDxwndhostView::OnPause()
 	}
 	else {
 		wchar_t *wcstring = new wchar_t[48+1];
-		mbstowcs_s(NULL, wcstring, 48, TitleMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_PAUSETASK, DXW_STRING_INFO, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		PauseResumeThreadList(DxWndStatus.dwPid, FALSE);
@@ -1393,7 +1429,7 @@ void CDxwndhostView::OnResume()
 	}
 	else {
 		wchar_t *wcstring = new wchar_t[48+1];
-		mbstowcs_s(NULL, wcstring, 48, TitleMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_RESUMETASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		PauseResumeThreadList(DxWndStatus.dwPid, TRUE);
@@ -1447,7 +1483,7 @@ void CDxwndhostView::OnKill()
 	}
 	else {
 		wchar_t *wcstring = new wchar_t[48+1];
-		mbstowcs_s(NULL, wcstring, 48, TitleMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		DxWndStatus.dwPid;
@@ -1487,7 +1523,7 @@ void CDxwndhostView::OnProcessKill()
 
 	if(!KillProcByName(lpProcName, FALSE)){
 		wchar_t *wcstring = new wchar_t[48+1];
-		mbstowcs_s(NULL, wcstring, 48, TitleMaps[i].title, _TRUNCATE);
+		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[i].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		KillProcByName(lpProcName, TRUE);
@@ -1514,24 +1550,25 @@ void CDxwndhostView::OnAdd()
 	}
 	memset(&TargetMaps[i],0,sizeof(TARGETMAP)); // clean up, just in case....
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
-		strnncpy(TitleMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE);
-		strnncpy(TitleMaps[i].notes, (char *)dlg.m_Notes.GetString(), MAX_NOTES);
-		strnncpy(TitleMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
+		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE);
+		strnncpy(PrivateMaps[i].notes, (char *)dlg.m_Notes.GetString(), MAX_NOTES);
+		strnncpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString(), MAX_REGISTRY);
+		strnncpy(PrivateMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
 		listitem.iImage = SetTargetIcon(TargetMaps[i]);
-		if (strlen(TitleMaps[i].title)==0){
+		if (strlen(PrivateMaps[i].title)==0){
 			int len;
 			CString	FilePath;
 			FilePath=TargetMaps[i].path;
 			len=FilePath.ReverseFind('\\');	
 			FilePath=FilePath.Right(FilePath.GetLength()-len-1);
-			strncpy_s(TitleMaps[i].title, sizeof(TitleMaps[i].title), FilePath.GetString(), sizeof(TitleMaps[i].title)-1);
+			strncpy_s(PrivateMaps[i].title, sizeof(PrivateMaps[i].title), FilePath.GetString(), sizeof(PrivateMaps[i].title)-1);
 		}
-		listitem.pszText = TitleMaps[i].title;
+		listitem.pszText = PrivateMaps[i].title;
 		listctrl.InsertItem(&listitem);
 		Resize();
 		SetTarget(TargetMaps);	
@@ -1551,7 +1588,7 @@ void CDxwndhostView::OnDelete()
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
 
-	FilePath=TitleMaps[i].title;
+	FilePath=PrivateMaps[i].title;
 	if (FilePath.GetLength()==0){
 		FilePath = TargetMaps[i].path;
 		len=FilePath.ReverseFind('\\');	
@@ -1565,7 +1602,7 @@ void CDxwndhostView::OnDelete()
 	if(res!=IDYES) return;
 	listctrl.DeleteItem(i);
 	for(; i < MAXTARGETS  - 1; i ++) {
-		TitleMaps[i] = TitleMaps[i + 1]; // V2.1.74 fix
+		PrivateMaps[i] = PrivateMaps[i + 1]; // V2.1.74 fix
 		TargetMaps[i] = TargetMaps[i + 1];
 	}
 	Resize();
@@ -1771,7 +1808,7 @@ void CDxwndhostView::Resize()
 	
 	for(i = 0; i < MAXTARGETS; i ++){
 		if(strlen(TargetMaps[i].path) == 0) break;
-		tmp = listctrl.GetStringWidth(TitleMaps[i].title);
+		tmp = listctrl.GetStringWidth(PrivateMaps[i].title);
 		if(size < tmp) size = tmp;
 	}
 	
@@ -1812,6 +1849,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 		break;
 	case ID_PLOG_DEBUGVIEW:
 		OnDebugView();
+		break;
+	case ID_SETREGISTRY:
+		OnSetRegistry();
 		break;
 	case ID_TASK_KILL:
 		OnKill();
@@ -2037,12 +2077,12 @@ void CDxwndhostView::OnRun()
 	PathRemoveFileSpec(path);
 	if(TargetMaps[i].flags2 & STARTDEBUG){
 		ThreadInfo.TM=&TargetMaps[i];
-		ThreadInfo.PM=&TitleMaps[i];
+		ThreadInfo.PM=&PrivateMaps[i];
 		CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
 	}
 	else{
 		CreateProcess(NULL, 
-			(strlen(TitleMaps[i].launchpath)>0) ? TitleMaps[i].launchpath: TargetMaps[i].path, 
+			(strlen(PrivateMaps[i].launchpath)>0) ? PrivateMaps[i].launchpath: TargetMaps[i].path, 
 			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
 		CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
 		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage

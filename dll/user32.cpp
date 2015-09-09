@@ -312,6 +312,17 @@ static void Stopper(char *s, int line)
 #define STOPPER(s)
 #endif
 
+static LPCSTR sTemplateName(LPCSTR tn)
+{
+	static char sBuf[20+1];
+	if((DWORD)tn >> 16)
+		return tn;
+	else {
+		sprintf(sBuf, "ID:(%x)", ((DWORD)tn & 0x0000FFFF));
+		return sBuf;
+	}
+}
+
 // --------------------------------------------------------------------------
 //
 // globals, externs, static functions...
@@ -1952,6 +1963,18 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 		LPDIRECTDRAWSURFACE lpDDSPrim;
 		lpDDSPrim = dxwss.GetPrimarySurface();
 		if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+		if (!(hwnd == dxw.GethWnd())) {
+			POINT father, child, offset;
+			father.x = father.y = 0;
+			child.x = child.y = 0;
+			(*pClientToScreen)(dxw.GethWnd(),&father);
+			(*pClientToScreen)(hwnd,&child);
+			offset.x = child.x - father.x;
+			offset.y = child.y - father.y;
+			dxw.UnmapClient(&offset);
+			OutTraceDW("%s: child window hwnd=%x offset=(%d,%d)\n", ApiName, hwnd, offset.x, offset.y);		
+			(*pSetViewportOrgEx)(hFlippedDC, offset.x, offset.y, NULL);
+		}
 		OutTraceDW("%s: remapping flipped GDI lpDDSPrim=%x hdc=%x\n", ApiName, lpDDSPrim, hFlippedDC);
 		if(hFlippedDC) return hFlippedDC;
 	}
@@ -2012,6 +2035,7 @@ HDC WINAPI extGDIGetWindowDC(HWND hwnd)
 
 	return sGetDC(hwnd, "GDI.GetWindowDC");
 }
+
 int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 {
 	int res;
@@ -2120,8 +2144,10 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 	HWND RetHWND;
 	BOOL FullScreen;
 	FullScreen = dxw.IsFullScreen();
-	OutTraceDW("CreateDialogIndirectParam: hInstance=%x lpTemplate=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
-		hInstance, "tbd", hWndParent, lpDialogFunc, lParamInit);
+	OutTraceDW("CreateDialogIndirectParam: hInstance=%x lpTemplate=(style=%x extstyle=%x items=%d pos=(%d,%d) size=(%dx%d)) hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
+		hInstance, 
+		lpTemplate->style, lpTemplate->dwExtendedStyle, lpTemplate->cdit, lpTemplate->x, lpTemplate->y, lpTemplate->cx, lpTemplate->cy,
+		hWndParent, lpDialogFunc, lParamInit);
 	if(dxw.IsFullScreen() && hWndParent==NULL) hWndParent=dxw.GethWnd();
 	RetHWND=(*pCreateDialogIndirectParam)(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit);
 	dxw.SetFullScreen(FullScreen);
@@ -2143,7 +2169,7 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	BOOL FullScreen;
 	FullScreen = dxw.IsFullScreen();
 	OutTraceDW("CreateDialogParam: hInstance=%x lpTemplateName=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
-		hInstance, "tbd", hWndParent, lpDialogFunc, lParamInit);
+		hInstance, sTemplateName(lpTemplateName), hWndParent, lpDialogFunc, lParamInit);
 	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
 	RetHWND=(*pCreateDialogParam)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, lParamInit);
 	dxw.SetFullScreen(FullScreen);
@@ -2354,35 +2380,64 @@ BOOL gFixed;
 int WINAPI extDrawTextA(HDC hdc, LPCTSTR lpchText, int nCount, LPRECT lpRect, UINT uFormat)
 {
 	int ret;
+      BOOL MustScale;
 	OutTraceDW("DrawText: hdc=%x rect=(%d,%d)-(%d,%d) Format=%x(%s) Text=(%d)\"%s\"\n", 
 		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, uFormat, ExplainDTFormat(uFormat), nCount, lpchText);
 
-	gFixed = TRUE;
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+      MustScale = dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc));
+      if (MustScale){
 		dxw.MapClient((RECT *)lpRect);
 		OutTraceDW("DrawText: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 	}
 
+      gFixed = TRUE;
 	ret=(*pDrawText)(hdc, lpchText, nCount, lpRect, uFormat);
 	gFixed=FALSE;
+
 	// if nCount is zero, DrawRect returns 0 as text heigth, but this is not an error! (ref. "Imperialism II")
 	if(nCount && !ret) OutTraceE("DrawText: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+
+      if (MustScale){
+            dxw.UnmapClient((RECT *)lpRect);
+            OutTraceDW("DrawText: fixed output rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+      }
+
 	return ret;
 }
 
 int WINAPI extDrawTextExA(HDC hdc, LPTSTR lpchText, int nCount, LPRECT lpRect, UINT dwDTFormat, LPDRAWTEXTPARAMS lpDTParams)
 {
 	int ret;
+      BOOL MustScale;
+
 	OutTraceDW("DrawTextEx: hdc=%x rect=(%d,%d)-(%d,%d) DTFormat=%x Text=(%d)\"%s\"\n", 
 		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, dwDTFormat, nCount, lpchText);
+       if (IsDebug){
+            if(lpDTParams)
+                  OutTrace("DTParams: size=%d (L,R)margins=(%d,%d) TabLength=%d lDrawn=%d\n",
+                  lpDTParams->cbSize, lpDTParams->iLeftMargin, lpDTParams->iRightMargin,
+                  lpDTParams->iTabLength, lpDTParams->uiLengthDrawn);
+            else
+                  OutTrace("DTParams: NULL\n");
+      }
 
-	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+      MustScale = dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc));
+ 
+      if (MustScale){
 		dxw.MapClient((RECT *)lpRect);
 		OutTraceDW("DrawTextEx: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 	}
 
+      gFixed = TRUE;
 	ret=(*pDrawTextEx)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-	if(!ret) OutTraceE("DrawTextEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+      gFixed=FALSE;
+      if(nCount && !ret) OutTraceE("DrawTextEx: ERROR ret=%x err=%d\n", ret, GetLastError());
+
+      if (MustScale){
+            dxw.UnmapClient((RECT *)lpRect);
+            OutTraceDW("DrawTextEx: fixed output rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+      }
+
 	return ret;
 }
 
@@ -2960,7 +3015,8 @@ INT_PTR WINAPI extDialogBoxParamA(HINSTANCE hInstance, LPCTSTR lpTemplateName, H
 {
 	BOOL ret, FullScreen;
 	FullScreen = dxw.IsFullScreen();
-	OutTraceDW("DialogBoxParamA: FullScreen=%x\n", FullScreen);
+	OutTraceDW("DialogBoxParamA: FullScreen=%x TemplateName=\"%s\" WndParent=%x\n", 
+		FullScreen, sTemplateName(lpTemplateName), hWndParent);
 	dxw.SetFullScreen(FALSE);
 	ret = (*pDialogBoxParamA)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, dwInitParam);
 	dxw.SetFullScreen(FullScreen);
