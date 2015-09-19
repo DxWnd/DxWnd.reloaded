@@ -65,7 +65,13 @@ static char *hKey2String(HKEY hKey)
 						//OutTrace("building fake Key=\"%s\" hKey=%x\n", sKey, hKey);
 						fclose(regf);
 						strcpy(sKey, &RegBuf[1]);
-						sKey[strlen(sKey)-2]=0; // get rid of "]"
+						//sKey[strlen(sKey)-2]=0; // get rid of "]"
+						for(int i=strlen(sKey)-1; i; i--){
+							if(sKey[i]==']'){
+								sKey[i]=0;
+								break;
+							}
+						}
 						return sKey;
 					}
 					else {
@@ -89,20 +95,258 @@ static char *hKey2String(HKEY hKey)
 	return skey;
 }
 
+static char *Unescape(char *s, char **dest)
+{
+	if(!*dest)	*dest=(char *)malloc(strlen(s)+100);
+	else		*dest=(char *)realloc(*dest, strlen(s)+100); 
+	char *t = *dest;
+	for(; *s; s++){
+		if((*s=='\\') && (*(s+1)=='n')){
+			*t++ = '\n';
+			s++;
+		}
+		else{
+			*t++ = *s;
+		}
+	}
+	*t=0;
+	return *dest;
+}
+
 static FILE *OpenFakeRegistry()
 {
 	DWORD dwAttrib;	
 	char sSourcePath[MAX_PATH+1];
 	char *p;
+	static BOOL LoadFromConfig = TRUE;
 	dwAttrib = GetFileAttributes("dxwnd.dll");
 	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return NULL;
 	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_PATH);
 	p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
+	if(LoadFromConfig){
+		int Index;
+		char key[81];
+		char name[MAX_PATH+1];
+		char exepath[MAX_PATH+1];
+		strcpy(p, "dxwnd.ini");
+		GetModuleFileName(0, name, MAX_PATH);
+		//for(int i = 0; name[i]; i ++) name[i] = tolower(name[i]);
+		for(Index=0; Index<MAXTARGETS; Index++){
+			DWORD flags3;
+			sprintf_s(key, sizeof(key), "path%i", Index);
+			GetPrivateProfileString("target", key, "", exepath, MAX_PATH, sSourcePath);	
+			sprintf_s(key, sizeof(key), "flagh%i", Index);
+			flags3 = GetPrivateProfileInt("target", key, 0, sSourcePath);
+			if(!_stricmp(exepath, name) && (flags3 & HOOKENABLED)) break; // got it!
+		}
+		if(Index < MAXTARGETS){
+			FILE *freg;
+			char *RegBuf;
+			RegBuf = (char *)malloc(1000000+1); // 1MB!!
+			OutTrace("Fake registry: build virtual registry from dxwnd.ini entry #%d\n", Index);
+			sprintf_s(key, sizeof(key), "registry%i", Index);
+			GetPrivateProfileString("target", key, "", RegBuf, 1000000, sSourcePath);	
+			if(strlen(RegBuf)>0){
+				char *FileBuf = NULL;
+				Unescape(RegBuf, &FileBuf);
+				strcpy(p, "dxwnd.reg");
+				freg = fopen(sSourcePath,"w");
+				fwrite(FileBuf, 1, strlen(FileBuf), freg);
+				fclose(freg);
+				free(FileBuf);
+			}
+			free(RegBuf);
+		}
+		LoadFromConfig = FALSE;
+	}
 	strcpy(p, "dxwnd.reg");
 	return fopen(sSourcePath,"r");
 }
 
-// ---------------------------------------------------------------------------------
+static LONG SeekFakeKey(FILE *regf, HKEY hKey)
+{
+	LONG res;
+	res = ERROR_FILE_NOT_FOUND;
+	char RegBuf[MAX_PATH+1];
+	HKEY hCurKey=HKEY_FAKE+1;
+	fgets(RegBuf, 256, regf);
+	while (!feof(regf)){
+		if(RegBuf[0]=='['){
+			hCurKey--;
+		}
+		if(hCurKey==hKey) {
+			//OutTraceB("DEBUG: SeekFakeKey fount key at line=%s\n", RegBuf);
+			res = ERROR_SUCCESS;
+			break;
+		}
+		fgets(RegBuf, 256, regf);
+	}
+	return res;
+}
+
+static LONG SeekValueName(FILE *regf, LPCTSTR lpValueName)
+{
+	LONG res;
+	char RegBuf[MAX_PATH+1];
+	long KeySeekPtr;
+	res = ERROR_FILE_NOT_FOUND;
+	KeySeekPtr = ftell(regf);
+	fgets(RegBuf, 256, regf);
+	while (!feof(regf)){
+		if((RegBuf[0]=='"') &&
+			!_strnicmp(lpValueName, &RegBuf[1], strlen(lpValueName)) &&
+			(RegBuf[strlen(lpValueName)+1]=='"') &&
+			(RegBuf[strlen(lpValueName)+2]=='='))
+			{
+			fseek(regf, KeySeekPtr, SEEK_SET);
+			return ERROR_SUCCESS;
+		}
+		if(RegBuf[0]=='[') return res;
+		KeySeekPtr = ftell(regf);
+		fgets(RegBuf, 256, regf);
+	}
+	return res;
+}
+
+static LONG SeekValueIndex(FILE *regf, DWORD dwIndex, LPCTSTR lpValueName, LPDWORD lpcchValueName)
+{
+	LONG res;
+	char RegBuf[MAX_PATH+1];
+	long KeySeekPtr;
+	res = ERROR_NO_MORE_ITEMS;
+	KeySeekPtr = ftell(regf);
+	fgets(RegBuf, 256, regf);
+	dwIndex++;
+	while (!feof(regf) && dwIndex){
+		if(RegBuf[0]=='"') dwIndex--;
+		if(dwIndex == 0){
+			fseek(regf, KeySeekPtr, SEEK_SET);
+			//sscanf(RegBuf, "\"%s\"=", lpValueName);
+			strncpy((char *)lpValueName, strtok(&RegBuf[1], "\""), *lpcchValueName);
+			*lpcchValueName = strlen(lpValueName);
+			//OutTrace("DEBUG: lpValueName=%s len=%d\n", lpValueName, *lpcchValueName);
+			return ERROR_SUCCESS;
+		}
+		if(RegBuf[0]=='[') return res;
+		KeySeekPtr = ftell(regf);
+		fgets(RegBuf, 256, regf);
+	}
+	return res;
+}
+
+static DWORD GetKeyValue(
+				FILE *regf,
+				char *ApiName, 
+				LPCTSTR lpValueName, 
+				LPDWORD lpType, // beware: could be NULL
+				LPBYTE lpData,  // beware: could be NULL
+				LPDWORD lpcbData)
+{
+	LONG res;
+	LPBYTE lpb;
+	char *pData;
+	char RegBuf[MAX_PATH+1];
+	DWORD cbData=0;
+
+	OutTrace("GetKeyValue: ValueName=%s", lpValueName);
+	fgets(RegBuf, 256, regf);
+	pData=&RegBuf[strlen(lpValueName)+3];
+	lpb = lpData;
+	if(lpcbData) {
+		cbData = *lpcbData;
+		*lpcbData=0;
+	}
+	do {
+		if(*pData=='"'){ // string value
+			if(lpType) *lpType=REG_SZ;
+			pData++;
+			while(*pData && (*pData != '"')){
+				if(*pData=='\\') pData++;
+				if(lpData && lpcbData) if(*lpcbData < cbData) *lpb++=*pData;
+				pData++;
+				if(lpcbData) (*lpcbData)++;
+			}
+			if(lpcbData) (*lpcbData)++; // extra space for string terminator ?
+			if(lpData && lpcbData) if(*lpcbData < cbData) *lpb = 0; // string terminator
+			OutTraceR("%s: type=REG_SZ cbData=%x Data=\"%s\"\n", 
+				ApiName, lpcbData ? *lpcbData : 0, lpData ? (char *)lpData : "(NULL)");
+			res=(*lpcbData > cbData) ? ERROR_MORE_DATA : ERROR_SUCCESS;
+			break;
+		}
+		if(!strncmp(pData,"dword:",strlen("dword:"))){ //dword value
+			DWORD val;
+			if(lpType) *lpType=REG_DWORD;
+			pData+=strlen("dword:");
+			sscanf(pData, "%x", &val);
+			if(lpData) {
+				if (cbData >= sizeof(DWORD)) {
+					memcpy(lpData, &val, sizeof(DWORD));
+					res=ERROR_SUCCESS;
+				}
+				else
+					res=ERROR_MORE_DATA;
+			}
+			if (lpcbData) *lpcbData=sizeof(DWORD);
+			OutTraceR("%s: type=REG_DWORD cbData=%x Data=0x%x\n", 
+				ApiName, lpcbData ? *lpcbData : 0, val);
+			break;
+		}
+		if(!strncmp(pData,"hex:",strlen("hex:"))){ //hex value
+			BYTE *p;
+			if(lpType) *lpType=REG_BINARY;
+			p = (BYTE *)pData;
+			p+=strlen("hex:");
+			while(TRUE){
+				p[strlen((char *)p)-1]=0; // eliminates \n at the end of line
+				while(strlen((char *)p)>1){
+					if((*lpcbData < cbData) && lpData){
+						sscanf((char *)p, "%x,", (char *)lpb);
+						lpb++;
+					}
+					p+=3;
+					if(lpcbData) (*lpcbData)++;
+				}
+				if(p[strlen((char *)p)-1]=='\\'){
+					fgets(RegBuf, 256, regf);
+					pData = RegBuf;
+					p = (BYTE *)pData;
+				}
+				else break;
+			}
+			OutTraceR("%s: type=REG_BINARY cbData=%d Data=%s\n", 
+				ApiName,
+				lpcbData ? *lpcbData : 0, 
+				lpData ? "(NULL)" : hexdump(lpData, *lpcbData));
+			res=(*lpcbData > cbData) ? ERROR_MORE_DATA : ERROR_SUCCESS;
+			break;
+		}
+	} while(FALSE);
+	return res;
+} 
+
+static void LogKeyValue(char *ApiName, LONG res, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
+{
+	char sInfo[1024];
+	if(res) {
+		OutTrace("%s: ERROR res=%x\n", ApiName, res);
+		return;
+	}
+	sprintf(sInfo, "%s: res=0 size=%d type=%x(%s)", 
+		ApiName, lpcbData?*lpcbData:0, lpType?*lpType:0, lpType?ExplainRegType(*lpType):"none");
+	if(lpType && lpData && lpcbData) {
+		DWORD cbData = *lpcbData;
+		switch(*lpType){
+			case REG_SZ: sprintf(sInfo, "%s Data=\"%*.*s\"\n", sInfo, cbData-1, cbData-1, lpData); break; 
+			case REG_DWORD: sprintf(sInfo, "%s Data=0x%x\n", sInfo, *(DWORD *)lpData); break;
+			case REG_BINARY: sprintf(sInfo, "%s Data=%s\n", sInfo, hexdump((BYTE *)lpData, cbData)); break;
+			case REG_NONE: sprintf(sInfo, "%s Data=\"%s\"\n", sInfo, lpData); break;
+			default: sprintf(sInfo, "%s Data=???\n", sInfo); break;
+		}
+	}
+	else 
+		sprintf(sInfo, "%s\n", sInfo);
+	OutTrace(sInfo);
+} 
 
 static LONG myRegOpenKeyEx(
 				HKEY hKey,
@@ -139,6 +383,7 @@ static LONG myRegOpenKeyEx(
 	return ERROR_FILE_NOT_FOUND;
 }
 
+// ---------------------------------------------------------------------------------
 
 LONG WINAPI extRegOpenKeyEx(
 				HKEY hKey,
@@ -183,138 +428,26 @@ LONG WINAPI extRegQueryValueEx(
 				LPDWORD lpcbData)
 {
 	LONG res;
+	FILE *regf;
+	DWORD cbData=0;
 
 	OutTraceR("RegQueryValueEx: hKey=%x(\"%s\") ValueName=\"%s\" Reserved=%x lpType=%x lpData=%x lpcbData=%x\n", 
 		hKey, hKey2String(hKey), lpValueName, lpReserved, lpType, lpData, lpcbData);
 	if (!IsFake(hKey)){
 		res=(*pRegQueryValueEx)(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
-		if(IsTraceR){
-			if (res==ERROR_SUCCESS){
-				OutTrace("RegQueryValueEx: size=%d type=%x(%s) ", 
-					lpcbData?*lpcbData:0, lpType?*lpType:0, lpType?ExplainRegType(*lpType):"none");
-				if(lpType && lpData) switch(*lpType){
-					case REG_SZ: OutTrace("Data=\"%s\"\n", lpData); break; 
-					case REG_DWORD: OutTrace("Data=0x%x\n", *(DWORD *)lpData); break;
-					case REG_BINARY:
-						{
-							DWORD i; 
-							unsigned char *p;
-							p = lpData;
-							OutTrace("Data=%02.2X", p++);
-							for(i=1; i<*lpcbData; i++) OutTrace(",%02.2X", *p++);
-							OutTrace("\n");
-						}
-						break;
-					default: OutTrace("Data=???\n"); break;
-				}
-				else 
-					OutTrace("\n");
-			}
-			else
-				OutTrace("res=%x\n", res);
-		}
+		if(IsTraceR) LogKeyValue("RegQueryValueEx", res, lpType, lpData, lpcbData);
 		return res;
 	}
 
-	// try emulated registry
-	res = ERROR_FILE_NOT_FOUND;
-	FILE *regf;
-	char RegBuf[MAX_PATH+1];
-	char *pData;
-	HKEY hCurKey=HKEY_FAKE+1;
-	DWORD cbData=0;
 	regf=OpenFakeRegistry();
-	if(regf==NULL) return res;
-	if(!lpValueName)lpValueName="";
-	fgets(RegBuf, 256, regf);
-	while (!feof(regf)){
-		if(RegBuf[0]=='['){
-			hCurKey--;
-		}
-		else {
-			if(hCurKey==hKey){
-				if((RegBuf[0]=='"') &&
-					!_strnicmp(lpValueName, &RegBuf[1], strlen(lpValueName)) &&
-					(RegBuf[strlen(lpValueName)+1]=='"') &&
-					(RegBuf[strlen(lpValueName)+2]=='='))
-				{
-					LPBYTE lpb;
-					res=ERROR_FILE_NOT_FOUND;
-					pData=&RegBuf[strlen(lpValueName)+3];
-					lpb = lpData;
-					if(lpcbData) {
-						cbData = *lpcbData;
-						*lpcbData=0;
-					}
-					if(*pData=='"'){ // string value
-						if(lpType) *lpType=REG_SZ;
-						pData++;
-						while(*pData && (*pData != '"')){
-							if(*pData=='\\') pData++;
-							if(lpData && lpcbData) if(*lpcbData < cbData) *lpb++=*pData;
-							pData++;
-							if(lpcbData) (*lpcbData)++;
-						}
-						if(lpcbData) (*lpcbData)++; // extra space for string terminator ?
-						if(lpData && lpcbData) if(*lpcbData < cbData) *lpb = 0; // string terminator
-						OutTraceR("RegQueryValueEx: type=REG_SZ cbData=%x Data=\"%s\"\n", 
-							lpcbData ? *lpcbData : 0, lpData ? (char *)lpData : "(NULL)");
-						res=(*lpcbData > cbData) ? ERROR_MORE_DATA : ERROR_SUCCESS;
-						break;
-					}
-					if(!strncmp(pData,"dword:",strlen("dword:"))){ //dword value
-						DWORD val;
-						if(lpType) *lpType=REG_DWORD;
-						pData+=strlen("dword:");
-						sscanf(pData, "%x", &val);
-						if(lpData) {
-							if (cbData >= sizeof(DWORD)) {
-								memcpy(lpData, &val, sizeof(DWORD));
-								res=ERROR_SUCCESS;
-							}
-							else
-								res=ERROR_MORE_DATA;
-						}
-						if (lpcbData) *lpcbData=sizeof(DWORD);
-						OutTraceR("RegQueryValueEx: type=REG_DWORD cbData=%x Data=0x%x\n", 
-							lpcbData ? *lpcbData : 0, val);
-						break;
-					}
-					if(!strncmp(pData,"hex:",strlen("hex:"))){ //hex value
-						BYTE *p;
-						if(lpType) *lpType=REG_BINARY;
-						p = (BYTE *)pData;
-						p+=strlen("hex:");
-						while(TRUE){
-							p[strlen((char *)p)-1]=0; // eliminates \n at the end of line
-							while(strlen((char *)p)>1){
-								if((*lpcbData < cbData) && lpData){
-									sscanf((char *)p, "%x,", (char *)lpb);
-									lpb++;
-								}
-								p+=3;
-								if(lpcbData) (*lpcbData)++;
-							}
-							if(p[strlen((char *)p)-1]=='\\'){
-								fgets(RegBuf, 256, regf);
-								pData = RegBuf;
-								p = (BYTE *)pData;
-							}
-							else break;
-						}
-						OutTraceR("RegQueryValueEx: type=REG_BINARY cbData=%d Data=%s\n", 
-							lpcbData ? *lpcbData : 0, 
-							lpData ? "(NULL)" : hexdump(lpData, *lpcbData));
-						res=(*lpcbData > cbData) ? ERROR_MORE_DATA : ERROR_SUCCESS;
-						break;
-					}
-				}
-			}
-		}
-		fgets(RegBuf, 256, regf);
-	}
+	if(regf==NULL) return ERROR_FILE_NOT_FOUND;
+	res = SeekFakeKey(regf, hKey);
+	if(res != ERROR_SUCCESS) return res;
+	res = SeekValueName(regf, lpValueName);
+	if(res != ERROR_SUCCESS) return res;
+	res = GetKeyValue(regf, "RegQueryValueEx", lpValueName, lpType, lpData, lpcbData);
+	if(IsTraceR) LogKeyValue("RegQueryValueEx", res, lpType, lpData, lpcbData);
 	fclose(regf);
-	OutTraceR("RegQueryValueEx: res=%x\n", res);
 	return res;
 }
 
@@ -383,9 +516,43 @@ LONG WINAPI extRegCreateKey(HKEY hKey, LPCTSTR lpSubKey, PHKEY phkResult)
 
 LONG WINAPI extRegEnumValueA(HKEY hKey, DWORD dwIndex, LPTSTR lpValueName, LPDWORD lpcchValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
 {
-	LONG ret;
-	OutTrace("RegEnumValue: hKey=%x(%s) Index=%x\n", hKey, hKey2String(hKey), dwIndex);
-	ret=(*pRegEnumValueA)(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
-	OutTrace("RegEnumValue: hKey=%x(%s) Index=%x ValueName=\"%s\", Type=%x ret=%x\n", hKey, hKey2String(hKey), dwIndex, lpValueName, lpType ? *lpType : 0, ret);
-	return ret;
+	LONG res;
+
+	OutTraceR("RegEnumValue: hKey=%x(\"%s\") index=%d cchValueName=%d Reserved=%x lpType=%x lpData=%x lpcbData=%x\n", 
+		hKey, hKey2String(hKey), dwIndex, *lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+	if (!IsFake(hKey)){
+		res=(*pRegEnumValueA)(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+		if(IsTraceR) LogKeyValue("RegQueryValueEx", res, lpType, lpData, lpcbData);
+		return res;
+	}
+
+	// try emulated registry
+	FILE *regf;
+	regf=OpenFakeRegistry();
+	if(regf==NULL) return ERROR_FILE_NOT_FOUND;
+	res = SeekFakeKey(regf, hKey);
+	if(res != ERROR_SUCCESS) return res;
+	res = SeekValueIndex(regf, dwIndex, lpValueName, lpcchValueName);
+	if(res != ERROR_SUCCESS) return res;
+	res = GetKeyValue(regf, "RegEnumValue", lpValueName, lpType, lpData, lpcbData);
+	if(IsTraceR) LogKeyValue("RegEnumValue", res, lpType, lpData, lpcbData);
+	fclose(regf);
+	return res;
 }
+
+#ifdef TOBEDONE
+LONG WINAPI RegQueryInfoKey(
+  _In_        HKEY      hKey,
+  _Out_opt_   LPTSTR    lpClass,
+  _Inout_opt_ LPDWORD   lpcClass,
+  _Reserved_  LPDWORD   lpReserved,
+  _Out_opt_   LPDWORD   lpcSubKeys,
+  _Out_opt_   LPDWORD   lpcMaxSubKeyLen,
+  _Out_opt_   LPDWORD   lpcMaxClassLen,
+  _Out_opt_   LPDWORD   lpcValues,
+  _Out_opt_   LPDWORD   lpcMaxValueNameLen,
+  _Out_opt_   LPDWORD   lpcMaxValueLen,
+  _Out_opt_   LPDWORD   lpcbSecurityDescriptor,
+  _Out_opt_   PFILETIME lpftLastWriteTime
+);
+#endif

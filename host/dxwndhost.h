@@ -30,8 +30,8 @@ typedef struct PRIVATEMAP
 {
 	char title[MAX_TITLE+1];
 	char launchpath[MAX_PATH+1];
-	char notes[MAX_NOTES+1];
-	char registry[MAX_REGISTRY+1];
+	char *notes;
+	char *registry;
 }PRIVATEMAP;
 
 /////////////////////////////////////////////////////////////////////////////

@@ -20,7 +20,7 @@
 #define HANDLEEXCEPTIONS	0x00000040 // Handles exceptions: Div by 0 ....
 #define SAVELOAD			0x00000080
 #define EMULATEBUFFER		0x00000100
-#define AUTOMATIC			0x00000200
+// #define AUTOMATIC		0x00000200
 #define BLITFROMBACKBUFFER	0x00000400
 #define SUPPRESSCLIPPING	0x00000800
 #define AUTOREFRESH			0x00001000
@@ -201,6 +201,8 @@
 #define SETZBUFFERBITDEPTHS	0x00020000 // when not set, set the legacy dwZBufferBitDepths field in the directdraw capability from GetCaps()
 #define SHAREDDC			0x00040000 // enable sharing window DC and primary surface DC
 #define WOW32REGISTRY		0x00080000 // Sets KEY_WOW32_64KEY registry flag
+#define STRETCHMOVIES		0x00100000 // Stretches ActiveMovie Windows to the whole window size
+#define BYPASSMCI			0x00200000 // bypass all MCI calls returning OK.
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

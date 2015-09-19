@@ -50,7 +50,6 @@ public:
 	BOOL	m_ImportTable;
 	BOOL	m_RegistryOp;
 	BOOL	m_TraceHooks;
-	//BOOL	m_HandleDC;
 	BOOL	m_UnNotify;
 	BOOL	m_Windowize;
 	BOOL	m_HotPatch;
@@ -95,6 +94,8 @@ public:
 	BOOL	m_RemapMCI;
 	BOOL	m_NoMovies;
 	BOOL	m_FixMoviesColor;
+	BOOL	m_StretchMovies;
+	BOOL	m_BypassMCI;
 	BOOL	m_SuppressRelease;
 	BOOL	m_KeepCursorWithin;
 	BOOL	m_KeepCursorFixed;

@@ -900,3 +900,14 @@ fix: CreateCompatibleDC hooker printing wrong error messages in normal condition
 fix: fixed DrawText, DrawTextEx hookers returning wrong RECT structure. Fixes "Star Trek Armada" text placement problems
 add: completed log messages for DrawTextEx, CreateDialogParam, DialogBoxParam and CreateDialogIndirectParam
 
+v2.03.37:
+add: handling of RegEnumValue advapi call in virtual registry. Useful for "Star trek Generations"
+add: virtual registry now integrated in dxwnd.ini configuration and activated automatically. No more handling of dxwnd.reg file
+fix: virtual registry optimization, code reorganization, bug fixing ....
+add: "Stretch ActiveMovie window" flag. Fixes "The Thing" intro movies.
+fix: apply "Blit from backbuffer" option to both surface emulated and non emulated cases. Should help fixing "Galapagos" screen locks.
+fix: apply "Limit screen resolution" to the list of detected video modes in VGA emulated case
+fix: eliminated "Automatic" surface emulation mode, no longer supported
+fix: fixed InvalidateRect rectangle: avoids flickering in "Microsoft Pandora's Box"
+add: added "Bypass MCI calls" flag. 
+

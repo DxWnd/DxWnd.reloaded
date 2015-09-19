@@ -32,6 +32,7 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_GDINONE, cTarget->m_DCEmulationMode);
 	DDX_Check(pDX, IDC_FIXTEXTOUT, cTarget->m_FixTextOut);
 	DDX_Check(pDX, IDC_SHAREDDC, cTarget->m_SharedDC);
+	DDX_Check(pDX, IDC_NOFILLRECT, cTarget->m_NoFillRect);
 
 	// OpenGL
 	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL); // duplicated
@@ -44,7 +45,9 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	// MCI
 	DDX_Check(pDX, IDC_REMAPMCI, cTarget->m_RemapMCI);
 	DDX_Check(pDX, IDC_NOMOVIES, cTarget->m_NoMovies);
+	DDX_Check(pDX, IDC_STRETCHMOVIES, cTarget->m_StretchMovies);
 	DDX_Check(pDX, IDC_FIXMOVIESCOLOR, cTarget->m_FixMoviesColor);
+	DDX_Check(pDX, IDC_BYPASSMCI, cTarget->m_BypassMCI);
 
 	// Kernel32
 	DDX_Radio(pDX, IDC_SONDEFAULT, cTarget->m_SonProcessMode);

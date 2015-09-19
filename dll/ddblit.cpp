@@ -20,6 +20,7 @@ extern CreateSurface2_Type pCreateSurface4;
 extern CreateSurface2_Type pCreateSurface7;
 extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
 extern HDC hFlippedDC;
+extern BOOL bFlippedDC;
 extern ReleaseDC_Type pReleaseDC;
 
 extern void BlitError(HRESULT, LPRECT, LPRECT, int);
@@ -36,7 +37,8 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	//extern PrimaryBlt_Type pPrimaryBlt;
 	//CkArg arg;
 
-	FromScreen=dxwss.IsAPrimarySurface(lpddssrc) && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
+	//FromScreen=dxwss.IsAPrimarySurface(lpddssrc) && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
+	FromScreen=dxwss.IsAPrimarySurface(lpddssrc); // ghogho
 
 	// make a working copy of srcrect if not NULL
 	if (lpsrcrect){
@@ -48,15 +50,24 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	// v2.1.83: BLITFROMBACKBUFFER mode, let you chose to blit from backbuffer, where the surface size
 	// is fixed no matter how the window/primary surface is scaled. 
 	// In "The Sims" there is no quality loss, but some scrolling artifact.
-	if(lpsrcrect && FromScreen){
-		LPDIRECTDRAWSURFACE lpDDSBack;
-		lpDDSBack = dxwss.GetBackBufferSurface();
-		if(lpDDSBack && (dxw.dwFlags1 & BLITFROMBACKBUFFER)){
-			lpddssrc=lpDDSBack;
-			srcrect=dxw.GetScreenRect(); 
+	//if(lpsrcrect && FromScreen){
+	if(FromScreen){
+		if ((dxw.dwFlags1 & EMULATESURFACE) || (dxw.dwFlags1 & EMULATEBUFFER)){
+			if(dxw.dwFlags1 & BLITFROMBACKBUFFER){
+				LPDIRECTDRAWSURFACE lpDDSBack;
+				lpDDSBack = dxwss.GetBackBufferSurface();
+				if(lpDDSBack) lpddssrc=lpDDSBack;
+			}
 		}
-		else{
-			srcrect=dxw.MapWindowRect(lpsrcrect);
+		else {
+			if(dxw.dwFlags1 & BLITFROMBACKBUFFER){
+				LPDIRECTDRAWSURFACE lpDDSBack;
+				lpDDSBack = dxwss.GetBackBufferSurface();
+				if(lpDDSBack) lpddssrc=lpDDSBack;
+			}
+			else{
+				srcrect=dxw.MapWindowRect(lpsrcrect);
+			}
 		}
 	}
 
@@ -274,7 +285,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 
 		// Try to handle HDC lock concurrency....		
 		if(res==DDERR_SURFACEBUSY){
-			(*pReleaseDC)(lpdds, hFlippedDC);
+			if (bFlippedDC) (*pReleaseDC)(lpdds, hFlippedDC);
 #if 0
 			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpddssrc, res, ExplainDDError(res));

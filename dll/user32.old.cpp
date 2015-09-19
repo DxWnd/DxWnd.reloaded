@@ -81,8 +81,8 @@ UINT WINAPI extSetDIBColorTable(HDC, UINT, UINT, const RGBQUAD *);
 
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
-	//{HOOK_IAT_CANDIDATE, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
-	//{HOOK_IAT_CANDIDATE, "SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
+	{HOOK_IAT_CANDIDATE, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
+	{HOOK_IAT_CANDIDATE, "SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettingsA, (FARPROC)extChangeDisplaySettingsA},
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsExA, (FARPROC *)&pChangeDisplaySettingsExA, (FARPROC)extChangeDisplaySettingsExA},
 	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsW, (FARPROC)extChangeDisplaySettingsW}, // ref. by Knights of Honor
@@ -618,8 +618,8 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		return (*pInvalidateRect)(hwnd, lpRect, bErase);
 	}
 	else{
-		// don't exagerate ...
-		return (*pInvalidateRect)(hwnd, lpRect, bErase);
+		// just exagerate ...
+		return (*pInvalidateRect)(hwnd, NULL, bErase);
 	}
 }
 
@@ -1597,9 +1597,12 @@ HWND WINAPI extCreateWindowExW(
 	}
 	if(IsDebug) OutTrace("CreateWindowExW: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
-	if((dxw.dwFlags6 & STRETCHMOVIES) && !wcscmp(lpWindowName, L"ActiveMovie Window")){
+	if(!wcscmp(lpWindowName, L"ActiveMovie Window")){
+		//x = y = 0;
 		RECT MainWin;
 		(*pGetClientRect)(dxw.GethWnd(), &MainWin);
+		//nWidth = dxw.GetScreenWidth();
+		//nHeight = dxw.GetScreenHeight();
 		nWidth = MainWin.right;
 		nHeight = MainWin.bottom;
 	}
@@ -1639,9 +1642,12 @@ HWND WINAPI extCreateWindowExA(
 	}
 	if(IsDebug) OutTrace("CreateWindowExA: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
-	if((dxw.dwFlags6 & STRETCHMOVIES) && !strcmp(lpWindowName, "ActiveMovie Window")){
+	if(!strcmp(lpWindowName, "ActiveMovie Window")){
+		//x = y = 0;
 		RECT MainWin;
 		(*pGetClientRect)(dxw.GethWnd(), &MainWin);
+		//nWidth = dxw.GetScreenWidth();
+		//nHeight = dxw.GetScreenHeight();
 		nWidth = MainWin.right;
 		nHeight = MainWin.bottom;
 	}
@@ -1744,7 +1750,6 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 		return (*pFillRect)(hdc, &rc, hbr);
 	}
 
-#if 0
 	if(OBJ_DC == GetObjectType(hdc)){
 		if(rc.left < 0) rc.left = 0;
 		if(rc.top < 0) rc.top = 0;
@@ -1757,20 +1762,6 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 
 	res=(*pFillRect)(hdc, &rc, hbr);
 	return res;
-#else
-	{
-		HWND hwnd;
-		hwnd = WindowFromDC(hdc);
-		if(hwnd != dxw.GethWnd()){
-			OutTraceDW("FillRect: unfixed rect\n");
-		}
-		else {
-			dxw.MapClient(&rc);
-		}
-	}
-	res=(*pFillRect)(hdc, &rc, hbr);
-	return res;
-#endif
 }
 
 int WINAPI extFrameRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
@@ -2000,6 +1991,8 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 			(*pClientToScreen)(hwnd,&child);
 			offset.x = child.x - father.x;
 			offset.y = child.y - father.y;
+			offset.x >>= 2;
+			offset.y >>= 2;
 			dxw.UnmapClient(&offset);
 			OutTraceDW("%s: child window hwnd=%x offset=(%d,%d)\n", ApiName, hwnd, offset.x, offset.y);		
 			(*pSetViewportOrgEx)(hFlippedDC, offset.x, offset.y, NULL);
@@ -2081,31 +2074,6 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 		if(!lpDDSPrim) return(TRUE);
 		OutTraceDW("GDI.ReleaseDC: releasing flipped GDI hdc=%x\n", hDC);
 		ret=(*pReleaseDC)(dxwss.GetPrimarySurface(), hDC);
-		if (!(hwnd == dxw.GethWnd())) {
-			POINT father, child, offset;
-			RECT rect;
-			HDC hdc;
-			father.x = father.y = 0;
-			child.x = child.y = 0;
-			(*pClientToScreen)(dxw.GethWnd(),&father);
-			(*pClientToScreen)(hwnd,&child);
-			offset.x = child.x - father.x;
-			offset.y = child.y - father.y;
-			if(offset.x || offset.y){
-				// if the graphis was blitted to primary but below a modal child window,
-				// bring that up to the window surface to make it visible.
-				BOOL ret2;
-				(*pGetClientRect)(hwnd, &rect);
-				hdc=(*pGDIGetDC)(hwnd);
-				if(!hdc) OutTrace("GDI.ReleaseDC: GetDC ERROR=%d at %d\n", GetLastError(), __LINE__);
-				ret2=(*pGDIBitBlt)(hdc, rect.left, rect.top, rect.right, rect.bottom, hDC, offset.x, offset.y, SRCCOPY);
-				if(!ret2) OutTrace("GDI.ReleaseDC: BitBlt ERROR=%d at %d\n", GetLastError(), __LINE__);
-				ret2=(*pGDIReleaseDC)(hwnd, hdc);
-				if(!ret2)OutTrace("GDI.ReleaseDC: ReleaseDC ERROR=%d at %d\n", GetLastError(), __LINE__);
-				// this may flicker ....
-				(*pInvalidateRect)(hwnd, NULL, FALSE); 
-			}
-		}
 		if (ret) OutTraceE("GDI.ReleaseDC ERROR: err=%x(%s) at %d\n", ret, ExplainDDError(ret), __LINE__);
 		else dxw.ScreenRefresh();
 		return (ret == DD_OK);
@@ -2136,14 +2104,36 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 	// avoid access to real desktop
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 
+	//if(bFlippedDC) {
+	//	LPDIRECTDRAWSURFACE lpDDSPrim;
+	//	lpDDSPrim = dxwss.GetPrimarySurface();
+	//	if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+	//	if (!(hwnd == dxw.GethWnd())) {
+	//		POINT father, child, offset;
+	//		father.x = father.y = 0;
+	//		child.x = child.y = 0;
+	//		(*pClientToScreen)(dxw.GethWnd(),&father);
+	//		(*pClientToScreen)(hwnd,&child);
+	//		offset.x = child.x - father.x;
+	//		offset.y = child.y - father.y;
+	//		dxw.UnmapClient(&offset);
+	//		OutTraceDW("GDI.BeginPaint: child window hwnd=%x offset=(%d,%d)\n", hwnd, offset.x, offset.y);		
+	//		(*pSetViewportOrgEx)(hFlippedDC, offset.x, offset.y, NULL);
+	//	}
+	//	OutTraceDW("GDI.BeginPaint: remapping flipped GDI lpDDSPrim=%x hdc=%x\n", lpDDSPrim, hFlippedDC);
+	//	if(hFlippedDC) {
+	//		lpPaint->hdc=hFlippedDC;
+	//		return hFlippedDC;
+	//	}
+	//}
+
 	hdc=(*pBeginPaint)(hwnd, lpPaint);
 
 	// if not in fullscreen mode, that's all!
 	if(!dxw.IsFullScreen()) return hdc;
 
 	// on CLIENTREMAPPING, resize the paint area to virtual screen size
-	//if(dxw.dwFlags1 & CLIENTREMAPPING) lpPaint->rcPaint=dxw.GetScreenRect();
-	if(dxw.dwFlags1 & CLIENTREMAPPING) dxw.UnmapClient(&(lpPaint->rcPaint));
+	if(dxw.dwFlags1 & CLIENTREMAPPING) lpPaint->rcPaint=dxw.GetScreenRect();
 
 	switch(GDIEmulationMode){
 		case GDIMODE_STRETCHED:
@@ -2167,6 +2157,17 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 
 	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x lpPaint.rcpaint=(%d,%d)-(%d-%d)\n", 
 		hwnd, lpPaint, lpPaint->hdc, lpPaint->rcPaint.left, lpPaint->rcPaint.top, lpPaint->rcPaint.right, lpPaint->rcPaint.bottom);
+
+	//if(bFlippedDC && hFlippedDC) {
+	//	LPDIRECTDRAWSURFACE lpDDSPrim;
+	//	lpDDSPrim = dxwss.GetPrimarySurface();
+	//	ret = DDERR_GENERIC;
+	//	if (lpDDSPrim) ret=(*pReleaseDC)(lpDDSPrim, hFlippedDC);
+	//	OutTraceDW("GDI.EndPaint: remapping flipped GDI lpDDSPrim=%x hdc=%x\n", lpDDSPrim, hFlippedDC);
+
+	//	//dxw.ScreenRefresh();
+	//	return (ret == DD_OK);
+	//}
 
 	// if not fullscreen or not desktop win, just proxy the call
 	if(!dxw.IsFullScreen() || !dxw.Windowize){
@@ -2204,7 +2205,6 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 		lpTemplate->style, lpTemplate->dwExtendedStyle, lpTemplate->cdit, lpTemplate->x, lpTemplate->y, lpTemplate->cx, lpTemplate->cy,
 		hWndParent, lpDialogFunc, lParamInit);
 	if(dxw.IsFullScreen() && hWndParent==NULL) hWndParent=dxw.GethWnd();
-	dxw.SetFullScreen(FALSE);
 	RetHWND=(*pCreateDialogIndirectParam)(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit);
 	dxw.SetFullScreen(FullScreen);
 
@@ -2227,7 +2227,6 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	OutTraceDW("CreateDialogParam: hInstance=%x lpTemplateName=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, sTemplateName(lpTemplateName), hWndParent, lpDialogFunc, lParamInit);
 	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
-	dxw.SetFullScreen(FALSE);
 	RetHWND=(*pCreateDialogParam)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, lParamInit);
 	dxw.SetFullScreen(FullScreen);
 
@@ -2447,9 +2446,9 @@ int WINAPI extDrawTextA(HDC hdc, LPCTSTR lpchText, int nCount, LPRECT lpRect, UI
 		OutTraceDW("DrawText: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 	}
 
-    gFixed = TRUE;
+      gFixed = TRUE;
 	ret=(*pDrawText)(hdc, lpchText, nCount, lpRect, uFormat);
-	gFixed = FALSE;
+	gFixed=FALSE;
 
 	// if nCount is zero, DrawRect returns 0 as text heigth, but this is not an error! (ref. "Imperialism II")
 	if(nCount && !ret) OutTraceE("DrawText: ERROR ret=%x err=%d\n", ret, GetLastError()); 
@@ -2487,7 +2486,7 @@ int WINAPI extDrawTextExA(HDC hdc, LPTSTR lpchText, int nCount, LPRECT lpRect, U
 
       gFixed = TRUE;
 	ret=(*pDrawTextEx)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-      gFixed = FALSE;
+      gFixed=FALSE;
       if(nCount && !ret) OutTraceE("DrawTextEx: ERROR ret=%x err=%d\n", ret, GetLastError());
 
       if (MustScale){

@@ -22,7 +22,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	//{{AFX_DATA_INIT(CTargetDlg)
 	m_DXVersion = 0;
 	m_Coordinates = 0;
-	m_DxEmulationMode = 4; // default: AUTOMATIC
+	m_DxEmulationMode = 3; // default: emulated
 	m_DxFilterMode = 0; // default: ddraw filtering
 	m_DCEmulationMode = 0; // default: no emulation
 	m_MouseVisibility = 0;
@@ -127,6 +127,8 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_RemapMCI = TRUE;
 	m_NoMovies = FALSE;
 	m_FixMoviesColor = FALSE;
+	m_StretchMovies = FALSE;
+	m_BypassMCI = FALSE;
 	m_SuppressRelease = FALSE;
 	m_KeepCursorWithin = FALSE;
 	m_KeepCursorFixed = FALSE;
@@ -225,6 +227,7 @@ BOOL CTargetDlg::OnInitDialog()
 	m_tabdxTabCtrl.InsertItem(i++, _T("Log"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Libs"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Compat"));
+	m_tabdxTabCtrl.InsertItem(i++, _T("Registry"));
 	m_tabdxTabCtrl.InsertItem(i++, _T("Notes"));
 	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T("Debug"));
 #else

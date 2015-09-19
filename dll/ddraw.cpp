@@ -1868,7 +1868,11 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	}
 
 	// fix the target for gamma ramp creation: if it is a primary surface, use the real one!!
-	if(dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds) && IsGammaRamp) lpdds = lpDDSEmu_Prim;
+	// v2.03.37: do this just when in esurface emulated mode!! 
+	if(	IsGammaRamp && 
+		(dxw.dwFlags1 & EMULATESURFACE) && 
+		dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds)) 
+		lpdds = lpDDSEmu_Prim; 
 
 	res = (*pQueryInterfaceS)(lpdds, riid, obp);
 
@@ -2444,6 +2448,7 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		if(IsDebug) DescribeSurface(*lplpdds, dxversion, "DDSPrim(2)", __LINE__);
 	}
 
+	iBakBufferVersion=dxversion; // v2.03.37
 	HookDDSurfacePrim(lplpdds, dxversion);
 	if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
 
@@ -4176,7 +4181,7 @@ HRESULT WINAPI EnumModesCallbackDumper(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 	OutTrace("EnumModesCallback:\n");
 	OutTrace("\tdwSize=%d\n", lpDDSurfaceDesc->dwSize);
 	OutTrace("\tdwFlags=%x(%s)\n", lpDDSurfaceDesc->dwFlags, ExplainFlags(lpDDSurfaceDesc->dwFlags));
- 	OutTrace("\tdwHeight x dwWidth=(%d,%d)\n", lpDDSurfaceDesc->dwHeight, lpDDSurfaceDesc->dwWidth);
+ 	OutTrace("\tdwWidth x dwHeight=(%d,%d)\n", lpDDSurfaceDesc->dwWidth, lpDDSurfaceDesc->dwHeight);
 	OutTrace("\tlPitch=%d\n", lpDDSurfaceDesc->lPitch);
 	OutTrace("\tdwBackBufferCount=%d\n", lpDDSurfaceDesc->dwBackBufferCount);
 	OutTrace("\tdwRefreshRate=%d\n", lpDDSurfaceDesc->dwRefreshRate);
@@ -4347,6 +4352,8 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 		for (ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
 			EmuDesc.dwHeight=SupportedRes[ResIdx].h;
 			EmuDesc.dwWidth=SupportedRes[ResIdx].w;
+			if((dxw.dwFlags4 & LIMITSCREENRES) && 
+				CheckResolutionLimit((LPDDSURFACEDESC)&EmuDesc)) break;
 			EmuDesc.ddpfPixelFormat.dwSize=sizeof(DDPIXELFORMAT);
 			EmuDesc.ddpfPixelFormat.dwFlags=DDPF_RGB;
 			for (DepthIdx=0; SupportedDepths[DepthIdx]; DepthIdx++) {
@@ -4593,6 +4600,7 @@ HRESULT WINAPI extAddAttachedSurface(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURF
 	if (res) {
 		HRESULT sdres;
 		DDSURFACEDESC2 sd;
+		if (res) OutTraceE("AddAttachedSurface: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		sd.dwSize=Set_dwSize_From_Surface(lpddsadd);
 		sdres=lpddsadd->GetSurfaceDesc((DDSURFACEDESC *)&sd);
 		if (sdres) 

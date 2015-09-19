@@ -43,31 +43,33 @@ char *strnncpy(char *dest, char *src, size_t count)
 	return strncpy(dest, src, count);
 }
 
-static char *Escape(char *s)
+static char *Escape(char *s, char **dest)
 {
-	static char tmp[2048];
-	char *t = tmp;
+	if(!*dest)	*dest=(char *)malloc(strlen(s)+100);
+	else		*dest=(char *)realloc(*dest, strlen(s)+100); 
+	char *t = *dest;
 	for(; *s; s++){
-		if(*s=='\n'){
-			*t++ = '\\';
-			*t++ = 'n';
-		}
-		else{
-			if(*s == '\r'){
-			}
-			else{
+		switch(*s){
+			case '\n':
+				*t++ = '\\';
+				*t++ = 'n';
+				break;
+			case '\r':
+				break;
+			default:
 				*t++ = *s;
-			}
+				break;
 		}
 	}
 	*t=0;
-	return tmp;
+	return *dest;
 }
 
-static char *Unescape(char *s)
+static char *Unescape(char *s, char **dest)
 {
-	static char tmp[2048];
-	char *t = tmp;
+	if(!*dest)	*dest=(char *)malloc(strlen(s)+100);
+	else		*dest=(char *)realloc(*dest, strlen(s)+100); 
+	char *t = *dest;
 	for(; *s; s++){
 		if((*s=='\\') && (*(s+1)=='n')){
 			*t++ = '\r';
@@ -79,8 +81,9 @@ static char *Unescape(char *s)
 		}
 	}
 	*t=0;
-	return tmp;
+	return *dest;
 }
+
 
 void GetFolderFromPath(char *path)
 {
@@ -192,13 +195,13 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_MessagePump) t->flags5 |= MESSAGEPUMP;
 
 	switch(dlg->m_DxEmulationMode){
-		case 0: t->flags |= AUTOMATIC; break;
-		case 1: break;
-		case 2: t->flags |= EMULATEBUFFER; break;
-		case 3: t->flags |= LOCKEDSURFACE; break;
-		case 4: t->flags |= EMULATESURFACE; break;
-		case 5: t->flags5 |= HYBRIDMODE; break;
-		case 6: t->flags5 |= GDIMODE; break;
+		//case 0: t->flags |= AUTOMATIC; break;
+		case 0: break;
+		case 1: t->flags |= EMULATEBUFFER; break;
+		case 2: t->flags |= LOCKEDSURFACE; break;
+		case 3: t->flags |= EMULATESURFACE; break;
+		case 4: t->flags5 |= HYBRIDMODE; break;
+		case 5: t->flags5 |= GDIMODE; break;
 			break;
 	}
 
@@ -324,6 +327,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_RemapMCI) t->flags5 |= REMAPMCI;
 	if(dlg->m_NoMovies) t->flags6 |= NOMOVIES;
 	if(dlg->m_FixMoviesColor) t->flags6 |= FIXMOVIESCOLOR;
+	if(dlg->m_StretchMovies) t->flags6 |= STRETCHMOVIES;
+	if(dlg->m_BypassMCI) t->flags6 |= BYPASSMCI;
 	if(dlg->m_SuppressRelease) t->flags6 |= SUPPRESSRELEASE;
 	if(dlg->m_KeepCursorWithin) t->flags |= KEEPCURSORWITHIN;
 	if(dlg->m_KeepCursorFixed) t->flags2 |= KEEPCURSORFIXED;
@@ -436,13 +441,13 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoWinPosChanges = t->flags5 & NOWINPOSCHANGES ? 1 : 0;
 	dlg->m_MessagePump = t->flags5 & MESSAGEPUMP ? 1 : 0;
 
-	dlg->m_DxEmulationMode = 1; // none
-	if(t->flags & AUTOMATIC) dlg->m_DxEmulationMode = 0;
-	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 2;
-	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 3;
-	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 4;
-	if(t->flags5 & HYBRIDMODE) dlg->m_DxEmulationMode = 5;
-	if(t->flags5 & GDIMODE) dlg->m_DxEmulationMode = 6;
+	dlg->m_DxEmulationMode = 0; // none
+	//if(t->flags & AUTOMATIC) dlg->m_DxEmulationMode = 0;
+	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;
+	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 2;
+	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 3;
+	if(t->flags5 & HYBRIDMODE) dlg->m_DxEmulationMode = 4;
+	if(t->flags5 & GDIMODE) dlg->m_DxEmulationMode = 5;
 
 	dlg->m_DxFilterMode = 0;
 	if(t->flags4 & BILINEAR2XFILTER) dlg->m_DxFilterMode = 1;
@@ -556,6 +561,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_RemapMCI = t->flags5 & REMAPMCI ? 1 : 0;
 	dlg->m_NoMovies = t->flags6 & NOMOVIES ? 1 : 0;
 	dlg->m_FixMoviesColor = t->flags6 & FIXMOVIESCOLOR ? 1 : 0;
+	dlg->m_StretchMovies = t->flags6 & STRETCHMOVIES ? 1 : 0;
+	dlg->m_BypassMCI = t->flags6 & BYPASSMCI ? 1 : 0;
 	dlg->m_SuppressRelease = t->flags6 & SUPPRESSRELEASE ? 1 : 0;
 	dlg->m_KeepCursorWithin = t->flags & KEEPCURSORWITHIN ? 1 : 0;
 	dlg->m_KeepCursorFixed = t->flags2 & KEEPCURSORFIXED ? 1 : 0;
@@ -642,6 +649,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, char *InitPath)
 {
 	char key[32], val[32];
+	char *EscBuf = NULL;
 	sprintf_s(key, sizeof(key), "title%i", i);
 	WritePrivateProfileString("target", key, PrivateMap->title, InitPath);
 	sprintf_s(key, sizeof(key), "path%i", i);
@@ -653,9 +661,9 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(key, sizeof(key), "opengllib%i", i);
 	WritePrivateProfileString("target", key, TargetMap->OpenGLLib, InitPath);
 	sprintf_s(key, sizeof(key), "notes%i", i);
-	WritePrivateProfileString("target", key, Escape(PrivateMap->notes), InitPath);
+	WritePrivateProfileString("target", key, Escape(PrivateMap->notes, &EscBuf), InitPath);
 	sprintf_s(key, sizeof(key), "registry%i", i);
-	WritePrivateProfileString("target", key, Escape(PrivateMap->registry), InitPath);
+	WritePrivateProfileString("target", key, Escape(PrivateMap->registry, &EscBuf), InitPath);
 	sprintf_s(key, sizeof(key), "ver%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->dxversion);
 	WritePrivateProfileString("target", key, val, InitPath);
@@ -729,6 +737,9 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(key, sizeof(key), "swapeffect%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->SwapEffect);
 	WritePrivateProfileString("target", key, val, InitPath);
+
+	free(EscBuf);
+	EscBuf = NULL;
 }
 
 static void ClearTarget(int i, char *InitPath)
@@ -796,70 +807,108 @@ static void ClearTarget(int i, char *InitPath)
 static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, char *InitPath)
 {
 	char key[32];
+	char *EscBuf = NULL;
+	char *sBuf;
+	sBuf = (char *)malloc(1000000);
 	extern BOOL gbDebug;
+	// -------
 	sprintf_s(key, sizeof(key), "path%i", i);
 	GetPrivateProfileString("target", key, "", TargetMap->path, MAX_PATH, InitPath);
 	if(!TargetMap->path[0]) return FALSE;
+	// -------
 	sprintf_s(key, sizeof(key), "launchpath%i", i);
 	GetPrivateProfileString("target", key, "", PrivateMap->launchpath, MAX_PATH, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "title%i", i);
 	GetPrivateProfileString("target", key, "", PrivateMap->title, sizeof(PRIVATEMAP)-1, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "module%i", i);
 	GetPrivateProfileString("target", key, "", TargetMap->module, sizeof(TargetMap->module)-1, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "opengllib%i", i);
 	GetPrivateProfileString("target", key, "", TargetMap->OpenGLLib, sizeof(TargetMap->OpenGLLib)-1, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "notes%i", i);
-	GetPrivateProfileString("target", key, "", PrivateMap->notes, MAX_NOTES, InitPath);
-	strcpy(PrivateMap->notes, Unescape(PrivateMap->notes));
+	GetPrivateProfileString("target", key, "", sBuf, 1000000, InitPath);
+	Unescape(sBuf, &EscBuf);
+	PrivateMap->notes = (char *)malloc(strlen(EscBuf)+1);
+	strcpy(PrivateMap->notes, EscBuf);
+	// -------
 	sprintf_s(key, sizeof(key), "registry%i", i);
-	GetPrivateProfileString("target", key, "", PrivateMap->registry, MAX_NOTES, InitPath);
-	strcpy(PrivateMap->registry, Unescape(PrivateMap->registry));
+	GetPrivateProfileString("target", key, "", sBuf, 1000000, InitPath);
+	Unescape(sBuf, &EscBuf);
+	PrivateMap->registry = (char *)malloc(strlen(EscBuf)+1);
+	strcpy(PrivateMap->registry, EscBuf);
+	// -------
 	sprintf_s(key, sizeof(key), "ver%i", i);
 	TargetMap->dxversion = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "coord%i", i);
 	TargetMap->coordinates = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flag%i", i);
 	TargetMap->flags = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagg%i", i);
 	TargetMap->flags2 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagh%i", i);
 	TargetMap->flags3 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagi%i", i);
 	TargetMap->flags4 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagj%i", i);
 	TargetMap->flags5 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagk%i", i);
 	TargetMap->flags6 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	TargetMap->tflags = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "initx%i", i);
 	TargetMap->initx = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "inity%i", i);
 	TargetMap->inity = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "minx%i", i);
 	TargetMap->minx = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "miny%i", i);
 	TargetMap->miny = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "maxx%i", i);
 	TargetMap->maxx = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "maxy%i", i);
 	TargetMap->maxy = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "posx%i", i);
 	TargetMap->posx = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "posy%i", i);
 	TargetMap->posy = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "sizx%i", i);
 	TargetMap->sizx = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "sizy%i", i);
 	TargetMap->sizy = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "maxfps%i", i);
 	TargetMap->MaxFPS = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "initts%i", i);
 	TargetMap->InitTS = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "swapeffect%i", i);
 	TargetMap->SwapEffect = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "winver%i", i);
 	TargetMap->FakeVersionId = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "maxres%i", i);
 	TargetMap->MaxScreenRes = GetPrivateProfileInt("target", key, 0, InitPath);
 	
@@ -867,8 +916,10 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 		// clear debug flags
 		TargetMap->flags &= ~(0);
 		TargetMap->flags3 &= ~(YUV2RGB|RGB2YUV|SURFACEWARN|ANALYTICMODE|NODDRAWBLT|NODDRAWFLIP|NOGDIBLT);
-		TargetMap->flags4 &= ~(NOFILLRECT);
 	}
+	free(EscBuf);
+	EscBuf = NULL;
+	free(sBuf);
 	return TRUE;
 }
 
@@ -1161,14 +1212,16 @@ void CDxwndhostView::OnModify()
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
 	dlg.m_Title = PrivateMaps[i].title;
-	dlg.m_Notes = PrivateMaps[i].notes;
-	dlg.m_Registry = PrivateMaps[i].registry;
+	dlg.m_Notes = CString(PrivateMaps[i].notes);
+	dlg.m_Registry = CString(PrivateMaps[i].registry);
 	dlg.m_LaunchPath = PrivateMaps[i].launchpath;
 	SetDlgFromTarget(&TargetMaps[i], &dlg);
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE); 
-		strnncpy(PrivateMaps[i].notes, (char *)dlg.m_Notes.GetString(), MAX_NOTES);
-		strnncpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString(), MAX_REGISTRY);
+		PrivateMaps[i].notes = (char *)realloc(PrivateMaps[i].notes, strlen(dlg.m_Notes.GetString())+1);
+		strcpy(PrivateMaps[i].notes, (char *)dlg.m_Notes.GetString());
+		PrivateMaps[i].registry = (char *)realloc(PrivateMaps[i].registry, strlen(dlg.m_Registry.GetString())+1);
+		strcpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString());
 		strnncpy(PrivateMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
@@ -1285,7 +1338,7 @@ void CDxwndhostView::OnSetRegistry()
 	int i;
 	CTargetDlg dlg;
 	POSITION pos;
-	CString	Registry;
+	char *Registry;
 	FILE *regfp;
 
 	CListCtrl& listctrl = GetListCtrl();
@@ -1301,7 +1354,7 @@ void CDxwndhostView::OnSetRegistry()
 		return;
 	}
 
-	fwrite(Registry.GetString(), Registry.GetLength(), 1, regfp);
+	fwrite(Registry, strlen(Registry), 1, regfp);
 	fclose(regfp);
 }
 
@@ -1551,8 +1604,10 @@ void CDxwndhostView::OnAdd()
 	memset(&TargetMaps[i],0,sizeof(TARGETMAP)); // clean up, just in case....
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE);
-		strnncpy(PrivateMaps[i].notes, (char *)dlg.m_Notes.GetString(), MAX_NOTES);
-		strnncpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString(), MAX_REGISTRY);
+		PrivateMaps[i].notes = (char *)malloc(strlen(dlg.m_Notes.GetString())+1);
+		strcpy(PrivateMaps[i].notes, (char *)dlg.m_Notes.GetString());
+		PrivateMaps[i].registry = (char *)malloc(strlen(dlg.m_Registry.GetString())+1);
+		strcpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString());
 		strnncpy(PrivateMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();

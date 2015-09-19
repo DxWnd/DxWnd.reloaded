@@ -115,6 +115,8 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 	OutTraceDW("mciSendCommand: IDDevice=%x msg=%x(%s) Command=%x(%s)\n",
 		IDDevice, uMsg, ExplainMCICommands(uMsg), fdwCommand, ExplainMCIFlags(uMsg, fdwCommand));
 
+	if(dxw.dwFlags6 && BYPASSMCI) return 0;
+
 	if(dxw.IsFullScreen()){
 		switch(uMsg){
 		case MCI_WINDOW:
