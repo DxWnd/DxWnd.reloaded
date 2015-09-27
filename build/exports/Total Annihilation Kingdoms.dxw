@@ -29,3 +29,4 @@ notes0=
 flagj0=128
 flagk0=0
 swapeffect0=0
+registry0=[HKEY_LOCAL_MACHINE\Software]\n[HKEY_LOCAL_MACHINE\Software\Cavedog Entertainment]\n[HKEY_LOCAL_MACHINE\Software\Cavedog Entertainment\Total Annihilation: Kingdoms]\n[HKEY_LOCAL_MACHINE\Software\Cavedog Entertainment\Total Annihilation: Kingdoms\1.00.000]\n\n[HKEY_CURRENT_USER\Software\Cavedog Entertainment]\n[HKEY_CURRENT_USER\Software\Cavedog Entertainment\Kingdoms]\n"InstallDirectX"=dword:00000001\n\n[HKEY_CURRENT_USER\Software\Cavedog Entertainment\Kingdoms\InterfaceOptions]\n"Language"="ENGLISH"\n\n[HKEY_CURRENT_USER\Software\Cavedog Entertainment\Cartographer]\n

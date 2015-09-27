@@ -5,13 +5,13 @@ launchpath0=
 module0=
 opengllib0=
 notes0=
-registry0=[HKEY_LOCAL_MACHINE\SOFTWARE\MicroProse\Star Trek Generations]\n[HKEY_LOCAL_MACHINE\SOFTWARE\MicroProse\Star Trek Generations\1.0]\n"Path"="D:\\GAMES\\STGEN"\n"CDPath"="F:\\GENS"\n"InstallSet"="MED"\n
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE\MicroProse]\n[HKEY_LOCAL_MACHINE\SOFTWARE\MicroProse\Star Trek Generations]\n[HKEY_LOCAL_MACHINE\SOFTWARE\MicroProse\Star Trek Generations\1.0]\n"Path"="D:\\GAMES\\STGEN"\n"CDPath"="F:\\GENS"\n"InstallSet"="MED"\n
 ver0=1
 coord0=0
 flag0=136314978
 flagg0=1744830464
-flagh0=20
-flagi0=138412036
+flagh0=1044
+flagi0=1212153860
 flagj0=4224
 flagk0=0
 tflag0=0

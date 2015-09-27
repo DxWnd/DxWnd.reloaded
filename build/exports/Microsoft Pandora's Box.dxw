@@ -1,0 +1,32 @@
+[target]
+title0=Microsoft Pandora's Box
+path0=D:\Games\Microsoft Pandora's Box\pandora.exe
+launchpath0=
+module0=
+opengllib0=
+notes0=
+registry0=; Pandora's Box\n\n[HKEY_CURRENT_USER\Software]\n[HKEY_CURRENT_USER\Software\Microsoft]\n[HKEY_CURRENT_USER\Software\Microsoft\Microsoft Games\Pandora's Box]\n[HKEY_CURRENT_USER\Software\Microsoft\Microsoft Games\Pandora's Box\1.0]\n"Music"=hex:31\n"PlayerName"="Gho"\n"Sound"=hex:31\n"Timer"=hex:31\n
+ver0=0
+coord0=0
+flag0=673185827
+flagg0=1209008128
+flagh0=20
+flagi0=138420228
+flagj0=128
+flagk0=0
+tflag0=0
+initx0=0
+inity0=0
+minx0=0
+miny0=0
+maxx0=0
+maxy0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0

@@ -715,10 +715,12 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	SetLastError(0);
 	RetHdc=(*pGDICreateCompatibleDC)(hdc);
 	LastError=GetLastError();
-	if(LastError == 0)
+	if(LastError == 0){
 		OutTraceDW("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
-	else
+	}
+	else{
 		OutTraceE("GDI.CreateCompatibleDC ERROR: err=%d at %d\n", LastError, __LINE__);
+	}
 	return RetHdc;
 }
 
@@ -772,7 +774,6 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 		}
 	else {
 		res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
-		OutTrace("Debug: MEM dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWidth, nHeight);
 	}
 
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);

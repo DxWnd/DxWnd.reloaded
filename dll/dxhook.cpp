@@ -615,7 +615,7 @@ void HookWindowProc(HWND hwnd)
 	long lres;
 	dxwws.PutProc(hwnd, pWindowProc);
 	lres=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
-	OutTraceDW("SetWindowLong: hwnd=%x HOOK WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
+	OutTraceDW("SetWindowLong: HOOK hwnd=%x WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
 }
 
 void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
@@ -983,7 +983,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_NCACTIVATE:
 		// turn DirectInput bActive flag on & off .....
 		if(message == WM_NCACTIVATE) dxw.bActive = wparam;
-		(*pSetWindowPos)(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		if(dxw.bActive) (*pSetWindowPos)(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 		if(dxw.dwFlags1 & UNNOTIFY){
 			DefWindowProc(hwnd, message, wparam, lparam);
 			return false;

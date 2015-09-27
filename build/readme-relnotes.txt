@@ -911,3 +911,7 @@ fix: eliminated "Automatic" surface emulation mode, no longer supported
 fix: fixed InvalidateRect rectangle: avoids flickering in "Microsoft Pandora's Box"
 add: added "Bypass MCI calls" flag. 
 
+v2.03.38
+fix: handling of WM_ACTIVATE and WM_NCACTIVATE messages, should bring the window to HWND_NOTOPMOST z-order position only when activation is on, not off!
+fix: in "Share GDI and draw DC" mode, check if the primary surface really has a DC and switch to another one if the DC is missing.
+fix: eliminated some redundant code in GDI ReleaseDC in DC emulated mode

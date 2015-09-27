@@ -1992,6 +1992,12 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 		LPDIRECTDRAWSURFACE lpDDSPrim;
 		lpDDSPrim = dxwss.GetPrimarySurface();
 		if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+		while((hFlippedDC == NULL) && lpDDSPrim) { 
+			OutTraceDW("%s: found primary surface with no DC, unref lpdds=%x\n", ApiName, lpDDSPrim);
+			dxwss.UnrefSurface(lpDDSPrim);
+			lpDDSPrim = dxwss.GetPrimarySurface();
+			if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+		}
 		if (!(hwnd == dxw.GethWnd())) {
 			POINT father, child, offset;
 			father.x = father.y = 0;
@@ -2116,10 +2122,7 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 			res=(*pGDIReleaseDC)(hwnd, hDC);
 			break;
 		case GDIMODE_EMULATED:
-			HDC windc;
-			windc=(*pGDIGetDC)(hwnd);
 			res=dxw.ReleaseEmulatedDC(hwnd);
-			res=(*pGDIReleaseDC)(hwnd, windc);
 			break;
 	}
 
@@ -2186,10 +2189,12 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 			break;
 	}
 
-	if(ret)
+	if(ret){
 		OutTraceDW("GDI.EndPaint: hwnd=%x ret=%x\n", hwnd, ret);
-	else
+	}
+	else{
 		OutTraceE("GDI.EndPaint ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+	}
 
 	return ret;
 }
