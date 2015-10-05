@@ -79,6 +79,7 @@ public: // methods
 	BOOL HandleFPS(void);
 	BOOL ishWndFPS(HWND);
 	DWORD GetTickCount(void);
+	char *ExplainSurfaceRole(LPDIRECTDRAWSURFACE);
 	void MarkPrimarySurface(LPDIRECTDRAWSURFACE);
 	BOOL IsAPrimarySurface(LPDIRECTDRAWSURFACE);
 	LPDIRECTDRAWSURFACE GetPrimarySurface(void);

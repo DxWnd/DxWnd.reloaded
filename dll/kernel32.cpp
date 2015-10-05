@@ -12,10 +12,14 @@
 #define LOCKINJECTIONTHREADS
 
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
+LPVOID WINAPI extVirtualAlloc(LPVOID, SIZE_T, DWORD, DWORD);
 
+typedef LPVOID (WINAPI *VirtualAlloc_Type)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, 
 										   BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION);
+
 CreateProcessA_Type pCreateProcessA = NULL;
+VirtualAlloc_Type pVirtualAlloc = NULL;
 
 #ifdef NOFREELIBRARY
 typedef BOOL (WINAPI *FreeLibrary_Type)(HMODULE);
@@ -46,6 +50,11 @@ static HookEntry_Type Hooks[]={
 #ifdef NOFREELIBRARY
 	{HOOK_HOT_CANDIDATE, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
 #endif
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type FixAllocHooks[]={
+	{HOOK_IAT_CANDIDATE, "VirtualAlloc", (FARPROC)VirtualAlloc, (FARPROC *)&pVirtualAlloc, (FARPROC)extVirtualAlloc},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -91,14 +100,17 @@ void HookKernel32(HMODULE module)
 	if(dxw.dwFlags2 & LIMITRESOURCES) HookLibrary(module, LimitHooks, libname);
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
+	if(dxw.dwFlags6 & LEGACYALLOC) HookLibrary(module, FixAllocHooks, libname);
 }
 
 void HookKernel32Init()
 {
 	HookLibInit(Hooks);
+	HookLibInit(FixIOHooks);
 	HookLibInit(LimitHooks);
 	HookLibInit(TimeHooks);
 	HookLibInit(VersionHooks);
+	HookLibInit(FixAllocHooks);
 }
 
 FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -127,6 +139,8 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if(dxw.dwFlags2 & FAKEVERSION)
 		if (addr=RemapLibrary(proc, hModule, VersionHooks)) return addr;
 
+	if(dxw.dwFlags6 & LEGACYALLOC)
+		if (addr=RemapLibrary(proc, hModule, FixAllocHooks)) return addr;
 	return NULL;
 }
 
@@ -254,17 +268,25 @@ For Windows NT and Win32s, the remaining bits in the high order word specify the
 For Windows 95 and Windows 98, the remaining bits of the high order word are reserved.
 */
 
-static struct {char bMajor; char bMinor; char *sName;} WinVersions[9]=
+// v2.03.20: "Talonsoft's Operational Art of War II" checks the dwPlatformId field
+// v2.03.20: list revised according to Microsoft compatibility settings
+
+static struct {DWORD bMajor; DWORD bMinor; DWORD dwPlatformId; DWORD build; char *sName;} WinVersions[9]=
 {
-	{4, 0, "Windows 95"},
-	{4,10, "Windows 98/SE"},
-	{4,90, "Windows ME"},
-	{5, 0, "Windows 2000"},
-	{5, 1, "Windows XP"},
-	{5, 2, "Windows Server 2003"},
-	{6, 0, "Windows Vista"},
-	{6, 1, "Windows 7"},
-	{6, 2, "Windows 8"}
+	{4, 0, VER_PLATFORM_WIN32_WINDOWS,	950,		"Windows 95"},
+	{4,10, VER_PLATFORM_WIN32_WINDOWS,	67766446,	"Windows 98/SE"},
+	{4,90, VER_PLATFORM_WIN32_WINDOWS,	0,			"Windows ME"},
+//	{4, 0, VER_PLATFORM_WIN32_NT,		1381,		"Windows NT4.0(sp5)"},
+	{5, 0, VER_PLATFORM_WIN32_NT,		2195,		"Windows 2000"},
+//	{5, 1, VER_PLATFORM_WIN32_NT,		2600,		"Windows XP(sp2)"},
+	{5, 1, VER_PLATFORM_WIN32_NT,		2600,		"Windows XP(sp3)"},
+	{5, 2, VER_PLATFORM_WIN32_NT,		3790,		"Windows Server 2003(sp1)"},
+//	{6, 0, VER_PLATFORM_WIN32_NT,		6001,		"Windows Server 2008(sp1)"},
+//	{6, 0, VER_PLATFORM_WIN32_NT,		6000,		"Windows Vista"},
+//	{6, 0, VER_PLATFORM_WIN32_NT,		6001,		"Windows Vista(sp1)"},
+	{6, 0, VER_PLATFORM_WIN32_NT,		6002,		"Windows Vista(sp2)"},
+	{6, 1, VER_PLATFORM_WIN32_NT,		7600,		"Windows 7"},
+	{6, 2, VER_PLATFORM_WIN32_NT,		0,			"Windows 8"}
 };
 
 BOOL WINAPI extGetVersionExA(LPOSVERSIONINFOA lpVersionInfo)
@@ -277,16 +299,17 @@ BOOL WINAPI extGetVersionExA(LPOSVERSIONINFOA lpVersionInfo)
 		return ret;
 	}
 
-	OutTraceDW("GetVersionExA: version=%d.%d build=(%d)\n", 
-		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber);
+	OutTraceDW("GetVersionExA: version=%d.%d platform=%x build=(%d)\n", 
+		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwPlatformId, lpVersionInfo->dwBuildNumber);
 
 	if(dxw.dwFlags2 & FAKEVERSION) {
 		// fake Win XP build 0
 		lpVersionInfo->dwMajorVersion = WinVersions[dxw.FakeVersionId].bMajor;
 		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
+		lpVersionInfo->dwPlatformId = WinVersions[dxw.FakeVersionId].dwPlatformId;
 		lpVersionInfo->dwBuildNumber = 0;
-		OutTraceDW("GetVersionExA: FIXED version=%d.%d build=(%d) os=\"%s\"\n", 
-			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
+		OutTraceDW("GetVersionExA: FIXED version=%d.%d platform=%x build=(%d) os=\"%s\"\n", 
+			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwPlatformId, lpVersionInfo->dwBuildNumber,
 			WinVersions[dxw.FakeVersionId].sName);
 	}
 	return TRUE;
@@ -302,16 +325,17 @@ BOOL WINAPI extGetVersionExW(LPOSVERSIONINFOW lpVersionInfo)
 		return ret;
 	}
 
-	OutTraceDW("GetVersionExW: version=%d.%d build=(%d)\n", 
-		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber);
+	OutTraceDW("GetVersionExW: version=%d.%d platform=%x build=(%d)\n", 
+		lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwPlatformId, lpVersionInfo->dwBuildNumber);
 
 	if(dxw.dwFlags2 & FAKEVERSION) {
 		// fake Win XP build 0
 		lpVersionInfo->dwMajorVersion = WinVersions[dxw.FakeVersionId].bMajor;
 		lpVersionInfo->dwMinorVersion = WinVersions[dxw.FakeVersionId].bMinor;
+		lpVersionInfo->dwPlatformId = WinVersions[dxw.FakeVersionId].dwPlatformId;
 		lpVersionInfo->dwBuildNumber = 0;
-		OutTraceDW("GetVersionExW: FIXED version=%d.%d build=(%d) os=\"%ls\"\n", 
-			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwBuildNumber,
+		OutTraceDW("GetVersionExW: FIXED version=%d.%d platform=%x build=(%d) os=\"%s\"\n", 
+			lpVersionInfo->dwMajorVersion, lpVersionInfo->dwMinorVersion, lpVersionInfo->dwPlatformId, lpVersionInfo->dwBuildNumber,
 			WinVersions[dxw.FakeVersionId].sName);
 	}
 	return TRUE;
@@ -1025,5 +1049,35 @@ UINT WINAPI extGetTempFileName(LPCTSTR lpPathName, LPCTSTR lpPrefixString, UINT 
 	if(ret){
 		OutTraceDW("GetTempFileName: TempFileName=\"%s\" ret=%d\n", lpTempFileName, ret);
 	}
+	return ret;
+}
+
+LPVOID WINAPI extVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
+{
+	// v2.03.20: handling of legacy memory segments.
+	// Some games (Crusaders of Might and Magic, the demo and the GOG release) rely on the fact that the
+	// program can VirtualAlloc-ate memory on certain tipically free segments (0x4000000, 0x5000000, 
+	// 0x6000000, 0x7000000 and 0x8000000) but when the program is hooked by DxWnd these segments could
+	// be allocated to extra dlls or allocated memory. 
+	// The trick is ti pre-allocate this memory and free it upon error to make it certainly available to
+	// the calling program.
+
+	LPVOID ret;
+	OutTraceB("VirtualAlloc: lpAddress=%x size=%x flag=%x protect=%x\n", lpAddress, dwSize, flAllocationType, flProtect);
+	ret = (*pVirtualAlloc)(lpAddress, dwSize, flAllocationType, flProtect);
+	if((ret == NULL) && lpAddress){
+		OutTraceE("VirtualAlloc: RECOVERY lpAddress=%x size=%x flag=%x protect=%x\n", 
+			lpAddress, dwSize, flAllocationType, flProtect);
+		if (((DWORD)lpAddress & 0xF0FFFFFF) == 0){
+			BOOL bret;
+			bret = VirtualFree(lpAddress, 0x00000000, MEM_RELEASE);
+			if(!bret) OutTraceE("VirtualFree: MEM_RELEASE err=%d\n", GetLastError());
+			ret = (*pVirtualAlloc)(lpAddress, dwSize, flAllocationType, flProtect);
+			if (ret == NULL) OutTraceE("VirtualAlloc: addr=%x err=%d\n", lpAddress, GetLastError());
+		}
+		if (!ret) ret = (*pVirtualAlloc)((LPVOID)0x00000000, dwSize, flAllocationType, flProtect);
+		if(ret == NULL) OutTraceE("VirtualAlloc: addr=NULL err=%d\n", GetLastError());
+	}
+	OutTrace("VirtualAlloc: ret=%x\n", ret);
 	return ret;
 }

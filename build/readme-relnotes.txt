@@ -794,3 +794,11 @@ fix: "keep aspect ratio" with DirectX "GDI mode"
 fix: when ddraw hook is set to "none", no hook operations are performed on ddraw
 add: possibility to control the D3D8/9 SwapEffect field with the "force swap effect" flag
 fix: revised handling of GDI device context shared with DirectDraw primary surface, improved behaviour of "Star trek Armada"
+
+v2.03.20:
+fix: revised hookers for kernel32 GetVersionExA/W api, adding support for dwPlatformId field
+fix: texture handling for texture dump/hack/highlight
+add: "Reserve legacy memory segments" compatibility flag, needed for "Crusaders of Might & Magic" 
+add: preliminary support for ddraw7 DirectDrawCreateClipper api
+add: "Suppress main window destruction" flag, to make "Prince of Persia 3D" playable
+fix: fully revised ddraw surface handling in d3d1-7 versions. Now "Might & Magic IX" is supported

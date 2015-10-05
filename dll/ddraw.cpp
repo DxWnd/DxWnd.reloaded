@@ -18,7 +18,7 @@
 #include "syslibs.h"
 
 extern BOOL IsChangeDisplaySettingsHotPatched;
-BOOL bDontReleaseBackBuffer = FALSE;
+BOOL bIsWithinD3DCreateDevice = FALSE;
 DWORD dwBackBufferCaps;
 extern void TextureHandling(LPDIRECTDRAWSURFACE);
 ColorConversion_Type pColorConversion = NULL;
@@ -33,6 +33,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR 
 HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFIID, IUnknown FAR *);
 HRESULT WINAPI extDirectDrawEnumerate(LPDDENUMCALLBACK, LPVOID);
 HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX, LPVOID, DWORD);
+HRESULT WINAPI extDirectDrawCreateClipper(DWORD, LPDIRECTDRAWCLIPPER *, IUnknown *);
 
 // DirectDraw
 HRESULT WINAPI extQueryInterfaceD(void *, REFIID, LPVOID *);
@@ -63,7 +64,6 @@ HRESULT WINAPI extTestCooperativeLevel(LPDIRECTDRAW);
 //    STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD ) PURE;
 //    STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD * ) PURE;
 HRESULT WINAPI extGetCapsD(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
-
 
 // DirectDrawSurface
 HRESULT WINAPI extQueryInterfaceS(void *, REFIID, LPVOID *);
@@ -130,6 +130,7 @@ DirectDrawCreate_Type pDirectDrawCreate = NULL;
 DirectDrawCreateEx_Type pDirectDrawCreateEx = NULL;
 DirectDrawEnumerate_Type pDirectDrawEnumerate = NULL;
 DirectDrawEnumerateEx_Type pDirectDrawEnumerateEx = NULL;
+DirectDrawCreateClipper_Type pDirectDrawCreateClipper = NULL;
 
 /* DirectDraw hook pointers */
 QueryInterface_Type pQueryInterfaceD;
@@ -280,6 +281,7 @@ static HookEntry_Type ddHooks[]={
 	{HOOK_HOT_CANDIDATE, "DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
 	{HOOK_HOT_CANDIDATE, "DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
 	{HOOK_HOT_CANDIDATE, "DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
+	{HOOK_HOT_CANDIDATE, "DirectDrawCreateClipper", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateClipper, (FARPROC)extDirectDrawCreateClipper},
 	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateW, (FARPROC)extDirectDrawCreate},
 	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateExW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateExW, (FARPROC)extDirectDrawCreate},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
@@ -334,87 +336,9 @@ static void Stopper(char *s, int line)
 #define STOPPER(s)
 #endif
 
-static char *sFourCC(DWORD fcc)
-{
-	static char sRet[5];
-	char c;
-	int i;
-	char *t=&sRet[0];
-	for(i=0; i<4; i++){
-		c = fcc & (0xFF);
-		*t++ = isprint(c) ? c : '.';
-		c = c >> 8;
-	}
-	*t = 0;
-	return sRet;
-}
-
 static char *DumpPixelFormat(LPDDSURFACEDESC2 lpddsd)
 {
-	static char sBuf[512];
-	char sItem[256];
-	DWORD flags=lpddsd->ddpfPixelFormat.dwFlags;
-	sprintf(sBuf, " PixelFormat flags=%x(%s) BPP=%d", 
-		flags, ExplainPixelFormatFlags(flags), lpddsd->ddpfPixelFormat.dwRGBBitCount);
-	if (flags & DDPF_RGB) {
-		if (flags & DDPF_ALPHAPIXELS) {
-			sprintf(sItem, " RGBA=(%x,%x,%x,%x)", 
-				lpddsd->ddpfPixelFormat.dwRBitMask,
-				lpddsd->ddpfPixelFormat.dwGBitMask,
-				lpddsd->ddpfPixelFormat.dwBBitMask,
-				lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask);
-		}
-		else {
-			sprintf(sItem, " RGB=(%x,%x,%x)", 
-				lpddsd->ddpfPixelFormat.dwRBitMask,
-				lpddsd->ddpfPixelFormat.dwGBitMask,
-				lpddsd->ddpfPixelFormat.dwBBitMask);
-		}
-		strcat(sBuf, sItem);
-	}
-	if (flags & DDPF_YUV) {
-		sprintf(sItem, " YUVA=(%x,%x,%x,%x)", 
-			lpddsd->ddpfPixelFormat.dwYBitMask,
-			lpddsd->ddpfPixelFormat.dwUBitMask,
-			lpddsd->ddpfPixelFormat.dwVBitMask,
-			lpddsd->ddpfPixelFormat.dwYUVAlphaBitMask);
-		strcat(sBuf, sItem);
-	}
-	if (flags & DDPF_ZBUFFER) {
-		sprintf(sItem, " SdZSbL=(%x,%x,%x,%x)", 
-			lpddsd->ddpfPixelFormat.dwStencilBitDepth,
-			lpddsd->ddpfPixelFormat.dwZBitMask,
-			lpddsd->ddpfPixelFormat.dwStencilBitMask,
-			lpddsd->ddpfPixelFormat.dwLuminanceAlphaBitMask);
-		strcat(sBuf, sItem);
-	}
-	if (flags & DDPF_ALPHA) {
-		sprintf(sItem, " LBdBlZ=(%x,%x,%x,%x)", 
-			lpddsd->ddpfPixelFormat.dwLuminanceBitMask,
-			lpddsd->ddpfPixelFormat.dwBumpDvBitMask,
-			lpddsd->ddpfPixelFormat.dwBumpLuminanceBitMask,
-			lpddsd->ddpfPixelFormat.dwRGBZBitMask);
-		strcat(sBuf, sItem);
-	}
-	if (flags & DDPF_LUMINANCE) {
-		sprintf(sItem, " BMbMF=(%x,%x,%x,%x)", 
-			lpddsd->ddpfPixelFormat.dwBumpDuBitMask,
-			lpddsd->ddpfPixelFormat.MultiSampleCaps.wBltMSTypes,
-			lpddsd->ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes,
-			lpddsd->ddpfPixelFormat.dwYUVZBitMask);
-		strcat(sBuf, sItem);
-	}
-	if (flags & DDPF_BUMPDUDV) {
-		sprintf(sItem, " O=(%x)", 
-			lpddsd->ddpfPixelFormat.dwOperations);
-		strcat(sBuf, sItem);
-	}
-	if (flags & DDPF_FOURCC) {
-		sprintf(sItem, " FourCC=%x(%s)", 
-			lpddsd->ddpfPixelFormat.dwFourCC, sFourCC(lpddsd->ddpfPixelFormat.dwFourCC));
-		strcat(sBuf, sItem);
-	}
-	return sBuf;
+	return ExplainPixelFormat(&(lpddsd->ddpfPixelFormat));
 }
 
 static CHAR *LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
@@ -1410,9 +1334,6 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlockDir4, (void **)&pUnlock4, "Unlock(S4)");
 	}
 
-	if (dxversion == 7)
-		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc, (void **)&pSetSurfaceDesc, "SetSurfaceDesc(S3)");
-
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 
 	// just proxed ....
@@ -1454,6 +1375,9 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 	SetHook((void *)(**(DWORD **)lplpdds + 136), extUpdateOverlayDisplayProxy, (void **)&pUpdateOverlayDisplay, "UpdateOverlayDisplay(S)");
 	// IDirectDrawSurface::UpdateOverlayZOrder
 	SetHook((void *)(**(DWORD **)lplpdds + 140), extUpdateOverlayZOrderProxy, (void **)&pUpdateOverlayZOrder, "UpdateOverlayZOrder(S)");
+	if (dxversion == 7)
+		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc, (void **)&pSetSurfaceDesc, "SetSurfaceDesc(S3)");
+
 }
 
 static void HookGammaControl(LPVOID *obp)
@@ -1866,11 +1790,11 @@ HRESULT WINAPI extQueryInterfaceS(void *lpdds, REFIID riid, LPVOID *obp)
 	unsigned int dwLocalDDVersion;
 	unsigned int dwLocalTexVersion;
 
-	OutTraceDDRAW("QueryInterface(S): lpdds=%x REFIID=%x(%s) obp=%x\n",
-		lpdds, riid.Data1, ExplainGUID((GUID *)&riid), *obp);	
-
 	IsPrim=dxw.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds);
 	IsBack=dxw.IsABackBufferSurface((LPDIRECTDRAWSURFACE)lpdds);
+	OutTraceDDRAW("QueryInterface(S): lpdds=%x%s REFIID=%x(%s)\n",
+		lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds), riid.Data1, ExplainGUID((GUID *)&riid));	
+
 	IsGammaRamp=FALSE;
 
 	dwLocalDDVersion=0;
@@ -2120,6 +2044,7 @@ HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 {
 	HRESULT res;
+	BOOL bFixFrame = FALSE;
 
 	OutTraceDDRAW("SetCooperativeLevel: lpdd=%x hwnd=%x dwFlags=%x(%s)\n",
 		lpdd, hwnd, dwflags,ExplainCoopFlags(dwflags));
@@ -2143,9 +2068,7 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 			dxw.SetFullScreen(TRUE);
 			dwflags &= ~(DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
 			dwflags |= DDSCL_NORMAL;
-			res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
-			AdjustWindowFrame(hwnd, dxw.GetScreenWidth(), dxw.GetScreenHeight());
-			if (dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(hwnd);
+			bFixFrame = TRUE;
 		}
 		else{
 			RECT client;
@@ -2153,17 +2076,25 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 			// v2.02.11:
 			// Non fullscreen cooperative mode means windowed, unless the window occupies the whole desktop area
 			dxw.SetFullScreen(client.right==dxw.iSizX && client.bottom==dxw.iSizY);
-			//dxw.SetFullScreen(FALSE);
-			res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
 		}
 	}
-	else {
-		res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
-	}
 
-	if(res)
+	res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
+	if(res){
+		if(res == DDERR_INVALIDPARAMS){
+			//hwnd = GetForegroundWindow();
+			PostMessage(hwnd, WM_SYSCOMMAND, SC_RESTORE, 0);
+			Sleep(1000);
+			res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
+		}
 		OutTraceE("SetCooperativeLevel: ERROR lpdd=%x hwnd=%x Flags=%x err=%x(%s) at %d\n", 
 			lpdd, hwnd, dwflags, res, ExplainDDError(res), __LINE__);
+	}
+
+	if(bFixFrame){
+		AdjustWindowFrame(hwnd, dxw.GetScreenWidth(), dxw.GetScreenHeight());
+		if (dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(hwnd);
+	}
 
 	GetHookInfo()->IsFullScreen=dxw.IsFullScreen();
 
@@ -3706,11 +3637,10 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 	HRESULT res;
 	BOOL IsPrim;
 	BOOL IsBack;
+	RECT rect;
 
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	IsBack=dxw.IsABackBufferSurface(lpdds);
-
-	if ((dxversion == 4) && lprect) CleanRect(&lprect,__LINE__);
 
 	if(IsTraceDDRAW){
 		char sRect[81];
@@ -3721,6 +3651,18 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 		else
 			sprintf_s(sRect, 80, "lpvoid=%x", lprect);
 		OutTrace("Unlock(%d): lpdds=%x%s %s\n", dxversion, lpdds, (IsPrim ? "(PRIM)": (IsBack ? "(BACK)" : "")), sRect);
+	}
+
+	if(dxversion == 4){
+		// make lprect point elsewhere, so that the original values are not altered
+		if(lprect){
+			CleanRect(&lprect,__LINE__);
+			rect = *lprect;
+			lprect = &rect;
+			// v2.03.20: apparently, it seems that in ddraw 7 you can set an empty rectangle to mean the whole area ....
+			// this fixes the black screen otherwise present in "Arcanum".
+			if(IsPrim && ((lprect->right - lprect->left) == 0) && ((lprect->bottom - lprect->top) == 0)) lprect = NULL;
+		}
 	}
 
 	res=(*pUnlock)(lpdds, lprect);
@@ -4190,17 +4132,14 @@ HRESULT WINAPI extReleaseS(LPDIRECTDRAWSURFACE lpdds)
 	IsPrim=dxw.IsAPrimarySurface(lpdds);
 	IsBack=dxw.IsABackBufferSurface(lpdds);
 
-	if(IsBack && bDontReleaseBackBuffer){
-		OutTraceDDRAW("Release(S): SKIP RELEASE on lpdds=%x\n", lpdds);
-		res = 0;
-	}
-	else
-		res = (*pReleaseS)(lpdds);
+	res = (*pReleaseS)(lpdds);
 
-	OutTraceDDRAW("Release(S): lpdds=%x%s refcount=%d\n", lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), res);
+	OutTraceDDRAW("Release(S): lpdds=%x%s refcount=%d\n", lpdds, dxw.ExplainSurfaceRole(lpdds), res);
 	if (res==0) { // common precondition
 		// erase surface from primary or backbuffer list
-		if(IsPrim || IsBack) dxw.MarkRegularSurface(lpdds);
+		// v2-03-20: d3d 1-7 play a dirty trick: it Release the surface passed as argument until refcount == 0,
+		// but then rebuilds it with the original attributes! So, better not forget them.
+		if(!bIsWithinD3DCreateDevice && (IsPrim || IsBack)) dxw.MarkRegularSurface(lpdds);
 
 		// when releasing primary surface, erase clipping region
 		if(IsPrim && (dxw.dwFlags1 & CLIPCURSOR)) dxw.EraseClipCursor();
@@ -4894,6 +4833,19 @@ HRESULT WINAPI extSetSurfaceDesc(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpDD
 	HRESULT res;
 	OutTrace("SetSurfaceDesc: REACHED\n");
 	res = (*pSetSurfaceDesc)(lpdds, lpDDsd2, dwFlags);
-	OutTraceE("SetSurfaceDesc: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	if(res) OutTraceE("SetSurfaceDesc: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extDirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, IUnknown *pUnkOuter)
+{
+	HRESULT res;
+	OutTraceDW("DirectDrawCreateClipper: flags=%x\n", dwFlags);
+	res = (*pDirectDrawCreateClipper)(dwFlags, lplpDDClipper, pUnkOuter);
+	if(res) {
+		OutTraceE("DirectDrawCreateClipper: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		return res;
+	}
+	HookDDClipper(lplpDDClipper);
 	return res;
 }

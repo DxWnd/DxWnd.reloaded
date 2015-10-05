@@ -183,6 +183,8 @@
 
 // sixth flags DWORD dxw.dwFlags6:
 #define FORCESWAPEFFECT		0x00000001 // in D3D8/9, forces the SwapEffect value in CreateDevice/Reset operations
+#define LEGACYALLOC			0x00000002 // reserve legacy memory segments
+#define NODESTROYWINDOW		0x00000004 // suppress the main window destruction
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

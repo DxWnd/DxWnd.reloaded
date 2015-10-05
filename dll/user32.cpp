@@ -137,18 +137,6 @@ static HookEntry_Type EmulateHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type DDHooks[]={
-	{HOOK_IAT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extDDBeginPaint},
-	//{HOOK_IAT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
-	{HOOK_IAT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extDDEndPaint},
-	{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extDDGetDC},
-	{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)GetDCEx, (FARPROC *)&pGDIGetDCEx, (FARPROC)extDDGetDCEx},
-	{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extDDGetDC},
-	{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extDDReleaseDC},
-	{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
 static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "FrameRect", (FARPROC)NULL, (FARPROC *)&pFrameRect, (FARPROC)extFrameRect},
 	{HOOK_IAT_CANDIDATE, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
@@ -163,6 +151,18 @@ static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
 	{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
 	//{HOOK_IAT_CANDIDATE, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type DDHooks[]={
+	{HOOK_IAT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extDDBeginPaint},
+	//{HOOK_IAT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
+	{HOOK_IAT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extDDEndPaint},
+	{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extDDGetDC},
+	{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)GetDCEx, (FARPROC *)&pGDIGetDCEx, (FARPROC)extDDGetDCEx},
+	{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extDDGetDC},
+	{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extDDReleaseDC},
+	{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -1877,16 +1877,20 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 
 #ifdef HANDLEFLIPTOGDI
 	extern BOOL bFlippedDC;
-	//if(bFlippedDC && (OBJ_DC == GetObjectType(ret))) {
 	if(bFlippedDC) {
 		extern HDC hFlippedDC;
 		LPDIRECTDRAWSURFACE lpDDSPrim;
-		//extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
 		lpDDSPrim = dxw.GetPrimarySurface();
-		//(*pUnlockMethod(lpDDSPrim))(lpDDSPrim, NULL);
-		(*pGetDC)(lpDDSPrim, &hFlippedDC);	
+#if 0
+		// v2.03.20: beware, from this release the output from dxw.GetPrimarySurface() could be a
+		// zero reference counter released surface that could be used to feed a QueryInterface method, 
+		// but would crash if used otherwise.
+		__try {(*pGetDC)(lpDDSPrim, &hFlippedDC);} __except(EXCEPTION_EXECUTE_HANDLER){hFlippedDC=NULL;};		
+#else
+		if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+#endif
 		OutTraceDW("%s: remapping flipped GDI hdc=%x\n", ApiName, hFlippedDC);
-		return hFlippedDC;
+		if(hFlippedDC) return hFlippedDC;
 	}
 #endif
 
@@ -1964,7 +1968,7 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 		OutTraceDW("GDI.ReleaseDC: releasing flipped GDI hdc=%x\n", hDC);
 		ret=(*pReleaseDC)(dxw.GetPrimarySurface(), hDC);
 		if (ret) OutTraceE("GDI.ReleaseDC ERROR: err=%x(%s) at %d\n", ret, ExplainDDError(ret), __LINE__);
-		dxw.ScreenRefresh();
+		else dxw.ScreenRefresh();
 		return (ret == DD_OK);
 	}
 #endif
@@ -2332,10 +2336,15 @@ LONG WINAPI extTabbedTextOutA(HDC hdc, int X, int Y, LPCTSTR lpString, int nCoun
 
 BOOL WINAPI extDestroyWindow(HWND hWnd)
 {
-	// v2.02.43: Empire Earth builds test surfaces that must be destroyed!
+	// v2.02.43: "Empire Earth" builds test surfaces that must be destroyed!
+	// v2.03.20: "Prince of Persia 3D" destroys the main window that must be preserved! 
 	BOOL res;
 	OutTraceB("DestroyWindow: hwnd=%x\n", hWnd);
 	if (hWnd == dxw.GethWnd()) {
+		if(dxw.dwFlags6 & NODESTROYWINDOW) {
+			OutTraceDW("DestroyWindow: do NOT destroy main hwnd=%x\n", hWnd);
+			return TRUE;
+		}
 		OutTraceDW("DestroyWindow: destroy main hwnd=%x\n", hWnd);
 		dxw.SethWnd(NULL);
 	}

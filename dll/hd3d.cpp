@@ -17,6 +17,9 @@
 #define HOOKD3D10ANDLATER 1
 #define TRACEALLMETHODS 1
 
+extern void D3D9TextureHandling(void *, int);
+extern void D3D8TextureHandling(void *, int);
+
 typedef HRESULT (WINAPI *QueryInterface_Type)(void *, REFIID riid, void** ppvObj);
 
 // D3D8/9 API
@@ -112,7 +115,11 @@ typedef HRESULT (WINAPI *EndStateBlock8_Type)(void *, DWORD *);
 typedef HRESULT (WINAPI *EndStateBlock9_Type)(void *, IDirect3DStateBlock9**);
 typedef HRESULT (WINAPI *CreateTexture8_Type)(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **);
 typedef HRESULT (WINAPI *CreateTexture9_Type)(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **, HANDLE *);
+#ifdef DXWNDDISABLEDHOOKS
 typedef HRESULT (WINAPI *CopyRects_Type)(void *, void *, CONST RECT *, UINT, void *, CONST POINT *);
+typedef HRESULT (WINAPI *UpdateSurface_Type)(void *, IDirect3DSurface9 *, CONST RECT *, IDirect3DSurface9 *, CONST POINT *);
+typedef HRESULT (WINAPI *UpdateTexture_Type)(void *, IDirect3DBaseTexture9 *, IDirect3DBaseTexture9 *);
+#endif
 
 UINT	WINAPI extGetAvailableTextureMem(void *);
 HRESULT WINAPI extTestCooperativeLevel(void *);
@@ -133,7 +140,11 @@ HRESULT WINAPI extEndStateBlock8(void *, DWORD *);
 HRESULT WINAPI extEndStateBlock9(void *, IDirect3DStateBlock9**);
 HRESULT WINAPI extCreateTexture8(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **);
 HRESULT WINAPI extCreateTexture9(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **, HANDLE *);
+#ifdef DXWNDDISABLEDHOOKS
 HRESULT WINAPI extCopyRects(void *, void *, CONST RECT *, UINT, void *, CONST POINT *);
+HRESULT WINAPI extUpdateSurface(void *, IDirect3DSurface9 *, CONST RECT *, IDirect3DSurface9 *, CONST POINT *);
+HRESULT WINAPI extUpdateTexture(void *, IDirect3DBaseTexture9 *, IDirect3DBaseTexture9 *);
+#endif
 
 GetAvailableTextureMem_Type pGetAvailableTextureMem = 0;
 TestCooperativeLevel_Type pTestCooperativeLevel = 0;
@@ -154,19 +165,38 @@ EndStateBlock8_Type pEndStateBlock8 = 0;
 EndStateBlock9_Type pEndStateBlock9 = 0;
 CreateTexture8_Type pCreateTexture8 = 0;
 CreateTexture9_Type pCreateTexture9 = 0;
+#ifdef DXWNDDISABLEDHOOKS
 CopyRects_Type pCopyRects = 0;
+UpdateSurface_Type pUpdateSurface = NULL;
+UpdateTexture_Type pUpdateTexture = NULL;
+#endif
 
 // IDirect3DTexture8/9 methods
 
 typedef HRESULT (WINAPI *LockRect_Type)(void *, UINT, D3DLOCKED_RECT *, CONST RECT *, DWORD);
 typedef HRESULT (WINAPI *UnlockRect_Type)(void *, UINT);
+#ifdef DXWNDDISABLEDHOOKS
+typedef HRESULT (WINAPI *GetSurfaceLevel_Type)(void *, UINT, IDirect3DSurface9**);
+typedef HRESULT (WINAPI *SetPrivateData_Type)(void *, REFGUID, CONST void *, DWORD, DWORD);
+typedef HRESULT (WINAPI *QueryInterfaceTex_Type)(void *, REFIID, void**);
+#endif
 
 HRESULT WINAPI extLockRect(void *, UINT, D3DLOCKED_RECT *, CONST RECT *, DWORD);
 HRESULT WINAPI extUnlockRect8(void *, UINT);
 HRESULT WINAPI extUnlockRect9(void *, UINT);
+#ifdef DXWNDDISABLEDHOOKS
+HRESULT WINAPI extGetSurfaceLevel9(void *, UINT, IDirect3DSurface9**);
+HRESULT WINAPI extSetPrivateData(void *, REFGUID, CONST void *, DWORD, DWORD);
+HRESULT WINAPI extQueryInterfaceTex(void *, REFIID, void**);
+#endif
 
 LockRect_Type pLockRect = NULL;
 UnlockRect_Type pUnlockRect = NULL;
+#ifdef DXWNDDISABLEDHOOKS
+GetSurfaceLevel_Type pGetSurfaceLevel9 = NULL;
+SetPrivateData_Type pSetPrivateData = NULL;
+QueryInterfaceTex_Type pQueryInterfaceTex = NULL;
+#endif
 
 // to sort ...
 
@@ -460,8 +490,8 @@ void HookD3DDevice8(void** ppD3Ddev8)
 	}
 	if(dxw.dwFlags5 & TEXTUREMASK){
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 80), extCreateTexture8, (void **)&pCreateTexture8, "CreateTexture(D8)");
-	//SetHook((void *)(**(DWORD **)ppD3Ddev8 + 112), extCopyRects, (void **)&pCopyRects, "CopyRects(D8)");
 	}
+	//SetHook((void *)(**(DWORD **)ppD3Ddev8 + 112), extCopyRects, (void **)&pCopyRects, "CopyRects(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 100), extCreateRenderTarget8, (void **)&pCreateRenderTarget8, "CreateRenderTarget(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 136), extBeginScene8, (void **)&pBeginScene8, "BeginScene(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 140), extEndScene8, (void **)&pEndScene8, "EndScene(D8)");
@@ -475,7 +505,9 @@ void HookD3DDevice8(void** ppD3Ddev8)
 	}
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 208), extBeginStateBlock8, (void **)&pBeginStateBlock8, "BeginStateBlock(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 212), extEndStateBlock8, (void **)&pEndStateBlock8, "EndStateBlock(D8)");
-	if (dxw.dwFlags4 & NOTEXTURES) SetHook((void *)(**(DWORD **)ppD3Ddev8 + 244), extSetTexture8, (void **)&pSetTexture8, "SetTexture(D8)");
+	if((dxw.dwFlags5 & TEXTUREMASK) || (dxw.dwFlags4 & NOTEXTURES)){
+		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 244), extSetTexture8, (void **)&pSetTexture8, "SetTexture(D8)");
+	}
 	//if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 	//SetHook((void *)(**(DWORD **)ppD3Ddev8 +  4), extAddRef8, (void **)&pAddRef8, "AddRef(D8)");
 	//SetHook((void *)(**(DWORD **)ppD3Ddev8 +  8), extRelease8, (void **)&pRelease8, "Release(D8)");
@@ -503,6 +535,11 @@ void HookD3DDevice9(void** ppD3Ddev9)
 	if(dxw.dwFlags5 & TEXTUREMASK){
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 92), extCreateTexture9, (void **)&pCreateTexture9, "CreateTexture(D9)");
 	}
+#ifdef DXWNDDISABLEDHOOKS
+	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 120), extUpdateSurface, (void **)&pUpdateSurface, "UpdateSurface(D9)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 124), extUpdateTexture, (void **)&pUpdateTexture, "UpdateTexture(D9)");
+#endif
+
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 164), extBeginScene9, (void **)&pBeginScene9, "BeginScene(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 168), extEndScene9, (void **)&pEndScene9, "EndScene(D9)");
 	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
@@ -517,7 +554,7 @@ void HookD3DDevice9(void** ppD3Ddev9)
 	}
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 240), extBeginStateBlock9, (void **)&pBeginStateBlock9, "BeginStateBlock(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 244), extEndStateBlock9, (void **)&pEndStateBlock9, "EndStateBlock(D9)");
-	if (dxw.dwFlags4 & NOTEXTURES) {
+	if((dxw.dwFlags5 & TEXTUREMASK) || (dxw.dwFlags4 & NOTEXTURES)){
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 260), extSetTexture9, (void **)&pSetTexture9, "SetTexture(D9)");
 	}
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
@@ -536,8 +573,13 @@ void HookD3DTexture8(void** ppD3Dtex8)
 void HookD3DTexture9(void** ppD3Dtex9)
 {
 	OutTraceD3D("Device hook for IDirect3DTexture9 interface\n");
-	SetHook((void *)(**(DWORD **)ppD3Dtex9 + 76), extLockRect, (void **)&pLockRect, "LockRect(D9)");
-	SetHook((void *)(**(DWORD **)ppD3Dtex9 + 80), extUnlockRect9, (void **)&pUnlockRect, "UnlockRect(D9)");
+	SetHook((void *)(**(DWORD **)ppD3Dtex9 + 76), extLockRect, (void **)&pLockRect, "LockRect(T9)");
+	SetHook((void *)(**(DWORD **)ppD3Dtex9 + 80), extUnlockRect9, (void **)&pUnlockRect, "UnlockRect(T9)");
+#ifdef DXWNDDISABLEDHOOKS
+	SetHook((void *)(**(DWORD **)ppD3Dtex9 +  0), extQueryInterfaceTex, (void **)&pQueryInterfaceTex, "QueryInterface(T9)");
+	SetHook((void *)(**(DWORD **)ppD3Dtex9 + 16), extSetPrivateData, (void **)&pSetPrivateData, "SetPrivateData(T9)");
+	SetHook((void *)(**(DWORD **)ppD3Dtex9 + 72), extGetSurfaceLevel9, (void **)&pGetSurfaceLevel9, "GetSurfaceLevel(T9)");
+#endif
 }
 
 void HookDirect3D8(void *lpd3d)
@@ -850,10 +892,10 @@ HRESULT WINAPI extPresent(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDes
 	if(dxw.Windowize){
 		// v2.03.15 - fix target RECT region
 		if ((dwD3DSwapEffect == D3DSWAPEFFECT_COPY) && (dxw.dwFlags2 & KEEPASPECTRATIO)) {
-		RemappedDstRect=dxw.MapClientRect((LPRECT)pDestRect);
-		pDestRect = &RemappedDstRect;
+			RemappedDstRect=dxw.MapClientRect((LPRECT)pDestRect);
+			pDestRect = &RemappedDstRect;
+			OutTraceB("Present: FIXED DestRect=(%d,%d)-(%d,%d)\n", RemappedDstRect.left, RemappedDstRect.top, RemappedDstRect.right, RemappedDstRect.bottom);
 		}
-		OutTraceB("Present: FIXED DestRect=(%d,%d)-(%d,%d)\n", RemappedDstRect.left, RemappedDstRect.top, RemappedDstRect.right, RemappedDstRect.bottom);
 		// in case of NOD3DRESET, remap source rect. Unfortunately, this doesn't work in fullscreen mode ....
 		if((dxw.dwFlags4 & NOD3DRESET) && (pSourceRect == NULL)){ 
 			RemappedSrcRect = dxw.GetScreenRect();
@@ -1762,16 +1804,30 @@ ULONG WINAPI extEndScene9(void *lpdd3dd)
 
 ULONG WINAPI extSetTexture8(void *lpd3dd, DWORD Stage, void* pTexture)
 {
-	(*pSetTexture8)(lpd3dd, Stage, NULL);
-	OutTraceD3D("Device::SetTexture(8): d3dd=%x stage=%x\n", lpd3dd, Stage);
-	return DD_OK;
+	ULONG ret;
+	if (dxw.dwFlags4 & NOTEXTURES) {
+		(*pSetTexture8)(lpd3dd, Stage, NULL);
+		OutTraceD3D("Device::SetTexture(8): d3dd=%x stage=%x\n", lpd3dd, Stage);
+		return DD_OK;
+	}
+	ret = (*pSetTexture8)(lpd3dd, Stage, pTexture);
+	OutTraceD3D("Device::SetTexture(8): d3dd=%x stage=%x texture=%x ret=%x\n", lpd3dd, Stage, pTexture, ret);
+	if(pTexture) D3D8TextureHandling((void *)pTexture, Stage);
+	return ret;
 }
 
 ULONG WINAPI extSetTexture9(void *lpd3dd, DWORD Stage, void* pTexture)
 {
-	(*pSetTexture9)(lpd3dd, Stage, NULL);
-	OutTraceD3D("Device::SetTexture(9): d3dd=%x stage=%x\n", lpd3dd, Stage);
-	return DD_OK;
+	ULONG ret;
+	if (dxw.dwFlags4 & NOTEXTURES) {
+		(*pSetTexture9)(lpd3dd, Stage, NULL);
+		OutTraceD3D("Device::SetTexture(9): d3dd=%x stage=%x\n", lpd3dd, Stage);
+		return DD_OK;
+	}
+	ret = (*pSetTexture9)(lpd3dd, Stage, pTexture);
+	OutTraceD3D("Device::SetTexture(9): d3dd=%x stage=%x texture=%x ret=%x\n", lpd3dd, Stage, pTexture, ret);
+	if(pTexture) D3D9TextureHandling((void *)pTexture, Stage);
+	return ret;
 }
 
 BOOL WINAPI extShowCursor8(void *lpd3dd, BOOL bShow)
@@ -2185,14 +2241,25 @@ HRESULT WINAPI extUnlockRect(void *lpd3dtex, UINT Level, TextureHandling_Type Te
 
 HRESULT WINAPI extUnlockRect8(void *lpd3dtex, UINT Level)
 {
-	extern void D3D8TextureHandling(void *, int);
 	return extUnlockRect(lpd3dtex, Level, D3D8TextureHandling);
 }
 
 HRESULT WINAPI extUnlockRect9(void *lpd3dtex, UINT Level)
 {
-	extern void D3D9TextureHandling(void *, int);
 	return extUnlockRect(lpd3dtex, Level, D3D9TextureHandling);
+}
+
+#ifdef DXWNDDISABLEDHOOKS
+HRESULT WINAPI extGetSurfaceLevel9(void *lpd3dtex, UINT Level, IDirect3DSurface9** ppSurfaceLevel)
+{
+	HRESULT res;
+	OutTraceD3D("GetSurfaceLevel(9): lpd3dtex=%x level=%d\n", lpd3dtex, Level);
+	res = (*pGetSurfaceLevel9)(lpd3dtex, Level, ppSurfaceLevel);
+	if(res == DD_OK){
+		OutTraceD3D("GetSurfaceLevel(9): SurfaceLevel=%x\n", lpd3dtex, Level, *ppSurfaceLevel);
+		//HookD3DTexture9((void **)ppSurfaceLevel);
+	}
+	return res;
 }
 
 HRESULT WINAPI extCopyRects(void *lpd3dd, void *pSourceSurface, CONST RECT *pSourceRectsArray, UINT cRects, void *pDestinationSurface, CONST POINT* pDestPointsArray)
@@ -2200,6 +2267,45 @@ HRESULT WINAPI extCopyRects(void *lpd3dd, void *pSourceSurface, CONST RECT *pSou
 	HRESULT res;
 	OutTraceD3D("CopyRects: rects=%d\n", cRects);
 	res = (pCopyRects)(lpd3dd, pSourceSurface, pSourceRectsArray, cRects, pDestinationSurface, pDestPointsArray);
-	extern void D3D8TextureHandling(void *, int);
+	//extern void D3D8TextureHandling(void *, int);
 	//D3D8TextureHandling(pDestinationSurface, 0);
-	return res;}
+	return res;
+}
+
+HRESULT WINAPI extUpdateSurface(void *lpd3dd, IDirect3DSurface9 *pSourceSurface, CONST RECT *pSourceRect, IDirect3DSurface9 *pDestinationSurface, CONST POINT *pDestPoint)
+{
+	HRESULT res;
+	OutTraceD3D("UpdateSurface: lpd3dd=%x sourcesurface=%x destsurface=%x\n", lpd3dd, pSourceSurface, pDestinationSurface);
+	res = (*pUpdateSurface)(lpd3dd, pSourceSurface, pSourceRect, pDestinationSurface, pDestPoint);
+	return res;
+}
+
+HRESULT WINAPI extUpdateTexture(void *lpd3dd, IDirect3DBaseTexture9 *pSourceTexture, IDirect3DBaseTexture9 *pDestinationTexture)
+{
+	HRESULT res;
+	OutTraceD3D("UpdateTexture: lpd3dd=%x sourcetexture=%x desttexture=%x\n", lpd3dd, pSourceTexture, pDestinationTexture);
+	res = (*pUpdateTexture)(lpd3dd, pSourceTexture, pDestinationTexture);
+	return res;
+}
+
+HRESULT WINAPI extSetPrivateData(void *lpd3dd, REFGUID refguid, CONST void *pData, DWORD SizeOfData, DWORD Flags)
+{
+	HRESULT res;
+	OutTraceD3D("SetPrivateData: lpd3dd=%x refguid=%x pData=%x size=%x flags=%x\n", lpd3dd, refguid, pData, SizeOfData, Flags);
+	res = (*pSetPrivateData)(lpd3dd, refguid, pData, SizeOfData, Flags);
+	return res;
+}
+
+HRESULT WINAPI extQueryInterfaceTex(void *obj, REFIID riid, void** ppvObj)
+{
+	HRESULT res;
+	OutTraceD3D("D3D::QueryInterface(T9): d3d=%x riid=%x\n", obj, riid.Data1);
+	res=pQueryInterfaceTex(obj, riid, ppvObj);
+	if(res)
+		OutTraceE("D3D::QueryInterface(T9): ERROR ret=%x(%s)\n", res, ExplainDDError(res));
+	else
+		OutTraceD3D("D3D::QueryInterface(T9): obp=%x\n", *ppvObj);
+	return res;
+}
+#endif
+

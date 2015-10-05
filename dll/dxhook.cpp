@@ -103,7 +103,7 @@ static char *Flag5Names[32]={
 };
 
 static char *Flag6Names[32]={
-	"FORCESWAPEFFECT", "", "", "",
+	"FORCESWAPEFFECT", "LEGACYALLOC", "NODESTROYWINDOW", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1654,6 +1654,15 @@ DWORD WINAPI MessagePoller(LPVOID lpParameter)
     return 0;
 }
 
+static void MemoryReserve()
+{
+	VirtualAlloc((LPVOID)0x4000000, 0x04000000, MEM_RESERVE, PAGE_READWRITE);
+	VirtualAlloc((LPVOID)0x5000000, 0x00F00000, MEM_RESERVE, PAGE_READWRITE);
+	VirtualAlloc((LPVOID)0x6000000, 0x00F00000, MEM_RESERVE, PAGE_READWRITE);
+	VirtualAlloc((LPVOID)0x7000000, 0x00F00000, MEM_RESERVE, PAGE_READWRITE);
+	VirtualAlloc((LPVOID)0x8000000, 0x00F00000, MEM_RESERVE, PAGE_READWRITE);
+}
+
 void HookInit(TARGETMAP *target, HWND hwnd)
 {
 	HMODULE base;
@@ -1667,8 +1676,11 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	static char *Resolutions[]={
 		"unlimited", "320x200", "400x300", "640x480", "800x600", "1024x768", "1280x960", "" // terminator
 	};
-	
+
 	dxw.InitTarget(target);
+
+	// reserve legacy memory segments
+	if(dxw.dwFlags6 & LEGACYALLOC) MemoryReserve();
 
 	// add the DxWnd install dir to the search path, to make all included dll linkable
 	DWORD dwAttrib;		

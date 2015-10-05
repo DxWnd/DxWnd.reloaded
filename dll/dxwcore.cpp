@@ -228,6 +228,25 @@ void dxwCore::DumpDesktopStatus()
 // Primary surfaces auxiliary functions
 /* ------------------------------------------------------------------ */
 
+char *dxwCore::ExplainSurfaceRole(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	for (i=0;i<DDSQLEN;i++) {
+		if (PrimSurfaces[i]==(DWORD)ps) return "(PRIM)"; 
+		if (PrimSurfaces[i]==0) break;
+	}
+	for (i=0;i<DDSQLEN;i++) {
+		if (BackSurfaces[i]==(DWORD)ps) return "(BACK)"; 
+		if (BackSurfaces[i]==0) break;
+	}
+	// this should NEVER happen, but ...
+	extern LPDIRECTDRAWSURFACE lpDDSEmu_Back, lpDDSEmu_Prim;
+	if(lpDDSEmu_Back && (ps==lpDDSEmu_Back)) return "(emu.BACK)";
+	if(lpDDSEmu_Prim && (ps==lpDDSEmu_Prim)) return "(emu.PRIM)";
+	// ... just in case!
+	return "";
+}
+
 void dxwCore::UnmarkPrimarySurface(LPDIRECTDRAWSURFACE ps)
 {
 	int i;

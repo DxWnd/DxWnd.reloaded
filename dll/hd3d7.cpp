@@ -9,6 +9,9 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 
+//#undef OutTraceD3D
+//#define OutTraceD3D OutTrace
+
 // exported API
 
 typedef HRESULT (WINAPI *Direct3DCreateDevice_Type)(GUID FAR *, LPDIRECT3D, LPDIRECTDRAWSURFACE, LPDIRECT3D *, LPUNKNOWN);
@@ -138,7 +141,6 @@ DeleteViewport1_Type pDeleteViewport1 = NULL;
 NextViewport1_Type pNextViewport1 = NULL;
 DeleteViewport2_Type pDeleteViewport2 = NULL;
 NextViewport2_Type pNextViewport2 = NULL;
-
 
 HRESULT WINAPI extInitialize(void *);
 HRESULT WINAPI extEnumDevices(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
@@ -501,8 +503,8 @@ HRESULT WINAPI extDirect3DCreateDevice(GUID FAR *lpGUID, LPDIRECT3D lpd3ddevice,
 {
 	HRESULT res;
 
-	OutTraceD3D("Direct3DCreateDevice: guid=%x d3ddevice=%x dds=%x UnkOuter=%x\n",
-		lpGUID, lpd3ddevice, surf, pUnkOuter);
+	OutTraceD3D("Direct3DCreateDevice: guid=%x d3ddevice=%x dds=%x%s UnkOuter=%x\n",
+		lpGUID, lpd3ddevice, surf, dxw.ExplainSurfaceRole(surf), pUnkOuter);
 	res=(*pDirect3DCreateDevice)(lpGUID, lpd3ddevice, surf, lplpd3ddevice, pUnkOuter);
 	if(res) OutTraceE("Direct3DCreateDevice ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("Direct3DCreateDevice: d3ddevice=%x\n", *lplpd3ddevice);
@@ -876,7 +878,8 @@ HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE 
 {
 	HRESULT res;
 
-	OutTraceD3D("CreateDevice(D3D2): d3d=%x GUID=%x(%s) lpdds=%x\n", lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds);
+	OutTraceD3D("CreateDevice(D3D2): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
+		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
 	res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
 	if(res) {
 		OutTraceE("CreateDevice(D3D2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -899,7 +902,8 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 {
 	HRESULT res;
 
-	OutTraceD3D("CreateDevice(D3D3): d3d=%x GUID=%x(%s) lpdds=%x\n", lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds);
+	OutTraceD3D("CreateDevice(D3D3): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
+		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
 	res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
 	if(res) {
 		OutTraceE("CreateDevice(D3D3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -921,25 +925,28 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 
 HRESULT WINAPI extCreateDevice7(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE7 lpdds, LPDIRECT3DDEVICE7 *lplpd3dd)
 {
-	// v2.02.83: D3D CreateDevice (version 7? all versions?) internally calls the Release method upon th ebackbuffer
+	// v2.02.83: D3D CreateDevice (version 7? all versions?) internally calls the Release method upon the backbuffer
 	// surface, and this has to be avoided since it causes a crash. 
-	// The bDontReleaseBackBuffer boolean tells extReleaseS NOT to perform an actual release operation.
+	// The bIsWithinD3DCreateDevice boolean tells extReleaseS NOT to perform an actual release operation.
+	// v2.03.20: also, D3D CreateDevice internally Release the primary surface lpdds and builds a new primary
+	// using the same lpdds value, but issuing a QueryInterface call upon a zero-referenced object!
 
 	HRESULT res;
-	extern BOOL bDontReleaseBackBuffer;
+	extern BOOL bIsWithinD3DCreateDevice;
 
-	OutTraceD3D("CreateDevice(D3D7): d3d=%x GUID=%x(%s) lpdds=%x\n", lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds);
-	bDontReleaseBackBuffer = TRUE;
+	OutTraceD3D("CreateDevice(D3D7): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
+		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxw.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
+	bIsWithinD3DCreateDevice = TRUE;
 	res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
-	bDontReleaseBackBuffer = FALSE;
+	bIsWithinD3DCreateDevice = FALSE;
 	if(res) {
 		OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		if((dxw.dwFlags1 & AUTOMATIC) && (dxw.dwFlags1 & EMULATESURFACE)) {
 			dxw.dwFlags1 &= ~EMULATESURFACE;
 			dxw.dwFlags1 |= LOCKEDSURFACE;
-			bDontReleaseBackBuffer = TRUE;
+			bIsWithinD3DCreateDevice = TRUE;
 			res=(*pCreateDevice7)(lpd3d, Guid, lpdds, lplpd3dd);
-			bDontReleaseBackBuffer = FALSE;
+			bIsWithinD3DCreateDevice = FALSE;
 			if (res) OutTraceE("CreateDevice(D3D7) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			else OutTraceD3D("CreateDevice(D3D7): Emulation OFF\n");
 		}
@@ -1520,9 +1527,9 @@ typedef struct {
 HRESULT WINAPI extZBufferProxy(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
 {
 	HRESULT res;
-	OutTraceD3D("EnumZBufferFormats: CALLBACK PixelFormat=%x(%s) context=%x\n", lpDDPixFmt->dwFlags,  lpContext);
+	OutTraceD3D("EnumZBufferFormats: CALLBACK context=%x %s \n", ((CallbackZBufArg *)lpContext)->arg, ExplainPixelFormat(lpDDPixFmt));
 	res = (*(((CallbackZBufArg *)lpContext)->cb))(lpDDPixFmt, ((CallbackZBufArg *)lpContext)->arg);
-	OutTraceD3D("EnumDevices: CALLBACK ret=%x\n", res);
+	OutTraceD3D("EnumZBufferFormats: CALLBACK ret=%x\n", res);
 	return res;
 }
 

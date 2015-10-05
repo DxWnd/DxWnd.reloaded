@@ -4,6 +4,7 @@ typedef HRESULT (WINAPI *DirectDrawCreate_Type)(GUID *, LPDIRECTDRAW *, IUnknown
 typedef HRESULT (WINAPI *DirectDrawCreateEx_Type)(GUID *, LPDIRECTDRAW *, REFIID, IUnknown *);
 typedef HRESULT (WINAPI *DirectDrawEnumerate_Type)(LPDDENUMCALLBACK, LPVOID);
 typedef HRESULT (WINAPI *DirectDrawEnumerateEx_Type)(LPDDENUMCALLBACKEX, LPVOID, DWORD);
+typedef HRESULT (WINAPI *DirectDrawCreateClipper_Type)(DWORD, LPDIRECTDRAWCLIPPER *, IUnknown *);
 
 typedef HDC (WINAPI *GDIGetDC_Type)(HWND);
 typedef int (WINAPI *GDIReleaseDC_Type)(HWND, HDC);

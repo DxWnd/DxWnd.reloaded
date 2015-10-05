@@ -43,9 +43,9 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_REFRESHONRESIZE, cTarget->m_RefreshOnResize);
 	DDX_Check(pDX, IDC_FIXD3DFRAME, cTarget->m_FixD3DFrame);
 	DDX_Check(pDX, IDC_NOWINDOWMOVE, cTarget->m_NoWindowMove);
-	//DDX_Check(pDX, IDC_SUPPRESSCHILD, cTarget->m_SuppressChild);
 	DDX_Check(pDX, IDC_HIDEDESKTOP, cTarget->m_HideDesktop);
 	DDX_Check(pDX, IDC_UNLOCKZORDER, cTarget->m_UnlockZOrder);
+	DDX_Check(pDX, IDC_NODESTROYWINDOW, cTarget->m_NoDestroyWindow);
 
 	// color management
 	DDX_Check(pDX, IDC_INIT8BPP, cTarget->m_Init8BPP);

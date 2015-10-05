@@ -37,17 +37,22 @@ static unsigned int Hash(BYTE *buf, int len)
 
 unsigned int HashSurface(BYTE *buf, int pitch, int width, int height)
 {
-   unsigned int b    = 378551;
-   unsigned int a    = 63689;
-   DWORD hash = 0;
-   for(int y = 0; y < height; y++){
-	   BYTE *p = buf + (y * pitch);
-	   for(int x = 0; x < width; x++){
-		  hash = hash * a + p[x];
-		  a    = a * b;
-	   }
-   }
-   return hash;
+	unsigned int b    = 378551;
+	unsigned int a    = 63689;
+	int pixelsize;
+	DWORD hash = 0;
+	// integer divide, intentionally throwing reminder away
+	pixelsize = pitch / width; 
+	for(int y = 0; y < height; y++){
+		BYTE *p = buf + (y * pitch);
+		for(int x = 0; x < width; x++){
+			for(int pixelbyte = 0; pixelbyte < pixelsize; pixelbyte++){
+				hash = (hash * a) + (*p++);
+				a    = a * b;
+			}
+		}
+	}
+	return hash;
 }
 
 static char *SurfaceType(DDPIXELFORMAT ddpfPixelFormat)

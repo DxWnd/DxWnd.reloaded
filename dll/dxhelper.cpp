@@ -1803,3 +1803,86 @@ char *ExplainDDError(DWORD c)
 	}
 	return eb;
 }
+
+static char *sFourCC(DWORD fcc)
+{
+	static char sRet[5];
+	char c;
+	int i;
+	char *t=&sRet[0];
+	for(i=0; i<4; i++){
+		c = fcc & (0xFF);
+		*t++ = isprint(c) ? c : '.';
+		c = c >> 8;
+	}
+	*t = 0;
+	return sRet;
+}
+
+char *ExplainPixelFormat(LPDDPIXELFORMAT ddpfPixelFormat)
+{
+	static char sBuf[512];
+	char sItem[256];
+	DWORD flags=ddpfPixelFormat->dwFlags;
+	sprintf(sBuf, " PixelFormat flags=%x(%s) BPP=%d", 
+		flags, ExplainPixelFormatFlags(flags), ddpfPixelFormat->dwRGBBitCount);
+	if (flags & DDPF_RGB) {
+		if (flags & DDPF_ALPHAPIXELS) {
+			sprintf(sItem, " RGBA=(%x,%x,%x,%x)", 
+				ddpfPixelFormat->dwRBitMask,
+				ddpfPixelFormat->dwGBitMask,
+				ddpfPixelFormat->dwBBitMask,
+				ddpfPixelFormat->dwRGBAlphaBitMask);
+		}
+		else {
+			sprintf(sItem, " RGB=(%x,%x,%x)", 
+				ddpfPixelFormat->dwRBitMask,
+				ddpfPixelFormat->dwGBitMask,
+				ddpfPixelFormat->dwBBitMask);
+		}
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_YUV) {
+		sprintf(sItem, " YUVA=(%x,%x,%x,%x)", 
+			ddpfPixelFormat->dwYBitMask,
+			ddpfPixelFormat->dwUBitMask,
+			ddpfPixelFormat->dwVBitMask,
+			ddpfPixelFormat->dwYUVAlphaBitMask);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_ZBUFFER) {
+		sprintf(sItem, " SdZSbL=(%x,%x,%x,%x)", 
+			ddpfPixelFormat->dwStencilBitDepth,
+			ddpfPixelFormat->dwZBitMask,
+			ddpfPixelFormat->dwStencilBitMask,
+			ddpfPixelFormat->dwLuminanceAlphaBitMask);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_ALPHA) {
+		sprintf(sItem, " LBdBlZ=(%x,%x,%x,%x)", 
+			ddpfPixelFormat->dwLuminanceBitMask,
+			ddpfPixelFormat->dwBumpDvBitMask,
+			ddpfPixelFormat->dwBumpLuminanceBitMask,
+			ddpfPixelFormat->dwRGBZBitMask);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_LUMINANCE) {
+		sprintf(sItem, " BMbMF=(%x,%x,%x,%x)", 
+			ddpfPixelFormat->dwBumpDuBitMask,
+			ddpfPixelFormat->MultiSampleCaps.wBltMSTypes,
+			ddpfPixelFormat->MultiSampleCaps.wFlipMSTypes,
+			ddpfPixelFormat->dwYUVZBitMask);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_BUMPDUDV) {
+		sprintf(sItem, " O=(%x)", 
+			ddpfPixelFormat->dwOperations);
+		strcat(sBuf, sItem);
+	}
+	if (flags & DDPF_FOURCC) {
+		sprintf(sItem, " FourCC=%x(%s)", 
+			ddpfPixelFormat->dwFourCC, sFourCC(ddpfPixelFormat->dwFourCC));
+		strcat(sBuf, sItem);
+	}
+	return sBuf;
+}
