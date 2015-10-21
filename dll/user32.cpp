@@ -124,7 +124,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "GetDIBColorTable", (FARPROC)GetDIBColorTable, (FARPROC *)&pGetDIBColorTable, (FARPROC)extGetDIBColorTable},
 	{HOOK_HOT_CANDIDATE, "SetDIBColorTable", (FARPROC)SetDIBColorTable, (FARPROC *)&pSetDIBColorTable, (FARPROC)extSetDIBColorTable},
 #endif
-	
+	 
 	{HOOK_HOT_CANDIDATE, "BringWindowToTop", (FARPROC)BringWindowToTop, (FARPROC *)&pBringWindowToTop, (FARPROC)extBringWindowToTop},
 	{HOOK_HOT_CANDIDATE, "SetForegroundWindow", (FARPROC)SetForegroundWindow, (FARPROC *)&pSetForegroundWindow, (FARPROC)extSetForegroundWindow},
 	{HOOK_HOT_CANDIDATE, "ChildWindowFromPoint", (FARPROC)ChildWindowFromPoint, (FARPROC *)&pChildWindowFromPoint, (FARPROC)extChildWindowFromPoint},
@@ -134,11 +134,6 @@ static HookEntry_Type Hooks[]={
 
 	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutA", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutA, (FARPROC)extMessageBoxTimeoutA},
 	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutW", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutW, (FARPROC)extMessageBoxTimeoutW},
-
-	{HOOK_IAT_CANDIDATE, "CreateDesktopA", (FARPROC)CreateDesktopA, (FARPROC *)&pCreateDesktop, (FARPROC)extCreateDesktop},
-	{HOOK_IAT_CANDIDATE, "SwitchDesktop", (FARPROC)SwitchDesktop, (FARPROC *)&pSwitchDesktop, (FARPROC)extSwitchDesktop},
-	{HOOK_IAT_CANDIDATE, "OpenDesktopA", (FARPROC)OpenDesktopA, (FARPROC *)&pOpenDesktop, (FARPROC)extOpenDesktop},
-	{HOOK_IAT_CANDIDATE, "CloseDesktop", (FARPROC)CloseDesktop, (FARPROC *)&pCloseDesktop, (FARPROC)extCloseDesktop},
 
 	{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
 	{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)GetDCEx, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
@@ -231,6 +226,14 @@ static HookEntry_Type MouseHooks2[]={
 static HookEntry_Type TimeHooks[]={
 	{HOOK_IAT_CANDIDATE, "SetTimer", (FARPROC)SetTimer, (FARPROC *)&pSetTimer, (FARPROC)extSetTimer},
 	{HOOK_IAT_CANDIDATE, "KillTimer", (FARPROC)KillTimer, (FARPROC *)&pKillTimer, (FARPROC)extKillTimer},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type DesktopHooks[]={ // currently unused, needed for X-Files
+	{HOOK_IAT_CANDIDATE, "CreateDesktopA", (FARPROC)CreateDesktopA, (FARPROC *)&pCreateDesktop, (FARPROC)extCreateDesktop},
+	{HOOK_IAT_CANDIDATE, "SwitchDesktop", (FARPROC)SwitchDesktop, (FARPROC *)&pSwitchDesktop, (FARPROC)extSwitchDesktop},
+	{HOOK_IAT_CANDIDATE, "OpenDesktopA", (FARPROC)OpenDesktopA, (FARPROC *)&pOpenDesktop, (FARPROC)extOpenDesktop},
+	{HOOK_IAT_CANDIDATE, "CloseDesktop", (FARPROC)CloseDesktop, (FARPROC *)&pCloseDesktop, (FARPROC)extCloseDesktop},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -345,6 +348,11 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, BOOL WideChar, void *lpDevMode,
 {
 	HRESULT res;
 	DWORD dmFields, dmBitsPerPel, dmPelsWidth, dmPelsHeight;
+
+	if(dwflags & CDS_TEST) {
+		OutTraceDW("%s: TEST res=DISP_CHANGE_SUCCESSFUL\n", fname);
+		return DISP_CHANGE_SUCCESSFUL;
+	}
 
 	// v2.02.32: reset the emulated DC used in GDIEMULATEDC mode
 	dxw.ResetEmulatedDC();
@@ -1222,17 +1230,20 @@ HWND WINAPI extGetDesktopWindow(void)
 {
 	HWND res;
 
-	if((!dxw.Windowize) || (dxw.dwFlags5 & DIABLOTWEAK)) return (*pGetDesktopWindow)();
+	if((!dxw.Windowize) || (dxw.dwFlags5 & DIABLOTWEAK)) {
+		HWND ret;
+		ret = (*pGetDesktopWindow)();
+		OutTraceDW("GetDesktopWindow: BYPASS ret=%x\n", ret);
+		return ret;
+	}
 
 	OutTraceDW("GetDesktopWindow: FullScreen=%x\n", dxw.IsFullScreen());
 	if (dxw.IsFullScreen()){ 
-#ifdef CREATEDESKTOP
-		if(CREATEDESKTOP){
+		if(dxw.dwFlags6 & CREATEDESKTOP){
 			extern HWND hDesktopWindow;
 			OutTraceDW("GetDesktopWindow: returning desktop emulated hwnd=%x\n", hDesktopWindow);
 			return hDesktopWindow;
 		}
-#endif
 		OutTraceDW("GetDesktopWindow: returning main window hwnd=%x\n", dxw.GethWnd());
 		return dxw.GethWnd();
 	}
@@ -1376,15 +1387,13 @@ static HWND WINAPI extCreateWindowCommon(
 		dwStyle &= ~WS_MAXIMIZE;
 	}
 
-#ifdef CREATEDESKTOP
-	if(CREATEDESKTOP){
+	if(dxw.dwFlags6 & CREATEDESKTOP){
 		extern HWND hDesktopWindow;
 		if (dxw.IsRealDesktop(hWndParent)){
 			OutTraceE("%s: new parent win %x->%x\n", ApiName, hWndParent, hDesktopWindow);
 			hWndParent=hDesktopWindow;
 		}
 	}
-#endif
 
 	// v2.1.92: fixes size & position for auxiliary big window, often used
 	// for intro movies etc. : needed for ......
@@ -1705,14 +1714,15 @@ LRESULT WINAPI extDefWindowProcW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPar
 		return res;
 }
 
-int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
+static int HandleRect(char *ApiName, void *pFun, HDC hdc, const RECT *lprc, HBRUSH hbr)
 {
+	// used for both FillRect and FrameRect calls
 	int res;
 	RECT rc;
-	OutTraceDW("FillRect: hdc=%x hbrush=%x rect=(%d,%d)-(%d,%d)\n", hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
+	OutTraceDW("%s: hdc=%x hbrush=%x rect=(%d,%d)-(%d,%d)\n", ApiName, hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
 
 	if(dxw.dwFlags4 & NOFILLRECT) {
-		OutTraceDW("FillRect: SUPPRESS\n", hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
+		OutTraceDW("%s: SUPPRESS\n", ApiName, hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
 		return TRUE;
 	}
 
@@ -1722,10 +1732,10 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 		HWND VirtualDesktop;
 		VirtualDesktop=dxw.GethWnd();
 		if(VirtualDesktop==NULL){
-			OutTraceDW("FillRect: no virtual desktop\n");
+			OutTraceDW("%s: no virtual desktop\n", ApiName);
 			return TRUE;
 		}
-		OutTraceDW("FillRect: remapped hdc to virtual desktop hwnd=%x\n", dxw.GethWnd());
+		OutTraceDW("%s: remapped hdc to virtual desktop hwnd=%x\n", ApiName, dxw.GethWnd());
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
 	}
 
@@ -1740,60 +1750,32 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 		if(rc.top < 0) rc.top=0;
 		if(rc.right > client.right) rc.right=client.right;
 		if(rc.bottom > client.bottom) rc.bottom=client.bottom;
-		OutTraceDW("FillRect: remapped hdc from hwnd=%x to rect=(%d,%d)-(%d,%d)\n", hwnd, rc.left, rc.top, rc.right, rc.bottom);
-		return (*pFillRect)(hdc, &rc, hbr);
+		OutTraceDW("%s: remapped hdc from hwnd=%x to rect=(%d,%d)-(%d,%d)\n", ApiName, hwnd, rc.left, rc.top, rc.right, rc.bottom);
 	}
-
-#if 0
-	if(OBJ_DC == GetObjectType(hdc)){
-		if(rc.left < 0) rc.left = 0;
-		if(rc.top < 0) rc.top = 0;
-		if((DWORD)rc.right > dxw.GetScreenWidth()) rc.right = dxw.GetScreenWidth();
-		if((DWORD)rc.bottom > dxw.GetScreenHeight()) rc.bottom = dxw.GetScreenHeight();
-		dxw.MapClient(&rc);
-		//dxw.MapWindow(&rc);
-		OutTraceDW("FillRect: fixed rect=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
-	}
-
-	res=(*pFillRect)(hdc, &rc, hbr);
-	return res;
-#else
-	{
-		HWND hwnd;
-		hwnd = WindowFromDC(hdc);
-		if(hwnd != dxw.GethWnd()){
-			OutTraceDW("FillRect: unfixed rect\n");
-		}
-		else {
+	else {
+		if(OBJ_DC == GetObjectType(hdc)){
+			if(rc.left < 0) rc.left = 0;
+			if(rc.top < 0) rc.top = 0;
+			if((DWORD)rc.right > dxw.GetScreenWidth()) rc.right = dxw.GetScreenWidth();
+			if((DWORD)rc.bottom > dxw.GetScreenHeight()) rc.bottom = dxw.GetScreenHeight();
 			dxw.MapClient(&rc);
+			OutTraceDW("%s: fixed rect=(%d,%d)-(%d,%d)\n", ApiName, rc.left, rc.top, rc.right, rc.bottom);
 		}
 	}
-	res=(*pFillRect)(hdc, &rc, hbr);
+
+	//res=(*pFillRect)(hdc, &rc, hbr);
+	res=(*(FillRect_Type)pFun)(hdc, &rc, hbr);
 	return res;
-#endif
+}
+
+int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
+{
+	return HandleRect("FillRect", (void *)pFillRect, hdc, lprc, hbr);
 }
 
 int WINAPI extFrameRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 {
-	int res;
-	RECT rc;
-	OutTraceDW("FrameRect: hdc=%x hbrush=%x rect=(%d,%d)-(%d,%d)\n", hdc, hbr, lprc->left, lprc->top, lprc->right, lprc->bottom);
-
-	// when not in fullscreen mode, just proxy the call
-	if(!dxw.IsFullScreen()) return (*pFrameRect)(hdc, lprc, hbr);
-
-	memcpy(&rc, lprc, sizeof(rc));
-	if(OBJ_DC == GetObjectType(hdc)){
-		if(rc.left < 0) rc.left = 0;
-		if(rc.top < 0) rc.top = 0;
-		if((DWORD)rc.right > dxw.GetScreenWidth()) rc.right = dxw.GetScreenWidth();
-		if((DWORD)rc.bottom > dxw.GetScreenHeight()) rc.bottom = dxw.GetScreenHeight();
-		dxw.MapClient(&rc);
-		OutTraceDW("FrameRect: fixed rect=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
-	}
-
-	res=(*pFrameRect)(hdc, &rc, hbr);
-	return res;
+	return HandleRect("FramelRect", (void *)pFrameRect, hdc, lprc, hbr);
 }
 
 BOOL WINAPI extClipCursor(RECT *lpRectArg)
@@ -2239,11 +2221,19 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 			if((X==0)&&(Y==0)&&(nWidth==dxw.GetScreenWidth())&&(nHeight==dxw.GetScreenHeight())){
 				// evidently, this was supposed to be a fullscreen window....
 				RECT screen;
+				DWORD dwStyle;
 				POINT upleft = {0,0};
 				(*pGetClientRect)(dxw.GethWnd(),&screen);
 				(*pClientToScreen)(dxw.GethWnd(),&upleft);
+				if((dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE)) && WS_CHILDWINDOW){
+					// Big main child window: see "Reah"
+					X=Y=0;
+				}
+				else{
+					// Regular big main window, usual case.
 				X=upleft.x;
 				Y=upleft.y;
+				}
 				nWidth=screen.right;
 				nHeight=screen.bottom;
 				OutTraceDW("MoveWindow: fixed BIG win pos=(%d,%d) size=(%d,%d)\n", X, Y, nWidth, nHeight);

@@ -27,5 +27,6 @@ winver0=0
 maxres0=-1
 notes0=
 flagj0=4224
-flagk0=0
+flagk0=65536
 swapeffect0=0
+registry0=

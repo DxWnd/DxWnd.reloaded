@@ -1848,7 +1848,8 @@ static char *VKeyLabels[DXVK_SIZE]={
 	"timeslow", 
 	"timetoggle", 
 	"altf4",
-	"printscreen"
+	"printscreen",
+	"corner"
 };
 
 void dxwCore::MapKeysInit()

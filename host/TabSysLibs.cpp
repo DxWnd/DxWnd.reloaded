@@ -34,6 +34,7 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SHAREDDC, cTarget->m_SharedDC);
 	DDX_Check(pDX, IDC_NOFILLRECT, cTarget->m_NoFillRect);
 	DDX_Check(pDX, IDC_REUSEEMULATEDDC, cTarget->m_ReuseEmulatedDC);
+	DDX_Check(pDX, IDC_CREATEDESKTOP, cTarget->m_CreateDesktop);
 
 	// OpenGL
 	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL); // duplicated

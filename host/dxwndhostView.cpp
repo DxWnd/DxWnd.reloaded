@@ -36,6 +36,8 @@ TARGETMAP *pTargets; // idem.
 
 #define LOCKINJECTIONTHREADS
 
+char gInitPath[MAX_PATH]; // don't put it into the class because it must be used after destructor
+
 // beware: it must operate upon count+1 sized arrays
 char *strnncpy(char *dest, char *src, size_t count)
 {
@@ -387,6 +389,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FakeVersion) t->flags2 |= FAKEVERSION;
 	if(dlg->m_FullRectBlt) t->flags2 |= FULLRECTBLT;
 	if(dlg->m_CenterToWin) t->flags5 |= CENTERTOWIN;
+	if(dlg->m_Deinterlace) t->flags5 |= DEINTERLACE;
 	if(dlg->m_NoPaletteUpdate) t->flags2 |= NOPALETTEUPDATE;
 	if(dlg->m_SurfaceWarn) t->flags3 |= SURFACEWARN;
 	if(dlg->m_CapMask) t->flags3 |= CAPMASK;
@@ -395,6 +398,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
 	if(dlg->m_NoFillRect) t->flags4 |= NOFILLRECT;
 	if(dlg->m_ReuseEmulatedDC) t->flags6 |= REUSEEMULATEDDC;
+	if(dlg->m_CreateDesktop) t->flags6 |= CREATEDESKTOP;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	t->initx = dlg->m_InitX;
@@ -623,6 +627,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FakeVersion = t->flags2 & FAKEVERSION ? 1 : 0;
 	dlg->m_FullRectBlt = t->flags2 & FULLRECTBLT ? 1 : 0;
 	dlg->m_CenterToWin = t->flags5 & CENTERTOWIN ? 1 : 0;
+	dlg->m_Deinterlace = t->flags5 & DEINTERLACE ? 1 : 0;
 	dlg->m_NoPaletteUpdate = t->flags2 & NOPALETTEUPDATE ? 1 : 0;
 	dlg->m_SurfaceWarn = t->flags3 & SURFACEWARN ? 1 : 0;
 	dlg->m_CapMask = t->flags3 & CAPMASK ? 1 : 0;
@@ -631,6 +636,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;
 	dlg->m_NoFillRect = t->flags4 & NOFILLRECT ? 1 : 0;
 	dlg->m_ReuseEmulatedDC = t->flags6 & REUSEEMULATEDDC ? 1 : 0;
+	dlg->m_CreateDesktop = t->flags6 & CREATEDESKTOP ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_InitX = t->initx;
@@ -951,9 +957,9 @@ void CDxwndhostView::SaveConfigFile()
 
 	for(i = 0; i < MAXTARGETS; i ++){
 		if(!TargetMaps[i].path[0]) break;
-		SaveConfigItem(&TargetMaps[i], &PrivateMaps[i], i, InitPath);
+		SaveConfigItem(&TargetMaps[i], &PrivateMaps[i], i, gInitPath);
 	}
-	for(; i < MAXTARGETS; i ++) ClearTarget(i, InitPath);
+	for(; i < MAXTARGETS; i ++) ClearTarget(i, gInitPath);
 	this->isUpdated=FALSE;
 }
 
@@ -999,8 +1005,6 @@ void CDxwndhostView::OnDraw(CDC* pDC)
 	ASSERT_VALID(pDoc);
 }
 
-char *gInitFilePath;
-
 void CDxwndhostView::OnInitialUpdate()
 {
 	CListView::OnInitialUpdate();
@@ -1034,14 +1038,13 @@ void CDxwndhostView::OnInitialUpdate()
 	listcol.cx = 100;
 	
 	listctrl.InsertColumn(0, &listcol);
-	GetCurrentDirectory(MAX_PATH, InitPath);
-	strcat_s(InitPath, sizeof(InitPath), "\\");
-	strcat_s(InitPath, sizeof(InitPath), m_ConfigFileName);
-	gInitFilePath = InitPath;
+	GetCurrentDirectory(MAX_PATH, gInitPath);
+	strcat_s(gInitPath, sizeof(gInitPath), "\\");
+	strcat_s(gInitPath, sizeof(gInitPath), m_ConfigFileName);
 	listctrl.InsertColumn(0, &listcol);
 
 	for(i = 0; i < MAXTARGETS; i ++){
-		if (!LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], i, InitPath)) break;
+		if (!LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], i, gInitPath)) break;
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
 		listitem.iItem = i;
 		listitem.iSubItem = 0;
@@ -1105,7 +1108,7 @@ void CDxwndhostView::OnExport()
 	if(!listctrl.GetSelectedCount()) return;
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
-	GetPrivateProfileString("window", "exportpath", NULL, path, MAX_PATH, InitPath);
+	GetPrivateProfileString("window", "exportpath", NULL, path, MAX_PATH, gInitPath);
 	//strcat_s(path, MAX_PATH, "\\");
 	strcat_s(path, MAX_PATH, PrivateMaps[i].title);
 	CFileDialog dlg( FALSE, "*.dxw", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
@@ -1121,9 +1124,9 @@ void CDxwndhostView::OnExport()
 		TargetMap->tflags = 0;
 		SaveConfigItem(&TargetMaps[i], &PrivateMaps[i], 0, path);
 		TargetMap->tflags = TFlags;
-		if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) {
+		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)) {
 			GetFolderFromPath(path);
-			WritePrivateProfileString("window", "exportpath", path, InitPath);
+			WritePrivateProfileString("window", "exportpath", path, gInitPath);
 		}
 	}
 }
@@ -1146,7 +1149,7 @@ void CDxwndhostView::OnImport()
 	char folder[MAX_PATH+1];
 	char pathname[MAX_PATH+1];
 	OPENFILENAME ofn = {0};
-	GetPrivateProfileString("window", "exportpath", NULL, pathname, MAX_PATH, InitPath);
+	GetPrivateProfileString("window", "exportpath", NULL, pathname, MAX_PATH, gInitPath);
 	ofn.lpstrInitialDir = pathname;
 	ofn.lStructSize = sizeof(ofn);
 	ofn.lpstrFilter = "DxWnd export file\0*.dxw\0\0";
@@ -1166,9 +1169,9 @@ void CDxwndhostView::OnImport()
 				listitem.iImage = SetTargetIcon(TargetMaps[i]);
 				listitem.pszText = PrivateMaps[i].title;
 				listctrl.InsertItem(&listitem);
-				if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) {
+				if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)) {
 					GetFolderFromPath(ImportExportPath);
-					WritePrivateProfileString("window", "exportpath", ImportExportPath, InitPath);
+					WritePrivateProfileString("window", "exportpath", ImportExportPath, gInitPath);
 				}
 			}
 		}
@@ -1177,8 +1180,8 @@ void CDxwndhostView::OnImport()
 			char* p = ImportExportPath;
 			strcpy(folder, p);
 			strcat(folder, "\\");
-			if(GetPrivateProfileInt("window", "updatepaths", 1, InitPath)) 
-				WritePrivateProfileString("window", "exportpath", folder, InitPath);
+			if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)) 
+				WritePrivateProfileString("window", "exportpath", folder, gInitPath);
 			p += lstrlen((LPSTR)p) + 1;
 			while(*p && (i<MAXTARGETS)){
 				// "p" - name of each file, NULL to terminate
@@ -1323,7 +1326,7 @@ void CDxwndhostView::OnDebugView()
 	char folderpath[MAX_PATH+1];
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo); 
-	GetPrivateProfileString("window", "debugview", "DbgView.exe", exepath, MAX_PATH, InitPath);
+	GetPrivateProfileString("window", "debugview", "DbgView.exe", exepath, MAX_PATH, gInitPath);
 	strcpy_s(folderpath, sizeof(folderpath), exepath);
 	PathRemoveFileSpec(folderpath);
 	if(strlen(folderpath)==0) strcpy(folderpath, ".\\");

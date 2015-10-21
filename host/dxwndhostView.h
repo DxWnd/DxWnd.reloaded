@@ -22,7 +22,6 @@ private:
 	void SaveConfigFile();
 	TARGETMAP TargetMaps[MAXTARGETS];
 	PRIVATEMAP PrivateMaps[MAXTARGETS];
-	char InitPath[MAX_PATH];
 	BOOL isUpdated;
 	DEVMODE InitDevMode;
 	CSystemTray SystemTray;

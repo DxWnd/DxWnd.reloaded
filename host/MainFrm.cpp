@@ -90,13 +90,13 @@ CMainFrame::~CMainFrame()
 
 	// save window rect
 	sprintf_s(val, sizeof(val), "%i", x);
-	WritePrivateProfileString("window", "posx", val, InitPath);
+	WritePrivateProfileString("window", "posx", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", y);
-	WritePrivateProfileString("window", "posy", val, InitPath);
+	WritePrivateProfileString("window", "posy", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", cx);
-	WritePrivateProfileString("window", "sizx", val, InitPath);
+	WritePrivateProfileString("window", "sizx", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", cy);
-	WritePrivateProfileString("window", "sizy", val, InitPath);
+	WritePrivateProfileString("window", "sizy", val, gInitPath);
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)

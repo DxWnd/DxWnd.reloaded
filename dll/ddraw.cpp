@@ -2080,6 +2080,13 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 				OutTraceDW("SetCooperativeLevel: desktop hwnd=%x -> %x\n", hwnd, dxw.GethWnd());
 				hwnd=dxw.GethWnd();
 			}
+			// v2.03.40 fix:
+			// WARN: "Reah" creates a main window undetected. Setting a FULLSCREEN cooperative level
+			// against it is a good enough proof that this is the real main window!
+			if(hwnd != dxw.GethWnd()){
+				OutTraceDW("SetCooperativeLevel: setting new main hwnd=%x -> %x\n", dxw.GethWnd(), hwnd);
+				dxw.SethWnd(hwnd);
+			}
 			dxw.SetFullScreen(TRUE);
 			dwflags &= ~(DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
 			dwflags |= DDSCL_NORMAL;

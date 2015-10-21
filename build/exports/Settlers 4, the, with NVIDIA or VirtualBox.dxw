@@ -1,0 +1,33 @@
+; by  Adrian Kalla, Oct. 18th 2015
+[target]
+title0=Settlers 4, the, with NVIDIA or VirtualBox
+path0=C:\GOG Games\The Settlers IV GOLD\Exe\S4_Main.exe
+launchpath0=
+module0=
+opengllib0=
+notes0=
+registry0=
+ver0=0
+coord0=1
+flag0=212926496
+flagg0=1073776771
+flagh0=33554516
+flagi0=136314884
+flagj0=1082135680
+flagk0=262144
+tflag0=0
+initx0=0
+inity0=0
+minx0=0
+miny0=0
+maxx0=0
+maxy0=0
+posx0=50
+posy0=50
+sizx0=1280
+sizy0=1024
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0

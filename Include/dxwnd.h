@@ -175,7 +175,7 @@
 #define STRESSRESOURCES		0x02000000 // simulates a lack of resources condition, for testing (debug opt.)
 #define MESSAGEPUMP			0x04000000 // inserts a "message pump" loop between repeated operation that may stop the task on Win7 and greater
 #define TEXTUREFORMAT		0x08000000 // Apply virtual pixel format to texture surfaces without DDSD_PIXELFORMAT attribute
-//#define GSKYHACK			0x10000000 // use VIDEOMEMORY+LOCALVIDMEM capability to turn hw acceleration on ...
+#define DEINTERLACE			0x10000000 // Deinterlace movies / screens that have black odd lines by interpolating even lines
 #define LOCKRESERVEDPALETTE 0x20000000 // lock the reserved palette entries (usually 20: 0-9 and 246-255)
 #define UNLOCKZORDER		0x40000000 // Inhibit attempts to keep the main win on top of ZORDER by stripping BringWindowToTop and SetForegroundWindow calls
 #define EASPORTSHACK		0X80000000 // Hack to intercept and neutralize some of the hooks set internally by EA Sports games
@@ -205,6 +205,7 @@
 #define BYPASSMCI			0x00200000 // bypass all MCI calls returning OK.
 #define FIXPIXELZOOM		0x00400000
 #define REUSEEMULATEDDC		0x00800000
+#define CREATEDESKTOP		0x01000000 // creates a virtual desktop window to replace the real one
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -220,6 +221,7 @@
 #define TRACEHOOKS			0x00000400 // log hook operations
 #define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
 #define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
+#define NOLOGCLOSE			0x10000000 // avoid closing the log file handle ("Riven, during CD changes ...)
 #define ADDTIMESTAMP		0x20000000 // att timestamp (GetTickCount) to log file
 #define OUTDEBUGSTRING		0x40000000 // duplicate logs through OutputDebugString()
 #define ERASELOGFILE		0x80000000 // clears old trace file before writing new logs
@@ -352,5 +354,3 @@ typedef enum {
 	TIMER_TYPE_USER32,
 	TIMER_TYPE_WINMM
 } Timer_Types;
-
-#define CREATEDESKTOP FALSE

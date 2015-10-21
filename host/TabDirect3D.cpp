@@ -34,8 +34,6 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
-	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
-	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
 	DDX_Check(pDX, IDC_SETZBUFFERBITDEPTHS, cTarget->m_SetZBufferBitDepths);
 
 	// Ddraw tweaks
@@ -43,6 +41,11 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOSYSMEMBACKBUF, cTarget->m_NoSysMemBackBuf);
 	DDX_Check(pDX, IDC_FIXPITCH, cTarget->m_FixPitch);
 	DDX_Check(pDX, IDC_POWER2WIDTH, cTarget->m_Power2Width);
+	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
+	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
+	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
+	DDX_Check(pDX, IDC_CENTERTOWIN, cTarget->m_CenterToWin);
+	DDX_Check(pDX, IDC_DEINTERLACE, cTarget->m_Deinterlace);
 
 	// Texture management
 	DDX_Radio(pDX, IDC_TEXTURENONE, cTarget->m_TextureHandling);

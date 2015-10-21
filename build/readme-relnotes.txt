@@ -920,3 +920,12 @@ v2.03.39
 add: "Fix glPixelZoom args" flag to scale images rendered by OpenGL through GDI. It is needed for "Strength and Honor".
 add: "Reuse emulated DC" flag to optimize GDI emulation. experimental.
 
+v2.03.40
+fix: detecting main window when setting FULLSCREEN mode against it. Helps handling "Reah"
+add: option to de-interlace videos on 16BPP to 32BPP color transformation. Required for deinterlacing "11th Hour" movies
+add: cornerized mode, could help handling Battlenet GDI menus
+add: preliminary implementation of virtual desktop window. Useless so far.
+fix: hooked more GDI calls: CreateICA, GetViewportExtEx, IntersectClipRect, SetRectRgn
+fix: ChangeDisplaySettings no longer take note of video mode when called with CDS_TEST flag
+fix: merged user32 FillRect and FrameRect handling
+fix: fixed bug that was leaving a copy of dxwnd.ini on last visited directory on window close

@@ -115,7 +115,7 @@ public: // methods
 	BOOL ReleaseSharedDC(HWND, HDC);
 	BOOL IsVirtual(HDC);
 	void ResetEmulatedDC();
-	int VirtualOffsetX, VirtualOffsetY;
+	int VirtualOffsetX, VirtualOffsetY, VirtualExtentX, VirtualExtentY;
 	void DumpPalette(DWORD, LPPALETTEENTRY);
 	void PushTimer(UINT, UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT);
 	void PushTimer(HWND, UINT_PTR, UINT, TIMERPROC);
@@ -344,6 +344,7 @@ typedef enum {
 	DXVK_TIMETOGGLE,
 	DXVK_ALTF4,
 	DXVK_PRINTSCREEN,
+	DXVK_CORNERIZE,
 	DXVK_SIZE
 };
 

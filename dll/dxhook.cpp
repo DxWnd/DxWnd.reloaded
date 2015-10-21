@@ -101,7 +101,7 @@ static char *Flag5Names[32]={
 	"TEXTURETRANSP", "NORMALIZEPERFCOUNT", "HYBRIDMODE", "GDICOLORCONV",
 	"INJECTSON", "ENABLESONHOOK", "FREEZEINJECTEDSON", "GDIMODE",
 	"CENTERTOWIN", "STRESSRESOURCES", "MESSAGEPUMP", "TEXTUREFORMAT", 
-	"--GSKYHACK", "LOCKRESERVEDPALETTE", "UNLOCKZORDER", "EASPORTSHACK",
+	"DEINTERLACE", "LOCKRESERVEDPALETTE", "UNLOCKZORDER", "EASPORTSHACK",
 };
 
 static char *Flag6Names[32]={
@@ -509,7 +509,7 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
 		}
 		//GetClientRect(0, &desktop);
-		(*pGetClientRect)(GetDesktopWindow(), &desktop);
+		(*pGetClientRect)((*pGetDesktopWindow)(), &desktop);
 		rect.left =  (desktop.right - MaxX) / 2;
 		rect.top = (desktop.bottom - MaxY) / 2;
 		rect.right = rect.left + MaxX;
@@ -781,6 +781,30 @@ static void dx_ToggleFPS()
 		dxw.dwFlags2 |= SHOWFPS;
 		OutTrace("ToggleFPS: SHOWFPS mode ON\n");
 	}
+}
+
+static void dx_Cornerize(HWND hwnd)
+{
+	static RECT WinRect = {0, 0, 0, 0};
+	static DWORD OldStyle, OldExtStyle;
+	// toggle ....
+	if (WinRect.right == 0){
+		OutTraceDW("DxWnd: entering corner mode\n");
+		(*pGetWindowRect)(hwnd, &WinRect);
+		OldStyle = (*pGetWindowLongA)(hwnd, GWL_STYLE);
+		OldExtStyle = (*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
+		(*pSetWindowLongA)(hwnd, GWL_STYLE, WS_VISIBLE|WS_CLIPSIBLINGS|WS_OVERLAPPED);
+		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0);
+		(*pMoveWindow)(hwnd, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), TRUE);
+	}
+	else {
+		OutTraceDW("DxWnd: exiting corner mode\n");
+		(*pSetWindowLongA)(hwnd, GWL_STYLE, OldStyle);
+		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, OldExtStyle);
+		(*pMoveWindow)(hwnd, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom, TRUE);
+		memset(&WinRect, 0, sizeof(WinRect));
+	}
+	dxw.ScreenRefresh();
 }
 
 LRESULT LastCursorPos;
@@ -1096,6 +1120,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			break;
 		case DXVK_FPSTOGGLE:
 			dx_ToggleFPS();
+			break;
+		case DXVK_CORNERIZE:
+			dx_Cornerize(hwnd);
 			break;
 		case DXVK_TIMEFAST:
 		case DXVK_TIMESLOW:
@@ -1661,9 +1688,7 @@ static void ReplacePrivilegedOps()
 	FreeLibrary(disasmlib);
 }
 
-#ifdef CREATEDESKTOP
 HWND hDesktopWindow = NULL;
-#endif
 
 // Message poller: its only purpose is to keep sending messages to the main window
 // so that the message loop is kept running. It is a trick necessary to play 
@@ -1685,6 +1710,28 @@ static void MemoryReserve()
 	VirtualAlloc((LPVOID)0x6000000, 0x00F00000, MEM_RESERVE, PAGE_READWRITE);
 	VirtualAlloc((LPVOID)0x7000000, 0x00F00000, MEM_RESERVE, PAGE_READWRITE);
 	VirtualAlloc((LPVOID)0x8000000, 0x00F00000, MEM_RESERVE, PAGE_READWRITE);
+}
+
+HWND CreateVirtualDesktop(LPRECT TargetPos)
+{
+	HWND hDesktopWindow;
+	HINSTANCE hinst=NULL;
+
+	HWND hParent = GetDesktopWindow(); // not hooked yet !
+//	hDesktopWindow=CreateWindowEx(0, "dxwnd:desktop", "DxWnd Desktop", WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
+	hDesktopWindow=CreateWindowEx(0, "Static", "DxWnd Desktop", WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
+	if(hDesktopWindow){
+		MoveWindow(hDesktopWindow, TargetPos->left, TargetPos->top, TargetPos->right-TargetPos->left, TargetPos->bottom-TargetPos->top, TRUE);
+		SetWindowLong(hDesktopWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+		ShowWindow(hDesktopWindow, SW_RESTORE);
+		OutTraceDW("created desktop emulation: hwnd=%x\n", hDesktopWindow);
+		return hDesktopWindow; 
+
+	}
+	else{
+		OutTraceE("CreateWindowEx ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		return NULL;
+	}
 }
 
 void HookInit(TARGETMAP *target, HWND hwnd)
@@ -1736,42 +1783,14 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		if(dxw.dwFlags4 & ENABLEHOTKEYS) dxw.MapKeysInit();
 	}
 
-#ifdef CREATEDESKTOP
-	if(CREATEDESKTOP){
-		if (!hDesktopWindow){
-			static ATOM aClass;
-			WNDCLASSEX WndClsEx;
-			HINSTANCE hinst=NULL;
-			hinst=GetModuleHandle(NULL);
-			WndClsEx.cbSize        = sizeof(WNDCLASSEX);
-			WndClsEx.style         = 0;
-			WndClsEx.lpfnWndProc   = DefWindowProc;
-			WndClsEx.cbClsExtra    = 0;
-			WndClsEx.cbWndExtra    = 0;
-			WndClsEx.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
-			WndClsEx.hCursor       = NULL;
-			WndClsEx.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-			//WndClsEx.hbrBackground = CreateSolidBrush(RGB(200,0,0));
-			WndClsEx.lpszMenuName  = NULL;
-			WndClsEx.lpszClassName = "dxwnd:desktop";
-			WndClsEx.hInstance     = hinst;
-			WndClsEx.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
-		
-			aClass=RegisterClassEx(&WndClsEx);
-
-			//HWND hParent = (*pGetDesktopWindow)();
-			HWND hParent = GetDesktopWindow(); // not hooked yet !
-			hDesktopWindow=CreateWindowEx(0, "dxwnd:desktop", "DxWnd Desktop", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
-			if(hDesktopWindow){
-				MoveWindow(hDesktopWindow, target->posx, target->posy, target->sizx, target->sizy, TRUE);
-				OutTraceDW("created desktop emulation: hwnd=%x\n", hDesktopWindow);
-			}
-			else{
-				OutTraceE("CreateWindowEx ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-			}
-		}
+	if(dxw.dwFlags6 & CREATEDESKTOP){
+		RECT TargetPos;
+		TargetPos.left = target->posx;
+		TargetPos.right = target->posx+target->sizx;
+		TargetPos.top = target->posy;
+		TargetPos.bottom = target->posy+target->sizy;
+		if (!hDesktopWindow) hDesktopWindow=CreateVirtualDesktop(&TargetPos);
 	}
-#endif
 
 	if(IsTraceDW){
 		char sInfo[1024];
@@ -1827,15 +1846,13 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		}
 	}
 
-#ifdef CREATEDESKTOP
-	if(CREATEDESKTOP){
+	if(dxw.dwFlags6 & CREATEDESKTOP){
 		if (hDesktopWindow){
 			OutTraceDW("HookInit: set new parent=%x to main win=%x\n", hDesktopWindow, dxw.hChildWnd);
 			SetParent(dxw.hChildWnd, hDesktopWindow);
 			dxw.hParentWnd = hDesktopWindow;
 		}
 	}
-#endif
 
 #ifdef CHECKFORCOMPATIBILITYFLAGS
 	CheckCompatibilityFlags(); // v2.02.83 Check for change of OS release

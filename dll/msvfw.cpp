@@ -13,6 +13,9 @@
 typedef DWORD (WINAPI *ICDrawBegin_Type)(HIC, DWORD, HPALETTE, HWND,  HDC, int, int, int, int, LPBITMAPINFOHEADER, int, int, int, int, DWORD, DWORD);
 ICDrawBegin_Type pICDrawBegin = NULL;
 DWORD WINAPI extICDrawBegin(HIC, DWORD, HPALETTE, HWND,  HDC, int, int, int, int, LPBITMAPINFOHEADER, int, int, int, int, DWORD, DWORD);
+typedef BOOL (WINAPI *DrawDibDraw_Type)(HDRAWDIB, HDC, int, int, int, int, LPBITMAPINFOHEADER, LPVOID, int, int, int, int, UINT);
+DrawDibDraw_Type pDrawDibDraw = NULL;
+BOOL WINAPI extDrawDibDraw(HDRAWDIB, HDC, int, int, int, int, LPBITMAPINFOHEADER, LPVOID, int, int, int, int, UINT);
 
 static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
@@ -20,6 +23,7 @@ static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "MCIWndCreateA", (FARPROC)NULL, (FARPROC *)&pMCIWndCreateA, (FARPROC)extMCIWndCreateA}, // "Man in Black" - beware: this is NOT STDCALL!!!
 	{HOOK_HOT_CANDIDATE, "ICGetDisplayFormat", (FARPROC)NULL, (FARPROC *)&pICGetDisplayFormat, (FARPROC)extICGetDisplayFormat}, // "Man in Black" - beware: this is NOT STDCALL!!!
 	{HOOK_HOT_CANDIDATE, "ICDrawBegin", (FARPROC)NULL, (FARPROC *)&pICDrawBegin, (FARPROC)extICDrawBegin}, 
+	{HOOK_HOT_CANDIDATE, "DrawDibDraw", (FARPROC)NULL, (FARPROC *)&pDrawDibDraw, (FARPROC)extDrawDibDraw}, 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -206,9 +210,16 @@ HIC WINAPI extICGetDisplayFormat(HIC hic, LPBITMAPINFOHEADER lpbiIn, LPBITMAPINF
 DWORD WINAPI extICDrawBegin(HIC hic, DWORD dwFlags, HPALETTE hpal, HWND hwnd,  HDC hdc, int xDst, int yDst, int dxDst, int dyDst, LPBITMAPINFOHEADER lpbi, int xSrc, int ySrc, int dxSrc, int dySrc, DWORD dwRate, DWORD dwScale)
 {
 	OutTrace("ICDrawBegin\n");
-	//xDst = yDst = 0;
-	//dxDst = 800;
-	//dyDst = 600;
-	//lpbi->biBitCount = (WORD)dxw.VirtualPixelFormat.dwRGBBitCount;
+
 	return (*pICDrawBegin)(hic, dwFlags, hpal, hwnd, hdc, xDst, yDst, dxDst, dyDst, lpbi, xSrc, ySrc, dxSrc, dySrc, dwRate, dwScale);
+}
+
+BOOL WINAPI extDrawDibDraw(HDRAWDIB hdd, HDC hdc, int xDst, int yDst, int dxDst, int dyDst, LPBITMAPINFOHEADER lpbi, LPVOID lpBits, int xSrc, int ySrc, int dxSrc, int dySrc, UINT wFlags)
+{
+	// Reah intro movie
+	BOOL ret;
+	OutTrace("DrawDibDraw: hdd=%x hdc=%x DEST pos=(%d,%d) size=(%d,%d) SRC pos=(%d,%d) size=(%d,%d) flags=%x\n",
+		hdd, hdc, xDst, yDst, dxDst, dyDst, xSrc, ySrc, dxSrc, dySrc, wFlags);
+	ret = (*pDrawDibDraw)(hdd, hdc, xDst, yDst, dxDst, dyDst, lpbi, lpBits, xSrc, ySrc, dxSrc, dySrc, wFlags);
+	return ret;
 }

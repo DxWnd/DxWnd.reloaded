@@ -23,13 +23,6 @@ static void Stopper(char *s, int line)
 #define STOPPER(s)
 #endif
 
-typedef BOOL	(WINAPI *ExtTextOutW_Type)(HDC, int, int, UINT, const RECT *, LPCWSTR, UINT, const INT *);
-typedef BOOL	(WINAPI *ExtTextOutA_Type)(HDC, int, int, UINT, const RECT *, LPCSTR, UINT, const INT *);
-BOOL WINAPI extExtTextOutW(HDC, int, int, UINT, const RECT *, LPCWSTR, UINT, const INT *);
-BOOL WINAPI extExtTextOutA(HDC, int, int, UINT, const RECT *, LPCSTR, UINT, const INT *);
-ExtTextOutW_Type pExtTextOutW = NULL;
-ExtTextOutA_Type pExtTextOutA = NULL;
-
 #ifdef TRACEPALETTE
 typedef BOOL (WINAPI *ResizePalette_Type)(HPALETTE, UINT);
 ResizePalette_Type pResizePalette = NULL;
@@ -49,13 +42,6 @@ COLORREF WINAPI extSetBkColor(HDC, COLORREF);
 COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor);
 int WINAPI extSetBkMode(HDC, int);
 */
-
-typedef UINT (WINAPI *GetPaletteEntries_Type)(HPALETTE, UINT, UINT, LPPALETTEENTRY);
-typedef UINT (WINAPI *GetSystemPaletteUse_Type)(HDC);
-GetPaletteEntries_Type pGetPaletteEntries = NULL;
-GetSystemPaletteUse_Type pGetSystemPaletteUse = NULL;
-UINT WINAPI extGetPaletteEntries(HPALETTE, UINT, UINT, LPPALETTEENTRY);
-UINT WINAPI extGetSystemPaletteUse(HDC);
 
 static HookEntry_Type Hooks[]={
 
@@ -83,6 +69,7 @@ static HookEntry_Type Hooks[]={
 #ifdef TRACEPALETTE
 	{HOOK_IAT_CANDIDATE, "ResizePalette", (FARPROC)ResizePalette, (FARPROC *)&pResizePalette, (FARPROC)extResizePalette},
 #endif
+	{HOOK_HOT_CANDIDATE, "CreateICA", (FARPROC)CreateICA, (FARPROC *)&pCreateICA, (FARPROC)extCreateICA}, // Riven
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 }; 
 
@@ -90,6 +77,7 @@ static HookEntry_Type RemapHooks[]={
 	{HOOK_IAT_CANDIDATE, "SetViewportOrgEx", (FARPROC)SetViewportOrgEx, (FARPROC *)&pSetViewportOrgEx, (FARPROC)extSetViewportOrgEx}, // needed in ShowBanner
 	{HOOK_IAT_CANDIDATE, "SetViewportExtEx", (FARPROC)NULL, (FARPROC *)&pSetViewportExtEx, (FARPROC)extSetViewportExtEx},
 	{HOOK_IAT_CANDIDATE, "GetViewportOrgEx", (FARPROC)NULL, (FARPROC *)&pGetViewportOrgEx, (FARPROC)extGetViewportOrgEx},
+	{HOOK_IAT_CANDIDATE, "GetViewportExtEx", (FARPROC)NULL, (FARPROC *)&pGetViewportExtEx, (FARPROC)extGetViewportExtEx},
 	{HOOK_IAT_CANDIDATE, "GetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pGetWindowOrgEx, (FARPROC)extGetWindowOrgEx},
 	{HOOK_IAT_CANDIDATE, "SetWindowOrgEx", (FARPROC)NULL, (FARPROC *)&pSetWindowOrgEx, (FARPROC)extSetWindowOrgEx},
 	{HOOK_IAT_CANDIDATE, "GetCurrentPositionEx", (FARPROC)NULL, (FARPROC *)&pGetCurrentPositionEx, (FARPROC)extGetCurrentPositionEx},
@@ -103,6 +91,7 @@ static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "Rectangle", (FARPROC)Rectangle, (FARPROC *)&pGDIRectangle, (FARPROC)extRectangle},
 	{HOOK_IAT_CANDIDATE, "TextOutA", (FARPROC)TextOutA, (FARPROC *)&pGDITextOutA, (FARPROC)extTextOutA},
 	{HOOK_IAT_CANDIDATE, "GetClipBox", (FARPROC)NULL, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
+	{HOOK_IAT_CANDIDATE, "IntersectClipRect", (FARPROC)IntersectClipRect, (FARPROC *)&pIntersectClipRect, (FARPROC)extIntersectClipRect}, // Riven !!
 	//{HOOK_IAT_CANDIDATE, "GetRgnBox", (FARPROC)NULL, (FARPROC *)&pGetRgnBox, (FARPROC)extGetRgnBox},
 	{HOOK_IAT_CANDIDATE, "Polyline", (FARPROC)NULL, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
 	{HOOK_IAT_CANDIDATE, "PolyBezierTo", (FARPROC)NULL, (FARPROC *)&pPolyBezierTo, (FARPROC)extPolyBezierTo},
@@ -133,6 +122,7 @@ static HookEntry_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, "MaskBlt", (FARPROC)NULL, (FARPROC *)&pMaskBlt, (FARPROC)extMaskBlt},
 	{HOOK_IAT_CANDIDATE, "ExtTextOutA", (FARPROC)ExtTextOutA, (FARPROC *)&pExtTextOutA, (FARPROC)extExtTextOutA},
 	{HOOK_IAT_CANDIDATE, "ExtTextOutW", (FARPROC)ExtTextOutW, (FARPROC *)&pExtTextOutW, (FARPROC)extExtTextOutW},
+	{HOOK_IAT_CANDIDATE, "SetRectRgn", (FARPROC)SetRectRgn, (FARPROC *)&pSetRectRgn, (FARPROC)extSetRectRgn}, 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -668,29 +658,57 @@ UINT WINAPI extGetSystemPaletteUse(HDC hdc)
 	return res;
 }
 
-HDC WINAPI extGDICreateDC(LPSTR Driver, LPSTR Device, LPSTR Output, CONST DEVMODE *InitData)
+HDC WINAPI extGDICreateDC(LPSTR lpszDriver, LPSTR lpszDevice, LPSTR lpszOutput, CONST DEVMODE *lpdvmInit)
 {
 	HDC WinHDC, RetHDC;
 	OutTraceDW("GDI.CreateDC: Driver=%s Device=%s Output=%s InitData=%x\n", 
-		Driver?Driver:"(NULL)", Device?Device:"(NULL)", Output?Output:"(NULL)", InitData);
+		lpszDriver?lpszDriver:"(NULL)", lpszDevice?lpszDevice:"(NULL)", lpszOutput?lpszOutput:"(NULL)", lpdvmInit);
 
-	if (!Driver || !strncmp(Driver,"DISPLAY",7)) {
+	if (!lpszDriver || !strncmp(lpszDriver,"DISPLAY",7)) {
+		if(dxw.dwFlags3 & GDIEMULATEDC){
+			RetHDC=dxw.AcquireEmulatedDC(dxw.GethWnd());
+		}
+		else {
 		OutTraceDW("GDI.CreateDC: returning window surface DC\n");
 		WinHDC=(*pGDIGetDC)(dxw.GethWnd());
 		RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
 		(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
-
-		if(dxw.dwFlags3 & GDIEMULATEDC){
-			RetHDC=dxw.AcquireEmulatedDC(dxw.GethWnd());
 		}
+
 	}
 	else{
-		RetHDC=(*pGDICreateDC)(Driver, Device, Output, InitData);
+		RetHDC=(*pGDICreateDC)(lpszDriver, lpszDevice, lpszOutput, lpdvmInit);
 	}
 	if(RetHDC)
 		OutTraceDW("GDI.CreateDC: returning HDC=%x\n", RetHDC);
 	else
 		OutTraceE("GDI.CreateDC ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+	return RetHDC;
+}
+
+HDC extCreateICA(LPCTSTR lpszDriver, LPCTSTR lpszDevice, LPCTSTR lpszOutput, const DEVMODE *lpdvmInit)
+{
+	HDC WinHDC, RetHDC;
+	OutTraceDW("GDI.CreateIC: Driver=%s Device=%s Output=%s InitData=%x\n", 
+		lpszDriver?lpszDriver:"(NULL)", lpszDevice?lpszDevice:"(NULL)", lpszOutput?lpszOutput:"(NULL)", lpdvmInit);
+
+	// EverQuest Tutorial.exe calls CreateICA passing "Tutorial"
+	if(!lpszDriver || !_stricmp("DISPLAY", lpszDriver)){
+		if(dxw.dwFlags3 & GDIEMULATEDC){
+			RetHDC=dxw.AcquireEmulatedDC(dxw.GethWnd());
+		}
+		else {
+			OutTraceDW("CreateIC: returning window surface DC\n");
+			WinHDC = (*pGDIGetDC)(dxw.GethWnd());
+			RetHDC = (*pGDICreateCompatibleDC)(WinHDC);
+			(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
+		}
+	}
+	else{
+		// proxy
+		RetHDC = (*pCreateICA)(lpszDriver, lpszDevice, lpszOutput, lpdvmInit);
+	}
+
 	return RetHDC;
 }
 
@@ -702,12 +720,10 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 	if(hdc==0){
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
-#ifdef CREATEDESKTOP
-		if(CREATEDESKTOP){
+		if(dxw.dwFlags6 & CREATEDESKTOP){
 			extern HWND hDesktopWindow;
 			hdc=(*pGDIGetDC)(hDesktopWindow);
 		}
-#endif
 		OutTraceDW("GDI.CreateCompatibleDC: duplicating win HDC hWnd=%x\n", dxw.GethWnd()); 
 	}
 
@@ -928,22 +944,41 @@ BOOL WINAPI extGetDeviceGammaRamp(HDC hDC, LPVOID lpRamp)
 	return ret;
 }
 
+static char *sClipType(int t)
+{
+	static char *sRetCodes[4]={"ERROR", "NULLREGION", "SIMPLEREGION", "COMPLEXREGION"};
+	if(t<0 || t>3) return "Unknown";
+	return sRetCodes[t];
+}
+
 int WINAPI extGetClipBox(HDC hdc, LPRECT lprc)
 {
 	// v2.02.31: needed in "Imperialism II" to avoid blit clipping
 	int ret;
-	char *sRetCodes[4]={"ERROR", "NULLREGION", "SIMPLEREGION", "COMPLEXREGION"};
 	OutTraceDW("GetClipBox: hdc=%x\n", hdc);
 	ret=(*pGDIGetClipBox)(hdc, lprc);
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && (ret!=ERROR)){
 		OutTraceDW("GetClipBox: scaling main win coordinates (%d,%d)-(%d,%d)\n",
 			lprc->left, lprc->top, lprc->right, lprc->bottom);
-		// current implementation is NOT accurate, since it always returns the whole
-		// virtual desktop area as the current clipbox...!!!
-		*lprc=dxw.GetScreenRect();
+		dxw.UnmapClient(lprc);
 	}
 	OutTraceDW("GetClipBox: ret=%x(%s) rect=(%d,%d)-(%d,%d)\n", 
-		ret, sRetCodes[ret], lprc->left, lprc->top, lprc->right, lprc->bottom);
+		ret, sClipType(ret), lprc->left, lprc->top, lprc->right, lprc->bottom);
+	return ret;
+}
+
+int WINAPI extIntersectClipRect(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
+{
+	int ret;
+	OutTraceDW("IntersectClipRect: hdc=%x rect=(%d,%d)-(%d,%d)\n", hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&nLeftRect, &nTopRect, &nRightRect, &nBottomRect);
+		OutTraceDW("IntersectClipRect: fixed rect=(%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
+	}
+
+	ret=(*pIntersectClipRect)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
+	OutTraceE("CreateRectRgnIndirect: ret=%x(%s)\n", ret, sClipType(ret)); 
 	return ret;
 }
 
@@ -1120,7 +1155,7 @@ int WINAPI extStretchDIBits(HDC hdc, int XDest, int YDest, int nDestWidth, int n
 	}
 
 	ret=(*pStretchDIBits)(hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, lpBits, lpBitsInfo, iUsage, dwRop);
-	if(!ret || (ret==GDI_ERROR)) OutTraceE("StretchDIBits: ERROR ret=%x\n", ret); 
+	if(!ret || (ret==GDI_ERROR)) OutTraceE("StretchDIBits: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
 }
 
@@ -1341,6 +1376,21 @@ HRGN WINAPI extCreateRectRgnIndirect(const RECT *lprc)
 	return ret;
 }
 
+BOOL WINAPI extSetRectRgn(HRGN hrgn, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect)
+{
+	BOOL ret;
+	OutTraceDW("SetRectRgn: hrgn=%x rect=(%d,%d)-(%d,%d)\n", hrgn, nLeftRect, nTopRect, nRightRect, nBottomRect);
+
+	if (dxw.IsFullScreen()){
+		dxw.MapClient(&nLeftRect, &nTopRect, &nRightRect, &nBottomRect);
+		OutTraceDW("SetRectRgn: fixed rect=(%d,%d)-(%d,%d)\n", nLeftRect, nTopRect, nRightRect, nBottomRect);
+	}
+
+	ret=(*pSetRectRgn)(hrgn, nLeftRect, nTopRect, nRightRect, nBottomRect);
+	if(!ret) OutTraceE("SetRectRgn: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
 HRGN WINAPI extCreatePolygonRgn(const POINT *lpPoints, int cPoints, int fnPolyFillMode)
 {
 	// LOGTOBEFIXED
@@ -1389,6 +1439,10 @@ BOOL WINAPI extSetViewportOrgEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
 
 	if(dxw.IsVirtual(hdc)) {
 		OutTraceDW("SetViewportOrgEx: virtual hdc\n");
+		if(lpPoint){
+			lpPoint->x = dxw.VirtualOffsetX;
+			lpPoint->y = dxw.VirtualOffsetY;
+		}
 		dxw.VirtualOffsetX = X;
 		dxw.VirtualOffsetY = Y;
 		return TRUE;
@@ -1415,6 +1469,17 @@ BOOL WINAPI extSetViewportExtEx(HDC hdc, int nXExtent, int nYExtent, LPSIZE lpSi
 {
 	BOOL ret;
 	OutTraceDW("SetViewportExtEx: hdc=%x ext=(%d,%d)\n", hdc, nXExtent, nYExtent);
+
+	if(dxw.IsVirtual(hdc)) {
+		OutTraceDW("SetViewportExtEx: virtual hdc\n");
+		if(lpSize){
+			lpSize->cx = dxw.VirtualExtentX;
+			lpSize->cy = dxw.VirtualExtentY;
+		}
+		dxw.VirtualExtentX = nXExtent;
+		dxw.VirtualExtentY = nYExtent;
+		return TRUE;
+	}
 
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
 		dxw.MapClient(&nXExtent, &nYExtent);
@@ -1458,6 +1523,30 @@ BOOL WINAPI extGetViewportOrgEx(HDC hdc, LPPOINT lpPoint)
 	return ret;
 }
 
+BOOL WINAPI extGetViewportExtEx(HDC hdc, LPPOINT lpPoint)
+{
+	BOOL ret;
+	OutTraceDW("GetViewportExtEx: hdc=%x\n", hdc);
+
+	if(dxw.IsVirtual(hdc)) {
+		lpPoint->x = dxw.VirtualOffsetX;
+		lpPoint->y = dxw.VirtualOffsetY;
+		return TRUE;
+	}
+
+	ret=(*pGetViewportExtEx)(hdc, lpPoint);
+	if(ret) {
+		OutTraceDW("GetViewportExtEx: ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+			dxw.UnmapClient(lpPoint);
+			OutTraceDW("GetViewportOrgEx: fixed ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		}
+	}
+
+	if(!ret) OutTraceE("GetViewportExtEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
 BOOL WINAPI extGetWindowOrgEx(HDC hdc, LPPOINT lpPoint)
 {
 	BOOL ret;
@@ -1495,6 +1584,28 @@ BOOL WINAPI extSetWindowOrgEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
 		}
 	}
 	if(!ret) OutTraceE("SetWindowOrgEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	return ret;
+}
+
+BOOL WINAPI extSetWindowExtEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
+{
+	BOOL ret;
+	OutTraceDW("SetWindowExtEx: hdc=%x pos=(%d,%d)\n", hdc, X, Y);
+
+	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+		dxw.MapClient(&X, &Y);
+		OutTraceDW("SetWindowExtEx: fixed pos=(%d,%d)\n", X, Y);
+	}
+
+	ret=(*pSetWindowExtEx)(hdc, X, Y, lpPoint);
+	if(ret && lpPoint) {
+		OutTraceDW("SetWindowExtEx: previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc))){
+			dxw.UnmapClient(lpPoint);
+			OutTraceDW("SetWindowExtEx: fixed previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+		}
+	}
+	if(!ret) OutTraceE("SetWindowExtEx: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
 }
 

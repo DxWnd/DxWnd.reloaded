@@ -152,6 +152,7 @@ public:
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
 	BOOL	m_CenterToWin;
+	BOOL	m_Deinterlace;
 	BOOL	m_SurfaceWarn;
 	BOOL	m_CapMask;
 	BOOL	m_NoDDRAWBlt;
@@ -159,6 +160,7 @@ public:
 	BOOL	m_NoGDIBlt;
 	BOOL	m_NoFillRect;
 	BOOL	m_ReuseEmulatedDC;
+	BOOL	m_CreateDesktop;
 	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;

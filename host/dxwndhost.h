@@ -34,6 +34,8 @@ typedef struct PRIVATEMAP
 	char *registry;
 }PRIVATEMAP;
 
+extern char gInitPath[MAX_PATH];
+
 /////////////////////////////////////////////////////////////////////////////
 // CDxwndhostApp:
 // For the definition of this class action please see the file dxwndhost.cpp.

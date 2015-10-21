@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "TargetDlg.h"
 #include "TabProgram.h"
+#include "dxwndhost.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -69,18 +70,17 @@ void CTabProgram::OnOpen()
 {
 	// TODO: Please add your control notification handler code here
     char path[MAX_PATH];
-	extern char *gInitFilePath;
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
-	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitFilePath);
+	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitPath);
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
 		cTarget->m_File.SetWindowText(dlg.GetPathName());
-		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitFilePath)){
+		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)){
 			strcpy(path, dlg.GetPathName());
 			GetFolderFromPath(path);
-			WritePrivateProfileString("window", "exepath", path, gInitFilePath);
+			WritePrivateProfileString("window", "exepath", path, gInitPath);
 		}
 	}
 }
@@ -89,18 +89,17 @@ void CTabProgram::OnOpenLaunch()
 {
 	// TODO: Please add your control notification handler code here
     char path[MAX_PATH];
-	extern char *gInitFilePath;
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
-	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitFilePath);
+	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitPath);
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
 		cTarget->m_Launch.SetWindowText(dlg.GetPathName());
-		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitFilePath)){
+		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)){
 			strcpy(path, dlg.GetPathName());
 			GetFolderFromPath(path);
-			WritePrivateProfileString("window", "exepath", path, gInitFilePath);
+			WritePrivateProfileString("window", "exepath", path, gInitPath);
 		}
 	}
 }
