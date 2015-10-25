@@ -929,3 +929,13 @@ fix: hooked more GDI calls: CreateICA, GetViewportExtEx, IntersectClipRect, SetR
 fix: ChangeDisplaySettings no longer take note of video mode when called with CDS_TEST flag
 fix: merged user32 FillRect and FrameRect handling
 fix: fixed bug that was leaving a copy of dxwnd.ini on last visited directory on window close
+
+v2.03.41
+fix: filtering of mouse messages in "Message pump" option. Makes games more responsive to mouse clicks. Improves "X-files".
+fix: exclusion of DDSCL_SETDEVICEWINDOW, DDSCL_CREATEDEVICEWINDOW and DDSCL_SETFOCUSWINDOW flags in ddraw SetCooperativeLevel windowed mode
+fix: guess PRIMARY surface in ddraw1 when no flags (but BACKBUFFERCOUNT) are set. Necessary for "Star Force Deluxe"
+delete: suppressed frame compensation option FRAMECOMPENSATION (unused).
+add: added debug flag NOWINDOWHOOKS to avoid WindowProc hook.
+fix: GetPaletteEntries hook returns 256 value against hpal=NULL. Let "M.I.B." run, though palette is still not ok.
+fix: StretchDIBits hook no longer can return an unassigned value
+fix: anti-recursion check in DialogBox WindowProc call

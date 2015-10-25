@@ -327,15 +327,6 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		}
 
 		if(dxw.dwFlags4 & RELEASEMOUSE){
-#if 0
-			if ((curr.x < 0) ||
-				(curr.y < 0) ||
-				(curr.x > w) ||
-				(curr.y > h)){
-				curr.x = w / 2;
-				curr.y = h / 2;
-			}
-#else
 			if ((curr.x < 0) || (curr.y < 0) || (curr.x > w) || (curr.y > h)){
 				if(IsWithin){
 					int RestX, RestY;
@@ -356,7 +347,6 @@ POINT dxwCore::FixCursorPos(POINT prev)
 				IsWithin = TRUE;
 				LastPos = curr;
 			}
-#endif
 		}
 		else {
 			if (curr.x < 0) curr.x = 0;
@@ -369,18 +359,18 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		if (h) curr.y = (curr.y * dxw.GetScreenHeight()) / h;
 	}
 
-	if(dxw.dwFlags4 & FRAMECOMPENSATION){
-		static int dx, dy, todo=TRUE;
-		if (todo){
-			POINT FrameOffset = dxw.GetFrameOffset();
-			dx=FrameOffset.x;
-			dy=FrameOffset.y;
-			OutTraceC("GetCursorPos: frame compensation=(%d,%d)\n", dx, dy);
-			todo=FALSE;
-		}
-		curr.x += dx;
-		curr.y += dy;
-	}
+	//if(dxw.dwFlags4 & FRAMECOMPENSATION){
+	//	static int dx, dy, todo=TRUE;
+	//	if (todo){
+	//		POINT FrameOffset = dxw.GetFrameOffset();
+	//		dx=FrameOffset.x;
+	//		dy=FrameOffset.y;
+	//		OutTraceC("GetCursorPos: frame compensation=(%d,%d)\n", dx, dy);
+	//		todo=FALSE;
+	//	}
+	//	curr.x += dx;
+	//	curr.y += dy;
+	//}
 
 	if((dxw.dwFlags1 & ENABLECLIPPING) && lpClipRegion){
 		// v2.1.93:

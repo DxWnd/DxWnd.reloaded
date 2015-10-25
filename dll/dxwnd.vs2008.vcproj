@@ -446,6 +446,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\msghook.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\msvfw.cpp"
 				>
 			</File>
@@ -467,6 +471,10 @@
 			</File>
 			<File
 				RelativePath=".\winmm.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\winproc.cpp"
 				>
 			</File>
 			<File

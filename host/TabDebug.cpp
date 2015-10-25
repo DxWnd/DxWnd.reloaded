@@ -39,6 +39,7 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_ANALYTICMODE, cTarget->m_AnalyticMode);
 	DDX_Check(pDX, IDC_SURFACEWARN, cTarget->m_SurfaceWarn);
 	DDX_Check(pDX, IDC_CAPMASK, cTarget->m_CapMask);
+	DDX_Check(pDX, IDC_NOWINDOWHOOKS, cTarget->m_NoWindowHooks);
 	DDX_Check(pDX, IDC_NODDRAWBLT, cTarget->m_NoDDRAWBlt);
 	DDX_Check(pDX, IDC_NODDRAWFLIP, cTarget->m_NoDDRAWFlip);
 	DDX_Check(pDX, IDC_NOGDIBLT, cTarget->m_NoGDIBlt);

@@ -664,7 +664,7 @@ LONG WINAPI extGetWindowLong(GetWindowLong_Type pGetWindowLong, char *ApiName, H
 
 	res=(*pGetWindowLong)(hwnd, nIndex);
 
-	OutTraceDW("%s: hwnd=%x, Index=%x(%s) res=%x\n", ApiName, hwnd, nIndex, ExplainSetWindowIndex(nIndex), res);
+	OutTraceB("%s: hwnd=%x, Index=%x(%s) res=%x\n", ApiName, hwnd, nIndex, ExplainSetWindowIndex(nIndex), res);
 
 	if((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)){
 		WNDPROC wp;
@@ -731,7 +731,9 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		}
 	}
 
-	if (((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)) && dxw.IsFullScreen()){ // v2.02.51 - see A10 Cuba....
+	if (((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)) && 
+		dxw.IsFullScreen() &&			// v2.02.51 - see A10 Cuba....
+		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug flag
 		WNDPROC lres;
 		WNDPROC OldProc;
 		// GPL fix
@@ -990,6 +992,7 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 	}
 
 	if(dxw.dwFlags1 & MODIFYMOUSE){
+#if 0
 		POINT cur;
 		RECT rect;
 
@@ -1018,6 +1021,15 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 		}
 		x = cur.x;
 		y = cur.y;
+#else
+		// v2.03.41
+		POINT cur;
+		cur.x = x;
+		cur.y = y;
+		dxw.MapWindow(&cur);
+		x = cur.x;
+		y = cur.y;
+#endif
 	}
 
 	res=0;
@@ -1318,6 +1330,8 @@ static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
 	// the correct value (dxwws.GetProc) before saving it (dxwws.PutProc).
 	long res;
 	WNDPROC pWindowProc;
+
+	if(dxw.dwFlags6 & NOWINDOWHOOKS) return;
 
 	pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
 	if((pWindowProc == extWindowProc) || 
@@ -2138,7 +2152,8 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 	dxw.SetFullScreen(FullScreen);
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL
-	if(lpDialogFunc) {	
+	if(	lpDialogFunc &&
+		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug option
 		dxwws.PutProc(RetHWND, (WNDPROC)lpDialogFunc);
 		if(!(*pSetWindowLongA)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 			OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -2161,7 +2176,8 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	dxw.SetFullScreen(FullScreen);
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL: fix for "LEGO Stunt Rally"
-	if(lpDialogFunc) {
+	if(	lpDialogFunc &&
+		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug option
 		dxwws.PutProc(RetHWND, (WNDPROC)lpDialogFunc);
 		if(!(*pSetWindowLongA)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 			OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -2916,9 +2932,8 @@ BOOL WINAPI extSetForegroundWindow(HWND hwnd)
 	return res;
 }
 
-HOOKPROC glpMouseHookProcessFunction;
-HOOKPROC glpMessageHookProcessFunction;
 /*
+HOOKPROC glpMouseHookProcessFunction;
 LRESULT CALLBACK extMouseHookProc(int code, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT ret;
@@ -2932,6 +2947,8 @@ LRESULT CALLBACK extMouseHookProc(int code, WPARAM wParam, LPARAM lParam)
 }
 */
 
+HOOKPROC glpMessageHookProcessFunction;
+
 LRESULT CALLBACK extMessageHookProc(int code, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT ret;
@@ -2941,7 +2958,9 @@ LRESULT CALLBACK extMessageHookProc(int code, WPARAM wParam, LPARAM lParam)
 	if(pMessage){
 		UINT message = pMessage->message;
 		if ((message >= 0x600) ||											// custom messages
-			((message >= WM_KEYFIRST) && (message <= WM_KEYLAST)))			// keyboard messages
+			((message >= WM_KEYFIRST) && (message <= WM_KEYLAST)) ||		// keyboard messages
+			((message >= WM_MOUSEFIRST) && (message <= WM_MOUSELAST))		// mouse messages
+			)			
 			ret = (*glpMessageHookProcessFunction)(code, wParam, lParam);
 	}
 	return ret;

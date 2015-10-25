@@ -2088,7 +2088,8 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 				dxw.SethWnd(hwnd);
 			}
 			dxw.SetFullScreen(TRUE);
-			dwflags &= ~(DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
+			// v2.03.41: added suppression of DDSCL_SETDEVICEWINDOW DDSCL_CREATEDEVICEWINDOW DDSCL_SETFOCUSWINDOW used by "PBA Bowling 2"
+			dwflags &= ~(DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX | DDSCL_SETDEVICEWINDOW | DDSCL_CREATEDEVICEWINDOW | DDSCL_SETFOCUSWINDOW);
 			dwflags |= DDSCL_NORMAL;
 			bFixFrame = TRUE;
 		}
@@ -2844,15 +2845,15 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 	//GHO workaround (needed for WarWind, Rogue Spear):
 	if (lpddsd->dwFlags && !(lpddsd->dwFlags & 0x1)){
 		OutTraceDW("CreateSurface: fixing illegal dwFlags value: %x -> %x\n",
-			lpddsd->dwFlags, lpddsd->dwFlags+1);
-		lpddsd->dwFlags++;
+			lpddsd->dwFlags, (lpddsd->dwFlags | DDSD_CAPS));
+		lpddsd->dwFlags |= DDSD_CAPS;
 	}
 
 	memcpy(&ddsd, lpddsd, lpddsd->dwSize); // Copy
 
 	// v2.02.38: this is odd: in "Star Force Deluxe" there is no PRIMARY surface, but a surface with 
 	// 0 flags and 0 capabilities serves for this purpose. Is it a side-effect of old ddraw releases?
-	if((dxversion == 1) && (ddsd.dwFlags == 0)){ // Star Force Deluxe
+	if((dxversion == 1) && ((ddsd.dwFlags & ~DDSD_BACKBUFFERCOUNT) == 0)){ // Star Force Deluxe
 		ddsd.dwFlags = DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 		//if(dxw.VirtualPixelFormat.dwRGBBitCount == 8) ddsd.ddsCaps.dwCaps |= DDSCAPS_PALETTE;

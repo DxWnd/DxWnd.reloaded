@@ -42,6 +42,9 @@ COLORREF WINAPI extSetBkColor(HDC, COLORREF);
 COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor);
 int WINAPI extSetBkMode(HDC, int);
 */
+typedef int (WINAPI *SetDIBits_Type)(HDC, HBITMAP, UINT, UINT, const VOID *, const BITMAPINFO *, UINT);
+int WINAPI extSetDIBits(HDC, HBITMAP, UINT, UINT, const VOID *, const BITMAPINFO *, UINT);
+SetDIBits_Type pSetDIBits = NULL;
 
 static HookEntry_Type Hooks[]={
 
@@ -56,14 +59,12 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "GetSystemPaletteEntries", (FARPROC)GetSystemPaletteEntries, (FARPROC *)&pGDIGetSystemPaletteEntries, (FARPROC)extGetSystemPaletteEntries},
 	{HOOK_HOT_CANDIDATE, "SetSystemPaletteUse", (FARPROC)SetSystemPaletteUse, (FARPROC *)&pSetSystemPaletteUse, (FARPROC)extSetSystemPaletteUse},
 	{HOOK_IAT_CANDIDATE, "StretchDIBits", (FARPROC)StretchDIBits, (FARPROC *)&pStretchDIBits, (FARPROC)extStretchDIBits},
-	//{HOOK_IAT_CANDIDATE, "SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice},
 	//{HOOK_IAT_CANDIDATE, "CreateCompatibleBitmap", (FARPROC)NULL, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap},
 	//{HOOK_IAT_CANDIDATE, "SetMapMode", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extSetMapMode},
 	{HOOK_IAT_CANDIDATE, "SetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDISetPixelFormat, (FARPROC)extGDISetPixelFormat},
 	{HOOK_IAT_CANDIDATE, "GetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDIGetPixelFormat, (FARPROC)extGDIGetPixelFormat},
 	{HOOK_IAT_CANDIDATE, "ChoosePixelFormat", (FARPROC)NULL, (FARPROC *)&pChoosePixelFormat, (FARPROC)extChoosePixelFormat},
 	{HOOK_IAT_CANDIDATE, "DescribePixelFormat", (FARPROC)NULL, (FARPROC *)&pDescribePixelFormat, (FARPROC)extDescribePixelFormat},
-
 	{HOOK_HOT_CANDIDATE, "GetPaletteEntries", (FARPROC)GetPaletteEntries, (FARPROC *)&pGetPaletteEntries, (FARPROC)extGetPaletteEntries},
 	{HOOK_HOT_CANDIDATE, "GetSystemPaletteUse", (FARPROC)GetSystemPaletteUse, (FARPROC *)&pGetSystemPaletteUse, (FARPROC)extGetSystemPaletteUse},
 #ifdef TRACEPALETTE
@@ -84,6 +85,7 @@ static HookEntry_Type RemapHooks[]={
 	{HOOK_IAT_CANDIDATE, "SetDIBitsToDevice", (FARPROC)NULL, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice}, // does the stretching
 	{HOOK_IAT_CANDIDATE, "GetRgnBox", (FARPROC)NULL, (FARPROC *)&pGetRgnBox, (FARPROC)extGetRgnBox},
 	//{HOOK_IAT_CANDIDATE, "GetRegionData", (FARPROC)NULL, (FARPROC *)&pGetRegionData, (FARPROC)extGetRegionData},
+	//{HOOK_HOT_CANDIDATE, "SetDIBits", (FARPROC)SetDIBits, (FARPROC *)&pSetDIBits, (FARPROC)extSetDIBits},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator 
 };
 
@@ -644,6 +646,13 @@ UINT WINAPI extGetPaletteEntries(HPALETTE hpal, UINT iStartIndex, UINT nEntries,
 	OutTraceDW("GDI.GetPaletteEntries: hpal=%x iStartIndex=%d nEntries=%d\n", hpal, iStartIndex, nEntries);
 	res=(*pGetPaletteEntries)(hpal, iStartIndex, nEntries, lppe);
 	OutTraceDW("GDI.GetPaletteEntries: res-nEntries=%d\n", res);
+	if(hpal==0) {
+		if((res == 0) && (dxw.dwFlags1 & EMULATESURFACE)) {
+		res = extGetSystemPaletteEntries(0, iStartIndex, nEntries, lppe);
+		mySetPalette(iStartIndex, nEntries, lppe); 
+		}
+		res=(nEntries > 256) ? nEntries : 256; // "M.I.B." patch ....
+	}
 	if(IsDebug && res) dxw.DumpPalette(res, &lppe[iStartIndex]);
 	//mySetPalette(0, nEntries, lppe); 
 	return res;
@@ -1157,6 +1166,23 @@ int WINAPI extStretchDIBits(HDC hdc, int XDest, int YDest, int nDestWidth, int n
 	ret=(*pStretchDIBits)(hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, lpBits, lpBitsInfo, iUsage, dwRop);
 	if(!ret || (ret==GDI_ERROR)) OutTraceE("StretchDIBits: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
+}
+
+int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines, const VOID *lpvBits, const BITMAPINFO *lpbmi, UINT fuColorUse)
+{
+	int ret;
+	BITMAPINFOHEADER *bmi;
+	OutTraceDW("SetDIBits: hdc=%x hbmp=%x lines=(%d,%d) ColorUse=%x\n", hdc, hbmp, uStartScan, cScanLines, fuColorUse);
+	bmi=(BITMAPINFOHEADER *)&(lpbmi->bmiHeader);
+	OutTraceDW("SetDIBits: BitmapInfo dim=(%dx%d) Planes=%d BPP=%d Compression=%x SizeImage=%x\n",
+		bmi->biWidth, bmi->biHeight, bmi->biPlanes, bmi->biBitCount, bmi->biCompression, bmi->biSizeImage);
+	ret = (*pSetDIBits)(hdc, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
+	OutTraceDW("SetDIBits: ret=%d\n", ret);
+	return ret;
+
+	//return cScanLines;
+	//return (*pSetDIBits)(hdc, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, DIB_PAL_COLORS);
+	//return (*pSetDIBits)(hdc, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, DIB_RGB_COLORS);
 }
 
 int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DWORD dwHeight, int XSrc, int YSrc, UINT uStartScan, UINT cScanLines, 

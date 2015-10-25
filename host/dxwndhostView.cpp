@@ -359,6 +359,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_Force16BPP) t->flags3 |= FORCE16BPP;
 	if(dlg->m_HookChildWin) t->flags |= HOOKCHILDWIN;
 	if(dlg->m_MessageProc) t->flags |= MESSAGEPROC;
+	//if(dlg->m_NoMouseProc) t->flags6 |= NOMOUSEPROC;
 	if(dlg->m_FixNCHITTEST) t->flags2 |= FIXNCHITTEST;
 	if(dlg->m_RecoverScreenMode) t->flags2 |= RECOVERSCREENMODE;
 	if(dlg->m_RefreshOnResize) t->flags2 |= REFRESHONRESIZE;
@@ -377,7 +378,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_QuarterBlt) t->flags5 |= QUARTERBLT;
 	if(dlg->m_FineTiming) t->flags4 |= FINETIMING;
 	if(dlg->m_ReleaseMouse) t->flags4 |= RELEASEMOUSE;
-	if(dlg->m_FrameCompensation) t->flags4 |= FRAMECOMPENSATION;
+//	if(dlg->m_FrameCompensation) t->flags4 |= FRAMECOMPENSATION;
 	if(dlg->m_EnableHotKeys) t->flags4 |= ENABLEHOTKEYS;
 	if(dlg->m_InterceptRDTSC) t->flags4 |= INTERCEPTRDTSC;
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
@@ -393,6 +394,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoPaletteUpdate) t->flags2 |= NOPALETTEUPDATE;
 	if(dlg->m_SurfaceWarn) t->flags3 |= SURFACEWARN;
 	if(dlg->m_CapMask) t->flags3 |= CAPMASK;
+	if(dlg->m_NoWindowHooks) t->flags6 |= NOWINDOWHOOKS;
 	if(dlg->m_NoDDRAWBlt) t->flags3 |= NODDRAWBLT;
 	if(dlg->m_NoDDRAWFlip) t->flags3 |= NODDRAWFLIP;
 	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
@@ -597,6 +599,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_Force16BPP = t->flags3 & FORCE16BPP ? 1 : 0;
 	dlg->m_HookChildWin = t->flags & HOOKCHILDWIN ? 1 : 0;
 	dlg->m_MessageProc = t->flags & MESSAGEPROC ? 1 : 0;
+	//dlg->m_NoMouseProc = t->flags6 & NOMOUSEPROC ? 1 : 0;
 	dlg->m_FixNCHITTEST = t->flags2 & FIXNCHITTEST ? 1 : 0;
 	dlg->m_RecoverScreenMode = t->flags2 & RECOVERSCREENMODE ? 1 : 0;
 	dlg->m_RefreshOnResize = t->flags2 & REFRESHONRESIZE ? 1 : 0;
@@ -615,7 +618,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_QuarterBlt = t->flags5 & QUARTERBLT ? 1 : 0;
 	dlg->m_FineTiming = t->flags4 & FINETIMING ? 1 : 0;
 	dlg->m_ReleaseMouse = t->flags4 & RELEASEMOUSE ? 1 : 0;
-	dlg->m_FrameCompensation = t->flags4 & FRAMECOMPENSATION ? 1 : 0;
+//	dlg->m_FrameCompensation = t->flags4 & FRAMECOMPENSATION ? 1 : 0;
 	dlg->m_EnableHotKeys = t->flags4 & ENABLEHOTKEYS ? 1 : 0;
 	dlg->m_InterceptRDTSC = t->flags4 & INTERCEPTRDTSC ? 1 : 0;
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;
@@ -631,6 +634,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoPaletteUpdate = t->flags2 & NOPALETTEUPDATE ? 1 : 0;
 	dlg->m_SurfaceWarn = t->flags3 & SURFACEWARN ? 1 : 0;
 	dlg->m_CapMask = t->flags3 & CAPMASK ? 1 : 0;
+	dlg->m_NoWindowHooks = t->flags6 & NOWINDOWHOOKS ? 1 : 0;
 	dlg->m_NoDDRAWBlt = t->flags3 & NODDRAWBLT ? 1 : 0;
 	dlg->m_NoDDRAWFlip = t->flags3 & NODDRAWFLIP ? 1 : 0;
 	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;

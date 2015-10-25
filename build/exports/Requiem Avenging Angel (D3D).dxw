@@ -1,6 +1,6 @@
 [target]
 title0=Requiem Avenging Angel (D3D)
-path0=D:\Games\Requiem Avenging Angel\D3D.exe
+path0=D:\Games\Requiem Avenging Angel\D3D.by Matt.exe
 launchpath0=
 module0=
 opengllib0=
@@ -8,8 +8,8 @@ ver0=0
 coord0=0
 flag0=-1468006366
 flagg0=1207959552
-flagh0=20
-flagi0=138412036
+flagh0=1044
+flagi0=1212153860
 tflag0=0
 initx0=0
 inity0=0
@@ -26,3 +26,7 @@ initts0=0
 winver0=0
 maxres0=-1
 flagj0=128
+notes0=
+registry0=# Requiem Avenging Angel: DirectX version patch\n\n[HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\DirectX]\n"Version"="4.07.00.0704"\n\n[HKEY_LOCAL_MACHINE\Software\Microsoft\DirectX]\n"Version"="4.07.00.0704"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\DirectX]\n"Version"="4.07.00.0704"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\DirectX]\n"Version"="4.07.00.0704"\n
+flagk0=67174400
+swapeffect0=0

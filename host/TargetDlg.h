@@ -124,6 +124,7 @@ public:
 	BOOL	m_NoWindowMove;
 	BOOL	m_HookChildWin;
 	BOOL	m_MessageProc;
+	//BOOL	m_NoMouseProc;
 	BOOL	m_FixNCHITTEST;
 	BOOL	m_RecoverScreenMode;
 	BOOL	m_RefreshOnResize;
@@ -143,7 +144,7 @@ public:
 	BOOL	m_QuarterBlt;
 	BOOL	m_FineTiming;
 	BOOL	m_ReleaseMouse;
-	BOOL	m_FrameCompensation;
+//	BOOL	m_FrameCompensation;
 	BOOL	m_EnableHotKeys;
 	BOOL	m_InterceptRDTSC;
 	BOOL	m_HookOpenGL;
@@ -155,6 +156,7 @@ public:
 	BOOL	m_Deinterlace;
 	BOOL	m_SurfaceWarn;
 	BOOL	m_CapMask;
+	BOOL	m_NoWindowHooks;
 	BOOL	m_NoDDRAWBlt;
 	BOOL	m_NoDDRAWFlip;
 	BOOL	m_NoGDIBlt;
