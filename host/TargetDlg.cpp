@@ -197,6 +197,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_NoFillRect = FALSE;
 	m_ReuseEmulatedDC = FALSE; // ??
 	m_CreateDesktop = FALSE;
+	m_SyncPalette = FALSE;
 	m_AnalyticMode = FALSE;
 	m_NoPaletteUpdate = FALSE;
 	m_WireFrame = FALSE;

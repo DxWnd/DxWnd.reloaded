@@ -407,18 +407,18 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if(dxw.Windowize){
 			prev.x = LOWORD(lparam);
 			prev.y = HIWORD(lparam);
-			if ((dxw.dwFlags1 & HIDEHWCURSOR) && dxw.IsFullScreen()){
-				(*pGetClientRect)(hwnd, &rect);
-				if(prev.x >= 0 && prev.x < rect.right && prev.y >= 0 && prev.y < rect.bottom)
-					while((*pShowCursor)(0) >= 0);
-				else
+			if(dxw.IsFullScreen()){
+				if (dxw.dwFlags1 & HIDEHWCURSOR){
+					(*pGetClientRect)(hwnd, &rect);
+					if(prev.x >= 0 && prev.x < rect.right && prev.y >= 0 && prev.y < rect.bottom)
+						while((*pShowCursor)(0) >= 0);
+					else
+						while((*pShowCursor)(1) < 0);
+				}
+				if (dxw.dwFlags1 & SHOWHWCURSOR){
 					while((*pShowCursor)(1) < 0);
+				}
 			}
-			else {
-				while((*pShowCursor)(1) < 0);
-			}
-			//if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
-			//if((dxw.dwFlags1 & MODIFYMOUSE) && !(dxw.dwFlags6 & NOMOUSEPROC)){ // mouse processing  
 			if((dxw.dwFlags1 & MODIFYMOUSE) && !(dxw.dwFlags1 & MESSAGEPROC)){ // mouse processing  
 				// scale mouse coordinates
 				curr=dxw.FixCursorPos(prev); //v2.02.30
@@ -442,8 +442,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_MBUTTONDBLCLK:
 		if(dxw.Windowize){
 			if((dxw.dwFlags1 & CLIPCURSOR) && ClipCursorToggleState) dxw.SetClipCursor();
-			//if(dxw.dwFlags1 & MODIFYMOUSE){ // mouse processing 
-			//if((dxw.dwFlags1 & MODIFYMOUSE) && !(dxw.dwFlags6 & NOMOUSEPROC)){ // mouse processing  
 			if((dxw.dwFlags1 & MODIFYMOUSE) && !(dxw.dwFlags1 & MESSAGEPROC)){ // mouse processing  
 				// scale mouse coordinates
 				prev.x = LOWORD(lparam);

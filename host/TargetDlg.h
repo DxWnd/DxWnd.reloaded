@@ -163,6 +163,7 @@ public:
 	BOOL	m_NoFillRect;
 	BOOL	m_ReuseEmulatedDC;
 	BOOL	m_CreateDesktop;
+	BOOL	m_SyncPalette;
 	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;

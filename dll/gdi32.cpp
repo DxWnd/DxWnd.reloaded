@@ -231,6 +231,7 @@ extern HRESULT WINAPI sBlt(char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURF
 extern GetDC_Type pGetDC;
 extern ReleaseDC_Type pReleaseDC;
 
+#if 0
 static COLORREF GetMatchingColor(COLORREF crColor)
 {
 	int iDistance, iMinDistance;
@@ -306,6 +307,7 @@ static COLORREF GetMatchingColor(COLORREF crColor)
 	}
 	return crColor;
 }
+#endif 
 
 //--------------------------------------------------------------------------------------------
 //
@@ -564,17 +566,19 @@ HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
 	OutTraceDW("GDI.SelectPalette: hdc=%x hpal=%x ForceBackground=%x\n", hdc, hpal, bForceBackground);
 	if(hdc==dxw.RealHDC) hdc= dxw.VirtualHDC;
 
-	if(dxw.dwFlags1 & EMULATESURFACE){
+	if((dxw.dwFlags1 & EMULATESURFACE)  && (dxw.dwFlags6 & SYNCPALETTE) && bFlippedDC){
 		hDesktopPalette=hpal;
-		PALETTEENTRY lppe[256];
-		int nEntries;
-		if(bFlippedDC) hdc = hFlippedDC;
-		ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
-		nEntries=(*pGetPaletteEntries)(hpal, 0, 256, lppe);
-		//mySetPalette(0, nEntries, lppe); 
-		//OutTraceDW("GDI.SelectPalette: register desktop palette hpal=%x nEntries=%d\n", hpal, nEntries);
-		OutTraceDW("GDI.SelectPalette: remapped hdc=%x hpal=%x nEntries=%d\n", hdc, hpal, nEntries);
-		if(IsDebug && nEntries) dxw.DumpPalette(nEntries, lppe);
+		if(hFlippedDC){
+			hdc = hFlippedDC;
+			ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
+		}
+		else{
+			LPDIRECTDRAWSURFACE lpDDSPrim;
+			lpDDSPrim = dxwss.GetPrimarySurface();
+			(*pGetDC)(lpDDSPrim, &hdc);
+			ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
+			(*pReleaseDC)(lpDDSPrim, hdc);
+		}
 	}
 	else{
 		ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
@@ -591,13 +595,13 @@ BOOL WINAPI extAnimatePalette(HPALETTE hpal, UINT iStartIndex, UINT cEntries, co
 	return TRUE;
 }
 
-UINT WINAPI extRealizePalette(HDC hdc)
+UINT WINAPI extRealizePalette(HDC hdc) 
 {
 	UINT ret;
 
 	OutTraceDW("GDI.RealizePalette: hdc=%x\n", hdc);
 
-	if(dxw.dwFlags1 & EMULATESURFACE){
+	if((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags6 & SYNCPALETTE)){
 		PALETTEENTRY PalEntries[256];
 		UINT nEntries;
 		if(bFlippedDC) hdc = hFlippedDC;
@@ -608,6 +612,11 @@ UINT WINAPI extRealizePalette(HDC hdc)
 		mySetPalette(0, nEntries, PalEntries); 
 		if(IsDebug && nEntries) dxw.DumpPalette(nEntries, PalEntries);  
 		ret=nEntries;
+
+		HRESULT res;
+		extern LPDIRECTDRAWPALETTE lpDDP;
+		extern SetEntries_Type pSetEntries;
+		res=(*pSetEntries)(lpDDP, 0, 0, 256, PalEntries);
 	}
 	else
 		ret=(*pGDIRealizePalette)(hdc);
@@ -623,7 +632,7 @@ UINT WINAPI extGetSystemPaletteEntries(HDC hdc, UINT iStartIndex, UINT nEntries,
 	OutTraceDW("GetSystemPaletteEntries: hdc=%x start=%d num=%d\n", hdc, iStartIndex, nEntries);
 	ret=(*pGDIGetSystemPaletteEntries)(hdc, iStartIndex, nEntries, lppe);
 	OutTraceDW("GetSystemPaletteEntries: ret=%d\n", ret);
-	if((ret == 0) && (dxw.dwFlags1 & EMULATESURFACE)) {
+	if((ret == 0) && (dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags6 & SYNCPALETTE)) {
 		// use static default data...
 		for(UINT idx=0; idx<nEntries; idx++) lppe[idx]=DefaultSystemPalette[iStartIndex+idx]; 
 		ret = nEntries;
@@ -646,12 +655,9 @@ UINT WINAPI extGetPaletteEntries(HPALETTE hpal, UINT iStartIndex, UINT nEntries,
 	OutTraceDW("GDI.GetPaletteEntries: hpal=%x iStartIndex=%d nEntries=%d\n", hpal, iStartIndex, nEntries);
 	res=(*pGetPaletteEntries)(hpal, iStartIndex, nEntries, lppe);
 	OutTraceDW("GDI.GetPaletteEntries: res-nEntries=%d\n", res);
-	if(hpal==0) {
-		if((res == 0) && (dxw.dwFlags1 & EMULATESURFACE)) {
-		res = extGetSystemPaletteEntries(0, iStartIndex, nEntries, lppe);
-		mySetPalette(iStartIndex, nEntries, lppe); 
-		}
-		res=(nEntries > 256) ? nEntries : 256; // "M.I.B." patch ....
+	if((res < nEntries) && (dxw.dwFlags6 & SYNCPALETTE)) { 
+		res = nEntries;
+		OutTraceDW("GDI.GetPaletteEntries: faking missing entries=%d\n", res);
 	}
 	if(IsDebug && res) dxw.DumpPalette(res, &lppe[iStartIndex]);
 	//mySetPalette(0, nEntries, lppe); 

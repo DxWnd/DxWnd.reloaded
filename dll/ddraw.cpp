@@ -2321,6 +2321,18 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	// "Hoyle Casino Empire" opens a primary surface and NOT a backbuffer ....
 	iBakBufferVersion=dxversion; // v2.03.01
 
+	// build a default System palette and apply it to primary surface
+	if((ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) &&
+		(dxw.dwFlags6 & SYNCPALETTE)){ 
+		if(lpDDP == NULL){
+			res=(*pCreatePalette)(lpdd, DDPCAPS_8BIT|DDPCAPS_ALLOW256, DefaultSystemPalette, &lpDDP, NULL);
+			if(res) OutTrace("CreateSurface: CreatePalette ERROR err=%x at %d\n", res, __LINE__); 
+		}
+		// this must be done after hooking - who knows why?
+		res=(*pSetPalette)(*lplpdds, lpDDP);
+		if(res) OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+	}
+
 	// set a global capability value for surfaces that have to blit to primary
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	// DDSCAPS_SYSTEMMEMORY makes operations faster, but it is not always good...
@@ -2385,6 +2397,18 @@ static HRESULT BuildPrimaryFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pCrea
 	HookDDSurfacePrim(lplpdds, dxversion);
 	// "Hoyle Casino Empire" opens a primary surface and NOT a backbuffer ....
 	iBakBufferVersion=dxversion; // v2.03.01
+
+	// build a default System palette and apply it to primary surface
+	if((ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) &&
+		(dxw.dwFlags6 & SYNCPALETTE)){ 
+		if(lpDDP == NULL){
+			res=(*pCreatePalette)(lpdd, DDPCAPS_8BIT|DDPCAPS_ALLOW256, DefaultSystemPalette, &lpDDP, NULL);
+			if(res) OutTrace("CreateSurface: CreatePalette ERROR err=%x at %d\n", res, __LINE__); 
+		}
+		// this must be done after hooking - who knows why?
+		res=(*pSetPalette)(*lplpdds, lpDDP);
+		if(res) OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+	}
 
 	// set a global capability value for surfaces that have to blit to primary
 	dwBackBufferCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
@@ -2496,6 +2520,17 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	HookDDSurfaceGeneric(lplpdds, dxversion); // added !!!
 	iBakBufferVersion=dxversion; // v2.02.31
 
+	if((ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) &&
+		(dxw.dwFlags6 & SYNCPALETTE)){ 
+		if(lpDDP == NULL){
+			res=(*pCreatePalette)(lpdd, DDPCAPS_8BIT|DDPCAPS_ALLOW256, DefaultSystemPalette, &lpDDP, NULL);
+			if(res) OutTrace("CreateSurface: CreatePalette ERROR err=%x at %d\n", res, __LINE__); 
+		}
+		// this must be done after hooking - who knows why?
+		res=(*pSetPalette)(*lplpdds, lpDDP);
+		if(res) OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+	}
+
 	// V2.1.85/V2.2.34: tricky !!!!
 	// When a real backbuffer is created, it has a reference to its frontbuffer.
 	// some games (Monopoly 3D) may depend on this setting - i.e. they could close
@@ -2540,6 +2575,17 @@ static HRESULT BuildBackBufferFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pC
     if(IsDebug) DescribeSurface(*lplpdds, dxversion, "DDSBack", __LINE__);
 	HookDDSurfaceGeneric(lplpdds, dxversion); // added !!!
 	iBakBufferVersion=dxversion; // v2.02.31
+
+	if((ddsd.ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8) &&
+		(dxw.dwFlags6 & SYNCPALETTE)){ 
+		if(lpDDP == NULL){
+			res=(*pCreatePalette)(lpdd, DDPCAPS_8BIT|DDPCAPS_ALLOW256, DefaultSystemPalette, &lpDDP, NULL);
+			if(res) OutTrace("CreateSurface: CreatePalette ERROR err=%x at %d\n", res, __LINE__); 
+		}
+		// this must be done after hooking - who knows why?
+		res=(*pSetPalette)(*lplpdds, lpDDP);
+		if(res) OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+	}
 
 	return DD_OK;
 }

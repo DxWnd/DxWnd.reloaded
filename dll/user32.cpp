@@ -620,15 +620,19 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		OutTraceDW("InvalidateRect: hwnd=%x rect=NULL erase=%x\n",
 		hwnd, bErase);
 
-	if(dxw.IsFullScreen() && dxw.IsRealDesktop(hwnd)) {
-		hwnd=dxw.GethWnd();
-		dxw.MapClient(lpRect);
-		return (*pInvalidateRect)(hwnd, lpRect, bErase);
+
+	if(dxw.IsFullScreen()) {
+		switch(GDIEmulationMode){
+			case GDIMODE_STRETCHED:
+				if(lpRect) dxw.MapClient(lpRect);
+				break;
+			case GDIMODE_EMULATED:
+			default:
+				break;
+		}
 	}
-	else{
-		// don't exagerate ...
-		return (*pInvalidateRect)(hwnd, lpRect, bErase);
-	}
+
+	return (*pInvalidateRect)(hwnd, lpRect, bErase);
 }
 
 BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)

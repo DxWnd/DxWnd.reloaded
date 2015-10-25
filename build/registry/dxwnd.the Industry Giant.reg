@@ -1,9 +1,0 @@
-[HKEY_LOCAL_MACHINE\SOFTWARE]
-
-; the Industry Giant
-
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\JoWooD]
-[HKEY_LOCAL_MACHINE\SOFTWARE\JoWooD\The IndustryGiant]
-"InstallPath"="."
-

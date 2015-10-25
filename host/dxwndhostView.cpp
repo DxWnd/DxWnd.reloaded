@@ -401,6 +401,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoFillRect) t->flags4 |= NOFILLRECT;
 	if(dlg->m_ReuseEmulatedDC) t->flags6 |= REUSEEMULATEDDC;
 	if(dlg->m_CreateDesktop) t->flags6 |= CREATEDESKTOP;
+	if(dlg->m_SyncPalette) t->flags6 |= SYNCPALETTE;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	t->initx = dlg->m_InitX;
@@ -641,6 +642,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoFillRect = t->flags4 & NOFILLRECT ? 1 : 0;
 	dlg->m_ReuseEmulatedDC = t->flags6 & REUSEEMULATEDDC ? 1 : 0;
 	dlg->m_CreateDesktop = t->flags6 & CREATEDESKTOP ? 1 : 0;
+	dlg->m_SyncPalette = t->flags6 & SYNCPALETTE ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_InitX = t->initx;

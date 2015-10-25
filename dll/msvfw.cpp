@@ -20,7 +20,7 @@ BOOL WINAPI extDrawDibDraw(HDRAWDIB, HDC, int, int, int, int, LPBITMAPINFOHEADER
 static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
 	//{HOOK_HOT_CANDIDATE, "ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
-	//{HOOK_HOT_CANDIDATE, "MCIWndCreateA", (FARPROC)NULL, (FARPROC *)&pMCIWndCreateA, (FARPROC)extMCIWndCreateA}, // "Man in Black" - beware: this is NOT STDCALL!!!
+	{HOOK_HOT_CANDIDATE, "MCIWndCreateA", (FARPROC)NULL, (FARPROC *)&pMCIWndCreateA, (FARPROC)extMCIWndCreateA}, // "Man in Black" - beware: this is NOT STDCALL!!!
 	{HOOK_HOT_CANDIDATE, "ICGetDisplayFormat", (FARPROC)NULL, (FARPROC *)&pICGetDisplayFormat, (FARPROC)extICGetDisplayFormat}, // "Man in Black" - beware: this is NOT STDCALL!!!
 	{HOOK_HOT_CANDIDATE, "ICDrawBegin", (FARPROC)NULL, (FARPROC *)&pICDrawBegin, (FARPROC)extICDrawBegin}, 
 	{HOOK_HOT_CANDIDATE, "DrawDibDraw", (FARPROC)NULL, (FARPROC *)&pDrawDibDraw, (FARPROC)extDrawDibDraw}, 
@@ -172,17 +172,31 @@ HWND extMCIWndCreateA(HWND hwndParent, HINSTANCE hInstance, DWORD dwStyle, LPCTS
 	HWND g_hwndMCIWnd;
 	OutTraceDW("MCIWndCreateA: hwnd=%x hInst=%x style=%x(%s) file=%s\n", 
 		hwndParent, hInstance, dwStyle, ExplainMCIWndCreateFlags(dwStyle), szFile);
-	if(dxw.dwFlags6 & NOMOVIES) return NULL;
+	if(dxw.dwFlags6 & NOMOVIES) {
+		OutTraceDW("MCIWndCreateA: SUPPRESSED\n");
+		return NULL;
+	}
 
 	g_hwndMCIWnd = (*pMCIWndCreateA)(hwndParent, hInstance, dwStyle, szFile);
 
 	// look at https://msdn.microsoft.com/en-us/library/windows/desktop/dd757178%28v=vs.85%29.aspx
 
 	if(dxw.dwFlags5 & REMAPMCI){
-		(*pSetWindowPos)(g_hwndMCIWnd,           // window to resize 
-		NULL,                          // z-order: don't care 
-		(800-640)/2, (600-480)/2, 640, 480,
+		// since there seem to be no way to stretch the movie, we do an attempt to center 
+		// the movie on the screen by shifting the video window. 
+		// We assume (but we don't really know for sure ...) that the movie was to be rendered
+		// fulscreen using the size of the virtual desktop
+		RECT client;
+		OutTraceDW("MCIWndCreateA: CENTERED\n");
+		(*pGetClientRect)(dxw.GethWnd(), &client);
+		(*pSetWindowPos)(g_hwndMCIWnd,					// window to resize 
+		NULL,											// z-order: don't care 
+		(client.right - dxw.GetScreenWidth()) / 2,		// X pos
+		(client.bottom - dxw.GetScreenHeight()) / 2,	// Y pos
+		dxw.GetScreenWidth(),							// width
+		dxw.GetScreenHeight(),							// height
 		SWP_NOZORDER | SWP_NOACTIVATE); 
+		//(*pUpdateWindow)(g_hwndMCIWnd);
 	}
 
 	return g_hwndMCIWnd;
