@@ -544,6 +544,7 @@ extern BOOL WINAPI extGetVersionExA(LPOSVERSIONINFOA);
 extern BOOL WINAPI extGetVersionExW(LPOSVERSIONINFOW);
 extern void WINAPI extGlobalMemoryStatus(LPMEMORYSTATUS);
 extern int WINAPI extIsDebuggerPresent(void);
+extern BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 extern HMODULE WINAPI extLoadLibraryA(LPCTSTR);
 extern HMODULE WINAPI extLoadLibraryExA(LPCTSTR, HANDLE, DWORD);
 extern HMODULE WINAPI extLoadLibraryW(LPCWSTR);

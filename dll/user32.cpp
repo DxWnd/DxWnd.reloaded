@@ -1713,11 +1713,13 @@ LONG WINAPI extEnumDisplaySettings(LPCTSTR lpszDeviceName, DWORD iModeNum, DEVMO
 LONG WINAPI extChangeDisplaySettingsA(DEVMODEA *lpDevMode, DWORD dwflags)
 {
 	if(IsTraceDDRAW){
-		OutTrace("ChangeDisplaySettingsA: lpDevMode=%x flags=%x(%s)", lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags));
-		if (lpDevMode) OutTrace(" DeviceName=%s fields=%x(%s) size=(%d x %d) bpp=%d", 
+		char sInfo[1024];
+		strcpy(sInfo, "");
+		if (lpDevMode) sprintf(sInfo, " DeviceName=%s fields=%x(%s) size=(%d x %d) bpp=%d", 
 			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
-		OutTrace("\n");
+		OutTrace("ChangeDisplaySettingsA: lpDevMode=%x flags=%x(%s)%s\n", 
+			lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags), sInfo);
 	}
 
 	if(dxw.Windowize)
@@ -1729,11 +1731,13 @@ LONG WINAPI extChangeDisplaySettingsA(DEVMODEA *lpDevMode, DWORD dwflags)
 LONG WINAPI extChangeDisplaySettingsW(DEVMODEW *lpDevMode, DWORD dwflags)
 {
 	if(IsTraceDDRAW){
-		OutTrace("ChangeDisplaySettingsW: lpDevMode=%x flags=%x(%s)", lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags));
-		if (lpDevMode) OutTrace(" DeviceName=%ls fields=%x(%s) size=(%d x %d) bpp=%d", 
+		char sInfo[1024];
+		strcpy(sInfo, "");
+		if (lpDevMode) sprintf(sInfo, " DeviceName=%ls fields=%x(%s) size=(%d x %d) bpp=%d", 
 			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
-		OutTrace("\n");
+		OutTrace("ChangeDisplaySettingsW: lpDevMode=%x flags=%x(%s)%s\n", 
+			lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags), sInfo);
 	}
 
 	if(dxw.Windowize)
@@ -1745,11 +1749,13 @@ LONG WINAPI extChangeDisplaySettingsW(DEVMODEW *lpDevMode, DWORD dwflags)
 LONG WINAPI extChangeDisplaySettingsExA(LPCTSTR lpszDeviceName, DEVMODEA *lpDevMode, HWND hwnd, DWORD dwflags, LPVOID lParam)
 {
 	if(IsTraceDDRAW){
-		OutTrace("ChangeDisplaySettingsExA: DeviceName=%s lpDevMode=%x flags=%x(%s)", lpszDeviceName, lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags));
-		if (lpDevMode) OutTrace(" DeviceName=%s fields=%x(%s) size=(%d x %d) bpp=%d", 
+		char sInfo[1024];
+		strcpy(sInfo, "");
+		if (lpDevMode) sprintf(sInfo, " DeviceName=%s fields=%x(%s) size=(%d x %d) bpp=%d", 
 			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
-		OutTrace("\n");
+		OutTrace("ChangeDisplaySettingsExA: DeviceName=%s lpDevMode=%x flags=%x(%s)%s\n", 
+			lpszDeviceName, lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags), sInfo);
 	}
 
 	if(dxw.Windowize)
@@ -1761,11 +1767,13 @@ LONG WINAPI extChangeDisplaySettingsExA(LPCTSTR lpszDeviceName, DEVMODEA *lpDevM
 LONG WINAPI extChangeDisplaySettingsExW(LPCTSTR lpszDeviceName, DEVMODEW *lpDevMode, HWND hwnd, DWORD dwflags, LPVOID lParam)
 {
 	if(IsTraceDDRAW){
-		OutTrace("ChangeDisplaySettingsExW: DeviceName=%ls lpDevMode=%x flags=%x(%s)", lpszDeviceName, lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags));
-		if (lpDevMode) OutTrace(" DeviceName=%ls fields=%x(%s) size=(%d x %d) bpp=%d", 
+		char sInfo[1024];
+		strcpy(sInfo, "");
+		if (lpDevMode) sprintf(sInfo, " DeviceName=%ls fields=%x(%s) size=(%d x %d) bpp=%d", 
 			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
-		OutTrace("\n");
+		OutTrace("ChangeDisplaySettingsExW: DeviceName=%ls lpDevMode=%x flags=%x(%s)%s\n", 
+			lpszDeviceName, lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags), sInfo);
 	}
 
 	if(dxw.Windowize)

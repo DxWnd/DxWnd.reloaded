@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.09"
+#define VERSION "2.03.10"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS
@@ -56,6 +56,8 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
                        LPVOID preserved
 					 )
 {
+	HANDLE hCurrentThread;
+
 	if(dwreason == DLL_PROCESS_DETACH){
 		UnmapViewOfFile(pMapping);
 		CloseHandle(hMapping);
@@ -63,36 +65,8 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
 
     if(dwreason != DLL_PROCESS_ATTACH) return TRUE;
 
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST); // trick to reduce concurrency problems at program startup
-
-#ifdef LOCKTHREADS
-	DWORD currentPID = GetCurrentProcessId();
-	DWORD currentTID = GetCurrentThreadId();
-	if(currentTID && currentPID){
-		int ThreadCount=0;
-		HANDLE hThreadSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, NULL);
-		if(hThreadSnapshot != INVALID_HANDLE_VALUE){
-			DWORD result = 0;
-			THREADENTRY32 tEntry;
-			tEntry.dwSize = sizeof(THREADENTRY32);		
-			for (BOOL success = Thread32First(hThreadSnapshot, &tEntry);
-				!result && success && GetLastError() != ERROR_NO_MORE_FILES;
-				success = Thread32Next(hThreadSnapshot, &tEntry)){
-				if ((tEntry.th32ThreadID != currentTID) && (tEntry.th32OwnerProcessID == currentPID)){
-					HANDLE th;
-					th=OpenThread(THREAD_SUSPEND_RESUME, FALSE, tEntry.th32ThreadID);
-					ThreadCount++;
-					SuspendThread(th);
-					CloseHandle(th);
-				}
-			}
-			CloseHandle(hThreadSnapshot);
-			//char sMsg[81];
-			//sprintf(sMsg,"suspended threads=%d", ThreadCount);
-			//MessageBox(0, sMsg, "info", MB_OK | MB_ICONEXCLAMATION);
-		}
-	}
-#endif
+	hCurrentThread = GetCurrentThread();
+	SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST); // trick to reduce concurrency problems at program startup
 
 	hInst = (HINSTANCE)hmodule;
 	// optimization: disables DLL_THREAD_ATTACH and DLL_THREAD_DETACH notifications for the specified DLL
@@ -119,35 +93,9 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
 		if(!hDDLockMutex) hDDLockMutex = CreateMutex(0, FALSE, "DDLock_Mutex");
 	}
 	InjectHook();
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
 
-#ifdef LOCKTHREADS
-	if(currentTID && currentPID){
-		int ThreadCount=0;
-		HANDLE hThreadSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, NULL);
-		if(hThreadSnapshot != INVALID_HANDLE_VALUE){
-			DWORD result = 0;
-			THREADENTRY32 tEntry;
-			tEntry.dwSize = sizeof(THREADENTRY32);		
-			for (BOOL success = Thread32First(hThreadSnapshot, &tEntry);
-				!result && success && GetLastError() != ERROR_NO_MORE_FILES;
-				success = Thread32Next(hThreadSnapshot, &tEntry)){
-				if ((tEntry.th32ThreadID != currentTID) && (tEntry.th32OwnerProcessID == currentPID)){
-					HANDLE th;
-					th=OpenThread(THREAD_SUSPEND_RESUME, FALSE, tEntry.th32ThreadID);
-					ThreadCount++;
-					ResumeThread(th);
-					CloseHandle(th);
-				}
-			}
-			CloseHandle(hThreadSnapshot);
-			//char sMsg[81];
-			//sprintf(sMsg,"resumed threads=%d", ThreadCount);
-			//MessageBox(0, sMsg, "info", MB_OK | MB_ICONEXCLAMATION);
-		}
-	}
-#endif
-
+	SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
+	CloseHandle(hCurrentThread);
 	return true;
 }
 

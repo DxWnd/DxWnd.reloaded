@@ -73,6 +73,7 @@ protected:
 	afx_msg void OnSort();
 	afx_msg void OnViewLog();
 	afx_msg void OnDeleteLog();
+	afx_msg void OnDebugView();
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnRun();
 	afx_msg void OnClearAllLogs();

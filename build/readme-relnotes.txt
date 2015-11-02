@@ -725,3 +725,14 @@ add: "Set texture pixel format" flag, makes "Jeff Gordon XS Racing" working on e
 add: "GDI mode" emulation uses HALFTONE to activate GDI bilinear stretching when "Full Bilinear" filter is activated: slower, but better quality
 add: preliminary hooking for EnumZBufferFormats ddraw7 method
 fix: eliminated some handle leakage when injecting launched processes
+
+v2.03.10
+add: real time logging through OutputDebugString
+add: menu command to launch DbgView.exe
+add: support for timestamped logs
+add: "Erase trace file" flag
+fix: handle leakage for primary hdc, causing rapid performance downgrade
+fix: log message reorganization
+add: SetStretchBltMode HALFTONE in GDI mode to provide bilinear filtered GDI stretching
+fix: some GDI mode optimization - should bring performances similar to D3DWindower, with similar configuration
+fix: GDI mode bug, crashing when blitting from NULL surface (to do a color fill operation)

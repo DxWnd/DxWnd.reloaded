@@ -153,27 +153,33 @@ static void OutTraceHeader(FILE *fp)
 	fprintf(fp, "***\n");
 }
 
+#define DXWMAXLOGSIZE 4096
+
 void OutTrace(const char *format, ...)
 {
 	va_list al;
 	static char path[MAX_PATH];
 	static FILE *fp=NULL; // GHO: thread safe???
+	char sBuf[DXWMAXLOGSIZE+1];
 	DWORD tFlags;
+	static GetTickCount_Type pGetTick;
 
 	// check global log flag
-	if(!(dxw.dwTFlags & OUTTRACE)) return;
+	if(!(dxw.dwTFlags & (OUTTRACE|OUTDEBUGSTRING))) return;
 	tFlags = dxw.dwTFlags;
 	dxw.dwTFlags = 0x0; // to avoid possible log recursion while loading C runtime libraries!!!
 
 	WaitForSingleObject(hTraceMutex, INFINITE);
 	if (fp == NULL){
+		char *OpenMode = (tFlags & ERASELOGFILE) ? "w+" : "a+";
+		pGetTick = GetTickCount; // save function pointer
 		GetCurrentDirectory(MAX_PATH, path);
 		strcat(path, "\\dxwnd.log");
-		fp = fopen(path, "a+");
+		fp = fopen(path, OpenMode);
 		if (fp==NULL){ // in case of error (e.g. current dir on unwritable CD unit)... 
 			strcpy(path, GetDxWndPath());
 			strcat(path, "\\dxwnd.log");
-			fp = fopen(path, "a+");
+			fp = fopen(path, OpenMode);
 		}
 		if (fp==NULL)
 			return; // last chance: do not log... 
@@ -181,11 +187,18 @@ void OutTrace(const char *format, ...)
 			OutTraceHeader(fp);
 	}
 	va_start(al, format);
-	vfprintf(fp, format, al);
+	//vfprintf(fp, format, al);
+	vsprintf_s(sBuf, DXWMAXLOGSIZE, format, al);
+	sBuf[DXWMAXLOGSIZE]=0; // just in case of log truncation
 	va_end(al);
+	if(tFlags & OUTTRACE) {
+		if(tFlags & ADDTIMESTAMP) fprintf(fp, "%08.8d: ", (*pGetTick)());
+		fputs(sBuf, fp);
+		fflush(fp); 
+	}
+	if(tFlags & OUTDEBUGSTRING) OutputDebugString(sBuf);
 	ReleaseMutex(hTraceMutex);
 
-	fflush(fp); 
 	dxw.dwTFlags = tFlags; // restore settings
 }
 
@@ -775,23 +788,25 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	// v2.1.93: adjust clipping region
 
 	if(IsTraceW){
-		OutTrace("WindowProc[%x]: WinMsg=[0x%x]%s(%x,%x)", hwnd, message, ExplainWinMessage(message), wparam, lparam);
+		char sPos[161];
+		sPos[160]=0;
+		sPos[0]=0;
 		switch(message){
 		case WM_WINDOWPOSCHANGING:
 		case WM_WINDOWPOSCHANGED:
 			LPWINDOWPOS wp;
 			wp = (LPWINDOWPOS)lparam;
-			OutTrace(" pos=(%d,%d) size=(%dx%d) flags=%x(%s)", wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
+			sprintf_s(sPos, 160, " pos=(%d,%d) size=(%dx%d) flags=%x(%s)", wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
 			break;
 		case WM_MOVE:
-			OutTrace(" pos=(%d,%d)", HIWORD(lparam), LOWORD(lparam));
+			sprintf_s(sPos, 160, " pos=(%d,%d)", HIWORD(lparam), LOWORD(lparam));
 			break;
 		case WM_SIZE:
 			static char *modes[5]={"RESTORED", "MINIMIZED", "MAXIMIZED", "MAXSHOW", "MAXHIDE"};
-			OutTrace(" mode=SIZE_%s size=(%dx%d)", modes[wparam % 5], HIWORD(lparam), LOWORD(lparam));
-			break;		
+			sprintf_s(sPos, 160, " mode=SIZE_%s size=(%dx%d)", modes[wparam % 5], HIWORD(lparam), LOWORD(lparam));
+			break;	
 		}
-		OutTrace("\n");
+		OutTrace("WindowProc[%x]: WinMsg=[0x%x]%s(%x,%x) %s\n", hwnd, message, ExplainWinMessage(message), wparam, lparam, sPos);
 	}
 
 	if(dxw.dwFlags3 & FILTERMESSAGES){
@@ -1219,7 +1234,7 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 	switch(ExceptionInfo->ExceptionRecord->ExceptionCode){
 	case 0xc0000094: // IDIV reg (Ultim@te Race Pro)
 	case 0xc0000095: // DIV by 0 (divide overflow) exception (SonicR)
-	case 0xc0000096: // CLI Priviliged instruction exception (Resident Evil)
+	case 0xc0000096: // CLI Priviliged instruction exception (Resident Evil), FB (Asterix & Obelix)
 	case 0xc000001d: // FEMMS (eXpendable)
 	case 0xc0000005: // Memory exception (Tie Fighter)
 		int cmdlen;
@@ -1235,6 +1250,8 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 		VirtualProtect(target, 10, oldprot, &oldprot);
 		if(!FlushInstructionCache(GetCurrentProcess(), target, cmdlen))
 			OutTrace("UnhandledExceptionFilter: FlushInstructionCache ERROR target=%x, err=%x\n", target, GetLastError());
+		// v2.03.10 skip replaced opcode
+		ExceptionInfo->ContextRecord->Eip += cmdlen; // skip ahead op-code length
 		return EXCEPTION_CONTINUE_EXECUTION;
 		break;
 	default:
@@ -1707,12 +1724,13 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 #endif
 
 	if(IsTraceDW){
-		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)", 
-			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
-			target->posx, target->posy, target->sizx, target->sizy);
-		if(hwnd) OutTrace(" hWnd=%x(hdc=%x) dxw.hParentWnd=%x(hdc=%x) desktop=%x(hdc=%x)\n", 
+		char sInfo[1024];
+		strcpy(sInfo, "");
+		if(hwnd) sprintf(sInfo, " hWnd=%x(hdc=%x) dxw.hParentWnd=%x(hdc=%x) desktop=%x(hdc=%x)", 
 			hwnd, GetDC(hwnd), dxw.hParentWnd, GetDC(dxw.hParentWnd), GetDesktopWindow(), GetDC(GetDesktopWindow()));
-		else OutTrace("\n");
+		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)%s\n", 
+			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
+			target->posx, target->posy, target->sizx, target->sizy, sInfo);
 		if (dxw.dwFlags4 & LIMITSCREENRES) OutTrace("HookInit: max resolution=%s\n", (dxw.MaxScreenRes<6)?Resolutions[dxw.MaxScreenRes]:"unknown");
 	}
 

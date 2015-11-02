@@ -38,6 +38,9 @@ public:
 	BOOL	m_OutDebug;
 	BOOL	m_CursorTrace;
 	BOOL	m_LogEnabled;
+	BOOL	m_EraseLogFile;
+	BOOL	m_AddTimeStamp;
+	BOOL	m_OutDebugString;
 	BOOL	m_OutWinMessages;
 	BOOL	m_OutDWTrace;
 	BOOL	m_OutD3DTrace;
@@ -77,6 +80,7 @@ public:
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;
 	BOOL	m_TextureFormat;
+	BOOL	m_GSkyHack;
 	BOOL	m_FixWinFrame;
 	BOOL	m_EnableClipping;
 	BOOL	m_CursorClipping;

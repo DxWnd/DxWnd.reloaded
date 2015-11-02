@@ -48,6 +48,7 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_STRESSRESOURCES, cTarget->m_StressResources);
 	DDX_Check(pDX, IDC_NOSYSTEMMEMORY, cTarget->m_NoSystemMemory);
 	DDX_Check(pDX, IDC_NOSYSTEMEMULATED, cTarget->m_NoSystemEmulated);
+	DDX_Check(pDX, IDC_GSKYHACK, cTarget->m_GSkyHack);
 }
 
 BEGIN_MESSAGE_MAP(CTabDebug, CDialog)

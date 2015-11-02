@@ -174,6 +174,7 @@
 #define STRESSRESOURCES		0x02000000 // simulates a lack of resources condition, for testing (debug opt.)
 #define MESSAGEPUMP			0x04000000 // inserts a "message pump" loop between repeated operation that may stop the task on Win7 and greater
 #define TEXTUREFORMAT		0x08000000 // Apply virtual pixel format to texture surfaces without DDSD_PIXELFORMAT attribute
+#define GSKYHACK			0x10000000 // use VIDEOMEMORY+LOCALVIDMEM capability to turn hw acceleration on ...
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -189,6 +190,9 @@
 #define TRACEHOOKS			0x00000400 // log hook operations
 #define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
 #define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
+#define ADDTIMESTAMP		0x20000000 // att timestamp (GetTickCount) to log file
+#define OUTDEBUGSTRING		0x40000000 // duplicate logs through OutputDebugString()
+#define ERASELOGFILE		0x80000000 // clears old trace file before writing new logs
 
 #define EMULATEFLAGS		(EMULATEBUFFER | EMULATESURFACE | LOCKEDSURFACE)
 #define HANDLEFPS			(SHOWFPS | SHOWFPSOVERLAY | LIMITFPS | SKIPFPS)

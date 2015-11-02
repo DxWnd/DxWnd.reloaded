@@ -617,9 +617,13 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			break;
 #ifndef ANTICHEATING
 		case SYSLIBIDX_KERNEL32:
-			if ((DWORD)proc == 0x022D){ // "IsDebuggerPresent"
+			if ((DWORD)proc == 0x0305){ // "IsDebuggerPresent"
 				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extIsDebuggerPresent);
 				return (FARPROC)extIsDebuggerPresent;
+			}
+			if ((DWORD)proc == 0x0050){ // "CheckRemoteDebuggerPresent"
+				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), extCheckRemoteDebuggerPresent);
+				return (FARPROC)extCheckRemoteDebuggerPresent;
 			}
 #endif
 		case SYSLIBIDX_OLE32:
@@ -819,10 +823,11 @@ BOOL WINAPI extCreateProcessA(
 			OutTrace("CreateProcess: event=%x(%s)\n", debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode));
 			switch(debug_event.dwDebugEventCode){
 			case EXIT_PROCESS_DEBUG_EVENT:
+				//OutTrace("CreateProcess: event=%x(%s) process terminated\n", debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode));
 				bContinueDebugging=false;
-				OutTrace("CreateProcess: process terminated\n", res);
 				break;
 			case CREATE_PROCESS_DEBUG_EVENT:
+				//OutTrace("CreateProcess: event=%x(%s) process started\n", debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode));
 				GetModuleFileName(GetModuleHandle("dxwnd"), path, MAX_PATH);
 				OutTrace("CreateProcess: injecting path=%s\n", path);
 				if(!Inject(lpProcessInformation->dwProcessId, path)){
@@ -832,7 +837,7 @@ BOOL WINAPI extCreateProcessA(
 					extern LPVOID GetThreadStartAddress(HANDLE);
 					DWORD TargetHandle;
 					DWORD EndlessLoop;
-				EndlessLoop=0x9090FEEB; // assembly for JMP to here, NOP, NOP
+					EndlessLoop=0x9090FEEB; // assembly for JMP to here, NOP, NOP
 					SIZE_T BytesCount;
 					TargetHandle = (DWORD)OpenProcess(
 						PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, 
@@ -858,6 +863,7 @@ BOOL WINAPI extCreateProcessA(
 				CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hFile);
 				break;
 			case EXIT_THREAD_DEBUG_EVENT:
+				//OutTrace("CreateProcess: event=%x(%s) injection terminated\n", debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode));
 #ifdef LOCKINJECTIONTHREADS
 				if(TargetHandle && StartAddress){
 					if(dxw.dwFlags5 & FREEZEINJECTEDSON){
@@ -874,6 +880,7 @@ BOOL WINAPI extCreateProcessA(
 #endif
 				bContinueDebugging=false;
 			case EXCEPTION_DEBUG_EVENT:
+				//OutTrace("CreateProcess: event=%x(%s)\n", debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode));
 				{
 					LPEXCEPTION_DEBUG_INFO ei;
 					ei=(LPEXCEPTION_DEBUG_INFO)&debug_event.u;
@@ -889,6 +896,9 @@ BOOL WINAPI extCreateProcessA(
 				}
 				break;
 			case LOAD_DLL_DEBUG_EVENT:
+				//OutTrace("CreateProcess: event=%x(%s) dll=%s address=%x\n", 
+				//	debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode),
+				//	((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->lpImageName, ((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->lpBaseOfDll);
 				CloseHandle(((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->hFile);
 				break;
 			case CREATE_THREAD_DEBUG_EVENT:

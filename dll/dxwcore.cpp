@@ -916,10 +916,13 @@ POINT dxwCore::SubCoordinates(POINT p1, POINT p2)
 
 void dxwCore::DumpPalette(DWORD dwcount, LPPALETTEENTRY lpentries)
 {
+	char sInfo[(14*256)+1];
+	sInfo[0]=0;
 	for(DWORD idx=0; idx<dwcount; idx++) 
-		OutTrace("(%02x.%02x.%02x:%02x)", 
+		sprintf(sInfo, "%s(%02x.%02x.%02x:%02x)", sInfo, 
 		lpentries[idx].peRed, lpentries[idx].peGreen, lpentries[idx].peBlue, lpentries[idx].peFlags);
-	OutTrace("\n");
+	strcat(sInfo,"\n");
+	OutTrace(sInfo);
 }
 
 void dxwCore::ScreenRefresh(void)
@@ -1057,6 +1060,7 @@ BOOL dxwCore::HandleFPS()
 void dxwCore::SetVSyncDelays(UINT RefreshRate)
 {
 	int Reminder;
+	char sInfo[256];
 
 	if((RefreshRate < 10) || (RefreshRate > 100)) return; 
 
@@ -1069,9 +1073,11 @@ void dxwCore::SetVSyncDelays(UINT RefreshRate)
 		Reminder=(1000+Reminder)-(iRefreshDelays[iRefreshDelayCount]*gdwRefreshRate);
 		iRefreshDelayCount++;
 	} while(Reminder && (iRefreshDelayCount<MAXREFRESHDELAYCOUNT));
-	OutTraceDW("Refresh rate=%d: delay=", gdwRefreshRate);
-	for(int i=0; i<iRefreshDelayCount; i++) OutTraceDW("%d ", iRefreshDelays[i]);
-	OutTraceDW("\n");
+	if(IsTraceDW){
+		strcpy(sInfo, "");
+		for(int i=0; i<iRefreshDelayCount; i++) sprintf(sInfo, "%s%d ", sInfo, iRefreshDelays[i]);
+		OutTraceDW("Refresh rate=%d: delay=%s\n", gdwRefreshRate, sInfo);
+	}
 }
 
 void dxwCore::VSyncWait()
@@ -1291,7 +1297,7 @@ void dxwCore::ShowOverlay(HDC hdc)
 	if(!hdc) return;
 	RECT rect;
 	(*pGetClientRect)(hWnd, &rect);
-	this->ShowOverlay(GetDC(hWnd), rect.right, rect.bottom);
+	this->ShowOverlay(hdc, rect.right, rect.bottom);
 }
 
 void dxwCore::ShowOverlay(HDC hdc, int w, int h)

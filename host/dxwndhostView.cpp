@@ -35,6 +35,13 @@ TARGETMAP *pTargets; // idem.
 
 #define LOCKINJECTIONTHREADS
 
+// beware: it must operate upon count+1 sized arrays
+char *strnncpy(char *dest, char *src, size_t count)
+{
+	dest[count]=0;
+	return strncpy(dest, src, count);
+}
+
 static char *Escape(char *s)
 {
 	static char tmp[1024];
@@ -223,6 +230,9 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_OutDebug) t->tflags |= OUTDEBUG;
 	if(dlg->m_CursorTrace) t->tflags |= OUTCURSORTRACE;
 	if(dlg->m_LogEnabled) t->tflags |= OUTTRACE;
+	if(dlg->m_OutDebugString) t->tflags |= OUTDEBUGSTRING;
+	if(dlg->m_EraseLogFile) t->tflags |= ERASELOGFILE;
+	if(dlg->m_AddTimeStamp) t->tflags |= ADDTIMESTAMP;
 	if(dlg->m_OutWinMessages) t->tflags |= OUTWINMESSAGES;
 	if(dlg->m_OutDWTrace) t->tflags |= OUTDXWINTRACE;
 	if(dlg->m_OutDDRAWTrace) t->tflags |= OUTDDRAWTRACE;
@@ -276,6 +286,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
 	if(dlg->m_TextureFormat) t->flags5 |= TEXTUREFORMAT;
+	if(dlg->m_GSkyHack) t->flags5 |= GSKYHACK;
 	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
 	if(dlg->m_EnableClipping) t->flags |= ENABLECLIPPING;
 	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
@@ -429,6 +440,9 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_OutDebug = t->tflags & OUTDEBUG ? 1 : 0;
 	dlg->m_CursorTrace = t->tflags & OUTCURSORTRACE ? 1 : 0;
 	dlg->m_LogEnabled = t->tflags & OUTTRACE ? 1 : 0;
+	dlg->m_OutDebugString = t->tflags & OUTDEBUGSTRING ? 1 : 0;
+	dlg->m_EraseLogFile = t->tflags & ERASELOGFILE ? 1 : 0;
+	dlg->m_AddTimeStamp = t->tflags & ADDTIMESTAMP ? 1 : 0;
 	dlg->m_OutWinMessages = t->tflags & OUTWINMESSAGES ? 1 : 0;
 	dlg->m_OutDWTrace = t->tflags & OUTDXWINTRACE ? 1 : 0;
 	dlg->m_OutD3DTrace = t->tflags & OUTD3DTRACE ? 1 : 0;
@@ -483,6 +497,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
 	dlg->m_TextureFormat = t->flags5 & TEXTUREFORMAT ? 1 : 0;
+	dlg->m_GSkyHack = t->flags5 & GSKYHACK ? 1 : 0;
 	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
 	dlg->m_EnableClipping = t->flags & ENABLECLIPPING ? 1 : 0;
 	dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
@@ -1045,9 +1060,9 @@ void CDxwndhostView::OnModify()
 	dlg.m_LaunchPath = TitleMaps[i].launchpath;
 	SetDlgFromTarget(&TargetMaps[i], &dlg);
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
-		strncpy(TitleMaps[i].title, dlg.m_Title, 40);
-		strncpy(TitleMaps[i].notes, dlg.m_Notes, MAX_NOTES);
-		strncpy(TitleMaps[i].launchpath, dlg.m_LaunchPath, MAX_PATH);
+		strnncpy(TitleMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE); 
+		strnncpy(TitleMaps[i].notes, (char *)dlg.m_Notes.GetString(), MAX_NOTES);
+		strnncpy(TitleMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
@@ -1134,6 +1149,28 @@ void CDxwndhostView::OnDeleteLog()
 	}
 
 	_unlink(FilePath);
+}
+
+void CDxwndhostView::OnDebugView() 
+{
+	PROCESS_INFORMATION pinfo;
+	STARTUPINFO sinfo;
+	char exepath[MAX_PATH+1];
+	char folderpath[MAX_PATH+1];
+	ZeroMemory(&sinfo, sizeof(sinfo));
+	sinfo.cb = sizeof(sinfo); 
+	GetPrivateProfileString("window", "debugview", "DbgView.exe", exepath, MAX_PATH, InitPath);
+	strcpy_s(folderpath, sizeof(folderpath), exepath);
+	PathRemoveFileSpec(folderpath);
+	if(strlen(folderpath)==0) strcpy(folderpath, ".\\");
+	if(!CreateProcessA(NULL, exepath, 0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, folderpath, &sinfo, &pinfo)){
+		char sInfo[81];
+		sprintf(sInfo, "Error %d starting DebugView", GetLastError());
+		MessageBox(sInfo, "Error", MB_ICONERROR|MB_OK);
+		return;
+	}
+	CloseHandle(pinfo.hProcess);
+	CloseHandle(pinfo.hThread);
 }
 
 #define strcasecmp lstrcmpi
@@ -1312,7 +1349,7 @@ void CDxwndhostView::OnProcessKill()
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
 
-	strncpy(FilePath,TargetMaps[i].path,MAX_PATH);
+	strnncpy(FilePath, TargetMaps[i].path, MAX_PATH);
 	lpProcName=FilePath;
 	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
 
@@ -1345,9 +1382,9 @@ void CDxwndhostView::OnAdd()
 	}
 	memset(&TargetMaps[i],0,sizeof(TARGETMAP)); // clean up, just in case....
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
-		strncpy(TitleMaps[i].title, dlg.m_Title, 40);
-		strncpy(TitleMaps[i].notes, dlg.m_Notes, MAX_NOTES);
-		strncpy(TitleMaps[i].launchpath, dlg.m_LaunchPath, MAX_PATH);
+		strnncpy(TitleMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE);
+		strnncpy(TitleMaps[i].notes, (char *)dlg.m_Notes.GetString(), MAX_NOTES);
+		strnncpy(TitleMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
@@ -1639,6 +1676,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 		break;
 	case ID_PLOG_DELETE:
 		OnDeleteLog();
+		break;
+	case ID_PLOG_DEBUGVIEW:
+		OnDebugView();
 		break;
 	case ID_TASK_KILL:
 		OnKill();

@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
@@ -301,19 +303,21 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 	
 	res = (*pGDIGetDeviceCaps)(hdc, nindex);
 	if(IsTraceDDRAW){
-		OutTrace("GetDeviceCaps: hdc=%x index=%x(%s)", hdc, nindex, ExplainDeviceCaps(nindex));
+		char sInfo[1024];
+		sprintf(sInfo, "GetDeviceCaps: hdc=%x index=%x(%s)", hdc, nindex, ExplainDeviceCaps(nindex));
 		switch(nindex){
 			case RASTERCAPS:
-				OutTrace(" res=0x%04x(%s)\n",res, ExplainRasterCaps(res)); break;
+				sprintf(sInfo, "%s res=0x%04x(%s)\n", sInfo, res, ExplainRasterCaps(res)); break;
 			case BITSPIXEL:
 			case COLORRES:
 			case VERTRES:
 			case SIZEPALETTE:
 			case NUMRESERVED:
-				OutTrace(" res=%d\n",res); break;
+				sprintf(sInfo, "%s res=%d\n", sInfo, res); break;
 			default:
-				OutTrace(" res=0x%04x\n",res); break;
+				sprintf(sInfo, "%s res=0x%04x\n", sInfo, res); break;
 		}
+		OutTrace(sInfo);
 	}
 
 	switch(nindex){
@@ -897,6 +901,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 		//return (*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 	}
 
+	SetStretchBltMode(hdcDest, HALFTONE);
 	if (OBJ_DC == GetObjectType(hdcDest)){
 		//if(dxw.IsRealDesktop(WindowFromDC(hdcDest))) hdcDest=GetDC(dxw.GethWnd()); // ??????
 		if (dxw.HandleFPS()) return TRUE;
@@ -1118,6 +1123,7 @@ int WINAPI extGetRgnBox(HRGN hrgn, LPRECT lprc)
 
 BOOL WINAPI extPolyline(HDC hdc, const POINT *lppt, int cPoints)
 {
+	// LOGTOBEFIXED
 	BOOL ret;
 	if(IsTraceDDRAW){
 		int i;
@@ -1183,6 +1189,7 @@ BOOL WINAPI extMoveToEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
 
 BOOL WINAPI extPolyDraw(HDC hdc, const POINT *lppt, const BYTE *lpbTypes, int cCount)
 {
+	// LOGTOBEFIXED
 	BOOL ret;
 	if(IsTraceDDRAW){
 		int i;
@@ -1206,6 +1213,7 @@ BOOL WINAPI extPolyDraw(HDC hdc, const POINT *lppt, const BYTE *lpbTypes, int cC
 
 BOOL WINAPI extPolylineTo(HDC hdc, const POINT *lppt, DWORD cCount)
 {
+	// LOGTOBEFIXED
 	BOOL ret;
 	if(IsTraceDDRAW){
 		DWORD i;
@@ -1229,6 +1237,7 @@ BOOL WINAPI extPolylineTo(HDC hdc, const POINT *lppt, DWORD cCount)
 
 BOOL WINAPI extPolyBezierTo(HDC hdc, const POINT *lppt, DWORD cCount)
 {
+	// LOGTOBEFIXED
 	BOOL ret;
 	if(IsTraceDDRAW){
 		DWORD i;
@@ -1391,6 +1400,7 @@ BOOL WINAPI extEllipse(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int
 
 BOOL WINAPI extPolygon(HDC hdc, const POINT *lpPoints, int cCount)
 {
+	// LOGTOBEFIXED
 	BOOL ret;
 	if(IsTraceDDRAW){
 		int i;
@@ -1492,6 +1502,7 @@ HRGN WINAPI extCreateRectRgnIndirect(const RECT *lprc)
 
 HRGN WINAPI extCreatePolygonRgn(const POINT *lpPoints, int cPoints, int fnPolyFillMode)
 {
+	// LOGTOBEFIXED
 	HRGN ret;
 	if(IsTraceDDRAW){
 		int i;
@@ -1817,11 +1828,10 @@ BOOL WINAPI extExtTextOutA(HDC hdc, int X, int Y, UINT fuOptions, const RECT *lp
 {
 	RECT rc;
 	if(IsTraceDW){
-		OutTrace("ExtTextOutA: hdc=%x pos=(%d,%d) String=\"%s\" rect=", hdc, X, Y, lpString);
-		if(lprc) 
-			OutTrace("(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
-		else
-			OutTrace("NULL\n");
+		char sRect[81];
+		if(lprc) sprintf(sRect, "(%d,%d)-(%d,%d)", lprc->left, lprc->top, lprc->right, lprc->bottom);
+		else strcpy(sRect, "NULL");
+		OutTrace("ExtTextOutA: hdc=%x pos=(%d,%d) String=\"%s\" rect=%s\n", hdc, X, Y, lpString, sRect);
 	}
 
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && !gFixed){
@@ -1839,11 +1849,10 @@ BOOL WINAPI extExtTextOutW(HDC hdc, int X, int Y, UINT fuOptions, const RECT *lp
 {
 	RECT rc;
 	if(IsTraceDW){
-		OutTrace("ExtTextOutW: hdc=%x pos=(%d,%d) String=\"%ls\" rect=", hdc, X, Y, lpString);
-		if(lprc) 
-			OutTrace("(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
-		else
-			OutTrace("NULL\n");
+		char sRect[81];
+		if(lprc) sprintf(sRect, "(%d,%d)-(%d,%d)", lprc->left, lprc->top, lprc->right, lprc->bottom);
+		else strcpy(sRect, "NULL");
+		OutTrace("ExtTextOutW: hdc=%x pos=(%d,%d) String=\"%ls\" rect=%s\n", hdc, X, Y, lpString, sRect);
 	}
 	
 	if (dxw.IsFullScreen() && (OBJ_DC == GetObjectType(hdc)) && !gFixed){
