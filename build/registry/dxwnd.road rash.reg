@@ -1,0 +1,13 @@
+[HKEY_LOCAL_MACHINE\SOFTWARE]
+
+; Road Rash
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts\RoadRash 95]
+""=""
+"Path"="."
+"CheckDialup"=hex:00
+"ChatState"=hex:02
+"MiniDash"=hex:00
+"OpponentList"=hex:01
+

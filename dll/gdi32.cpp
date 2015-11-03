@@ -51,6 +51,13 @@ COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor);
 int WINAPI extSetBkMode(HDC, int);
 */
 
+typedef UINT (WINAPI *GetPaletteEntries_Type)(HPALETTE, UINT, UINT, LPPALETTEENTRY);
+typedef UINT (WINAPI *GetSystemPaletteUse_Type)(HDC);
+GetPaletteEntries_Type pGetPaletteEntries = NULL;
+GetSystemPaletteUse_Type pGetSystemPaletteUse = NULL;
+UINT WINAPI extGetPaletteEntries(HPALETTE, UINT, UINT, LPPALETTEENTRY);
+UINT WINAPI extGetSystemPaletteUse(HDC);
+
 static HookEntry_Type Hooks[]={
 
 	{HOOK_IAT_CANDIDATE, "GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
@@ -71,6 +78,11 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "GetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDIGetPixelFormat, (FARPROC)extGDIGetPixelFormat},
 	{HOOK_IAT_CANDIDATE, "ChoosePixelFormat", (FARPROC)NULL, (FARPROC *)&pChoosePixelFormat, (FARPROC)extChoosePixelFormat},
 	{HOOK_IAT_CANDIDATE, "DescribePixelFormat", (FARPROC)NULL, (FARPROC *)&pDescribePixelFormat, (FARPROC)extDescribePixelFormat},
+
+	{HOOK_HOT_CANDIDATE, "GetPaletteEntries", (FARPROC)GetPaletteEntries, (FARPROC *)&pGetPaletteEntries, (FARPROC)extGetPaletteEntries},
+	{HOOK_HOT_CANDIDATE, "GetSystemPaletteUse", (FARPROC)GetSystemPaletteUse, (FARPROC *)&pGetSystemPaletteUse, (FARPROC)extGetSystemPaletteUse},
+
+
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 }; 
 
@@ -479,15 +491,10 @@ BOOL WINAPI extGDIRestoreDC(HDC hdc, int nSavedDC)
 HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *plpal)
 {
 	HPALETTE ret;
-	int idx;
 
-	OutTraceDW("GDI.CreatePalette: plpal=%x version=%x NumEntries=%x\n", plpal, plpal->palVersion, plpal->palNumEntries);
+	OutTraceDW("GDI.CreatePalette: plpal=%x version=%x NumEntries=%d\n", plpal, plpal->palVersion, plpal->palNumEntries);
+	if(IsDebug) dxw.DumpPalette(plpal->palNumEntries, (LPPALETTEENTRY)plpal->palPalEntry);
 	ret=(*pGDICreatePalette)(plpal);
-	if(IsDebug){
-		OutTraceDW("PalEntry[%x]= ", plpal->palNumEntries);
-		for(idx=0; idx<plpal->palNumEntries; idx++) OutTraceDW("(%x)", plpal->palPalEntry[idx]);
-		OutTraceDW("\n");
-	}
 	OutTraceDW("GDI.CreatePalette: hPalette=%x\n", ret);
 	return ret;
 }
@@ -525,7 +532,7 @@ UINT WINAPI extRealizePalette(HDC hdc)
 	if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
 		PALETTEENTRY PalEntries[256];
 		UINT nEntries;
-		nEntries=GetPaletteEntries(hDesktopPalette, 0, 256, PalEntries);
+		nEntries=(*pGetPaletteEntries)(hDesktopPalette, 0, 256, PalEntries);
 		mySetPalette(0, nEntries, PalEntries, TRUE); // ??
 		if(IsDebug) dxw.DumpPalette(nEntries, PalEntries);
 		ret=DD_OK;
@@ -1751,8 +1758,25 @@ int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
 UINT WINAPI extSetSystemPaletteUse(HDC hdc, UINT uUsage)
 {
 	//BOOL res;
-	OutTraceDW("SetSystemPaletteUse: hdc=%x Usage=%x(%s)\n", hdc, uUsage, ExplainPaletteUse(uUsage));
+	OutTraceDW("GDI.SetSystemPaletteUse: hdc=%x Usage=%x(%s)\n", hdc, uUsage, ExplainPaletteUse(uUsage));
 	return SYSPAL_NOSTATIC256;
+}
+
+UINT WINAPI extGetPaletteEntries(HPALETTE hpal, UINT iStartIndex, UINT nEntries, LPPALETTEENTRY lppe)
+{
+	UINT res;
+	OutTraceDW("GDI.GetPaletteEntries: hpal=%x iStartIndex=%d nEntries=%d\n", hpal, iStartIndex, nEntries);
+	res=(*pGetPaletteEntries)(hpal, iStartIndex, nEntries, lppe);
+	return res;
+}
+
+UINT WINAPI extGetSystemPaletteUse(HDC hdc)
+{
+	UINT res;
+	OutTraceDW("GDI.GetSystemPaletteUse: hdc=%x\n", hdc);
+	res=(*pGetSystemPaletteUse)(hdc);
+	OutTraceDW("GetSystemPaletteUse: res=%x(%s)\n", res, ExplainPaletteUse(res));
+	return res;
 }
 
 //BEWARE: SetPixelFormat must be issued on the same hdc used by OpenGL wglCreateContext, otherwise 

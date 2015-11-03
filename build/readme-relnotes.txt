@@ -752,3 +752,10 @@ add: implemented "Release mouse outside window" functionality in dinput calls
 fix: now "Release mouse outside window" leaves the mouse close to where it left the window
 fix: in GUI, keeps memory of last used paths
 fix: several log messages
+
+v2.03.13
+add: integrated printscreen facility with 8BPP paletized dump, activated by "printscreen" special key (default Alt-F12)
+fix: recovery for lost surfaces (i.e. after a Ctrl+Alt+Del command)
+fix: palette display form showing active entries
+fix: EnumDisplayModes hook in emulate surface mode
+fix: several log improvements

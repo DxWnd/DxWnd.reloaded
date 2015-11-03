@@ -501,10 +501,6 @@ void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries, BOOL Has25
 	int i;
 	extern DXWNDSTATUS *pStatus;
 
-	// copy the palette entries on the current system palette 
-	for(int idx=0; idx<dwcount; idx++)  
-		pStatus->Palette[dwstart+idx]= lpentries[idx];
-
 	// if has reserved palette entries, recover them
 	if(!Has256ColorsPalette){
 		int nStatCols, nPalEntries;
@@ -530,6 +526,10 @@ void mySetPalette(int dwstart, int dwcount, LPPALETTEENTRY lpentries, BOOL Has25
 			}
 		}
 	}
+
+	// copy the palette entries on the current system palette 
+	for(int idx=0; idx<dwcount; idx++)  
+		pStatus->Palette[dwstart+idx]= lpentries[idx];
 
 	for(i = 0; i < dwcount; i ++){
 		PALETTEENTRY PalColor;
@@ -880,6 +880,29 @@ int SurfaceDescrSize(LPDIRECTDRAWSURFACE lpdds)
 	sprintf_s(sMsg, 80, "pCreateSurfaceMethod: pUnlock(%x) can't match %x\n", lpdds, extUnlock);
 	OutTraceDW(sMsg);
 	if (IsAssertEnabled) MessageBox(0, sMsg, "SurfaceDescrSize", MB_OK | MB_ICONEXCLAMATION);
+	return sizeof(DDSURFACEDESC);
+}
+
+int SurfaceDescrSizeD(LPDIRECTDRAW lpdd)
+{
+	char sMsg[81];
+	void *extCreateSurface = NULL;
+
+	if(lpdd){
+		__try{
+		extCreateSurface=(void *)*(DWORD *)(*(DWORD *)lpdd + 24);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER){
+			return sizeof(DDSURFACEDESC);
+		};	
+		if(extCreateSurface==(void *)extCreateSurface7) return sizeof(DDSURFACEDESC2);
+		if(extCreateSurface==(void *)extCreateSurface4) return sizeof(DDSURFACEDESC2);
+		if(extCreateSurface==(void *)extCreateSurface2) return sizeof(DDSURFACEDESC);
+		if(extCreateSurface==(void *)extCreateSurface1) return sizeof(DDSURFACEDESC);
+	}
+	sprintf_s(sMsg, 80, "SurfaceDescrSizeD(%x) can't match %x\n", lpdd, extCreateSurface);
+	OutTraceDW(sMsg);
+	if (IsAssertEnabled) MessageBox(0, sMsg, "SurfaceDescrSizeD", MB_OK | MB_ICONEXCLAMATION);
 	return sizeof(DDSURFACEDESC);
 }
 
@@ -3150,7 +3173,6 @@ HRESULT WINAPI ColorConversionGDI(LPDIRECTDRAWSURFACE lpdds, RECT emurect, LPDIR
 {
 	// GDICOLORCONV: use GDI capabilities to convert color depth by BitBlt-ting between different hdc
 	HRESULT res;
-	OutTrace("STEP: GDI Color Conversion\n");
 	do {
 		HDC hdc_source, hdc_dest;
 		res=(*pGetDC)(lpdds, &hdc_source);
@@ -3425,6 +3447,7 @@ HRESULT WINAPI extCreatePalette(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY
 
 	//if (dwflags & ~(DDPCAPS_PRIMARYSURFACE|DDPCAPS_8BIT|DDPCAPS_ALLOW256|DDPCAPS_INITIALIZE_LEGACY)) STOPPER("Palette flags");
 	if(dwflags & DDPCAPS_ALLOW256) Has256ColorsPalette = TRUE;
+	if(!(dwflags & DDPCAPS_PRIMARYSURFACE)) Has256ColorsPalette = TRUE;
 
 	if(dxw.dwFlags1 & EMULATESURFACE) dwflags &= ~DDPCAPS_PRIMARYSURFACE;
 	res = (*pCreatePalette)(lpdd, dwflags, lpddpa, lplpddp, pu);
@@ -3584,7 +3607,12 @@ HRESULT WINAPI extLock(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC
 		res = (*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 		OutTraceDW("Lock RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
 	}
-	if(res) OutTraceE("Lock ERROR: ret=%x(%s)\n", res, ExplainDDError(res));
+	if(res==DDERR_SURFACELOST){ 
+		lpdds->Restore();
+		res = (*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
+		OutTraceDW("Lock RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
+	}
+	if(res) OutTraceE("Lock ERROR: ret=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	OutTraceB("Lock: lPitch=%d lpSurface=%x %s\n", 
 		lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface, LogSurfaceAttributes(lpDDSurfaceDesc, "[Locked]", __LINE__));
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
@@ -3664,7 +3692,7 @@ HRESULT WINAPI extLockDir(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACED
 
 	res=(*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 
-	if(res) OutTraceE("Lock ERROR: ret=%x(%s)\n", res, ExplainDDError(res));
+	if(res) OutTraceE("Lock ERROR: ret=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	OutTraceB("Lock: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)lpDDSurfaceDesc, "[Locked]" , __LINE__));
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 
@@ -4041,8 +4069,7 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 		EmuDesc.dwRefreshRate = 0; 
 		EmuDesc.ddpfPixelFormat.dwFlags = DDPF_RGB;
 		if (lpddsd) dwSize=lpddsd->dwSize; // sizeof either DDSURFACEDESC or DDSURFACEDESC2 !!!
-		else dwSize = sizeof(DDSURFACEDESC2);
-		if(dwSize > sizeof(DDSURFACEDESC2)) dwSize=sizeof(DDSURFACEDESC2);
+		else dwSize=SurfaceDescrSizeD(lpdd);
 		memset(&EmuDesc, 0, dwSize);
 		EmuDesc.dwSize=dwSize;
 		EmuDesc.dwFlags=DDSD_PIXELFORMAT|DDSD_REFRESHRATE|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PITCH; 

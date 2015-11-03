@@ -72,7 +72,7 @@ void CTabProgram::OnOpen()
 	extern char *gInitFilePath;
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
-	GetPrivateProfileString("window", "exepath", ".", path, MAX_PATH, gInitFilePath);
+	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitFilePath);
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {

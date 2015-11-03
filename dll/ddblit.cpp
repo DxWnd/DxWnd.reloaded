@@ -240,6 +240,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	if (lpdds != lpddssrc){
 		if (IsDebug) BlitTrace("SRC2EMU", &emurect, &destrect, __LINE__);
 		if(destrect.top == -32000) return DD_OK; // happens when window is minimized & do not notify on task switch ...
+	        if(lpdds->IsLost()) lpdds->Restore(); // lpDDSEmu_Back could get lost .....
 		res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 	}
 
@@ -281,6 +282,8 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 		return res;
 	}
+
+	if(lpDDSEmu_Prim->IsLost()) lpDDSEmu_Prim->Restore();
 
 	dxw.ShowOverlay(lpDDSSource);
 	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);

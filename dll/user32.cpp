@@ -20,6 +20,11 @@ BOOL IsChangeDisplaySettingsHotPatched = FALSE;
 //BOOL WINAPI extValidateRect(HWND, const RECT *);
 //ValidateRect_Type pValidateRect = NULL;
 
+//typedef BOOL (WINAPI *EnumDisplayMonitors_Type)(HDC, LPCRECT, MONITORENUMPROC, LPARAM);
+//EnumDisplayMonitors_Type pEnumDisplayMonitors = NULL;
+//BOOL WINAPI extEnumDisplayMonitors(HDC, LPCRECT, MONITORENUMPROC, LPARAM);
+
+
 static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
 	//{HOOK_IAT_CANDIDATE, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
@@ -44,7 +49,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "RegisterClassExA", (FARPROC)RegisterClassExA, (FARPROC *)&pRegisterClassExA, (FARPROC)extRegisterClassExA},
 	{HOOK_IAT_CANDIDATE, "RegisterClassA", (FARPROC)RegisterClassA, (FARPROC *)&pRegisterClassA, (FARPROC)extRegisterClassA},
 	{HOOK_HOT_CANDIDATE, "GetSystemMetrics", (FARPROC)GetSystemMetrics, (FARPROC *)&pGetSystemMetrics, (FARPROC)extGetSystemMetrics},
-	{HOOK_IAT_CANDIDATE, "GetDesktopWindow", (FARPROC)GetDesktopWindow, (FARPROC *)&pGetDesktopWindow, (FARPROC)extGetDesktopWindow},
+	{HOOK_HOT_CANDIDATE, "GetDesktopWindow", (FARPROC)GetDesktopWindow, (FARPROC *)&pGetDesktopWindow, (FARPROC)extGetDesktopWindow},
 	{HOOK_IAT_CANDIDATE, "CloseWindow", (FARPROC)NULL, (FARPROC *)&pCloseWindow, (FARPROC)extCloseWindow},
 	{HOOK_IAT_CANDIDATE, "DestroyWindow", (FARPROC)NULL, (FARPROC *)&pDestroyWindow, (FARPROC)extDestroyWindow},
 	{HOOK_IAT_CANDIDATE, "SetSysColors", (FARPROC)NULL, (FARPROC *)&pSetSysColors, (FARPROC)extSetSysColors},
@@ -60,6 +65,8 @@ static HookEntry_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
 	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	//{HOOK_IAT_CANDIDATE, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
+	//{HOOK_HOT_CANDIDATE, "EnumDisplayMonitors", (FARPROC)EnumDisplayMonitors, (FARPROC *)&pEnumDisplayMonitors, (FARPROC)extEnumDisplayMonitors},
+
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -2756,7 +2763,7 @@ HWND WINAPI extChildWindowFromPointEx(HWND hWndParent, POINT Point, UINT uFlags)
 BOOL extGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpmi, GetMonitorInfo_Type pGetMonitorInfo)
 {
 	BOOL res;
-	OutTrace("GetMonitorInfo: hMonitor=%x mi=MONITORINFO%s\n", hMonitor, lpmi->cbSize==sizeof(MONITORINFO)?"":"EX");
+	OutTraceDW("GetMonitorInfo: hMonitor=%x mi=MONITORINFO%s\n", hMonitor, lpmi->cbSize==sizeof(MONITORINFO)?"":"EX");
 	res=(*pGetMonitorInfo)(hMonitor, lpmi);
 	if(res && dxw.Windowize){
 		OutTraceDW("GetMonitorInfo: FIX Work=(%d,%d)-(%d,%d) Monitor=(%d,%d)-(%d,%d) -> (%d,%d)-(%d,%d)\n", 
@@ -2766,6 +2773,9 @@ BOOL extGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpmi, GetMonitorInfo_Typ
 		lpmi->rcWork = dxw.GetScreenRect();
 		lpmi->rcMonitor = dxw.GetScreenRect();
 	}
+	else
+		OutTraceE("GetMonitorInfo: ERROR err=%d\n", GetLastError());
+
 	return res;
 }
 

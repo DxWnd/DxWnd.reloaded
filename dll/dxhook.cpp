@@ -778,6 +778,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	static int LastTimeShift;
 	static int SaveTimeShift;
 	static BOOL TimeShiftToggle=TRUE;
+	extern void DDrawScreenShot();
 
 	if(DoOnce){
 		DoOnce=FALSE;
@@ -1092,6 +1093,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 				OutTraceDW("WindowProc: WM_SYSKEYDOWN(ALT-F4) - terminating process\n");
 				TerminateProcess(GetCurrentProcess(),0);
 			}
+			break;
+		case DXVK_PRINTSCREEN:
+			DDrawScreenShot();
 			break;
 		default:
 			break;

@@ -262,6 +262,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\ddshot.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ddtexture.cpp"
 				>
 			</File>
