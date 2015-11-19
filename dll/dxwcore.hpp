@@ -129,6 +129,7 @@ public: // methods
 	void SetVSyncDelays(UINT);
 	void VSyncWait();
 	void DumpDesktopStatus();
+	void ToggleFreezedTime();
 
 public: // simple data variables
 	BOOL Windowize;
@@ -168,6 +169,7 @@ public: // simple data variables
 	HDC RealHDC;
 	HDC VirtualHDC;
 	int GDIEmulationMode;
+	BOOL TimeFreeze;
 
 // Implementation
 protected:
@@ -346,6 +348,7 @@ typedef enum {
 	DXVK_ALTF4,
 	DXVK_PRINTSCREEN,
 	DXVK_CORNERIZE,
+	DXVK_FREEZETIME,
 	DXVK_SIZE
 };
 

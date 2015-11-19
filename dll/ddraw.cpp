@@ -629,6 +629,22 @@ static void ddSetCompatibility()
 	FreeLibrary(hinst);
 }
 
+static void BypassGOGDDrawRedirector()
+{
+	// this procedure bypasses the GOG proxy ddraw.dll that sometimes is found in the GOG game folders.
+	// This way, there will be no more the need to rename or delete this file.
+	char sSysLibraryPath[MAX_PATH+10];
+	HMODULE hinst;
+
+	GetSystemDirectory(sSysLibraryPath, MAX_PATH);
+	strcat(sSysLibraryPath, "\\ddraw.dll");
+	hinst = LoadLibrary(sSysLibraryPath);
+	pDirectDrawEnumerate = (DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
+	pDirectDrawEnumerateEx = (DirectDrawEnumerateEx_Type)GetProcAddress(hinst, "DirectDrawEnumerateExA");
+	pDirectDrawCreate = (DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
+	pDirectDrawCreateEx = (DirectDrawCreateEx_Type)GetProcAddress(hinst, "DirectDrawCreateEx");
+}
+
 int HookDirectDraw(HMODULE module, int version)
 {
 	if ((dxw.dwFlags2 & SETCOMPATIBILITY) ||
@@ -638,6 +654,11 @@ int HookDirectDraw(HMODULE module, int version)
 			ddSetCompatibility();
 			AlreadyDone = TRUE;
 		}
+	}
+
+	if(dxw.dwFlags6 & BYPASSGOGLIBS) {
+		BypassGOGDDrawRedirector();
+		return TRUE;
 	}
 
 	if(dxw.dwFlags4 & HOTPATCH) {

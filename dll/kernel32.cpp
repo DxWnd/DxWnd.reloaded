@@ -383,13 +383,16 @@ time related APIs
 
 DWORD WINAPI extGetTickCount(void)
 {
-	return dxw.GetTickCount();
+	DWORD ret;
+	ret=dxw.GetTickCount();
+	//OutTraceB("GetTickCount: ret=%x\n", ret); 
+	return ret;
 }
 
 void WINAPI extGetSystemTime(LPSYSTEMTIME lpSystemTime)
 {
 	dxw.GetSystemTime(lpSystemTime);
-	if (IsDebug) OutTrace("GetSystemTime: %02d:%02d:%02d.%03d\n", 
+	OutTraceB("GetSystemTime: %02d:%02d:%02d.%03d\n", 
 		lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond, lpSystemTime->wMilliseconds);
 }
 
@@ -398,7 +401,7 @@ void WINAPI extGetLocalTime(LPSYSTEMTIME lpLocalTime)
 	SYSTEMTIME SystemTime;
 	dxw.GetSystemTime(&SystemTime);
 	SystemTimeToTzSpecificLocalTime(NULL, &SystemTime, lpLocalTime);
-	if (IsDebug) OutTrace("GetLocalTime: %02d:%02d:%02d.%03d\n", 
+	OutTraceB("GetLocalTime: %02d:%02d:%02d.%03d\n", 
 		lpLocalTime->wHour, lpLocalTime->wMinute, lpLocalTime->wSecond, lpLocalTime->wMilliseconds);
 }
 
@@ -410,25 +413,29 @@ VOID WINAPI extSleep(DWORD dwMilliseconds)
 		dwNewDelay = dxw.StretchTime(dwMilliseconds);
 		if (dwNewDelay==0) dwNewDelay=1; // minimum allowed...
 	}
-	if (IsDebug) OutTrace("Sleep: msec=%d->%d timeshift=%d\n", dwMilliseconds, dwNewDelay, dxw.TimeShift);
+	OutTraceB("Sleep: msec=%d->%d timeshift=%d\n", dwMilliseconds, dwNewDelay, dxw.TimeShift);
 	(*pSleep)(dwNewDelay);
+	while(dxw.TimeFreeze)(*pSleep)(40);
 }
 
 DWORD WINAPI extSleepEx(DWORD dwMilliseconds, BOOL bAlertable)
 {
+	DWORD ret;
 	DWORD dwNewDelay;
 	dwNewDelay=dwMilliseconds;
 	if ((dwMilliseconds!=INFINITE) && (dwMilliseconds!=0)){
 		dwNewDelay = dxw.StretchTime(dwMilliseconds);
 		if (dwNewDelay==0) dwNewDelay=1; // minimum allowed...
 	}
-	if (IsDebug) OutTrace("SleepEx: msec=%d->%d alertable=%x, timeshift=%d\n", dwMilliseconds, dwNewDelay, bAlertable, dxw.TimeShift);
-	return (*pSleepEx)(dwNewDelay, bAlertable);
+	OutTraceB("SleepEx: msec=%d->%d alertable=%x, timeshift=%d\n", dwMilliseconds, dwNewDelay, bAlertable, dxw.TimeShift);
+	ret = (*pSleepEx)(dwNewDelay, bAlertable);
+	while(dxw.TimeFreeze)(*pSleep)(40);
+	return ret;
 }
 
 void WINAPI extGetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 {
-	if (IsDebug) OutTrace("GetSystemTimeAsFileTime\n");
+	OutTraceB("GetSystemTimeAsFileTime\n");
 	dxw.GetSystemTimeAsFileTime(lpSystemTimeAsFileTime);
 }
 

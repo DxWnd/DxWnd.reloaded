@@ -145,8 +145,8 @@ public:
 	BOOL	m_NormalizePerfCount;
 	BOOL	m_QuarterBlt;
 	BOOL	m_FineTiming;
+	BOOL	m_EnableTimeFreeze;
 	BOOL	m_ReleaseMouse;
-//	BOOL	m_FrameCompensation;
 	BOOL	m_EnableHotKeys;
 	BOOL	m_InterceptRDTSC;
 	BOOL	m_HookOpenGL;
@@ -171,6 +171,8 @@ public:
 	BOOL	m_LimitResources;
 	BOOL	m_CDROMDriveType;
 	BOOL	m_HideCDROMEmpty;
+	BOOL	m_HookGOGLibs;
+	BOOL	m_BypassGOGLibs;
 	BOOL	m_FontBypass;
 	BOOL	m_BufferedIOFix;
 	BOOL	m_ZBufferClean;

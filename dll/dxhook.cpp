@@ -92,7 +92,7 @@ static char *Flag4Names[32]={
 	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "HIDEDESKTOP",
 	"STRETCHTIMERS", "NOFLIPEMULATION", "NOTEXTURES", "RETURNNULLREF",
 	"FINETIMING", "NATIVERES", "SUPPORTSVGA", "SUPPORTHDTV",
-	"RELEASEMOUSE", "--FRAMECOMPENSATION--", "HOTPATCH", "ENABLEHOTKEYS",
+	"RELEASEMOUSE", "ENABLETIMEFREEZE", "HOTPATCH", "ENABLEHOTKEYS",
 	"HOTPATCHALWAYS", "NOD3DRESET", "OVERRIDEREGISTRY", "HIDECDROMEMPTY",
 };
 
@@ -114,8 +114,8 @@ static char *Flag6Names[32]={
 	"NOSYSMEMPRIMARY", "NOSYSMEMBACKBUF", "CONFIRMONCLOSE", "TERMINATEONCLOSE",
 	"FLIPEMULATION", "SETZBUFFERBITDEPTHS", "SHAREDDC", "WOW32REGISTRY",
 	"STRETCHMOVIES", "BYPASSMCI", "FIXPIXELZOOM", "REUSEEMULATEDDC",
-	"CREATEDESKTOP", "NOWINDOWHOOKS", "SYNCPALETTE", "",
-	"", "", "", "",
+	"CREATEDESKTOP", "NOWINDOWHOOKS", "SYNCPALETTE", "VIRTUALJOYSTICK",
+	"UNACQUIRE", "HOOKGOGLIBS", "BYPASSGOGLIBS", "",
 };
 
 static char *TFlagNames[32]={
@@ -848,7 +848,8 @@ void HookModule(HMODULE base, int dxversion)
 	HookKernel32(base);
 	HookUser32(base);
 	HookOle32(base);
-	HookWinMM(base);
+	HookWinMM(base, "winmm.dll");
+	if(dxw.dwFlags6 & HOOKGOGLIBS) HookWinMM(base, "win32.dll");
 	//if(dxw.dwFlags2 & SUPPRESSIME) HookImeLib(module);
 	HookGDI32(base);
 	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base, dxversion);
@@ -1104,6 +1105,19 @@ DWORD WINAPI MessagePoller(LPVOID lpParameter)
     return 0;
 }
 
+DWORD WINAPI TimeFreezePoller(LPVOID lpParameter)
+{
+	#define DXWREFRESHINTERVAL 20
+	extern UINT VKeyConfig[];
+	UINT FreezeToggleKey;
+	FreezeToggleKey = VKeyConfig[DXVK_FREEZETIME];
+	while(TRUE){
+		Sleep(DXWREFRESHINTERVAL);
+		if(GetAsyncKeyState(FreezeToggleKey) & 0xF000) dxw.ToggleFreezedTime();
+	}
+    return 0;
+}
+
 static void MemoryReserve()
 {
 	VirtualAlloc((LPVOID)0x4000000, 0x04000000, MEM_RESERVE, PAGE_READWRITE);
@@ -1339,6 +1353,9 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if (dxw.dwFlags1 & AUTOREFRESH) 
 		CreateThread(NULL, 0, MessagePoller, NULL, 0, NULL);
+
+	if (dxw.dwFlags4 & ENABLETIMEFREEZE)
+		CreateThread(NULL, 0, TimeFreezePoller, NULL, 0, NULL);
 }
 
 LPCSTR ProcToString(LPCSTR proc)

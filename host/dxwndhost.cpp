@@ -81,6 +81,12 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 			strcpy_s(m_ConfigFileName, sizeof(m_ConfigFileName)-1, sParam.Mid(2,sizeof(m_ConfigFileName)-1));
 			return;
 		}
+		if (sParam.MakeLower() == "e"){
+			// Exit (kill) existing DxWnd session
+			extern int KillProcByName(char *, BOOL);
+			KillProcByName("DxWnd.exe", TRUE);
+			exit(0);
+		}
 	}
 
 	// Call the base class to ensure proper command line processing

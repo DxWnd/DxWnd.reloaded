@@ -61,12 +61,12 @@ static HookEntry_Type JoyHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
-void HookWinMM(HMODULE module)
+void HookWinMM(HMODULE module, char *libname)
 {
-	HookLibrary(module, Hooks, "winmm.dll");
-	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, "winmm.dll");
-	if(dxw.dwFlags5 & REMAPMCI) HookLibrary(module, RemapHooks, "winmm.dll");
-	if(dxw.dwFlags6 & VIRTUALJOYSTICK) HookLibrary(module, JoyHooks, "winmm.dll");
+	HookLibrary(module, Hooks, libname);
+	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
+	if(dxw.dwFlags5 & REMAPMCI) HookLibrary(module, RemapHooks, libname);
+	if(dxw.dwFlags6 & VIRTUALJOYSTICK) HookLibrary(module, JoyHooks, libname);
 }
 
 FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -330,7 +330,7 @@ MMRESULT WINAPI extjoyGetDevCapsA(DWORD uJoyID, LPJOYCAPS pjc, UINT cbjc)
 
 MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 {
-	OutTraceDW("joyGetPosEx: joyid=%d\n", uJoyID);
+	OutTraceC("joyGetPosEx: joyid=%d\n", uJoyID);
 	if(uJoyID != 0) return JOYERR_PARMS;
 	LONG x, y;
 	HWND hwnd;
@@ -352,8 +352,10 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 		}
 	}
 
-	POINT pt;
+	x=(XSPAN>>1);
+	y=(YSPAN>>1);
 	if(hwnd=dxw.GethWnd()){
+		POINT pt;
 		RECT client;
 		POINT upleft = {0,0};
 		(*pGetClientRect)(hwnd, &client);
@@ -381,7 +383,7 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 			if(INVERTJOYAXIS)
 				y = ((client.bottom - pt.y) * YSPAN) / client.bottom; // inverted y axis
 			else
-				pt.y = (pt.y * YSPAN) / dxw.GetScreenHeight();
+				y = (pt.y * YSPAN) / client.bottom;
 		}
 		ShowJoystick(pt.x, pt.y, dwButtons);
 	}
@@ -399,7 +401,7 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 	pji->dwButtons = dwButtons;
 	pji->dwFlags = JOY_RETURNX|JOY_RETURNY|JOY_RETURNBUTTONS;
 
-	OutTraceDW("joyGetPosEx: joyid=%d pos=(%d,%d)\n", uJoyID, pji->dwXpos, pji->dwYpos);
+	OutTraceC("joyGetPosEx: joyid=%d pos=(%d,%d)\n", uJoyID, pji->dwXpos, pji->dwYpos);
 	return JOYERR_NOERROR;
 }
 

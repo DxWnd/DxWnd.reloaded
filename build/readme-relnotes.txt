@@ -968,3 +968,9 @@ add: option "Unacquire input devices on focus lost". Needed for Star wars "Tie F
 fix: set dinput SetCooperativeLevel flags to DISCL_NONEXCLUSIVE | DISCL_FOREGROUND
 fix: fixed CreateIC hooker call method (WINAPI)
 fix: emulated Unacquire on virtual joystick. Needed for Star wars "Tie Fighter 95".
+
+v2.03.46
+add: added compatibility options "Hook GOG libs" and "Byass GOG libs" to manage GOG games
+add: added "Enable Time Freeze" timing option and the virtual key "freezetime"
+add: command line option /E to terminate exixting DxWnd session
+fix: relocation of WS_POPUP windows. Fixes "Riven" menu window.

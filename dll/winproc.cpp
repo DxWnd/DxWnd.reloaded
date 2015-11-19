@@ -512,6 +512,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		case DXVK_CORNERIZE:
 			dx_Cornerize(hwnd);
 			break;
+		//case DXVK_FREEZETIME:
+		//	dxw.ToggleFreezedTime();
+		//	break;
 		case DXVK_TIMEFAST:
 		case DXVK_TIMESLOW:
 			if (dxw.dwFlags2 & TIMESTRETCH) {

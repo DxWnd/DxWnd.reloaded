@@ -50,6 +50,7 @@ dxwCore::dxwCore()
 	iRefreshDelays[0]=16;
 	iRefreshDelays[1]=17;
 	iRefreshDelayCount=2;
+	TimeFreeze = FALSE;
 }
 
 dxwCore::~dxwCore()
@@ -1056,7 +1057,6 @@ void dxwCore::VSyncWait()
 
 
 static float fMul[17]={2.14F, 1.95F, 1.77F, 1.61F, 1.46F, 1.33F, 1.21F, 1.10F, 1.00F, 0.91F, 0.83F, 0.75F, 0.68F, 0.62F, 0.56F, 0.51F, 0.46F};
-//static float fMul[17]={0.46F, 0.51F, 0.56F, 0.62F, 0.68F, 0.75F, 0.83F, 0.91F, 1.00F, 1.10F, 1.21F, 1.33F, 1.46F, 1.61F, 1.77F, 1.95F, 2.14F};
 
 static DWORD TimeShifterFine(DWORD val, int shift)
 {
@@ -1127,6 +1127,7 @@ DWORD dxwCore::GetTickCount(void)
 	dwTick=(dwNextRealTick-dwLastRealTick);
 	TimeShift=GetHookInfo()->TimeShift;
 	dwTick = (*pTimeShifter)(dwTick, TimeShift);
+	if(TimeFreeze) dwTick=0;
 	dwLastFakeTick += dwTick;
 	dwLastRealTick = dwNextRealTick;
 	return dwLastFakeTick;
@@ -1143,18 +1144,19 @@ DWORD dxwCore::StretchCounter(DWORD dwTimer)
 {
 	TimeShift=GetHookInfo()->TimeShift;
 	dwTimer = (*pTimeShifter)(dwTimer, TimeShift);
-	return dwTimer;
+	return (dxw.TimeFreeze) ? 0 : dwTimer;
 }
 
 LARGE_INTEGER dxwCore::StretchCounter(LARGE_INTEGER dwTimer)
 {
 	static int Reminder = 0;
 	LARGE_INTEGER ret;
+	LARGE_INTEGER zero = {0,0};
 	TimeShift=GetHookInfo()->TimeShift;
 	dwTimer.QuadPart += Reminder;
 	ret = (*pTimeShifter64)(dwTimer, TimeShift);
 	Reminder = (ret.QuadPart==0) ? dwTimer.LowPart : 0;
-	return ret;
+	return (dxw.TimeFreeze) ? zero : ret;
 }
 
 void dxwCore::GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
@@ -1163,9 +1165,7 @@ void dxwCore::GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 	DWORD dwCurrentTick;
 	FILETIME CurrFileTime;
 	static DWORD dwStartTick=0;
-	static DWORD dwUpdateTick=0;
 	static FILETIME StartFileTime;
-//	extern DXWNDSTATUS *pStatus;
 
 	if(dwStartTick==0) {
 		SYSTEMTIME StartingTime;
@@ -1180,6 +1180,7 @@ void dxwCore::GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
 		dwTick=(dwCurrentTick-dwStartTick);
 		TimeShift=GetHookInfo()->TimeShift;
 		dwTick = (*pTimeShifter)(dwTick, TimeShift);
+		if(dxw.TimeFreeze) dwTick=0;
 		// From MSDN: Contains a 64-bit value representing the number of 
 		// 100-nanosecond intervals since January 1, 1601 (UTC).
 		// So, since 1mSec = 10.000 * 100nSec, you still have to multiply by 10.000.
@@ -1198,9 +1199,7 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 	DWORD dwCurrentTick;
 	FILETIME CurrFileTime;
 	static DWORD dwStartTick=0;
-	static DWORD dwUpdateTick=0;
 	static FILETIME StartFileTime;
-//	extern DXWNDSTATUS *pStatus;
 
 	if(dwStartTick==0) {
 		SYSTEMTIME StartingTime;
@@ -1215,6 +1214,7 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 		dwTick=(dwCurrentTick-dwStartTick);
 		TimeShift=GetHookInfo()->TimeShift;
 		dwTick = (*pTimeShifter)(dwTick, TimeShift);
+		if(dxw.TimeFreeze) dwTick=0;
 		// From MSDN: Contains a 64-bit value representing the number of 
 		// 100-nanosecond intervals since January 1, 1601 (UTC).
 		// So, since 1mSec = 10.000 * 100nSec, you still have to multiply by 10.000.
@@ -1291,13 +1291,6 @@ void dxwCore::ShowFPS(HDC xdc, int w, int h)
 		if(corner==LastCorner) corner = (corner+1) % 4;
 		LastCorner = corner;
 		color=0xFF0000; // blue
-		//(*pGetClientRect)(hWnd, &rect);
-		//switch (corner) {
-		//case 0: x=10; y=10; break;
-		//case 1: x=rect.right-60; y=10; break;
-		//case 2: x=rect.right-60; y=rect.bottom-20; break;
-		//case 3: x=10; y=rect.bottom-20; break;
-		//}
 		switch (corner) {
 		case 0: x=10; y=10; break;
 		case 1: x=w-60; y=10; break;
@@ -1307,7 +1300,6 @@ void dxwCore::ShowFPS(HDC xdc, int w, int h)
 	} 
 
 	SetTextColor(xdc,color);
-	//SetBkMode(xdc, TRANSPARENT);
 	SetBkMode(xdc, OPAQUE);
 	sprintf_s(sBuf, 80, "FPS: %d", GetHookInfo()->FPSCount);
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
@@ -1321,21 +1313,16 @@ void dxwCore::ShowTimeStretching(HDC xdc, int w, int h)
 	static int x, y;
 	static DWORD color;
 	static int LastTimeShift = 1000; // any initial number different from -8 .. +8
+	static int LastTimeFreeze = 1000; // any initial number different from TRUE, FALSE
 
 	if((*pGetTickCount)()-dwTimer > 4000){
-		if(LastTimeShift==TimeShift) return; // after a while, stop the show
+		if((LastTimeShift==TimeShift) && (LastTimeFreeze==TimeFreeze)) return; // after a while, stop the show
 		dwTimer = (*pGetTickCount)();
 		LastTimeShift=TimeShift;
 		corner = dwTimer % 4;
 		if(corner==LastCorner) corner = (corner+1) % 4;
 		LastCorner = corner;
 		color=0x0000FF; // red
-		//(*pGetClientRect)(hWnd, &rect);
-		//switch (corner) {
-		//case 0: x=10; y=10; break;
-		//case 1: x=rect.right-60; y=10; break;
-		//case 2: x=rect.right-60; y=rect.bottom-20; break;
-		//case 3: x=10; y=rect.bottom-20; break;
 		switch (corner) {
 		case 0: x=10; y=10; break;
 		case 1: x=w-60; y=10; break;
@@ -1345,7 +1332,6 @@ void dxwCore::ShowTimeStretching(HDC xdc, int w, int h)
 	} 
 
 	SetTextColor(xdc,color);
-	//SetBkMode(xdc, TRANSPARENT);
 	SetBkMode(xdc, OPAQUE);
 	sprintf_s(sBuf, 80, "t%s", dxw.GetTSCaption());
 	TextOut(xdc, x, y, sBuf, strlen(sBuf));
@@ -1365,6 +1351,7 @@ char *dxwCore::GetTSCaption(int shift)
 		"x1.00",
 		":1.10",":1.21",":1.33",":1.46",
 		":1.61",":1.77",":1.95",":2.14"};
+	if(TimeFreeze) return "x0";
 	if (shift<(-8) || shift>(+8)) return "???";
 	shift += 8;
 	return (dxw.dwFlags4 & FINETIMING) ? sTSCaptionFine[shift] : sTSCaptionCoarse[shift];
@@ -1848,7 +1835,8 @@ static char *VKeyLabels[DXVK_SIZE]={
 	"timetoggle", 
 	"altf4",
 	"printscreen",
-	"corner"
+	"corner",
+	"freezetime"
 };
 
 void dxwCore::MapKeysInit()
@@ -1878,4 +1866,13 @@ UINT dxwCore::MapKeysConfig(UINT message, LPARAM lparam, WPARAM wparam)
 			return idx;
 		}
 	return DXVK_NONE;
+}
+
+void dxwCore::ToggleFreezedTime()
+{
+	static DWORD dwLastTime = 0;
+	if(((*pGetTickCount)() - dwLastTime) < 100) return;
+	TimeFreeze = !TimeFreeze;
+	dwLastTime = (*pGetTickCount)();
+	OutTraceDW("DxWnd: time is %s\n", dxw.TimeFreeze ? "freezed" : "unfreezed");
 }

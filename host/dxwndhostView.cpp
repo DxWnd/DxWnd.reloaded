@@ -270,6 +270,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_LimitResources) t->flags2 |= LIMITRESOURCES;
 	if(dlg->m_CDROMDriveType) t->flags3 |= CDROMDRIVETYPE;
 	if(dlg->m_HideCDROMEmpty) t->flags4 |= HIDECDROMEMPTY;
+	if(dlg->m_HookGOGLibs) t->flags6 |= HOOKGOGLIBS;
+	if(dlg->m_BypassGOGLibs) t->flags6 |= BYPASSGOGLIBS;
 	if(dlg->m_FontBypass) t->flags3 |= FONTBYPASS;
 	if(dlg->m_BufferedIOFix) t->flags3 |= BUFFEREDIOFIX;
 	if(dlg->m_ZBufferClean) t->flags4 |= ZBUFFERCLEAN;
@@ -380,7 +382,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_QuarterBlt) t->flags5 |= QUARTERBLT;
 	if(dlg->m_FineTiming) t->flags4 |= FINETIMING;
 	if(dlg->m_ReleaseMouse) t->flags4 |= RELEASEMOUSE;
-//	if(dlg->m_FrameCompensation) t->flags4 |= FRAMECOMPENSATION;
+	if(dlg->m_EnableTimeFreeze) t->flags4 |= ENABLETIMEFREEZE;
 	if(dlg->m_EnableHotKeys) t->flags4 |= ENABLEHOTKEYS;
 	if(dlg->m_InterceptRDTSC) t->flags4 |= INTERCEPTRDTSC;
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
@@ -542,6 +544,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg->m_CDROMDriveType = t->flags3 & CDROMDRIVETYPE ? 1 : 0;
 	dlg->m_HideCDROMEmpty = t->flags4 & HIDECDROMEMPTY ? 1 : 0;
+	dlg->m_HookGOGLibs = t->flags6 & HOOKGOGLIBS ? 1 : 0;
+	dlg->m_BypassGOGLibs = t->flags6 & BYPASSGOGLIBS ? 1 : 0;
 	dlg->m_FontBypass = t->flags3 & FONTBYPASS ? 1 : 0;
 	dlg->m_BufferedIOFix = t->flags3 & BUFFEREDIOFIX ? 1 : 0;
 	dlg->m_ZBufferClean = t->flags4 & ZBUFFERCLEAN ? 1 : 0;
@@ -623,7 +627,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_QuarterBlt = t->flags5 & QUARTERBLT ? 1 : 0;
 	dlg->m_FineTiming = t->flags4 & FINETIMING ? 1 : 0;
 	dlg->m_ReleaseMouse = t->flags4 & RELEASEMOUSE ? 1 : 0;
-//	dlg->m_FrameCompensation = t->flags4 & FRAMECOMPENSATION ? 1 : 0;
+	dlg->m_EnableTimeFreeze = t->flags4 & ENABLETIMEFREEZE ? 1 : 0;
 	dlg->m_EnableHotKeys = t->flags4 & ENABLEHOTKEYS ? 1 : 0;
 	dlg->m_InterceptRDTSC = t->flags4 & INTERCEPTRDTSC ? 1 : 0;
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;

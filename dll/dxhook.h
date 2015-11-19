@@ -10,7 +10,7 @@ extern void HookDirectSound(HMODULE);
 extern void HookImeLib(HMODULE);
 extern void HookKernel32(HMODULE);
 extern void HookUser32(HMODULE);
-extern void HookWinMM(HMODULE);
+extern void HookWinMM(HMODULE, char *libname);
 extern void HookAdvApi32(HMODULE);
 extern void HookImagehlp(HMODULE);
 extern void HookSmackW32(HMODULE);

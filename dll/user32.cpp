@@ -1466,19 +1466,25 @@ static HWND WINAPI extCreateWindowCommon(
 		return hwnd;
 	}
 
-	// tested on Gangsters: coordinates must be window-relative!!!
-	// Age of Empires....
-	if (dwStyle & WS_CHILD){ 
+	// from here on, fullscreen is garanteed
+
+	if (dwStyle & WS_CHILD){
+		// tested on Gangsters: coordinates must be window-relative!!!
+		// Age of Empires....
 		dxw.MapClient(&x, &y, &nWidth, &nHeight);
 		OutTraceDW("%s: fixed WS_CHILD pos=(%d,%d) size=(%d,%d)\n",
-			ApiName, x, y, nWidth, nHeight);
+		ApiName, x, y, nWidth, nHeight);
 	}
-	// needed for Diablo, that creates a new control parent window that must be
-	// overlapped to the directdraw surface.
-	else if (dwExStyle & WS_EX_CONTROLPARENT){
-		dxw.MapWindow(&x, &y, &nWidth, &nHeight);
-		OutTraceDW("%s: fixed WS_EX_CONTROLPARENT pos=(%d,%d) size=(%d,%d)\n",
+	else {
+		if ((dwExStyle & WS_EX_CONTROLPARENT) || (dwStyle & WS_POPUP)){
+			// needed for "Diablo", that creates a new WS_EX_CONTROLPARENT window that must be
+			// overlapped to the directdraw surface.
+			// needed for "Riven", that creates a new WS_POPUP window with the menu bar that must be
+			// overlapped to the directdraw surface.
+			dxw.MapWindow(&x, &y, &nWidth, &nHeight);
+			OutTraceDW("%s: fixed pos=(%d,%d) size=(%d,%d)\n",
 			ApiName, x, y, nWidth, nHeight);
+		}
 	}
 
 	OutTraceB("%s: fixed pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
@@ -1578,7 +1584,8 @@ HWND WINAPI extCreateWindowExW(
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle),
 			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu);
 	}
-	if(IsDebug) OutTrace("CreateWindowExW: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	OutTraceB("CreateWindowExW: DEBUG fullscreen=%x mainwin=%x screen=(%d,%d)\n", 
+		dxw.IsFullScreen(), dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	if((dxw.dwFlags6 & STRETCHMOVIES) && !wcscmp(lpWindowName, L"ActiveMovie Window")){
 		RECT MainWin;
@@ -1620,7 +1627,8 @@ HWND WINAPI extCreateWindowExA(
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle),
 			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu);
 	}
-	if(IsDebug) OutTrace("CreateWindowExA: DEBUG screen=(%d,%d)\n", dxw.GetScreenWidth(), dxw.GetScreenHeight());
+	OutTraceB("CreateWindowExW: DEBUG fullscreen=%x mainwin=%x screen=(%d,%d)\n", 
+		dxw.IsFullScreen(), dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	if((dxw.dwFlags6 & STRETCHMOVIES) && !strcmp(lpWindowName, "ActiveMovie Window")){
 		RECT MainWin;

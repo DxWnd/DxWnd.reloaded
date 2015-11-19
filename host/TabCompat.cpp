@@ -50,6 +50,10 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_OVERRIDEREGISTRY, cTarget->m_OverrideRegistry);
 	DDX_Check(pDX, IDC_WOW64REGISTRY, cTarget->m_Wow64Registry);
 	DDX_Check(pDX, IDC_WOW32REGISTRY, cTarget->m_Wow32Registry);
+
+	// GOG patches
+	DDX_Check(pDX, IDC_HOOKGOGLIBS, cTarget->m_HookGOGLibs);
+	DDX_Check(pDX, IDC_BYPASSGOGLIBS, cTarget->m_BypassGOGLibs);
 }
 
 BEGIN_MESSAGE_MAP(CTabCompat, CDialog)
