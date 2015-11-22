@@ -247,6 +247,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	}	
 
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
+	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_VirtualJoystick) t->flags6 |= VIRTUALJOYSTICK;
 	if(dlg->m_Unacquire) t->flags6 |= UNACQUIRE;
@@ -491,6 +492,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags5 & INJECTSON) dlg->m_SonProcessMode = 3;
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
+	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_VirtualJoystick = t->flags6 & VIRTUALJOYSTICK ? 1 : 0;
 	dlg->m_Unacquire = t->flags6 & UNACQUIRE ? 1 : 0;

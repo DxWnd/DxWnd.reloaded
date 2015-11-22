@@ -1214,7 +1214,7 @@ void dxwCore::GetSystemTime(LPSYSTEMTIME lpSystemTime)
 		dwTick=(dwCurrentTick-dwStartTick);
 		TimeShift=GetHookInfo()->TimeShift;
 		dwTick = (*pTimeShifter)(dwTick, TimeShift);
-		if(dxw.TimeFreeze) dwTick=0;
+		if(TimeFreeze) dwTick=0;
 		// From MSDN: Contains a 64-bit value representing the number of 
 		// 100-nanosecond intervals since January 1, 1601 (UTC).
 		// So, since 1mSec = 10.000 * 100nSec, you still have to multiply by 10.000.
@@ -1871,7 +1871,7 @@ UINT dxwCore::MapKeysConfig(UINT message, LPARAM lparam, WPARAM wparam)
 void dxwCore::ToggleFreezedTime()
 {
 	static DWORD dwLastTime = 0;
-	if(((*pGetTickCount)() - dwLastTime) < 100) return;
+	if(((*pGetTickCount)() - dwLastTime) < 1000) return;
 	TimeFreeze = !TimeFreeze;
 	dwLastTime = (*pGetTickCount)();
 	OutTraceDW("DxWnd: time is %s\n", dxw.TimeFreeze ? "freezed" : "unfreezed");

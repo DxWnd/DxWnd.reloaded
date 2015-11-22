@@ -974,3 +974,10 @@ add: added compatibility options "Hook GOG libs" and "Byass GOG libs" to manage 
 add: added "Enable Time Freeze" timing option and the virtual key "freezetime"
 add: command line option /E to terminate exixting DxWnd session
 fix: relocation of WS_POPUP windows. Fixes "Riven" menu window.
+
+v2.03.47
+add: added handling of DirectInput8 dinput8.dll
+fix: completely revised directinput hooking to manage multiple devices acquire/unacquire
+fix: added some dinput error codes to log messages
+fix: increased time freeze toggle key hysteresis time to 1 sec to avoid multiple activations
+

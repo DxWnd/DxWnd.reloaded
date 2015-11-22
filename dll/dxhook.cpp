@@ -852,7 +852,8 @@ void HookModule(HMODULE base, int dxversion)
 	if(dxw.dwFlags6 & HOOKGOGLIBS) HookWinMM(base, "win32.dll");
 	//if(dxw.dwFlags2 & SUPPRESSIME) HookImeLib(module);
 	HookGDI32(base);
-	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base, dxversion);
+	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base);
+	if(dxw.dwFlags1 & HOOKDI8) HookDirectInput8(base);
 	if(dxw.dwTargetDDVersion != HOOKDDRAWNONE) HookDirectDraw(base, dxversion);
 	HookDirect3D(base, dxversion);
 	HookDirect3D7(base, dxversion);

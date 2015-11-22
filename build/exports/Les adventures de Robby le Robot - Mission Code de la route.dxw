@@ -1,6 +1,6 @@
 [target]
-title0=688(I) Hunter Killer
-path0=D:\Games\688\688I_HK.EXE
+title0=Les adventures de Robby le Robot - Mission Code de la route
+path0=D:\Games\Robby Robot\VISION.EXE
 launchpath0=
 module0=
 opengllib0=
@@ -8,12 +8,12 @@ notes0=
 registry0=
 ver0=0
 coord0=0
-flag0=-2011168734
-flagg0=1209008128
+flag0=136314914
+flagg0=1207959552
 flagh0=20
 flagi0=138412036
 flagj0=4224
-flagk0=344064
+flagk0=327680
 tflag0=0
 initx0=0
 inity0=0

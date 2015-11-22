@@ -9,6 +9,13 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 
+#ifndef DIDEVTYPE_MOUSE
+#define DIDEVTYPE_DEVICE        1
+#define DIDEVTYPE_MOUSE         2
+#define DIDEVTYPE_KEYBOARD      3
+#define DIDEVTYPE_JOYSTICK      4
+#endif
+
 typedef HRESULT (WINAPI *QueryInterface_Type)(void *, REFIID, LPVOID *);
 typedef HRESULT (WINAPI *DirectInputCreate_Type)(HINSTANCE, DWORD, LPDIRECTINPUT *, LPUNKNOWN);
 typedef HRESULT (WINAPI *DirectInputCreateEx_Type)(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
@@ -78,7 +85,11 @@ int iCurMinY;
 int iCurMaxX;
 int iCurMaxY;
 
-void HookDirectInput(HMODULE module, int version)
+LPDIRECTINPUTDEVICE lpDIDKeyboard = NULL;
+LPDIRECTINPUTDEVICE lpDIDSysMouse = NULL;
+LPDIRECTINPUTDEVICE lpDIDJoystick = NULL;
+
+void HookDirectInput(HMODULE module)
 {
 	const GUID di7 = {0x9A4CB684,0x236D,0x11D3,0x8E,0x9D,0x00,0xC0,0x4F,0x68,0x44,0xAE};
 	HINSTANCE hinst;
@@ -98,7 +109,7 @@ void HookDirectInput(HMODULE module, int version)
 	}
 }
 
-void HookDirectInput8(HMODULE module, int version)
+void HookDirectInput8(HMODULE module)
 {
 	const GUID di8 = {0xBF798030,0x483A,0x4DA2,0xAA,0x99,0x5D,0x64,0xED,0x36,0x97,0x00};
 	HINSTANCE hinst;
@@ -114,51 +125,6 @@ void HookDirectInput8(HMODULE module, int version)
 	}
 }
 
-#if 0
-int HookDirectInput(HMODULE module, int version)
-{
-	HINSTANCE hinst;
-	void *tmp;
-	LPDIRECTINPUT lpdi;
-	const GUID di7 = {0x9A4CB684,0x236D,0x11D3,0x8E,0x9D,0x00,0xC0,0x4F,0x68,0x44,0xAE};
-	const GUID di8 = {0xBF798030,0x483A,0x4DA2,0xAA,0x99,0x5D,0x64,0xED,0x36,0x97,0x00};
-
-	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateA", extDirectInputCreateA);
-	if(tmp) pDirectInputCreateA = (DirectInputCreate_Type)tmp;
-	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateW", extDirectInputCreateW);
-	if(tmp) pDirectInputCreateW = (DirectInputCreate_Type)tmp;
-	tmp = HookAPI(module, "dinput.dll", NULL, "DirectInputCreateEx", extDirectInputCreateEx);
-	if(tmp) pDirectInputCreateEx = (DirectInputCreateEx_Type)tmp;
-	tmp = HookAPI(module, "dinput8.dll", NULL, "DirectInput8Create", extDirectInput8Create);
-	if(tmp) pDirectInputCreateEx = (DirectInputCreateEx_Type)tmp;
-	if(!pDirectInputCreateA && !pDirectInputCreateW && !pDirectInputCreateEx){
-		if(version < 8){
-			hinst = LoadLibrary("dinput.dll");
-			pDirectInputCreateA =
-				(DirectInputCreate_Type)GetProcAddress(hinst, "DirectInputCreateA");
-			if(pDirectInputCreateA)
-				if(!extDirectInputCreateA(GetModuleHandle(0), DIRECTINPUT_VERSION,
-					&lpdi, 0)) lpdi->Release();
-			pDirectInputCreateEx =
-				(DirectInputCreateEx_Type)GetProcAddress(hinst, "DirectInputCreateEx");
-			if(pDirectInputCreateEx)
-				if(!extDirectInputCreateEx(GetModuleHandle(0), DIRECTINPUT_VERSION,
-					di7, (void **)&lpdi, 0)) lpdi->Release();
-		}
-		else{
-			hinst = LoadLibrary("dinput8.dll");
-			pDirectInputCreateEx =
-				(DirectInputCreateEx_Type)GetProcAddress(hinst, "DirectInput8Create");
-			if(pDirectInputCreateEx)
-				if(!extDirectInputCreateEx(GetModuleHandle(0), DIRECTINPUT_VERSION,
-					di8, (void **)&lpdi, 0)) lpdi->Release();
-		}
-	}
-	if(pDirectInputCreateA || pDirectInputCreateW || pDirectInputCreateEx) return 1;
-	return 0;
-}
-#endif
-
 FARPROC Remap_DInput_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
@@ -173,7 +139,6 @@ FARPROC Remap_DInput8_ProcAddress(LPCSTR proc, HMODULE hModule)
 	return NULL;
 }
 
-static char *libname = "dsound.dll";
 HRESULT WINAPI extDirectInputCreate(HINSTANCE hinst,
 	DWORD dwversion, LPDIRECTINPUT *lplpdi, LPUNKNOWN pu, DirectInputCreate_Type pDirectInputCreate, char *apiname)
 {
@@ -256,14 +221,13 @@ HRESULT WINAPI extDirectInput8Create(HINSTANCE hinst, DWORD dwversion, REFIID ri
 	}
 	OutTraceDW("DirectInput8Create: di=%x\n", *ppvout);
 	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I8)");
+	SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I8)");
 	return 0;
 }
 
-HRESULT WINAPI extDICreateDevice(LPDIRECTINPUT lpdi, REFGUID rguid, LPDIRECTINPUTDEVICE *lplpdid, LPUNKNOWN pu)
+static char *sDeviceType(REFGUID rguid)
 {
-	HRESULT res;
 	char *devtype;
-
 	switch(rguid.Data1){
 		case 0x6F1D2B60: devtype = "SysMouse"; break;
 		case 0x6F1D2B61: devtype = "SysKeyboard"; break;
@@ -274,7 +238,26 @@ HRESULT WINAPI extDICreateDevice(LPDIRECTINPUT lpdi, REFGUID rguid, LPDIRECTINPU
 		case 0x6F1D2B83: devtype = "SysKeyboardEm2"; break;
 		default: devtype = "Unknown"; break;
 	}
-	OutTraceDW("CreateDevice(I): REFGUID=%x(%s)\n", rguid.Data1, devtype);
+	return devtype;
+}
+
+static int iDeviceType(REFGUID rguid)
+{
+	int devtype;
+	switch(rguid.Data1){
+		case 0x6F1D2B60: devtype = DIDEVTYPE_MOUSE; break;
+		case 0x6F1D2B61: devtype = DIDEVTYPE_KEYBOARD; break;
+		case 0x6F1D2B70: devtype = DIDEVTYPE_JOYSTICK; break;
+		default: devtype = 0; break;
+	}
+	return devtype;
+}
+
+HRESULT WINAPI extDICreateDevice(LPDIRECTINPUT lpdi, REFGUID rguid, LPDIRECTINPUTDEVICE *lplpdid, LPUNKNOWN pu)
+{
+	HRESULT res;
+
+	OutTraceDW("CreateDevice(I): REFGUID=%x(%s)\n", rguid.Data1, sDeviceType(rguid));
 
 	res = (*pDICreateDevice)(lpdi, rguid, lplpdid, pu);
 	if(res) {
@@ -288,7 +271,13 @@ HRESULT WINAPI extDICreateDevice(LPDIRECTINPUT lpdi, REFGUID rguid, LPDIRECTINPU
 	SetHook((void *)(**(DWORD **)lplpdid + 40), extGetDeviceData, (void **)&pGetDeviceData, "GetDeviceData(I)");
 	SetHook((void *)(**(DWORD **)lplpdid + 44), extSetDataFormat, (void **)&pSetDataFormat, "SetDataFormat(I)");
 	SetHook((void *)(**(DWORD **)lplpdid + 52), extDISetCooperativeLevel, (void **)&pDISetCooperativeLevel, "SetCooperativeLevel(I)");
-	return 0;
+
+	switch(iDeviceType(rguid)){
+		case DIDEVTYPE_MOUSE: lpDIDSysMouse = *lplpdid; break;
+		case DIDEVTYPE_KEYBOARD: lpDIDKeyboard = *lplpdid; break;
+		case DIDEVTYPE_JOYSTICK: lpDIDJoystick = *lplpdid; break;
+	}
+	return DI_OK;
 }
 
 HRESULT WINAPI extDICreateDeviceEx(LPDIRECTINPUT lpdi, REFGUID rguid,
@@ -296,7 +285,7 @@ HRESULT WINAPI extDICreateDeviceEx(LPDIRECTINPUT lpdi, REFGUID rguid,
 {
 	HRESULT res;
 
-	OutTraceDW("CreateDeviceEx(I): GUID=%x REFIID=%x\n", rguid.Data1, riid.Data1);
+	OutTraceDW("CreateDeviceEx(I): GUID=%x(%s) REFIID=%x\n", rguid.Data1, sDeviceType(rguid), riid.Data1);
 
 	res = (*pDICreateDeviceEx)(lpdi, rguid, riid, pvout, pu);
 	if(res) {
@@ -310,7 +299,13 @@ HRESULT WINAPI extDICreateDeviceEx(LPDIRECTINPUT lpdi, REFGUID rguid,
 	SetHook((void *)(**(DWORD **)pvout + 40), extGetDeviceData, (void **)&pGetDeviceData, "GetDeviceData(I)");
 	SetHook((void *)(**(DWORD **)pvout + 44), extSetDataFormat, (void **)&pSetDataFormat, "SetDataFormat(I)");
 	SetHook((void *)(**(DWORD **)pvout + 52), extDISetCooperativeLevel, (void **)&pDISetCooperativeLevel, "SetCooperativeLevel(I)");
-	return 0;
+
+	switch(iDeviceType(rguid)){
+		case DIDEVTYPE_MOUSE: lpDIDSysMouse = *(LPDIRECTINPUTDEVICE *)pvout; break;
+		case DIDEVTYPE_KEYBOARD: lpDIDKeyboard = *(LPDIRECTINPUTDEVICE *)pvout; break;
+		case DIDEVTYPE_JOYSTICK: lpDIDJoystick = *(LPDIRECTINPUTDEVICE *)pvout; break;
+	}
+	return DI_OK;
 }
 
 /* from MSDN:
@@ -343,9 +338,18 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 		lpdid, cbdata, rgdod, *pdwinout, dwflags);
 
 	res = (*pGetDeviceData)(lpdid, cbdata, rgdod, pdwinout, dwflags);
-	if(res) {
-		OutTraceE("GetDeviceData(I) ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
-		return res;
+	switch(res){
+		case DI_OK:
+			break;
+		case DIERR_NOTACQUIRED: 
+		case DIERR_INPUTLOST: 
+			OutTraceB("GetDeviceData(I): handling err=%s\n", ExplainDDError(res));
+			*pdwinout = 0; // to avoid crashes
+			break;
+		default:
+			OutTraceE("GetDeviceData(I) ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+			return res;
+			break;
 	}
 
 	if(!dxw.bActive) {
@@ -399,9 +403,17 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	OutTraceDW("GetDeviceState(I): did=%x cbData=%i,%i\n", lpdid, cbdata, dxw.bActive);
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
-	if(res) {
-		OutTraceE("GetDeviceState(I) ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
-		return res;
+	switch(res){
+		case DI_OK:
+			break;
+		case DIERR_NOTACQUIRED: 
+		case DIERR_INPUTLOST: 
+			OutTraceB("GetDeviceState(I): handling err=%s\n", ExplainDDError(res));
+			break;
+		default:
+			OutTraceE("GetDeviceState(I) ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+			return res;
+			break;
 	}
 
 	if(	cbdata == sizeof(DIMOUSESTATE) || cbdata == sizeof(DIMOUSESTATE2) 
@@ -424,22 +436,16 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 			lpvdata->lZ = 0;
 			*(DWORD *)lpvdata->rgbButtons = 0;
 		}
-		OutTraceB("GetDeviceState(I): DEBUG mousestate=(%d,%d)\n", p.x, p.y);
+		OutTraceB("GetDeviceState(I): DEBUG cleared mousestate=(%d,%d)\n", p.x, p.y);
 	}
 	
-	if(cbdata == 256 && !dxw.bActive) ZeroMemory(lpvdata, 256);
+	// SysKeybd device
+	if(cbdata == 256 && !dxw.bActive) {
+		ZeroMemory(lpvdata, 256);
+		OutTraceB("GetDeviceState(I): DEBUG cleared syskeybdstate\n");
+	}
 	return DI_OK;
 }
-
-//static char *dftype(LPCDIDATAFORMAT lpdf)
-//{
-//	if(lpdf == &c_dfDIMouse)		return "mouse";
-//	if(lpdf == &c_dfDIKeyboard)		return "keyboard";
-//	if(lpdf == &c_dfDIMouse2)		return "mouse2";
-//	if(lpdf == &c_dfDIJoystick)		return "joy";
-//	if(lpdf == &c_dfDIJoystick2)	return "joy2";
-//	return "custom";
-//}
 
 static char *didftype(DWORD c)
 {
@@ -508,6 +514,7 @@ HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE lpdid, HWND hwnd, DW
 
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 	//dwflags = DISCL_NONEXCLUSIVE | DISCL_BACKGROUND;
+
 	dwflags = DISCL_NONEXCLUSIVE | DISCL_FOREGROUND;
 	hwnd=dxw.GethWnd();
 	res = (*pDISetCooperativeLevel)(lpdid, hwnd, dwflags);
@@ -578,29 +585,32 @@ HRESULT WINAPI extDIEnumDevices(void *lpdi, DWORD dwDevType, LPDIENUMDEVICESCALL
 	return res;
 }
 
-LPDIRECTINPUTDEVICE lpDID = NULL;
-
 HRESULT WINAPI extAcquire(LPDIRECTINPUTDEVICE lpdid)
 {
 	HRESULT res;
-	lpDID = lpdid;
 	res = (*pAcquire)(lpdid);
-	OutTrace("Acquire(I): lpdid=%x res=%x\n", lpdid, res);
+	OutTrace("Acquire(I): lpdid=%x res=%x(%s)\n", lpdid, res, ExplainDDError(res));
 	return res;
 }
 
 HRESULT WINAPI extUnacquire(LPDIRECTINPUTDEVICE lpdid)
 {
 	HRESULT res;
-	lpDID = lpdid;
 	res = (*pUnacquire)(lpdid);
-	OutTrace("Unacquire(I): lpdid=%x res=%x\n", lpdid, res);
+	OutTrace("Unacquire(I): lpdid=%x res=%x(%s)\n", lpdid, res, ExplainDDError(res));
 	return res;
 }
 
 void ToggleAcquiredDevices(BOOL flag)
 {
-	if (!lpDID) return;
-	if(flag && pAcquire)(*pAcquire)(lpDID);
-	if(!flag && pUnacquire)(*pUnacquire)(lpDID);
+	if(flag && pAcquire){
+		if(lpDIDSysMouse) (*pAcquire)(lpDIDSysMouse);
+		if(lpDIDKeyboard) (*pAcquire)(lpDIDKeyboard);
+		if(lpDIDJoystick) (*pAcquire)(lpDIDJoystick);
+	}
+	if(!flag && pUnacquire){
+		if(lpDIDSysMouse) (*pUnacquire)(lpDIDSysMouse);
+		if(lpDIDKeyboard) (*pUnacquire)(lpDIDKeyboard);
+		if(lpDIDJoystick) (*pUnacquire)(lpDIDJoystick);
+	}
 }

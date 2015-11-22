@@ -13,13 +13,16 @@
 
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 LPVOID WINAPI extVirtualAlloc(LPVOID, SIZE_T, DWORD, DWORD);
+UINT WINAPI extWinExec(LPCSTR, UINT);
 
 typedef LPVOID (WINAPI *VirtualAlloc_Type)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, 
 										   BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION);
+typedef UINT (WINAPI *WinExec_Type)(LPCSTR, UINT);
 
 CreateProcessA_Type pCreateProcessA = NULL;
 VirtualAlloc_Type pVirtualAlloc = NULL;
+WinExec_Type pWinExec = NULL;
 
 #ifdef NOFREELIBRARY
 typedef BOOL (WINAPI *FreeLibrary_Type)(HMODULE);
@@ -47,6 +50,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "GetLogicalDrives", (FARPROC)NULL, (FARPROC *)&pGetLogicalDrives, (FARPROC)extGetLogicalDrives},
 	{HOOK_IAT_CANDIDATE, "GetTempFileNameA", (FARPROC)GetTempFileNameA, (FARPROC *)&pGetTempFileName, (FARPROC)extGetTempFileName},
 	{HOOK_IAT_CANDIDATE, "CreateProcessA", (FARPROC)NULL, (FARPROC *)&pCreateProcessA, (FARPROC)extCreateProcessA},
+	//{HOOK_IAT_CANDIDATE, "WinExec", (FARPROC)NULL, (FARPROC *)&pWinExec, (FARPROC)extWinExec},
 #ifdef NOFREELIBRARY
 	{HOOK_HOT_CANDIDATE, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
 #endif
@@ -1092,5 +1096,16 @@ LPVOID WINAPI extVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocatio
 		if(ret == NULL) OutTraceE("VirtualAlloc: addr=NULL err=%d\n", GetLastError());
 	}
 	OutTrace("VirtualAlloc: ret=%x\n", ret);
+	return ret;
+}
+
+// WinExec: used by "Star Wars X-Wings Alliance" frontend, but fortunately it's not essential to hook it....
+UINT WINAPI extWinExec(LPCSTR lpCmdLine, UINT uCmdShow)
+{
+	UINT ret;
+	OutTraceDW("WinExec: lpCmdLine=%s CmdShow=%x\n", lpCmdLine, uCmdShow);
+	ret=(*pWinExec)(lpCmdLine, uCmdShow);
+	if(ret<31)
+		OutTraceE("WinExec: ERROR ret=%x\n", ret);
 	return ret;
 }

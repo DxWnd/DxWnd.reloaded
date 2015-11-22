@@ -88,7 +88,7 @@ DWORD WINAPI exttimeGetTime(void)
 {
 	DWORD ret;
 	ret = dxw.GetTickCount();
-	if (IsDebug) OutTrace("timeGetTime: time=%x\n", ret);
+	//OutTraceB("timeGetTime: time=%x\n", ret);
 	return ret;
 }
 

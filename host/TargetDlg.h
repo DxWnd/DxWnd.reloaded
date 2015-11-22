@@ -33,6 +33,7 @@ public:
 	int		m_TextureHandling;
 	int		m_SonProcessMode;
 	BOOL	m_HookDI;
+	BOOL	m_HookDI8;
 	BOOL	m_ModifyMouse;
 	BOOL	m_VirtualJoystick;
 	BOOL	m_Unacquire;
