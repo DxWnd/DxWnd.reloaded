@@ -20,7 +20,7 @@
 #define HANDLEEXCEPTIONS	0x00000040 // Handles exceptions: Div by 0 ....
 #define SAVELOAD			0x00000080
 #define EMULATEBUFFER		0x00000100
-// #define AUTOMATIC		0x00000200
+#define HOOKDI8				0x00000200
 #define BLITFROMBACKBUFFER	0x00000400
 #define SUPPRESSCLIPPING	0x00000800
 #define AUTOREFRESH			0x00001000
@@ -92,7 +92,7 @@
 #define EMULATEREGISTRY		0x00000400 // Emulate registry api to read extra keys
 #define CDROMDRIVETYPE		0x00000800 // Pretends that GetDriveType() always returns DRIVE_CDROM
 #define NOWINDOWMOVE		0x00001000 // Do not try to update window position & size on D3D rendering
-//#define DISABLEHAL			0x00002000 // Disable HAL support (IID_IDirect3DHALDevice) - no longer used
+#define FORCECLIPPER		0x00002000 // Set ddraw clipping for real primary surface and primary window - but FastBlt cannot be used!
 #define LOCKSYSCOLORS		0x00004000 // Lock Sys Colors changes by SetSysColors() call
 #define GDIEMULATEDC		0x00008000 // Map GDI/user32 calls to primary to a memory surface to be stretch-blitted to the primary
 #define FULLSCREENONLY		0x00010000 // assume that the program is always in fullscreen mode
@@ -210,8 +210,8 @@
 #define SYNCPALETTE			0x04000000 // Syncronize GDI to DDRAW palette
 #define VIRTUALJOYSTICK		0x08000000 // Enables the DxWnd virtual joystick
 #define UNACQUIRE			0x10000000 // Unacquire DirectInput devices when losing focus and acquire back when gaining focus
-#define HOOKGOGLIBS			0x20000000
-#define BYPASSGOGLIBS		0x40000000
+#define HOOKGOGLIBS			0x20000000 // Hook additional libraries provided by GOG with different names but same functionalities as system ones
+#define BYPASSGOGLIBS		0x40000000 // Bypass GOG proxy system libraries loading directly the system libraries from the system folder
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

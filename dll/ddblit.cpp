@@ -8,7 +8,8 @@
 #include "hddraw.h"
 #include "dxhelper.h"
 
-//extern LPDIRECTDRAWSURFACE lpDDSBack;
+#define FIXBIGGERRECT 1
+
 extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
 extern LPDIRECTDRAW lpPrimaryDD;
 extern Blt_Type pBlt;
@@ -37,8 +38,7 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	//extern PrimaryBlt_Type pPrimaryBlt;
 	//CkArg arg;
 
-	//FromScreen=dxwss.IsAPrimarySurface(lpddssrc) && !(dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags1 & EMULATEBUFFER); // v2.02.77
-	FromScreen=dxwss.IsAPrimarySurface(lpddssrc); // ghogho
+	FromScreen=dxwss.IsAPrimarySurface(lpddssrc); 
 
 	// make a working copy of srcrect if not NULL
 	if (lpsrcrect){
@@ -136,7 +136,6 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	}
 #endif
 
-#define FIXBIGGERRECT 1
 #if FIXBIGGERRECT
 	if(lpdestrect){
 		if((DWORD)lpdestrect->top < 0) lpdestrect->top = 0;
@@ -162,6 +161,12 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	OutTraceB("DESTRECT=(%d,%d)-(%d,%d) Screen=(%dx%d)\n", 
 		destrect.left, destrect.top, destrect.right, destrect.bottom,
 		dxw.GetScreenWidth(), dxw.GetScreenHeight());
+
+	// v2.03.48: on WinXP it may happen (reported by Cloudstr) that alt tabbing produces
+	// bad blit attempts where the client coordinates get the (-32000,-32000) - (-32000,-32000)
+	// value. In such cases, it's adviseable to simulate an OK return code without attempting
+	// any blit operation!
+	if(destrect.left == -32000) return DD_OK; // no blit on invisible window
 
 	if(!lpddssrc) {
 		if (isFlipping){

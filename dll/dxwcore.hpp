@@ -69,6 +69,7 @@ public: // methods
 	void MapClient(LPRECT);
 	void MapClient(int *, int *, int *, int *);
 	void MapClient(int *, int *);
+	//void MapClient(float *, float *);
 	void UnmapClient(LPPOINT);
 	void UnmapClient(int *, int *);
 	void UnmapClient(LPRECT);

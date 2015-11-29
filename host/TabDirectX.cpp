@@ -30,6 +30,7 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_NOEMULATESURFACE, cTarget->m_DxEmulationMode);
 	DDX_Radio(pDX, IDC_DDRAWFILTER, cTarget->m_DxFilterMode);
 	DDX_Check(pDX, IDC_SUPPRESSCLIPPING, cTarget->m_SuppressClipping);
+	DDX_Check(pDX, IDC_FORCECLIPPER, cTarget->m_ForceClipper);
 	DDX_Check(pDX, IDC_BLITFROMBACKBUFFER, cTarget->m_BlitFromBackBuffer);
 	DDX_Check(pDX, IDC_AUTOREFRESH, cTarget->m_AutoRefresh);
 	DDX_Check(pDX, IDC_TEXTUREFORMAT, cTarget->m_TextureFormat);

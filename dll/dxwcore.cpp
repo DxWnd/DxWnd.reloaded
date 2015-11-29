@@ -674,6 +674,17 @@ void dxwCore::MapClient(LPPOINT lppoint)
 	lppoint->y= ((lppoint->y * h)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
 }
 
+//void dxwCore::MapClient(float *SX, float *SY)
+//{
+//	RECT client;
+//	int w, h;
+//	if(!(*pGetClientRect)(hWnd, &client)) return;
+//	w = client.right ? client.right : iSizX;
+//	h = client.bottom ? client.bottom : iSizY;
+//	*SX= (*SX * (float)w) / (float)dwScreenWidth;
+//	*SY= (*SY * (float)h) / (float)dwScreenHeight;
+//}
+
 void dxwCore::MapClient(int *nXDest, int *nYDest)
 {
 	RECT client;

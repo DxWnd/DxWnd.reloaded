@@ -981,3 +981,10 @@ fix: completely revised directinput hooking to manage multiple devices acquire/u
 fix: added some dinput error codes to log messages
 fix: increased time freeze toggle key hysteresis time to 1 sec to avoid multiple activations
 
+v2.03.48
+fix: set proper surface capabilities for 3DDEVICE surfaces, according to VIDEOMEMORY capability.
+add: "force clipper" flag to redirect clipper definition to main window and primary surface
+fix: better handling of surfaces on minimize / restore events, mainly on WinXP
+fix: proper default values for"Share ddraw and GDI DC" and "Lock/Unlock Pitch Fix" flags
+
+

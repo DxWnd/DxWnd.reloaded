@@ -84,6 +84,7 @@ public:
 	BOOL	m_BlitFromBackBuffer;
 	BOOL	m_NoFlipEmulation;
 	BOOL	m_SuppressClipping;
+	BOOL	m_ForceClipper;
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;
 	BOOL	m_TextureFormat;

@@ -503,7 +503,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\Include\dxwnd.h"
+				RelativePath="..\..\v2_03_49_beta\Include\dxwnd.h"
 				>
 			</File>
 			<File
@@ -516,10 +516,6 @@
 			</File>
 			<File
 				RelativePath=".\hd3d.doc.hpp"
-				>
-			</File>
-			<File
-				RelativePath=".\hddraw.h"
 				>
 			</File>
 			<File

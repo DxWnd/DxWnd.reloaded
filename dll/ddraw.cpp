@@ -1093,6 +1093,8 @@ static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 8), extReleaseC, (void **)&pReleaseC, "Release(C)");
 	// IDirectDrawClipper::GetClipList
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 12), extGetClipList, (void **)&pGetClipList, "GetClipList(C)");
+	// IDirectDrawClipper::SetHWnd
+	SetHook((void *)(**(DWORD **)lplpDDClipper + 32), extSetHWndProxy, (void **)&pSetHWnd, "SetHWnd(C)");
 
 	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
 	// Just proxed ...
@@ -1109,8 +1111,6 @@ static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 24), extIsClipListChangedProxy, (void **)&pIsClipListChanged, "IsClipListChanged(C)");
 	// IDirectDrawClipper::SetClipList
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 28), extSetClipListProxy, (void **)&pSetClipList, "SetClipList(C)");
-	// IDirectDrawClipper::SetHWnd
-	SetHook((void *)(**(DWORD **)lplpDDClipper + 32), extSetHWndProxy, (void **)&pSetHWnd, "SetHWnd(C)");
 
 	return;
 }
@@ -2203,12 +2203,19 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		lpddsd->ddsCaps.dwCaps = DDSCAPS_ZBUFFER;  
 		return;
 	}
-
-	if((lpddsd->dwFlags & DDSD_CAPS) && 
-		(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) // v2.02.90: added for "Zoo Tycoon" textures
-		{ // 3DDEVICE no TEXTURE: enforce PIXELFORMAT on MEMORY
+	
+	// 3DDEVICE no TEXTURE: enforce PIXELFORMAT
+	// v2.02.90: added for "Zoo Tycoon" textures
+	// v2.03.48 - there are two situations
+	// "Arx fatalis" asks for DDSCAPS_3DDEVICE+DDSCAPS_OFFSCREENPLAIN capability and needs no DDSCAPS_SYSTEMMEMORY capability
+	// "Bunnies must die" asks for DDSCAPS_3DDEVICE+DDSCAPS_OFFSCREENPLAIN+DDSCAPS_VIDEOMEMORY capability and requires DDSCAPS_SYSTEMMEMORY capability
+	// we try to manage them by checking for the DDSCAPS_VIDEOMEMORY capability ...
+	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)){ 
 		lpddsd->dwFlags |= DDSD_PIXELFORMAT;
-		lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE); 
+		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) 
+			lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_SYSTEMMEMORY); // good for "Bunnies must die", NO "Arx Fatalis"
+		else
+			lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE); // good for "Arx Fatalis", NO "Bunnies must die"
 		GetPixFmt(lpddsd);
 		return;
 	}
@@ -3207,12 +3214,24 @@ HRESULT WINAPI PrimaryBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECT
 
 HRESULT WINAPI PrimaryFastBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
 {
+	HRESULT res;
 	RECT client;
 	int iXOffset, iYOffset; // offsets to center surface area to window
 	(*pGetClientRect)(dxw.GethWnd(), &client);
 	iXOffset = (client.right - dxw.GetScreenWidth()) >> 1;
 	iYOffset = (client.bottom - dxw.GetScreenHeight()) >> 1;
-	return (*pBltFast)(lpdds, iXOffset + lpdestrect->left, iYOffset + lpdestrect->top, lpddssrc, lpsrcrect, DDBLTFAST_WAIT);
+	if(dxw.dwFlags3 & FORCECLIPPER){
+	RECT destrect;
+	destrect.left = iXOffset + lpdestrect->left;
+	destrect.right = iXOffset + lpdestrect->right;
+	destrect.top = iYOffset + lpdestrect->top;
+	destrect.bottom = iYOffset + lpdestrect->bottom;
+	res = (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, DDBLT_WAIT, 0);
+	}
+	else {
+		res= (*pBltFast)(lpdds, iXOffset + lpdestrect->left, iYOffset + lpdestrect->top, lpddssrc, lpsrcrect, DDBLTFAST_WAIT);
+	}
+	return res;
 }
 
 HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect)
@@ -3270,8 +3289,14 @@ HRESULT WINAPI PrimaryStretchBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, L
 	}
 	else {
 		// fast-blit to primary
-		res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
-		if(res) OutTraceE("PrimaryStretchBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if(dxw.dwFlags3 & FORCECLIPPER){
+			res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
+			if(res) OutTraceE("PrimaryStretchBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		}
+		else{
+			res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
+			if(res) OutTraceE("PrimaryStretchBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		}
 	}
 	(*pReleaseS)(lpddsTmp);
 	return res;
@@ -3423,8 +3448,14 @@ HRESULT WINAPI PrimaryBilinearBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, 
 	// fast-blit to primary
 	(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 	(*pUnlockMethod(lpddsTmp))(lpddsTmp, NULL);
-	res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
-	if(res) OutTraceE("PrimaryBilinearBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	if(dxw.dwFlags3 & FORCECLIPPER) {
+		res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
+		if(res) OutTraceE("PrimaryBilinearBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	}
+	else {
+		res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
+		if(res) OutTraceE("PrimaryBilinearBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	}
 	(*pReleaseS)(lpddsTmp);	
 	if(lpddsCopy) (*pReleaseS)(lpddsCopy);
 	return res;
@@ -3850,16 +3881,30 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 	if(dxw.dwFlags1 & SUPPRESSCLIPPING) return 0;
 
 	if(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)){
-		if ((isPrim && lpDDSEmu_Prim) || 
-			(dxwss.IsABackBufferSurface(lpdds) && lpDDSEmu_Back)){
-			OutTraceDW("SetClipper: skip primary/backbuffer lpdds=%x\n", lpdds);
-			res=0;
+		if (dxw.dwFlags3 & FORCECLIPPER){
+			// v2.03.48: FORCECLIPPER ensures that a valid clipper is issued on the real primary surface
+			// and on the main game window. Then, you won't be able to BltFast any longer....
+			if ((isPrim || dxwss.IsABackBufferSurface(lpdds)) && lpDDSEmu_Prim){
+				OutTraceDW("SetClipper: redirect surface to primary hwnd=%x lpdds=%x%s->%x\n", 
+					dxw.GethWnd(), lpdds, isPrim?"(PRIM)":"", lpDDSEmu_Prim);
+				res=(*pSetHWnd)(lpddc, 0, dxw.GethWnd());
+				//res=lpddc->SetHWnd(0, dxw.GethWnd());
+				if (res) OutTraceE("SetClipper: SetHWnd ERROR res=%x(%s)\n", res, ExplainDDError(res));
+				res=(*pSetClipper)(lpDDSEmu_Prim, lpddc);
+				if (res) OutTraceE("SetClipper: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+				return res;
+			}
 		}
-		else 
-			res=(*pSetClipper)(lpdds, lpddc);
+		else {
+			if ((isPrim && lpDDSEmu_Prim) || 
+				(dxwss.IsABackBufferSurface(lpdds) && lpDDSEmu_Back)){
+				OutTraceDW("SetClipper: skip primary/backbuffer lpdds=%x\n", lpdds);
+				return 0;
+			}
+		}
 	}
-	else
-		res=(*pSetClipper)(lpdds, lpddc);
+			
+	res=(*pSetClipper)(lpdds, lpddc);
 
 	if (res)
 		OutTraceE("SetClipper: ERROR res=%x(%s)\n", res, ExplainDDError(res));

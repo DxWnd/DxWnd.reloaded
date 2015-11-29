@@ -860,6 +860,12 @@ HRESULT WINAPI extSetViewport(void *lpvp, LPD3DVIEWPORT vpd)
 	OutTraceD3D("SetViewport: viewport=%x viewportd=%x size=%d pos=(%d,%d) dim=(%dx%d) scale=(%fx%f) maxXYZ=(%f,%f,%f) minZ=%f\n", 
 		lpvp, vpd, vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight, vpd->dvScaleX, vpd->dvScaleY, 
 		vpd->dvMaxX, vpd->dvMaxY, vpd->dvMaxZ, vpd->dvMinZ);
+
+	// v2.03.48: scaled dvScaleX/Y fields. Fixes "Dark Vengeance" viewport size when using D3D interface.
+	// no.... see Forsaken
+	//dxw.MapClient(&vpd->dvScaleX, &vpd->dvScaleY);
+	//OutTraceDW("SetViewport: FIXED scale=(%fx%f)\n", vpd->dvScaleX, vpd->dvScaleY);
+
 	res=(*pSetViewport)(lpvp, vpd);
 	if(res) OutTraceE("SetViewport ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("SetViewport: OK\n");
@@ -872,6 +878,7 @@ HRESULT WINAPI extGetViewport(void *lpvp, LPD3DVIEWPORT vpd)
 
 	OutTraceD3D("GetViewport: viewport=%x viewportd=%x\n", lpvp, vpd);
 	res=(*pGetViewport)(lpvp, vpd);
+	// v2.03.48: should the dvScaleX/Y fields be unscaled? 
 	if(res) OutTraceE("GetViewport ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("GetViewport: OK size=%d pos=(%d,%d) dim=(%dx%d) scale=(%fx%f) maxXYZ=(%f,%f,%f) minZ=%f\n",
 		vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight, vpd->dvScaleX, vpd->dvScaleY, 
