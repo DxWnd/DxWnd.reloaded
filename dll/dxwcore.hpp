@@ -167,6 +167,7 @@ public: // simple data variables
 	short MaxScreenRes;
 	HDC RealHDC;
 	HDC VirtualHDC;
+	int GDIEmulationMode;
 
 // Implementation
 protected:
@@ -348,5 +349,9 @@ typedef enum {
 	DXVK_SIZE
 };
 
+#define GDIMODE_STRETCHED  0
+#define GDIMODE_EMULATED   1
+
 typedef HRESULT (WINAPI *ColorConversion_Type)(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
 extern ColorConversion_Type pColorConversion;
+extern void ToggleAcquiredDevices(BOOL);

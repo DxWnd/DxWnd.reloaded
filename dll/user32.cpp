@@ -15,9 +15,6 @@
 #define FIXCHILDSIZE FALSE
 
 BOOL IsChangeDisplaySettingsHotPatched = FALSE;
-#define GDIMODE_STRETCHED  0
-#define GDIMODE_EMULATED   1
-int GDIEmulationMode = 0;
 extern BOOL bFlippedDC;
 extern HDC hFlippedDC;
 
@@ -201,6 +198,7 @@ static HookEntry_Type PeekAllHooks[]={
 
 static HookEntry_Type MouseHooks[]={
 	{HOOK_HOT_CANDIDATE, "GetCursorPos", (FARPROC)GetCursorPos, (FARPROC *)&pGetCursorPos, (FARPROC)extGetCursorPos},
+	{HOOK_HOT_CANDIDATE, "SetCursorPos", (FARPROC)SetCursorPos, (FARPROC *)&pSetCursorPos, (FARPROC)extSetCursorPos},
 	{HOOK_IAT_CANDIDATE, "GetCursorInfo", (FARPROC)GetCursorInfo, (FARPROC *)&pGetCursorInfo, (FARPROC)extGetCursorInfo},
 	{HOOK_IAT_CANDIDATE, "SetCursor", (FARPROC)SetCursor, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor},
 	{HOOK_IAT_CANDIDATE, "SendMessageA", (FARPROC)SendMessageA, (FARPROC *)&pSendMessageA, (FARPROC)extSendMessageA}, 
@@ -215,11 +213,6 @@ static HookEntry_Type WinHooks[]={
 	{HOOK_HOT_CANDIDATE, "DeferWindowPos", (FARPROC)DeferWindowPos, (FARPROC *)&pGDIDeferWindowPos, (FARPROC)extDeferWindowPos},
 	{HOOK_HOT_CANDIDATE, "CallWindowProcA", (FARPROC)CallWindowProcA, (FARPROC *)&pCallWindowProcA, (FARPROC)extCallWindowProcA},
 	{HOOK_HOT_CANDIDATE, "CallWindowProcW", (FARPROC)CallWindowProcW, (FARPROC *)&pCallWindowProcW, (FARPROC)extCallWindowProcW},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
-static HookEntry_Type MouseHooks2[]={
-	{HOOK_HOT_CANDIDATE, "SetCursorPos", (FARPROC)SetCursorPos, (FARPROC *)&pSetCursorPos, (FARPROC)extSetCursorPos},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -243,16 +236,16 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
 	if (dxw.dwFlags1 & CLIENTREMAPPING) if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
 
-	if (dxw.dwFlags2 & GDISTRETCHED)	if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;  
-	if (dxw.dwFlags3 & GDIEMULATEDC)	if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr; 
+	if (dxw.dwFlags2 & GDISTRETCHED)	
+		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;  
+	if (dxw.dwFlags3 & GDIEMULATEDC)	
+		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr; 
 	if (!(dxw.dwFlags2 & GDISTRETCHED) && !(dxw.dwFlags3 & GDIEMULATEDC))
 		if (addr=RemapLibrary(proc, hModule, NoGDIHooks)) return addr;  
-
-	if (dxw.dwFlags1 & MODIFYMOUSE)		if (addr=RemapLibrary(proc, hModule, MouseHooks)) return addr;
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))
 		if (addr=RemapLibrary(proc, hModule, WinHooks)) return addr;
 	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED))
-		if (addr=RemapLibrary(proc, hModule, MouseHooks2)) return addr;
+		if (addr=RemapLibrary(proc, hModule, MouseHooks)) return addr;
 	if (dxw.dwFlags3 & PEEKALLMESSAGES)
 		if (addr=RemapLibrary(proc, hModule, PeekAllHooks)) return addr;
 	if((dxw.dwFlags2 & TIMESTRETCH) && (dxw.dwFlags4 & STRETCHTIMERS)) 
@@ -265,9 +258,6 @@ static char *libname = "user32.dll";
 
 void HookUser32(HMODULE hModule)
 {
-	GDIEmulationMode = GDIMODE_STRETCHED; // default
-	if (dxw.dwFlags2 & GDISTRETCHED)	GDIEmulationMode = GDIMODE_STRETCHED;  
-	if (dxw.dwFlags3 & GDIEMULATEDC)	GDIEmulationMode = GDIMODE_EMULATED; 
 
 	HookLibrary(hModule, Hooks, libname);
 	if (!(dxw.dwFlags2 & GDISTRETCHED) && !(dxw.dwFlags3 & GDIEMULATEDC))
@@ -276,9 +266,8 @@ void HookUser32(HMODULE hModule)
 	if (dxw.dwFlags2 & GDISTRETCHED)	HookLibrary(hModule, ScaledHooks, libname);
 
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibrary(hModule, RemapHooks, libname);
-	if (dxw.dwFlags1 & MODIFYMOUSE) HookLibrary(hModule, MouseHooks, libname);
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)) HookLibrary(hModule, WinHooks, libname);
-	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibrary(hModule, MouseHooks2, libname);
+	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibrary(hModule, MouseHooks, libname);
 	if (dxw.dwFlags3 & PEEKALLMESSAGES) HookLibrary(hModule, PeekAllHooks, libname);
 	if (dxw.dwFlags2 & TIMESTRETCH) HookLibrary(hModule, TimeHooks, libname);
 
@@ -294,7 +283,6 @@ void HookUser32Init()
 	HookLibInit(RemapHooks);
 	HookLibInit(MouseHooks);
 	HookLibInit(WinHooks);
-	HookLibInit(MouseHooks2);
 }
 
 /* ------------------------------------------------------------------------------ */
@@ -621,7 +609,7 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		hwnd, bErase);
 
 	if(dxw.IsFullScreen()) {
-		switch(GDIEmulationMode){
+		switch(dxw.GDIEmulationMode){
 			case GDIMODE_STRETCHED:
 				if(lpRect) dxw.MapClient(lpRect);
 				break;
@@ -995,36 +983,6 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 	}
 
 	if(dxw.dwFlags1 & MODIFYMOUSE){
-#if 0
-		POINT cur;
-		RECT rect;
-
-		// find window metrics
-		if (!(*pGetClientRect)(dxw.GethWnd(), &rect)) {
-			// report error and ignore ...
-			OutTraceE("GetClientRect(%x) ERROR %d at %d\n", dxw.GethWnd(), GetLastError(), __LINE__);
-			return 0;
-		}
-
-		x= x * rect.right / dxw.GetScreenWidth();
-		y= y * rect.bottom / dxw.GetScreenHeight();
-
-		// check for boundaries (???)
-		if (x >= rect.right) x=rect.right-1;
-		if (x<0) x=0;
-		if (y >= rect.bottom) y=rect.bottom-1;
-		if (y<0) y=0;
-
-		// make it screen absolute
-		cur.x = x;
-		cur.y = y;
-		if (!(*pClientToScreen)(dxw.GethWnd(), &cur)) {
-			OutTraceE("ClientToScreen(%x) ERROR %d at %d\n", dxw.GethWnd(), GetLastError(), __LINE__);
-			return 0;
-		}
-		x = cur.x;
-		y = cur.y;
-#else
 		// v2.03.41
 		POINT cur;
 		cur.x = x;
@@ -1032,7 +990,6 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 		dxw.MapWindow(&cur);
 		x = cur.x;
 		y = cur.y;
-#endif
 	}
 
 	res=0;
@@ -1991,7 +1948,7 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 		if(ret) return ret;
 	}
 
-	switch(GDIEmulationMode){
+	switch(dxw.GDIEmulationMode){
 		case GDIMODE_STRETCHED:
 			ret=(*pGDIGetDC)(lochwnd);
 			break;
@@ -2058,7 +2015,7 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 
 	if(bFlippedDC && (hDC == hFlippedDC)) return dxw.ReleaseSharedDC(hwnd, hDC);
 
-	switch(GDIEmulationMode){
+	switch(dxw.GDIEmulationMode){
 		case GDIMODE_STRETCHED:
 			res=(*pGDIReleaseDC)(hwnd, hDC);
 			break;
@@ -2090,7 +2047,7 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 		hdc = dxw.AcquireSharedDC(hwnd);
 	}
 	else {
-		switch(GDIEmulationMode){
+		switch(dxw.GDIEmulationMode){
 			case GDIMODE_STRETCHED:
 				// on CLIENTREMAPPING, resize the paint area to virtual screen size
 				//if(dxw.dwFlags1 & CLIENTREMAPPING) lpPaint->rcPaint=dxw.GetScreenRect();
@@ -2127,7 +2084,7 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 	// avoid access to real desktop
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 
-	switch(GDIEmulationMode){
+	switch(dxw.GDIEmulationMode){
 		case GDIMODE_STRETCHED:
 			ret=(*pEndPaint)(hwnd, lpPaint);
 			break;

@@ -488,7 +488,7 @@ extern HDC WINAPI extEMUCreateCompatibleDC(HDC);
 extern HDC WINAPI extGDICreateDC(LPSTR, LPSTR, LPSTR, CONST DEVMODE *);
 extern HFONT WINAPI extCreateFont(int, int, int, int, int, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, LPCTSTR);
 extern HFONT WINAPI extCreateFontIndirect(const LOGFONT*);
-extern HDC extCreateICA(LPCTSTR, LPCTSTR, LPCTSTR, const DEVMODE *);
+extern HDC WINAPI extCreateICA(LPCTSTR, LPCTSTR, LPCTSTR, const DEVMODE *);
 extern HPALETTE WINAPI extGDICreatePalette(CONST LOGPALETTE *);
 extern HDWP WINAPI extDeferWindowPos(HDWP, HWND, HWND, int, int, int, int, UINT);
 extern BOOL WINAPI extExtTextOutW(HDC, int, int, UINT, const RECT *, LPCWSTR, UINT, const INT *);

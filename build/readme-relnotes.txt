@@ -961,3 +961,10 @@ fix: complete recoding of GDI BitBlt, StretchBlt and PatBlt hookers: it fixes "R
 fix: changes in USER32 BeginPaint hooker to support DC sharing with ddraw
 fix: increased configuration panels heigth do avoid clipping when desktop font size is set to 125%
 
+v2.03.45
+add: virtual joystick center-lock feature, helps using the mouse as mouse leaving the joystick locked.
+fix: revised dinput hooking. dinput8 still to be completed. 
+add: option "Unacquire input devices on focus lost". Needed for Star wars "Tie Fighter 95".
+fix: set dinput SetCooperativeLevel flags to DISCL_NONEXCLUSIVE | DISCL_FOREGROUND
+fix: fixed CreateIC hooker call method (WINAPI)
+fix: emulated Unacquire on virtual joystick. Needed for Star wars "Tie Fighter 95".

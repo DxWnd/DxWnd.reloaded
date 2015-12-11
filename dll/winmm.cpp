@@ -335,34 +335,54 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 	LONG x, y;
 	HWND hwnd;
 	DWORD dwButtons;
+	static BOOL bJoyLock = FALSE;
+	static DWORD dwLastClick = 0;
 
 	dwButtons = 0;
 	if (GetKeyState(VK_LBUTTON) < 0) dwButtons |= JOY_BUTTON1;
 	if (GetKeyState(VK_RBUTTON) < 0) dwButtons |= JOY_BUTTON2;
 	if (GetKeyState(VK_MBUTTON) < 0) dwButtons |= JOY_BUTTON3;
+	OutTraceB("joyGetPosEx: Virtual Joystick buttons=%x\n", dwButtons);
+
+	if(dwButtons == JOY_BUTTON3){
+		if(((*pGetTickCount)() - dwLastClick) > 200){
+			bJoyLock = !bJoyLock;
+			dwButtons &= ~JOY_BUTTON3;
+			dwLastClick = (*pGetTickCount)();
+		}
+	}
+
 	POINT pt;
 	if(hwnd=dxw.GethWnd()){
 		RECT client;
 		POINT upleft = {0,0};
 		(*pGetClientRect)(hwnd, &client);
 		(*pClientToScreen)(hwnd, &upleft);
-		if(dwButtons & JOY_BUTTON3){
-			// center joystick ...
-			dwButtons &= ~JOY_BUTTON3;
-			(*pSetCursorPos)(upleft.x + (client.right >> 1), upleft.y + (client.bottom >> 1));
-		}
 		(*pGetCursorPos)(&pt);
 		pt.x -= upleft.x;
 		pt.y -= upleft.y;
-		if(pt.x < client.left) pt.x = client.left;
-		if(pt.x > client.right) pt.x = client.right;
-		if(pt.y < client.top) pt.y = client.top;
-		if(pt.y > client.bottom) pt.y = client.bottom;
-		x = (pt.x * XSPAN) / client.right;
-		if(INVERTJOYAXIS)
-			y = ((client.bottom - pt.y) * YSPAN) / client.bottom; // inverted y axis
-		else
-			pt.y = (pt.y * YSPAN) / dxw.GetScreenHeight();
+		if(bJoyLock || !dxw.bActive){
+			// when the joystick is "locked" (bJoyLock) or when the window lost focus
+			// (dxw.bActive == FALSE) place the joystick in the central position
+			OutTraceB("joyGetPosEx: CENTERED lock=%x active=%x\n", bJoyLock, dxw.bActive);
+			x=(XSPAN>>1);
+			y=(YSPAN>>1);
+			pt.x = client.right >> 1;
+			pt.y = client.bottom >> 1;
+			dwButtons = JOY_BUTTON3;
+		}
+		else{
+			OutTraceB("joyGetPosEx: ACTIVE mouse=(%d,%d)\n", pt.x, pt.y);
+			if(pt.x < client.left) pt.x = client.left;
+			if(pt.x > client.right) pt.x = client.right;
+			if(pt.y < client.top) pt.y = client.top;
+			if(pt.y > client.bottom) pt.y = client.bottom;
+			x = (pt.x * XSPAN) / client.right;
+			if(INVERTJOYAXIS)
+				y = ((client.bottom - pt.y) * YSPAN) / client.bottom; // inverted y axis
+			else
+				pt.y = (pt.y * YSPAN) / dxw.GetScreenHeight();
+		}
 		ShowJoystick(pt.x, pt.y, dwButtons);
 	}
 	else {
@@ -393,6 +413,7 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 	static HBITMAP g_hbmJoyFire1;
 	static HBITMAP g_hbmJoyFire2;
 	static HBITMAP g_hbmJoyFire3;
+	static HBITMAP g_hbmJoyCenter;
 	HBITMAP g_hbmJoy;
 	RECT client;
 	RECT win;
@@ -412,6 +433,7 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 		g_hbmJoyFire1 = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_FIRE1));
 		g_hbmJoyFire2 = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_FIRE2));
 		g_hbmJoyFire3 = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_FIRE3));
+		g_hbmJoyCenter = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_JOYCENTER));
 		JustOnce=TRUE;
 	}
 
@@ -420,8 +442,13 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 		case 0: g_hbmJoy = g_hbmJoyCross; break;
 		case JOY_BUTTON1: g_hbmJoy = g_hbmJoyFire1; break;
 		case JOY_BUTTON2: g_hbmJoy = g_hbmJoyFire2; break;
-		default: g_hbmJoy = g_hbmJoyFire3; break;
+		case JOY_BUTTON1|JOY_BUTTON2: g_hbmJoy = g_hbmJoyFire3; break;
+		case JOY_BUTTON3: g_hbmJoy = g_hbmJoyCenter; break;
+		default: g_hbmJoy = NULL; break;
 	}
+
+	if(g_hbmJoy == NULL) return; // show nothing ...
+
     HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, g_hbmJoy);
 	GetObject(g_hbmJoy, sizeof(bm), &bm);
 

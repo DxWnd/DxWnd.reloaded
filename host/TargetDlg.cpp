@@ -30,6 +30,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HookDI = FALSE;
 	m_ModifyMouse = TRUE; // default true !!
 	m_VirtualJoystick = FALSE; 
+	m_Unacquire = FALSE; 
 	m_LogEnabled = FALSE;
 	m_OutProxyTrace = FALSE;
 	m_OutDebug = FALSE;

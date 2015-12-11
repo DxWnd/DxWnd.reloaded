@@ -9,10 +9,6 @@
 
 #include "stdio.h"
 
-#define GDIMODE_STRETCHED  0
-#define GDIMODE_EMULATED   1
-extern int GDIEmulationMode;
-
 static void Stopper(char *s, int line)
 {
 	char sMsg[81];
@@ -333,6 +329,7 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 			case BITSPIXEL:
 			case COLORRES:
 			case VERTRES:
+			case HORZRES:
 			case SIZEPALETTE:
 			case NUMRESERVED:
 				sprintf(sInfo, "%s res=%d\n", sInfo, res); break;
@@ -705,7 +702,7 @@ HDC WINAPI extGDICreateDC(LPSTR lpszDriver, LPSTR lpszDevice, LPSTR lpszOutput, 
 	return RetHDC;
 }
 
-HDC extCreateICA(LPCTSTR lpszDriver, LPCTSTR lpszDevice, LPCTSTR lpszOutput, const DEVMODE *lpdvmInit)
+HDC WINAPI extCreateICA(LPCTSTR lpszDriver, LPCTSTR lpszDevice, LPCTSTR lpszOutput, const DEVMODE *lpdvmInit)
 {
 	HDC WinHDC, RetHDC;
 	OutTraceDW("GDI.CreateIC: Driver=%s Device=%s Output=%s InitData=%x\n", 
@@ -728,6 +725,7 @@ HDC extCreateICA(LPCTSTR lpszDriver, LPCTSTR lpszDevice, LPCTSTR lpszOutput, con
 		RetHDC = (*pCreateICA)(lpszDriver, lpszDevice, lpszOutput, lpdvmInit);
 	}
 
+	OutTraceDW("CreateIC: ret=%x\n", RetHDC);
 	return RetHDC;
 }
 
@@ -788,7 +786,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	IsToScreen=(OBJ_DC == GetObjectType(hdcDest));
 	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
 	if(dxw.IsFullScreen()) {
-		switch(GDIEmulationMode){
+		switch(dxw.GDIEmulationMode){
 			case GDIMODE_STRETCHED: {
 				int nWDest, nHDest;
 				nWDest= nWidth;
@@ -838,7 +836,7 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	IsToScreen=(OBJ_DC == GetObjectType(hdcDest));
 	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
 	if(dxw.IsFullScreen()) {
-		switch(GDIEmulationMode){
+		switch(dxw.GDIEmulationMode){
 			case GDIMODE_STRETCHED: {
 				int nWDest, nHDest;
 				nWDest= nWidth;
@@ -889,7 +887,7 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 	IsToScreen=(OBJ_DC == GetObjectType(hdcDest));
 	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
 	if(dxw.IsFullScreen()) {
-		switch(GDIEmulationMode){
+		switch(dxw.GDIEmulationMode){
 			case GDIMODE_STRETCHED: {
 				int nWDest, nHDest;
 				nWDest= nWidth;

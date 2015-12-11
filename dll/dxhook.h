@@ -4,7 +4,8 @@ extern int HookDirect3D(HMODULE, int);
 extern int HookDirect3D7(HMODULE, int);
 extern void HookOle32(HMODULE);
 extern void HookGDI32(HMODULE);
-extern int HookDirectInput(HMODULE, int);
+extern void HookDirectInput(HMODULE, int);
+extern void HookDirectInput8(HMODULE, int);
 extern void HookDirectSound(HMODULE);
 extern void HookImeLib(HMODULE);
 extern void HookKernel32(HMODULE);
@@ -41,6 +42,8 @@ extern FARPROC Remap_vfw_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_AdvApi32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_Glide_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_Imagehlp_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_DInput_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_DInput8_ProcAddress(LPCSTR, HMODULE);
 
 typedef enum {
 	HOOK_IAT_CANDIDATE = 0,

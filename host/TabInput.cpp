@@ -44,6 +44,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	//DDX_Check(pDX, IDC_FRAMECOMPENSATION, cTarget->m_FrameCompensation);
 	// DirectInput
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);
+	DDX_Check(pDX, IDC_UNACQUIRE, cTarget->m_Unacquire);
 	DDX_Text(pDX, IDC_INITX, cTarget->m_InitX);
 	DDX_Text(pDX, IDC_INITY, cTarget->m_InitY);
 	DDX_Text(pDX, IDC_MAXX, cTarget->m_MaxX);

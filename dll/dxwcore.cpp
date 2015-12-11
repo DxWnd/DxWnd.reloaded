@@ -123,6 +123,10 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	// Aspect Ratio from window size, or traditional 4:3 by default
 	iRatioX = iSizX ? iSizX : 800;
 	iRatioY = iSizY ? iSizY : 600;
+
+	GDIEmulationMode = GDIMODE_STRETCHED; // default
+	if (dwFlags2 & GDISTRETCHED)	GDIEmulationMode = GDIMODE_STRETCHED;  
+	if (dwFlags3 & GDIEMULATEDC)	GDIEmulationMode = GDIMODE_EMULATED; 
 }
 
 void dxwCore::SetScreenSize(void) 
@@ -478,9 +482,14 @@ void dxwCore::SethWnd(HWND hwnd)
 	hWndFPS=hwnd;	
 	RealHDC=(*pGDIGetDC)(hwnd);
 
-	(*pGetWindowRect)(hwnd, &WinRect);
-	OutTraceDW("SethWnd: setting main win=%x hdc=%x pos=(%d,%d)-(%d,%d)\n", 
-		hwnd, RealHDC, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
+	if(hwnd){
+		(*pGetWindowRect)(hwnd, &WinRect);
+		OutTraceDW("SethWnd: setting main win=%x hdc=%x pos=(%d,%d)-(%d,%d)\n", 
+			hwnd, RealHDC, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
+	}
+	else{
+		OutTraceDW("SethWnd: clearing main win\n");
+	}
 }
 
 BOOL dxwCore::ishWndFPS(HWND hwnd) 

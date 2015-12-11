@@ -391,6 +391,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		// turn DirectInput bActive flag on & off .....
 		if(message == WM_NCACTIVATE) dxw.bActive = wparam;
 		if(dxw.bActive) (*pSetWindowPos)(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		if(dxw.dwFlags6 & UNACQUIRE){
+			ToggleAcquiredDevices(dxw.bActive);
+		}
 		if(dxw.dwFlags1 & UNNOTIFY){
 			DefWindowProc(hwnd, message, wparam, lparam);
 			return false;

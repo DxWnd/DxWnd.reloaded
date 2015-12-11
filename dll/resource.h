@@ -6,8 +6,8 @@
 #define IDB_CROSS                       102
 #define IDB_FIRE1                       103
 #define IDB_FIRE2                       104
-#define IDB_BITMAP2                     105
 #define IDB_FIRE3                       105
+#define IDB_JOYCENTER					106
 
 // Next default values for new objects
 // 

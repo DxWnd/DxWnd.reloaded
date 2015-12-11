@@ -638,6 +638,12 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_IMAGEHLP:
 			if (remap=Remap_Imagehlp_ProcAddress(proc, hModule)) return remap;
 			break;
+		case SYSLIBIDX_DINPUT:
+			if (remap=Remap_DInput_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_DINPUT8:
+			if (remap=Remap_DInput8_ProcAddress(proc, hModule)) return remap;
+			break;
 		default:
 			break;			
 		}
