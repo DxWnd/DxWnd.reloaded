@@ -465,6 +465,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;	
 	case WM_SETFOCUS:
 		OutTraceDW("WindowProc: hwnd=%x GOT FOCUS\n", hwnd);
+		if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
 		if (dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		break;
 	case WM_KILLFOCUS:

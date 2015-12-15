@@ -987,4 +987,10 @@ add: "force clipper" flag to redirect clipper definition to main window and prim
 fix: better handling of surfaces on minimize / restore events, mainly on WinXP
 fix: proper default values for"Share ddraw and GDI DC" and "Lock/Unlock Pitch Fix" flags
 
-
+v2.03.49
+fix: a few improvements in handling NULL lpDDSSource in Blit/Flip operations
+optimization: avoid applying palette to primarty surface when emulated
+add: option to print relative timing to log
+fix: avoid handling textures at level greater than 0 since this seems to cause application crash
+fix: restore cursor clipping through WM_SETFOCUS and DefWindowProc when focus is gained
+fix: "One Must Fall Battlegrounds" keyboard fix - can't SetWindowsHookEx with WH_KEYBOARD and NULL thread

@@ -44,6 +44,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_OutDebugString = FALSE;
 	m_EraseLogFile = FALSE;
 	m_AddTimeStamp = FALSE;
+	m_AddRelativeTime = FALSE;
 	m_ImportTable = FALSE;
 	m_TraceHooks = FALSE;
 	m_DXProxed = FALSE;

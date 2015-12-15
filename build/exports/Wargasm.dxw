@@ -9,8 +9,8 @@ ver0=0
 coord0=0
 flag0=681574434
 flagg0=1207959552
-flagh0=20
-flagi0=138412036
+flagh0=1044
+flagi0=1212153860
 flagj0=4224
 flagk0=0
 tflag0=0
@@ -29,3 +29,4 @@ initts0=0
 winver0=0
 maxres0=-1
 swapeffect0=0
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE\Digital Image Design]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Digital Image Design\Default Config]\n"Configurable"=dword:00000000\n"Bilinear Filter"=dword:00000001\n"Fog"=dword:00000001\n"Windowed"=dword:00000000\n"Preferred Width"=dword:00000280\n"Preferred Height"=dword:000001e0\n\n

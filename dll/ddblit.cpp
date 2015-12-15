@@ -168,13 +168,9 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	// any blit operation!
 	if(destrect.left == -32000) return DD_OK; // no blit on invisible window
 
-	if(!lpddssrc) {
-		if (isFlipping){
-			// handle the flipping chain ...
-			//lpddssrc=lpDDSBack;
-			lpddssrc = dxwss.GetBackBufferSurface();
-			OutTraceDW("Flip: setting flip chain to lpdds=%x\n", lpddssrc);
-		}
+	if(!(lpddssrc || (dwflags & DDBLT_COLORFILL))) {
+		lpddssrc = dxwss.GetBackBufferSurface();
+		OutTraceDW("Flip: setting flip chain to lpdds=%x\n", lpddssrc);
 	}
 
 	// =========================
@@ -199,6 +195,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 			// Try to handle HDC lock concurrency....		
 			if(res==DDERR_SURFACEBUSY){
 				(*pUnlockMethod(lpdds))(lpdds, NULL);
+				if(lpddssrc) (*pUnlockMethod(lpdds))(lpdds, NULL);
 				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, __LINE__);
 				res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
@@ -291,12 +288,15 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		// Try to handle HDC lock concurrency....		
 		if(res==DDERR_SURFACEBUSY){
 			if (bFlippedDC) (*pReleaseDC)(lpdds, hFlippedDC);
-#if 0
+
+			// v2.03.49: resumed because if fixes locked surfaces on "Red Alert 1" on WinXP as reported by cloudstr 
+			if(lpddssrc) { // lpddssrc could be NULL!!!
 			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpddssrc, res, ExplainDDError(res));
+			}
 			res=(*pUnlockMethod(lpdds))(lpdds, NULL); // v2.03.24 reintroduced because of "Virtua Cop"
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpdds, res, ExplainDDError(res));
-#endif
+
 			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, __LINE__);
 			res=(*pBlt)(lpdds, &emurect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 			if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);

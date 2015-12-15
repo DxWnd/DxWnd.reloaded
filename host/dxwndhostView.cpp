@@ -258,6 +258,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_OutDebugString) t->tflags |= OUTDEBUGSTRING;
 	if(dlg->m_EraseLogFile) t->tflags |= ERASELOGFILE;
 	if(dlg->m_AddTimeStamp) t->tflags |= ADDTIMESTAMP;
+	if(dlg->m_AddRelativeTime) t->tflags |= ADDRELATIVETIME;
 	if(dlg->m_OutWinMessages) t->tflags |= OUTWINMESSAGES;
 	if(dlg->m_OutDWTrace) t->tflags |= OUTDXWINTRACE;
 	if(dlg->m_OutDDRAWTrace) t->tflags |= OUTDDRAWTRACE;
@@ -504,6 +505,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_OutDebugString = t->tflags & OUTDEBUGSTRING ? 1 : 0;
 	dlg->m_EraseLogFile = t->tflags & ERASELOGFILE ? 1 : 0;
 	dlg->m_AddTimeStamp = t->tflags & ADDTIMESTAMP ? 1 : 0;
+	dlg->m_AddRelativeTime = t->tflags & ADDRELATIVETIME ? 1 : 0;
 	dlg->m_OutWinMessages = t->tflags & OUTWINMESSAGES ? 1 : 0;
 	dlg->m_OutDWTrace = t->tflags & OUTDXWINTRACE ? 1 : 0;
 	dlg->m_OutD3DTrace = t->tflags & OUTD3DTRACE ? 1 : 0;

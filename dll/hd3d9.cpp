@@ -27,7 +27,9 @@ void D3D9TextureHandling(void *arg, int Level)
 	IDirect3DSurface9 *pSurfaceLevel;
 	D3DSURFACE_DESC Desc;
 	D3DLOCKED_RECT LockedRect;
-	//OutTrace("D3D9TextureHandling: arg=%x level=%d\n", (DWORD)arg, Level);
+	OutTraceB("D3D9TextureHandling: arg=%x level=%d\n", (DWORD)arg, Level);
+	// Beware: attempts to dump surfaces at level > 0 result in stack corruption!!!
+	if(Level > 0) return;
 	if(res=lpd3dtex->GetSurfaceLevel(Level, &pSurfaceLevel)){
 		OutTraceE("Texture::GetSurfaceLevel ERROR: res=%d(%s)\n", res, ExplainDDError(res));
 		return;

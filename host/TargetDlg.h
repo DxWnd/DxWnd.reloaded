@@ -43,6 +43,7 @@ public:
 	BOOL	m_LogEnabled;
 	BOOL	m_EraseLogFile;
 	BOOL	m_AddTimeStamp;
+	BOOL	m_AddRelativeTime;
 	BOOL	m_OutDebugString;
 	BOOL	m_OutWinMessages;
 	BOOL	m_OutDWTrace;

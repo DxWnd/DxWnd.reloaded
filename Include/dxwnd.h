@@ -227,8 +227,9 @@
 #define TRACEHOOKS			0x00000400 // log hook operations
 #define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
 #define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
+#define ADDRELATIVETIME		0x08000000 // log timestamp is relative to previous line
 #define NOLOGCLOSE			0x10000000 // avoid closing the log file handle ("Riven, during CD changes ...)
-#define ADDTIMESTAMP		0x20000000 // att timestamp (GetTickCount) to log file
+#define ADDTIMESTAMP		0x20000000 // add timestamp (GetTickCount) to log file
 #define OUTDEBUGSTRING		0x40000000 // duplicate logs through OutputDebugString()
 #define ERASELOGFILE		0x80000000 // clears old trace file before writing new logs
 

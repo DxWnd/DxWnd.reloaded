@@ -45,6 +45,7 @@ void CTabLogs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_OUTDEBUGSTRING, cTarget->m_OutDebugString);
 	DDX_Check(pDX, IDC_ERASELOGFILE, cTarget->m_EraseLogFile);
 	DDX_Check(pDX, IDC_ADDTIMESTAMP, cTarget->m_AddTimeStamp);
+	DDX_Check(pDX, IDC_ADDRELATIVETIME, cTarget->m_AddRelativeTime);
 	DDX_Check(pDX, IDC_OUTWINMESSAGES, cTarget->m_OutWinMessages);
 	DDX_Check(pDX, IDC_OUTDWTRACE, cTarget->m_OutDWTrace);
 	DDX_Check(pDX, IDC_IMPORTTABLE, cTarget->m_ImportTable);

@@ -1,19 +1,19 @@
 [target]
-title0=X-Files, the
-path0=D:\Games\X-Files\XFiles.exe
+title0=One Must Fall - Battlegrounds
+path0=D:\Games\One Must Fall - Battlegrounds\Engine\OMFBG.exe
 launchpath0=
-module0=
+module0=core_module.dll
 opengllib0=
 notes0=
 registry0=
 ver0=0
 coord0=0
-flag0=-2011168733
-flagg0=1209008128
-flagh0=16
+flag0=136314915
+flagg0=1275068416
+flagh0=20
 flagi0=138412036
-flagj0=67113088
-flagk0=65536
+flagj0=4736
+flagk0=327680
 tflag0=0
 initx0=0
 inity0=0

@@ -3844,11 +3844,8 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 		lpddp, dwflags, dwstart, dwcount, lpentries);
 	if(IsDebug) dxw.DumpPalette(dwcount, &lpentries[dwstart]);
 
-	res = (*pSetEntries)(lpddp, dwflags, dwstart, dwcount, lpentries);
-	if(res) OutTraceE("SetEntries: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	else OutTraceDDRAW("SetEntries: OK\n");
-
 	if((dxw.dwFlags1 & EMULATESURFACE) && (lpDDP == lpddp)){
+		res = DD_OK;
 		OutTraceDW("SetEntries: update PRIMARY palette lpDDP=%x\n", lpddp);
 		if ((dwstart + dwcount > 256) || (dwstart<0)){
 			dwcount=256;
@@ -3864,6 +3861,11 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 		// e.g. Tomb Raider 2 intro titles, Virtua Fighter PC, ...
 		// v2.03.10: do not blit also in case of GDI mode
 		if ((dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags2 & NOPALETTEUPDATE) && !(dxw.dwFlags5 & GDIMODE)) dxw.ScreenRefresh();
+	}
+	else {
+		res = (*pSetEntries)(lpddp, dwflags, dwstart, dwcount, lpentries);
+		if(res) OutTraceE("SetEntries: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		else OutTraceDDRAW("SetEntries: OK\n");
 	}
 	return res;
 }

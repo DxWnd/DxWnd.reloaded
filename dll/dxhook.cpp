@@ -209,7 +209,17 @@ void OutTrace(const char *format, ...)
 	sBuf[DXWMAXLOGSIZE]=0; // just in case of log truncation
 	va_end(al);
 	if(tFlags & OUTTRACE) {
-		if(tFlags & ADDTIMESTAMP) fprintf(fp, "%08.8d: ", (*pGetTick)());
+		if(tFlags & ADDTIMESTAMP) {
+			DWORD tCount = (*pGetTick)();
+			if (tFlags & ADDRELATIVETIME){
+				static DWORD tLastCount = 0;
+				DWORD tNow;
+				tNow = tCount;
+				tCount = tLastCount ? (tCount - tLastCount) : 0;
+				tLastCount = tNow;
+			}
+			fprintf(fp, "%08.8d: ", tCount);
+		}
 		fputs(sBuf, fp);
 		fflush(fp); 
 	}

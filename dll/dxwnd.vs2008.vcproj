@@ -171,7 +171,7 @@
 			<Tool
 				Name="VCResourceCompilerTool"
 				PreprocessorDefinitions="NDEBUG"
-				Culture="1041"
+				Culture="0"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -500,10 +500,6 @@
 			</File>
 			<File
 				RelativePath=".\dxwcore.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\v2_03_49_beta\Include\dxwnd.h"
 				>
 			</File>
 			<File

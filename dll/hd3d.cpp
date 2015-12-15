@@ -1826,7 +1826,7 @@ ULONG WINAPI extSetTexture9(void *lpd3dd, DWORD Stage, void* pTexture)
 	}
 	ret = (*pSetTexture9)(lpd3dd, Stage, pTexture);
 	OutTraceD3D("Device::SetTexture(9): d3dd=%x stage=%x texture=%x ret=%x\n", lpd3dd, Stage, pTexture, ret);
-	if(pTexture) D3D9TextureHandling((void *)pTexture, Stage);
+	if(pTexture) D3D9TextureHandling((void *)pTexture, (int)Stage);
 	return ret;
 }
 

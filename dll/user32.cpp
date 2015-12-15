@@ -1676,6 +1676,8 @@ LRESULT WINAPI extDefWindowProcA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPar
 	res = (HRESULT)-1;
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcA", hwnd, Msg, wParam, &lParam);
 
+	if((Msg == WM_SETFOCUS) && (dxw.dwFlags1 & CLIPCURSOR)) dxw.SetClipCursor();
+
 	if (res==(HRESULT)-1)
 		return (*pDefWindowProcA)(hwnd, Msg, wParam, lParam);
 	else
@@ -1689,6 +1691,8 @@ LRESULT WINAPI extDefWindowProcW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPar
 
 	res = (HRESULT)-1;
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcW", hwnd, Msg, wParam, &lParam);
+
+	if((Msg == WM_SETFOCUS) && (dxw.dwFlags1 & CLIPCURSOR)) dxw.SetClipCursor();
 
 	if (res==(HRESULT)-1)
 		return (*pDefWindowProcW)(hwnd, Msg, wParam, lParam);
@@ -2950,7 +2954,11 @@ HHOOK WINAPI extSetWindowsHookEx(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWOR
 			lpfn=extMessageHookProc;
 		}
 	}
+	// v2.03.39: "One Must Fall Battlegrounds" keyboard fix
+	if((idHook == WH_KEYBOARD) && (dwThreadId == NULL)) dwThreadId = GetCurrentThreadId();
+
 	ret=(*pSetWindowsHookEx)(idHook, lpfn, hMod, dwThreadId);
+
 	return ret;
 }
 

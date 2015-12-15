@@ -1,6 +1,6 @@
 [target]
-title0=X-Files, the
-path0=D:\Games\X-Files\XFiles.exe
+title0=Paladin 3 RIP
+path0=D:\Games\QGPAL3\rungame.exe
 launchpath0=
 module0=
 opengllib0=
@@ -8,11 +8,11 @@ notes0=
 registry0=
 ver0=0
 coord0=0
-flag0=-2011168733
-flagg0=1209008128
-flagh0=16
-flagi0=138412036
-flagj0=67113088
+flag0=136314914
+flagg0=1207959552
+flagh0=20
+flagi0=205520900
+flagj0=4224
 flagk0=65536
 tflag0=0
 initx0=0
