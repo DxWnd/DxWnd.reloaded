@@ -109,7 +109,7 @@ void dx_FullScreenToggle(HWND hwnd)
 	}
 	(*pUpdateWindow)(hwnd);
 	RestoreDDrawSurfaces();
-	RestoreD3DSurfaces(bFullScreen);
+	//RestoreD3DSurfaces(bFullScreen);
 	bFullScreen = !bFullScreen; // switch toggle
 }
 

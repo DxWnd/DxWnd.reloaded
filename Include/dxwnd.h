@@ -55,7 +55,7 @@
 #define INIT16BPP			0x00000080 // simulate a 16BPP initial desktop setting (in GetDeviceCaps API)
 #define KEEPCURSORFIXED		0x00000100 // inhibit SetCursorPos operation
 #define DISABLEGAMMARAMP	0x00000200 // let the application retrieve the desktop DC (for capability queries)
-//#define DIFFERENTIALMOUSE	0x00000400 // emulates the 360-degrees-free-running mouse style....
+#define INDEPENDENTREFRESH	0x00000400 // Makes automatic primary surface refresh but independently from the message loop processing
 #define FIXNCHITTEST		0x00000800 // fixes WM_NCHITTEST message X,Y coordinates 
 #define LIMITFPS			0x00001000 // delays primary blit operations to limit FPS 
 #define SKIPFPS				0x00002000 // skips primary blit operations up to limit

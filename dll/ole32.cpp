@@ -107,7 +107,6 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 		case 0xD7B70EE0: // CLSID_DirectDraw:
 			// v2.03.18: fixed
 			OutTraceDW("CoCreateInstance: CLSID_DirectDraw object\n");
-			HookDDSession((LPDIRECTDRAW *)ppv, 1);
 			switch (*(DWORD *)&riid){
 				LPDIRECTDRAW lpOldDDraw;
 				case 0x6C14DB80:

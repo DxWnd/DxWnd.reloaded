@@ -194,6 +194,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	t->flags7 = 0;
 	t->flags8 = 0;
 	t->tflags = 0;
+	t->dflags = 0;
 	if(dlg->m_UnNotify) t->flags |= UNNOTIFY;
 	if(dlg->m_Windowize) t->flags2 |= WINDOWIZE;
 	if(dlg->m_HookDLLs) t->flags3 |= HOOKDLLS;
@@ -289,7 +290,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_OutDWTrace) t->tflags |= OUTDXWINTRACE;
 	if(dlg->m_OutDDRAWTrace) t->tflags |= OUTDDRAWTRACE;
 	if(dlg->m_OutD3DTrace) t->tflags |= OUTD3DTRACE;
-	//if(dlg->m_DXProxed) t->tflags |= DXPROXED;
 	if(dlg->m_AssertDialog) t->tflags |= ASSERTDIALOG;
 	if(dlg->m_ImportTable) t->tflags |= OUTIMPORTTABLE;
 	if(dlg->m_RegistryOp) t->tflags |= OUTREGISTRY;
@@ -356,6 +356,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ForceClipper) t->flags3 |= FORCECLIPPER;
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
+	if(dlg->m_IndependentRefresh) t->flags2 |= INDEPENDENTREFRESH;
 	if(dlg->m_TextureFormat) t->flags5 |= TEXTUREFORMAT;
 	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
 	if(dlg->m_EnableClipping) t->flags |= ENABLECLIPPING;
@@ -544,12 +545,10 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_OutDWTrace = t->tflags & OUTDXWINTRACE ? 1 : 0;
 	dlg->m_OutD3DTrace = t->tflags & OUTD3DTRACE ? 1 : 0;
 	dlg->m_OutDDRAWTrace = t->tflags & OUTDDRAWTRACE ? 1 : 0;
-	//dlg->m_DXProxed = t->tflags & DXPROXED ? 1 : 0;
 	dlg->m_AssertDialog = t->tflags & ASSERTDIALOG ? 1 : 0;
 	dlg->m_ImportTable = t->tflags & OUTIMPORTTABLE ? 1 : 0;
 	dlg->m_RegistryOp = t->tflags & OUTREGISTRY ? 1 : 0;
 	dlg->m_TraceHooks = t->tflags & TRACEHOOKS ? 1 : 0;
-	//dlg->m_HandleDC = t->flags & HANDLEDC ? 1 : 0;
 	dlg->m_HandleExceptions = t->flags & HANDLEEXCEPTIONS ? 1 : 0;
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
@@ -612,6 +611,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ForceClipper = t->flags3 & FORCECLIPPER ? 1 : 0;
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
+	dlg->m_IndependentRefresh = t->flags2 & INDEPENDENTREFRESH ? 1 : 0;
 	dlg->m_TextureFormat = t->flags5 & TEXTUREFORMAT ? 1 : 0;
 	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
 	dlg->m_EnableClipping = t->flags & ENABLECLIPPING ? 1 : 0;
@@ -767,6 +767,7 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
+	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "dflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->dflags);
 	WritePrivateProfileString("target", key, val, InitPath);

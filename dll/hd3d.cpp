@@ -1123,7 +1123,6 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 	}
 	OutTraceD3D("SUCCESS! device=%x\n", *ppd3dd);
 	lpD3DActiveDevice = *ppd3dd;
-//	memcpy(gActiveDeviceParams, param, 64*sizeof(DWORD));
 
 	if(dwD3DVersion == 8){ 
 		HookD3DDevice8(ppd3dd);
@@ -1139,8 +1138,7 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
 	GetHookInfo()->Width=(short)dxw.GetScreenWidth();
 	GetHookInfo()->ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
-	
-	return 0;
+	return DD_OK;
 }
 
 HRESULT WINAPI extCreateDevice8(void *lpd3d, UINT adapter, D3DDEVTYPE dt, HWND hfw, DWORD bf, D3DPRESENT_PARAMETERS *ppp, void **ppd3dd)
@@ -1248,7 +1246,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	GetHookInfo()->Width=(short)dxw.GetScreenWidth();
 	GetHookInfo()->ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
 	
-	return 0;
+	return DD_OK;
 }
 
 extern char *ExplainRenderstateValue(DWORD Value);

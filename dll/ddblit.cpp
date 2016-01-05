@@ -13,13 +13,13 @@
 extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
 extern LPDIRECTDRAW lpPrimaryDD;
 extern Blt_Type pBlt;
-extern ReleaseS_Type pReleaseSMethod();
+extern ReleaseS_Type pReleaseSMethod(int);
 extern CreateSurface1_Type pCreateSurface1;
 extern CreateSurface1_Type pCreateSurface2;
 extern CreateSurface1_Type pCreateSurface3;
 extern CreateSurface2_Type pCreateSurface4;
 extern CreateSurface2_Type pCreateSurface7;
-extern Unlock4_Type pUnlockMethod();
+extern Unlock4_Type pUnlockMethod(int);
 extern HDC hFlippedDC;
 extern BOOL bFlippedDC;
 extern ReleaseDC_Type pReleaseDC1;
@@ -31,7 +31,7 @@ extern ReleaseDC_Type pReleaseDC7;
 extern void BlitError(HRESULT, LPRECT, LPRECT, int);
 extern void BlitTrace(char *, LPRECT, LPRECT, int);
 extern void DescribeSurface(LPDIRECTDRAWSURFACE, int, char *, int);
-extern void TextureHandling(LPDIRECTDRAWSURFACE);
+extern void TextureHandling(LPDIRECTDRAWSURFACE, int);
 extern GetSurfaceDesc2_Type pGetSurfaceDescMethod();
 extern int GetSurfaceDescSize();
 extern GetSurfaceDesc2_Type GetSurfaceDescMethod();
@@ -97,8 +97,8 @@ static HRESULT sBltNoPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	//	}
 	//	break;
 	case DDERR_SURFACEBUSY:
-		(*pUnlockMethod())(lpdds, NULL);
-		if (lpddssrc) (*pUnlockMethod())(lpddssrc, NULL);	
+		(*pUnlockMethod(dxversion))(lpdds, NULL);
+		if (lpddssrc) (*pUnlockMethod(dxversion))(lpddssrc, NULL);	
 		if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
 		res=(*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags|DDBLT_WAIT, lpddbltfx);
 		break;
@@ -113,7 +113,7 @@ static HRESULT sBltNoPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=0;
 	if(dxw.dwFlags5 & TEXTUREMASK) {
 		// Texture Handling on Blt
-		TextureHandling(lpdds);
+		TextureHandling(lpdds, dxversion);
 	}
 	return res;
 }
@@ -202,8 +202,8 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 			}
 			// Try to handle HDC lock concurrency....		
 			if(res==DDERR_SURFACEBUSY){
-				(*pUnlockMethod())(lpdds, NULL);
-				if(lpddssrc) (*pUnlockMethod())(lpdds, NULL);
+				(*pUnlockMethod(dxversion))(lpdds, NULL);
+				if(lpddssrc) (*pUnlockMethod(dxversion))(lpdds, NULL);
 				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, __LINE__);
 				res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
@@ -213,12 +213,12 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 				// to do: handle possible situations with surface 2 / 4 / 7 types
 				DDSURFACEDESC2 ddsd;
 				LPDIRECTDRAWSURFACE2 lpddsTmp;
-				extern CreateSurface2_Type pCreateSurfaceMethod();
+				extern CreateSurface2_Type pCreateSurfaceMethod(int);
 				if (IsDebug) BlitTrace("KEYSRC", lpsrcrect, &destrect, __LINE__);
 				memset(&ddsd, 0, sizeof(ddsd));
 				ddsd.dwSize = GetSurfaceDescSize();
 				(*pGetSurfaceDescMethod())((LPDIRECTDRAWSURFACE2)lpddssrc, &ddsd);
-				res=(*pCreateSurfaceMethod())(lpPrimaryDD, &ddsd, (LPDIRECTDRAWSURFACE *)&lpddsTmp, NULL);
+				res=(*pCreateSurfaceMethod(dxversion))(lpPrimaryDD, &ddsd, (LPDIRECTDRAWSURFACE *)&lpddsTmp, NULL);
 				if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				// copy background
 				res= (*pBlt)((LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, lpdds, &destrect, DDBLT_WAIT, NULL);
@@ -230,7 +230,7 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 				res= (*pBlt)(lpdds, &destrect, (LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, DDBLT_WAIT, lpddbltfx);
 				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
-				(*pReleaseSMethod())((LPDIRECTDRAWSURFACE)lpddsTmp);
+				(*pReleaseSMethod(dxversion))((LPDIRECTDRAWSURFACE)lpddsTmp);
 			}
 			if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 		}
@@ -309,10 +309,10 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 
 			// v2.03.49: resumed because if fixes locked surfaces on "Red Alert 1" on WinXP as reported by cloudstr 
 			if(lpddssrc) { // lpddssrc could be NULL!!!
-			res=(*pUnlockMethod())(lpddssrc, NULL);
+			res=(*pUnlockMethod(dxversion))(lpddssrc, NULL);
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpddssrc, res, ExplainDDError(res));
 			}
-			res=(*pUnlockMethod())(lpdds, NULL); // v2.03.24 reintroduced because of "Virtua Cop"
+			res=(*pUnlockMethod(dxversion))(lpdds, NULL); // v2.03.24 reintroduced because of "Virtua Cop"
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpdds, res, ExplainDDError(res));
 
 			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, __LINE__);

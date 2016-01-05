@@ -15,7 +15,7 @@
 
 extern GetDC_Type pGetDCMethod();
 extern ReleaseDC_Type pReleaseDCMethod();
-extern Unlock1_Type pUnlockMethod();
+extern Unlock1_Type pUnlockMethod(int);
 
 void BlitToWindow(HWND w, LPDIRECTDRAWSURFACE s)
 {

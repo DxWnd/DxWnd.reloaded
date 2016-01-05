@@ -1098,3 +1098,7 @@ fix: updated RedrawWindow, now allows better handling of "Galapagos" pause scree
 v2.03.65
 fix: handling of fullscreen switching on closest monitor (in multimonitor systems)
 fix: X,Y starting win position can now be negative integer (in multimonitor systems)
+
+v2.03.66
+fix: terminated the separation between ddraw method interfaces
+fix: force clipper now builds a clipper for the real primary surface (useful when desktop composition is disabled)

@@ -92,6 +92,7 @@ public:
 	BOOL	m_ForceClipper;
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;
+	BOOL	m_IndependentRefresh;
 	BOOL	m_TextureFormat;
 	BOOL	m_FixWinFrame;
 	BOOL	m_EnableClipping;

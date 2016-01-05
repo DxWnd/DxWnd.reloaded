@@ -17,7 +17,7 @@
 
 extern BOOL IsChangeDisplaySettingsHotPatched;
 DWORD dwBackBufferCaps;
-extern void TextureHandling(LPDIRECTDRAWSURFACE);
+extern void TextureHandling(LPDIRECTDRAWSURFACE, int);
 extern void SetMinimalCaps(LPDDCAPS, LPDDCAPS);
 ColorConversion_Type pColorConversion = NULL;
 
@@ -368,6 +368,7 @@ LPDIRECTDRAWSURFACE lpDDZBuffer=NULL;
 LPDIRECTDRAW lpPrimaryDD=NULL;
 int iBakBufferVersion;
 LPDIRECTDRAWPALETTE lpDDP=NULL;
+LPDIRECTDRAWCLIPPER lpddC=NULL;
 int iDDPExtraRefCounter=0;
 // v2.02.37: globals to store requested main surface capabilities 
 DDSURFACEDESC2 DDSD_Prim;
@@ -602,6 +603,7 @@ void InitDSScreenParameters(int dxversion, LPDIRECTDRAWSURFACE lpdds)
 		case 4: pGetPixelFormat=pGetPixelFormat4; break;
 		case 7: pGetPixelFormat=pGetPixelFormat7; break;
 	}
+	//OutTrace("dxversion=%d pGetPixelFormat=%x\n", dxversion, pGetPixelFormat);
 	p.dwSize=sizeof(DDPIXELFORMAT);
 	if(res=(*pGetPixelFormat)(lpdds, &p)){
 		OutTraceE("GetPixelFormat: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -838,10 +840,10 @@ SetPalette_Type pSetPaletteMethod(int dxversion)
 	return pSetPalette;
 }
 
-ReleaseS_Type pReleaseSMethod()
+ReleaseS_Type pReleaseSMethod(int dxversion)
 {
 	ReleaseS_Type pReleaseS;
-	switch(iBakBufferVersion){
+	switch(dxversion){
 		case 1: pReleaseS=pReleaseS1; break;
 		case 2: pReleaseS=pReleaseS2; break;
 		case 3: pReleaseS=pReleaseS3; break;
@@ -862,6 +864,19 @@ ReleaseDC_Type pReleaseDCMethod()
 		case 7: pReleaseDC=pReleaseDC7; break;
 	}
 	return pReleaseDC;
+}
+
+SetClipper_Type pSetClipperMethod(int dxversion)
+{
+	SetClipper_Type pSetClipper;
+	switch(dxversion){
+		case 1: pSetClipper=pSetClipper1; break;
+		case 2: pSetClipper=pSetClipper2; break;
+		case 3: pSetClipper=pSetClipper3; break;
+		case 4: pSetClipper=pSetClipper4; break;
+		case 7: pSetClipper=pSetClipper7; break;
+	}
+	return pSetClipper;
 }
 
 Blt_Type pBltMethod()
@@ -890,10 +905,10 @@ GetDC_Type pGetDCMethod()
 	return pGetDC;
 }
 
-Unlock4_Type pUnlockMethod()
+Unlock4_Type pUnlockMethod(int dxversion)
 {
 	Unlock4_Type pUnlock;
-	switch(iBakBufferVersion){
+	switch(dxversion){
 		case 1: pUnlock=(Unlock4_Type)pUnlock1; break;
 		case 2: pUnlock=(Unlock4_Type)pUnlock2; break;
 		case 3: pUnlock=(Unlock4_Type)pUnlock3; break;
@@ -903,10 +918,10 @@ Unlock4_Type pUnlockMethod()
 	return pUnlock;
 }
 
-Lock_Type pLockMethod()
+Lock_Type pLockMethod(int dxversion)
 {
 	Lock_Type pLock;
-	switch(iBakBufferVersion){
+	switch(dxversion){
 		case 1: pLock=pLock1; break;
 		case 2: pLock=pLock2; break;
 		case 3: pLock=pLock3; break;
@@ -916,10 +931,10 @@ Lock_Type pLockMethod()
 	return pLock;
 }
 
-CreateSurface2_Type pCreateSurfaceMethod()
+CreateSurface2_Type pCreateSurfaceMethod(int dxversion)
 {
 	CreateSurface2_Type pCreateSurface;
-	switch(iBakBufferVersion){
+	switch(dxversion){
 		case 1: pCreateSurface=(CreateSurface2_Type)pCreateSurface1; break;
 		case 2: pCreateSurface=(CreateSurface2_Type)pCreateSurface2; break;
 		case 3: pCreateSurface=(CreateSurface2_Type)pCreateSurface3; break;
@@ -941,6 +956,19 @@ GetSurfaceDesc2_Type pGetSurfaceDescMethod()
 		case 7: pGetSurfaceDesc=(GetSurfaceDesc2_Type)pGetSurfaceDesc7; break;
 	}
 	return pGetSurfaceDesc;
+}
+
+GetGDISurface_Type pGetGDISurfaceMethod(int dxversion)
+{
+	GetGDISurface_Type pGetGDISurface;
+	switch(dxversion){
+		default: 
+		case 1: pGetGDISurface = pGetGDISurface1; break;
+		case 2: pGetGDISurface = pGetGDISurface2; break;
+		case 4: pGetGDISurface = pGetGDISurface4; break;
+		case 7: pGetGDISurface = pGetGDISurface7; break;
+	}
+	return pGetGDISurface;
 }
 
 int lpddsHookedVersion()
@@ -1210,7 +1238,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 8), extReleaseS2, (void **)&pReleaseS2, "Release(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 12), extAddAttachedSurface2, (void **)&pAddAttachedSurface2, "AddAttachedSurface(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast2, (void **)&pBltFast2, "BltFast(S2)");
-		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt2, (void **)&pBlt2, "Blt(S1)");
+		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt2, (void **)&pBlt2, "Blt(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface2, (void **)&pDeleteAttachedSurface2, "DeleteAttachedSurface(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces2, (void **)&pEnumAttachedSurfaces2, "EnumAttachedSurfaces(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip2, (void **)&pFlip2, "Flip(S2)");
@@ -1905,7 +1933,7 @@ static HRESULT WINAPI extQueryInterfaceS(QueryInterface_Type pQueryInterfaceS, v
 
 	if(dwLocalTexVersion) {
 		// Texture Handling on QueryInterface
-		if(dxw.dwFlags5 & TEXTUREMASK) TextureHandling((LPDIRECTDRAWSURFACE)lpdds);
+		if(dxw.dwFlags5 & TEXTUREMASK) TextureHandling((LPDIRECTDRAWSURFACE)lpdds, dwLocalTexVersion);
 		HookTexture(obp, dwLocalTexVersion);
 	}
 
@@ -2278,23 +2306,15 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 		OutTraceDW("CreateSurface: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuPrim]", __LINE__));
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
 		if(res==DDERR_PRIMARYSURFACEALREADYEXISTS){
-			GetGDISurface_Type pGetGDISurface;
-			switch(dxversion){
-				default: 
-				case 1: pGetGDISurface = pGetGDISurface1; break;
-				case 2: pGetGDISurface = pGetGDISurface2; break;
-				case 4: pGetGDISurface = pGetGDISurface4; break;
-				case 7: pGetGDISurface = pGetGDISurface7; break;
-			}
 			OutTraceDW("CreateSurface: ASSERT DDSEmu_Prim already exists\n");
 			if(dxw.Windowize){
 				// in Windowize mode, the desktop properties are untouched, then the current primary surface can be recycled
-				res=(*pGetGDISurface)(lpdd, &lpDDSEmu_Prim); 
+				res=(*pGetGDISurfaceMethod(dxversion))(lpdd, &lpDDSEmu_Prim); 
 			}
 			else {
 				// in non-Windowized mode, the primary surface must be released and rebuilt with the proper properties
-				res=(*pGetGDISurface)(lpdd, &lpDDSEmu_Prim); 
-				if (lpDDSEmu_Prim) while((*pReleaseSMethod())(lpDDSEmu_Prim));
+				res=(*pGetGDISurfaceMethod(dxversion))(lpdd, &lpDDSEmu_Prim); 
+				if (lpDDSEmu_Prim) while((*pReleaseSMethod(dxversion))(lpDDSEmu_Prim));
 				res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
 			}
 		}
@@ -2307,6 +2327,17 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 		if(IsDebug) DescribeSurface(lpDDSEmu_Prim, dxversion, "DDSEmu_Prim", __LINE__);
 		InitDSScreenParameters(dxversion, lpDDSEmu_Prim);
 		dxwss.PopSurface(lpDDSEmu_Prim);
+
+		if (dxw.dwFlags3 & FORCECLIPPER){
+			OutTraceDW("CreateSurface: FORCE SetClipper on primary hwnd=%x lpdds=%x\n", 
+				dxw.GethWnd(), lpDDSEmu_Prim);
+			res=lpdd->CreateClipper(0, &lpddC, NULL);
+			if (res) OutTraceE("CreateSurface: CreateClipper ERROR res=%x(%s)\n", res, ExplainDDError(res));
+			res=lpddC->SetHWnd(0, dxw.GethWnd());
+			if (res) OutTraceE("CreateSurface: SetHWnd ERROR res=%x(%s)\n", res, ExplainDDError(res));
+			res=lpDDSEmu_Prim->SetClipper(lpddC);
+			if (res) OutTraceE("CreateSurface: SetClipper ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		}
 		// can't hook lpDDSEmu_Prim as generic, since the Flip method is unimplemented for a PRIMARY surface!
 		// better avoid it or hook just useful methods.
 		//if (dxw.dwTFlags & OUTPROXYTRACE) HookDDSurfaceGeneric(&lpDDSEmu_Prim, dxw.dwDDVersion);
@@ -2544,7 +2575,7 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 			}
 			OutTraceE("CreateSurface: CreateSurface DDERR_PRIMARYSURFACEALREADYEXISTS workaround\n");
 			(*pGetGDISurface)(lpPrimaryDD, &lpPrim);
-			while ((*pReleaseSMethod())(lpPrim));
+			while ((*pReleaseSMethod(dxversion))(lpPrim));
 			res = (*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 		}
 		/* fall through */
@@ -2770,7 +2801,7 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 		memset(&prim, 0, sizeof(DDSURFACEDESC2));
 		prim.dwSize = (dxversion >= 4) ? sizeof(DDSURFACEDESC2) : sizeof(DDSURFACEDESC);
 		res=lpPrim->GetSurfaceDesc((DDSURFACEDESC *)&prim);
-		(*pReleaseSMethod())(lpPrim);
+		(*pReleaseSMethod(dxversion))(lpPrim);
 		ddsd.dwWidth = prim.dwWidth;
 		ddsd.dwHeight = prim.dwHeight;
 		OutTraceDW("BMX FIX: res=%x(%s) wxh=(%dx%d)\n", res, ExplainDDError(res),ddsd.dwWidth, ddsd.dwHeight);
@@ -3371,7 +3402,7 @@ HRESULT WINAPI PrimaryStretchBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFA
 			if(res) OutTraceE("PrimaryStretchBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		}
 	}
-	(*pReleaseSMethod())(lpddsTmp);
+	(*pReleaseSMethod(dxversion))(lpddsTmp);
 	return res;
 }
 
@@ -3420,7 +3451,7 @@ HRESULT WINAPI PrimaryBilinearBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURF
 	BltFast_Type pBltFast;
 	int dwSize;
 
-	switch(iBakBufferVersion){
+	switch(dxversion){
 		default:
 		case 1: pBltFast=pBltFast1; pCreateSurface=pCreateSurface1; dwSize = sizeof(DDSURFACEDESC); break;
 		case 2: pBltFast=pBltFast2; pCreateSurface=(CreateSurface1_Type)pCreateSurface2; dwSize = sizeof(DDSURFACEDESC); break;
@@ -3464,7 +3495,7 @@ HRESULT WINAPI PrimaryBilinearBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURF
 	memset(&ddsd,0,dwSize);
 	ddsd.dwSize = dwSize;
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0);
+	res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0);
 	if(res) {
 		OutTraceE("PrimaryBilinearBlt: Lock ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return DD_OK;
@@ -3474,7 +3505,7 @@ HRESULT WINAPI PrimaryBilinearBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURF
 	memset(&ddsd,0,dwSize);
 	ddsd.dwSize = dwSize;
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	res=(*pLockMethod())(lpddsTmp, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0);
+	res=(*pLockMethod(dxversion))(lpddsTmp, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0);
 	if(res) {
 		OutTraceE("PrimaryBilinearBlt: Lock ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return DD_OK;
@@ -3520,8 +3551,8 @@ HRESULT WINAPI PrimaryBilinearBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURF
 	(*pResize_HQ)(bSourceBuf, lpsrcrect, SrcPitch, bDestBuf, lpdestrect, DestPitch);
 
 	// fast-blit to primary
-	(*pUnlockMethod())(lpddssrc, NULL);
-	(*pUnlockMethod())(lpddsTmp, NULL);
+	(*pUnlockMethod(dxversion))(lpddssrc, NULL);
+	(*pUnlockMethod(dxversion))(lpddsTmp, NULL);
 	if(dxw.dwFlags3 & FORCECLIPPER) {
 		res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
 		if(res) OutTraceE("PrimaryBilinearBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -3530,8 +3561,8 @@ HRESULT WINAPI PrimaryBilinearBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURF
 		res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
 		if(res) OutTraceE("PrimaryBilinearBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	}
-	(*pReleaseSMethod())(lpddsTmp);	
-	if(lpddsCopy) (*pReleaseSMethod())(lpddsCopy);
+	(*pReleaseSMethod(dxversion))(lpddsTmp);	
+	if(lpddsCopy) (*pReleaseSMethod(dxversion))(lpddsCopy);
 	return res;
 }
 
@@ -3555,8 +3586,8 @@ HRESULT WINAPI ColorConversionEmulated(int dxversion, LPDIRECTDRAWSURFACE lpdds,
 	}
 	res=(*pEmuBlt)(dxversion, pBlt, lpDDSEmu_Back, &emurect, lpdds, &emurect, DDBLT_WAIT, 0);
 	if(res==DDERR_SURFACEBUSY){
-		(*pUnlockMethod())(lpdds, NULL);
-		(*pUnlockMethod())(lpDDSEmu_Back, NULL);
+		(*pUnlockMethod(dxversion))(lpdds, NULL);
+		(*pUnlockMethod(dxversion))(lpDDSEmu_Back, NULL);
 		res=(*pEmuBlt)(dxversion, pBlt, lpDDSEmu_Back, &emurect, lpdds, &emurect, DDBLT_WAIT, 0);
 	}
 	if(res) {
@@ -3684,7 +3715,7 @@ HRESULT WINAPI extFlip(int dxversion, Flip_Type pFlip, LPDIRECTDRAWSURFACE lpdds
 			ddsd.dwHeight = dxw.GetScreenHeight();
 			ddsd.dwWidth = dxw.GetScreenWidth();
 		}
-		res2=(*pCreateSurfaceMethod())(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
+		res2=(*pCreateSurfaceMethod(dxversion))(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
 		if(res2) {
 			OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
 			OutTraceE("Size=%d lpPrimaryDD=%x lpDDSBack=%x %s\n", 
@@ -3738,7 +3769,7 @@ HRESULT WINAPI extFlip(int dxversion, Flip_Type pFlip, LPDIRECTDRAWSURFACE lpdds
 		// restore flipped backbuffer and delete temporary surface
 		res2= (*pBlt)(lpddssrc, NULL, lpddsTmp, NULL, DDBLT_WAIT, NULL);
 		if(res2) OutTraceE("Blt: ERROR %x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
-		(*pReleaseSMethod())(lpddsTmp);
+		(*pReleaseSMethod(dxversion))(lpddsTmp);
 	}
 
 	if(res) OutTraceE("Flip: Blt ERROR %x(%s)\n", res, ExplainDDError(res));
@@ -4094,7 +4125,7 @@ HRESULT WINAPI extSetClipper7(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpd
 DDSURFACEDESC SaveSurfaceDesc;
 LPDIRECTDRAWSURFACE SaveSurface = NULL;
 
-static HRESULT WINAPI extLock(Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
+static HRESULT WINAPI extLock(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 {
 	HRESULT res;
 
@@ -4111,7 +4142,7 @@ static HRESULT WINAPI extLock(Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT
 
 	res=(*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 	if(res==DDERR_SURFACEBUSY){ // v70: fix for "Ancient Evil"
-		(*pUnlockMethod())(lpdds, NULL);
+		(*pUnlockMethod(dxversion))(lpdds, NULL);
 		res = (*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 		OutTraceDW("Lock RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
 	}
@@ -4139,15 +4170,15 @@ static HRESULT WINAPI extLock(Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT
 }
 
 HRESULT WINAPI extLock1(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
-{ return extLock(pLock1, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
+{ return extLock(1, pLock1, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
 HRESULT WINAPI extLock2(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
-{ return extLock(pLock2, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
+{ return extLock(2, pLock2, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
 HRESULT WINAPI extLock3(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
-{ return extLock(pLock3, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
+{ return extLock(3, pLock3, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
 HRESULT WINAPI extLock4(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
-{ return extLock(pLock4, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
+{ return extLock(4, pLock4, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
 HRESULT WINAPI extLock7(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
-{ return extLock(pLock7, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
+{ return extLock(7, pLock7, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
 
 LPDIRECTDRAWSURFACE2 lpDDSBuffer = NULL;
 
@@ -4187,7 +4218,7 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 		if(res2)
 			OutTraceE("Lock: GetGDISurface ERROR res=%x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
 		else
-			(*pReleaseSMethod())(lpDDSPrim);
+			(*pReleaseSMethod(dxversion))(lpDDSPrim);
 		if(lpdds==lpDDSPrim){
 			if(dxw.dwFlags1 & LOCKEDSURFACE){
 				DDSURFACEDESC2 ddsd;
@@ -4359,7 +4390,7 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 
 	if((dxw.dwFlags5 & TEXTUREMASK) && (!IsPrim)) {
 		// Texture Handling on Unlock
-		TextureHandling(lpdds);
+		TextureHandling(lpdds, dxversion);
 	}
 	return res;
 }
@@ -4427,10 +4458,10 @@ static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECT
 			OffsetRect(lprect, upleft.x, upleft.y);
 			res=(*pUnlock)((LPDIRECTDRAWSURFACE)lpDDSBuffer, lprect);
 			(*pBlt)(lpdds, lprect, (LPDIRECTDRAWSURFACE)lpDDSBuffer, NULL, DDBLT_WAIT, 0);
-			(*pReleaseSMethod())((LPDIRECTDRAWSURFACE)lpDDSBuffer);
+			(*pReleaseSMethod(dxversion))((LPDIRECTDRAWSURFACE)lpDDSBuffer);
 			lpDDSBuffer = NULL;
 		}
-		(*pReleaseSMethod())(lpDDSPrim); // to leave a correct refcount 
+		(*pReleaseSMethod(dxversion))(lpDDSPrim); // to leave a correct refcount 
 	}
 
 	res=(*pUnlock)(lpdds, lprect);

@@ -332,7 +332,7 @@ FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 //--------------------------------------------------------------------------------------------
 
 extern DWORD PaletteEntries[256];
-extern Unlock4_Type pUnlockMethod();
+extern Unlock4_Type pUnlockMethod(int);
 extern HRESULT WINAPI sBlt(int, Blt_Type, char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
 
 extern GetDC_Type pGetDC;
@@ -411,8 +411,6 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 			OutTraceDW("GetDeviceCaps: fix(2) HORZRES cap=%d\n", res);
 		}
 		break;
-
-
 
 		if(dxw.Windowize){
 			res= dxw.GetScreenWidth();

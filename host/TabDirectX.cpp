@@ -33,6 +33,7 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FORCECLIPPER, cTarget->m_ForceClipper);
 	DDX_Check(pDX, IDC_BLITFROMBACKBUFFER, cTarget->m_BlitFromBackBuffer);
 	DDX_Check(pDX, IDC_AUTOREFRESH, cTarget->m_AutoRefresh);
+	DDX_Check(pDX, IDC_INDEPENDENTREFRESH, cTarget->m_IndependentRefresh);
 	DDX_Check(pDX, IDC_TEXTUREFORMAT, cTarget->m_TextureFormat);
 	DDX_Check(pDX, IDC_SUPPRESSRELEASE, cTarget->m_SuppressRelease);
 	DDX_Check(pDX, IDC_VIDEOTOSYSTEMMEM, cTarget->m_VideoToSystemMem);

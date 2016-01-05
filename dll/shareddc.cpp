@@ -21,6 +21,7 @@
 extern HandleDDThreadLock_Type pReleaseDDThreadLock;
 extern GetDC_Type pGetDCMethod();
 extern ReleaseDC_Type pReleaseDCMethod();
+//void setClippingRegion(HDC, HDC, HWND, bool, const POINT&);
 
 /*---------------------------------------------------------------------------------+
 |                                                                                  |
@@ -191,8 +192,8 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc)
 	origin.y -= mainwin.y;
 	OutTraceB("dxwSDC::GetPrimaryDC: origin=(%d,%d)\n", origin.x, origin.y);
 
-	copyDcAttributes(VirtualHDC, hdc, origin);
-	setClippingRegion(VirtualHDC, hdc, origin);
+	copyDcAttributes(VirtualHDC, hdc, origin); 
+	setClippingRegion(VirtualHDC, hdc, dxw.GethWnd(), FALSE, origin); // no good
 
 	return VirtualHDC;
 }
@@ -314,11 +315,36 @@ void dxwSDC::copyDcAttributes(HDC destDC, HDC origDc, POINT origin)
 	origFont = SelectObject(destDC, GetCurrentObject(origDc, OBJ_FONT));
 	origBrush = SelectObject(destDC, GetCurrentObject(origDc, OBJ_BRUSH));
 	origPen = SelectObject(destDC, GetCurrentObject(origDc, OBJ_PEN));
+
+	if (GM_ADVANCED == GetGraphicsMode(origDc)){
+		SetGraphicsMode(destDC, GM_ADVANCED);
+		XFORM transform = {};
+		GetWorldTransform(origDc, &transform);
+		SetWorldTransform(destDC, &transform);
+	}
+
+	SetMapMode(destDC, GetMapMode(origDc));
+
+	POINT viewportOrg = {};
+	GetViewportOrgEx(origDc, &viewportOrg);
+	SetViewportOrgEx(destDC, viewportOrg.x + origin.x, viewportOrg.y + origin.y, NULL);
+	SIZE viewportExt = {};
+	GetViewportExtEx(origDc, &viewportExt);
+	SetViewportExtEx(destDC, viewportExt.cx, viewportExt.cy, NULL);
+
+	POINT windowOrg = {};
+	GetWindowOrgEx(origDc, &windowOrg);
+	SetWindowOrgEx(destDC, windowOrg.x, windowOrg.y, NULL);
+	SIZE windowExt = {};
+	GetWindowExtEx(origDc, &windowExt);
+	SetWindowExtEx(destDC, windowExt.cx, windowExt.cy, NULL);
+
 	SetArcDirection(destDC, GetArcDirection(origDc));
 	SetBkColor(destDC, GetBkColor(origDc));
 	SetBkMode(destDC, GetBkMode(origDc));
 	SetDCBrushColor(destDC, GetDCBrushColor(origDc));
 	SetDCPenColor(destDC, GetDCPenColor(origDc));
+	SetLayout(destDC, GetLayout(origDc));
 	SetPolyFillMode(destDC, GetPolyFillMode(origDc));
 	SetROP2(destDC, GetROP2(origDc));
 	SetStretchBltMode(destDC, GetStretchBltMode(origDc));
@@ -335,8 +361,7 @@ void dxwSDC::copyDcAttributes(HDC destDC, HDC origDc, POINT origin)
 	SetBrushOrgEx(destDC, brushOrg.x, brushOrg.y, NULL);
 
 	POINT currentPos = {};
-	(*pMoveToEx)(origDc, 0, 0, &currentPos);
-	(*pMoveToEx)(origDc, currentPos.x, currentPos.y, NULL);
+	(*pGetCurrentPositionEx)(origDc, &currentPos);
 	dxw.MapClient(&currentPos);
 	(*pMoveToEx)(destDC, currentPos.x, currentPos.y, NULL);
 }
@@ -344,76 +369,60 @@ void dxwSDC::copyDcAttributes(HDC destDC, HDC origDc, POINT origin)
 typedef struct 
 {
 	HDC compatDc;
-	POINT origin;
 	HWND rootWnd;
 } ExcludeClipRectsData_Type;
 
-static BOOL CALLBACK excludeClipRectsForOverlappingWindows(HWND hwnd, LPARAM lParam)
+static BOOL CALLBACK excludeClipRectForOverlappingWindow(HWND hwnd, LPARAM lParam)
 {
 	ExcludeClipRectsData_Type *excludeClipRectsData = (ExcludeClipRectsData_Type *)lParam;
-	if (!IsWindowVisible(hwnd)) return TRUE; // go ahead
-	if (hwnd == excludeClipRectsData->rootWnd) return FALSE; // stop 
-	if(dxw.IsDesktop(hwnd)) return FALSE;
+	if (hwnd == excludeClipRectsData->rootWnd) return FALSE;
+	if (!IsWindowVisible(hwnd)) return TRUE;
 
-	RECT rect = {};
-	(*pGetClientRect)(hwnd, &rect);
-	OffsetRect(&rect, -excludeClipRectsData->origin.x, -excludeClipRectsData->origin.y);
-	ExcludeClipRect(excludeClipRectsData->compatDc, rect.left, rect.top, rect.right, rect.bottom);
-	OutTraceB("dxwSDC::excludeClipRects: hwnd=%x rect=(%d,%d)-(%d,%d)\n", hwnd, rect.left, rect.top, rect.right, rect.bottom);
+	RECT windowRect = {};
+	GetWindowRect(hwnd, &windowRect);
+
+	HRGN windowRgn = (*pCreateRectRgnIndirect)(&windowRect);
+	ExtSelectClipRgn(excludeClipRectsData->compatDc, windowRgn, RGN_DIFF);
+	DeleteObject(windowRgn);
+	OutTraceB("dxwSDC::excludeClipRect: hwnd=%x rect=(%d,%d)-(%d,%d)\n", hwnd, windowRect.left, windowRect.top, windowRect.right, windowRect.bottom);
+
 	return TRUE;
 }
 
-void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
+static void excludeClipRectsForOverlappingWindows(HWND hwnd, BOOL isMenuWindow, HDC compatDc)
 {
-	OutTraceB("dxwSDC::setClippingRegion: compdc=%x origdc=%x origin=(%d,%d)\n", compatDc, origDc, origin.x, origin.y);
-	HRGN clipRgn = CreateRectRgn(0, 0, 0, 0);
-	const bool isEmptyClipRgn = (1 != GetRandomRgn(origDc, clipRgn, SYSRGN));
-	OutTraceB("dxwSDC::setClippingRegion: isEmptyClipRgn=%x\n", isEmptyClipRgn);
-	// scale clip region
-	POINT upleft={0, 0};
-	//(*pClientToScreen)(dxw.GethWnd(), &upleft);
-	(*pClientToScreen)(CurrenthWnd, &upleft);
-	if(IsDebug){
-		OutTraceB("dxwSDC::setClippingRegion: upleft=(%d,%d)\n", upleft.x, upleft.y);
+	ExcludeClipRectsData_Type excludeClipRectsData = { compatDc, GetAncestor(hwnd, GA_ROOT) };
+	if (!isMenuWindow){
+		EnumWindows(&excludeClipRectForOverlappingWindow, (LPARAM)(&excludeClipRectsData));
 	}
-	OffsetRgn(clipRgn, -upleft.x, -upleft.y);
-	if(IsDebug){
-		RECT RgnBox;
-		GetRgnBox(clipRgn, &RgnBox);
-		OutTraceB("dxwSDC::setClippingRegion: RgnBox=(%d,%d)-(%d,%d) size=(%dx%d)\n", 
-			RgnBox.left, RgnBox.top, RgnBox.right, RgnBox.bottom, RgnBox.right-RgnBox.left, RgnBox.bottom-RgnBox.top);
-	}
-	// end of scaling
-	SelectClipRgn(compatDc, isEmptyClipRgn ? NULL : clipRgn);
-	DeleteObject(clipRgn);
 
-	HRGN origClipRgn = (*pCreateRectRgn)(0, 0, 0, 0);
-	if (1 == GetClipRgn(origDc, origClipRgn))
-	{
-		OutTraceB("dxwSDC::setClippingRegion: GetClipRgn==1\n");
-		OffsetRgn(origClipRgn, origin.x, origin.y);
-		ExtSelectClipRgn(compatDc, origClipRgn, RGN_AND);
-		if(IsDebug){
-			RECT RgnBox;
-			GetRgnBox(origClipRgn, &RgnBox); // for logging only
-			OutTraceB("dxwSDC::setClippingRegion: OrigRgnBox=(%d,%d)-(%d,%d)\n", RgnBox.left, RgnBox.top, RgnBox.right, RgnBox.bottom);
-		}
-	}
-	DeleteObject(origClipRgn);
-
-	if(dxw.dwFlags7 & FIXCLIPPERAREA){
-		// to finish .....
-		// on Win10 this part seems unnecessary and giving troubles .....
-		if (!isEmptyClipRgn){
-			OutTraceB("dxwSDC::setClippingRegion: isEmptyClipRgn FALSE\n");
-			HWND hwnd = WindowFromDC(origDc);
-			if (hwnd && (!dxw.IsDesktop(hwnd))){
-				ExcludeClipRectsData_Type excludeClipRectsData = { compatDc, origin, dxw.GethWnd() };
-				//ExcludeClipRectsData_Type excludeClipRectsData = { compatDc, origin, GetAncestor(hwnd, GA_ROOT) };
-				OutTraceB("dxwSDC::setClippingRegion: compatdc=%x origin=(%d,%d) ancestor=%x\n", 
-					compatDc, origin.x, origin.y, dxw.GethWnd());
-				EnumWindows(&excludeClipRectsForOverlappingWindows,(LPARAM)(&excludeClipRectsData));
-			}
-		}
+	HWND menuWindow = FindWindow((LPCSTR)(0x8000), NULL);
+	while (menuWindow && menuWindow != hwnd){
+		excludeClipRectForOverlappingWindow(menuWindow, (LPARAM)(&excludeClipRectsData));
+		menuWindow = FindWindowEx(NULL, menuWindow, (LPCSTR)(0x8000), NULL);
 	}
 }
+
+void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, HWND hwnd, bool isMenuWindow, const POINT& origin)
+{
+	HRGN clipRgn = (*pCreateRectRgn)(0, 0, 0, 0);
+	if (1 == GetClipRgn(origDc, clipRgn)){
+		OffsetRgn(clipRgn, origin.x, origin.y);
+		SelectClipRgn(compatDc, clipRgn);
+	}
+
+	if ((hwnd) && (dxw.dwFlags7 & FIXCLIPPERAREA)){
+		if (isMenuWindow || 1 != GetRandomRgn(origDc, clipRgn, SYSRGN)){
+			RECT rect = {};
+			(*pGetWindowRect)(hwnd, &rect);
+			(*pSetRectRgn)(clipRgn, rect.left, rect.top, rect.right, rect.bottom);
+		}
+
+		excludeClipRectsForOverlappingWindows(hwnd, isMenuWindow, compatDc);
+		ExtSelectClipRgn(compatDc, clipRgn, RGN_AND);
+	}
+
+	DeleteObject(clipRgn);
+	SetMetaRgn(compatDc);
+}
+

@@ -15,8 +15,8 @@ typedef HRESULT (WINAPI *Lock_Type)(LPDIRECTDRAWSURFACE, LPRECT, LPDDSURFACEDESC
 typedef HRESULT (WINAPI *Unlock4_Type)(LPDIRECTDRAWSURFACE, LPRECT);
 typedef HRESULT (WINAPI *Unlock1_Type)(LPDIRECTDRAWSURFACE, LPVOID);
 
-extern Lock_Type pLockMethod();
-extern Unlock4_Type pUnlockMethod();
+extern Lock_Type pLockMethod(int);
+extern Unlock4_Type pUnlockMethod(int);
 extern int Set_dwSize_From_Surface();
 
 #define GRIDSIZE 16
@@ -103,7 +103,7 @@ static char *SurfaceType(DDPIXELFORMAT ddpfPixelFormat)
 	return sSurfaceType;
 }
 
-void TextureHighlight(LPDIRECTDRAWSURFACE s)
+void TextureHighlight(LPDIRECTDRAWSURFACE s, int dxversion)
 {
 	DDSURFACEDESC2 ddsd;
 	int x, y, w, h;
@@ -111,7 +111,7 @@ void TextureHighlight(LPDIRECTDRAWSURFACE s)
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
 	ddsd.dwSize = Set_dwSize_From_Surface();
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLockMethod())(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod(dxversion))(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("TextureHigh: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
@@ -171,11 +171,11 @@ void TextureHighlight(LPDIRECTDRAWSURFACE s)
 				break;
 		}
 	}
-	res=(*pUnlockMethod())(s, NULL);
+	res=(*pUnlockMethod(dxversion))(s, NULL);
 	if (res) OutTraceE("TextureHigh: Unlock ERROR lpdds=%x res=%x(%s) at %d\n", s, res, ExplainDDError(res), __LINE__);
 }
 
-static void TextureDump(LPDIRECTDRAWSURFACE s)
+static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 {
 	DDSURFACEDESC2 ddsd;
 	int w, h, iSurfaceSize, iScanLineSize;
@@ -200,7 +200,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
 	ddsd.dwSize = Set_dwSize_From_Surface();
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLockMethod())(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod(dxversion))(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("TextureDump: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
@@ -294,11 +294,11 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		fclose(hf);
 		break;
 	}
-	res=(*pUnlockMethod())(s, NULL);
+	res=(*pUnlockMethod(dxversion))(s, NULL);
 	if (res) OutTraceE("TextureDump: Unlock ERROR lpdds=%x res=%x(%s) at %d\n", s, res, ExplainDDError(res), __LINE__);
 }
 
-static void TextureHack(LPDIRECTDRAWSURFACE s)
+static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 {
 	DDSURFACEDESC2 ddsd;
 	int w, h, iSurfaceSize, iScanLineSize;
@@ -307,7 +307,7 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
 	ddsd.dwSize = Set_dwSize_From_Surface();
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLockMethod())(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod(dxversion))(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("TextureHack: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
@@ -382,23 +382,23 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 		fclose(hf);
 		break;
 	}
-	res=(*pUnlockMethod())(s, NULL);
+	res=(*pUnlockMethod(dxversion))(s, NULL);
 	if (res) OutTraceE("TextureHack: Unlock ERROR lpdds=%x res=%x(%s) at %d\n", s, res, ExplainDDError(res), __LINE__);
 }
 
-void TextureHandling(LPDIRECTDRAWSURFACE s)
+void TextureHandling(LPDIRECTDRAWSURFACE s, int dxversion)
 {
 	//OutTrace("TextureHandling(1-7): dxw.dwFlags5 = %x\n", dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK));
 	switch(dxw.dwFlags5 & TEXTUREMASK){
 		default:
 		case TEXTUREHIGHLIGHT: 
-			TextureHighlight(s);
+			TextureHighlight(s, dxversion);
 			break;
 		case TEXTUREDUMP: 
-			TextureDump(s);
+			TextureDump(s, dxversion);
 			break;
 		case TEXTUREHACK:
-			TextureHack(s);
+			TextureHack(s, dxversion);
 			break;
 		case TEXTURETRANSP:
 			//TextureTransp(s);

@@ -445,22 +445,24 @@ void DumpImportTable(HMODULE module)
 void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 {
 	void *tmp;
-	char msg[81];
+	char msg[201];
 	DWORD dwTmp, oldprot;
-	static DWORD MinHook=0xFFFFFFFF;
-	static DWORD MaxHook=0;
 	
 	OutTraceH("SetHook: DEBUG target=%x, proc=%x name=%s\n", target, hookproc, hookname);
 	// keep track of hooked call range to avoid re-hooking of hooked addresses !!!
-	if ((DWORD)hookproc < MinHook) MinHook=(DWORD)hookproc;
-	if ((DWORD)hookproc > MaxHook) MaxHook=(DWORD)hookproc;
 	dwTmp = *(DWORD *)target;
-	if(dwTmp == (DWORD)hookproc) return; // already hooked
-	if((dwTmp <= MaxHook) && (dwTmp >= MinHook)) return; // already hooked
+	if(dwTmp == (DWORD)hookproc) {
+		OutTraceH("target already hooked\n");
+		return; // already hooked
+	}
+	if(*(DWORD *)hookedproc == (DWORD)hookproc) {
+		OutTraceH("hook already hooked\n");
+		return; // already hooked
+	}
 	if(dwTmp == 0){
 		sprintf(msg,"SetHook ERROR: NULL target for %s\n", hookname);
 		OutTraceDW(msg);
-		MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
+		if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
 		return; // error condition
 	}
 	if(!VirtualProtect(target, 4, PAGE_READWRITE, &oldprot)) {
@@ -487,6 +489,7 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 		tmp = *hookedproc;
 	}
 	*hookedproc = tmp;
+	OutTraceH("SetHook: DEBUG2 *hookedproc=%x, name=%s\n", tmp, hookname);
 }
 
 // v2.02.53: thorough scan - the IAT is scanned considering the possibility to have each dll module 
@@ -1150,7 +1153,10 @@ DWORD WINAPI MessagePoller(LPVOID lpParameter)
 	#define DXWREFRESHINTERVAL 20
 	while(TRUE){
 		Sleep(DXWREFRESHINTERVAL);
-		SendMessage(dxw.GethWnd(), WM_NCHITTEST, 0, 0);
+		if(dxw.dwFlags2 & INDEPENDENTREFRESH)
+			dxw.ScreenRefresh();
+		else
+			SendMessage(dxw.GethWnd(), WM_NCHITTEST, 0, 0);
 	}
     return 0;
 }
