@@ -425,12 +425,11 @@ DWORD gdwRefreshRate;
 #define MAXREFRESHDELAYCOUNT 20
 int iRefreshDelays[MAXREFRESHDELAYCOUNT]={16, 17};
 int iRefreshDelayCount=2;
-int lpddHookedVersion(LPDIRECTDRAW);
 
-static HRESULT myGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpdds)
+static HRESULT myGetDisplayMode(int dxversion, LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpdds)
 {
 	HRESULT res;
-	switch(lpddHookedVersion(lpdd)){
+	switch(dxversion){
 		default:
 		case 1: res=(*pGetDisplayMode1)(lpdd, lpdds); break;
 		case 2: res=(*pGetDisplayMode2)(lpdd, lpdds); break;
@@ -440,14 +439,14 @@ static HRESULT myGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpdds)
 	return res;
 }
 
-void SetVSyncDelays(LPDIRECTDRAW lpdd)
+void SetVSyncDelays(int dxversion, LPDIRECTDRAW lpdd)
 {
 	DDSURFACEDESC2 ddsdRefreshRate;
 	HRESULT res;
 
 	memset(&ddsdRefreshRate, 0, sizeof(ddsdRefreshRate));
 	ddsdRefreshRate.dwSize = sizeof(DDSURFACEDESC);
-	res=myGetDisplayMode(lpdd, (LPDDSURFACEDESC)&ddsdRefreshRate);
+	res=myGetDisplayMode(dxversion, lpdd, (LPDDSURFACEDESC)&ddsdRefreshRate);
 	if(res) return;
 	dxw.SetVSyncDelays(ddsdRefreshRate.dwRefreshRate);
 }
@@ -590,7 +589,7 @@ void InitDDScreenParameters(int dxversion, LPDIRECTDRAW lpdd)
 	HRESULT res;
 	DDSURFACEDESC2 ddsd;
 	ddsd.dwSize=sizeof(DDSURFACEDESC);
-	res=myGetDisplayMode(lpdd, (LPDDSURFACEDESC)&ddsd);
+	res=myGetDisplayMode(dxversion, lpdd, (LPDDSURFACEDESC)&ddsd);
 	if(res){
 		OutTraceE("GetDisplayMode: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
@@ -994,34 +993,6 @@ int lpddsHookedVersion()
 	return iBakBufferVersion;
 }
 
-int GetSurfaceDescSize()
-{
-	return (iBakBufferVersion < 4) ? sizeof(DDSURFACEDESC) : sizeof(DDSURFACEDESC2);
-}
-
-int lpddHookedVersion(LPDIRECTDRAW lpdd)
-{
-	char sMsg[81];
-	void *extCreateSurface = NULL;
-
-	if(lpPrimaryDD){
-		__try{
-		extCreateSurface=(void *)*(DWORD *)(*(DWORD *)lpdd + 24);
-		}
-		__except (EXCEPTION_EXECUTE_HANDLER){
-		extCreateSurface=NULL;
-		};	
-		if(extCreateSurface==(void *)extCreateSurface7) return 7;
-		if(extCreateSurface==(void *)extCreateSurface4) return 4;
-		if(extCreateSurface==(void *)extCreateSurface2) return 2;
-		if(extCreateSurface==(void *)extCreateSurface1) return 1;
-	}
-	sprintf_s(sMsg, 80, "lpddHookedVersion(%x) can't match %x\n", lpdd, extCreateSurface);
-	OutTraceDW(sMsg);
-	if (IsAssertEnabled) MessageBox(0, sMsg, "lpddHookedVersion", MB_OK | MB_ICONEXCLAMATION);
-	return 0;
-}
-
 void DescribeSurface(LPDIRECTDRAWSURFACE lpdds, int dxversion, char *label, int line)
 {
 	DDSURFACEDESC2 ddsd;
@@ -1113,11 +1084,6 @@ int Set_dwSize_From_Surface()
 		case 7: size=sizeof(DDSURFACEDESC2); break;
 	}
 	return size;
-}
-
-int Set_dwSize_From_DDraw(LPDIRECTDRAW lpdd)
-{
-	return (lpddHookedVersion(lpdd) < 4) ? sizeof(DDSURFACEDESC) : sizeof(DDSURFACEDESC2);
 }
 
 void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
@@ -2035,7 +2001,7 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 		SetBltTransformations(dxversion);
 		if(dxw.Windowize) {
 			OutTraceDW("SetDisplayMode: mode=EMULATE %s ret=OK\n", DumpPixelFormat(&ddsd));
-			SetVSyncDelays(lpdd);
+			SetVSyncDelays(dxversion, lpdd);
 			return DD_OK;
 		}
 	}
@@ -2046,16 +2012,15 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 	}
 
 	ZeroMemory(&ddsd, sizeof(ddsd));
-	ddsd.dwSize = Set_dwSize_From_DDraw(lpdd);
 	ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT | DDSD_REFRESHRATE;
 	ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ddsd.ddpfPixelFormat.dwFlags = DDPF_RGB; 
 	switch(dxversion){
 		default:
-		case 1: res=(*pGetDisplayMode1)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
-		case 2: res=(*pGetDisplayMode2)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
-		case 4: res=(*pGetDisplayMode4)(lpdd, &ddsd); break;
-		case 7: res=(*pGetDisplayMode7)(lpdd, &ddsd); break;
+		case 1: ddsd.dwSize=sizeof(LPDDSURFACEDESC); res=(*pGetDisplayMode1)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
+		case 2: ddsd.dwSize=sizeof(LPDDSURFACEDESC); res=(*pGetDisplayMode2)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
+		case 4: ddsd.dwSize=sizeof(LPDDSURFACEDESC2); res=(*pGetDisplayMode4)(lpdd, &ddsd); break;
+		case 7: ddsd.dwSize=sizeof(LPDDSURFACEDESC2); res=(*pGetDisplayMode7)(lpdd, &ddsd); break;
 	}
 
 	OutTraceB("SetDisplayMode: detected screen size=(%dx%d)\n", ddsd.dwWidth, ddsd.dwHeight);
@@ -2082,7 +2047,7 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 	}
 	if(res) OutTraceE("SetDisplayMode: error=%x\n", res);
 
-	SetVSyncDelays(lpdd);
+	SetVSyncDelays(dxversion, lpdd);
 	// set a default palette ???
 	if(dxw.VirtualPixelFormat.dwRGBBitCount == 8) 
 		mySetPalette(0, 256, DefaultSystemPalette);
@@ -3086,7 +3051,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 
 	// creation of the primary surface....
 	if(ddsd.dwFlags & DDSD_CAPS && ddsd.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE){
-		SetVSyncDelays(lpdd);
+		SetVSyncDelays(dxversion, lpdd);
 		GetHookInfo()->Height=(short)dxw.GetScreenHeight();
 		GetHookInfo()->Width=(short)dxw.GetScreenWidth();
 		GetHookInfo()->ColorDepth=(short)dxw.VirtualPixelFormat.dwRGBBitCount;
@@ -4852,7 +4817,7 @@ HRESULT WINAPI extEnumDisplayModes(int dxversion, EnumDisplayModes1_Type pEnumDi
 		DDSURFACEDESC2 EmuDesc;
 		memset(&EmuDesc, 0, sizeof(EmuDesc));
 		EmuDesc.dwSize = sizeof(DDSURFACEDESC); // using release 1 type ....
-	 	res=myGetDisplayMode(lpdd, (LPDDSURFACEDESC)&EmuDesc);
+	 	res=myGetDisplayMode(dxversion, lpdd, (LPDDSURFACEDESC)&EmuDesc);
 		if(res){
 			OutTraceE("EnumDisplayModes(D): GetDisplayMode ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;

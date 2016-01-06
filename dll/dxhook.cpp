@@ -1418,7 +1418,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		extern HINSTANCE hInst;
 		typedef HHOOK (WINAPI *SetWindowsHookEx_Type)(int, HOOKPROC, HINSTANCE, DWORD);
 		extern SetWindowsHookEx_Type pSetWindowsHookExA;
-		hMouseHook=(*pSetWindowsHookExA)(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
+		hMouseHook =(*pSetWindowsHookExA)(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
 		if(hMouseHook==NULL) OutTraceE("SetWindowsHookEx WH_GETMESSAGE failed: error=%d\n", GetLastError());
 	}
  

@@ -2530,6 +2530,16 @@ void CDxwndhostView::OnRun()
 		}
 	}
 
+	if((TargetMaps[i].flags3 & EMULATEREGISTRY) || (TargetMaps[i].flags4 & OVERRIDEREGISTRY)){
+		FILE *regfp;
+		char *Registry;
+		Registry = PrivateMaps[i].registry;
+		regfp=fopen("dxwnd.reg", "w");
+		if(regfp==NULL)MessageBox("Error writing virtual registry file", "Error", MB_ICONERROR|MB_OK);
+		fwrite(Registry, strlen(Registry), 1, regfp);
+		fclose(regfp);	
+	}
+
 	if(TargetMaps[i].flags2 & STARTDEBUG){
 		ThreadInfo_Type ThreadInfo;
 		ThreadInfo.TM=&TargetMaps[i];

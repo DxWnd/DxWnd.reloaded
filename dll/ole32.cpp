@@ -8,6 +8,7 @@
 
 extern void HookModule(HMODULE, int);
 extern void HookDirectSoundObj(LPDIRECTSOUND *);
+extern void HookDirectDrawFactory(void *);
 
 static BOOL bRecursedHook = FALSE;
 
@@ -43,9 +44,10 @@ struct {
 } AddedModules[ADDITIONAL_MODULE_COUNT]=
 {
 	{FALSE, "quartz"},
-	{FALSE, "ddrawex"},
+	//{FALSE, "ddrawex"}, //v2.03.71: hooking this library makes "WhiteOut" crash
 	{FALSE, "amstream"},
-	{FALSE, "dplayx"}
+	{FALSE, "dplayx"},
+	{0, 0} // it seems necessary to also repeat the hook the main module ....
 };
 
 static void HookAdditionalModules()
@@ -103,7 +105,7 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 	
 	OutTraceDW("CoCreateInstance: ppv=%x->%x\n", *ppv, *(DWORD *)*ppv);
 
-	switch (*(DWORD *)&rclsid) {
+	switch (rclsid.Data1) {
 		case 0xD7B70EE0: // CLSID_DirectDraw:
 			// v2.03.18: fixed
 			OutTraceDW("CoCreateInstance: CLSID_DirectDraw object\n");
@@ -143,14 +145,23 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 					break;
 			}
 			break;
-		case 0xA65B8071: // CLSID_DxDiagProvider
+		case 0xA65B8071: // CLSID_DxDiagProvider:
+			if ((rclsid.Data2==0x3BFE) && (rclsid.Data3 == 0x4213)){
 			OutTraceDW("CoCreateInstance: CLSID_DxDiagProvider object\n");
-			HookDxDiag(riid, ppv);
+				res=HookDxDiag(riid, ppv);
+			}
 			break;
 		case 0x47d4d946: // CLSID_DirectSound
 			OutTraceDW("CoCreateInstance: CLSID_DirectSound object\n");
 			HookDirectSoundObj((LPDIRECTSOUND *)ppv);
 			break;
+		case 0x4fd2a832: // CLSID_DirectDrawFactory 
+			if ((rclsid.Data2==0x86c8) && (rclsid.Data3 == 0x11d0)){
+				OutTraceDW("CoCreateInstance: CLSID_DirectDrawFactory object\n");
+				HookDirectDrawFactory((void *)ppv);
+			}
+			break;
+
 		default:
 			break;
 	}
@@ -186,25 +197,25 @@ HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID rclsid, IUnknown *punkOute
 
 		// CLSID e436ebb3 implies loading quartz.dll to play movies through dshow:
 		// quartz.dll must be hooked.
-		if (*(DWORD *)&rclsid==0xe436ebb3){
+		switch (rclsid.Data1) {
+			case 0xe436ebb3: 
 			HMODULE qlib;
 			OutTraceDW("CoCreateInstanceEx: CLSID_FilterGraph RIID=%x\n", *(DWORD *)&riid);
 			qlib=(*pLoadLibraryA)("quartz.dll");
 			OutTraceDW("CoCreateInstanceEx: quartz lib handle=%x\n", qlib);
 			HookModule(qlib, 0);
-		}
-
-		if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DirectDraw){
+				break;
+			case 0xD7B70EE0: // CLSID_DirectDraw:
 			extern void HookDDSession(LPDIRECTDRAW *, int); 
-			OutTraceDW("CoCreateInstance: CLSID_DirectDraw object\n");
+				OutTraceDW("CoCreateInstanceEx: CLSID_DirectDraw object\n");
 			switch (*(DWORD *)&riid){
 				LPDIRECTDRAW lpOldDDraw;
 				case 0x6C14DB80:
-					OutTraceDW("CoCreateInstance: IID_DirectDraw RIID\n");
+						OutTraceDW("CoCreateInstanceEx: IID_DirectDraw RIID\n");
 					HookDDSession((LPDIRECTDRAW *)ppv, 1);
 					break;
 				case 0xB3A6F3E0:
-					OutTraceDW("CoCreateInstance: IID_DirectDraw2 RIID\n");
+						OutTraceDW("CoCreateInstanceEx: IID_DirectDraw2 RIID\n");
 					res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
 					if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
 					res=lpOldDDraw->QueryInterface(IID_IDirectDraw2, (LPVOID *)ppv);
@@ -212,7 +223,7 @@ HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID rclsid, IUnknown *punkOute
 					lpOldDDraw->Release();
 					break;
 				case 0x9C59509A:
-					OutTraceDW("CoCreateInstance: IID_DirectDraw4 RIID\n");
+						OutTraceDW("CoCreateInstanceEx: IID_DirectDraw4 RIID\n");
 					res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
 					if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
 					res=lpOldDDraw->QueryInterface(IID_IDirectDraw4, (LPVOID *)ppv);
@@ -220,16 +231,26 @@ HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID rclsid, IUnknown *punkOute
 					lpOldDDraw->Release();
 					break;
 				case 0x15E65EC0:
-					OutTraceDW("CoCreateInstance: IID_DirectDraw7 RIID\n");
+						OutTraceDW("CoCreateInstanceEx: IID_DirectDraw7 RIID\n");
 					res=extDirectDrawCreateEx(NULL, (LPDIRECTDRAW *)ppv, IID_IDirectDraw7, 0);
 					if(res)OutTraceDW("DirectDrawCreateEx: res=%x(%s)\n", res, ExplainDDError(res));
 					break;
 				case 0xE436EBB3:
 					break;
 			}
+				break;
+			case 0xA65B8071: // CLSID_DxDiagProvider:
+				if ((rclsid.Data2==0x3BFE) && (rclsid.Data3 == 0x4213)){
+					OutTraceDW("CoCreateInstanceEx: CLSID_DxDiagProvider object\n");
+					res=HookDxDiag(riid, ppv);
+				}
+			break;
+			case 0x4fd2a832: // CLSID_DirectDrawFactory 
+				if ((rclsid.Data2==0x86c8) && (rclsid.Data3 == 0x11d0)){
+					OutTraceDW("CoCreateInstanceEx: CLSID_DirectDrawFactory object\n");
+					HookDirectDrawFactory((LPDIRECTSOUND *)ppv);
 		}
-		else {
-			if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
+			break;
 		}
 	}
 

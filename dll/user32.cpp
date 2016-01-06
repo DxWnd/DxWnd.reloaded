@@ -105,6 +105,9 @@ BOOL WINAPI extShowScrollBar(HWND, int, BOOL);
 typedef BOOL (WINAPI *DrawMenuBar_Type)(HWND);
 DrawMenuBar_Type pDrawMenuBar = NULL;
 BOOL WINAPI extDrawMenuBar(HWND);
+//typedef BOOL (WINAPI *TranslateMessage_Type)(MSG *);
+//TranslateMessage_Type pTranslateMessage = NULL;
+//BOOL WINAPI extTranslateMessage(MSG *);
 
 
 #ifdef TRACEPALETTE
@@ -117,6 +120,9 @@ UINT WINAPI extSetDIBColorTable(HDC, UINT, UINT, const RGBQUAD *);
 #endif
 
 static HookEntryEx_Type Hooks[]={
+	
+	//{HOOK_IAT_CANDIDATE, 0, "TranslateMessage", (FARPROC)TranslateMessage, (FARPROC *)&pTranslateMessage, (FARPROC)extTranslateMessage}, 
+	
 	{HOOK_IAT_CANDIDATE, 0, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
 	//{HOOK_IAT_CANDIDATE, 0, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
 	//{HOOK_IAT_CANDIDATE, 0, "SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
@@ -244,8 +250,8 @@ static HookEntryEx_Type ScaledHooks[]={
 };
 
 static HookEntryEx_Type PeekAllHooks[]={
-	{HOOK_IAT_CANDIDATE, 0, "PeekMessageA", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
-	{HOOK_IAT_CANDIDATE, 0, "PeekMessageW", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
+	{HOOK_IAT_CANDIDATE, 0, "PeekMessageA", (FARPROC)PeekMessageA, (FARPROC *)&pPeekMessageA, (FARPROC)extPeekMessageA},
+	{HOOK_IAT_CANDIDATE, 0, "PeekMessageW", (FARPROC)PeekMessageW, (FARPROC *)&pPeekMessageW, (FARPROC)extPeekMessageW},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -973,14 +979,9 @@ LRESULT WINAPI extSendMessage(char *apiname, SendMessage_Type pSendMessage, HWND
 }
 
 LRESULT WINAPI extSendMessageA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-	return extSendMessage("SendMessageA", pSendMessageA, hwnd, Msg, wParam, lParam);
-}
-
+{ return extSendMessage("SendMessageA", pSendMessageA, hwnd, Msg, wParam, lParam); }
 LRESULT WINAPI extSendMessageW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-	return extSendMessage("SendMessageW", pSendMessageW, hwnd, Msg, wParam, lParam);
-}
+{ return extSendMessage("SendMessageW", pSendMessageW, hwnd, Msg, wParam, lParam); }
 
 HCURSOR WINAPI extSetCursor(HCURSOR hCursor)
 {
@@ -1061,7 +1062,7 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 	return res;
 }
 
-BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 {
 	BOOL res;
 
@@ -1090,6 +1091,11 @@ BOOL WINAPI extPeekMessage(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsg
 
 	return res;
 }
+
+BOOL WINAPI extPeekMessageA(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+{ return extPeekMessage(pPeekMessageA, lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg); }
+BOOL WINAPI extPeekMessageW(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+{ return extPeekMessage(pPeekMessageW, lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg); }
 
 BOOL WINAPI extClientToScreen(HWND hwnd, LPPOINT lppoint)
 {
@@ -3696,3 +3702,24 @@ BOOL WINAPI extDrawMenuBar(HWND hWnd)
 	if(!ret) OutTraceE("DrawMenuBar ERROR: err=%d\n", GetLastError());
 	return ret;
 }
+
+#if 0
+BOOL WINAPI extTranslateMessage(MSG *pMsg)
+{
+	BOOL ret;
+	OutTraceDW("TranslateMessage: type=%x pos=(%d,%d)\n", pMsg->message, pMsg->pt.x, pMsg->pt.y);
+	if(dxw.Windowize){
+
+		pMsg->pt=dxw.ScreenToClient(pMsg->pt);
+		pMsg->pt=dxw.FixCursorPos(pMsg->pt);
+		
+		pMsg->pt.x *= 4;
+		pMsg->pt.y *= 4;
+		//if((pMsg->message <= WM_MOUSELAST) && (pMsg->message >= WM_MOUSEFIRST)) 
+		//	pMsg->lParam = MAKELPARAM(pMsg->pt.x, pMsg->pt.y); 
+		OutTraceDW("TranslateMessage: new pos=(%d,%d)\n", pMsg->pt.x, pMsg->pt.y);
+	}
+	ret=(*pTranslateMessage)(pMsg);
+	return ret;
+}
+#endif

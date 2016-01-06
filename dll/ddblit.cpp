@@ -33,7 +33,6 @@ extern void BlitTrace(char *, LPRECT, LPRECT, int);
 extern void DescribeSurface(LPDIRECTDRAWSURFACE, int, char *, int);
 extern void TextureHandling(LPDIRECTDRAWSURFACE, int);
 extern GetSurfaceDesc2_Type pGetSurfaceDescMethod();
-extern int GetSurfaceDescSize();
 extern GetSurfaceDesc2_Type GetSurfaceDescMethod();
 extern Blt_Type pBltMethod();
 
@@ -217,7 +216,7 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 				extern CreateSurface2_Type pCreateSurfaceMethod(int);
 				if (IsDebug) BlitTrace("KEYSRC", lpsrcrect, &destrect, __LINE__);
 				memset(&ddsd, 0, sizeof(ddsd));
-				ddsd.dwSize = GetSurfaceDescSize();
+				ddsd.dwSize = (dxversion < 4) ? sizeof(DDSURFACEDESC) : sizeof(DDSURFACEDESC2);
 				(*pGetSurfaceDescMethod())((LPDIRECTDRAWSURFACE2)lpddssrc, &ddsd);
 				res=(*pCreateSurfaceMethod(dxversion))(lpPrimaryDD, &ddsd, (LPDIRECTDRAWSURFACE *)&lpddsTmp, NULL);
 				if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);

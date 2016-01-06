@@ -1124,3 +1124,8 @@ add: SetWindowsHookExA logging, SetWindowsHookExW hooking
 fix: MessageHook logging
 GUI: some rearrangements / rationalizations to the interface
 add: INIT24BPP and INIT32BPP flags
+
+v2.03.71
+fix: no need to save configuration before running with fake registry
+add: icons to notify for non-empty registry and notes tabs
+fix: hooked ddrawex.dll DirectDrawEx methods - fixes "Whiteout", what else?

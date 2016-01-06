@@ -260,10 +260,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	}
 
 	if(LastTimeShift != dxw.TimeShift){
-		extern void SetVSyncDelays(LPDIRECTDRAW);
+		extern void SetVSyncDelays(int, LPDIRECTDRAW);
 		extern LPDIRECTDRAW lpPrimaryDD;
+		extern int iBakBufferVersion;
 		if(dxw.dwFlags4 & STRETCHTIMERS) dxw.RenewTimers();
-		if(lpPrimaryDD) SetVSyncDelays(lpPrimaryDD);
+		if(lpPrimaryDD) SetVSyncDelays(iBakBufferVersion, lpPrimaryDD);
 		LastTimeShift=dxw.TimeShift;
 	}
 

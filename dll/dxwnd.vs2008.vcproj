@@ -274,6 +274,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\ddrawex.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ddshot.cpp"
 				>
 			</File>

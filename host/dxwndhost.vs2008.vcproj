@@ -626,6 +626,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\res\bitmap2.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\res\dxw1.ico"
 				>
 			</File>
@@ -650,7 +654,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\res\notes.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\res\palette24.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\res\registry.bmp"
 				>
 			</File>
 			<File

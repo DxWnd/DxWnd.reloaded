@@ -160,14 +160,21 @@ BOOL CTabProgram::OnInitDialog()
 	CDialog::OnInitDialog();
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	Hinst = ::LoadLibrary(cTarget->m_FilePath);
-	if(!Hinst) return TRUE;
-	Icon = ::ExtractIcon(Hinst, cTarget->m_FilePath, 0);
-	IconBox=(CStatic *)this->GetDlgItem(IDC_STATIC_ICON);
-	PrevIcon = IconBox->SetIcon(Icon);
-	if (IconBox->GetIcon() == NULL)
-		IconBox->SetIcon(::LoadIcon(NULL, IDI_ERROR));  
-	::FreeLibrary(Hinst);
-	if(PrevIcon) ::DestroyIcon(PrevIcon);
+	if(Hinst){
+		Icon = ::ExtractIcon(Hinst, cTarget->m_FilePath, 0);
+		IconBox=(CStatic *)this->GetDlgItem(IDC_STATIC_ICON);
+		PrevIcon = IconBox->SetIcon(Icon);
+		if (IconBox->GetIcon() == NULL)
+			IconBox->SetIcon(::LoadIcon(NULL, IDI_ERROR));  
+		::FreeLibrary(Hinst);
+		if(PrevIcon) ::DestroyIcon(PrevIcon);
+	}
+
+	IconBox=(CStatic *)this->GetDlgItem(IDC_NOTES);
+	if(cTarget->m_Notes.IsEmpty()) IconBox->SetBitmap(NULL);
+
+	IconBox=(CStatic *)this->GetDlgItem(IDC_REGISTRY);
+	if(cTarget->m_Registry.IsEmpty()) IconBox->SetBitmap(NULL);
 
 	m_EditPosX.SubclassDlgItem(IDC_POSX, this);
 	m_EditPosY.SubclassDlgItem(IDC_POSY, this);
