@@ -851,12 +851,12 @@ HRESULT WINAPI extDeviceProxy7(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LP
 	return res;
 }
 
-HRESULT WINAPI extEnumDevices(EnumDevices_Type pEnumDevices, void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
+HRESULT WINAPI extEnumDevices(int version, EnumDevices_Type pEnumDevices, void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
 {
 	HRESULT res;
 	CallbackArg Arg;
 
-	OutTraceD3D("EnumDevices: d3d=%x arg=%x\n", lpd3d, arg);
+	OutTraceD3D("EnumDevices(%d): d3d=%x arg=%x\n", version, lpd3d, arg);
 	Arg.cb= &cb;
 	Arg.arg=arg;
 	res=(*pEnumDevices)(lpd3d, (LPD3DENUMDEVICESCALLBACK)extDeviceProxy, (LPVOID)&Arg);
@@ -866,11 +866,11 @@ HRESULT WINAPI extEnumDevices(EnumDevices_Type pEnumDevices, void *lpd3d, LPD3DE
 }
 
 HRESULT WINAPI extEnumDevices1(void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
-{ return extEnumDevices(pEnumDevices1, lpd3d, cb, arg); }
+{ return extEnumDevices(1, pEnumDevices1, lpd3d, cb, arg); }
 HRESULT WINAPI extEnumDevices2(void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
-{ return extEnumDevices(pEnumDevices2, lpd3d, cb, arg); }
+{ return extEnumDevices(2, pEnumDevices2, lpd3d, cb, arg); }
 HRESULT WINAPI extEnumDevices3(void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
-{ return extEnumDevices(pEnumDevices3, lpd3d, cb, arg); }
+{ return extEnumDevices(3, pEnumDevices3, lpd3d, cb, arg); }
 
 
 HRESULT WINAPI extEnumDevices7(void *lpd3d, LPD3DENUMDEVICESCALLBACK7 cb, LPVOID arg)
@@ -878,7 +878,7 @@ HRESULT WINAPI extEnumDevices7(void *lpd3d, LPD3DENUMDEVICESCALLBACK7 cb, LPVOID
 	HRESULT res;
 	CallbackArg7 Arg;
 
-	OutTraceD3D("EnumDevices: d3d=%x arg=%x\n", lpd3d, arg);
+	OutTraceD3D("EnumDevices(7): d3d=%x arg=%x\n", lpd3d, arg);
 	Arg.cb= &cb;
 	Arg.arg=arg;
 	res=(*pEnumDevices7)(lpd3d, (LPD3DENUMDEVICESCALLBACK7)extDeviceProxy7, (LPVOID)&Arg);

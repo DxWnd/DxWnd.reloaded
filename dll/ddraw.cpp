@@ -5078,14 +5078,6 @@ HRESULT WINAPI myEnumModesFilterDirect(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 		lpDDSurfaceDesc->dwHeight=SupportedRes[ResIdx].h;
 		lpDDSurfaceDesc->dwWidth=SupportedRes[ResIdx].w;
 		if(CheckResolutionLimit(lpDDSurfaceDesc)) return DDENUMRET_OK;
-		if (dxw.dwFlags1 & PREVENTMAXIMIZE){
-			// if PREVENTMAXIMIZE is set, don't let the caller know about forbidden screen settings.
-			if((lpDDSurfaceDesc->dwHeight > dxw.GetScreenHeight()) ||
-				(lpDDSurfaceDesc->dwWidth > dxw.GetScreenWidth())){
-				OutTraceDW("EnumDisplayModes: skipping screen size=(%d,%d)\n", lpDDSurfaceDesc->dwHeight, lpDDSurfaceDesc->dwWidth);
-				return DDENUMRET_OK;
-			}
-		}
 		res=(*((NewContext_Type *)lpContext)->lpCallback)(lpDDSurfaceDesc, ((NewContext_Type *)lpContext)->lpContext);
 		OutTraceDW("EnumDisplayModes(D): proposed size[%d]=(%d,%d) res=%x\n", ResIdx, SupportedRes[ResIdx].w, SupportedRes[ResIdx].h, res);
 		if(res==DDENUMRET_CANCEL) break;

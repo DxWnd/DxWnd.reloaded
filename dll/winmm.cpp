@@ -15,7 +15,7 @@
 #define EMULATEJOY TRUE
 #define INVERTJOYAXIS TRUE
 
-#include "logall.h" // comment when not debugging
+//#include "logall.h" // comment when not debugging
 
 BOOL IsWithinMCICall = FALSE;
 
@@ -177,33 +177,34 @@ static char *sDeviceType(DWORD dt)
 
 static void DumpMciMessage(char *label, BOOL isAnsi, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
 {
+	char *api="mciSendCommand";
 	switch(uMsg){
 		case MCI_BREAK: 
 			{
 				LPMCI_BREAK_PARMS lpBreak = (LPMCI_BREAK_PARMS)dwParam;
-				OutTrace("mciSendCommand%s: MCI_BREAK cb=%x virtkey=%d hwndbreak=%x\n",
-					label, lpBreak->dwCallback, lpBreak->nVirtKey, lpBreak->hwndBreak);
+				OutTrace("%s%s: MCI_BREAK cb=%x virtkey=%d hwndbreak=%x\n",
+					api, label, lpBreak->dwCallback, lpBreak->nVirtKey, lpBreak->hwndBreak);
 			}
 			break;
 		case MCI_INFO: 
 			{
 				LPMCI_INFO_PARMS lpInfo = (LPMCI_INFO_PARMS)dwParam;
-				OutTrace("mciSendCommand%s: MCI_INFO cb=%x retsize=%x\n",
-					label, lpInfo->dwCallback, lpInfo->dwRetSize);
+				OutTrace("%s%s: MCI_INFO cb=%x retsize=%x\n",
+					api, label, lpInfo->dwCallback, lpInfo->dwRetSize);
 			}
 			break;
 		case MCI_PLAY: 
 			{
 				LPMCI_PLAY_PARMS lpPlay = (LPMCI_PLAY_PARMS)dwParam;
-				OutTrace("mciSendCommand%s: MCI_PLAY cb=%x from=%x to=%x\n",
-					label, lpPlay->dwCallback, lpPlay->dwFrom, lpPlay->dwTo);
+				OutTrace("%s%s: MCI_PLAY cb=%x from=%x to=%x\n",
+					api, label, lpPlay->dwCallback, lpPlay->dwFrom, lpPlay->dwTo);
 			}
 			break;
 		case MCI_GETDEVCAPS:
 			{
 				LPMCI_GETDEVCAPS_PARMS lpDevCaps = (LPMCI_GETDEVCAPS_PARMS)dwParam;
-				OutTrace("mciSendCommand%s: MCI_GETDEVCAPS cb=%x ret=%x item=%x\n",
-					label, lpDevCaps->dwCallback, lpDevCaps->dwReturn, lpDevCaps->dwItem);
+				OutTrace("%s%s: MCI_GETDEVCAPS cb=%x ret=%x item=%x\n",
+					api, label, lpDevCaps->dwCallback, lpDevCaps->dwReturn, lpDevCaps->dwItem);
 			}
 			break;
 		case MCI_OPEN: 
@@ -212,8 +213,8 @@ static void DumpMciMessage(char *label, BOOL isAnsi, UINT uMsg, DWORD_PTR fdwCom
 				// how to dump LPMCI_OPEN_PARMS strings without crash?
 				if(isAnsi){
 					LPMCI_OPEN_PARMSA lpOpen = (LPMCI_OPEN_PARMSA)dwParam;
-					OutTrace("mciSendCommand%s: MCI_OPEN %scb=%x devid=%x devtype=%s elementname=%s alias=%s\n",
-						label, 
+					OutTrace("%s%s: MCI_OPEN %scb=%x devid=%x devtype=%s elementname=%s alias=%s\n",
+						api, label, 
 						(dwFlags & MCI_OPEN_SHAREABLE) ? "OPEN_SHAREABLE " : "",
 						lpOpen->dwCallback, lpOpen->wDeviceID,
 						"", //(dwFlags & MCI_OPEN_TYPE) ? lpOpen->lpstrDeviceType : "",
@@ -222,8 +223,8 @@ static void DumpMciMessage(char *label, BOOL isAnsi, UINT uMsg, DWORD_PTR fdwCom
 				}
 				else{
 					LPMCI_OPEN_PARMSW lpOpen = (LPMCI_OPEN_PARMSW)dwParam;
-					OutTrace("mciSendCommand%s: MCI_OPEN cb=%x devid=%x devtype=%ls elementname=%ls alias=%ls\n",
-						label, 
+					OutTrace("%s%s: MCI_OPEN cb=%x devid=%x devtype=%ls elementname=%ls alias=%ls\n",
+						api, label, 
 						(dwFlags & MCI_OPEN_SHAREABLE) ? "OPEN_SHAREABLE " : "",
 						lpOpen->dwCallback, lpOpen->wDeviceID,
 						L"", //(dwFlags & MCI_OPEN_TYPE) ? lpOpen->lpstrDeviceType : L"",
@@ -235,22 +236,24 @@ static void DumpMciMessage(char *label, BOOL isAnsi, UINT uMsg, DWORD_PTR fdwCom
 		case MCI_STATUS:
 			{
 				LPMCI_STATUS_PARMS lpStatus = (LPMCI_STATUS_PARMS)dwParam;
-				OutTrace("mciSendCommand%s: MCI_STATUS cb=%x ret=%x item=%x(%s) track=%x\n",
-					label, lpStatus->dwCallback, lpStatus->dwReturn, lpStatus->dwItem, sStatusItem(lpStatus->dwItem), lpStatus->dwTrack);
+				OutTrace("%s%s: MCI_STATUS cb=%x ret=%x item=%x(%s) track=%x\n",
+					api, label, lpStatus->dwCallback, lpStatus->dwReturn, lpStatus->dwItem, sStatusItem(lpStatus->dwItem), lpStatus->dwTrack);
 			}
 			break;
 		case MCI_SYSINFO:
 			{
 				LPMCI_SYSINFO_PARMS lpSysInfo = (LPMCI_SYSINFO_PARMS)dwParam;
-				OutTrace("mciSendCommand%s: MCI_SYSINFO cb=%x retsize=%x number=%x devtype=%x(%s)\n",
-					label, lpSysInfo->dwCallback, lpSysInfo->dwRetSize, lpSysInfo->dwNumber, lpSysInfo->wDeviceType, sDeviceType(lpSysInfo->wDeviceType));
+				OutTrace("%s%s: MCI_SYSINFO cb=%x retsize=%x number=%x devtype=%x(%s)\n",
+					api, label, lpSysInfo->dwCallback, lpSysInfo->dwRetSize, lpSysInfo->dwNumber, lpSysInfo->wDeviceType, sDeviceType(lpSysInfo->wDeviceType));
 			}
 			break;
 		default:
 			{
 				LPMCI_GENERIC_PARMS lpGeneric = (LPMCI_GENERIC_PARMS)dwParam;
-				OutTrace("mciSendCommand%s: %s cb=%x\n",
-					label, ExplainMCICommands(uMsg), lpGeneric->dwCallback);
+				if(lpGeneric)
+					OutTrace("%s%s: %s cb=%x\n", api, label, ExplainMCICommands(uMsg), lpGeneric->dwCallback);
+				else
+					OutTrace("%s%s: %s params=(NULL)\n", api, label, ExplainMCICommands(uMsg));
 			}
 			break;
 	}
@@ -345,11 +348,13 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 		}
 	}
 
+#if 0
 	LPMCI_GENERIC_PARMS lpGeneric = (LPMCI_GENERIC_PARMS)dwParam;
 	if(HIWORD(lpGeneric->dwCallback) == NULL) {
 		lpGeneric->dwCallback = MAKELONG(dxw.GethWnd(),0);
 		OutTraceB("mciSendCommand: REDIRECT dwCallback=%x\n", dxw.GethWnd());
 	}
+#endif
 
 	ret=(*pmciSendCommand)(IDDevice, uMsg, fdwCommand, dwParam);
 	if(IsDebug) DumpMciMessage("<<", isAnsi, uMsg, fdwCommand, dwParam);
