@@ -4,7 +4,6 @@
 #include "dxhook.h"
 #include "dxhelper.h"
 #include "hddraw.h"
-#include "ddproxy.h"
 #include "stdio.h"
 
 //#undef IsTraceDW
@@ -14,6 +13,9 @@
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 LPVOID WINAPI extVirtualAlloc(LPVOID, SIZE_T, DWORD, DWORD);
 UINT WINAPI extWinExec(LPCSTR, UINT);
+
+extern HRESULT WINAPI extDirectDrawEnumerate(LPDDENUMCALLBACK, LPVOID);
+extern HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX, LPVOID, DWORD);
 
 typedef LPVOID (WINAPI *VirtualAlloc_Type)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, 
@@ -676,12 +678,12 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			case 0x000B: // DirectDrawEnumerateA
 				pDirectDrawEnumerate=(DirectDrawEnumerate_Type)(*pGetProcAddress)(hModule, proc);
 				OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerate);
-				return (FARPROC)extDirectDrawEnumerateProxy;
+				return (FARPROC)extDirectDrawEnumerate;
 				break;
 			case 0x000C: // DirectDrawEnumerateExA
 				pDirectDrawEnumerateEx=(DirectDrawEnumerateEx_Type)(*pGetProcAddress)(hModule, proc);
 				OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerateEx);
-				return (FARPROC)extDirectDrawEnumerateExProxy;
+				return (FARPROC)extDirectDrawEnumerateEx;
 				break;
 			}
 			break;

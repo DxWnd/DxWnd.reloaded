@@ -242,10 +242,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ddproxy.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ddraw.cpp"
 				>
 				<FileConfiguration
@@ -466,6 +462,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\supmodes.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\user32.cpp"
 				>
 			</File>
@@ -486,10 +486,6 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl"
 			>
-			<File
-				RelativePath=".\ddproxy.h"
-				>
-			</File>
 			<File
 				RelativePath=".\dxhelper.h"
 				>
@@ -516,6 +512,10 @@
 			</File>
 			<File
 				RelativePath=".\hd3d.doc.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hddraw.h"
 				>
 			</File>
 			<File

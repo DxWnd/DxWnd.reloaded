@@ -557,9 +557,9 @@ void HookD3DDevice9(void** ppD3Ddev9)
 	if((dxw.dwFlags5 & TEXTUREMASK) || (dxw.dwFlags4 & NOTEXTURES)){
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 260), extSetTexture9, (void **)&pSetTexture9, "SetTexture(D9)");
 	}
-	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
-	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  4), extAddRef9, (void **)&pAddRef9, "AddRef(D9)");
-	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  8), extRelease9, (void **)&pRelease9, "Release(D9)");
+	//if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
+	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +  4), extAddRef9, (void **)&pAddRef9, "AddRef(D9)");
+	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +  8), extRelease9, (void **)&pRelease9, "Release(D9)");
 }
 
 // WIP
@@ -626,15 +626,15 @@ void HookDirect3D9(void *lpd3d, BOOL ex)
 	SetHook((void *)(*(DWORD *)lpd3d + 56), extD3DGetDeviceCaps9, (void **)&pD3DGetDeviceCaps, "GetDeviceCaps(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice, (void **)&pCreateDevice9, "CreateDevice(D9)");
 	if(ex) SetHook((void *)(*(DWORD *)lpd3d + 80), extCreateDeviceEx, (void **)&pCreateDeviceEx, "CreateDeviceEx(D9)");
-	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
-	SetHook((void *)(*(DWORD *)lpd3d + 12), extRegisterSoftwareDevice, (void **)&pRegisterSoftwareDevice, "RegisterSoftwareDevice(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 24), extGetAdapterModeCount, (void **)&pGetAdapterModeCount, "GetAdapterModeCount(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 36), extCheckDeviceType, (void **)&pCheckDeviceType, "CheckDeviceType(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 40), extCheckDeviceFormat, (void **)&pCheckDeviceFormat, "CheckDeviceFormat(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 44), extCheckDeviceMultiSampleType, (void **)&pCheckDeviceMultiSampleType, "CheckDeviceMultiSampleType(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 48), extCheckDepthStencilMatch, (void **)&pCheckDepthStencilMatch, "CheckDepthStencilMatch(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 52), extCheckDeviceFormatConversion, (void **)&pCheckDeviceFormatConversion, "CheckDeviceFormatConversion(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 60), extGetAdapterMonitor, (void **)&pGetAdapterMonitor, "GetAdapterMonitor(D9)");
+	//if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
+	//SetHook((void *)(*(DWORD *)lpd3d + 12), extRegisterSoftwareDevice, (void **)&pRegisterSoftwareDevice, "RegisterSoftwareDevice(D9)");
+	//SetHook((void *)(*(DWORD *)lpd3d + 24), extGetAdapterModeCount, (void **)&pGetAdapterModeCount, "GetAdapterModeCount(D9)");
+	//SetHook((void *)(*(DWORD *)lpd3d + 36), extCheckDeviceType, (void **)&pCheckDeviceType, "CheckDeviceType(D9)");
+	//SetHook((void *)(*(DWORD *)lpd3d + 40), extCheckDeviceFormat, (void **)&pCheckDeviceFormat, "CheckDeviceFormat(D9)");
+	//SetHook((void *)(*(DWORD *)lpd3d + 44), extCheckDeviceMultiSampleType, (void **)&pCheckDeviceMultiSampleType, "CheckDeviceMultiSampleType(D9)");
+	//SetHook((void *)(*(DWORD *)lpd3d + 48), extCheckDepthStencilMatch, (void **)&pCheckDepthStencilMatch, "CheckDepthStencilMatch(D9)");
+	//SetHook((void *)(*(DWORD *)lpd3d + 52), extCheckDeviceFormatConversion, (void **)&pCheckDeviceFormatConversion, "CheckDeviceFormatConversion(D9)");
+	//SetHook((void *)(*(DWORD *)lpd3d + 60), extGetAdapterMonitor, (void **)&pGetAdapterMonitor, "GetAdapterMonitor(D9)");
 }
 
 void* WINAPI extDirect3DCreate9(UINT sdkversion)

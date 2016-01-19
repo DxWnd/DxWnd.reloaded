@@ -13,7 +13,6 @@
 #include "dxwcore.hpp"
 #include "stdio.h" 
 #include "hddraw.h"
-#include "ddproxy.h"
 #include "dxhelper.h"
 #include "syslibs.h"
 
@@ -35,13 +34,20 @@ HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX, LPVOID, DWORD);
 HRESULT WINAPI extDirectDrawCreateClipper(DWORD, LPDIRECTDRAWCLIPPER *, IUnknown *);
 
 // DirectDraw
-HRESULT WINAPI extQueryInterfaceD(void *, REFIID, LPVOID *);
-ULONG WINAPI extReleaseD(LPDIRECTDRAW);
+HRESULT WINAPI extQueryInterfaceD1(void *, REFIID, LPVOID *);
+HRESULT WINAPI extQueryInterfaceD2(void *, REFIID, LPVOID *);
+HRESULT WINAPI extQueryInterfaceD4(void *, REFIID, LPVOID *);
+HRESULT WINAPI extQueryInterfaceD7(void *, REFIID, LPVOID *);
+ULONG WINAPI extReleaseD1(LPDIRECTDRAW);
+ULONG WINAPI extReleaseD2(LPDIRECTDRAW);
+ULONG WINAPI extReleaseD4(LPDIRECTDRAW);
+ULONG WINAPI extReleaseD7(LPDIRECTDRAW);
     /*** IDirectDraw methods ***/
 HRESULT WINAPI extCreateClipper(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
 HRESULT WINAPI extCreatePalette(LPDIRECTDRAW, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *);
 HRESULT WINAPI extCreateSurface1(LPDIRECTDRAW, DDSURFACEDESC *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extCreateSurface2(LPDIRECTDRAW, DDSURFACEDESC *, LPDIRECTDRAWSURFACE *, void *);
+HRESULT WINAPI extCreateSurface3(LPDIRECTDRAW, DDSURFACEDESC *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extCreateSurface4(LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extCreateSurface7(LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extDuplicateSurface(LPDIRECTDRAW, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE *);
@@ -120,6 +126,7 @@ HRESULT WINAPI extSetSurfaceDesc(LPDIRECTDRAWSURFACE, LPDDSURFACEDESC, DWORD);
 // DirectDrawClipper
 HRESULT WINAPI extReleaseC(LPDIRECTDRAWCLIPPER);
 HRESULT WINAPI extGetClipList(LPDIRECTDRAWCLIPPER, LPRECT, LPRGNDATA, LPDWORD);
+HRESULT WINAPI extSetHWnd(LPDIRECTDRAWCLIPPER, DWORD, HWND);
 
 // DirectDrawPalette
 HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE);
@@ -143,9 +150,15 @@ DirectDrawEnumerateEx_Type pDirectDrawEnumerateEx = NULL;
 DirectDrawCreateClipper_Type pDirectDrawCreateClipper = NULL;
 
 /* DirectDraw hook pointers */
-QueryInterface_Type pQueryInterfaceD;
+QueryInterface_Type pQueryInterfaceD1;
+QueryInterface_Type pQueryInterfaceD2;
+QueryInterface_Type pQueryInterfaceD4;
+QueryInterface_Type pQueryInterfaceD7;
 AddRefD_Type pAddRefD;
-ReleaseD_Type pReleaseD;
+ReleaseD_Type pReleaseD1 = NULL;
+ReleaseD_Type pReleaseD2 = NULL;
+ReleaseD_Type pReleaseD4 = NULL;
+ReleaseD_Type pReleaseD7 = NULL;
 Compact_Type pCompact;
 CreateClipper_Type pCreateClipper=NULL;
 CreatePalette_Type pCreatePalette;
@@ -1016,26 +1029,33 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	OutTraceDW("Hooking directdraw session dd=%x dxversion=%d thread_id=%x\n", 
 		*lplpdd, dxversion, GetCurrentThreadId());
 
-	// IDIrectDraw::QueryInterface
-	SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD, (void **)&pQueryInterfaceD, "QueryInterface(D)");
-	// IDIrectDraw::Release
-	SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD, (void **)&pReleaseD, "Release(D)");
 	// IDIrectDraw::CreateClipper
 	SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper, (void **)&pCreateClipper, "CreateClipper(D)");
 	// IDIrectDraw::CreatePalette
 	SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette, (void **)&pCreatePalette, "CreatePalette(D)");
+	// IDIrectDraw::QueryInterface
 	// IDIrectDraw::CreateSurface
+	// IDIrectDraw::Release
 	switch(dxversion) {
+	default:
 	case 1:
+		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD1, (void **)&pQueryInterfaceD1, "QueryInterface(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD1, (void **)&pReleaseD1, "Release(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface1, (void **)&pCreateSurface1, "CreateSurface(S1)");
 		break;
 	case 2:
+		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD2, (void **)&pQueryInterfaceD2, "QueryInterface(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD2, (void **)&pReleaseD2, "Release(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface2, (void **)&pCreateSurface2, "CreateSurface(S2)");
 		break;
 	case 4:
+		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD4, (void **)&pQueryInterfaceD4, "QueryInterface(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD4, (void **)&pReleaseD4, "Release(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface4, (void **)&pCreateSurface4, "CreateSurface(S4)");
 		break;
 	case 7:
+		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD7, (void **)&pQueryInterfaceD7, "QueryInterface(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD7, (void **)&pReleaseD7, "Release(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface7, (void **)&pCreateSurface7, "CreateSurface(S7)");
 		break;
 	}
@@ -1099,37 +1119,6 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		// IDIrectDraw::TestCooperativeLevel
 			SetHook((void *)(**(DWORD **)lplpdd + 104), extTestCooperativeLevel, (void **)&pTestCooperativeLevel, "TestCooperativeLevel(D)");
 	}
-
-	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
-	// Just proxed ...
-
-	// IDIrectDraw::AddRef
-	SetHook((void *)(**(DWORD **)lplpdd + 4), extAddRefDProxy, (void **)&pAddRefD, "AddRef(D)");
-	// IDIrectDraw::Compact
-	SetHook((void *)(**(DWORD **)lplpdd + 12), extCompactProxy, (void **)&pCompact, "Compact(D)");
-	// IDIrectDraw::EnumSurfaces
-	if (dxversion < 4)
-		SetHook((void *)(**(DWORD **)lplpdd + 36), extEnumSurfacesProxy1, (void **)&pEnumSurfaces1, "EnumSurfaces(D1)");
-	else
-		SetHook((void *)(**(DWORD **)lplpdd + 36), extEnumSurfacesProxy4, (void **)&pEnumSurfaces4, "EnumSurfaces(D4)");
-	// IDIrectDraw::GetFourCCCodes
-	SetHook((void *)(**(DWORD **)lplpdd + 52), extGetFourCCCodesProxy, (void **)&pGetFourCCCodes, "GetFourCCCodes(D)");
-	// IDIrectDraw::GetMonitorFrequency
-	SetHook((void *)(**(DWORD **)lplpdd + 60), extGetMonitorFrequencyProxy, (void **)&pGetMonitorFrequency, "GetMonitorFrequency(D)");
-	// IDIrectDraw::GetScanLine
-	SetHook((void *)(**(DWORD **)lplpdd + 64), extGetScanLineProxy, (void **)&pGetScanLine, "GetScanLine(D)");
-	// IDIrectDraw::GetVerticalBlankStatus
-	SetHook((void *)(**(DWORD **)lplpdd + 68), extGetVerticalBlankStatusProxy, (void **)&pGetVerticalBlankStatus, "GetVerticalBlankStatus(D)");
-	// IDIrectDraw::RestoreDisplayMode
-	SetHook((void *)(**(DWORD **)lplpdd + 76), extRestoreDisplayModeProxy, (void **)&pRestoreDisplayMode, "RestoreDisplayMode(D)");
-	if (dxversion >= 4){
-		// IDIrectDraw::GetSurfaceFromDC
-		SetHook((void *)(**(DWORD **)lplpdd + 96), extGetSurfaceFromDCProxy, (void **)&pGetSurfaceFromDC, "GetSurfaceFromDC(D)");
-		// IDIrectDraw::RestoreAllSurfaces
-		SetHook((void *)(**(DWORD **)lplpdd + 100), extRestoreAllSurfacesProxy, (void **)&pRestoreAllSurfaces, "RestoreAllSurfaces(D)");
-		// IDIrectDraw::GetDeviceIdentifier
-		SetHook((void *)(**(DWORD **)lplpdd + 108), extGetDeviceIdentifierProxy, (void **)&pGetDeviceIdentifier, "GetDeviceIdentifier(D)");
-	}
 }
 
 static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
@@ -1141,25 +1130,7 @@ static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
 	// IDirectDrawClipper::GetClipList
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 12), extGetClipList, (void **)&pGetClipList, "GetClipList(C)");
 	// IDirectDrawClipper::SetHWnd
-	SetHook((void *)(**(DWORD **)lplpDDClipper + 32), extSetHWndProxy, (void **)&pSetHWnd, "SetHWnd(C)");
-
-	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
-	// Just proxed ...
-
-	// IDirectDrawClipper::QueryInterface
-	SetHook((void *)(**(DWORD **)lplpDDClipper), extQueryInterfaceCProxy, (void **)&pQueryInterfaceC, "QueryInterface(C)");
-	// IDirectDrawClipper::AddRef
-	SetHook((void *)(**(DWORD **)lplpDDClipper + 4), extAddRefCProxy, (void **)&pAddRefC, "AddRef(C)");
-	// IDirectDrawClipper::GetHWnd
-	SetHook((void *)(**(DWORD **)lplpDDClipper + 16), extGetHWndProxy, (void **)&pGetHWnd, "GetHWnd(C)");
-	// IDirectDrawClipper::Initialize
-	SetHook((void *)(**(DWORD **)lplpDDClipper + 20), extInitializeCProxy, (void **)&pInitializeC, "Initialize(C)");
-	// IDirectDrawClipper::IsClipListChanged
-	SetHook((void *)(**(DWORD **)lplpDDClipper + 24), extIsClipListChangedProxy, (void **)&pIsClipListChanged, "IsClipListChanged(C)");
-	// IDirectDrawClipper::SetClipList
-	SetHook((void *)(**(DWORD **)lplpDDClipper + 28), extSetClipListProxy, (void **)&pSetClipList, "SetClipList(C)");
-
-	return;
+	SetHook((void *)(**(DWORD **)lplpDDClipper + 32), extSetHWnd, (void **)&pSetHWnd, "SetHWnd(C)");
 }
 
 static void HookDDPalette(LPDIRECTDRAWPALETTE FAR* lplpDDPalette)
@@ -1171,19 +1142,6 @@ static void HookDDPalette(LPDIRECTDRAWPALETTE FAR* lplpDDPalette)
 	SetHook((void *)(**(DWORD **)lplpDDPalette + 8), extReleaseP, (void **)&pReleaseP, "Release(P)");
 	// IDirectDrawPalette::SetEntries
 	SetHook((void *)(**(DWORD **)lplpDDPalette + 24), extSetEntries, (void **)&pSetEntries, "SetEntries(P)");
-
-	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
-
-	// IDirectDrawPalette::QueryInterface
-	SetHook((void *)(**(DWORD **)lplpDDPalette), extQueryInterfacePProxy, (void **)&pQueryInterfaceP, "QueryInterface(P)");
-	// IDirectDrawPalette::AddRef
-	SetHook((void *)(**(DWORD **)lplpDDPalette + 4), extAddRefPProxy, (void **)&pAddRefP, "AddRef(P)");
-	// IDirectDrawPalette::GetCaps
-	SetHook((void *)(**(DWORD **)lplpDDPalette + 12), extGetCapsPProxy, (void **)&pGetCapsP, "GetCaps(P)");
-	// IDirectDrawPalette::GetEntries
-	SetHook((void *)(**(DWORD **)lplpDDPalette + 16), extGetEntriesProxy, (void **)&pGetEntries, "GetEntries(P)");
-
-	return;
 }
 
 static void HookDDSurfacePrim(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
@@ -1285,39 +1243,6 @@ static void HookDDSurfacePrim(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 		else
 			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlockDir4, (void **)&pUnlock4, "Unlock(S4)");
 	}
-
-	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
-
-	// Just proxed ...
-
-	// IDirectDrawSurface::AddRef
-	SetHook((void *)(**(DWORD **)lplpdds + 4), extAddRefSProxy, (void **)&pAddRefS, "AddRef(S)");
-	// IDirectDrawSurface::AddOverlayDirtyRect
-	SetHook((void *)(**(DWORD **)lplpdds + 16), extAddOverlayDirtyRectProxy, (void **)&pAddOverlayDirtyRect, "AddOverlayDirtyRect(S)");
-	// IDirectDrawSurface::BltBatch
-	SetHook((void *)(**(DWORD **)lplpdds + 24), extBltBatchProxy, (void **)&pBltBatch, "BltBatch(S)");
-	// IDirectDrawSurface::EnumOverlayZOrders
-	SetHook((void *)(**(DWORD **)lplpdds + 40), extEnumOverlayZOrdersProxy, (void **)&pEnumOverlayZOrders, "EnumOverlayZOrders(S)");
-	// IDirectDrawSurface::GetBltStatus
-	SetHook((void *)(**(DWORD **)lplpdds + 52), extGetBltStatusProxy, (void **)&pGetBltStatus, "GetBltStatus(S)");
-	// IDirectDrawSurface::GetClipper
-	SetHook((void *)(**(DWORD **)lplpdds + 60), extGetClipperProxy, (void **)&pGetClipper, "GetClipper(S)");
-	// IDirectDrawSurface::GetFlipStatus
-	SetHook((void *)(**(DWORD **)lplpdds + 72), extGetFlipStatusProxy, (void **)&pGetFlipStatus, "GetFlipStatus(S)");
-	// IDirectDrawSurface::GetOverlayPosition
-	SetHook((void *)(**(DWORD **)lplpdds + 76), extGetOverlayPositionProxy, (void **)&pGetOverlayPosition, "GetOverlayPosition(S)");
-	// IDirectDrawSurface::IsLost
-	SetHook((void *)(**(DWORD **)lplpdds + 96), extIsLostProxy, (void **)&pIsLost, "IsLost(S)");
-	// IDirectDrawSurface::Restore
-	SetHook((void *)(**(DWORD **)lplpdds + 108), extRestoreProxy, (void **)&pRestore, "Restore(S)");
-	// IDirectDrawSurface::SetOverlayPosition
-	SetHook((void *)(**(DWORD **)lplpdds + 120), extSetOverlayPositionProxy, (void **)&pSetOverlayPosition, "SetOverlayPosition(S)");
-	// IDirectDrawSurface::UpdateOverlay
-	SetHook((void *)(**(DWORD **)lplpdds + 132), extUpdateOverlayProxy, (void **)&pUpdateOverlay, "UpdateOverlay(S)");
-	// IDirectDrawSurface::UpdateOverlayDisplay
-	SetHook((void *)(**(DWORD **)lplpdds + 136), extUpdateOverlayDisplayProxy, (void **)&pUpdateOverlayDisplay, "UpdateOverlayDisplay(S)");
-	// IDirectDrawSurface::UpdateOverlayZOrder
-	SetHook((void *)(**(DWORD **)lplpdds + 140), extUpdateOverlayZOrderProxy, (void **)&pUpdateOverlayZOrder, "UpdateOverlayZOrder(S)");
 }
 
 static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
@@ -1403,48 +1328,6 @@ static void HookDDSurfaceGeneric(LPDIRECTDRAWSURFACE *lplpdds, int dxversion)
 		else
 			SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlockDir4, (void **)&pUnlock4, "Unlock(S4)");
 	}
-
-	if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
-
-	// just proxed ....
-
-	// IDirectDrawSurface::AddRef
-	SetHook((void *)(**(DWORD **)lplpdds + 4), extAddRefSProxy, (void **)&pAddRefS, "AddRef(S)");
-	// IDirectDrawSurface::AddOverlayDirtyRect
-	SetHook((void *)(**(DWORD **)lplpdds + 16), extAddOverlayDirtyRectProxy, (void **)&pAddOverlayDirtyRect, "AddOverlayDirtyRect(S)");
-	// IDirectDrawSurface::BltBatch
-	SetHook((void *)(**(DWORD **)lplpdds + 24), extBltBatchProxy, (void **)&pBltBatch, "BltBatch(S)");
-	// IDirectDrawSurface::EnumAttachedSurfaces
-	SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces, (void **)&pEnumAttachedSurfaces, "EnumAttachedSurfaces(S)");
-	// IDirectDrawSurface::EnumOverlayZOrders
-	SetHook((void *)(**(DWORD **)lplpdds + 40), extEnumOverlayZOrdersProxy, (void **)&pEnumOverlayZOrders, "EnumOverlayZOrders(S)");
-	// IDirectDrawSurface::GetBltStatus
-	SetHook((void *)(**(DWORD **)lplpdds + 52), extGetBltStatusProxy, (void **)&pGetBltStatus, "GetBltStatus(S)");
-	// IDirectDrawSurface::GetClipper
-	SetHook((void *)(**(DWORD **)lplpdds + 60), extGetClipperProxy, (void **)&pGetClipper, "GetClipper(S)");
-	// IDirectDrawSurface::GetFlipStatus
-	SetHook((void *)(**(DWORD **)lplpdds + 72), extGetFlipStatusProxy, (void **)&pGetFlipStatus, "GetFlipStatus(S)");
-	// IDirectDrawSurface::GetOverlayPosition
-	SetHook((void *)(**(DWORD **)lplpdds + 76), extGetOverlayPositionProxy, (void **)&pGetOverlayPosition, "GetOverlayPosition(S)");
-	// IDirectDrawSurface::IsLost
-	SetHook((void *)(**(DWORD **)lplpdds + 96), extIsLostProxy, (void **)&pIsLost, "IsLost(S)");
-	// IDirectDrawSurface::Lock
-	SetHook((void *)(**(DWORD **)lplpdds + 100), extLock, (void **)&pLock, "Lock(S)");
-	// IDirectDrawSurface::Restore
-	SetHook((void *)(**(DWORD **)lplpdds + 108), extRestoreProxy, (void **)&pRestore, "Restore(S)");
-	// IDirectDrawSurface::SetOverlayPosition
-	SetHook((void *)(**(DWORD **)lplpdds + 120), extSetOverlayPositionProxy, (void **)&pSetOverlayPosition, "SetOverlayPosition(S)");
-	// IDirectDrawSurface::Unlock
-	if  (dxversion < 4)
-		SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlock1, (void **)&pUnlock1, "Unlock(S1)");
-	else
-		SetHook((void *)(**(DWORD **)lplpdds + 128), extUnlock4, (void **)&pUnlock4, "Unlock(S4)");
-	// IDirectDrawSurface::UpdateOverlay
-	SetHook((void *)(**(DWORD **)lplpdds + 132), extUpdateOverlayProxy, (void **)&pUpdateOverlay, "UpdateOverlay(S)");
-	// IDirectDrawSurface::UpdateOverlayDisplay
-	SetHook((void *)(**(DWORD **)lplpdds + 136), extUpdateOverlayDisplayProxy, (void **)&pUpdateOverlayDisplay, "UpdateOverlayDisplay(S)");
-	// IDirectDrawSurface::UpdateOverlayZOrder
-	SetHook((void *)(**(DWORD **)lplpdds + 140), extUpdateOverlayZOrderProxy, (void **)&pUpdateOverlayZOrder, "UpdateOverlayZOrder(S)");
 	if (dxversion == 7)
 		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc, (void **)&pSetSurfaceDesc, "SetSurfaceDesc(S3)");
 
@@ -1693,7 +1576,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 
 	//if(dxw.dwDDVersion==1) (*lplpdd)->AddRef(); // seems to fix problems in "Warhammer 40K Rites Of War"
 
-	if(IsDebug && (dxw.dwTFlags & OUTPROXYTRACE)){
+	if(IsDebug){
 		DDCAPS DriverCaps, EmulCaps;
 		memset(&DriverCaps, 0, sizeof(DriverCaps));
 		DriverCaps.dwSize=sizeof(DriverCaps);
@@ -1766,7 +1649,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 
 	HookDDSession(lplpdd, dxw.dwDDVersion);
 
-	if(IsDebug && (dxw.dwTFlags & OUTPROXYTRACE)){
+	if(IsDebug){
 		DDCAPS DriverCaps, EmulCaps;
 		memset(&DriverCaps, 0, sizeof(DriverCaps));
 		DriverCaps.dwSize=sizeof(DriverCaps);
@@ -1799,7 +1682,7 @@ HRESULT WINAPI extInitialize(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 	return res;
 }
 
-HRESULT WINAPI extQueryInterfaceD(void *lpdd, REFIID riid, LPVOID *obp)
+HRESULT WINAPI extQueryInterfaceD(QueryInterface_Type pQueryInterfaceD, void *lpdd, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 	unsigned int dwLocalDDVersion;
@@ -1879,6 +1762,18 @@ HRESULT WINAPI extQueryInterfaceD(void *lpdd, REFIID riid, LPVOID *obp)
 
 	return 0;
 }
+
+HRESULT WINAPI extQueryInterfaceD1(void *lpdd, REFIID riid, LPVOID *obp)
+{ return extQueryInterfaceD(pQueryInterfaceD1, lpdd, riid, obp); }
+
+HRESULT WINAPI extQueryInterfaceD2(void *lpdd, REFIID riid, LPVOID *obp)
+{ return extQueryInterfaceD(pQueryInterfaceD2, lpdd, riid, obp); }
+
+HRESULT WINAPI extQueryInterfaceD4(void *lpdd, REFIID riid, LPVOID *obp)
+{ return extQueryInterfaceD(pQueryInterfaceD4, lpdd, riid, obp); }
+
+HRESULT WINAPI extQueryInterfaceD7(void *lpdd, REFIID riid, LPVOID *obp)
+{ return extQueryInterfaceD(pQueryInterfaceD7, lpdd, riid, obp); }
 
 // some unhandled interfaces in emulation mode:
 // REFIID={84e63de0-46aa-11cf-816f-0000c020156e}: IID_IDirect3DHALDevice
@@ -2438,7 +2333,7 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 		OutTraceDW("CreateSurface: created new DDSEmu_Back=%x\n", lpDDSEmu_Back);
 		if(IsDebug) DescribeSurface(lpDDSEmu_Back, dxversion, "DDSEmu_Back", __LINE__);
 		dxwss.PopSurface(lpDDSEmu_Back);
-		if (dxw.dwTFlags & OUTPROXYTRACE) HookDDSurfaceGeneric(&lpDDSEmu_Back, dxversion);
+		//if (dxw.dwTFlags & OUTPROXYTRACE) HookDDSurfaceGeneric(&lpDDSEmu_Back, dxversion);
 	}
 }
 
@@ -3175,24 +3070,19 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 
 
 HRESULT WINAPI extCreateSurface1(LPDIRECTDRAW lpdd, DDSURFACEDESC *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
-{
-	return extCreateSurface(1, (CreateSurface_Type)pCreateSurface1, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu);
-}
+{ return extCreateSurface(1, (CreateSurface_Type)pCreateSurface1, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
 
 HRESULT WINAPI extCreateSurface2(LPDIRECTDRAW lpdd, DDSURFACEDESC *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
-{
-	return extCreateSurface(2, (CreateSurface_Type)pCreateSurface2, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu);
-}
+{ return extCreateSurface(2, (CreateSurface_Type)pCreateSurface2, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
+
+HRESULT WINAPI extCreateSurface3(LPDIRECTDRAW lpdd, DDSURFACEDESC *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
+{ return extCreateSurface(3, (CreateSurface_Type)pCreateSurface3, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
 
 HRESULT WINAPI extCreateSurface4(LPDIRECTDRAW lpdd, DDSURFACEDESC2 *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
-{
-	return extCreateSurface(4, (CreateSurface_Type)pCreateSurface4, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu);
-}
+{ return extCreateSurface(4, (CreateSurface_Type)pCreateSurface4, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
 
 HRESULT WINAPI extCreateSurface7(LPDIRECTDRAW lpdd, DDSURFACEDESC2 *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
-{
-	return extCreateSurface(7, (CreateSurface_Type)pCreateSurface7, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu);
-}
+{ return extCreateSurface(7, (CreateSurface_Type)pCreateSurface7, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
 
 
 HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGetAttachedSurface,
@@ -4465,38 +4355,6 @@ typedef struct {
 	DWORD dwHeight;
 } NewContext_Type;
 
-typedef struct {
-	int w; 
-	int h;
-} SupportedRes_Type;
-
-static SupportedRes_Type SupportedSVGARes[11]= {
-	{320,200},
-	{320,240},
-	{512,384},		// needed by "Outcast" loading screen
-	{640,400},
-	{640,480},
-	{720,480},
-	{800,600},
-	{1024,768},		// XGA
-	{1280,800},		// WXGA
-	{1600,1200},	// UXGA, needed by "LEGO Star Wars" in high res mode
-	{0,0}
-};
-
-static SupportedRes_Type SupportedHDTVRes[10]= {
-	{640,360},		// nHD
-	{720,480},		// DVD
-	{720,576},		// DV-PAL
-	{960,540},		// qHD
-	{1176,1000},
-	{1280,720},		// HD
-	{1440,960},
-	{1600,900},		// HD+
-	{1920,1080},	// FHD
-	{0,0}
-};
-
 static BOOL CheckResolutionLimit(LPDDSURFACEDESC lpDDSurfaceDesc)
 {
 	#define HUGE 100000
@@ -4986,14 +4844,13 @@ HRESULT WINAPI extGetCaps7S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 caps)
 	return extGetCapsS(7, (GetCapsS_Type)pGetCaps7S, lpdds, (LPDDSCAPS)caps);
 }
 
-ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
+ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECTDRAW lpdd)
 {
 	ULONG ActualRef;
 	LONG VirtualRef;
-	int dxversion;
 
-	dxversion=lpddHookedVersion(lpdd); // must be called BEFORE releasing the session!!
-	OutTraceDDRAW("Release(D): lpdd=%x dxversion=%d\n", lpdd, dxversion);
+	OutTraceDDRAW("Release(D%d): lpdd=%x\n", dxversion, lpdd);
+	if((ReleaseD_Type)extReleaseD == pReleaseD) return 0;
 	
 	ActualRef=(*pReleaseD)(lpdd);
 	VirtualRef=(LONG)ActualRef;
@@ -5031,6 +4888,18 @@ ULONG WINAPI extReleaseD(LPDIRECTDRAW lpdd)
 	if(dxw.dwFlags4 & RETURNNULLREF) return 0;
 	return (ULONG)VirtualRef;
 }
+
+ULONG WINAPI extReleaseD1(LPDIRECTDRAW lpdd)
+{ return extReleaseD(1, pReleaseD1, lpdd); }
+
+ULONG WINAPI extReleaseD2(LPDIRECTDRAW lpdd)
+{ return extReleaseD(2, pReleaseD2, lpdd); }
+
+ULONG WINAPI extReleaseD4(LPDIRECTDRAW lpdd)
+{ return extReleaseD(4, pReleaseD4, lpdd); }
+
+ULONG WINAPI extReleaseD7(LPDIRECTDRAW lpdd)
+{ return extReleaseD(7, pReleaseD7, lpdd); }
 
 HRESULT WINAPI extCreateClipper(LPDIRECTDRAW lpdd, DWORD dwflags, 
 		LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
@@ -5106,6 +4975,15 @@ HRESULT WINAPI extGetClipList(LPDIRECTDRAWCLIPPER lpddClip, LPRECT lpRect, LPRGN
 			}
 		}
 	}
+	return res;
+}
+
+HRESULT WINAPI extSetHWnd(LPDIRECTDRAWCLIPPER lpddClip, DWORD w, HWND hwnd)
+{
+	HRESULT res;
+	OutTraceP("SetHWnd(C): lpddClip=%x w=%x hwnd=%x\n", lpddClip, w, hwnd);
+	res=(*pSetHWnd)(lpddClip, w, hwnd);
+	if(res) OutTraceP("SetHWnd(C): ERROR err=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
 

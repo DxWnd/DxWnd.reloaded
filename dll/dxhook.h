@@ -1,5 +1,4 @@
 extern int HookDirectDraw(HMODULE, int);
-extern int HookDDProxy(HMODULE, int);
 extern int HookDirect3D(HMODULE, int);
 extern int HookDirect3D7(HMODULE, int);
 extern void HookOle32(HMODULE);

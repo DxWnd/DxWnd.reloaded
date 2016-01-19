@@ -140,12 +140,15 @@ public: // simple data variables
 	DWORD dwDDVersion;
 	DWORD dwTargetDDVersion;
 	DWORD dwMaxDDVersion;
+	DWORD MaxDdrawInterface;
 	DWORD dwFlags1;
 	DWORD dwFlags2;
 	DWORD dwFlags3;
 	DWORD dwFlags4;
 	DWORD dwFlags5;
 	DWORD dwFlags6;
+	DWORD dwFlags7;
+	DWORD dwFlags8;
 	DWORD dwTFlags;
 	HWND hParentWnd;
 	HWND hChildWnd;

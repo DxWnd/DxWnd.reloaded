@@ -1010,3 +1010,16 @@ add: DirectInput / "Emulate mouse relative movement". Eliminates the fake clippe
 fix: directinput mouse mode (absolute vs. relative) now correctly checked using the mouse device
 fix: attempt to fix FIXMOVIESCOLOR flag for 32BPP target color depth, but it doesn't still work on Win10
 fix: directinput RELEASEMOUSE flag applied to mouse device only
+
+v2.03.52
+add: added Win NT 4.0 to the list of detected OS
+fix: DirectInput SetCooperativeLevel: should not change window handle - fix startup error in "Storm Angel"
+fix: fixed GetWindowRect to replace real desktop with virtual one - fix startup error in "Storm Angel"
+fix: ddraw hookers keep different original pointers for each interface: fixes several ddraw UNKNOWN_ERROR
+fix: eliminated the ddraw full log functionality, because of the increased complexity
+add: added several supported fake screen resolutions - needed for "Last resort" SWAT3 mod
+fix: used fake resolutions also in USER32 EnumDisplaySettings
+fix: avoid hooking directinput dlls if not requested when loaded dynamically
+fix: added recovery of lost device in DirectInput GetDeviceData method
+fix: changed SetHook so that it can get function pointers without necessarily replacing them
+add: option "Limit ddraw interface" to exclude support for IDirectDrawInterface greater than limit (range 1-7)

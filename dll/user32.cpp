@@ -90,7 +90,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "CreateDialogIndirectParamA", (FARPROC)CreateDialogIndirectParamA, (FARPROC *)&pCreateDialogIndirectParam, (FARPROC)extCreateDialogIndirectParam},
 	{HOOK_IAT_CANDIDATE, "CreateDialogParamA", (FARPROC)CreateDialogParamA, (FARPROC *)&pCreateDialogParam, (FARPROC)extCreateDialogParam},
 	{HOOK_IAT_CANDIDATE, "MoveWindow", (FARPROC)MoveWindow, (FARPROC *)&pMoveWindow, (FARPROC)extMoveWindow},
-	{HOOK_IAT_CANDIDATE, "EnumDisplaySettingsA", (FARPROC)EnumDisplaySettingsA, (FARPROC *)&pEnumDisplaySettings, (FARPROC)extEnumDisplaySettings},
+	{HOOK_HOT_CANDIDATE, "EnumDisplaySettingsA", (FARPROC)EnumDisplaySettingsA, (FARPROC *)&pEnumDisplaySettings, (FARPROC)extEnumDisplaySettings},
 	{HOOK_IAT_CANDIDATE, "GetClipCursor", (FARPROC)GetClipCursor, (FARPROC*)&pGetClipCursor, (FARPROC)extGetClipCursor},
 	{HOOK_IAT_CANDIDATE, "ClipCursor", (FARPROC)ClipCursor, (FARPROC *)&pClipCursor, (FARPROC)extClipCursor},
 	{HOOK_IAT_CANDIDATE, "DefWindowProcA", (FARPROC)DefWindowProcA, (FARPROC *)&pDefWindowProcA, (FARPROC)extDefWindowProcA},
@@ -1116,6 +1116,9 @@ BOOL WINAPI extGetWindowRect(HWND hwnd, LPRECT lpRect)
 {
 	BOOL ret;
 	OutTraceB("GetWindowRect: hwnd=%x hWnd=%x FullScreen=%x\n", hwnd, dxw.GethWnd(), dxw.IsFullScreen());
+
+	if(dxw.IsRealDesktop(hwnd)) hwnd = dxw.GethWnd(); // v2.03.52: fix for "Storm Angel"
+
 	ret=(*pGetWindowRect)(hwnd, lpRect);
 	if(!ret) {
 		OutTraceE("GetWindowRect: GetWindowRect hwnd=%x error %d at %d\n", hwnd, GetLastError(), __LINE__);
@@ -1377,7 +1380,7 @@ static HWND WINAPI extCreateWindowCommon(
 	// main win was 640x480 only!
 	// v2.02.13: if it's a WS_CHILD window, don't reposition the x,y, placement for BIG win.
 	// v2.02.30: fix (Fable - lost chapters) Fable creates a bigger win with negative x,y coordinates. 
-	if	(
+if		(
 			(
 				((x<=0)&&(y<=0)) 
 				|| 
@@ -1629,7 +1632,7 @@ HWND WINAPI extCreateWindowExA(
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle),
 			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu);
 	}
-	OutTraceB("CreateWindowExW: DEBUG fullscreen=%x mainwin=%x screen=(%d,%d)\n", 
+	OutTraceB("CreateWindowExA: DEBUG fullscreen=%x mainwin=%x screen=(%d,%d)\n", 
 		dxw.IsFullScreen(), dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
 
 	if((dxw.dwFlags6 & STRETCHMOVIES) && !strcmp(lpWindowName, "ActiveMovie Window")){
@@ -1839,8 +1842,56 @@ BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 LONG WINAPI extEnumDisplaySettings(LPCTSTR lpszDeviceName, DWORD iModeNum, DEVMODE *lpDevMode)
 {
 	LONG res;
-	OutTraceDW("EnumDisplaySettings: Devicename=%s ModeNum=%x\n", lpszDeviceName, iModeNum);
-	res=(*pEnumDisplaySettings)(lpszDeviceName, iModeNum, lpDevMode);
+	OSVERSIONINFO osinfo;
+
+	osinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+	(*pGetVersionExA)(&osinfo);
+	OutTraceDW("EnumDisplaySettings: Devicename=%s ModeNum=%x OS=%d.%d\n", lpszDeviceName, iModeNum, osinfo.dwMajorVersion, osinfo.dwMinorVersion);
+
+	if(dxw.dwFlags4 & NATIVERES){
+		// lists video card native resolutions, though faking emulated color resolutions
+		if((osinfo.dwMajorVersion >= 6) && (dxw.dwFlags1 & EMULATESURFACE)){
+			switch(iModeNum){
+			case ENUM_CURRENT_SETTINGS: 
+			case ENUM_REGISTRY_SETTINGS: // lie ...
+				res=(*pEnumDisplaySettings)(lpszDeviceName, iModeNum, lpDevMode);
+				if(dxw.dwFlags2 & INIT8BPP) lpDevMode->dmBitsPerPel = 8;
+				if(dxw.dwFlags2 & INIT16BPP) lpDevMode->dmBitsPerPel = 16;
+				if(dxw.dwFlags3 & FORCE16BPP) lpDevMode->dmBitsPerPel = 16;
+				break;
+			default:
+				res=(*pEnumDisplaySettings)(lpszDeviceName, iModeNum / SUPPORTED_DEPTHS_NUMBER, lpDevMode);
+				lpDevMode->dmBitsPerPel = (DWORD)SupportedDepths[iModeNum % SUPPORTED_DEPTHS_NUMBER];
+				break;
+			}
+		}
+		else
+			res=(*pEnumDisplaySettings)(lpszDeviceName, iModeNum, lpDevMode);
+
+	}
+	else { // simulated modes: VGA or HDTV
+		//int SupportedDepths[5]={8,16,24,32,0};
+		SupportedRes_Type *SupportedRes;
+		SupportedRes = (dxw.dwFlags4 & SUPPORTHDTV) ? &SupportedHDTVRes[0] : &SupportedSVGARes[0];
+		res=(*pEnumDisplaySettings)(lpszDeviceName, ENUM_CURRENT_SETTINGS, lpDevMode);
+		switch(iModeNum){
+		case ENUM_CURRENT_SETTINGS: 
+		case ENUM_REGISTRY_SETTINGS: // lie ...
+			lpDevMode->dmPelsHeight = 600;
+			lpDevMode->dmPelsWidth = 800;
+			if(dxw.dwFlags2 & INIT8BPP) lpDevMode->dmBitsPerPel = 8;
+			if(dxw.dwFlags2 & INIT16BPP) lpDevMode->dmBitsPerPel = 16;
+			if(dxw.dwFlags3 & FORCE16BPP) lpDevMode->dmBitsPerPel = 16;
+			break;
+		default:
+			lpDevMode->dmPelsHeight = SupportedRes[iModeNum / 4].h;
+			lpDevMode->dmPelsWidth  = SupportedRes[iModeNum / 4].w;
+			lpDevMode->dmBitsPerPel = SupportedDepths[iModeNum % 4];
+			if(lpDevMode->dmPelsHeight == 0) res = 0; // end of list
+			break;
+		}
+	}
+
 	if(dxw.dwFlags4 & LIMITSCREENRES){
 		#define HUGE 100000
 		DWORD maxw, maxh;
@@ -1859,6 +1910,9 @@ LONG WINAPI extEnumDisplaySettings(LPCTSTR lpszDeviceName, DWORD iModeNum, DEVMO
 			lpDevMode->dmPelsHeight = maxh;
 		}
 	}
+
+	OutTraceDW("EnumDisplaySettings: color=%dBPP size=(%dx%d) refresh=%dHz\n", 
+		lpDevMode->dmBitsPerPel, lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmDisplayFrequency);
 	return res;
 }
 

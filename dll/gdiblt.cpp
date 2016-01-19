@@ -10,7 +10,6 @@
 #include "dxwcore.hpp"
 #include "stdio.h" 
 #include "hddraw.h"
-#include "ddproxy.h"
 #include "dxhelper.h"
 #include "syslibs.h"
 

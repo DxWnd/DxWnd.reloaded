@@ -27,9 +27,9 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
-	DDX_Check(pDX, IDC_RGB2YUV, cTarget->m_ForceRGBtoYUV);
-	DDX_Check(pDX, IDC_YUV2RGB, cTarget->m_ForceYUVtoRGB);
-	DDX_Check(pDX, IDC_DXPROXED, cTarget->m_DXProxed);
+	//DDX_Check(pDX, IDC_RGB2YUV, cTarget->m_ForceRGBtoYUV);
+	//DDX_Check(pDX, IDC_YUV2RGB, cTarget->m_ForceYUVtoRGB);
+	//DDX_Check(pDX, IDC_DXPROXED, cTarget->m_DXProxed);
 	DDX_Check(pDX, IDC_ASSERT, cTarget->m_AssertDialog);
 	DDX_Check(pDX, IDC_MARKBLIT, cTarget->m_MarkBlit);
 	DDX_Check(pDX, IDC_MARKLOCK, cTarget->m_MarkLock);

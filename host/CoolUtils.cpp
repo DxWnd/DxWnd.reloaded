@@ -22,6 +22,7 @@ void gShowHideTaskBar(BOOL bHide /*=FALSE*/)
 	CWnd *pWnd = CWnd::FindWindow("Shell_TrayWnd", "");
 	//CWnd *pDesktopWnd = CWnd::GetDesktopWindow();
 	CWnd *pStart;
+	pStart = NULL;
 
 	if( bHide )
 	{
@@ -44,8 +45,9 @@ void gShowHideTaskBar(BOOL bHide /*=FALSE*/)
 
 			//This will retrieve the Handle of Start Button using the above 
 			// handle and class name of  start Button.  
+			// v2.03.52 fix: Win10 has no such a button!
 			pStart = pWnd->FindWindow("Button", NULL);
-			pStart->ShowWindow(SW_HIDE);
+			if(pStart) pStart->ShowWindow(SW_HIDE);
 		}
 	}
 	else
@@ -68,8 +70,9 @@ void gShowHideTaskBar(BOOL bHide /*=FALSE*/)
 
 			//This will retrieve the Handle of Start Button using the above 
 			// handle and class name of  start Button.  
+			// v2.03.52 fix: Win10 has no such a button!
 			pStart = pWnd->FindWindow("Button", NULL);
-			pStart->ShowWindow(SW_SHOW);
+			if(pStart) pStart->ShowWindow(SW_SHOW);
 		}
 	}
 }

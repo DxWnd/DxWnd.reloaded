@@ -36,7 +36,6 @@ void CTabLogs::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	//extern BOOL gbDebug;
-	DDX_Check(pDX, IDC_OUTPROXYTRACE, cTarget->m_OutProxyTrace);
 	DDX_Check(pDX, IDC_OUTD3DTRACE, cTarget->m_OutD3DTrace);
 	DDX_Check(pDX, IDC_OUTDDRAWTRACE, cTarget->m_OutDDRAWTrace);
 	DDX_Check(pDX, IDC_OUTDEBUG, cTarget->m_OutDebug);

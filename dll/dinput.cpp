@@ -147,14 +147,14 @@ void HookDirectInput8(HMODULE module)
 FARPROC Remap_DInput_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, diHooks)) return addr;
+	if ((dxw.dwFlags1 & HOOKDI) && (addr=RemapLibrary(proc, hModule, diHooks))) return addr;
 	return NULL;
 }
 
 FARPROC Remap_DInput8_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, di8Hooks)) return addr;
+	if ((dxw.dwFlags1 & HOOKDI8) && (addr=RemapLibrary(proc, hModule, di8Hooks))) return addr;
 	return NULL;
 }
 
@@ -294,6 +294,7 @@ HRESULT WINAPI extDICreateDevice(LPDIRECTINPUT lpdi, REFGUID rguid, LPDIRECTINPU
 		OutTraceE("CreateDevice(I): ERROR res=%x\n", res);
 		return res;
 	}
+
 	OutTraceDW("CreateDevice(I): did=%x\n", *lplpdid);
 	SetHook((void *)(**(DWORD **)lplpdid + 28), extAcquire, (void **)&pAcquire, "Acquire(I)");
 	SetHook((void *)(**(DWORD **)lplpdid + 32), extUnacquire, (void **)&pUnacquire, "Unacquire(I)");
@@ -370,6 +371,19 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 		lpdid, sDevice(lpdid), cbdata, rgdod, *pdwinout, dwflags);
 
 	res = (*pGetDeviceData)(lpdid, cbdata, rgdod, pdwinout, dwflags);
+
+	if (((res == DIERR_INPUTLOST) || (res == DIERR_NOTACQUIRED)) && RECOVERINPUTLOST){
+		OutTraceE("GetDeviceState(I) recovering DIERR_INPUTLOST\n"); 
+		if(lpdid == lpDIDSysMouse) {
+			res = (*pDISetCooperativeLevel)(lpdid, dxw.GethWnd(), DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+			if(res) OutTraceE("GetDeviceState(I): SetCooperativeLevel ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+			if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
+		}
+		res = (*pAcquire)(lpdid);
+		if(res) OutTraceE("GetDeviceState(I): Acquire ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+		res = (*pGetDeviceData)(lpdid, cbdata, rgdod, pdwinout, dwflags);
+	}
+
 	switch(res){
 		case DI_OK:
 			break;
@@ -419,7 +433,7 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 			for(i = 0; i < *pdwinout; i ++){
 				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_X) OutTraceB("GetDeviceData(I): REL mousedata X=%d\n", ((LPDIDEVICEOBJECTDATA)tmp)->dwData);
 				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_Y) OutTraceB("GetDeviceData(I): REL mousedata Y=%d\n", ((LPDIDEVICEOBJECTDATA)tmp)->dwData);
-				tmp += cbdata;
+	 			tmp += cbdata;
 			}
 		}
 	}
@@ -428,20 +442,22 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 
 HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMOUSESTATE lpvdata)
 {
-	HRESULT res;
+	HRESULT res; 
 	POINT p = {0, 0};
 
 	OutTraceDW("GetDeviceState(I): did=%x(%s) cbData=%i,%i\n", lpdid, sDevice(lpdid), cbdata, dxw.bActive);
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
 
-	if ((res == DIERR_INPUTLOST) && RECOVERINPUTLOST){
+	if (((res == DIERR_INPUTLOST) || (res == DIERR_NOTACQUIRED)) && RECOVERINPUTLOST){
 		OutTraceE("GetDeviceState(I) recovering DIERR_INPUTLOST\n"); 
-		res = (*pDISetCooperativeLevel)(lpdid, dxw.GethWnd(), DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-		if(res) OutTraceE("GetDeviceState(I): SetCooperativeLevel ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+		if(lpdid == lpDIDSysMouse) {
+			res = (*pDISetCooperativeLevel)(lpdid, dxw.GethWnd(), DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+			if(res) OutTraceE("GetDeviceState(I): SetCooperativeLevel ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+			if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
+		}
 		res = (*pAcquire)(lpdid);
 		if(res) OutTraceE("GetDeviceState(I): Acquire ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
-		if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
 		res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
 	}
 
@@ -569,10 +585,9 @@ HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE lpdid, HWND hwnd, DW
 		lpdid, sDevice(lpdid), hwnd, dwflags, ExplainDICooperativeFlags(dwflags));
 
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
-	//dwflags = DISCL_NONEXCLUSIVE | DISCL_BACKGROUND;
 
-	dwflags = DISCL_NONEXCLUSIVE | DISCL_FOREGROUND;
-	hwnd=dxw.GethWnd();
+	if(lpdid == lpDIDSysMouse) dwflags = (DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+
 	res = (*pDISetCooperativeLevel)(lpdid, hwnd, dwflags);
 	if(res != DD_OK){
 		OutTraceE("SetCooperativeLevel(I) ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 

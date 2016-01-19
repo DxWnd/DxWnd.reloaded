@@ -84,6 +84,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags4 = target->flags4;
 	dwFlags5 = target->flags5;
 	dwFlags6 = target->flags6;
+	dwFlags7 = target->flags7;
+	dwFlags8 = target->flags8;
 	dwTFlags = target->tflags;
 	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
 	if(dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
@@ -93,6 +95,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	if(!strlen(CustomOpenGLLib)) CustomOpenGLLib=NULL;
 	// bounds control
 	dwTargetDDVersion = target->dxversion;
+	MaxDdrawInterface = target->MaxDdrawInterface;
 	if(dwTargetDDVersion<0) dwTargetDDVersion=0;
 	if(dwTargetDDVersion>12) dwTargetDDVersion=12;
 	TimeShift = target->InitTS;

@@ -14,7 +14,7 @@
 #define UNNOTIFY			0x00000001 
 #define EMULATESURFACE		0x00000002
 #define CLIPCURSOR		 	0x00000004 // Force cursor clipping within window
-#define RESETPRIMARY		0x00000008 // reset emulated primary surface when reopening DDRaw object
+//#define RESETPRIMARY		0x00000008 // reset emulated primary surface when reopening DDRaw object
 #define HOOKDI				0x00000010
 #define MODIFYMOUSE			0x00000020
 #define HANDLEEXCEPTIONS	0x00000040 // Handles exceptions: Div by 0 ....
@@ -55,7 +55,7 @@
 #define INIT16BPP			0x00000080 // simulate a 16BPP initial desktop setting (in GetDeviceCaps API)
 #define KEEPCURSORFIXED		0x00000100 // inhibit SetCursorPos operation
 #define DISABLEGAMMARAMP	0x00000200 // let the application retrieve the desktop DC (for capability queries)
-#define DIFFERENTIALMOUSE	0x00000400 // emulates the 360-degrees-free-running mouse style....
+//#define DIFFERENTIALMOUSE	0x00000400 // emulates the 360-degrees-free-running mouse style....
 #define FIXNCHITTEST		0x00000800 // fixes WM_NCHITTEST message X,Y coordinates 
 #define LIMITFPS			0x00001000 // delays primary blit operations to limit FPS 
 #define SKIPFPS				0x00002000 // skips primary blit operations up to limit
@@ -97,8 +97,8 @@
 #define GDIEMULATEDC		0x00008000 // Map GDI/user32 calls to primary to a memory surface to be stretch-blitted to the primary
 #define FULLSCREENONLY		0x00010000 // assume that the program is always in fullscreen mode
 #define FONTBYPASS			0x00020000 // bypass font unsupported API
-#define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
-#define RGB2YUV				0x00080000 // Simulate RGB to YUV color conversion
+//#define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
+//#define RGB2YUV				0x00080000 // Simulate RGB to YUV color conversion
 #define BUFFEREDIOFIX		0x00100000 // fix buffered IO incompatibilities between pre-Win98 and post-WinNT
 #define FILTERMESSAGES		0x00200000 // ignore offending messages that are typical of a window and are hot handled by a fullscreeen app
 #define PEEKALLMESSAGES		0x00400000 // force Peek-ing all sort of messages to avoid Win7 message queue saturation that leads to program halt 
@@ -215,6 +215,8 @@
 #define EMULATERELMOUSE		0x80000000 // Emulates the dinput detection of relative mouse position by keeping the mouse at the center of window and looking for movements
 
 // seventh flags DWORD dxw.dwFlags7:
+#define LIMITDDRAW			0x00000001 // Limit the maximum available ddraw object version
+
 // eighth flags DWORD dxw.dwFlags8:
 
 // logging Tflags DWORD:
@@ -222,8 +224,8 @@
 #define OUTDDRAWTRACE		0x00000002 // traces DxWnd directdraw screen handling
 #define OUTWINMESSAGES		0x00000004 // traces windows messages
 #define OUTCURSORTRACE		0x00000008 // traces cursor positions & operations
-#define OUTPROXYTRACE		0x00000010 // enables all operations through proxy functions
-#define DXPROXED			0x00000020 // hook DX proxy methods to log each call in original behaviour
+//#define OUTPROXYTRACE		0x00000010 // enables all operations through proxy functions
+//#define DXPROXED			0x00000020 // hook DX proxy methods to log each call in original behaviour
 #define ASSERTDIALOG		0x00000040 // show assert messages in Dialog Box
 #define OUTIMPORTTABLE		0x00000080 // dump import table contents
 #define OUTDEBUG			0x00000100 // detailed debugging indormation
@@ -267,6 +269,7 @@ typedef struct TARGETMAP
 	short FakeVersionId;
 	short MaxScreenRes;
 	short SwapEffect;
+	short MaxDdrawInterface;
 }TARGETMAP;
 
 typedef struct
@@ -314,7 +317,7 @@ LRESULT CALLBACK extDialogWindowProc(HWND, UINT, WPARAM, LPARAM);
 // defines below to condition debug message handling
 
 #define OutTraceW if(dxw.dwTFlags & OUTWINMESSAGES) OutTrace
-#define OutTraceX if(dxw.dwTFlags & OUTPROXYTRACE) OutTrace
+//#define OutTraceX if(dxw.dwTFlags & OUTPROXYTRACE) OutTrace
 #define OutTraceDW if(dxw.dwTFlags & OUTDXWINTRACE) OutTrace
 #define OutTraceDDRAW if(dxw.dwTFlags & OUTDDRAWTRACE) OutTrace
 #define OutTraceD3D if(dxw.dwTFlags & OUTD3DTRACE) OutTrace
@@ -326,7 +329,7 @@ LRESULT CALLBACK extDialogWindowProc(HWND, UINT, WPARAM, LPARAM);
 #define OutTraceE OutTrace
 
 #define IsTraceW (dxw.dwTFlags & OUTWINMESSAGES)
-#define IsTraceX (dxw.dwTFlags & OUTPROXYTRACE)
+//#define IsTraceX (dxw.dwTFlags & OUTPROXYTRACE)
 #define IsTraceDW (dxw.dwTFlags & OUTDXWINTRACE)
 #define IsTraceDDRAW (dxw.dwTFlags & OUTDDRAWTRACE)
 #define IsTraceD3D (dxw.dwTFlags & OUTD3DTRACE)
@@ -361,3 +364,14 @@ typedef enum {
 	TIMER_TYPE_USER32,
 	TIMER_TYPE_WINMM
 } Timer_Types;
+
+typedef struct {
+	int w; 
+	int h;
+} SupportedRes_Type;
+
+extern SupportedRes_Type SupportedSVGARes[];
+extern SupportedRes_Type SupportedHDTVRes[];
+extern int SupportedDepths[];
+
+#define SUPPORTED_DEPTHS_NUMBER 4

@@ -170,6 +170,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	strcpy_s(t->OpenGLLib, sizeof(t->OpenGLLib), dlg->m_OpenGLLib);
 	if(dlg->m_DXVersion > 1) dlg->m_DXVersion += 5;
 	t->dxversion = dlg->m_DXVersion;
+	t->MaxDdrawInterface = dlg->m_MaxDdrawInterface+1;
 	t->coordinates = dlg->m_Coordinates;
 	t->flags = 0;
 	t->flags2 = 0;
@@ -255,7 +256,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_VirtualJoystick) t->flags6 |= VIRTUALJOYSTICK;
 	if(dlg->m_Unacquire) t->flags6 |= UNACQUIRE;
-	if(dlg->m_OutProxyTrace) t->tflags |= OUTPROXYTRACE;
 	if(dlg->m_OutDebug) t->tflags |= OUTDEBUG;
 	if(dlg->m_CursorTrace) t->tflags |= OUTCURSORTRACE;
 	if(dlg->m_LogEnabled) t->tflags |= OUTTRACE;
@@ -267,7 +267,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_OutDWTrace) t->tflags |= OUTDXWINTRACE;
 	if(dlg->m_OutDDRAWTrace) t->tflags |= OUTDDRAWTRACE;
 	if(dlg->m_OutD3DTrace) t->tflags |= OUTD3DTRACE;
-	if(dlg->m_DXProxed) t->tflags |= DXPROXED;
+	//if(dlg->m_DXProxed) t->tflags |= DXPROXED;
 	if(dlg->m_AssertDialog) t->tflags |= ASSERTDIALOG;
 	if(dlg->m_ImportTable) t->tflags |= OUTIMPORTTABLE;
 	if(dlg->m_RegistryOp) t->tflags |= OUTREGISTRY;
@@ -317,8 +317,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoDestroyWindow) t->flags6 |= NODESTROYWINDOW;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
 	if(dlg->m_LockReservedPalette) t->flags5 |= LOCKRESERVEDPALETTE;
-	if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
-	if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
+	//if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
+	//if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
 	if(dlg->m_LimitScreenRes) t->flags4 |= LIMITSCREENRES;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
@@ -402,6 +402,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FullRectBlt) t->flags2 |= FULLRECTBLT;
 	if(dlg->m_CenterToWin) t->flags5 |= CENTERTOWIN;
 	if(dlg->m_Deinterlace) t->flags5 |= DEINTERLACE;
+	if(dlg->m_LimitDdraw) t->flags7 |= LIMITDDRAW;
 	if(dlg->m_NoPaletteUpdate) t->flags2 |= NOPALETTEUPDATE;
 	if(dlg->m_SurfaceWarn) t->flags3 |= SURFACEWARN;
 	if(dlg->m_CapMask) t->flags3 |= CAPMASK;
@@ -431,6 +432,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 {
 	dlg->m_DXVersion = t->dxversion;
+	dlg->m_MaxDdrawInterface = t->MaxDdrawInterface-1;
 	if(dlg->m_DXVersion > 6) dlg->m_DXVersion -= 5;
 	dlg->m_Coordinates = t->coordinates;
 	dlg->m_FilePath = t->path;
@@ -497,7 +499,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_VirtualJoystick = t->flags6 & VIRTUALJOYSTICK ? 1 : 0;
 	dlg->m_Unacquire = t->flags6 & UNACQUIRE ? 1 : 0;
-	dlg->m_OutProxyTrace = t->tflags & OUTPROXYTRACE ? 1 : 0;
 	dlg->m_OutDebug = t->tflags & OUTDEBUG ? 1 : 0;
 	dlg->m_CursorTrace = t->tflags & OUTCURSORTRACE ? 1 : 0;
 	dlg->m_LogEnabled = t->tflags & OUTTRACE ? 1 : 0;
@@ -509,7 +510,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_OutDWTrace = t->tflags & OUTDXWINTRACE ? 1 : 0;
 	dlg->m_OutD3DTrace = t->tflags & OUTD3DTRACE ? 1 : 0;
 	dlg->m_OutDDRAWTrace = t->tflags & OUTDDRAWTRACE ? 1 : 0;
-	dlg->m_DXProxed = t->tflags & DXPROXED ? 1 : 0;
+	//dlg->m_DXProxed = t->tflags & DXPROXED ? 1 : 0;
 	dlg->m_AssertDialog = t->tflags & ASSERTDIALOG ? 1 : 0;
 	dlg->m_ImportTable = t->tflags & OUTIMPORTTABLE ? 1 : 0;
 	dlg->m_RegistryOp = t->tflags & OUTREGISTRY ? 1 : 0;
@@ -541,8 +542,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoDestroyWindow = t->flags6 & NODESTROYWINDOW ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
 	dlg->m_LockReservedPalette = t->flags5 & LOCKRESERVEDPALETTE ? 1 : 0;
-	dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
-	dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
+	//dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
+	//dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
 	dlg->m_LimitScreenRes = t->flags4 & LIMITSCREENRES ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
@@ -645,6 +646,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FullRectBlt = t->flags2 & FULLRECTBLT ? 1 : 0;
 	dlg->m_CenterToWin = t->flags5 & CENTERTOWIN ? 1 : 0;
 	dlg->m_Deinterlace = t->flags5 & DEINTERLACE ? 1 : 0;
+	dlg->m_LimitDdraw = t->flags7 & LIMITDDRAW ? 1 : 0;
 	dlg->m_NoPaletteUpdate = t->flags2 & NOPALETTEUPDATE ? 1 : 0;
 	dlg->m_SurfaceWarn = t->flags3 & SURFACEWARN ? 1 : 0;
 	dlg->m_CapMask = t->flags3 & CAPMASK ? 1 : 0;
@@ -754,6 +756,9 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(key, sizeof(key), "swapeffect%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->SwapEffect);
 	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "maxddinterface%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->MaxDdrawInterface);
+	WritePrivateProfileString("target", key, val, InitPath);
 
 	free(EscBuf);
 	EscBuf = NULL;
@@ -822,6 +827,8 @@ static void ClearTarget(int i, char *InitPath)
 	sprintf_s(key, sizeof(key), "notes%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "registry%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "maxddinterface%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 }
 
@@ -920,11 +927,14 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	// -------
 	sprintf_s(key, sizeof(key), "maxres%i", i);
 	TargetMap->MaxScreenRes = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "maxddinterface%i", i);
+	TargetMap->MaxDdrawInterface = GetPrivateProfileInt("target", key, 7, InitPath);
 	
 	if (!gbDebug){
 		// clear debug flags
 		TargetMap->flags &= ~(0);
-		TargetMap->flags3 &= ~(YUV2RGB|RGB2YUV|SURFACEWARN|ANALYTICMODE|NODDRAWBLT|NODDRAWFLIP|NOGDIBLT);
+		TargetMap->flags3 &= ~(SURFACEWARN|ANALYTICMODE|NODDRAWBLT|NODDRAWFLIP|NOGDIBLT);
 	}
 	free(EscBuf);
 	EscBuf = NULL;
@@ -1119,7 +1129,7 @@ void CDxwndhostView::OnExport()
 		// XP fix:
 		if(strlen(path)>4){
 			char *p;
-			p = &path[strlen(path-4)];
+			p = &path[strlen(path)-4];
 			if(strcasecmp(p, ".dxw")) strcat(path, ".dxw");
 		}
 		else

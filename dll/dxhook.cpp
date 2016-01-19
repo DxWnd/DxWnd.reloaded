@@ -53,7 +53,7 @@ extern HANDLE hTraceMutex;
 CRITICAL_SECTION TraceCS; 
 
 static char *FlagNames[32]={
-	"UNNOTIFY", "EMULATESURFACE", "CLIPCURSOR", "RESETPRIMARY",
+	"UNNOTIFY", "EMULATESURFACE", "CLIPCURSOR", "**",
 	"HOOKDI", "MODIFYMOUSE", "HANDLEEXCEPTIONS", "SAVELOAD",
 	"EMULATEBUFFER", "HOOKDI8", "BLITFROMBACKBUFFER", "SUPPRESSCLIPPING",
 	"AUTOREFRESH", "FIXWINFRAME", "HIDEHWCURSOR", "SLOWDOWN",
@@ -66,7 +66,7 @@ static char *FlagNames[32]={
 static char *Flag2Names[32]={
 	"RECOVERSCREENMODE", "REFRESHONRESIZE", "BACKBUFATTACH", "MODALSTYLE",
 	"KEEPASPECTRATIO", "INIT8BPP", "FORCEWINRESIZE", "INIT16BPP",
-	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "DIFFERENTIALMOUSE", "FIXNCHITTEST",
+	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "**", "FIXNCHITTEST",
 	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
 	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
 	"GDISTRETCHED", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
@@ -78,8 +78,8 @@ static char *Flag3Names[32]={
 	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
 	"MARKLOCK", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
-	"NOWINDOWMOVE", "--DISABLEHAL--", "LOCKSYSCOLORS", "GDIEMULATEDC",
-	"FULLSCREENONLY", "FONTBYPASS", "YUV2RGB", "RGB2YUV",
+	"NOWINDOWMOVE", "**", "LOCKSYSCOLORS", "GDIEMULATEDC",
+	"FULLSCREENONLY", "FONTBYPASS", "**", "**",
 	"BUFFEREDIOFIX", "FILTERMESSAGES", "PEEKALLMESSAGES", "SURFACEWARN",
 	"ANALYTICMODE", "FORCESHEL", "CAPMASK", "COLORFIX",
 	"NODDRAWBLT", "NODDRAWFLIP", "NOGDIBLT", "NOPIXELFORMAT",
@@ -98,7 +98,7 @@ static char *Flag4Names[32]={
 
 static char *Flag5Names[32]={
 	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "--NOSYSTEMMEMORY--",
-	"NOBLT", "--NOSYSTEMEMULATED--", "DOFASTBLT", "AEROBOOST",
+	"NOBLT", "**", "DOFASTBLT", "AEROBOOST",
 	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
 	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
 	"TEXTURETRANSP", "NORMALIZEPERFCOUNT", "HYBRIDMODE", "GDICOLORCONV",
@@ -115,12 +115,34 @@ static char *Flag6Names[32]={
 	"FLIPEMULATION", "SETZBUFFERBITDEPTHS", "SHAREDDC", "WOW32REGISTRY",
 	"STRETCHMOVIES", "BYPASSMCI", "FIXPIXELZOOM", "REUSEEMULATEDDC",
 	"CREATEDESKTOP", "NOWINDOWHOOKS", "SYNCPALETTE", "VIRTUALJOYSTICK",
-	"UNACQUIRE", "HOOKGOGLIBS", "BYPASSGOGLIBS", "",
+	"UNACQUIRE", "HOOKGOGLIBS", "BYPASSGOGLIBS", "EMULATERELMOUSE",
+};
+
+static char *Flag7Names[32]={
+	"LIMITDDRAW", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+};
+
+static char *Flag8Names[32]={
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
 };
 
 static char *TFlagNames[32]={
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
-	"OUTPROXYTRACE", "DXPROXED", "ASSERTDIALOG", "OUTIMPORTTABLE",
+	"**", "**", "ASSERTDIALOG", "OUTIMPORTTABLE",
 	"OUTDEBUG", "OUTREGISTRY", "TRACEHOOKS", "OUTD3DTRACE",
 	"OUTDXWINTRACE", "ADDTIMESTAMP", "OUTDEBUGSTRING", "ERASELOGFILE",
 	"", "", "", "",
@@ -166,6 +188,8 @@ static void OutTraceHeader(FILE *fp)
 	for(i=0, dword=dxw.dwFlags4; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag4Names[i]);
 	for(i=0, dword=dxw.dwFlags5; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag5Names[i]);
 	for(i=0, dword=dxw.dwFlags6; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag6Names[i]);
+	for(i=0, dword=dxw.dwFlags7; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag6Names[i]);
+	for(i=0, dword=dxw.dwFlags8; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag6Names[i]);
 	for(i=0, dword=dxw.dwTFlags; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", TFlagNames[i]);
 	fprintf(fp, "***\n");
 }
@@ -456,6 +480,7 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 		sprintf(msg,"SetHook: proc=%s oldhook=%x->%x newhook=%x\n", hookname, hookedproc, *(DWORD *)hookedproc, tmp);
 		OutTraceDW(msg);
 		if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
+		tmp = *hookedproc;
 	}
 	*hookedproc = tmp;
 }
@@ -1235,6 +1260,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 				osinfo.dwMajorVersion, osinfo.dwMinorVersion, osinfo.dwPlatformId, osinfo.dwPlatformId, osinfo.szCSDVersion);
 		}
 		if (dxw.dwFlags4 & LIMITSCREENRES) OutTrace("HookInit: max resolution=%s\n", (dxw.MaxScreenRes<6)?Resolutions[dxw.MaxScreenRes]:"unknown");
+		if (dxw.dwFlags7 & LIMITDDRAW) OutTrace("HookInit: max supported IDidrectDrawInterface=%d\n", dxw.MaxDdrawInterface);
 	}
 
 	{
@@ -1303,11 +1329,6 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if (dxw.dwFlags4 & INTERCEPTRDTSC) ReplaceRDTSC();
 	if (dxw.dwFlags5 & REPLACEPRIVOPS) ReplacePrivilegedOps();
-
-	if (dxw.dwTFlags & DXPROXED){
-		HookDDProxy(base, dxw.dwTargetDDVersion);
-		return;
-	}
 
 	// make InitPosition used for both DInput and DDraw
 	if(dxw.Windowize) dxw.InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);
