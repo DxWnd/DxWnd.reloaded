@@ -29,6 +29,7 @@
 dxwCore dxw;
 dxwSStack dxwss;
 dxwWStack dxwws;
+dxwCapsDB dxwcdb;
 dxwSDC sdc;
 GetWindowLong_Type pGetWindowLong;
 SetWindowLong_Type pSetWindowLong;
@@ -1401,28 +1402,6 @@ static void MemoryReserve()
 	VirtualAlloc((LPVOID)0x8000000, 0x00F00000, MEM_RESERVE, PAGE_READWRITE);
 }
 
-HWND CreateVirtualDesktop(LPRECT TargetPos)
-{
-	HWND hDesktopWindow;
-	HINSTANCE hinst=NULL;
-
-	HWND hParent = GetDesktopWindow(); // not hooked yet !
-//	hDesktopWindow=CreateWindowEx(0, "dxwnd:desktop", "DxWnd Desktop", WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
-	hDesktopWindow=CreateWindowEx(0, "Static", "DxWnd Desktop", WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
-	if(hDesktopWindow){
-		MoveWindow(hDesktopWindow, TargetPos->left, TargetPos->top, TargetPos->right-TargetPos->left, TargetPos->bottom-TargetPos->top, TRUE);
-		SetWindowLong(hDesktopWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW);
-		ShowWindow(hDesktopWindow, SW_RESTORE);
-		OutTraceDW("created desktop emulation: hwnd=%x\n", hDesktopWindow);
-		return hDesktopWindow; 
-
-	}
-	else{
-		OutTraceE("CreateWindowEx ERROR: err=%d at %d\n", GetLastError(), __LINE__);
-		return NULL;
-	}
-}
-
 extern HHOOK hMouseHook;
 
 void HookInit(TARGETMAP *target, HWND hwnd)
@@ -1610,7 +1589,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		hMouseHook =(*pSetWindowsHookExA)(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
 		if(hMouseHook==NULL) OutTraceE("SetWindowsHookEx WH_GETMESSAGE failed: error=%d\n", GetLastError());
 	}
- 
+
 	InitScreenParameters(0); // still unknown
 	if(hwnd) HookWindowProc(hwnd);
 	// in fullscreen mode, messages seem to reach and get processed by the parent window

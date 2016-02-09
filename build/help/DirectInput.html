@@ -49,9 +49,9 @@
 			<div id="topic_header_nav">
 				<a href="Input.html"><img src="img/arrow_up.png" alt="Parent"/></a>
 				
-				<a href="Messagehandling.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				<a href="Cursorhandling.html"><img src="img/arrow_left.png" alt="Previous"/></a>
 				
-				<a href="Timing.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				<a href="Messagehandling.html"><img src="img/arrow_right.png" alt="Next"/></a>
 				
 				</div>
 			<div class="clear"></div>
@@ -59,13 +59,37 @@
 	<div id="topic_content">
 		
 <p></p>
-<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<div class="rvps2"><table border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
 <tr valign="top">
-<td width="133" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DirectInput Hooking</span></p>
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hook dinput</span></p>
 </td>
-<td width="206" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">???</span></p>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HOOKDI</span></p>
 </td>
-<td width="1198" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Enables hooking on DirectInput methods.</span></p>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hooks DirectInput libraries, making sure that the DirectInput modes are appropriate for a non fullscreen program and enabling all other flags in the same group.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hook dinput8</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HOOKDI8</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hooks DirectInput8 libraries, making sure that the DirectInput8 modes are appropriate for a non fullscreen program and enabling all other flags in the same group.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Unacquire devices on focus lost</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">UNACQUIRE</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Unacquire DirectInput/DirectInput8 devices when they lose focus and acquire them back when they regain focus. This option should be set if the program using DirectInput libraries keeps listening to mouse input even when the program's window is inactive, or when it keeps ignoring mouse input even when the program's window becomes active once again.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Emulate mouse relative movement</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATERELMOUSE</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Emulates the DirectInput detection of relative mouse position by keeping the mouse at the center of the window and looking for movements. It should be used whenever the native DirectInput mechanism doesn't work properly.</span></p>
 </td>
 </tr>
 </table>

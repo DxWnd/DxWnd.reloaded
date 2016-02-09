@@ -1,0 +1,32 @@
+[target]
+title0=The Creed
+path0=D:\Games\The Creed\Creed.exe
+startfolder0=
+launchpath0=
+module0=
+opengllib0=
+notes0=
+registry0=\n[HKEY_CLASSES_ROOT\The Creed]\n"Scene16"=".\\data\\scene16.cus"\n"InstallType"="MAXIMUM"\n"InstallDir"="."\n"Password"="CREED"\n"LockCode"=dword:04fcf000\n"Version"=dword:00000096\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Insomnia Entertainment]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Insomnia Entertainment\The Creed]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Insomnia Entertainment\The Creed\1.00.000]\n
+ver0=0
+coord0=0
+flag0=136314994
+flagg0=1207959680
+flagh0=1044
+flagi0=1212153860
+flagj0=201347200
+flagk0=2195456
+flagl0=65536
+flagm0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2

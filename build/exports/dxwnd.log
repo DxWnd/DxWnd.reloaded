@@ -1,3 +1,19 @@
-Injection START
-create process: base=0x400000 path="D:\Games\AirXonix\program.exe"
-exit process:
+OnRun idx=3 prog="D:\Games\Barbie Riding Club\Program\Barbie Riding Club.exe"
+setwindowshook mode
+OnRun idx=3 prog="D:\Games\Barbie Riding Club\Program\Barbie Riding Club.exe"
+setwindowshook mode
+OnRun idx=5 prog="D:\Games\The Creed\Creed.exe"
+export virtual registry
+setwindowshook mode
+OnRun idx=4 prog="D:\Games\The Creed (SW DEMO)\DemoCreed.exe"
+setwindowshook mode
+OnRun idx=4 prog="D:\Games\The Creed (SW DEMO)\DemoCreed.exe"
+setwindowshook mode
+OnRun idx=5 prog="D:\Games\The Creed ( HW DEMO)\DemoCreed.exe"
+setwindowshook mode
+OnRun idx=4 prog="D:\Games\The Creed (SW DEMO)\DemoCreed.exe"
+setwindowshook mode
+OnRun idx=5 prog="D:\Games\The Creed ( HW DEMO)\DemoCreed.exe"
+setwindowshook mode
+OnRun idx=5 prog="D:\Games\The Creed ( HW DEMO)\DemoCreed.exe"
+setwindowshook mode

@@ -51,7 +51,7 @@
 				
 				<a href="Libs.html"><img src="img/arrow_left.png" alt="Previous"/></a>
 				
-				<a href="Glide.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				<a href="OpenGL.html"><img src="img/arrow_right.png" alt="Next"/></a>
 				
 				</div>
 			<div class="clear"></div>
@@ -59,47 +59,95 @@
 	<div id="topic_content">
 		
 <p></p>
-<p class="rvps2"><span class="rvts6">These flags determine the strategy to manage pure GDI programs or, in the most complicated case, hybrid games that mix GDI calls with other renderers like DirectDraw or Direct3D.</span></p>
+<p class="rvps2"><span class="rvts6">These flags determine the strategy for managing pure GDI programs or, in the most complicated case, hybrid games that mix GDI calls with other renderers like DirectDraw or Direct3D.</span></p>
 <p class="rvps2"><span class="rvts6"><br/></span></p>
 <div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
 <tr valign="top">
 <td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">No GDI handling</span></p>
 </td>
-<td width="111" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">GDINONE</span></p>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">GDINONE</span></p>
 </td>
-<td width="1244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disables video-related GDI / user32 API hooking.</span></p>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disables video-related GDI/user32 API hooking.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Scaled GDI calls</span></p>
 </td>
-<td width="111" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HOOKGDI</span></p>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HOOKGDI</span></p>
 </td>
-<td width="1244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Scales GDI API coordinates to fit the window stretching.</span></p>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Scales GDI API coordinates to fit the window stretching.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Emulated Device Context</span></p>
 </td>
-<td width="111" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATEDC</span></p>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">GDIEMULATEDC</span></p>
 </td>
-<td width="1244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Handle an emulated GDI DC.</span></p>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Handle an emulated GDI device context.</span></p>
 </td>
 </tr>
 <tr valign="top">
-<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Map DC to Primary Surface</span></p>
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Share ddraw and GDI DC</span></p>
 </td>
-<td width="111" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">GDIEMULATEDC</span></p>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SHAREDDC</span></p>
 </td>
-<td width="1244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Use the ddraw primary surface DC for GDI operations.</span></p>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Shares the window DC (device context) with the DirectDraw primary surface DC. These contexts can have very different interactions in fullscreen and windowed modes. In windowed mode, what usually happens is that one DC layer overlaps the other and produces flickering. This option merges the graphic content of GDI on top of the primary surface of DirectDraw.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Remap Client Rect</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">CLIENTREMAPPING</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Enabled by default. Makes DxWnd remap the window client coordinates so that the program receives the same values as if the program was running in fullscreen mode.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Scale font parameters</span></p>
 </td>
-<td width="111" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FIXTEXTOUT</span></p>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FIXTEXTOUT</span></p>
 </td>
-<td width="1244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Tries to scale font parameters to fit the window stretching.</span></p>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Tries to scale font parameters to fit the window stretching.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress FillRect</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOFILLRECT</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">It is quite common for a fullscreen program to start its activities by clearing the desktop through a FillRect of the whole desktop area. Though this operation is usually intercepted and redirected to the windowed area, if it fails this flag bypasses that FillRect call.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Reuse emulated DC</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">REUSEEMULATEDDC</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">In GDIEMULATEDC mode, the emulated surface is created and destroyed at each frame blit. This flag recycles that DC for subsequent frames, improving performance but sometimes producing side effects.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix clipper area in shared DC</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FIXCLIPPERAREA</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">In SHAREDDC mode, this flag tries to compensate for clipping problems between the program window and other windows on the desktop. It is not currently fully implemented, so it is discouraged for now.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Syncronize GDI to ddraw palette</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SYNCPALETTE</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Makes DirectDraw palette emulation aware of palette changes made through GDI calls.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress Win common errors</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOWINERRORS</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Makes system libraries return success in all cases where the error could depend on the windowed environment, but can be safely ignored. Currently, it only suppresses errors in the DestroyWindow user32 call.</span></p>
 </td>
 </tr>
 </table>

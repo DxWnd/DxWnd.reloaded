@@ -49,9 +49,9 @@
 			<div id="topic_header_nav">
 				<a href="Input.html"><img src="img/arrow_up.png" alt="Parent"/></a>
 				
-				<a href="Keyboardhandling.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				<a href="DirectInput.html"><img src="img/arrow_left.png" alt="Previous"/></a>
 				
-				<a href="DirectInput.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				<a href="Keyboardhandling.html"><img src="img/arrow_right.png" alt="Next"/></a>
 				
 				</div>
 			<div class="clear"></div>
@@ -61,26 +61,55 @@
 <p></p>
 <div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
 <tr valign="top">
-<td width="184" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Filter offending messages</span></p>
+<td width="211" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Message processing</span></p>
 </td>
-<td width="177" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SKIPOFFENDINGMSG ???</span></p>
+<td width="176" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">MESSAGEPROC</span></p>
 </td>
-<td width="1176" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">In theory, a fullscreen message should not expect several messages that are impossible to receive, such as border sizing, taskbar events and so forth. Some programs are not properly coded to react to such "impossible" messages and may show falfuncions. This flag causes potentially harmful and meaningless messages to be suppressed.</span></p>
+<td width="1150" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Most programs get X,Y mouse coordinates from the mouse messages or from the specific API. One tricky way to get the same info, though, is to listen to the Windows message queue using PeekMessage/GetMessage, and retrieve the X,Y coordinates from ANY received message in the pt field. Checking this box makes DxWnd fix the X,Y coordinates in this uncommon situation as well (see the game Uprising).</span></p>
 </td>
 </tr>
 <tr valign="top">
-<td width="184" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Peek all messages in queue</span></p>
+<td width="211" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Filter offending messages</span></p>
 </td>
-<td width="177" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">PEEKALLMESSAGES</span></p>
+<td width="176" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FILTERMESSAGES</span></p>
 </td>
-<td width="1176" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1150" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">In theory, a fullscreen message should not expect several messages that are impossible to receive, such as border sizing, taskbar events and so forth. Some programs are not properly coded to react to such "impossible" messages and may show falfuncions. This flag causes potentially harmful and meaningless messages to be suppressed.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="211" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Defaulting offending messages</span></p>
+</td>
+<td width="176" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">DEFAULTMESSAGES</span></p>
+</td>
+<td width="1150" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">While a well-designed windowed program should react to all window system messages, it is possible that a fullscreen program was designed without an appropriate reaction to such unexpected messages, like window stretching. This option makes DxWnd automatically process all these messages that an application might not correctly handle. It should be turned on if operations like window resizing or movement cause crashes or other problems.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="211" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Peek all messages in queue</span></p>
+</td>
+<td width="176" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">PEEKALLMESSAGES</span></p>
+</td>
+<td width="1150" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">In Windows 7 and newer, any windowed application MUST empty its message queue. The operating system considers any application that does not do this within a defined timeout period (about 5 seconds) to be malfunctioning, and kills the process (although it keeps displaying the window's contents). Programs developed before Windows 7 didn't take this constraint into account and may easily fail to get messages during processes such as unskippable cutscenes or long calculations. This option periodically empties the system queue, ensuring that the program won't be killed. However, there is a small chance that some events (like mouse clicks) could get lost occasionally and will need to be repeated.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="211" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Filter winposchange messages</span></p>
+</td>
+<td width="176" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOWINPOSCHANGES</span></p>
+</td>
+<td width="1150" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppresses the WM_WINDOWPOSCHANGING or WM_WINDOWPOSCHANGED messages that some programs send to themselves to automatically move their window. This option is used for Rollercoaster Tycoon.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="211" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Add message pump (Win7 comp.)</span></p>
+</td>
+<td width="176" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">PEEKALLMESSAGES</span></p>
+</td>
+<td width="1150" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Windows 7 and onward monitor each foreground process's input message queue and kill any processes that wait too long to flush their queue (generally five seconds). Some older games skip this task during long intro movies or AI processing, making them vulnerable to being killed by the OS. This flag activates a thread that periodically flushes pending messages from the queue, preventing these games from being automatically terminated.</span></p>
 </td>
 </tr>
 </table>
 </div>
-<p class="rvps2"><span class="rvts6"><br/></span></p>
-<p class="rvps2"><span class="rvts6">: </span></p>
-<p class="rvps2"><span class="rvts6"><br/></span></p>
 <p></p>
 </div>
 	

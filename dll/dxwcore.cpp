@@ -458,6 +458,10 @@ void dxwCore::SetClipCursor()
 		OutTraceE("SetClipCursor: GetClientRect ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return;
 	}
+	if((Rect.right == 0) && (Rect.bottom == 0)){ 
+		OutTraceE("SetClipCursor: GetClientRect returns zero sized rect at %d\n", __LINE__);
+		return;
+	}
 	if(!(*pClientToScreen)(hWnd, &UpLeftCorner)){
 		OutTraceE("SetClipCursor: ClientToScreen ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return ;
@@ -1457,12 +1461,12 @@ void dxwCore::ShowBanner(HWND hwnd)
 	POINT PrevViewPort;
 	int StretchMode;
 
-	if(JustOnce || (dwFlags2 & NOBANNER)) return;
-	JustOnce=TRUE;
-
 	hClientDC=(*pGDIGetDC)(hwnd); 
 	(*pGetClientRect)(hwnd, &client);
 	(*pGDIBitBlt)(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
+
+	if(JustOnce || (dwFlags2 & NOBANNER)) return;
+	JustOnce=TRUE;
 
     g_hbmBall = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BANNER));
     HDC hdcMem = CreateCompatibleDC(hClientDC);

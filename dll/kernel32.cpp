@@ -1087,8 +1087,6 @@ static BOOL CreateProcessSuspended(
 {
 	BOOL res;
 	extern BOOL Inject(DWORD, const char *);
-	STARTUPINFO sinfo;
-	PROCESS_INFORMATION pinfo;
 	char StartingCode[4];
 	DWORD EndlessLoop;
 	EndlessLoop=0x9090FEEB; // careful: it's BIG ENDIAN: EB FE 90 90
@@ -1103,15 +1101,13 @@ static BOOL CreateProcessSuspended(
 
 	OutTrace("CreateProcessSuspended: appname=\"%s\" commandline=\"%s\" dir=\"%s\"\n", 
 		lpApplicationName, lpCommandLine, lpCurrentDirectory);
-	ZeroMemory(&sinfo, sizeof(sinfo));
-	sinfo.cb = sizeof(sinfo);
 	// attempt to load the specified target
 	res=(*pCreateProcessA)(
 		lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, false, 
-		dwCreationFlags|CREATE_SUSPENDED, NULL, lpCurrentDirectory, &sinfo, &pinfo);
+		dwCreationFlags|CREATE_SUSPENDED, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 	if (!res){
 		OutTraceE("CreateProcess(CREATE_SUSPENDED) ERROR: err=%d\n", GetLastError());
-		res=(*pCreateProcessA)(NULL, lpCommandLine, 0, 0, false, dwCreationFlags, NULL, lpCurrentDirectory, &sinfo, &pinfo);
+		res=(*pCreateProcessA)(NULL, lpCommandLine, 0, 0, false, dwCreationFlags, NULL, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 		if(!res){ 
 			OutTraceE("CreateProcess ERROR: err=%d\n", GetLastError());
 		}
@@ -1125,7 +1121,7 @@ static BOOL CreateProcessSuspended(
 		TargetHandle = OpenProcess(
 			PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE|PROCESS_SUSPEND_RESUME, 
 			FALSE, 
-			pinfo.dwProcessId);
+			lpProcessInformation->dwProcessId);
 
 		FILE *fExe = fopen(lpCommandLine ? lpCommandLine : lpApplicationName, "rb");
 		if(fExe==NULL){
@@ -1164,8 +1160,13 @@ static BOOL CreateProcessSuspended(
 			break;
 		}
 
+		if(!FlushInstructionCache(TargetHandle, StartAddress, 4)){
+			OutTrace("CreateProcess: FlushInstructionCache ERROR err=%x\n", GetLastError());
+			break; // error condition
+		}
+
 		// resume the main thread
-		if(ResumeThread(pinfo.hThread)==(DWORD)-1){
+		if(ResumeThread(lpProcessInformation->hThread)==(DWORD)-1){
 			OutTraceE("CreateProcess: ResumeThread error=%d at:%d\n", GetLastError(), __LINE__);
 			break;
 		}
@@ -1173,13 +1174,13 @@ static BOOL CreateProcessSuspended(
 		// wait until the thread stuck at entry point
 		CONTEXT context;
 		context.Eip = (DWORD)0; // initialize to impossible value
-		for ( unsigned int i = 0; i < 40 && context.Eip != (DWORD)StartAddress; ++i ){
+		for ( unsigned int i = 0; i < 80 && context.Eip != (DWORD)StartAddress; ++i ){
 			// patience.
 			Sleep(50);
 
 			// read the thread context
 			context.ContextFlags = CONTEXT_CONTROL;
-			if(!GetThreadContext(pinfo.hThread, &context)){
+			if(!GetThreadContext(lpProcessInformation->hThread, &context)){
 				OutTraceE("CreateProcess: GetThreadContext error=%d\n", GetLastError());
 				break;
 			}
@@ -1194,14 +1195,14 @@ static BOOL CreateProcessSuspended(
 
 		// inject DLL payload into remote process
 		GetFullPathName("dxwnd.dll", MAX_PATH, dllpath, NULL);
-		if(!Inject(pinfo.dwProcessId, dllpath)){
+		if(!Inject(lpProcessInformation->dwProcessId, dllpath)){
 			// DXW_STRING_INJECTION
-			OutTraceE("CreateProcess: Injection error: pid=%x dll=%s\n", pinfo.dwProcessId, dllpath);
+			OutTraceE("CreateProcess: Injection error: pid=%x dll=%s\n", lpProcessInformation->dwProcessId, dllpath);
 			break;
 		}
 
 		// pause 
-		if(SuspendThread(pinfo.hThread)==(DWORD)-1){
+		if(SuspendThread(lpProcessInformation->hThread)==(DWORD)-1){
 			OutTraceE("CreateProcess: SuspendThread error=%d\n", GetLastError());
 			break;
 		}
@@ -1212,9 +1213,14 @@ static BOOL CreateProcessSuspended(
 			break;
 		}
 
+		if(!FlushInstructionCache(TargetHandle, StartAddress, 4)){
+			OutTrace("CreateProcess: FlushInstructionCache ERROR err=%x\n", GetLastError());
+			break; // error condition
+		}
+
 		// you are ready to go
 		// pause and restore original entry point
-		if(ResumeThread(pinfo.hThread)==(DWORD)-1){
+		if(ResumeThread(lpProcessInformation->hThread)==(DWORD)-1){
 			OutTraceE("CreateProcess: ResumeThread error=%d at:%d\n", GetLastError(), __LINE__);
 			break;
 		}
@@ -1228,8 +1234,9 @@ static BOOL CreateProcessSuspended(
 	if(TargetHandle) CloseHandle(TargetHandle);
 	// terminate the newly spawned process
 	if(bKillProcess){
-		if(!TerminateProcess( pinfo.hProcess, -1 )){
-			OutTraceE("CreateProcess: failed to kill hproc=%x err=%d\n", pinfo.hProcess, GetLastError());
+		OutTraceDW("CreateProcess: Kill son process hproc=%x pid=%x\n", lpProcessInformation->hProcess, lpProcessInformation->dwProcessId);
+		if(!TerminateProcess( lpProcessInformation->hProcess, -1 )){
+			OutTraceE("CreateProcess: failed to kill hproc=%x err=%d\n", lpProcessInformation->hProcess, GetLastError());
 		}
 	}
 	OutTraceB("CreateProcess: resumed\n");

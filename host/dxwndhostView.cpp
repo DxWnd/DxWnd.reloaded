@@ -452,6 +452,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookOpenGL) t->flags2 |= HOOKOPENGL;
 	if(dlg->m_ForceHookOpenGL) t->flags3 |= FORCEHOOKOPENGL;
 	if(dlg->m_FixPixelZoom) t->flags6 |= FIXPIXELZOOM;
+	if(dlg->m_FixBindTexture) t->flags7 |= FIXBINDTEXTURE;
 	if(dlg->m_WireFrame) t->flags2 |= WIREFRAME;
 	if(dlg->m_NoTextures) t->flags4 |= NOTEXTURES;
 	if(dlg->m_BlackWhite) t->flags3 |= BLACKWHITE;
@@ -723,6 +724,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookOpenGL = t->flags2 & HOOKOPENGL ? 1 : 0;
 	dlg->m_ForceHookOpenGL = t->flags3 & FORCEHOOKOPENGL ? 1 : 0;
 	dlg->m_FixPixelZoom = t->flags6 & FIXPIXELZOOM ? 1 : 0;
+	dlg->m_FixBindTexture = t->flags7 & FIXBINDTEXTURE ? 1 : 0;
 	dlg->m_WireFrame = t->flags2 & WIREFRAME ? 1 : 0;
 	dlg->m_NoTextures = t->flags4 & NOTEXTURES ? 1 : 0;
 	dlg->m_BlackWhite = t->flags3 & BLACKWHITE ? 1 : 0;
@@ -2780,6 +2782,13 @@ void InjectSuspended(char *exepath, char *dirpath)
 			break;
 		}
 
+		if(!FlushInstructionCache(TargetHandle, StartAddress, 4)){
+			sprintf(DebugMessage,"FlushInstructionCache error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break; // error condition
+		}
+
 		// resume the main thread
 		if(ResumeThread(pinfo.hThread)==(DWORD)-1){
 			sprintf(DebugMessage,"ResumeThread error=%d at:%d", GetLastError(), __LINE__);
@@ -2791,7 +2800,7 @@ void InjectSuspended(char *exepath, char *dirpath)
 		// wait until the thread stuck at entry point
 		CONTEXT context;
 		context.Eip = (DWORD)0; // initialize to impossible value
-		for ( unsigned int i = 0; i < 40 && context.Eip != (DWORD)StartAddress; ++i ){
+		for ( unsigned int i = 0; i < 80 && context.Eip != (DWORD)StartAddress; ++i ){
 			// patience.
 			Sleep(50);
 
@@ -2835,6 +2844,13 @@ void InjectSuspended(char *exepath, char *dirpath)
 			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
 			if (gbDebug) OutTrace("%s\n", DebugMessage);
 			throw;
+		}
+
+		if(!FlushInstructionCache(TargetHandle, StartAddress, 4)){
+			sprintf(DebugMessage,"FlushInstructionCache error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break; // error condition
 		}
 
 		// you are ready to go

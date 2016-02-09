@@ -1211,3 +1211,12 @@ add: some Direct3D error codes for logging
 fix: fixed some Direct3D methods hooking
 fix: Direct3DDevice::AddViewport hooker now delete a viewport that is still linked to a previous device. Needed for "Die hard trilogy"
 fix: fixed CreateProcess hooker for "Extend injection" mode: Needed for "Die hard trilogy"
+
+v2.03.82
+fix: fixed situations where the virtual desktop window was not fully blackened during initialization
+fix: added FlushInstructionCache call to "suspended process" injection type to make it more reliable
+fix: suppressed more capabilities when setting "Suppress overlay capability" flag
+fix: fixed logic for ZBUFFER capabilities: "The Creed" seems to have two, one in SYSTEMMEMORY and one in VIDEOMEMORY...
+fix: avoid setting cursor clipping when client area is returned with zero size. 
+fix: fixed CreateProcessA hooker for "suspended process" injection type to forward all parameters to the system call
+add: added "Fix glBindTexture texture" flag to compensate for the missing glActiveTexture call. Fixes "bugdom" 2D panels.

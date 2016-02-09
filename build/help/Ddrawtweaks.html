@@ -44,14 +44,14 @@
 				<h1 id="topic_header_text">Ddraw tweaks</h1>
 				
 				<div id="topic_breadcrumb">
-					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Direct3D.html">Direct3D</a> &rsaquo;&rsaquo; </div>
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="DirectX2.html">DirectX(2)</a> &rsaquo;&rsaquo; </div>
 				</div>
 			<div id="topic_header_nav">
-				<a href="Direct3D.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				<a href="DirectX2.html"><img src="img/arrow_up.png" alt="Parent"/></a>
 				
-				<a href="Direct3D.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				<a href="DirectX2.html"><img src="img/arrow_left.png" alt="Previous"/></a>
 				
-				<a href="SwapEffect.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				<a href="Direct3D.html"><img src="img/arrow_right.png" alt="Next"/></a>
 				
 				</div>
 			<div class="clear"></div>
@@ -63,143 +63,104 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">No primary SYSTEMMEMORY</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOSYSMEMPRIMARY</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DirectDraw applications have much better performance if they can operate on system memory rather than video memory, particularly when reading surface memory. Since the virtual primary surface has to be read before it can be transferred to the actual primary surface, it's best to use system memory offscreen surfaces whenever possible. Unfortunately, some programs request hardware acceleration functions that are only available for video surfaces. This flag forces the virtual primary surface to be created in system memory, sacrificing performance for compatibility.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">No backbuffer SYSTEMMEMORY</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOSYSMEMBACKBUF</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Similar to the NOSYSMEMPRIMARY flag, but applied to the backbuffer surface. It's rare to need both of these flags, and which one to use depends on where the application performs the accelerated functions.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Lock/Unlock Pitch Fix</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FIXPITCH</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some programs ignore the pitch value returned by the DirectDrawSurface::Lock method and fill the graphics buffer according to an incorrect predetermined pitch value. This discrepancy is caused when DxWnd creates virtual surfaces with varying pitch values that may not correspond to the original values when creating the surface on a different memory type (system memory and video memory). When this is happening to a hooked program, some elements may appear diagonally skewed. Note how the left border of the text widget in the figure below goes down and to the right rather than straight down, distorting the contained text as well. This flag resolves the issue by copying the graphic scan lines to the proper memory offset.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><img alt="" style="padding : 1px;" src="lib/dxwnd_pitch.png"></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Width not power of 2 fix</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">POWER2WIDTH</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some programs produce texture surfaces of odd sizes, which are generally not supported but can be detected when the textures have an incorrect aspect ratio. This flag resolves the issue by copying the graphic scan lines to the proper memory offset. The most notable example of this issue is in Midtown Madness.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix ddraw refcount</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FIXREFCOUNTER</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FIXREFCOUNTER</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Decrement the reference counter of some objects to properly track all of DxWnd's service objects.</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Decrement the reference counter of some objects to properly track all of DxWnd's service objects.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Return 0 refcount</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">RETURNNULLREF</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">RETURNNULLREF</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Always return a 0 reference counter when a surface or DirectDraw session is released.</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Always return a 0 reference counter when a surface or DirectDraw session is released.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress overlay capability</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSOVERLAY</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Prevents the game from detecting any hardware overlay capability. Hardware overlay is very efficient, but not very flexible. If you run a program with hardware overlay in a window, you may be able to reposition and resize the window, but the blitted surface (the content of the window) doesn't move or change. This flag makes programs ignore hardware overlay capability so that you can move or stretch the window with expected results. The most notable example of this issue is in Moto Racer 2.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set minimal caps</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">MINIMALCAPS</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Simulates minimal hardware capabilities similar to what's available by the VirtualPC or VMWare emulators. Some older games may not support advanced features, in which case this flag can improve the rendering process and eliminate some artifacts.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Deinterlace movies</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">DEINTERLACE</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Interlaced movies on old games would improve their frame rate by only showing the odd horizontal lines of the video, leaving even lines black. The black lines weren't very noticeable on old monitors, but the effect becomes more pronounced on modern computers. This flag detects interlaced movies and interpolates the lines above and below each black line to approximate a full video, improving the video quality at the cost of some extra CPU usage.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set ZBufferBitDepths capability</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SETZBUFFERBITDEPTHS</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">The dwZBufferBitDepths is an obsolete field in the DirectDraw surface descriptor. It is no longer set and should be ignored, but some old programs rely on the value of this field and may crash if the field is empty (contains the null value). This flag copies the value returned by the GetCaps method and places it into the dwZBufferBitDepths field. The most notable example of this issue is in Mech Commander 2.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Limit ddraw interface</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">LIMITDDRAW</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Instead of using a specific version of DirectDraw, some programs simply request the most recent version available on the machine. Using a version of DirectDraw that is significantly newer than what was available when the game was developed may have poor results. This option hides newer versions of DirectDraw from the hooked program, basically allowing you to manually specify which version of DirectDraw the program should use. Choose a maximum DirectDraw version from the drop-down menu located near this option.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces HEL</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FORCESHEL</span></p>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FORCESHEL</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces Hardware Emulation Layer.</span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6"><br/></span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16"><br/></span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6"><br/></span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6"><br/></span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16"><br/></span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6"><br/></span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Full RECT blit</span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16"><br/></span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Causes every blit operation to the primary surface to be applied to the full surface (NULL rect coordinates). It allows you to recover from improper surface handling, but this situation should be classified more properly as a bug in DxWnd.</span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Win7 color fix</span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">COLORFIX</span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress D3D8/9 reset</span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">NOD3DRESET</span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Do not perform the D3D reset operation.</span></p>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces Hardware Emulation Layer.</span></p>
 </td>
 </tr>
 </table>
 </div>
 <p></p>
-<p class="rvps5"><span class="rvts12">Created with the Personal Edition of HelpNDoc: </span><a class="rvts13" href="http://www.helpndoc.com/help-authoring-tool">Single source CHM, PDF, DOC and HTML Help creation</a></p>
 </div>
 	
 	<div id="topic_footer">

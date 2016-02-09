@@ -12,7 +12,8 @@ typedef VOID	(WINAPI *AVIFileInit_Type)(void);
 typedef LONG	(WINAPI *AVIFileRelease_Type)(PAVIFILE);
 typedef LONG	(WINAPI *AVIStreamRelease_Type)(PAVISTREAM);
 typedef PGETFRAME (WINAPI *AVIStreamGetFrameOpen_Type)(PAVISTREAM, LPBITMAPINFOHEADER);
-typedef HRESULT (*AVIFileOpenA_Type)(PAVIFILE *, LPCTSTR, UINT, CLSID); // No WINAPI !!!!
+typedef HRESULT (WINAPI *AVIFileOpenA_Type)(PAVIFILE *, LPCTSTR, UINT, LPCLSID); 
+typedef HRESULT (WINAPI *AVIFileOpenW_Type)(PAVIFILE *, LPCWSTR, UINT, LPCLSID); 
 typedef HRESULT (WINAPI *AVIFileGetStream_Type)(PAVIFILE, PAVISTREAM *, DWORD, LONG);
 
 AVIFileInit_Type pAVIFileInit = NULL;
@@ -20,19 +21,23 @@ AVIFileRelease_Type pAVIFileRelease = NULL;
 AVIStreamRelease_Type pAVIStreamRelease = NULL;
 AVIStreamGetFrameOpen_Type pAVIStreamGetFrameOpen = NULL;
 AVIFileOpenA_Type pAVIFileOpenA = NULL;
+AVIFileOpenW_Type pAVIFileOpenW = NULL;
 AVIFileGetStream_Type pAVIFileGetStream = NULL;
 
 VOID WINAPI extAVIFileInit(void);
 LONG WINAPI extAVIFileRelease(PAVIFILE);
 LONG WINAPI extAVIStreamRelease(PAVISTREAM);
 PGETFRAME WINAPI extAVIStreamGetFrameOpen(PAVISTREAM, LPBITMAPINFOHEADER);
-HRESULT extAVIFileOpenA(PAVIFILE *, LPCTSTR, UINT, CLSID);
+HRESULT extAVIFileOpenA(PAVIFILE *, LPCTSTR, UINT, LPCLSID);
+HRESULT extAVIFileOpenW(PAVIFILE *, LPCWSTR, UINT, LPCLSID);
 HRESULT WINAPI extAVIFileGetStream(PAVIFILE, PAVISTREAM *, DWORD, LONG);
 
 static HookEntryEx_Type Hooks[]={
 	//{HOOK_IAT_CANDIDATE, 0, "AVIFileClose", NULL, (FARPROC *)&pAVIFileClose, (FARPROC)extAVIFileClose},
 	{HOOK_IAT_CANDIDATE, 0, "AVIFileInit", NULL, (FARPROC *)&pAVIFileInit, (FARPROC)extAVIFileInit},
-	//{HOOK_IAT_CANDIDATE, 0, "AVIFileOpenA", NULL, (FARPROC *)&pAVIFileOpenA, (FARPROC)extAVIFileOpenA}, // causing errors ....
+	// hooking AVIFileOpenA makes "Die Hard Trilogy" DIEHARD.EXE crash!
+	//{HOOK_IAT_CANDIDATE, 0, "AVIFileOpenA", NULL, (FARPROC *)&pAVIFileOpenA, (FARPROC)extAVIFileOpenA}, 
+	//{HOOK_IAT_CANDIDATE, 0, "AVIFileOpenW", NULL, (FARPROC *)&pAVIFileOpenW, (FARPROC)extAVIFileOpenW}, 
 	{HOOK_IAT_CANDIDATE, 0, "AVIFileRelease", NULL, (FARPROC *)&pAVIFileRelease, (FARPROC)extAVIFileRelease},
 	{HOOK_IAT_CANDIDATE, 0, "AVIStreamRelease", NULL, (FARPROC *)&pAVIStreamRelease, (FARPROC)extAVIStreamRelease},
 	{HOOK_IAT_CANDIDATE, 0, "AVIStreamGetFrameOpen", NULL, (FARPROC *)&pAVIStreamGetFrameOpen, (FARPROC)extAVIStreamGetFrameOpen},
@@ -87,8 +92,8 @@ static char *AviMode(UINT c)
 	if (c & OF_PARSE) strcat(eb, "PARSE+");
 	if (c & OF_READ) strcat(eb, "READ+");
 	if (c & OF_READWRITE) strcat(eb, "READWRITE+");
-	if (c & OF_SHARE_DENY_NONE) strcat(eb, "SHARE_DENY_NONE+");
-	if (c & OF_SHARE_DENY_READ) strcat(eb, "SHARE_DENY_READ+");
+	if (c & OF_SHARE_DENY_NONE) strcat(eb, "SHARE_DENY_NONE+"); 
+	if ((c & OF_SHARE_DENY_READ) == OF_SHARE_DENY_READ) strcat(eb, "SHARE_DENY_READ+"); // 0x30, there are two bits ....
 	if (c & OF_SHARE_DENY_WRITE) strcat(eb, "SHARE_DENY_WRITE+");
 	if (c & OF_SHARE_EXCLUSIVE) strcat(eb, "SHARE_EXCLUSIVE+");
 	if (c & OF_WRITE) strcat(eb, "WRITE+");
@@ -104,18 +109,41 @@ VOID WINAPI extAVIFileInit(void)
 	(*pAVIFileInit)();
 }
  
-HRESULT extAVIFileOpenA(PAVIFILE *ppfile, LPCTSTR szFile, UINT mode, CLSID pclsid)
+HRESULT extAVIFileOpenA(PAVIFILE *ppfile, LPCSTR szFile, UINT mode, LPCLSID pclsid)
 {
 	HRESULT res;
-	OutTraceDW("AVIFileOpenA: file=%s mode=%x(%s) clsid=%x.%x.%x.%x\n", 
-		szFile, mode, AviMode(mode), pclsid.Data1, pclsid.Data2, pclsid.Data3, pclsid.Data4);
-	return (*pAVIFileOpenA)(ppfile, szFile, mode, pclsid);
+	if(IsTraceDW){
+		char sClassId[80];
+		if(pclsid) sprintf_s(sClassId, 80, "%x.%x.%x.%x", pclsid->Data1, pclsid->Data2, pclsid->Data3, pclsid->Data4);
+		else strcpy(sClassId, "(null)");
+		OutTrace("AVIFileOpenA: file=\"%s\" mode=%x(%s) clsid=%s\n", szFile, mode, AviMode(mode), sClassId);
+	}
 	res = (*pAVIFileOpenA)(ppfile, szFile, mode, pclsid);
 	if(res) {
 		OutTraceDW("AVIFileOpenA ERROR: res=%x(%s)\n", res, AviErr(res));
 	}
 	else {
 		OutTraceE("AVIFileOpenA: pfile=%x\n", *ppfile);
+	}
+	return res;
+}
+
+HRESULT extAVIFileOpenW(PAVIFILE *ppfile, LPCWSTR szFile, UINT mode, LPCLSID pclsid)
+{
+	HRESULT res;
+	if(IsTraceDW){
+		char sClassId[80];
+		if(pclsid) sprintf_s(sClassId, 80, "%x.%x.%x.%x", pclsid->Data1, pclsid->Data2, pclsid->Data3, pclsid->Data4);
+		else strcpy(sClassId, "(null)");
+		OutTrace("AVIFileOpenW: file=\"%ls\" mode=%x(%s) clsid=%s\n", szFile, mode, AviMode(mode), sClassId);
+	}
+	return (*pAVIFileOpenW)(ppfile, szFile, mode, pclsid);
+	res = (*pAVIFileOpenW)(ppfile, szFile, mode, pclsid);
+	if(res) {
+		OutTraceDW("AVIFileOpenW ERROR: res=%x(%s)\n", res, AviErr(res));
+	}
+	else {
+		OutTraceE("AVIFileOpenW: pfile=%x\n", *ppfile);
 	}
 	return res;
 }

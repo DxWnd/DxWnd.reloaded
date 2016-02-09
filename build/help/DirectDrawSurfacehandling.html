@@ -49,9 +49,9 @@
 			<div id="topic_header_nav">
 				<a href="DirectX.html"><img src="img/arrow_up.png" alt="Parent"/></a>
 				
-				<a href="Emulation.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				<a href="Filtering.html"><img src="img/arrow_left.png" alt="Previous"/></a>
 				
-				<a href="Libs.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				<a href="AEROhandling.html"><img src="img/arrow_right.png" alt="Next"/></a>
 				
 				</div>
 			<div class="clear"></div>
@@ -69,7 +69,7 @@
 </td>
 </tr>
 <tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">VIDEO → SYSTEM Surface on fail</span></p>
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">switch VIDEO to SYSTEM on fail</span></p>
 </td>
 <td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">VIDEOTOSYSTEMMEM</span></p>
 </td>
@@ -101,15 +101,7 @@
 </td>
 </tr>
 <tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Compensate Flip emulation</span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOFLIPEMULATION</span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress clipping</span></p>
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress clipper</span></p>
 </td>
 <td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSCLIPPING</span></p>
 </td>
@@ -117,11 +109,11 @@
 </td>
 </tr>
 <tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Full RECT blit</span></p>
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Force clipper</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15"><br/></span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FORCECLIPPER</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Causes every blit operation to primary surface to be applied to the full surface (NULL rect coordinates). It could be handy to recover wrong surface handling, but this situation should be classified more properly as a DxWnd BUG!</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces mouse clipping inside the main window client area. This is very useful if a fullscreen game doesn't provide for cursor clipping and there is horizontal or vertical scrolling.</span></p>
 </td>
 </tr>
 <tr valign="top">
@@ -130,30 +122,6 @@
 <td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOPALETTEUPDATE</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Avoid executing a plit operation in case of palette update. This could be used to fix conflicts between GDI and ddraw palette updates.</span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set AERO compatible mode</span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">AEROBOOST</span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Quite useful in Windows Vista to Win8 platforms, forces the program to declare its compatibility with AERO desktop mode, avoiding then the switch from AERO to standard desktop mode.</span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces HEL</span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FORCESHEL</span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces Hardware Emulation Layer.</span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Win7 color fix</span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">COLORFIX</span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
 </td>
 </tr>
 <tr valign="top">
@@ -169,31 +137,55 @@
 </td>
 <td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOALPHACHANNEL</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default, DirectDraw surfaces are created with alpha channel capability. This flag changes the default to create surfaces without alpha channel capability.</span></p>
 </td>
 </tr>
 <tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix ddraw ref counter</span></p>
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Auto Primary Surface Blit</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FIXREFCOUNTER</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">AUTOREFRESH</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Decrement the reference counter of some objects to keep in proper account all service objects created internally by DxWnd.</span></p>
-</td>
-</tr>
-<tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Return 0 ref counter</span></p>
-</td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">RETURNNULLREF</span></p>
-</td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Returns always a 0 reference counter when a surface / directdraw session is released.</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games ignore DirectDraw specifications, updating the memory address returned by the first DirectDrawSurface::Lock operation, avoiding the need to Unlock and Lock on every frame (the original version of Cossacks does this). On modern systems, these games display a black screen even though the image is refreshed on the virtual surfaces. This flag periodically refreshes the display while processing the Windows message queue, forcing the game to blit each updated frame to the screen.</span></p>
 </td>
 </tr>
 <tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress D3D8/9 reset</span></p>
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forced mode</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOD3DRESET</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15"><br/></span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Do not perform the D3D reset operation.</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as Auto Primary Surface Blit, but uses a dedicated thread to manage situations where the game doesn't process the message queue (e.g., during intro movies).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set texture pixel format</span></p>
+</td>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">TEXTUREFORMAT</span></p>
+</td>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Applies the virtual pixel format to texture surfaces that don't have an explicit DDSD_PIXELFORMAT attribute.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress Release on backbuffer</span></p>
+</td>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSRELEASE</span></p>
+</td>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">This flag ensures that the DirectDraw backbuffer surface - a critical resource - will not be released in emulated modes, even if explicitly requested.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Flip emulation</span></p>
+</td>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FLIPEMULATION</span></p>
+</td>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Enabled by default, this flag remaps the DirectDraw Flip method which isn't supported on windowed primary surfaces to a corresponding Blt (blit) operation.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Compensate Flip emulation</span></p>
+</td>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOFLIPEMULATION</span></p>
+</td>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default, the Flip operation doesn't take into account the existing background. In several cases (mostly involving mouse cursor movement), this simplified method leaves trails on the screen. This option switches to a slower but more accurate method of Flip emulation that resolves this issue.</span></p>
 </td>
 </tr>
 </table>

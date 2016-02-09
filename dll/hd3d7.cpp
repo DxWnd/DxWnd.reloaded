@@ -1192,7 +1192,7 @@ HRESULT WINAPI extBeginScene2(void *d3dd)
 {
 	HRESULT res;
 	OutTraceD3D("BeginScene(2): d3dd=%x\n", d3dd);
-	if((dxw.dwFlags4 & ZBUFFERCLEAN) || (dxw.dwFlags5 & CLEARTARGET)){
+	if((dxw.dwFlags4 & (ZBUFFERCLEAN|ZBUFFER0CLEAN)) || (dxw.dwFlags5 & CLEARTARGET)){
 		HRESULT res2;
 		LPDIRECT3DVIEWPORT2 vp;
 		D3DVIEWPORT vpd;
@@ -1206,7 +1206,7 @@ HRESULT WINAPI extBeginScene2(void *d3dd)
 			d3dRect.x2 = vpd.dwX + vpd.dwWidth;
 			d3dRect.y2 = vpd.dwY + vpd.dwHeight;
 			OutTraceD3D("d3dRect=(%d,%d)-(%d,%d)\n", d3dRect.x1, d3dRect.y1, d3dRect.x2, d3dRect.y2);
-			if(dxw.dwFlags4 & ZBUFFERCLEAN) vp->Clear(1, &d3dRect, D3DCLEAR_ZBUFFER);	
+			if(dxw.dwFlags4 & (ZBUFFERCLEAN|ZBUFFER0CLEAN)) vp->Clear(1, &d3dRect, D3DCLEAR_ZBUFFER);
 			if(dxw.dwFlags5 & CLEARTARGET) vp->Clear(1, &d3dRect, D3DCLEAR_TARGET);	
 		}
 	}

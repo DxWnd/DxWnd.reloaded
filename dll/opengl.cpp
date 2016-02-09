@@ -39,6 +39,8 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "glTexImage2D", NULL, (FARPROC *)&pglTexImage2D, (FARPROC)extglTexImage2D},
 	//{HOOK_IAT_CANDIDATE, 0, "glDrawPixels", NULL, (FARPROC *)&pglDrawPixels, (FARPROC)extglDrawPixels},
 	{HOOK_IAT_CANDIDATE, 0, "glPixelZoom", NULL, (FARPROC *)&pglPixelZoom, (FARPROC)extglPixelZoom},
+	//{HOOK_IAT_CANDIDATE, 0, "glBegin", NULL, (FARPROC *)&pglBegin, (FARPROC)extglBegin},
+	{HOOK_IAT_CANDIDATE, 0, "glBindTexture", NULL, (FARPROC *)&pglBindTexture, (FARPROC)extglBindTexture},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -474,6 +476,8 @@ void WINAPI extglTexImage2D(
 			break;
 	}
 
+	if(dxw.dwFlags4 & NOTEXTURES) return;
+
 	return (*pglTexImage2D)(target, level, internalFormat, width, height, border, format, type, data);
 }
 
@@ -526,6 +530,32 @@ void WINAPI extglPixelZoom(GLfloat xfactor, GLfloat yfactor)
 		OutTraceDW("glPixelZoom: FIXED x,y factor=(%f,%f)\n", xfactor, yfactor);
 	}
 	(*pglPixelZoom)(xfactor, yfactor);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	return;
+}
+void WINAPI extglBegin(GLenum mode)
+{
+	GLenum glerr;
+	OutTraceDW("glBegin: mode=%x\n", mode);
+
+	//if(mode == GL_QUADS) mode = GL_TRIANGLES;
+	(*pglBegin)(mode);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	return;
+}
+
+void WINAPI extglBindTexture(GLenum target, GLuint texture)
+{
+	GLenum glerr;
+	OutTraceDW("glBindTexture: target=%x texture=%x\n", target, texture);
+
+	if(dxw.dwFlags7 & FIXBINDTEXTURE) {
+		static GLuint uiLastTex = 0;
+		if(uiLastTex) (*pglBindTexture)(target, 0);
+		uiLastTex = texture;
+	}
+
+	(*pglBindTexture)(target, texture);
 	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }

@@ -1,0 +1,100 @@
+﻿<html>
+	
+<head>
+	<title>log options</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("logoptions");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">log options</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Logs.html">Logs</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Logs.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="loggedinfo.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Libs.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="138" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Output debug string</span></p>
+</td>
+<td width="131" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">OUTDEBUGSTRING</span></p>
+</td>
+<td width="1268" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Each log message will be also generated as a debug message. This can be useful to show the logs while they occur by using a runtime scrollable view such as that offered by the DebugView.exe tool.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="138" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Add timestamp to log</span></p>
+</td>
+<td width="131" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">ADDTIMESTAMP</span></p>
+</td>
+<td width="1268" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Adds a timestamp with the system tick count (from GetTickCount() calls) to the beginning of each line in a log file.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="138" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Relative timestamp</span></p>
+</td>
+<td width="131" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">ADDRELATIVETIME</span></p>
+</td>
+<td width="1268" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">If the "Add timestamp to log" option is on, the "Relative timestamp" option adds a timestamp to the beginning of each line in a log file that measures the duration between that line and the previous one. This makes it easier to spot long operations.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

@@ -49,9 +49,9 @@
 			<div id="topic_header_nav">
 				<a href="Compatibility.html"><img src="img/arrow_up.png" alt="Parent"/></a>
 				
-				<a href="3Deffects.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				<a href="Tweaks.html"><img src="img/arrow_left.png" alt="Previous"/></a>
 				
-				<a href="IOtweaks.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				<a href="FakeVersion.html"><img src="img/arrow_right.png" alt="Next"/></a>
 				
 				</div>
 			<div class="clear"></div>
@@ -61,19 +61,35 @@
 <p></p>
 <div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
 <tr valign="top">
-<td width="109" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Emulate registry</span></p>
+<td width="198" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Emulate registry</span></p>
 </td>
-<td width="143" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATEREGISTRY</span></p>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATEREGISTRY</span></p>
 </td>
-<td width="1285" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercepts registry read operations so that missing entries are replaced by the values in DxWnd.reg file.</span></p>
+<td width="1191" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercepts registry read operations so that missing entries are filled in by the values in the DxWnd.reg file.</span></p>
 </td>
 </tr>
 <tr valign="top">
-<td width="109" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Override registry</span></p>
+<td width="198" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Override registry</span></p>
 </td>
-<td width="143" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">OVERRIDEREGISTRY</span></p>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">OVERRIDEREGISTRY</span></p>
 </td>
-<td width="1285" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercepts registry read operations so that missing and exixting entries are replaced by the values in DxWnd.reg file.</span></p>
+<td width="1191" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercepts registry read operations so that missing and existing entries are filled in by the values in the DxWnd.reg file.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="198" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set KEY_WOW64_64KEY flag</span></p>
+</td>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">WOW64REGISTRY</span></p>
+</td>
+<td width="1191" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set the KEY_WOW64_64KEY value in registry system calls so that they are forced to search in the native 64-bit section of the registry in 64-bit platforms.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="198" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set KEY_WOW64_32KEY flag</span></p>
+</td>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">WOW32REGISTRY</span></p>
+</td>
+<td width="1191" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set the KEY_WOW64_32KEY value in registry system calls so that they are forced to search in the 32-bit section of the registry in 64-bit platforms.</span></p>
 </td>
 </tr>
 </table>

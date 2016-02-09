@@ -59,25 +59,51 @@
 	<div id="topic_content">
 		
 <p></p>
-<p class="rvps2"><span class="rvts6">Sets the DxWnd GUI language. The format is as follows:</span></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="187" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">lang=&lt;specification&gt;</span></p>
+</td>
+<td width="1356" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Sets the DxWnd GUI language with a selector for the localization DLL. "default" will load the embedded English text. "automatic" will load the language pack corresponding to the system locale. Any "XYZ" string will load the corresponding "Resources_XYZ.dll" language port. Currently unsupported (available translation packages are no longer up to date).</span></p>
 <p class="rvps2"><span class="rvts6"><br/></span></p>
-<p class="rvps2"><span class="rvts15">lang=&lt;</span><span class="rvts17">specification</span><span class="rvts15">&gt;</span></p>
-<p class="rvps2"><span class="rvts6"><br/></span></p>
-<p class="rvps2"><span class="rvts6">The following languages are supported:</span></p>
+<p class="rvps2"><span class="rvts6">For older versions, the following languages are supported:</span></p>
 <p class="rvps2"><span class="rvts6"><br/></span></p>
 <ul style="text-indent: 0px; margin-left: 24px; list-style-position: outside; list-style-type: disc;">
-<li class="rvps2"><span class="rvts6">EN – english (default language)</span></li>
-<li class="rvps2"><span class="rvts6">CN – chinese</span></li>
-<li class="rvps2"><span class="rvts6">IT – italian</span></li>
+<li class="rvps2"><span class="rvts6">EN – English (default language)</span></li>
+<li class="rvps2"><span class="rvts6">CN – Chinese</span></li>
+<li class="rvps2"><span class="rvts6">IT – Italian</span></li>
 </ul>
 <p class="rvps2"><span class="rvts6"><br/></span></p>
-<p class="rvps2"><span class="rvts6">When you set a </span><span class="rvts15">lang=&lt;</span><span class="rvts17">specification</span><span class="rvts15">&gt;</span><span class="rvts6"> specification DxWnd looks for and loads the resources in the </span><span class="rvts15">Resources_&lt;</span><span class="rvts17">specification</span><span class="rvts15">&gt;.dll</span><span class="rvts6"> file, so anyone could build and use his own language pack.</span></p>
+<p class="rvps2"><span class="rvts6">When you set a </span><span class="rvts15">lang=&lt;</span><span class="rvts19">specification</span><span class="rvts15">&gt;</span><span class="rvts6"> specification, DxWnd looks for and loads the resources in the </span><span class="rvts15">Resources_&lt;</span><span class="rvts19">specification</span><span class="rvts15">&gt;.dll</span><span class="rvts6"> file, so anyone can build and use a custom language pack.</span></p>
 <p class="rvps2"><span class="rvts6"><br/></span></p>
-<p class="rvps2"><span class="rvts15">lang=default</span><span class="rvts6"> disables resource loading and the program uses the default and built-in English pack.</span></p>
+<p class="rvps2"><span class="rvts15">lang=default</span><span class="rvts6"> disables resource loading, and the program will use the default and built-in English pack.</span></p>
 <p class="rvps2"><span class="rvts6"><br/></span></p>
 <p class="rvps2"><span class="rvts15">lang=automatic</span><span class="rvts6"> makes DxWnd search for the current UI language and try to map it to the available language packs. If no corresponding pack is available, it switches to the default (English) behavior.</span></p>
 <p class="rvps2"><span class="rvts6"><br/></span></p>
-<p class="rvps2"><span class="rvts6">This setting is always overridden by a </span><span class="rvts15">/lang=&lt;</span><span class="rvts17">specification</span><span class="rvts15">&gt;</span><span class="rvts6"> argument line specification.</span></p>
+<p class="rvps2"><span class="rvts6">This setting is always overridden by a </span><span class="rvts15">/lang=&lt;</span><span class="rvts19">specification</span><span class="rvts15">&gt;</span><span class="rvts6"> command line argument.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="187" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">debug=&lt;mode&gt;</span></p>
+</td>
+<td width="1356" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Boolean, defaulting to false. debug=1 activates the configuration debug tab. Warning: debug options, when set, are kept even if debug is cleared and the debug is no longer visible.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="187" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">multiprocesshook=&lt;mode&gt;</span></p>
+</td>
+<td width="1356" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Boolean, defaulting to false. multiprocesshook=1 allows multiple programs to run simultaneously on different windows. Beware that not all programs can work this way and it's likely to cause problems with resources that can't be shared, such as the mouse.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="187" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">checkadmin=&lt;mode&gt;</span></p>
+</td>
+<td width="1356" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Boolean, defaulting to false. checkadmin=1 causes DxWnd to autodetect its own administrator permissions at startup and propose a self-elevation if missing.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
 <p></p>
 </div>
 	

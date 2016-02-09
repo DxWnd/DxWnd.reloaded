@@ -17,6 +17,8 @@ typedef PROC (WINAPI *wglGetProcAddress_Type)(LPCSTR);
 typedef BOOL (WINAPI *wglMakeCurrent_Type)(HDC, HGLRC);
 typedef void (WINAPI *glTexImage2D_Type)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
 typedef void (WINAPI *glPixelZoom_Type)(GLfloat, GLfloat);
+typedef void (WINAPI *glBegin_Type)(GLenum);
+typedef void (WINAPI *glBindTexture_Type)(GLenum, GLuint);
 
 extern GLenum WINAPI extglGetError();
 extern void WINAPI extglViewport(GLint,  GLint,  GLsizei,  GLsizei);
@@ -33,6 +35,8 @@ extern PROC WINAPI extwglGetProcAddress(LPCSTR);
 extern BOOL WINAPI extwglMakeCurrent(HDC, HGLRC);
 extern void WINAPI extglTexImage2D(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
 extern void WINAPI extglPixelZoom(GLfloat, GLfloat);
+extern void WINAPI extglBegin(GLenum);
+extern void WINAPI extglBindTexture(GLenum, GLuint);
 
 #ifdef DXWDECLARATIONS 
 #undef DXWEXTERN
@@ -62,3 +66,5 @@ DXWEXTERN wglGetProcAddress_Type pwglGetProcAddress;
 DXWEXTERN wglMakeCurrent_Type pwglMakeCurrent;
 DXWEXTERN glTexImage2D_Type pglTexImage2D;
 DXWEXTERN glPixelZoom_Type pglPixelZoom;
+DXWEXTERN glBegin_Type pglBegin;
+DXWEXTERN glBindTexture_Type pglBindTexture;

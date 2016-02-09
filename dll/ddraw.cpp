@@ -28,13 +28,13 @@ static void NullMethodPointer(char *s)
 #endif
 
 extern BOOL IsChangeDisplaySettingsHotPatched;
-DWORD dwBackBufferCaps;
 extern void TextureHandling(LPDIRECTDRAWSURFACE, int);
 extern void SetMinimalCaps(LPDDCAPS, LPDDCAPS);
 ColorConversion_Type pColorConversion = NULL;
 
 HDC hFlippedDC = NULL;
 BOOL bFlippedDC = FALSE;
+DWORD dwBackBufferCaps = 0;
 
 // DirectDraw API
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -399,7 +399,6 @@ LPDIRECTDRAWCLIPPER lpddC=NULL;
 int iDDPExtraRefCounter=0;
 // v2.02.37: globals to store requested main surface capabilities 
 DDSURFACEDESC2 DDSD_Prim;
-DWORD DDZBufferCaps;
 DWORD PaletteEntries[256];
 DWORD *Palette16BPP = NULL;
 void *EmuScreenBuffer = NULL; // to implement pitch bug fix
@@ -1552,9 +1551,17 @@ static HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRE
 	if(dxw.dwFlags3 & CAPMASK) MaskCapsD(c1, c2);
 
 	if(dxw.dwFlags7 & SUPPRESSOVERLAY){
-#define LAYERCAPS (DDCAPS_OVERLAY|DDCAPS_OVERLAYCANTCLIP|DDCAPS_OVERLAYFOURCC|DDCAPS_OVERLAYSTRETCH)
-		c1->ddsCaps.dwCaps &= ~LAYERCAPS;
-		c2->ddsCaps.dwCaps &= ~LAYERCAPS;
+#define OVERLAYLAYERCAPS \
+	(DDCAPS_OVERLAY|DDCAPS_OVERLAYCANTCLIP|\
+	DDCAPS_OVERLAYFOURCC|DDCAPS_OVERLAYSTRETCH)
+		c1->ddsCaps.dwCaps &= ~OVERLAYLAYERCAPS;
+		c2->ddsCaps.dwCaps &= ~OVERLAYLAYERCAPS;
+#define OVERLAYKEYCAPS \
+	(DDCKEYCAPS_DESTOVERLAY|DDCKEYCAPS_DESTOVERLAYYUV|\
+	DDCKEYCAPS_SRCOVERLAY|DDCKEYCAPS_SRCOVERLAYYUV|\
+	DDCKEYCAPS_SRCOVERLAYCLRSPACE|DDCKEYCAPS_SRCOVERLAYCLRSPACEYUV)
+		c1->dwCKeyCaps &= ~OVERLAYKEYCAPS;
+		c2->dwCKeyCaps &= ~OVERLAYKEYCAPS;
 		c1->dwMaxVisibleOverlays = c1->dwCurrVisibleOverlays = 0;
 		c2->dwMaxVisibleOverlays = c2->dwCurrVisibleOverlays = 0;
 	}
@@ -3233,7 +3240,10 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		}
 
 		res=BuildBackBuffer(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, NULL);
-		if(res == DD_OK) dxwss.PushBackBufferSurface(*lplpdds, dxversion);
+		if(res == DD_OK) {
+			dxwss.PushBackBufferSurface(*lplpdds, dxversion);
+			dxwcdb.PushCaps(*lplpdds, lpddsd->ddsCaps.dwCaps);
+		}
 		return res;
 	}
 
@@ -3243,9 +3253,9 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 	if(!res) {
 		dxwss.PopSurface(*lplpdds);
 		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
-			lpDDZBuffer=*lplpdds;
-			DDZBufferCaps = lpddsd->ddsCaps.dwCaps;
-			OutTraceDW("CreateSurface: lpDDZBuffer=%x save ZBUFFER caps=%x(%s)\n", lpDDZBuffer, DDZBufferCaps, ExplainDDSCaps(DDZBufferCaps));
+			// v2.03.82: save ZBUFFER capabilities for later fix in D3D CreateDevice
+			if(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) dxwcdb.PushCaps(*lplpdds, lpddsd->ddsCaps.dwCaps);
+			OutTraceDW("CreateSurface: lpDDZBuffer=%x save ZBUFFER caps=%x(%s)\n", *lplpdds, lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
 		}
 	}
 
@@ -5321,19 +5331,12 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 		if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= DDSCAPS_LOCALVIDMEM;
 	}
 
-	if ((caps->dwCaps & DDSCAPS_ZBUFFER) || (lpdds == lpDDZBuffer)){
-		IsFixed=TRUE;
-		sLabel="ZBUFFER";
-		if (DDZBufferCaps & DDSCAPS_SYSTEMMEMORY){
-			caps->dwCaps |= (DDSCAPS_ZBUFFER|DDSCAPS_SYSTEMMEMORY); 
-			caps->dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
-		}
-		else {
-			caps->dwCaps |= (DDSCAPS_ZBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
-			caps->dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
-		}
+	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
+	if(caps->dwCaps & DDSCAPS_ZBUFFER) {
+		caps->dwCaps = dxwcdb.GetCaps(lpdds);
+		OutTraceDW("GetCaps: FIXED ZBUFFER caps=%x(%s)\n", caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 	}
-	
+
 	// v2.03.78: fix for "Gothik 2": pretend that 3DDEVICE surface are ALWAYS in video memory
 	if (caps->dwCaps & DDSCAPS_3DDEVICE){  
 		caps->dwCaps |= (DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
@@ -5568,20 +5571,9 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN|DDSCAPS_COMPLEX|DDSCAPS_FLIP); 
 	}
 
-	if (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
-		OutTraceDW("GetSurfaceDesc: fixing ZBUFFER surface\n");
-		IsFixed=TRUE;
-		if (DDZBufferCaps & DDSCAPS_SYSTEMMEMORY){
-			lpddsd->ddsCaps.dwCaps |= (DDSCAPS_ZBUFFER|DDSCAPS_SYSTEMMEMORY); 
-			lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
-		}
-		else {
-			lpddsd->ddsCaps.dwCaps |= (DDSCAPS_ZBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
-			lpddsd->ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
-		}
-	}
-
-	if(IsFixed){
+	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
+	if(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
+		lpddsd->ddsCaps.dwCaps = dxwcdb.GetCaps(lpdds);
 		OutTraceDW("GetSurfaceDesc: lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "GetSurfaceDesc [FIXED]", __LINE__));
 	}
 

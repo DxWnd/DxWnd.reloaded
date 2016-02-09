@@ -30,6 +30,11 @@ typedef struct {
 	USHORT	uVersion;
 } SurfaceDB_Type;
 
+typedef struct {
+	LPDIRECTDRAWSURFACE lpdds;
+	DWORD	dwCaps;
+} CapsDB_Type;
+
 typedef enum {
 	SURFACE_ROLE_PRIMARY = 1,
 	SURFACE_ROLE_BACKBUFFER
@@ -232,6 +237,21 @@ private:
 	void SetSurfaceEntry(LPDIRECTDRAWSURFACE, USHORT, USHORT);
 };
 
+class dxwCapsDB
+{
+public:
+    dxwCapsDB();
+    virtual ~dxwCapsDB();
+
+public:
+	// void ClearCapsDB();
+	void PushCaps(LPDIRECTDRAWSURFACE, DWORD);
+	DWORD GetCaps(LPDIRECTDRAWSURFACE);
+
+protected:
+	CapsDB_Type CapsDB[DDSQLEN+1];
+};
+
 typedef struct {
 	HWND hwnd;
 	WNDPROC wndproc;
@@ -261,6 +281,7 @@ private:
 extern dxwCore dxw;
 extern dxwSStack dxwss;
 extern dxwWStack dxwws;
+extern dxwCapsDB dxwcdb;
 
 #if 0
 typedef enum {

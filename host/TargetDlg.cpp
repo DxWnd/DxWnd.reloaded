@@ -208,6 +208,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HookOpenGL = FALSE;
 	m_ForceHookOpenGL = FALSE;
 	m_FixPixelZoom = FALSE;
+	m_FixBindTexture = FALSE;
 	m_FakeVersion = FALSE;
 	m_FullRectBlt = FALSE;
 	m_CenterToWin = FALSE;

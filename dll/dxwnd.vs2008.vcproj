@@ -350,6 +350,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\dxwcapsdb.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dxwcore.cpp"
 				>
 			</File>
