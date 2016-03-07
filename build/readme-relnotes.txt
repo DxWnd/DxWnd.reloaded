@@ -1142,3 +1142,8 @@ fix: logic for restering last window position on multimonitor configurations
 add: "Help -> View Help" to show help page
 add: "Fix GlobalUnlock" flag to fix GlobalUnlock bad errorcodes in "Grand Prix World" and possibly other games.
 add: revised log configuration, added "Separate" mode to make each process to write on a dedicated file.
+
+v2.03.74
+fix: logging of dwFOURCC field text value
+fix: Injection routine: avoid closing a few handles that should not be closed, simplified logic.
+add: GUI global configuration panel

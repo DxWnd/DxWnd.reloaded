@@ -15,6 +15,7 @@ class CDxwndhostView : public CListView
 {
 protected: // Create from serialization only features.
 	CDxwndhostView();
+	afx_msg void OnHotKey(UINT, UINT, UINT);
 	DECLARE_DYNCREATE(CDxwndhostView)
 	BOOL isUpdated;
 	void SaveConfigFile();
@@ -43,6 +44,7 @@ public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	protected:
 	virtual void OnInitialUpdate(); // Called once after the initial construction.
+	void UpdateHotKeys();
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -76,6 +78,7 @@ protected:
 	afx_msg void OnTaskbarHide();
 	afx_msg void OnTaskbarShow();
 	afx_msg void OnSort();
+	afx_msg void OnGlobalSettings();
 	afx_msg void OnViewLog();
 	afx_msg void OnDeleteLog();
 	afx_msg void OnDebugView();

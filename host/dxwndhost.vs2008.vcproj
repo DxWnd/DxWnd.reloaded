@@ -222,6 +222,10 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\CGlobalSettings.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CoolUtils.cpp"
 				>
 			</File>
@@ -505,6 +509,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CGlobalSettings.h"
+				>
+			</File>
+			<File
 				RelativePath=".\CoolUtils.h"
 				>
 			</File>
@@ -618,6 +626,14 @@
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
 			<File
+				RelativePath=".\res\alt-ctrl-shift.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\res\alt.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\res\bigicons.bmp"
 				>
 			</File>
@@ -698,6 +714,22 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\alt-ctrl-shift.png"
+			>
+		</File>
+		<File
+			RelativePath=".\res\alt-ctrl-shift.png"
+			>
+		</File>
+		<File
+			RelativePath=".\res\alt.png"
+			>
+		</File>
+		<File
+			RelativePath=".\alt.png"
+			>
+		</File>
 		<File
 			RelativePath=".\resource"
 			>

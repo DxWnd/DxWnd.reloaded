@@ -59,7 +59,7 @@ BOOL Inject(DWORD pID, const char * DLL_NAME)
 	}
 	CloseHandle(hThread);
 	CloseHandle(hProc);
-	CloseHandle(hLib);
+	//CloseHandle(hLib);
 	return true;
 }
 

@@ -1834,8 +1834,8 @@ static char *sFourCC(DWORD fcc)
 	char *t=&sRet[0];
 	for(i=0; i<4; i++){
 		c = fcc & (0xFF);
-		*t++ = isprint(c) ? c : '.';
-		c = c >> 8;
+		*(t++) = isprint(c) ? c : '.';
+		fcc = fcc >> 8;
 	}
 	*t = 0;
 	return sRet;

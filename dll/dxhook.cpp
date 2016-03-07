@@ -1530,7 +1530,6 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	else
 	if(dxw.dwFlags7 & CPUMAXUSAGE)
 		CreateThread(NULL, 0, CpuLimit, NULL, 0, NULL);
-
 }
 
 LPCSTR ProcToString(LPCSTR proc)

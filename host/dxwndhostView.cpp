@@ -17,6 +17,7 @@
 #include "PaletteDialog.h"
 #include "TimeSliderDialog.h"
 #include "ShimsDialog.h"
+#include "CGlobalSettings.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -126,13 +127,13 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_FILE_IMPORT, OnImport)
 	ON_COMMAND(ID_DELETE, OnDelete)
 	ON_COMMAND(ID_FILE_SORTPROGRAMSLIST, OnSort)
+	ON_COMMAND(ID_EDIT_GLOBALSETTINGS, OnGlobalSettings)
 	ON_COMMAND(ID_FILE_CLEARALLLOGS, OnClearAllLogs)
 	ON_COMMAND(ID_FILE_GOTOTRAYICON, OnGoToTrayIcon)
 	ON_COMMAND(ID_FILE_SAVE, OnSaveFile)
 	ON_COMMAND(ID_HOOK_START, OnHookStart)
 	ON_COMMAND(ID_HOOK_STOP, OnHookStop)
 	ON_COMMAND(ID_DXAPP_EXIT, OnExit)
-	ON_WM_RBUTTONDOWN()
 	ON_COMMAND(ID_RUN, OnRun)
 	ON_COMMAND(ID_TRAY_RESTORE, OnTrayRestore)
 	ON_COMMAND(ID_VIEW_STATUS, OnViewStatus)
@@ -150,6 +151,8 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_MOVE_UP, OnMoveUp)
 	ON_COMMAND(ID_MOVE_DOWN, OnMoveDown)
 	ON_COMMAND(ID_MOVE_BOTTOM, OnMoveBottom)
+	ON_WM_RBUTTONDOWN()
+	ON_WM_HOTKEY()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -1105,6 +1108,44 @@ void CDxwndhostView::OnDraw(CDC* pDC)
 	ASSERT_VALID(pDoc);
 }
 
+void CDxwndhostView::OnHotKey(UINT nHotKeyId, UINT nKey1, UINT nKey2)
+{ 
+	switch(nHotKeyId){
+		case 0: // minimize
+			this->OnWindowMinimize();
+			break;
+		case 1: // restore
+			this->OnWindowRestore();
+			break;
+		case 2: // kill
+			this->OnProcessKill();
+			break;
+	}
+}
+
+void VKeyError(char *key)
+{
+	char Msg[81];
+	sprintf(Msg, "RegisterHotKey(%s) failed err=%d", key, GetLastError());
+	MessageBox(NULL, Msg, "DxWnd error", MB_OK+MB_ICONWARNING);
+}
+
+void CDxwndhostView::UpdateHotKeys()
+{
+	// Hot Keys
+	DWORD dwKey;
+	extern Key_Type HKeys[];
+	extern KeyCombo_Type HKeyCombo[];
+	// MessageBox("update global settings", "debug", MB_OK);
+	for(int i=0; HKeys[i].iLabelResourceId; i++){
+		dwKey = GetPrivateProfileInt("keymapping", HKeys[i].sIniLabel, 0, gInitPath);
+		if(dwKey) {
+			UnregisterHotKey(this->GetSafeHwnd(), i);
+			if(!RegisterHotKey(this->GetSafeHwnd(), i, MOD_ALT+MOD_SHIFT+MOD_CONTROL, dwKey)) VKeyError(HKeys[i].sIniLabel);
+		}
+	}
+}
+
 void CDxwndhostView::OnInitialUpdate()
 {
 	CListView::OnInitialUpdate();
@@ -1167,6 +1208,17 @@ void CDxwndhostView::OnInitialUpdate()
 	pTitles = &PrivateMaps[0];
 	pTargets= &TargetMaps[0];
 
+	// Hot Keys
+	//DWORD dwKey;
+	//extern Key_Type HKeys[];
+	//extern KeyCombo_Type HKeyCombo[];
+	//for(int i=0; HKeys[i].iLabelResourceId; i++){
+	//	dwKey = GetPrivateProfileInt("keymapping", HKeys[i].sIniLabel, 0, gInitPath);
+	//	if(dwKey) if(!RegisterHotKey(this->GetSafeHwnd(), i, MOD_ALT+MOD_SHIFT+MOD_CONTROL, dwKey)) VKeyError(HKeys[i].sIniLabel);
+	//}
+	UpdateHotKeys();
+
+	// Transient mode
 	if(gTransientMode){
 		this->OnRun();
 	}
@@ -1651,28 +1703,29 @@ void CDxwndhostView::OnResume()
 
 extern HWND find_main_window(unsigned long);
 
-void CDxwndhostView::OnWindowMinimize() 
+static void SendMessageToHookedWin(DWORD message)
 {
 	DXWNDSTATUS DxWndStatus;
-	if ((GetHookStatus(&DxWndStatus) == DXW_RUNNING) && (DxWndStatus.hWnd!=NULL))
-		//::PostMessage(DxWndStatus.hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
-		::PostMessage(find_main_window(DxWndStatus.dwPid), WM_SYSCOMMAND, SC_MINIMIZE, 0);
+	HWND TargethWnd;
+	if (GetHookStatus(&DxWndStatus) == DXW_RUNNING){
+		TargethWnd = (DxWndStatus.hWnd) ? DxWndStatus.hWnd : find_main_window(DxWndStatus.dwPid);
+		::PostMessage(TargethWnd, WM_SYSCOMMAND, message, 0);
+	}
+}
+
+void CDxwndhostView::OnWindowMinimize() 
+{
+	SendMessageToHookedWin(SC_MINIMIZE);
 }
 
 void CDxwndhostView::OnWindowRestore() 
 {
-	DXWNDSTATUS DxWndStatus;
-	if ((GetHookStatus(&DxWndStatus) == DXW_RUNNING) && (DxWndStatus.hWnd!=NULL))
-		//::PostMessage(DxWndStatus.hWnd, WM_SYSCOMMAND, SC_RESTORE, 0);
-		::PostMessage(find_main_window(DxWndStatus.dwPid), WM_SYSCOMMAND, SC_RESTORE, 0);
+	SendMessageToHookedWin(SC_RESTORE);
 }
 
 void CDxwndhostView::OnWindowClose() 
 {
-	DXWNDSTATUS DxWndStatus;
-	if ((GetHookStatus(&DxWndStatus) == DXW_RUNNING) && (DxWndStatus.hWnd!=NULL))
-		//::PostMessage(DxWndStatus.hWnd, WM_SYSCOMMAND, SC_CLOSE, 0);
-		::PostMessage(find_main_window(DxWndStatus.dwPid), WM_SYSCOMMAND, SC_CLOSE, 0);
+	SendMessageToHookedWin(SC_CLOSE);
 }
 
 void CDxwndhostView::OnTaskbarHide() 
@@ -2211,6 +2264,13 @@ void CDxwndhostView::OnViewPalette()
 	pDlg->ShowWindow(SW_SHOW);
 }
 
+void CDxwndhostView::OnGlobalSettings() 
+{
+	CGlobalSettings *pDlg = new CGlobalSettings();
+	BOOL ret = pDlg->Create(CGlobalSettings::IDD, this); 
+	pDlg->ShowWindow(SW_SHOW);
+}
+
 void CDxwndhostView::OnViewTimeSlider()
 {
 	CTimeSliderDialog *pDlg = new CTimeSliderDialog();
@@ -2401,7 +2461,7 @@ DWORD WINAPI StartDebug(void *p)
 		(strlen(ThInfo->PM->launchpath)>0) ? ThInfo->PM->launchpath : ThInfo->TM->path, 
 		0, 0, false, DEBUG_PROCESS|DEBUG_ONLY_THIS_PROCESS, NULL, path, &sinfo, &pinfo)){
 		sprintf(DebugMessage, "CREATE PROCESS error=%d", GetLastError());
-		MessageBoxEx(0, DebugMessage, "ERROR", MB_YESNO | MB_ICONQUESTION, NULL);
+		MessageBoxEx(0, DebugMessage, "ERROR", MB_ICONEXCLAMATION|MB_OK, NULL);
 	}
 
 	CString strEventMessage;
@@ -2421,7 +2481,7 @@ DWORD WINAPI StartDebug(void *p)
 			if(!Inject(pinfo.dwProcessId, path)){
 				// DXW_STRING_INJECTION
 				sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, path);
-				MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
+				MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
 			}
 #ifdef LOCKINJECTIONTHREADS
 			extern LPVOID GetThreadStartAddress(HANDLE);
@@ -2434,11 +2494,11 @@ DWORD WINAPI StartDebug(void *p)
 				if(StartAddress){
 					if(!ReadProcessMemory(pinfo.hProcess, StartAddress, &StartingCode, 4, &BytesCount)){ 
 						sprintf(DebugMessage,"ReadProcessMemory error=%d", GetLastError());
-						MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
+						MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
 					}
 					if(!WriteProcessMemory(pinfo.hProcess, StartAddress, &EndlessLoop, 4, &BytesCount)){
 						sprintf(DebugMessage,"WriteProcessMemory error=%d", GetLastError());
-						MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
+						MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
 					}
 				}
 			}
@@ -2455,7 +2515,7 @@ DWORD WINAPI StartDebug(void *p)
 			if(TargetHandle && StartAddress){
 				if(!WriteProcessMemory(pinfo.hProcess, StartAddress, &StartingCode, 4, &BytesCount)){
 					sprintf(DebugMessage,"WriteProcessMemory error=%d", GetLastError());
-					MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
+					MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
 				}
 			}
 			if(TargetHandle) CloseHandle((HANDLE)TargetHandle);
