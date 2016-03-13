@@ -473,6 +473,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
+	case WM_SYSCOMMAND:
+		// v2.03.56.fix1 by FunkyFr3sh: ensure that "C&C Red Alert 2" receives the WM_SYSCOMMAND / SC_CLOSE message
+		// that likely is filtered by the application logic
+		if(dxw.Windowize && (wparam == SC_CLOSE) && (dxw.dwFlags6 & TERMINATEONCLOSE)) {
+			return (*pDefWindowProcA)(hwnd, message, wparam, lparam);
+		}
+		break;
 	case WM_CLOSE:
 		// Beware: closing main window does not always mean that the program is about to terminate!!!
 		extern void gShowHideTaskBar(BOOL);

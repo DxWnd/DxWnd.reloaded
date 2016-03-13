@@ -3110,7 +3110,7 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	OutTraceDDRAW("GetAttachedSurface(%d): lpdds=%x%s caps=%x(%s)\n", 
 		dxversion, lpdds, (IsPrim?"(PRIM)":(IsBack ? "(BACK)":"")), lpddsc->dwCaps, ExplainDDSCaps(lpddsc->dwCaps));
 
-	if(dxw.dwFlags6 & FLIPEMULATION){
+	if(dxw.dwFlags1 & EMULATESURFACE){
 
 		// v2.1.81: fix to make "Silver" working: if the primary surface was created with 
 		// backbuffercount == 2, the game expects some more surface to be attached to 
@@ -3121,8 +3121,10 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 		// v2.2.62 fix: a check to implement doublebuffer emulation only in case of DDSCAPS_BACKBUFFER
 		// requests. A call to GetAttachedSurface can be made to retrieve DDSCAPS_ZBUFFER surfaces, and in 
 		// this case the BackBuffer surface can't be returned.
+		// v2.03.56.fix1: the double buffer trick for Silver works in generic EMULATESURFACE mode, but the
+		// surface is requested also as a DDSCAPS_VIDEOMEMORY one.
 
-		if (IsBack && (DDSD_Prim.dwBackBufferCount > 1) && (lpddsc->dwCaps & DDSCAPS_BACKBUFFER)){ 
+		if (IsBack && (DDSD_Prim.dwBackBufferCount > 1) && (lpddsc->dwCaps & (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY))){ 
 			*lplpddas = lpdds;
 			OutTraceDW("GetAttachedSurface(%d): DOUBLEBUFFER attached to BACK=%x\n", dxversion, lpdds); 
 			return DD_OK;

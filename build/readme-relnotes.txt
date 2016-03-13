@@ -1036,8 +1036,10 @@ v2.03.55
 fix: differentiated handling of blitting from memory to DC vs. from DC vs. memory. The second case is less frequent, but altered the correct rendering of "Battlezone 1998 edition", now working both in scaled, emulated DC shared DC and shared ddraw and GDI DC. The fix impacts both BitBlt and ScaledBlt GDI calls.
 fix: prevented InvalidateRect to return giving a scaled rect. Fixes "Deadlock 2"partial screen updates.
 
-v2.03.56
+v2.03.56/fix1
 add: capability to hook calls referenced by ordinal number
 add: "Acquire admin caps" flag to self elevate DxWnd if configured as necessary
 add: added third mode to handle potentially offending messages, that is process them by the Window default process routine WinDefaultProc. Good for "Red Alert 2".
 add: "fix clipper area in shared DC", temporary solution to adapt the shared DC mode to the different situations (yet to finish).
+fix: fully integrated the patch for "Silver" game: returning backbuffer as a doublebuffer also when requested with DDSCAPS_VIDEOMEMORY caps.
+add: FunkyFr3sh addition to process WM_SYSCOMMAND SC_CLOSE and force program termination when requested by "Terminate on window close" option.
