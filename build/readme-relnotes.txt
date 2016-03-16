@@ -1043,3 +1043,10 @@ add: added third mode to handle potentially offending messages, that is process 
 add: "fix clipper area in shared DC", temporary solution to adapt the shared DC mode to the different situations (yet to finish).
 fix: fully integrated the patch for "Silver" game: returning backbuffer as a doublebuffer also when requested with DDSCAPS_VIDEOMEMORY caps.
 add: FunkyFr3sh addition to process WM_SYSCOMMAND SC_CLOSE and force program termination when requested by "Terminate on window close" option.
+
+v2.03.57
+fix: improved handling of clipping regions in shared dc mode
+add: added DWM status to log file
+add: flags for preliminary hook of DirectSound and Smack libraries
+fix: changed icon colors (yellow for red, doesn't suggest the idea of error or danger)
+add: menu commands for entry movement (top, bottom, up, down) or duplication

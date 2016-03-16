@@ -60,6 +60,7 @@ protected:
 	//{{AFX_MSG(CDxwndhostView)
 	afx_msg void OnDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnAdd();
+	afx_msg void OnDuplicate();
 	afx_msg void OnModify();
 	afx_msg void OnExport();
 	afx_msg void OnImport();
@@ -97,6 +98,10 @@ protected:
 	afx_msg void OnDesktopcolordepth16bpp();
 	afx_msg void OnDesktopcolordepth24bpp();
 	afx_msg void OnDesktopcolordepth32bpp();
+	afx_msg void OnMoveTop();
+	afx_msg void OnMoveUp();
+	afx_msg void OnMoveDown();
+	afx_msg void OnMoveBottom();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

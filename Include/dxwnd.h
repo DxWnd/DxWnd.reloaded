@@ -218,6 +218,8 @@
 #define LIMITDDRAW			0x00000001 // Limit the maximum available ddraw object version
 #define DISABLEDISABLEALTTAB 0x00000002 // Disables the compatibility patch that disables the Alt-Tab key and other special combinations
 #define FIXCLIPPERAREA		0x00000004 // fix clipper area in ddraw & GDI shared DC mode
+#define HOOKDIRECTSOUND		0x00000008
+#define HOOKSMACKW32			0x00000010
 
 // eighth flags DWORD dxw.dwFlags8:
 

@@ -904,7 +904,6 @@ BOOL WINAPI extCreateProcessA(
 	if(dxw.dwFlags5 & INJECTSON) {
 		DEBUG_EVENT debug_event ={0};
 		char path[MAX_PATH];
-		extern char *GetFileNameFromHandle(HANDLE);
 		DWORD dwContinueStatus = DBG_CONTINUE;
 		extern BOOL Inject(DWORD, const char *);
 		LPVOID LastExceptionPtr = 0;

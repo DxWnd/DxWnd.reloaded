@@ -207,7 +207,7 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
 	{HOOK_HOT_CANDIDATE, 0, "InvertRect", (FARPROC)NULL, (FARPROC *)&pInvertRect, (FARPROC)extInvertRect},
 	{HOOK_HOT_CANDIDATE, 0, "DrawIcon", (FARPROC)NULL, (FARPROC *)&pDrawIcon, (FARPROC)extDrawIcon},
-	{HOOK_HOT_CANDIDATE, 0, "DrawIconEx", (FARPROC)NULL, (FARPROC *)&pDrawIconEx, (FARPROC)extDrawIconEx},
+	{HOOK_IAT_CANDIDATE, 0, "DrawIconEx", (FARPROC)NULL, (FARPROC *)&pDrawIconEx, (FARPROC)extDrawIconEx},
 	{HOOK_HOT_CANDIDATE, 0, "DrawCaption", (FARPROC)NULL, (FARPROC *)&pDrawCaption, (FARPROC)extDrawCaption},
 	//TODO {HOOK_HOT_CANDIDATE, 0, "DrawEdge", (FARPROC)NULL, (FARPROC *)&pDrawEdge, (FARPROC)extDrawEdge},
 	//TODO {HOOK_HOT_CANDIDATE, 0, "DrawFocusRect", (FARPROC)NULL, (FARPROC *)&pDrawFocusRect, (FARPROC)extDrawFocusRect},
@@ -3559,7 +3559,7 @@ BOOL WINAPI extDrawIcon(HDC hdc, int X, int Y, HICON hIcon)
 	return ret;
 }
 
-
+// not working in HOT PATCH mode
 BOOL WINAPI extDrawIconEx( HDC hdc, int xLeft, int yTop, HICON hIcon, int cxWidth, int cyWidth, UINT istepIfAniCur, HBRUSH hbrFlickerFreeDraw, UINT diFlags)
 {
 	BOOL ret;

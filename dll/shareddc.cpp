@@ -330,7 +330,7 @@ void dxwSDC::copyDcAttributes(HDC destDC, HDC origDc, POINT origin)
 	SetTextCharacterExtra(destDC, GetTextCharacterExtra(origDc));
 	SetTextColor(destDC, GetTextColor(origDc));
 
-	OutTrace("copyDcAttributes: orig=(%d,%d)\n", origin.x, origin.y);
+	OutTraceB("copyDcAttributes: orig=(%d,%d)\n", origin.x, origin.y);
 	if(!(*pSetWindowOrgEx)(destDC, -origin.x, -origin.y, NULL))
 		OutTraceE("copyDcAttributes: SetWindowOrgEx ERROR orig=(%d,%d) err=%d\n", origin.x, origin.y, GetLastError());
 
@@ -355,35 +355,36 @@ typedef struct
 static BOOL CALLBACK excludeClipRectsForOverlappingWindows(HWND hwnd, LPARAM lParam)
 {
 	ExcludeClipRectsData_Type *excludeClipRectsData = (ExcludeClipRectsData_Type *)lParam;
-	if (hwnd == dxw.GethWnd()) return FALSE; // stop
 	if (!IsWindowVisible(hwnd)) return TRUE; // go ahead
+	if (hwnd == excludeClipRectsData->rootWnd) return FALSE; // stop 
+	if(dxw.IsDesktop(hwnd)) return FALSE;
 
 	RECT rect = {};
-	(*pGetWindowRect)(hwnd, &rect);
+	(*pGetClientRect)(hwnd, &rect);
 	OffsetRect(&rect, -excludeClipRectsData->origin.x, -excludeClipRectsData->origin.y);
 	ExcludeClipRect(excludeClipRectsData->compatDc, rect.left, rect.top, rect.right, rect.bottom);
-	OutTrace("dxwSDC::excludeClipRects: hwnd=%x rect=(%d,%d)-(%d,%d)\n", hwnd, rect.left, rect.top, rect.right, rect.bottom);
+	OutTraceB("dxwSDC::excludeClipRects: hwnd=%x rect=(%d,%d)-(%d,%d)\n", hwnd, rect.left, rect.top, rect.right, rect.bottom);
 	return TRUE;
 }
 
 void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
 {
-	OutTrace("dxwSDC::setClippingRegion: compdc=%x origdc=%x origin=(%d,%d)\n", compatDc, origDc, origin.x, origin.y);
+	OutTraceB("dxwSDC::setClippingRegion: compdc=%x origdc=%x origin=(%d,%d)\n", compatDc, origDc, origin.x, origin.y);
 	HRGN clipRgn = CreateRectRgn(0, 0, 0, 0);
 	const bool isEmptyClipRgn = (1 != GetRandomRgn(origDc, clipRgn, SYSRGN));
-	OutTrace("dxwSDC::setClippingRegion: isEmptyClipRgn=%x\n", isEmptyClipRgn);
+	OutTraceB("dxwSDC::setClippingRegion: isEmptyClipRgn=%x\n", isEmptyClipRgn);
 	// scale clip region
 	POINT upleft={0, 0};
 	//(*pClientToScreen)(dxw.GethWnd(), &upleft);
 	(*pClientToScreen)(CurrenthWnd, &upleft);
 	if(IsDebug){
-		OutTrace("dxwSDC::setClippingRegion: upleft=(%d,%d)\n", upleft.x, upleft.y);
+		OutTraceB("dxwSDC::setClippingRegion: upleft=(%d,%d)\n", upleft.x, upleft.y);
 	}
 	OffsetRgn(clipRgn, -upleft.x, -upleft.y);
 	if(IsDebug){
 		RECT RgnBox;
 		GetRgnBox(clipRgn, &RgnBox);
-		OutTrace("dxwSDC::setClippingRegion: RgnBox=(%d,%d)-(%d,%d) size=(%dx%d)\n", 
+		OutTraceB("dxwSDC::setClippingRegion: RgnBox=(%d,%d)-(%d,%d) size=(%dx%d)\n", 
 			RgnBox.left, RgnBox.top, RgnBox.right, RgnBox.bottom, RgnBox.right-RgnBox.left, RgnBox.bottom-RgnBox.top);
 	}
 	// end of scaling
@@ -393,13 +394,13 @@ void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
 	HRGN origClipRgn = (*pCreateRectRgn)(0, 0, 0, 0);
 	if (1 == GetClipRgn(origDc, origClipRgn))
 	{
-		OutTrace("dxwSDC::setClippingRegion: GetClipRgn==1\n");
+		OutTraceB("dxwSDC::setClippingRegion: GetClipRgn==1\n");
 		OffsetRgn(origClipRgn, origin.x, origin.y);
 		ExtSelectClipRgn(compatDc, origClipRgn, RGN_AND);
 		if(IsDebug){
 			RECT RgnBox;
 			GetRgnBox(origClipRgn, &RgnBox); // for logging only
-			OutTrace("dxwSDC::setClippingRegion: OrigRgnBox=(%d,%d)-(%d,%d)\n", RgnBox.left, RgnBox.top, RgnBox.right, RgnBox.bottom);
+			OutTraceB("dxwSDC::setClippingRegion: OrigRgnBox=(%d,%d)-(%d,%d)\n", RgnBox.left, RgnBox.top, RgnBox.right, RgnBox.bottom);
 		}
 	}
 	DeleteObject(origClipRgn);
@@ -408,10 +409,13 @@ void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
 		// to finish .....
 		// on Win10 this part seems unnecessary and giving troubles .....
 		if (!isEmptyClipRgn){
+			OutTraceB("dxwSDC::setClippingRegion: isEmptyClipRgn FALSE\n");
 			HWND hwnd = WindowFromDC(origDc);
-			if (hwnd)
-			{
-				ExcludeClipRectsData_Type excludeClipRectsData = { compatDc, origin, GetAncestor(hwnd, GA_ROOT) };
+			if (hwnd && (!dxw.IsDesktop(hwnd))){
+				ExcludeClipRectsData_Type excludeClipRectsData = { compatDc, origin, dxw.GethWnd() };
+				//ExcludeClipRectsData_Type excludeClipRectsData = { compatDc, origin, GetAncestor(hwnd, GA_ROOT) };
+				OutTraceB("dxwSDC::setClippingRegion: compatdc=%x origin=(%d,%d) ancestor=%x\n", 
+					compatDc, origin.x, origin.y, dxw.GethWnd());
 				EnumWindows(&excludeClipRectsForOverlappingWindows,(LPARAM)(&excludeClipRectsData));
 			}
 		}

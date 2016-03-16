@@ -23,7 +23,7 @@ SmackOpen_Type pSmackOpen = NULL;
 SmackStruct * WINAPI extSmackOpen(HANDLE, UINT32, INT32);
 
 static HookEntryEx_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, 0, "_SmackOpen@12", (FARPROC)NULL, (FARPROC *)&pSmackOpen, (FARPROC)extSmackOpen},
+	{HOOK_IAT_CANDIDATE, 0x000E, "_SmackOpen@12", (FARPROC)NULL, (FARPROC *)&pSmackOpen, (FARPROC)extSmackOpen},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -66,5 +66,17 @@ SmackStruct * WINAPI extSmackOpen(HANDLE SmackFile, UINT32 flags, INT32 unknown)
 	}
 	return ret;
 }
+
+/* ---------------------------------------------------------------
+Used by M2 Tank Platoon II:
+Ordinal 0x0015 name _SmackNextFrame@4
+Ordinal 0x000E name _SmackOpen@12
+Ordinal 0x0026 name _SmackSoundUseDirectSound@4
+Ordinal 0x0012 name _SmackClose@4
+Ordinal 0x0013 name _SmackDoFrame@4
+Ordinal 0x0017 name _SmackToBuffer@28
+Ordinal 0x0020 name _SmackWait@4
+/* ------------------------------------------------------------ */
+
 
 

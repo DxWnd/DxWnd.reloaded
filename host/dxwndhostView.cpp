@@ -117,6 +117,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_TASKBAR_SHOW, OnTaskbarShow)
 	ON_COMMAND(ID_MODIFY, OnModify)
 	ON_COMMAND(ID_ADD, OnAdd)
+	ON_COMMAND(ID_PDUPLICATE, OnDuplicate)
 	ON_COMMAND(ID_PEXPORT, OnExport)
 	ON_COMMAND(ID_PKILL, OnProcessKill)
 	ON_COMMAND(ID_FILE_IMPORT, OnImport)
@@ -139,6 +140,10 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_16BPP, OnDesktopcolordepth16bpp)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_24BPP, OnDesktopcolordepth24bpp)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_32BPP, OnDesktopcolordepth32bpp)
+	ON_COMMAND(ID_MOVE_TOP, OnMoveTop)
+	ON_COMMAND(ID_MOVE_UP, OnMoveUp)
+	ON_COMMAND(ID_MOVE_DOWN, OnMoveDown)
+	ON_COMMAND(ID_MOVE_BOTTOM, OnMoveBottom)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -307,6 +312,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
+	if(dlg->m_HookDirectSound) t->flags7 |= HOOKDIRECTSOUND;
+	if(dlg->m_HookSmackW32) t->flags7 |= HOOKSMACKW32;
 	if(dlg->m_EASportsHack) t->flags5 |= EASPORTSHACK;
 	if(dlg->m_LegacyAlloc) t->flags6 |= LEGACYALLOC;
 	if(dlg->m_DisableMaxWinMode) t->flags6 |= DISABLEMAXWINMODE;
@@ -539,6 +546,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
+	dlg->m_HookDirectSound = t->flags7 & HOOKDIRECTSOUND ? 1 : 0;
+	dlg->m_HookSmackW32 = t->flags7 & HOOKSMACKW32 ? 1 : 0;
 	dlg->m_EASportsHack = t->flags5 & EASPORTSHACK ? 1 : 0;
 	dlg->m_LegacyAlloc = t->flags6 & LEGACYALLOC ? 1 : 0;
 	dlg->m_DisableMaxWinMode = t->flags6 & DISABLEMAXWINMODE ? 1 : 0;
@@ -1676,6 +1685,179 @@ void CDxwndhostView::OnAdd()
 	}
 }
 
+void CDxwndhostView::OnDuplicate() 
+{
+	POSITION pos;
+	int i;
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!(pos = listctrl.GetFirstSelectedItemPosition())) return;
+	i = listctrl.GetNextSelectedItem(pos);
+	if (listctrl.GetItemCount()>=MAXTARGETS-1) return; // too many entries to duplicate one!
+
+	for(int j=listctrl.GetItemCount(); j>i; j--){
+		TargetMaps[j+1]=TargetMaps[j];
+		PrivateMaps[j+1]=PrivateMaps[j];
+	}
+	TargetMaps[i+1] = TargetMaps[i];
+	PrivateMaps[i+1] = PrivateMaps[i];
+
+	listctrl.DeleteAllItems();
+	for(i=0; TargetMaps[i].path[0]; i++) {
+		LV_ITEM listitem;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+		listitem.iItem = i;
+		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
+		listitem.pszText = PrivateMaps[i].title;
+		listctrl.SetItem(&listitem);
+		listctrl.InsertItem(&listitem);
+	}
+	SetTarget(TargetMaps);
+	this->isUpdated=TRUE;
+}
+
+void CDxwndhostView::OnMoveTop() 
+{
+	TARGETMAP MapEntry;
+	PRIVATEMAP TitEntry;
+	POSITION pos;
+	int i;
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!(pos = listctrl.GetFirstSelectedItemPosition())) return;
+	i = listctrl.GetNextSelectedItem(pos);
+	if (i==0)return;
+
+	MapEntry=TargetMaps[i];
+	TitEntry=PrivateMaps[i];
+	for(int j=i; j; j--){
+		TargetMaps[j]=TargetMaps[j-1];
+		PrivateMaps[j]=PrivateMaps[j-1];
+	}
+	TargetMaps[0]=MapEntry;
+	PrivateMaps[0]=TitEntry;
+
+	listctrl.DeleteAllItems();
+	for(i=0; TargetMaps[i].path[0]; i++) {
+		LV_ITEM listitem;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+		listitem.iItem = i;
+		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
+		listitem.pszText = PrivateMaps[i].title;
+		listctrl.SetItem(&listitem);
+		listctrl.InsertItem(&listitem);
+	}
+	SetTarget(TargetMaps);
+	this->isUpdated=TRUE;
+}
+
+void CDxwndhostView::OnMoveUp() 
+{
+	TARGETMAP MapEntry;
+	PRIVATEMAP TitEntry;
+	POSITION pos;
+	int i;
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!(pos = listctrl.GetFirstSelectedItemPosition())) return;
+	i = listctrl.GetNextSelectedItem(pos);
+	if (i==0)return;
+
+	MapEntry=TargetMaps[i-1];
+	TargetMaps[i-1]=TargetMaps[i];
+	TargetMaps[i]=MapEntry;
+	TitEntry=PrivateMaps[i-1];
+	PrivateMaps[i-1]=PrivateMaps[i];
+	PrivateMaps[i]=TitEntry;
+
+	listctrl.DeleteAllItems();
+	for(i=0; TargetMaps[i].path[0]; i++) {
+		LV_ITEM listitem;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+		listitem.iItem = i;
+		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
+		listitem.pszText = PrivateMaps[i].title;
+		listctrl.SetItem(&listitem);
+		listctrl.InsertItem(&listitem);
+	}
+	SetTarget(TargetMaps);
+	this->isUpdated=TRUE;
+}
+
+void CDxwndhostView::OnMoveDown() 
+{
+	TARGETMAP MapEntry;
+	PRIVATEMAP TitEntry;
+	POSITION pos;
+	int i;
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!(pos = listctrl.GetFirstSelectedItemPosition())) return;
+	i = listctrl.GetNextSelectedItem(pos);
+	if (i==listctrl.GetItemCount()-1)return;
+
+	MapEntry=TargetMaps[i+1];
+	TargetMaps[i+1]=TargetMaps[i];
+	TargetMaps[i]=MapEntry;
+	TitEntry=PrivateMaps[i+1];
+	PrivateMaps[i+1]=PrivateMaps[i];
+	PrivateMaps[i]=TitEntry;
+
+	listctrl.DeleteAllItems();
+	for(i=0; TargetMaps[i].path[0]; i++) {
+		LV_ITEM listitem;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+		listitem.iItem = i;
+		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
+		listitem.pszText = PrivateMaps[i].title;
+		listctrl.SetItem(&listitem);
+		listctrl.InsertItem(&listitem);
+	}
+	SetTarget(TargetMaps);
+	this->isUpdated=TRUE;
+}
+
+void CDxwndhostView::OnMoveBottom() 
+{
+	TARGETMAP MapEntry;
+	PRIVATEMAP TitEntry;
+	POSITION pos;
+	int i, last;
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!(pos = listctrl.GetFirstSelectedItemPosition())) return;
+	i = listctrl.GetNextSelectedItem(pos);
+	last = listctrl.GetItemCount()-1;
+	if (i==last)return;
+
+	MapEntry=TargetMaps[i];
+	TitEntry=PrivateMaps[i];
+	for(int j=i; j<last; j++){
+		TargetMaps[j]=TargetMaps[j+1];
+		PrivateMaps[j]=PrivateMaps[j+1];
+	}
+	TargetMaps[last]=MapEntry;
+	PrivateMaps[last]=TitEntry;
+
+	listctrl.DeleteAllItems();
+	for(i=0; TargetMaps[i].path[0]; i++) {
+		LV_ITEM listitem;
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+		listitem.iItem = i;
+		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
+		listitem.pszText = PrivateMaps[i].title;
+		listctrl.SetItem(&listitem);
+		listctrl.InsertItem(&listitem);
+	}
+	SetTarget(TargetMaps);
+	this->isUpdated=TRUE;
+}
+
 void CDxwndhostView::OnDelete() 
 {
 	int i, len;
@@ -1797,6 +1979,7 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 			if(gTransientMode) {
 				IdleCount++;
 				if(IdleCount > 2) {
+					Tray->HideIcon();
 					delete(Tray->GetAncestor(GA_ROOTOWNER));
 					exit(0);
 				}
@@ -1947,6 +2130,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	case ID_PADD:
 		OnAdd();
 		break;
+	case ID_PDUPLICATE:
+		OnDuplicate();
+		break;
 	case ID_PEXPLORE:
 		OnExplore();
 		break;
@@ -1991,6 +2177,18 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 		break;
 	case ID_DESKTOPCOLORDEPTH_32BPP:
 		OnDesktopcolordepth32bpp();
+		break;
+	case ID_MOVE_TOP:
+		OnMoveTop();
+		break;
+	case ID_MOVE_UP:
+		OnMoveUp();
+		break;
+	case ID_MOVE_DOWN:
+		OnMoveDown();
+		break;
+	case ID_MOVE_BOTTOM:
+		OnMoveBottom();
 		break;
 	}
 	CListView::OnRButtonDown(nFlags, point);

@@ -24,7 +24,6 @@
 #include "MinHook.h" 
 
 #define SKIPIMEWINDOW TRUE
-#define HOOKDIRECTSOUND TRUE
 
 dxwCore dxw;
 dxwSStack dxwss;
@@ -903,8 +902,8 @@ void HookModule(HMODULE base, int dxversion)
 		(dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 	HookAVIFil32(base);
-	//HookSmackW32(base);
-	if (HOOKDIRECTSOUND) HookDirectSound(base); 
+	if(dxw.dwFlags7 & HOOKSMACKW32) HookSmackW32(base);
+	if(dxw.dwFlags7 & HOOKDIRECTSOUND) HookDirectSound(base); 
 	//HookComDlg32(base);
 }
 
@@ -1292,6 +1291,21 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 			dxw.hParentWnd, ClassName, WinText, dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 		OutTrace("HookInit: target window pos=(%d,%d) size=(%d,%d)\n", dxw.iPosX, dxw.iPosY, dxw.iSizX, dxw.iSizY);
 		dxw.DumpDesktopStatus();
+		typedef HRESULT (WINAPI *DwmIsCompositionEnabled_Type)(BOOL *);
+		DwmIsCompositionEnabled_Type pDwmIsCompositionEnabled = NULL;
+		HMODULE DwnApiHdl;
+		DwnApiHdl = LoadLibrary("Dwmapi.dll");
+		if (DwnApiHdl) pDwmIsCompositionEnabled = (DwmIsCompositionEnabled_Type)GetProcAddress(DwnApiHdl, "DwmIsCompositionEnabled");
+		char *sRes;
+		if(pDwmIsCompositionEnabled){
+			HRESULT res;
+			BOOL val;
+			res = (*pDwmIsCompositionEnabled)(&val);
+			if(res==S_OK) sRes = val ? "ENABLED" : "DISABLED";
+			else sRes = "ERROR";
+		}
+		else sRes = "Unknown";
+		OutTrace("HookInit: DWMComposition %s\n", sRes);
 	}
 
 	if (SKIPIMEWINDOW) {
