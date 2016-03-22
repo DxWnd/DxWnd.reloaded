@@ -1499,7 +1499,8 @@ static HWND WINAPI extCreateWindowCommon(
 		POINT upleft = {0,0};
 
 		// update virtual screen size if it has grown 
-		dxw.SetScreenSize(nWidth, nHeight);
+		// v2.03.58 fix: do't consider CW_USEDEFAULT ad a big unsigned integer!! Fixes "Imperialism".
+		if((nWidth != CW_USEDEFAULT) && (nHeight != CW_USEDEFAULT)) dxw.SetScreenSize(nWidth, nHeight);
 
 		// inserted some checks here, since the main window could be destroyed
 		// or minimized (see "Jedi Outcast") so that you may get a dangerous 

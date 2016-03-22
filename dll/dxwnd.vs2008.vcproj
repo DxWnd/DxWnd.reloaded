@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="dxwnd"
 	ProjectGUID="{579E7FE7-2745-4100-A802-23511711FCDE}"
 	RootNamespace="dxwnd"
@@ -30,6 +30,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+				Description="embed manifest"
+				CommandLine="mt.exe -nologo -manifest dxwnd.dll.manifest -outputresource:&quot;../Debug/dxwnd.dll;#1"
+				Outputs="manifest.out.txt"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -131,6 +134,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+				Description="embed manifest"
+				CommandLine="mt.exe -nologo -manifest dxwnd.dll.manifest -outputresource:&quot;../Release/dxwnd.dll;#1"
+				Outputs="manifest.out.txt"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -182,6 +188,8 @@
 				OutputFile="../Release/dxwnd.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
+				GenerateManifest="false"
+				ManifestFile=""
 				ModuleDefinitionFile=".\dxwnd.def"
 				ProgramDatabaseFile=".\Release/dxwnd.pdb"
 				RandomizedBaseAddress="1"

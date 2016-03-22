@@ -80,6 +80,7 @@ protected:
 	afx_msg void OnDeleteLog();
 	afx_msg void OnDebugView();
 	afx_msg void OnSetRegistry();
+	afx_msg void OnSetPath();
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnRun();
 	afx_msg void OnClearAllLogs();
@@ -98,6 +99,8 @@ protected:
 	afx_msg void OnDesktopcolordepth16bpp();
 	afx_msg void OnDesktopcolordepth24bpp();
 	afx_msg void OnDesktopcolordepth32bpp();
+	afx_msg void OnRecoverScreenMode();
+	afx_msg void OnClearCompatibilityFlags();
 	afx_msg void OnMoveTop();
 	afx_msg void OnMoveUp();
 	afx_msg void OnMoveDown();

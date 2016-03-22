@@ -140,6 +140,8 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_16BPP, OnDesktopcolordepth16bpp)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_24BPP, OnDesktopcolordepth24bpp)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_32BPP, OnDesktopcolordepth32bpp)
+	ON_COMMAND(ID_TOOLS_RECOVERSCREENMODE, OnRecoverScreenMode)
+	ON_COMMAND(ID_TOOLS_CLEARCOMPATIBILITYFLAGS, OnClearCompatibilityFlags)
 	ON_COMMAND(ID_MOVE_TOP, OnMoveTop)
 	ON_COMMAND(ID_MOVE_UP, OnMoveUp)
 	ON_COMMAND(ID_MOVE_DOWN, OnMoveDown)
@@ -1389,6 +1391,48 @@ void CDxwndhostView::OnDebugView()
 	CloseHandle(pinfo.hThread);
 }
 
+void CDxwndhostView::OnSetPath() 
+{
+	int i;
+	CTargetDlg dlg;
+	POSITION pos;
+	char *lpProcName, *lpNext;
+	extern BOOL GetProcByName(char *, char *);
+	char FullPath[MAX_PATH+1];
+	char sMessage[1000];
+
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!listctrl.GetSelectedCount()) return;
+	pos = listctrl.GetFirstSelectedItemPosition();
+	i = listctrl.GetNextSelectedItem(pos);
+	//if(TargetMaps[i].path[0] != '*') return;
+	lpProcName = &(TargetMaps[i].path[1]);
+	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
+	strcpy(FullPath,"");
+
+	if(GetProcByName(lpProcName, FullPath)==0){
+		int res;
+		if(strcmp(TargetMaps[i].path, FullPath)){
+			sprintf(sMessage, "Found replacement for \"%s\", "
+				"full path = \"%s\", "
+				"do you want to update the configuration?", lpProcName, FullPath);
+			res = MessageBox(sMessage, "DxWnd set path", MB_YESNO);
+			if(res!=IDYES) return;
+			strcpy(TargetMaps[i].path, FullPath);
+			this->isUpdated=TRUE;
+		}
+		else {
+			sprintf(sMessage, "Path \"%s\" was already set.", FullPath);
+			MessageBox(sMessage, "DxWnd set path", MB_OK);
+		}
+	}
+	else{
+		sprintf(sMessage, "Replacement for \"%s\" not found, run the game!", lpProcName);
+		MessageBox(sMessage, "DxWnd set path", MB_ICONEXCLAMATION);
+	}
+}
+
 void CDxwndhostView::OnSetRegistry() 
 {
 	int i;
@@ -2148,6 +2192,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	case ID_SETREGISTRY:
 		OnSetRegistry();
 		break;
+	case ID_SETPATH:
+		OnSetPath();
+		break;
 	case ID_TASK_KILL:
 		OnKill();
 		break;
@@ -2177,6 +2224,12 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 		break;
 	case ID_DESKTOPCOLORDEPTH_32BPP:
 		OnDesktopcolordepth32bpp();
+		break;
+	case ID_TOOLS_RECOVERSCREENMODE:
+		OnRecoverScreenMode();
+		break;
+	case ID_TOOLS_CLEARCOMPATIBILITYFLAGS:
+		OnClearCompatibilityFlags();
 		break;
 	case ID_MOVE_TOP:
 		OnMoveTop();
@@ -2452,24 +2505,101 @@ void SwitchToColorDepth(int bpp)
 
 void CDxwndhostView::OnDesktopcolordepth8bpp()
 {
-	// TODO: Add your command handler code here
 	SwitchToColorDepth(8);
 }
 
 void CDxwndhostView::OnDesktopcolordepth16bpp()
 {
-	// TODO: Add your command handler code here
 	SwitchToColorDepth(16);
 }
 
 void CDxwndhostView::OnDesktopcolordepth24bpp()
 {
-	// TODO: Add your command handler code here
 	SwitchToColorDepth(24);
 }
 
 void CDxwndhostView::OnDesktopcolordepth32bpp()
 {
-	// TODO: Add your command handler code here
 	SwitchToColorDepth(32);
+}
+
+void CDxwndhostView::OnRecoverScreenMode()
+{
+	RevertScreenChanges(&this->InitDevMode);
+}
+
+void CDxwndhostView::OnClearCompatibilityFlags()
+{
+	int i;
+	POSITION pos;
+	CListCtrl& listctrl = GetListCtrl();
+	CString	FilePath;
+	HRESULT res;
+	char sMessage[500];
+	DWORD lKeyLength;
+	LONG ret;
+
+	if(!listctrl.GetSelectedCount()) return ;
+	pos = listctrl.GetFirstSelectedItemPosition();
+	i = listctrl.GetNextSelectedItem(pos);
+
+	sprintf(sMessage, "Clear all compatibility flags for \"%s\"?", PrivateMaps[i].title);
+	res=MessageBox(sMessage, "DxWnd", MB_YESNO | MB_ICONQUESTION);
+	if(res!=IDYES) return;
+
+	FilePath=TargetMaps[i].path;
+	if (FilePath.GetLength()==0) return;
+
+	HKEY hk;
+	lKeyLength = 0L;
+	DWORD lType;
+	ret=RegOpenKeyEx(HKEY_CURRENT_USER, 
+		"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", 0, KEY_ALL_ACCESS, &hk);
+	if(ret){
+		if(ret != ERROR_FILE_NOT_FOUND){		
+			sprintf(sMessage, "error %ld in RegOpenKeyEx HKEY_CURRENT_USER", ret);
+			MessageBox(sMessage, "DxWnd", MB_OK);
+		}
+	}
+	else {
+		ret=RegQueryValueEx(hk, TargetMaps[i].path, NULL, &lType, NULL, &lKeyLength);
+		if(ret && (ret != ERROR_FILE_NOT_FOUND)){
+			sprintf(sMessage, "error %ld in RegQueryValue hk=%lx \"%s\"", ret, hk, TargetMaps[i].path);
+			MessageBox(sMessage, "DxWnd", MB_OK);
+		}
+		if(lKeyLength > 0L) {
+			MessageBox("Found compatibility flag in HKEY_CURRENT_USER", "DxWnd", MB_OK);
+			if(ret = RegDeleteValue(hk, TargetMaps[i].path)) {
+				sprintf(sMessage, "error %ld in RegDeleteValue hk=%lx \"%s\"", ret, hk, TargetMaps[i].path);
+				MessageBox(sMessage, "DxWnd", MB_OK);
+			}
+		}
+		RegCloseKey(hk);
+	}
+
+	hk=0L;
+	lKeyLength = 0L;
+	ret=RegOpenKeyEx(HKEY_LOCAL_MACHINE, 
+		"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", 0, KEY_ALL_ACCESS, &hk);
+	if(ret){
+		if(ret != ERROR_FILE_NOT_FOUND){
+			sprintf(sMessage, "error %ld in RegOpenKeyEx HKEY_LOCAL_MACHINE", ret);
+			MessageBox(sMessage, "DxWnd", MB_OK);
+		}
+	}
+	else{
+		ret=RegQueryValueEx(hk, TargetMaps[i].path, NULL, &lType, NULL, &lKeyLength);
+		if(ret && (ret != ERROR_FILE_NOT_FOUND)){
+				sprintf(sMessage, "error %ld in RegQueryValue hk=%lx \"%s\"", ret, hk, TargetMaps[i].path);
+				MessageBox(sMessage, "DxWnd", MB_OK);
+		}
+		if(lKeyLength > 0L) {
+			MessageBox("Found compatibility flag in HKEY_LOCAL_MACHINE", "DxWnd", MB_OK);
+			if(ret = RegDeleteValue(hk, TargetMaps[i].path)) {
+				sprintf(sMessage, "error %ld in RegDeleteValue hk=%lx \"%s\"", ret, hk, TargetMaps[i].path);
+				MessageBox(sMessage, "DxWnd", MB_OK);
+			}
+		}
+		RegCloseKey(hk);
+	}
 }

@@ -166,8 +166,8 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc)
 		switch(VirtualSurfaceType){
 			case VIRTUAL_ON_DDRAW:
 				if(!(*pGDIBitBlt)(VirtualHDC, 0, 0, ScreenWidth, ScreenHeight, PrimaryDC, VirtualOffset.x, VirtualOffset.y, SRCCOPY)){
-					OutTraceE("dxwSDC::GetPrimaryDC: StretchBlt ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-					_Warn("StretchBlt ERROR");
+					OutTraceE("dxwSDC::GetPrimaryDC: BitBlt ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+					_Warn("BitBlt ERROR");
 				}
 				OutTraceB("dxwSDC::GetPrimaryDC: fill=(0,0)-(%dx%d) from=(%d,%d)\n", ScreenWidth, ScreenHeight, VirtualOffset.x, VirtualOffset.y);
 				break;

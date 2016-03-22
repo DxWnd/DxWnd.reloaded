@@ -1050,3 +1050,13 @@ add: added DWM status to log file
 add: flags for preliminary hook of DirectSound and Smack libraries
 fix: changed icon colors (yellow for red, doesn't suggest the idea of error or danger)
 add: menu commands for entry movement (top, bottom, up, down) or duplication
+
+v2.03/58
+add: added program manifest stating Win10/8/7/Vista compatibility
+add: "Clear compatbility flag" tool
+add: "Recover screen mode" tool
+add: "Set path" tool
+fix: reorganized menu commands
+fix: proper handling of DEFAULT win size on CreateWindowEx - fixes "Imperialism" problem
+fix: fixed stretced blit operation because Blt behaves differently from StretchBlt. Fixes "3D Minigolf" partial background
+fix: GetPixel logging

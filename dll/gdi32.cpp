@@ -997,6 +997,21 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 				nHDest= nHeight;
 				switch(Flux){
 					case 1: // memory to screen
+						// v1.03.58: BitBlt can blitfrom negative coordinates, StretchBlt can't!
+						if(nXDest < 0){
+							int nXshift = -nXDest;
+							nXDest = 0;
+							nXSrc += nXshift;
+							nWidth -= nXshift;
+							nWDest -= nXshift;
+						}
+						if(nYDest < 0){
+							int nYshift = -nYDest;
+							nYDest = 0;
+							nYSrc += nYshift;
+							nHeight -= nYshift;
+							nHDest -= nYshift;
+						}
 						dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
 						break;
 					case 2: // screen to memory
@@ -2847,7 +2862,7 @@ int WINAPI extOffsetRgn(HRGN hrgn, int nXOffset, int nYOffset)
 COLORREF WINAPI extGetPixel(HDC hdc, int nXPos, int nYPos)
 {
 	COLORREF ret;
-	OutTraceDW("CreateDIBitmap: hdc=%x\n", hdc);
+	OutTraceDW("GetPixel: hdc=%x\n", hdc);
 
 	if(dxw.IsToRemap(hdc)) {
 		switch(dxw.GDIEmulationMode){
@@ -2864,7 +2879,7 @@ COLORREF WINAPI extGetPixel(HDC hdc, int nXPos, int nYPos)
 	}
 	
 	ret=(*pGetPixel)(hdc, nXPos, nYPos);
-	if(!ret) OutTraceE("CreateDIBitmap ERROR: err=%d\n", GetLastError());
+	if(!ret) OutTraceE("GetPixel ERROR: err=%d\n", GetLastError());
 	return ret;}
 
 BOOL WINAPI extPlgBlt(HDC hdcDest, const POINT *lpPoint, HDC hdcSrc, int nXSrc, int nYSrc, int nWidth, int nHeight, HBITMAP hbmMask, int xMask, int yMask)

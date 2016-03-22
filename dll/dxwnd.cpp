@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <windows.h>
+#include <windows.h> 
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.57"
+#define VERSION "2.03.58"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS

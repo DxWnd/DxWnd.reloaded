@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="dxwndhost"
 	ProjectGUID="{FD0B0234-8EC5-43C0-A384-1B881DD3D925}"
 	RootNamespace="dxwndhost"
@@ -83,6 +83,7 @@
 				OutputFile="../Release/dxwnd.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
+				AdditionalManifestDependencies=""
 				ProgramDatabaseFile=".\Release/dxwnd.pdb"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
@@ -94,6 +95,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="dxwnd.manifest"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
