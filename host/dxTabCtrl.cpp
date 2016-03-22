@@ -22,7 +22,7 @@
 #include "dxTabCtrl.h"
 
 #include "TabProgram.h"
-#include "TabLogs.h"
+#include "TabHook.h"
 #include "TabDirectX.h"
 #include "TabDirect3D.h"
 #include "TabInput.h"
@@ -31,6 +31,7 @@
 #include "TabOpenGL.h"
 #include "TabCompat.h"
 #include "TabColor.h"
+#include "TabLogs.h"
 #include "TabRegistry.h"
 #include "TabNotes.h"
 #include "TabSysLibs.h"
@@ -51,6 +52,7 @@ CDXTabCtrl::CDXTabCtrl()
 {
 	int i=0;
 	m_tabPages[i++]=new CTabProgram;
+	m_tabPages[i++]=new CTabHook;
 	m_tabPages[i++]=new CTabWindow;
 	m_tabPages[i++]=new CTabInput;
 	m_tabPages[i++]=new CTabDirectX;
@@ -79,6 +81,7 @@ void CDXTabCtrl::Init()
 	m_tabCurrent=0;
 
 	m_tabPages[i++]->Create(IDD_TAB_PROGRAM, this);
+	m_tabPages[i++]->Create(IDD_TAB_HOOK, this);
 	m_tabPages[i++]->Create(IDD_TAB_OUTPUT, this);
 	m_tabPages[i++]->Create(IDD_TAB_INPUT, this);
 	m_tabPages[i++]->Create(IDD_TAB_DIRECTX, this);

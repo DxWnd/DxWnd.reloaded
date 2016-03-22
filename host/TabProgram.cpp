@@ -41,18 +41,12 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_FILE, cTarget->m_FilePath);
 	DDX_Text(pDX, IDC_LAUNCH, cTarget->m_LaunchPath);
 	DDX_Text(pDX, IDC_TITLE, cTarget->m_Title);
-	DDX_Text(pDX, IDC_MODULE, cTarget->m_Module);
 	DDX_Check(pDX, IDC_NEEDADMINCAPS, cTarget->m_NeedAdminCaps);
 	DDX_Check(pDX, IDC_UNNOTIFY, cTarget->m_UnNotify);
 	DDX_Check(pDX, IDC_WINDOWIZE, cTarget->m_Windowize);
-	DDX_Check(pDX, IDC_HOTPATCH, cTarget->m_HotPatch);
-	DDX_Check(pDX, IDC_HOOKDLLS, cTarget->m_HookDLLs);
 	DDX_Check(pDX, IDC_CONFIRMONCLOSE, cTarget->m_ConfirmOnClose);
 	DDX_Check(pDX, IDC_TERMINATEONCLOSE, cTarget->m_TerminateOnClose);
 	DDX_Check(pDX, IDC_FULLSCREENONLY, cTarget->m_FullScreenOnly);
-	DDX_Check(pDX, IDC_HOOKCHILDWIN, cTarget->m_HookChildWin);
-	DDX_Check(pDX, IDC_HOOKENABLED, cTarget->m_HookEnabled);
-	DDX_Check(pDX, IDC_STARTDEBUG, cTarget->m_StartDebug);
 	DDX_Check(pDX, IDC_SAVELOAD, cTarget->m_SaveLoad);
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);

@@ -3119,7 +3119,8 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		// seems to fix problems in "Warhammer 40K Rites Of War" that uses a ddraw session after reaching 0 refcount.
 		// v2.2.84: avoid the extra referenced in non windowed mode since it causes the window shift reported by gsky916
 		// for Wind Fantasy SP.
-		if((dxw.dwDDVersion==1) && dxw.Windowize) lpdd->AddRef();
+		// v2.3.59: same extra reference is needed by "Wahammer Chaos Gate" that uses ddraw interface release 2
+		if((dxw.dwDDVersion>=2) && dxw.Windowize) lpdd->AddRef();
 
 		return DD_OK;
 	}

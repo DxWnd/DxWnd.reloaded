@@ -374,6 +374,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ShimsDialog.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\StatusDialog.cpp"
 				>
 			</File>
@@ -421,6 +425,10 @@
 			</File>
 			<File
 				RelativePath=".\TabDirectX.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TabHook.cpp"
 				>
 			</File>
 			<File
@@ -546,6 +554,10 @@
 			</File>
 			<File
 				RelativePath=".\TabDirectX.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabHook.h"
 				>
 			</File>
 			<File

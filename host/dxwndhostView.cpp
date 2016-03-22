@@ -16,6 +16,7 @@
 #include "DesktopDialog.h"
 #include "PaletteDialog.h"
 #include "TimeSliderDialog.h"
+#include "ShimsDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -133,6 +134,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_RUN, OnRun)
 	ON_COMMAND(ID_TRAY_RESTORE, OnTrayRestore)
 	ON_COMMAND(ID_VIEW_STATUS, OnViewStatus)
+	ON_COMMAND(ID_VIEW_SHIMS, OnViewShims)
 	ON_COMMAND(ID_VIEW_DESKTOP, OnViewDesktop)
 	ON_COMMAND(ID_VIEW_PALETTE, OnViewPalette)
 	ON_COMMAND(ID_VIEW_TIMESLIDER, OnViewTimeSlider)
@@ -2115,6 +2117,22 @@ void CDxwndhostView::OnViewStatus()
 	pDlg->ShowWindow(SW_SHOW);
 }
 
+void CDxwndhostView::OnViewShims()
+{
+	POSITION pos;
+	int i;
+	char *ExePath;
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!(pos = listctrl.GetFirstSelectedItemPosition())) return;
+	i = listctrl.GetNextSelectedItem(pos);
+	ExePath = TargetMaps[i].path;
+
+	CShimsDialog *pDlg = new CShimsDialog(NULL, ExePath);
+	BOOL ret = pDlg->Create(CShimsDialog::IDD, this); 
+	pDlg->ShowWindow(SW_SHOW);
+}
+
 void CDxwndhostView::OnViewDesktop()
 {
 	CDesktopDialog *pDlg = new CDesktopDialog();
@@ -2377,7 +2395,8 @@ DWORD WINAPI StartDebug(void *p)
 			}
 			if(TargetHandle) CloseHandle((HANDLE)TargetHandle);
 #endif
-			bContinueDebugging=false;
+			// commented out: apparently, there must be some previous thread that starts before the hooker
+			// bContinueDebugging=false;
 			break;
 		case LOAD_DLL_DEBUG_EVENT:
 			CloseHandle(((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->hFile);

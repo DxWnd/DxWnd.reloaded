@@ -52,9 +52,6 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_STRETCHMOVIES, cTarget->m_StretchMovies);
 	DDX_Check(pDX, IDC_FIXMOVIESCOLOR, cTarget->m_FixMoviesColor);
 	DDX_Check(pDX, IDC_BYPASSMCI, cTarget->m_BypassMCI);
-
-	// Kernel32
-	DDX_Radio(pDX, IDC_SONDEFAULT, cTarget->m_SonProcessMode);
 }
 
 BEGIN_MESSAGE_MAP(CTabSysLibs, CDialog)

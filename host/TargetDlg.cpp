@@ -241,6 +241,8 @@ BOOL CTargetDlg::OnInitDialog()
 	char sCaption[48+1];
 	LoadString(AfxGetResourceHandle(), DXW_TAB_MAIN, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
+	LoadString(AfxGetResourceHandle(), DXW_TAB_HOOK, sCaption, sizeof(sCaption));
+	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_VIDEO, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_INPUT, sCaption, sizeof(sCaption));

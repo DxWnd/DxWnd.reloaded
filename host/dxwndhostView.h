@@ -91,6 +91,7 @@ protected:
 	afx_msg void OnHookStop();
 	afx_msg void OnTrayRestore();
 	afx_msg void OnViewStatus();
+	afx_msg void OnViewShims();
 	afx_msg void OnViewDesktop();
 	afx_msg void OnViewPalette();
 	afx_msg void OnViewTimeSlider();
