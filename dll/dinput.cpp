@@ -1,6 +1,8 @@
 #define DIRECTINPUT_VERSION 0x800
 #define  _CRT_SECURE_NO_WARNINGS
 
+#define RECOVERINPUTLOST TRUE // to become a flag?
+
 #include <windows.h>
 #include <dinput.h>
 #include "dxwnd.h"
@@ -179,10 +181,10 @@ HRESULT WINAPI extDirectInputCreateEx(HINSTANCE hinst, DWORD dwversion, REFIID r
 		OutTraceE("DirectInputCreateEx: ERROR err=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
-	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
-	SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
-	if(dwversion > 700)
-		SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceEx, (void **)&pDICreateDeviceEx, "DICreateDeviceEx(I)");
+	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I7)");
+	SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I7)");
+	if(dwversion >= 700)
+		SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceEx, (void **)&pDICreateDeviceEx, "CreateDeviceEx(I7)");
 	return 0;
 }
 
@@ -197,10 +199,21 @@ HRESULT WINAPI extDIQueryInterface(void * lpdi, REFIID riid, LPVOID *obp)
 	if(res) return res;
 
 	switch(riid.Data1){
-	case 0x5944E662:		//DirectInput2A
-	case 0x5944E663:		//DirectInput2W
+	case 0x89521360:		//DirectInputA
+	case 0x89521361:		//DirectInputW
 		SetHook((void *)(**(DWORD **)obp + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I)");
 		SetHook((void *)(**(DWORD **)obp + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I)");
+		break;
+	case 0x5944E662:		//DirectInput2A
+	case 0x5944E663:		//DirectInput2W
+		SetHook((void *)(**(DWORD **)obp + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I2)");
+		SetHook((void *)(**(DWORD **)obp + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I2)");
+		break;
+	case 0x9A4CB684:		//IDirectInput7A
+	case 0x9A4CB685:		//IDirectInput7W
+		SetHook((void *)(**(DWORD **)obp + 12), extDICreateDevice, (void **)&pDICreateDevice, "CreateDevice(I7)");
+		SetHook((void *)(**(DWORD **)obp + 16), extDIEnumDevices, (void **)&pDIEnumDevices, "EnumDevices(I7)");
+		SetHook((void *)(**(DWORD **)obp + 36), extDICreateDeviceEx, (void **)&pDICreateDeviceEx, "CreateDeviceEx(I7)");
 		break;
 	}
 	return 0;
@@ -403,6 +416,17 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	OutTraceDW("GetDeviceState(I): did=%x cbData=%i,%i\n", lpdid, cbdata, dxw.bActive);
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
+
+	if ((res == DIERR_INPUTLOST) && RECOVERINPUTLOST){
+		OutTraceE("GetDeviceState(I) recovering DIERR_INPUTLOST\n"); 
+		res = (*pDISetCooperativeLevel)(lpdid, dxw.GethWnd(), DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+		if(res) OutTraceE("GetDeviceState(I): SetCooperativeLevel ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+		res = (*pAcquire)(lpdid);
+		if(res) OutTraceE("GetDeviceState(I): Acquire ERROR: err=%x(%s)\n", res, ExplainDDError(res)); 
+		if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
+		res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
+	}
+
 	switch(res){
 		case DI_OK:
 			break;
@@ -419,14 +443,29 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	if(	cbdata == sizeof(DIMOUSESTATE) || cbdata == sizeof(DIMOUSESTATE2) 
 	//	|| cbdata == sizeof(DIJOYSTATE) || cbdata == sizeof(DIJOYSTATE2) 
 	){
+		int iMaxX, iMaxY, iMinX, iMinY;
+		if(dxw.dwFlags1 & MODIFYMOUSE){
+			iMinX = iCurMinX ? iCurMinX : 0;
+			iMaxX = iCurMaxX ? iCurMaxX : dxw.GetScreenWidth();
+			iMinY = iCurMinY ? iCurMinY : 0;
+			iMaxY = iCurMaxY ? iCurMaxY : dxw.GetScreenHeight();
+		}
+		else {
+			RECT WinRect = dxw.GetMainWindow();
+			iMinX = iCurMinX ? iCurMinX : WinRect.left;
+			iMaxX = iCurMaxX ? iCurMaxX : WinRect.right;
+			iMinY = iCurMinY ? iCurMinY : WinRect.top;
+			iMaxY = iCurMaxY ? iCurMaxY : WinRect.bottom;
+		}
+		OutTraceB("GetDeviceState(I): CLIP (%d,%d)-(%d,%d)\n", iMinX, iMinY, iMaxX, iMaxY);
 		GetMousePosition((int *)&p.x, (int *)&p.y);
 		lpvdata->lX = p.x;
 		lpvdata->lY = p.y;
 		if(!dxw.bDInputAbs){
-			if(p.x < iCurMinX) p.x = iCurMinX;
-			if(p.x > iCurMaxX) p.x = iCurMaxX;
-			if(p.y < iCurMinY) p.y = iCurMinY;
-			if(p.y > iCurMaxY) p.y = iCurMaxY;
+			if(p.x < iMinX) p.x = iMinX;
+			if(p.x > iMaxX) p.x = iMaxX;
+			if(p.y < iMinY) p.y = iMinY;
+			if(p.y > iMaxY) p.y = iMaxY;
 			lpvdata->lX = p.x - iCursorX;
 			lpvdata->lY = p.y - iCursorY;
 			iCursorX = p.x;
@@ -607,10 +646,12 @@ void ToggleAcquiredDevices(BOOL flag)
 		if(lpDIDSysMouse) (*pAcquire)(lpDIDSysMouse);
 		if(lpDIDKeyboard) (*pAcquire)(lpDIDKeyboard);
 		if(lpDIDJoystick) (*pAcquire)(lpDIDJoystick);
+		if (dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
 	}
 	if(!flag && pUnacquire){
 		if(lpDIDSysMouse) (*pUnacquire)(lpDIDSysMouse);
 		if(lpDIDKeyboard) (*pUnacquire)(lpDIDKeyboard);
 		if(lpDIDJoystick) (*pUnacquire)(lpDIDJoystick);
+		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 	}
 }

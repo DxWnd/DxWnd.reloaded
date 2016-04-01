@@ -25,6 +25,7 @@
 //glDrawPixels_Type pglDrawPixels = NULL;
 
 static HookEntry_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, "glGetError", NULL, (FARPROC *)&pglGetError, (FARPROC)extglGetError},
 	{HOOK_IAT_CANDIDATE, "glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
 	{HOOK_IAT_CANDIDATE, "glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
 	{HOOK_IAT_CANDIDATE, "glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
@@ -111,6 +112,13 @@ void HookOpenGLLibs(HMODULE module, char *customlib)
 		HookOpenGL(module, customlib);
 
 	return;
+}
+
+GLenum WINAPI extglGetError()
+{
+	// to avoid dependencies on opengl32.dll
+	if (pglGetError) return (*pglGetError)();
+	return GL_NO_ERROR;
 }
 
 void WINAPI extglViewport(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height)
@@ -485,7 +493,7 @@ void WINAPI extglDrawPixels(GLsizei width, GLsizei height, GLenum format, GLenum
 		width, height, format, ExplainDrawPixelsFormat(format), type, data);
 
 	(*pglDrawPixels)(width, height, format, type, data);
-	if ((glerr=glGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }
 #endif
@@ -503,6 +511,6 @@ void WINAPI extglPixelZoom(GLfloat xfactor, GLfloat yfactor)
 		OutTraceDW("glPixelZoom: FIXED x,y factor=(%f,%f)\n", xfactor, yfactor);
 	}
 	(*pglPixelZoom)(xfactor, yfactor);
-	if ((glerr=glGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }

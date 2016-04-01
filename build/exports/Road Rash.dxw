@@ -29,3 +29,4 @@ winver0=0
 maxres0=-1
 flagk0=0
 swapeffect0=0
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE]\n\n; Road Rash\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts\RoadRash 95]\n""=""\n"Path"="."\n"CheckDialup"=hex:00\n"ChatState"=hex:02\n"MiniDash"=hex:00\n"OpponentList"=hex:01\n

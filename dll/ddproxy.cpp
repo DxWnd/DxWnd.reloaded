@@ -53,8 +53,14 @@ extern EnumDisplayModes4_Type pEnumDisplayModes4;
 extern EnumSurfaces1_Type pEnumSurfaces1;
 extern EnumSurfaces4_Type pEnumSurfaces4;
 extern FlipToGDISurface_Type pFlipToGDISurface;
-extern GetCapsD_Type pGetCapsD;
-extern GetDisplayMode_Type pGetDisplayMode;
+extern GetCapsD_Type pGetCaps1D;
+extern GetCapsD_Type pGetCaps2D;
+extern GetCapsD_Type pGetCaps4D;
+extern GetCapsD_Type pGetCaps7D;
+extern GetDisplayMode_Type pGetDisplayMode1;
+extern GetDisplayMode_Type pGetDisplayMode2;
+extern GetDisplayMode4_Type pGetDisplayMode4;
+extern GetDisplayMode4_Type pGetDisplayMode7;
 extern GetFourCCCodes_Type pGetFourCCCodes;
 extern GetGDISurface_Type pGetGDISurface;
 extern GetMonitorFrequency_Type pGetMonitorFrequency;
@@ -62,9 +68,14 @@ extern GetScanLine_Type pGetScanLine;
 extern GetVerticalBlankStatus_Type pGetVerticalBlankStatus;
 extern Initialize_Type pInitialize;
 extern RestoreDisplayMode_Type pRestoreDisplayMode;
-extern SetCooperativeLevel_Type pSetCooperativeLevel;
+extern SetCooperativeLevel_Type pSetCooperativeLevel1;
+extern SetCooperativeLevel_Type pSetCooperativeLevel2;
+extern SetCooperativeLevel_Type pSetCooperativeLevel4;
+extern SetCooperativeLevel_Type pSetCooperativeLevel7;
 extern SetDisplayMode1_Type pSetDisplayMode1;
 extern SetDisplayMode2_Type pSetDisplayMode2;
+extern SetDisplayMode2_Type pSetDisplayMode4;
+extern SetDisplayMode2_Type pSetDisplayMode7;
 // missing WaitForVerticalBlank ...
 // v2 interface
 extern GetAvailableVidMem_Type pGetAvailableVidMem;
@@ -940,10 +951,10 @@ HRESULT WINAPI extFlipToGDISurfaceProxy(LPDIRECTDRAW lpdd)
 	return res;
 }
 
-HRESULT WINAPI extGetDisplayModeProxy(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+HRESULT WINAPI extGetDisplayModeProxy(GetDisplayMode_Type pGetDisplayMode, LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 {
 	HRESULT res;
-	OutTraceP("GetDisplayMode(D): PROXED lpdd=%x\n");
+	OutTraceP("GetDisplayMode(D): PROXED lpdd=%x lpddsd=%x\n", lpdd, lpddsd);
 	res=(*pGetDisplayMode)(lpdd, lpddsd);
 	if(res) OutTraceP("GetDisplayMode(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	else{
@@ -957,6 +968,27 @@ HRESULT WINAPI extGetDisplayModeProxy(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 	}
 	return res;
 }
+
+HRESULT WINAPI extGetDisplayMode1Proxy(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+{
+	return extGetDisplayModeProxy(pGetDisplayMode1, lpdd, lpddsd);
+}
+
+HRESULT WINAPI extGetDisplayMode2Proxy(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+{
+	return extGetDisplayModeProxy(pGetDisplayMode2, lpdd, lpddsd);
+}
+
+HRESULT WINAPI extGetDisplayMode4Proxy(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
+{
+	return extGetDisplayModeProxy((GetDisplayMode_Type)pGetDisplayMode4, lpdd, (LPDDSURFACEDESC)lpddsd);
+}
+
+HRESULT WINAPI extGetDisplayMode7Proxy(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+{
+	return extGetDisplayModeProxy((GetDisplayMode_Type)pGetDisplayMode7, lpdd, (LPDDSURFACEDESC)lpddsd);
+}
+
 
 HRESULT WINAPI extGetGDISurfaceProxy(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
 {
@@ -973,30 +1005,50 @@ HRESULT WINAPI extSetCooperativeLevelProxy(void *lpdd, HWND hwnd, DWORD dwflags)
 	HRESULT res;
 	OutTraceP("SetCooperativeLevel(D): PROXED lpdd=%x hwnd=%x dwFlags=%x(%s)\n",
 		lpdd, hwnd, dwflags,ExplainCoopFlags(dwflags));
-	res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
+	res=(*pSetCooperativeLevel1)(lpdd, hwnd, dwflags);
 	if (res) OutTraceP("SetCooperativeLevel(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
 
-HRESULT WINAPI extSetDisplayMode2Proxy(LPDIRECTDRAW lpdd,
-	DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
+static HRESULT WINAPI extSetDisplayModeProxy(int dxversion, LPDIRECTDRAW lpdd,
+	DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwRefreshRate, DWORD dwflags)
 {
 	HRESULT res;
-	OutTraceP("SetDisplayMode(2): PROXED lpdd=%x WxH=(%dx%d) bpp=%d refresh=%x dwFlags=%x\n",
-		lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
-	res=(pSetDisplayMode2)(lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
-	if (res) OutTraceP("SetDisplayMode(2): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	char sExtra[81];
+	if(IsTraceP){
+		if(dxversion>1) sprintf(sExtra, " refresh=%x dwFlags=%x", dwRefreshRate, dwflags);
+		OutTraceP("SetDisplayMode(%d): PROXED lpdd=%x WxH=(%dx%d) bpp=%d%s\n",
+			lpdd, dwwidth, dwheight, dwbpp, (dxversion>1)?sExtra : "");
+	}
+	switch(dxversion){
+		default:
+		case 1: res=(*pSetDisplayMode1)(lpdd, dwwidth, dwheight, dwbpp); break;
+		case 2: res=(*pSetDisplayMode2)(lpdd, dwwidth, dwheight, dwbpp, dwRefreshRate, dwflags); break;
+		case 4: res=(*pSetDisplayMode4)(lpdd, dwwidth, dwheight, dwbpp, dwRefreshRate, dwflags); break;
+		case 7: res=(*pSetDisplayMode7)(lpdd, dwwidth, dwheight, dwbpp, dwRefreshRate, dwflags); break;
+	}
+	if (res) OutTraceP("SetDisplayMode(%d): ERROR res=%x(%s)\n", dxversion, res, ExplainDDError(res));
 	return res;
 }
 
-HRESULT WINAPI extSetDisplayMode1Proxy(LPDIRECTDRAW lpdd,
-	DWORD dwwidth, DWORD dwheight, DWORD dwbpp)
+HRESULT WINAPI extSetDisplayMode1Proxy(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp)
 {
-	HRESULT res;
-	OutTraceP("SetDisplayMode(1): PROXED lpdd=%x WxH=(%dx%d) bpp=%d\n", lpdd, dwwidth, dwheight, dwbpp);
-	res=(pSetDisplayMode1)(lpdd, dwwidth, dwheight, dwbpp);
-	if (res) OutTraceP("SetDisplayMode(1): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	return res;
+	return extSetDisplayModeProxy(1, lpdd, dwwidth, dwheight, dwbpp, 0, 0);
+}
+
+HRESULT WINAPI extSetDisplayMode2Proxy(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
+{
+	return extSetDisplayModeProxy(2, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
+}
+
+HRESULT WINAPI extSetDisplayMode4Proxy(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
+{
+	return extSetDisplayModeProxy(4, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
+}
+
+HRESULT WINAPI extSetDisplayMode7Proxy(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
+{
+	return extSetDisplayModeProxy(7, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
 }
 
 HRESULT WINAPI extTestCooperativeLevelProxy(LPDIRECTDRAW lpdd)
@@ -1743,9 +1795,30 @@ static void HookDDSessionProxy(LPDIRECTDRAW *lplpdd, int dxVersion)
 	// IDIrectDraw::FlipToGDISurface
 	SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurfaceProxy, (void **)&pFlipToGDISurface, "FlipToGDISurface(D)");
 	// IDIrectDraw::GetCaps
-	SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCapsD, (void **)&pGetCapsD, "GetCaps(D)");
 	// IDIrectDraw::GetDisplayMode
-	SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayModeProxy, (void **)&pGetDisplayMode, "GetDisplayMode(D)");
+	// IDIrectDraw::SetDisplayMode
+	switch(dxVersion) {
+	case 1:
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps1D, (void **)&pGetCaps1D, "GetCaps(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode1Proxy, (void **)&pGetDisplayMode1, "GetDisplayMode(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode1Proxy, (void **)&pSetDisplayMode1, "SetDisplayMode(D1)");
+		break;
+	case 2:
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps2D, (void **)&pGetCaps2D, "GetCaps(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode2Proxy, (void **)&pGetDisplayMode2, "GetDisplayMode(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode2Proxy, (void **)&pSetDisplayMode2, "SetDisplayMode(D2)");
+		break;
+	case 4:
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps4D, (void **)&pGetCaps4D, "GetCaps(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode4Proxy, (void **)&pGetDisplayMode4, "GetDisplayMode(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode4Proxy, (void **)&pSetDisplayMode4, "SetDisplayMode(D4)");
+		break;
+	case 7:
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps7D, (void **)&pGetCaps7D, "GetCaps(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode7Proxy, (void **)&pGetDisplayMode7, "GetDisplayMode(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode7Proxy, (void **)&pSetDisplayMode7, "SetDisplayMode(D7)");
+		break;
+	}
 	// IDIrectDraw::GetFourCCCodes
 	SetHook((void *)(**(DWORD **)lplpdd + 52), extGetFourCCCodesProxy, (void **)&pGetFourCCCodes, "GetFourCCCodes(D)");
 	// IDIrectDraw::GetGDISurface
@@ -1773,14 +1846,7 @@ static void HookDDSessionProxy(LPDIRECTDRAW *lplpdd, int dxVersion)
 		SetHook((void *)(**(DWORD **)lplpdd + 108), extGetDeviceIdentifierProxy, (void **)&pGetDeviceIdentifier, "GetDeviceIdentifier(D)");
 	}
 	// IDIrectDraw::SetCooperativeLevel
-	SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevelProxy, (void **)&pSetCooperativeLevel, "SetCooperativeLevel(D)");
-	// IDIrectDraw::SetDisplayMode
-	if (dxVersion > 1){
-		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode2Proxy, (void **)&pSetDisplayMode2, "SetDisplayMode(D2)");
-	}
-	else {
-		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode1Proxy, (void **)&pSetDisplayMode1, "SetDisplayMode(D1)");
-	}
+	SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevelProxy, (void **)&pSetCooperativeLevel1, "SetCooperativeLevel(D)");
 #if 0
 	// IDIrectDraw::WaitForVerticalBlank
 	SetHook((void *)(**(DWORD **)lplpdd + 88), extWaitForVerticalBlankProxy, (void **)&pWaitForVerticalBlank, "WaitForVerticalBlank(D)");

@@ -1222,12 +1222,18 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if(IsTraceDW){
 		char sInfo[1024];
+		OSVERSIONINFO osinfo;
 		strcpy(sInfo, "");
 		if(hwnd) sprintf(sInfo, " hWnd=%x(hdc=%x) dxw.hParentWnd=%x(hdc=%x) desktop=%x(hdc=%x)", 
 			hwnd, GetDC(hwnd), dxw.hParentWnd, GetDC(dxw.hParentWnd), GetDesktopWindow(), GetDC(GetDesktopWindow()));
 		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)%s\n", 
 			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
 			target->posx, target->posy, target->sizx, target->sizy, sInfo);
+		osinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+		if(GetVersionEx(&osinfo)){
+			OutTrace("OS=(%d.%d) build=%d platform=%d service pack=%s\n", 
+				osinfo.dwMajorVersion, osinfo.dwMinorVersion, osinfo.dwPlatformId, osinfo.dwPlatformId, osinfo.szCSDVersion);
+		}
 		if (dxw.dwFlags4 & LIMITSCREENRES) OutTrace("HookInit: max resolution=%s\n", (dxw.MaxScreenRes<6)?Resolutions[dxw.MaxScreenRes]:"unknown");
 	}
 

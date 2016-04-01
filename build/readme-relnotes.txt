@@ -989,8 +989,15 @@ fix: proper default values for"Share ddraw and GDI DC" and "Lock/Unlock Pitch Fi
 
 v2.03.49
 fix: a few improvements in handling NULL lpDDSSource in Blit/Flip operations
-optimization: avoid applying palette to primarty surface when emulated
 add: option to print relative timing to log
 fix: avoid handling textures at level greater than 0 since this seems to cause application crash
 fix: restore cursor clipping through WM_SETFOCUS and DefWindowProc when focus is gained
 fix: "One Must Fall Battlegrounds" keyboard fix - can't SetWindowsHookEx with WH_KEYBOARD and NULL thread
+
+v2.03.50
+fix: check for errors that could cause random GDI cursor clipping regions
+fix: more accurate hooking of ddraw pointers - fixes several DD_GENERIC_ERROR in Win8/10 platforms, makes "SWAT 3" working
+fix: improvements (not finished) in dinput handling
+add: the OS version info is traced in the log file
+fix: added cursor clipping when requested on new main window creation
+fix: handling of cursor clipping when the window gain/lose focus threough DefWindowProc message handling

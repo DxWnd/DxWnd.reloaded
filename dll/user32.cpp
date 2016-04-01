@@ -1530,6 +1530,8 @@ static HWND WINAPI extCreateWindowCommon(
 		(*pShowWindow)(hwnd, SW_MAXIMIZE);
 	}
 
+	if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
+
 	OutTraceDW("%s: ret=%x\n", ApiName, hwnd);
 	return hwnd;
 }
@@ -1671,33 +1673,25 @@ LRESULT WINAPI extCallWindowProcW(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WP
 LRESULT WINAPI extDefWindowProcA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	// v2.02.30: fix (Imperialism II): apply to main window only !!!
+	// v2.03.50: fix - do clip cursor only after the window has got focus
 	HRESULT res;
-
 	res = (HRESULT)-1;
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcA", hwnd, Msg, wParam, &lParam);
-
+	if (res==(HRESULT)-1) res = (*pDefWindowProcA)(hwnd, Msg, wParam, lParam);
 	if((Msg == WM_SETFOCUS) && (dxw.dwFlags1 & CLIPCURSOR)) dxw.SetClipCursor();
-
-	if (res==(HRESULT)-1)
-		return (*pDefWindowProcA)(hwnd, Msg, wParam, lParam);
-	else
-		return res;
+	return res;
 }
 
 LRESULT WINAPI extDefWindowProcW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	// v2.02.30: fix (Imperialism II): apply to main window only !!!
+	// v2.03.50: fix - do clip cursor only after the window has got focus
 	HRESULT res;
-
 	res = (HRESULT)-1;
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcW", hwnd, Msg, wParam, &lParam);
-
+	if (res==(HRESULT)-1) res = (*pDefWindowProcW)(hwnd, Msg, wParam, lParam);
 	if((Msg == WM_SETFOCUS) && (dxw.dwFlags1 & CLIPCURSOR)) dxw.SetClipCursor();
-
-	if (res==(HRESULT)-1)
-		return (*pDefWindowProcW)(hwnd, Msg, wParam, lParam);
-	else
-		return res;
+	return res;
 }
 
 static int HandleRect(char *ApiName, void *pFun, HDC hdc, const RECT *lprc, HBRUSH hbr)

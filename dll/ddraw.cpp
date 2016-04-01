@@ -46,14 +46,22 @@ HRESULT WINAPI extCreateSurface4(LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSUR
 HRESULT WINAPI extCreateSurface7(LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extDuplicateSurface(LPDIRECTDRAW, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE *);
 HRESULT WINAPI extFlipToGDISurface(LPDIRECTDRAW);
-HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW, LPDDSURFACEDESC);
+HRESULT WINAPI extGetDisplayMode1(LPDIRECTDRAW, LPDDSURFACEDESC);
+HRESULT WINAPI extGetDisplayMode2(LPDIRECTDRAW, LPDDSURFACEDESC);
+HRESULT WINAPI extGetDisplayMode4(LPDIRECTDRAW, LPDDSURFACEDESC2);
+HRESULT WINAPI extGetDisplayMode7(LPDIRECTDRAW, LPDDSURFACEDESC2);
 HRESULT WINAPI extGetGDISurface(LPDIRECTDRAW, LPDIRECTDRAWSURFACE *);
 HRESULT WINAPI extEnumDisplayModes1(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
 HRESULT WINAPI extEnumDisplayModes4(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
 HRESULT WINAPI extInitialize(LPDIRECTDRAW, FAR GUID *);
-HRESULT WINAPI extSetCooperativeLevel(void *, HWND, DWORD);
+HRESULT WINAPI extSetCooperativeLevel1(LPDIRECTDRAW, HWND, DWORD);
+HRESULT WINAPI extSetCooperativeLevel2(LPDIRECTDRAW, HWND, DWORD);
+HRESULT WINAPI extSetCooperativeLevel4(LPDIRECTDRAW, HWND, DWORD);
+HRESULT WINAPI extSetCooperativeLevel7(LPDIRECTDRAW, HWND, DWORD);
 HRESULT WINAPI extSetDisplayMode1(LPDIRECTDRAW, DWORD, DWORD, DWORD);
 HRESULT WINAPI extSetDisplayMode2(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);
+HRESULT WINAPI extSetDisplayMode4(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);
+HRESULT WINAPI extSetDisplayMode7(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);
 HRESULT WINAPI extWaitForVerticalBlank(LPDIRECTDRAW, DWORD, HANDLE);
     /*** Added in the V2 Interface ***/
 HRESULT WINAPI extGetAvailableVidMem2(LPDIRECTDRAW, LPDDSCAPS, LPDWORD, LPDWORD);
@@ -62,7 +70,10 @@ HRESULT WINAPI extGetAvailableVidMem4(LPDIRECTDRAW, LPDDSCAPS, LPDWORD, LPDWORD)
 HRESULT WINAPI extTestCooperativeLevel(LPDIRECTDRAW);
 //    STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD ) PURE;
 //    STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD * ) PURE;
-HRESULT WINAPI extGetCapsD(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
+HRESULT WINAPI extGetCaps1D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
+HRESULT WINAPI extGetCaps2D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
+HRESULT WINAPI extGetCaps4D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
+HRESULT WINAPI extGetCaps7D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
 
 // DirectDrawSurface
 HRESULT WINAPI extQueryInterfaceS(void *, REFIID, LPVOID *);
@@ -149,8 +160,14 @@ EnumDisplayModes4_Type pEnumDisplayModes4;
 EnumSurfaces1_Type pEnumSurfaces1;
 EnumSurfaces4_Type pEnumSurfaces4;
 FlipToGDISurface_Type pFlipToGDISurface;
-GetCapsD_Type pGetCapsD;
-GetDisplayMode_Type pGetDisplayMode;
+GetCapsD_Type pGetCaps1D;
+GetCapsD_Type pGetCaps2D;
+GetCapsD_Type pGetCaps4D;
+GetCapsD_Type pGetCaps7D;
+GetDisplayMode_Type pGetDisplayMode1;
+GetDisplayMode_Type pGetDisplayMode2;
+GetDisplayMode4_Type pGetDisplayMode4;
+GetDisplayMode4_Type pGetDisplayMode7;
 GetFourCCCodes_Type pGetFourCCCodes;
 GetGDISurface_Type pGetGDISurface;
 GetMonitorFrequency_Type pGetMonitorFrequency;
@@ -158,9 +175,14 @@ GetScanLine_Type pGetScanLine;
 GetVerticalBlankStatus_Type pGetVerticalBlankStatus;
 Initialize_Type pInitialize;
 RestoreDisplayMode_Type pRestoreDisplayMode;
-SetCooperativeLevel_Type pSetCooperativeLevel;
+SetCooperativeLevel_Type pSetCooperativeLevel1;
+SetCooperativeLevel_Type pSetCooperativeLevel2;
+SetCooperativeLevel_Type pSetCooperativeLevel4;
+SetCooperativeLevel_Type pSetCooperativeLevel7;
 SetDisplayMode1_Type pSetDisplayMode1;
 SetDisplayMode2_Type pSetDisplayMode2;
+SetDisplayMode2_Type pSetDisplayMode4;
+SetDisplayMode2_Type pSetDisplayMode7;
 WaitForVerticalBlank_Type pWaitForVerticalBlank;
 GetSurfaceFromDC_Type pGetSurfaceFromDC;
 GetAvailableVidMem_Type pGetAvailableVidMem;
@@ -298,6 +320,20 @@ DWORD gdwRefreshRate;
 #define MAXREFRESHDELAYCOUNT 20
 int iRefreshDelays[MAXREFRESHDELAYCOUNT]={16, 17};
 int iRefreshDelayCount=2;
+int lpddHookedVersion(LPDIRECTDRAW);
+
+static HRESULT myGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpdds)
+{
+	HRESULT res;
+	switch(lpddHookedVersion(lpdd)){
+		case 1: res=(*pGetDisplayMode1)(lpdd, lpdds); break;
+		case 2: res=(*pGetDisplayMode2)(lpdd, lpdds); break;
+		case 4: res=(*pGetDisplayMode4)(lpdd, (LPDDSURFACEDESC2)lpdds); break;
+		case 7: res=(*pGetDisplayMode7)(lpdd, (LPDDSURFACEDESC2)lpdds); break;
+		default: res=(*pGetDisplayMode1)(lpdd, lpdds); break;
+	}
+	return res;
+}
 
 void SetVSyncDelays(LPDIRECTDRAW lpdd)
 {
@@ -306,11 +342,7 @@ void SetVSyncDelays(LPDIRECTDRAW lpdd)
 
 	memset(&ddsdRefreshRate, 0, sizeof(ddsdRefreshRate));
 	ddsdRefreshRate.dwSize = sizeof(DDSURFACEDESC);
-	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsdRefreshRate);
-	if(res==DDERR_GENERIC){ // handling Win8 missing support for old ddraw interface
-		ddsdRefreshRate.dwSize = sizeof(DDSURFACEDESC2);
-		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsdRefreshRate);
-	}
+	res=myGetDisplayMode(lpdd, (LPDDSURFACEDESC)&ddsdRefreshRate);
 	if(res) return;
 	dxw.SetVSyncDelays(ddsdRefreshRate.dwRefreshRate);
 }
@@ -490,11 +522,7 @@ void InitDDScreenParameters(LPDIRECTDRAW lpdd)
 	HRESULT res;
 	DDSURFACEDESC2 ddsd;
 	ddsd.dwSize=sizeof(DDSURFACEDESC);
-	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
-	if(res==DDERR_GENERIC){ // Win8 missing support for old ddraw interfaces
-		ddsd.dwSize=sizeof(DDSURFACEDESC2);
-		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
-	}
+	res=myGetDisplayMode(lpdd, (LPDDSURFACEDESC)&ddsd);
 	if(res){
 		OutTraceE("GetDisplayMode: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
@@ -1027,20 +1055,39 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	// IDIrectDraw::FlipToGDISurface
 	SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface, (void **)&pFlipToGDISurface, "FlipToGDISurface(D)");
 	// IDIrectDraw::GetCaps
-	SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCapsD, (void **)&pGetCapsD, "GetCaps(D)");
+	// IDIrectDraw::SetCooperativeLevel
 	// IDIrectDraw::GetDisplayMode
-	SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode, (void **)&pGetDisplayMode, "GetDisplayMode(D)");
+	// IDIrectDraw::SetDisplayMode
+	switch(dxversion) {
+	case 1:
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps1D, (void **)&pGetCaps1D, "GetCaps(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode1, (void **)&pGetDisplayMode1, "GetDisplayMode(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel1, (void **)&pSetCooperativeLevel1, "SetCooperativeLevel(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode1, (void **)&pSetDisplayMode1, "SetDisplayMode(D1)");
+		break;
+	case 2:
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps2D, (void **)&pGetCaps2D, "GetCaps(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode2, (void **)&pGetDisplayMode2, "GetDisplayMode(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel2, (void **)&pSetCooperativeLevel2, "SetCooperativeLevel(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode2, (void **)&pSetDisplayMode2, "SetDisplayMode(D2)");
+		break;
+	case 4:
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps4D, (void **)&pGetCaps4D, "GetCaps(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode4, (void **)&pGetDisplayMode4, "GetDisplayMode(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel4, (void **)&pSetCooperativeLevel4, "SetCooperativeLevel(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode4, (void **)&pSetDisplayMode4, "SetDisplayMode(D4)");
+		break;
+	case 7:
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps7D, (void **)&pGetCaps7D, "GetCaps(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode7, (void **)&pGetDisplayMode7, "GetDisplayMode(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel7, (void **)&pSetCooperativeLevel7, "SetCooperativeLevel(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode7, (void **)&pSetDisplayMode7, "SetDisplayMode(D7)");
+		break;
+	}
 	// IDIrectDraw::GetGDISurface
 	SetHook((void *)(**(DWORD **)lplpdd + 56), extGetGDISurface, (void **)&pGetGDISurface, "GetGDISurface(D)");
 	// IDIrectDraw::Initialize
 	SetHook((void *)(**(DWORD **)lplpdd + 72), extInitialize, (void **)&pInitialize, "Initialize(D)");
-	// IDIrectDraw::SetCooperativeLevel
-	SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel, (void **)&pSetCooperativeLevel, "SetCooperativeLevel(D)");
-	// IDIrectDraw::SetDisplayMode
-	if (dxversion > 1)
-		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode2, (void **)&pSetDisplayMode2, "SetDisplayMode(D2)");
-	else 
-		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode1, (void **)&pSetDisplayMode1, "SetDisplayMode(D1)");
 	// IDIrectDraw::WaitForVerticalBlank
 	SetHook((void *)(**(DWORD **)lplpdd + 88), extWaitForVerticalBlank, (void **)&pWaitForVerticalBlank, "WaitForVerticalBlank(D)");
 	// IDIrectDraw::GetAvailableVidMem
@@ -1525,7 +1572,7 @@ static void HandleCapsD(char *sLabel, LPDDCAPS c)
 		OutTraceDDRAW("GetCaps(%s): FIXED VidMemTotal=%x VidMemFree=%x\n", sLabel, c->dwVidMemTotal, c->dwVidMemFree);
 }
 
-HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
+HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 {
 	HRESULT res;
 	OutTraceDDRAW("GetCaps(D): lpdd=%x %s %s\n", lpdd, c1?"c1":"NULL", c2?"c2":"NULL");
@@ -1561,6 +1608,23 @@ HRESULT WINAPI extGetCapsD(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 	if(dxw.dwFlags3 & CAPMASK) MaskCapsD(c1, c2);
 
 	return res;
+}
+
+HRESULT WINAPI extGetCaps1D(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
+{
+	return extGetCapsD(1, pGetCaps1D, lpdd, c1, c2);
+}
+HRESULT WINAPI extGetCaps2D(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
+{
+	return extGetCapsD(2, pGetCaps2D, lpdd, c1, c2);
+}
+HRESULT WINAPI extGetCaps4D(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
+{
+	return extGetCapsD(4, pGetCaps4D, lpdd, c1, c2);
+}
+HRESULT WINAPI extGetCaps7D(LPDIRECTDRAW lpdd, LPDDCAPS_DX7 c1, LPDDCAPS_DX7 c2)
+{
+	return extGetCapsD(7, pGetCaps7D, lpdd, (LPDDCAPS)c1, (LPDDCAPS)c2);
 }
 
 HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, IUnknown FAR *pu)
@@ -1997,12 +2061,16 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT | DDSD_REFRESHRATE;
 	ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ddsd.ddpfPixelFormat.dwFlags = DDPF_RGB; 
-	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
-	if(res==DDERR_GENERIC){ // handling Win8 missing support for old ddraw interface
-		ddsd.dwSize = sizeof(DDSURFACEDESC2);
-		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&ddsd);
+	switch(version){
+		default:
+		case 1: res=(*pGetDisplayMode1)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
+		case 2: res=(*pGetDisplayMode2)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
+		case 4: res=(*pGetDisplayMode4)(lpdd, &ddsd); break;
+		case 7: res=(*pGetDisplayMode7)(lpdd, &ddsd); break;
 	}
-	
+
+	OutTraceB("SetDisplayMode: detected screen size=(%dx%d)\n", ddsd.dwWidth, ddsd.dwHeight);
+
 	if(dxw.Windowize){
 		if(!IsChangeDisplaySettingsHotPatched){
 			dwwidth = ddsd.dwWidth;
@@ -2016,11 +2084,13 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 		dwbpp = ddsd.ddpfPixelFormat.dwRGBBitCount;
 	}
 
-	if (version==1)
-		res = (*pSetDisplayMode1)(lpdd, dwwidth, dwheight, dwbpp);
-	else
-		res = (*pSetDisplayMode2)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0);
-
+	switch(version){
+		default:
+		case 1: res=(*pSetDisplayMode1)(lpdd, dwwidth, dwheight, dwbpp); break;
+		case 2: res=(*pSetDisplayMode2)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
+		case 4: res=(*pSetDisplayMode4)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
+		case 7: res=(*pSetDisplayMode7)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
+	}
 	if(res) OutTraceE("SetDisplayMode: error=%x\n", res);
 
 	SetVSyncDelays(lpdd);
@@ -2031,21 +2101,29 @@ HRESULT WINAPI extSetDisplayMode(int version, LPDIRECTDRAW lpdd,
 	return DD_OK;
 }
 
-HRESULT WINAPI extSetDisplayMode2(LPDIRECTDRAW lpdd,
-	DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
-{
-	return extSetDisplayMode(2, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
-}
-
-HRESULT WINAPI extSetDisplayMode1(LPDIRECTDRAW lpdd,
-	DWORD dwwidth, DWORD dwheight, DWORD dwbpp)
+HRESULT WINAPI extSetDisplayMode1(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp)
 {
 	return extSetDisplayMode(1, lpdd, dwwidth, dwheight, dwbpp, 0, 0);
 }
 
-HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+HRESULT WINAPI extSetDisplayMode2(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
 {
-	OutTraceDDRAW("GetDisplayMode: lpdd=%x lpddsd=%x\n", lpdd, lpddsd);
+	return extSetDisplayMode(2, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
+}
+
+HRESULT WINAPI extSetDisplayMode4(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
+{
+	return extSetDisplayMode(4, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
+}
+
+HRESULT WINAPI extSetDisplayMode7(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
+{
+	return extSetDisplayMode(7, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);
+}
+
+HRESULT WINAPI extGetDisplayMode(GetDisplayMode_Type pGetDisplayMode, LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+{
+	OutTraceDDRAW("GetDisplayMode(D1): lpdd=%x lpddsd=%x\n", lpdd, lpddsd);
 
 	(*pGetDisplayMode)(lpdd, lpddsd);
 	if(dxw.dwFlags1 & EMULATESURFACE) {
@@ -2075,19 +2153,54 @@ HRESULT WINAPI extGetDisplayMode(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 
 	OutTraceDDRAW("GetDisplayMode: returning size=(%dx%d) %s\n", lpddsd->dwWidth, lpddsd->dwHeight, DumpPixelFormat((LPDDSURFACEDESC2)lpddsd));
 
-	return 0;
+	return DD_OK;
 }
 
+HRESULT WINAPI extGetDisplayMode1(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+{
+	return extGetDisplayMode(pGetDisplayMode1, lpdd, lpddsd);
+}
 
-HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
+HRESULT WINAPI extGetDisplayMode2(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+{
+	return extGetDisplayMode(pGetDisplayMode2, lpdd, lpddsd);
+}
+
+HRESULT WINAPI extGetDisplayMode4(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
+{
+	return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode4, lpdd, (LPDDSURFACEDESC)lpddsd);
+}
+
+HRESULT WINAPI extGetDisplayMode7(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
+{
+	return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode7, lpdd, (LPDDSURFACEDESC)lpddsd);
+}
+
+HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pSetCooperativeLevel, LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
 {
 	HRESULT res;
 	BOOL bFixFrame = FALSE;
 
-	OutTraceDDRAW("SetCooperativeLevel: lpdd=%x hwnd=%x dwFlags=%x(%s)\n",
-		lpdd, hwnd, dwflags,ExplainCoopFlags(dwflags));
+	OutTraceDDRAW("SetCooperativeLevel(D%d): lpdd=%x hwnd=%x dwFlags=%x(%s)\n",
+		dxversion, lpdd, hwnd, dwflags,ExplainCoopFlags(dwflags));
 
-	InitDDScreenParameters((LPDIRECTDRAW)lpdd);
+	DDSURFACEDESC2 ddsd;
+	switch(dxversion){
+		default:
+		case 1: ddsd.dwSize=sizeof(DDSURFACEDESC); res=(*pGetDisplayMode1)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
+		case 2: ddsd.dwSize=sizeof(DDSURFACEDESC); res=(*pGetDisplayMode2)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
+		case 4: ddsd.dwSize=sizeof(DDSURFACEDESC2); res=(*pGetDisplayMode4)(lpdd, &ddsd); break;
+		case 7: ddsd.dwSize=sizeof(DDSURFACEDESC2); res=(*pGetDisplayMode7)(lpdd, &ddsd); break;
+	}
+	if(res){
+		OutTraceE("SetCooperativeLevel: GetDisplayMode ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		return res;
+	}
+
+	OutTraceDW("InitDDScreenParameters: Actual size=(%dx%d)%s\n", ddsd.dwWidth, ddsd.dwHeight, DumpPixelFormat((LPDDSURFACEDESC2)&ddsd));
+	dxw.ActualPixelFormat=ddsd.ddpfPixelFormat;
+	if(dxw.VirtualPixelFormat.dwRGBBitCount==0) dxw.VirtualPixelFormat=ddsd.ddpfPixelFormat;
+	SetBltTransformations();
 
 	if(dxw.Windowize){
 		if (dwflags & DDSCL_FULLSCREEN){
@@ -2157,6 +2270,26 @@ HRESULT WINAPI extSetCooperativeLevel(void *lpdd, HWND hwnd, DWORD dwflags)
 	}
 
 	return res;
+}
+
+HRESULT WINAPI extSetCooperativeLevel1(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
+{
+	return extSetCooperativeLevel(1, pSetCooperativeLevel1, lpdd, hwnd, dwflags);
+}
+
+HRESULT WINAPI extSetCooperativeLevel2(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
+{
+	return extSetCooperativeLevel(2, pSetCooperativeLevel2, lpdd, hwnd, dwflags);
+}
+
+HRESULT WINAPI extSetCooperativeLevel4(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
+{
+	return extSetCooperativeLevel(4, pSetCooperativeLevel4, lpdd, hwnd, dwflags);
+}
+
+HRESULT WINAPI extSetCooperativeLevel7(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
+{
+	return extSetCooperativeLevel(7, pSetCooperativeLevel7, lpdd, hwnd, dwflags);
 }
 
 static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
@@ -3845,7 +3978,6 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 	if(IsDebug) dxw.DumpPalette(dwcount, &lpentries[dwstart]);
 
 	if((dxw.dwFlags1 & EMULATESURFACE) && (lpDDP == lpddp)){
-		res = DD_OK;
 		OutTraceDW("SetEntries: update PRIMARY palette lpDDP=%x\n", lpddp);
 		if ((dwstart + dwcount > 256) || (dwstart<0)){
 			dwcount=256;
@@ -3862,11 +3994,12 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 		// v2.03.10: do not blit also in case of GDI mode
 		if ((dxw.dwFlags1 & EMULATESURFACE) && !(dxw.dwFlags2 & NOPALETTEUPDATE) && !(dxw.dwFlags5 & GDIMODE)) dxw.ScreenRefresh();
 	}
-	else {
-		res = (*pSetEntries)(lpddp, dwflags, dwstart, dwcount, lpentries);
-		if(res) OutTraceE("SetEntries: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		else OutTraceDDRAW("SetEntries: OK\n");
-	}
+	
+	// this part (setentry against all surfaces, including virtual primary) can be necessary whenever the game uses mixed access to the 
+	// screen (like ddraw & GDI) and is necessary on "Road Rash".
+	res = (*pSetEntries)(lpddp, dwflags, dwstart, dwcount, lpentries);
+	if(res) OutTraceE("SetEntries: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	else OutTraceDDRAW("SetEntries: OK\n");
 	return res;
 }
 
@@ -4502,13 +4635,9 @@ HRESULT WINAPI extEnumDisplayModes(EnumDisplayModes1_Type pEnumDisplayModes, LPD
 		DDSURFACEDESC2 EmuDesc;
 		memset(&EmuDesc, 0, sizeof(EmuDesc));
 		EmuDesc.dwSize = sizeof(DDSURFACEDESC); // using release 1 type ....
-	 	res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&EmuDesc);
-		if(res==DDERR_GENERIC){ // Win8 missing support for old ddraw interface
-			EmuDesc.dwSize = sizeof(DDSURFACEDESC2); // using release 2 type ....
-	 		res=(*pGetDisplayMode)(lpdd, (LPDDSURFACEDESC)&EmuDesc);
-		}
+	 	res=myGetDisplayMode(lpdd, (LPDDSURFACEDESC)&EmuDesc);
 		if(res){
-			OutTraceE("GetDisplayMode(D): ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			OutTraceE("EnumDisplayModes(D): GetDisplayMode ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
 		NewContext_Type NewContext;

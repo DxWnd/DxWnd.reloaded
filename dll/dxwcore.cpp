@@ -452,10 +452,15 @@ void dxwCore::SetClipCursor()
 		OutTraceDW("SetClipCursor: ASSERT hWnd==NULL\n");
 		return;
 	}
-	if(!(*pGetClientRect)(hWnd, &Rect))
+	// check for errors to avoid setting random clip regions
+	if(!(*pGetClientRect)(hWnd, &Rect)){
 		OutTraceE("GetClientRect: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	if(!(*pClientToScreen)(hWnd, &UpLeftCorner))
+		return;
+	}
+	if(!(*pClientToScreen)(hWnd, &UpLeftCorner)){
 		OutTraceE("ClientToScreen: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+		return ;
+	}
 	Rect.left+=UpLeftCorner.x;
 	Rect.right+=UpLeftCorner.x;
 	Rect.top+=UpLeftCorner.y;
@@ -780,6 +785,19 @@ void dxwCore::UnmapWindow(LPRECT rect)
 	rect->top= ((rect->top  - upleft.y) * (int)dwScreenHeight) / client.bottom;
 	rect->right= ((rect->right  - upleft.x) * (int)dwScreenWidth) / client.right;
 	rect->bottom= ((rect->bottom  - upleft.y) * (int)dwScreenHeight) / client.bottom;
+}
+
+RECT dxwCore::GetMainWindow()
+{
+	RECT client;
+	POINT upleft = {0,0};
+	(*pGetClientRect)(hWnd, &client);
+	(*pClientToScreen)(hWnd, &upleft);
+	client.left += upleft.x;
+	client.right += upleft.x;
+	client.top += upleft.y;
+	client.bottom += upleft.y;
+	return client;
 }
 
 void dxwCore::UnmapWindow(LPPOINT point)

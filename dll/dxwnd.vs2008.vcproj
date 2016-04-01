@@ -503,6 +503,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\Include\dxwnd.h"
+				>
+			</File>
+			<File
 				RelativePath=".\glhook.h"
 				>
 			</File>

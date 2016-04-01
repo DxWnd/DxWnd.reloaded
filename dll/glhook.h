@@ -2,6 +2,7 @@
 
 extern void HookOpenGLLibs(HMODULE, char *);
 
+typedef GLenum (WINAPI *glGetError_Type)();
 typedef void (WINAPI *glViewport_Type)(GLint, GLint, GLsizei, GLsizei);
 typedef void (WINAPI *glScissor_Type)(GLint, GLint, GLsizei, GLsizei);
 typedef void (WINAPI *glGetIntegerv_Type)(GLenum, GLint *);
@@ -17,6 +18,7 @@ typedef BOOL (WINAPI *wglMakeCurrent_Type)(HDC, HGLRC);
 typedef void (WINAPI *glTexImage2D_Type)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
 typedef void (WINAPI *glPixelZoom_Type)(GLfloat, GLfloat);
 
+extern GLenum WINAPI extglGetError();
 extern void WINAPI extglViewport(GLint,  GLint,  GLsizei,  GLsizei);
 extern void WINAPI extglScissor(GLint,  GLint,  GLsizei,  GLsizei);
 extern void WINAPI extglGetIntegerv(GLenum, GLint *);
@@ -45,6 +47,7 @@ extern void WINAPI extglPixelZoom(GLfloat, GLfloat);
 #endif
 
 // GDI32.dll:
+DXWEXTERN glGetError_Type pglGetError;
 DXWEXTERN glViewport_Type pglViewport;
 DXWEXTERN glScissor_Type pglScissor;
 DXWEXTERN glGetIntegerv_Type pglGetIntegerv;
