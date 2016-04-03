@@ -34,6 +34,8 @@ END_MESSAGE_MAP()
 UINT m_StartToTray = FALSE;
 UINT m_InitialState = DXW_ACTIVE;
 BOOL gbDebug = FALSE;
+BOOL gTransientMode = FALSE;
+int iProgIndex;
 extern char m_ConfigFileName[20+1] = "dxwnd.ini";
 
 class CNewCommandLineInfo : public CCommandLineInfo
@@ -50,6 +52,13 @@ char LangString[20+1] = {0};
 
 void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 {
+	// syntax:
+	// /t -- start minimized in tray icon
+	// /i -- start in idle state
+	// /d -- start in debug mode
+	// /lang=<XX> -- loads the language resources in Resources_<XX>.dll extension
+	// /c:<path> -- loads <path> config file instead of default dxwnd.ini
+	// /e -- terminates (Ends) the active dxwnd session
 	if(bFlag) {
 		CString sParam(lpszParam);
 		if (sParam.MakeLower() == "t"){
@@ -86,6 +95,13 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 			extern int KillProcByName(char *, BOOL);
 			KillProcByName("DxWnd.exe", TRUE);
 			exit(0);
+		}
+		if (sParam.Left(2).MakeLower() == "r:"){
+			gTransientMode = TRUE;
+			m_StartToTray=TRUE;
+			char *p = (char *)sParam.GetString();
+			iProgIndex = atoi(&p[2]);
+			return;
 		}
 	}
 

@@ -1908,3 +1908,26 @@ char *ExplainPixelFormat(LPDDPIXELFORMAT ddpfPixelFormat)
 	}
 	return sBuf;
 }
+
+char *GetObjectTypeStr(HDC hdc)
+{
+	char *s;
+	switch (GetObjectType(hdc)){
+		case OBJ_PEN:			s="PEN"; break;
+		case OBJ_BRUSH:			s="BRUSH"; break;
+		case OBJ_DC:			s="DC"; break;
+		case OBJ_METADC:		s="METADC"; break;
+		case OBJ_PAL:			s="PAL"; break;
+		case OBJ_FONT:			s="FONT"; break;
+		case OBJ_BITMAP:		s="BITMAP"; break;
+		case OBJ_REGION:		s="REGION"; break;
+		case OBJ_METAFILE:		s="METAFILE"; break;
+		case OBJ_MEMDC:			s="MEMDC"; break;
+		case OBJ_EXTPEN:		s="EXTPEN"; break;
+		case OBJ_ENHMETADC:		s="ENHMETADC"; break;
+		case OBJ_ENHMETAFILE:	s="ENHMETAFILE"; break;
+		case OBJ_COLORSPACE:	s="COLORSPACE"; break;
+		default:				s="unknown"; break;
+	}
+	return s;
+}

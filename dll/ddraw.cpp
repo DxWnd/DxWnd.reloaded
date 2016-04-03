@@ -148,6 +148,8 @@ DirectDrawCreateEx_Type pDirectDrawCreateEx = NULL;
 DirectDrawEnumerate_Type pDirectDrawEnumerate = NULL;
 DirectDrawEnumerateEx_Type pDirectDrawEnumerateEx = NULL;
 DirectDrawCreateClipper_Type pDirectDrawCreateClipper = NULL;
+HandleDDThreadLock_Type pAcquireDDThreadLock = NULL;
+HandleDDThreadLock_Type pReleaseDDThreadLock = NULL;
 
 /* DirectDraw hook pointers */
 QueryInterface_Type pQueryInterfaceD1;
@@ -310,6 +312,8 @@ static HookEntry_Type ddHooks[]={
 	{HOOK_HOT_CANDIDATE, "DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
 	{HOOK_HOT_CANDIDATE, "DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
 	{HOOK_HOT_CANDIDATE, "DirectDrawCreateClipper", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateClipper, (FARPROC)extDirectDrawCreateClipper},
+	{HOOK_HOT_CANDIDATE, "AcquireDDThreadLock", (FARPROC)NULL, (FARPROC *)&pAcquireDDThreadLock, (FARPROC)NULL},
+	{HOOK_HOT_CANDIDATE, "ReleaseDDThreadLock", (FARPROC)NULL, (FARPROC *)&pReleaseDDThreadLock, (FARPROC)NULL},
 	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateW, (FARPROC)extDirectDrawCreate},
 	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateExW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateExW, (FARPROC)extDirectDrawCreate},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator

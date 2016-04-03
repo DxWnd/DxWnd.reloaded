@@ -446,6 +446,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\msims32.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\msvfw.cpp"
 				>
 			</File>
@@ -455,6 +459,10 @@
 			</File>
 			<File
 				RelativePath=".\opengl.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\shareddc.cpp"
 				>
 			</File>
 			<File
@@ -524,6 +532,10 @@
 			</File>
 			<File
 				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\shareddc.hpp"
 				>
 			</File>
 			<File

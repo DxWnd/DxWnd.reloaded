@@ -34,6 +34,12 @@ typedef struct PRIVATEMAP
 	char *registry;
 }PRIVATEMAP;
 
+typedef struct {
+	TARGETMAP *TM;
+	PRIVATEMAP *PM;
+} ThreadInfo_Type;
+ThreadInfo_Type;
+
 extern char gInitPath[MAX_PATH];
 
 /////////////////////////////////////////////////////////////////////////////

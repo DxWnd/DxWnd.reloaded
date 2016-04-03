@@ -11,6 +11,7 @@
 #include "d3d9.h"
 extern GetDC_Type pGetDC;
 extern ReleaseDC_Type pReleaseDC;
+extern HandleDDThreadLock_Type pReleaseDDThreadLock;
 
 /* ------------------------------------------------------------------ */
 // Internal function pointers
@@ -72,8 +73,12 @@ void dxwCore::SetFullScreen(BOOL fs)
 
 BOOL dxwCore::IsFullScreen()
 {
-	//if(!Windowize) return FALSE;
-	return FullScreen;
+	return (Windowize && FullScreen);
+}
+
+BOOL dxwCore::IsToRemap(HDC hdc)
+{
+	return (Windowize && FullScreen && (OBJ_DC == (*pGetObjectType)(hdc)));
 }
 
 void dxwCore::InitTarget(TARGETMAP *target)
@@ -128,9 +133,10 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	iRatioX = iSizX ? iSizX : 800;
 	iRatioY = iSizY ? iSizY : 600;
 
-	GDIEmulationMode = GDIMODE_STRETCHED; // default
+	GDIEmulationMode = GDIMODE_NONE; // default
 	if (dwFlags2 & GDISTRETCHED)	GDIEmulationMode = GDIMODE_STRETCHED;  
 	if (dwFlags3 & GDIEMULATEDC)	GDIEmulationMode = GDIMODE_EMULATED; 
+	if (dwFlags6 & SHAREDDC)		GDIEmulationMode = GDIMODE_SHAREDDC; 
 }
 
 void dxwCore::SetScreenSize(void) 
@@ -367,19 +373,6 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		if (h) curr.y = (curr.y * dxw.GetScreenHeight()) / h;
 	}
 
-	//if(dxw.dwFlags4 & FRAMECOMPENSATION){
-	//	static int dx, dy, todo=TRUE;
-	//	if (todo){
-	//		POINT FrameOffset = dxw.GetFrameOffset();
-	//		dx=FrameOffset.x;
-	//		dy=FrameOffset.y;
-	//		OutTraceC("GetCursorPos: frame compensation=(%d,%d)\n", dx, dy);
-	//		todo=FALSE;
-	//	}
-	//	curr.x += dx;
-	//	curr.y += dy;
-	//}
-
 	if((dxw.dwFlags1 & ENABLECLIPPING) && lpClipRegion){
 		// v2.1.93:
 		// in clipping mode, avoid the cursor position to lay outside the valid rect
@@ -399,14 +392,6 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		if (curr.x >= (LONG)dxw.GetScreenWidth()-CLIP_TOLERANCE) curr.x=dxw.GetScreenWidth()-1;
 		if (curr.y >= (LONG)dxw.GetScreenHeight()-CLIP_TOLERANCE) curr.y=dxw.GetScreenHeight()-1;
 	}
-
-	//if(0){ // Scrolling Slow-down
-	//	if(	(curr.x <= 0) ||
-	//		(curr.x >= (LONG)(dxw.GetScreenWidth()-1)) ||
-	//		(curr.y <= 0) ||
-	//		(curr.y >= (LONG)(dxw.GetScreenHeight()-1)))
-	//		(*pSleep)(800);
-	//}
 
 	return curr;
 }
@@ -1632,7 +1617,7 @@ void dxwCore::ResetEmulatedDC()
 
 BOOL dxwCore::IsVirtual(HDC hdc)
 {
-	return (hdc==VirtualHDC) && (dwFlags3 & GDIEMULATEDC);
+	return (hdc==VirtualHDC) && (GDIEmulationMode == GDIMODE_EMULATED);
 }
 
 HDC dxwCore::AcquireSharedDC(HWND hwnd)
@@ -1640,12 +1625,15 @@ HDC dxwCore::AcquireSharedDC(HWND hwnd)
 	extern HDC hFlippedDC;
 	LPDIRECTDRAWSURFACE lpDDSPrim;
 	lpDDSPrim = dxwss.GetPrimarySurface();
-	if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
-	while((hFlippedDC == NULL) && lpDDSPrim) { 
-		OutTraceDW("AcquireSharedDC: found primary surface with no DC, unref lpdds=%x\n", lpDDSPrim);
-		dxwss.UnrefSurface(lpDDSPrim);
-		lpDDSPrim = dxwss.GetPrimarySurface();
-		if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+	if (lpDDSPrim) {
+		if(pReleaseDDThreadLock)(*pReleaseDDThreadLock)();
+		(*pGetDC)(lpDDSPrim, &hFlippedDC);
+		while((hFlippedDC == NULL) && lpDDSPrim) { 
+			OutTraceDW("AcquireSharedDC: found primary surface with no DC, unref lpdds=%x\n", lpDDSPrim);
+			dxwss.UnrefSurface(lpDDSPrim);
+			lpDDSPrim = dxwss.GetPrimarySurface();
+			if (lpDDSPrim) (*pGetDC)(lpDDSPrim, &hFlippedDC);
+		}
 	}
 	if (!(hwnd == dxw.GethWnd())) {
 		POINT father, child, offset;

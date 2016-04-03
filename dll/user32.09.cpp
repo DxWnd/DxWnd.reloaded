@@ -12,10 +12,8 @@
 #include "hddraw.h"
 #include "dxhelper.h"
 #include "shareddc.hpp"
-#include <Wingdi.h>
 
 #define FIXCHILDSIZE FALSE
-#define _Warn(s) MessageBox(0, s, "to do", MB_ICONEXCLAMATION)
 
 BOOL IsChangeDisplaySettingsHotPatched = FALSE;
 extern BOOL bFlippedDC;
@@ -82,18 +80,6 @@ BOOL WINAPI extInvertRect(HDC, const RECT *);
 typedef BOOL (WINAPI *ScrollDC_Type)(HDC, int, int, const RECT *, const RECT *, HRGN, LPRECT);
 ScrollDC_Type pScrollDC = NULL;
 BOOL WINAPI extScrollDC(HDC, int, int, const RECT *, const RECT *, HRGN, LPRECT);
-typedef BOOL (WINAPI *DrawIcon_Type)(HDC hDC, int X, int Y, HICON hIcon); 
-DrawIcon_Type pDrawIcon = NULL;
-BOOL WINAPI extDrawIcon(HDC hDC, int X, int Y, HICON hIcon); 
-typedef BOOL (WINAPI *DrawIconEx_Type)(HDC, int, int, HICON, int, int, UINT, HBRUSH, UINT);
-DrawIconEx_Type pDrawIconEx = NULL;
-BOOL WINAPI extDrawIconEx(HDC, int, int, HICON, int, int, UINT, HBRUSH, UINT);
-typedef BOOL (WINAPI *DrawCaption_Type)(HWND, HDC, LPCRECT, UINT);
-DrawCaption_Type pDrawCaption = NULL;
-BOOL WINAPI extDrawCaption(HWND, HDC, LPCRECT, UINT);
-typedef BOOL (WINAPI *PaintDesktop_Type)(HDC);
-PaintDesktop_Type pPaintDesktop = NULL;
-BOOL WINAPI extPaintDesktop(HDC);
 
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
@@ -127,8 +113,6 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "CreateWindowExW", (FARPROC)CreateWindowExW, (FARPROC *)&pCreateWindowExW, (FARPROC)extCreateWindowExW},
 	{HOOK_IAT_CANDIDATE, "RegisterClassExA", (FARPROC)RegisterClassExA, (FARPROC *)&pRegisterClassExA, (FARPROC)extRegisterClassExA},
 	{HOOK_IAT_CANDIDATE, "RegisterClassA", (FARPROC)RegisterClassA, (FARPROC *)&pRegisterClassA, (FARPROC)extRegisterClassA},
-	{HOOK_IAT_CANDIDATE, "RegisterClassExW", (FARPROC)RegisterClassExW, (FARPROC *)&pRegisterClassExW, (FARPROC)extRegisterClassExW},
-	{HOOK_IAT_CANDIDATE, "RegisterClassW", (FARPROC)RegisterClassW, (FARPROC *)&pRegisterClassW, (FARPROC)extRegisterClassW},
 	{HOOK_HOT_CANDIDATE, "GetSystemMetrics", (FARPROC)GetSystemMetrics, (FARPROC *)&pGetSystemMetrics, (FARPROC)extGetSystemMetrics},
 	{HOOK_HOT_CANDIDATE, "GetDesktopWindow", (FARPROC)GetDesktopWindow, (FARPROC *)&pGetDesktopWindow, (FARPROC)extGetDesktopWindow},
 	{HOOK_IAT_CANDIDATE, "CloseWindow", (FARPROC)NULL, (FARPROC *)&pCloseWindow, (FARPROC)extCloseWindow},
@@ -157,7 +141,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, "ChildWindowFromPoint", (FARPROC)ChildWindowFromPoint, (FARPROC *)&pChildWindowFromPoint, (FARPROC)extChildWindowFromPoint},
 	{HOOK_HOT_CANDIDATE, "ChildWindowFromPointEx", (FARPROC)ChildWindowFromPointEx, (FARPROC *)&pChildWindowFromPointEx, (FARPROC)extChildWindowFromPointEx},
 	{HOOK_HOT_CANDIDATE, "WindowFromPoint", (FARPROC)WindowFromPoint, (FARPROC *)&pWindowFromPoint, (FARPROC)extWindowFromPoint},
-	{HOOK_HOT_REQUIRED , "SetWindowsHookExA", (FARPROC)SetWindowsHookExA, (FARPROC *)&pSetWindowsHookEx, (FARPROC)extSetWindowsHookEx},
+	{HOOK_HOT_CANDIDATE, "SetWindowsHookExA", (FARPROC)SetWindowsHookExA, (FARPROC *)&pSetWindowsHookEx, (FARPROC)extSetWindowsHookEx},
 
 	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutA", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutA, (FARPROC)extMessageBoxTimeoutA},
 	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutW", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutW, (FARPROC)extMessageBoxTimeoutW},
@@ -174,7 +158,41 @@ static HookEntry_Type Hooks[]={
 
 	//{HOOK_IAT_CANDIDATE, "IsZoomed", (FARPROC)NULL, (FARPROC *)&pIsZoomed, (FARPROC)extIsZoomed},
 	//{HOOK_HOT_CANDIDATE, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
-	{HOOK_HOT_CANDIDATE, "ScrollDC", (FARPROC)NULL, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
+
+	{HOOK_HOT_CANDIDATE, "FillRect", (FARPROC)FillRect, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
+	{HOOK_IAT_CANDIDATE, "FrameRect", (FARPROC)FrameRect, (FARPROC *)&pFrameRect, (FARPROC)extFrameRect},
+	{HOOK_IAT_CANDIDATE, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
+	{HOOK_HOT_CANDIDATE, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
+	{HOOK_HOT_CANDIDATE, "InvalidateRgn", (FARPROC)InvalidateRgn, (FARPROC *)&pInvalidateRgn, (FARPROC)extInvalidateRgn},
+	{HOOK_IAT_CANDIDATE, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
+	{HOOK_IAT_CANDIDATE, "ScrollDC", (FARPROC)ScrollDC, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
+	{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type NoGDIHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type EmulateHooks[]={
+	//{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
+	//{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)GetDCEx, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
+	//{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC}, 
+	//{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
+	//{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntry_Type ScaledHooks[]={
+	{HOOK_IAT_CANDIDATE, "DrawTextA", (FARPROC)DrawTextA, (FARPROC *)&pDrawText, (FARPROC)extDrawTextA},
+	{HOOK_IAT_CANDIDATE, "DrawTextExA", (FARPROC)DrawTextExA, (FARPROC *)&pDrawTextEx, (FARPROC)extDrawTextExA},
+	{HOOK_HOT_CANDIDATE, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
+	{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
+	{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)NULL, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
+	{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC},
+	{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
+	{HOOK_IAT_CANDIDATE, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
+	{HOOK_IAT_CANDIDATE, "ScrollWindow", (FARPROC)ScrollWindow, (FARPROC *)&pScrollWindow, (FARPROC)extScrollWindow},
 
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
@@ -188,41 +206,6 @@ static HookEntry_Type RemapHooks[]={
 	{HOOK_HOT_CANDIDATE, "GetUpdateRgn", (FARPROC)GetUpdateRgn, (FARPROC *)&pGetUpdateRgn, (FARPROC)extGetUpdateRgn},
 	//{HOOK_IAT_CANDIDATE, "GetUpdateRect", (FARPROC)GetUpdateRect, (FARPROC *)&pGetUpdateRect, (FARPROC)extGetUpdateRect},
 	//{HOOK_IAT_CANDIDATE, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
-static HookEntry_Type SyscallHooks[]={
-	{HOOK_IAT_CANDIDATE, "FrameRect", (FARPROC)FrameRect, (FARPROC *)&pFrameRect, (FARPROC)extFrameRect}, 
-	{HOOK_IAT_CANDIDATE, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
-	{HOOK_IAT_CANDIDATE, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
-	{HOOK_HOT_CANDIDATE, "InvalidateRgn", (FARPROC)InvalidateRgn, (FARPROC *)&pInvalidateRgn, (FARPROC)extInvalidateRgn},
-	{HOOK_IAT_CANDIDATE, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
-	{HOOK_IAT_CANDIDATE, "TabbedTextOutW", (FARPROC)TabbedTextOutW, (FARPROC *)&pTabbedTextOutW, (FARPROC)extTabbedTextOutW},
-	{HOOK_IAT_CANDIDATE, "ScrollDC", (FARPROC)ScrollDC, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
-	{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
-	{HOOK_IAT_CANDIDATE, "DrawTextA", (FARPROC)DrawTextA, (FARPROC *)&pDrawTextA, (FARPROC)extDrawTextA},
-	{HOOK_IAT_CANDIDATE, "DrawTextExA", (FARPROC)DrawTextExA, (FARPROC *)&pDrawTextExA, (FARPROC)extDrawTextExA},
-	{HOOK_IAT_CANDIDATE, "DrawTextW", (FARPROC)DrawTextW, (FARPROC *)&pDrawTextW, (FARPROC)extDrawTextW},
-	{HOOK_IAT_CANDIDATE, "DrawTextExW", (FARPROC)DrawTextExW, (FARPROC *)&pDrawTextExW, (FARPROC)extDrawTextExW},
-	{HOOK_HOT_CANDIDATE, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
-	{HOOK_HOT_CANDIDATE, "InvertRect", (FARPROC)NULL, (FARPROC *)&pInvertRect, (FARPROC)extInvertRect},
-	{HOOK_HOT_CANDIDATE, "DrawIcon", (FARPROC)NULL, (FARPROC *)&pDrawIcon, (FARPROC)extDrawIcon},
-	{HOOK_HOT_CANDIDATE, "DrawIconEx", (FARPROC)NULL, (FARPROC *)&pDrawIconEx, (FARPROC)extDrawIconEx},
-	{HOOK_HOT_CANDIDATE, "DrawCaption", (FARPROC)NULL, (FARPROC *)&pDrawCaption, (FARPROC)extDrawCaption},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawEdge", (FARPROC)NULL, (FARPROC *)&pDrawEdge, (FARPROC)extDrawEdge},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawFocusRect", (FARPROC)NULL, (FARPROC *)&pDrawFocusRect, (FARPROC)extDrawFocusRect},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawFrameControl", (FARPROC)NULL, (FARPROC *)&pDrawFrameControl, (FARPROC)extDrawFrameControl},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawStateA", (FARPROC)NULL, (FARPROC *)&pDrawStateA, (FARPROC)extDrawStateA},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawStateW", (FARPROC)NULL, (FARPROC *)&pDrawStateW, (FARPROC)extDrawStateW},
-	//TODO {HOOK_HOT_CANDIDATE, "GrayStringA", (FARPROC)NULL, (FARPROC *)&pGrayStringA, (FARPROC)extGrayStringA},
-	//TODO {HOOK_HOT_CANDIDATE, "GrayStringW", (FARPROC)NULL, (FARPROC *)&pGrayStringW, (FARPROC)extGrayStringW},
-	//TODO {HOOK_HOT_CANDIDATE, "PaintDesktop", (FARPROC)NULL, (FARPROC *)&pPaintDesktop, (FARPROC)extPaintDesktop},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
-};
-
-static HookEntry_Type ScaledHooks[]={
-	{HOOK_IAT_CANDIDATE, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
-	{HOOK_IAT_CANDIDATE, "ScrollWindow", (FARPROC)ScrollWindow, (FARPROC *)&pScrollWindow, (FARPROC)extScrollWindow},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
@@ -266,13 +249,39 @@ static HookEntry_Type DesktopHooks[]={ // currently unused, needed for X-Files
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
 
+FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
+{
+	FARPROC addr;
+	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (dxw.dwFlags1 & CLIENTREMAPPING) if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
+
+	if (dxw.dwFlags2 & GDISTRETCHED)	
+		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;  
+	if (dxw.dwFlags3 & GDIEMULATEDC)	
+		if (addr=RemapLibrary(proc, hModule, EmulateHooks)) return addr; 
+	if (!(dxw.dwFlags2 & GDISTRETCHED) && !(dxw.dwFlags3 & GDIEMULATEDC))
+		if (addr=RemapLibrary(proc, hModule, NoGDIHooks)) return addr;  
+	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))
+		if (addr=RemapLibrary(proc, hModule, WinHooks)) return addr;
+	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED))
+		if (addr=RemapLibrary(proc, hModule, MouseHooks)) return addr;
+	if (dxw.dwFlags3 & PEEKALLMESSAGES)
+		if (addr=RemapLibrary(proc, hModule, PeekAllHooks)) return addr;
+	if((dxw.dwFlags2 & TIMESTRETCH) && (dxw.dwFlags4 & STRETCHTIMERS)) 
+		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
+
+	return NULL;
+}
+
 static char *libname = "user32.dll";
 
 void HookUser32(HMODULE hModule)
 {
 
 	HookLibrary(hModule, Hooks, libname);
-	if (dxw.GDIEmulationMode != GDIMODE_NONE) HookLibrary(hModule, SyscallHooks, libname);
+	if (!(dxw.dwFlags2 & GDISTRETCHED) && !(dxw.dwFlags3 & GDIEMULATEDC))
+		HookLibrary(hModule, NoGDIHooks, libname);
+	if (dxw.dwFlags3 & GDIEMULATEDC)	HookLibrary(hModule, EmulateHooks, libname);
 	if (dxw.dwFlags2 & GDISTRETCHED)	HookLibrary(hModule, ScaledHooks, libname);
 
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibrary(hModule, RemapHooks, libname);
@@ -288,32 +297,11 @@ void HookUser32(HMODULE hModule)
 void HookUser32Init()
 {
 	HookLibInit(Hooks);
-	HookLibInit(SyscallHooks);
 	HookLibInit(ScaledHooks);
+	HookLibInit(EmulateHooks);
 	HookLibInit(RemapHooks);
 	HookLibInit(MouseHooks);
 	HookLibInit(WinHooks);
-}
-
-FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
-{
-	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
-	if (dxw.dwFlags1 & CLIENTREMAPPING) if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
-	if (dxw.GDIEmulationMode != GDIMODE_NONE) if(addr=RemapLibrary(proc, hModule, SyscallHooks)) return addr;
-
-	if (dxw.dwFlags2 & GDISTRETCHED)	
-		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;  
-	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))
-		if (addr=RemapLibrary(proc, hModule, WinHooks)) return addr;
-	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED))
-		if (addr=RemapLibrary(proc, hModule, MouseHooks)) return addr;
-	if (dxw.dwFlags3 & PEEKALLMESSAGES)
-		if (addr=RemapLibrary(proc, hModule, PeekAllHooks)) return addr;
-	if((dxw.dwFlags2 & TIMESTRETCH) && (dxw.dwFlags4 & STRETCHTIMERS)) 
-		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
-
-	return NULL;
 }
 
 /* ------------------------------------------------------------------------------ */
@@ -640,12 +628,16 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 	}
 
 	if(dxw.IsFullScreen()) { 
+		if(dxw.dwFlags6 & SHAREDDC){ // Deadlock 2
+			if(lpRect) dxw.MapClient(lpRect);
+			return (*pInvalidateRect)(hwnd, lpRect, bErase);
+		}
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_STRETCHED:
 			case GDIMODE_SHAREDDC:
-			case GDIMODE_EMULATED:
 				if(lpRect) dxw.MapClient(lpRect);
 				break;
+			case GDIMODE_EMULATED:
 			default:
 				break;
 		}
@@ -989,9 +981,6 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 	GetHookInfo()->CursorY=(short)lppoint->y;
 	OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", prev.x, prev.y, lppoint->x, lppoint->y);
 
-	if((dxw.dwFlags1 & HIDEHWCURSOR) && dxw.IsFullScreen()) while((*pShowCursor)(0) >= 0);
-	if(dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
-
 	return res;
 }
 
@@ -1189,7 +1178,6 @@ BOOL WINAPI extGetWindowRect(HWND hwnd, LPRECT lpRect)
 	return ret;
 }
 
-
 int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT cPoints)
 {
 	UINT pi;
@@ -1216,22 +1204,14 @@ int WINAPI extMapWindowPoints(HWND hWndFrom, HWND hWndTo, LPPOINT lpPoints, UINT
 	ret=(*pMapWindowPoints)(hWndFrom, hWndTo, lpPoints, cPoints);
 	// v2.03.16: now must scale every point (fixes "NBA Live 99")
 	// v2.03.18: in some cases it should not! "New Your Race"...
-	// v2.03.56: scale only on scaled modes
-	switch(dxw.GDIEmulationMode){
-		case GDIMODE_SHAREDDC:
-		case GDIMODE_EMULATED:
-		default:
-			break;
-		case GDIMODE_STRETCHED:
-			for(pi=0; pi<cPoints; pi++){
-				dxw.UnmapClient(&lpPoints[pi]);
-			}			
-			if(IsDebug){
-				OutTrace("Mapped points: ");
-				for(pi=0; pi<cPoints; pi++) OutTrace("(%d,%d)", lpPoints[pi].x, lpPoints[pi].y);
-				OutTrace("\n");
-			}
-			break;
+	for(pi=0; pi<cPoints; pi++){
+		dxw.UnmapClient(&lpPoints[pi]);
+	}
+
+	if(IsDebug){
+		OutTrace("Mapped points: ");
+		for(pi=0; pi<cPoints; pi++) OutTrace("(%d,%d)", lpPoints[pi].x, lpPoints[pi].y);
+		OutTrace("\n");
 	}
 
 	// If the function succeeds, the low-order word of the return value is the number of pixels 
@@ -1315,45 +1295,19 @@ int WINAPI extGetSystemMetrics(int nindex)
 	return res;
 }
 
-ATOM WINAPI extRegisterClassExA(WNDCLASSEXA *lpwcx)
+ATOM WINAPI extRegisterClassExA(WNDCLASSEX *lpwcx)
 {
-	ATOM ret;
-	OutTraceDW("RegisterClassExA: PROXED ClassName=%s style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
+	OutTraceDW("RegisterClassEx: PROXED ClassName=%s style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
 		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
-	ret = (*pRegisterClassExA)(lpwcx);
-	OutTraceDW("RegisterClassExA: atom=%x\n", ret);
-	return ret;
+	return (*pRegisterClassExA)(lpwcx);
 }
 
-ATOM WINAPI extRegisterClassA(WNDCLASSA *lpwcx)
+ATOM WINAPI extRegisterClassA(WNDCLASS *lpwcx)
 {
-	ATOM ret;
 	// referenced by Syberia, together with RegisterClassExA
-	OutTraceDW("RegisterClassA: PROXED ClassName=%s style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
+	OutTraceDW("RegisterClass: PROXED ClassName=%s style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
 		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
-	ret = (*pRegisterClassA)(lpwcx);
-	OutTraceDW("RegisterClassA: atom=%x\n", ret);
-	return ret;
-}
-
-ATOM WINAPI extRegisterClassExW(WNDCLASSEXW *lpwcx)
-{
-	ATOM ret;
-	OutTraceDW("RegisterClassExW: PROXED ClassName=%ls style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
-		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
-	ret = (*pRegisterClassExW)(lpwcx);
-	OutTraceDW("RegisterClassExW: atom=%x\n", ret);
-	return ret;
-}
-
-ATOM WINAPI extRegisterClassW(WNDCLASSW *lpwcx)
-{
-	ATOM ret;
-	OutTraceDW("RegisterClassW: PROXED ClassName=%ls style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
-		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
-	ret = (*pRegisterClassW)(lpwcx);
-	OutTraceDW("RegisterClassW: atom=%x\n", ret);
-	return ret;
+	return (*pRegisterClassA)(lpwcx);
 }
 
 static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
@@ -1799,7 +1753,7 @@ static int HandleRect(char *ApiName, void *pFun, HDC hdc, const RECT *lprc, HBRU
 	// dxw.IsRealDesktop(WindowFromDC(hdc)) because WindowFromDC(hdc) is null.
 	// So, it's fundamental to check also the hdc type (OBJ_DC is a window's DC)
 
-	if((dxw.IsRealDesktop(WindowFromDC(hdc)) && (OBJ_DC == (*pGetObjectType)(hdc)))) {
+	if((dxw.IsRealDesktop(WindowFromDC(hdc)) && (OBJ_DC == GetObjectType(hdc)))) {
 		HWND VirtualDesktop;
 		VirtualDesktop=dxw.GethWnd();
 		if(VirtualDesktop==NULL){
@@ -1818,10 +1772,11 @@ static int HandleRect(char *ApiName, void *pFun, HDC hdc, const RECT *lprc, HBRU
 
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				res=(*(FillRect_Type)pFun)(sdc.GetHdc(), &rc, hbr);
-				sdc.PutPrimaryDC(hdc, TRUE, rc.left, rc.top, rc.right-rc.left, rc.bottom-rc.top);
-				return res;
+				if (sdc.GetPrimaryDC(hdc)){
+					res=(*(FillRect_Type)pFun)(sdc.GetHdc(), &rc, hbr);
+					sdc.PutPrimaryDC(hdc, rc.left, rc.top, rc.right-rc.left, rc.bottom-rc.top);
+					return res;
+				}
 				break;
 			case GDIMODE_STRETCHED: 
 				dxw.MapClient(&rc);
@@ -1870,10 +1825,11 @@ BOOL WINAPI extInvertRect(HDC hdc, const RECT *lprc)
 	if(dxw.IsToRemap(hdc)) {
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				res=(*pInvertRect)(sdc.GetHdc(), &rc);
-				sdc.PutPrimaryDC(hdc, TRUE, rc.left, rc.top, rc.right-rc.left, rc.bottom-rc.top);
-				return res;
+				if(sdc.GetPrimaryDC(hdc)){
+					res=(*pInvertRect)(sdc.GetHdc(), &rc);
+					sdc.PutPrimaryDC(hdc, rc.left, rc.top, rc.right-rc.left, rc.bottom-rc.top);
+					return res;
+				}
 				break;
 			case GDIMODE_STRETCHED: 
 				dxw.MapClient(&rc);
@@ -2141,7 +2097,7 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 	HDC ret;
 	HWND lochwnd;
 
-	if(!dxw.IsFullScreen()) return(*pGDIGetDC)(hwnd);	
+	if(!dxw.IsFullScreen() || (dxw.dwFlags6 & SHAREDDC)) return(*pGDIGetDC)(hwnd);	
 
 	lochwnd=hwnd;
 
@@ -2150,14 +2106,17 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 		lochwnd=dxw.GethWnd();
 	}
 
+	//if(bFlippedDC) {
+	//	ret = dxw.AcquireSharedDC(hwnd);
+	//	if(ret) return ret;
+	//}
+
 	switch(dxw.GDIEmulationMode){
+		case GDIMODE_STRETCHED:
+			ret=(*pGDIGetDC)(lochwnd);
+			break;
 		case GDIMODE_EMULATED:
 			ret=dxw.AcquireEmulatedDC(lochwnd);
-			break;
-		case GDIMODE_STRETCHED:
-		case GDIMODE_SHAREDDC:
-		default:
-			ret=(*pGDIGetDC)(lochwnd);
 			break;
 	}
 
@@ -2218,13 +2177,11 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 	if(hwnd == 0) return(TRUE);
 
 	switch(dxw.GDIEmulationMode){
+		case GDIMODE_STRETCHED:
+			res=(*pGDIReleaseDC)(hwnd, hDC);
+			break;
 		case GDIMODE_EMULATED:
 			res=dxw.ReleaseEmulatedDC(hwnd);
-			break;
-		case GDIMODE_STRETCHED:
-		case GDIMODE_SHAREDDC:
-		default:
-			res=(*pGDIReleaseDC)(hwnd, hDC);
 			break;
 	}
 
@@ -2248,7 +2205,9 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 
 	switch(dxw.GDIEmulationMode){
 		case GDIMODE_STRETCHED:
-			if(dxw.dwFlags1 & CLIENTREMAPPING) dxw.UnmapClient(&(RECT)(lpPaint->rcPaint));
+			// on CLIENTREMAPPING, resize the paint area to virtual screen size
+			//if(dxw.dwFlags1 & CLIENTREMAPPING) lpPaint->rcPaint=dxw.GetScreenRect();
+			if(dxw.dwFlags1 & CLIENTREMAPPING) dxw.UnmapClient(&(lpPaint->rcPaint));
 			break;
 		case GDIMODE_EMULATED:
 			HDC EmuHDC; 
@@ -2256,19 +2215,9 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 			lpPaint->hdc=EmuHDC;
 			hdc = EmuHDC;
 			break;
-		case GDIMODE_SHAREDDC:
-#if 0
-			sdc.GetPrimaryDC(hdc);
-			lpPaint->hdc = sdc.GetHdc();
-			(*pBeginPaint)(hwnd, lpPaint);
-			lpPaint->hdc = hdc;
-			sdc.PutPrimaryDC(hdc, FALSE);
-#endif
-			break;
-		default:
-			break;
 	}
 
+		
 	OutTraceDW("GDI.BeginPaint: hdc=%x rcPaint=(%d,%d)-(%d,%d)\n", 
 		hdc, lpPaint->rcPaint.left, lpPaint->rcPaint.top, lpPaint->rcPaint.right, lpPaint->rcPaint.bottom);
 	return hdc;
@@ -2282,29 +2231,17 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 		hwnd, lpPaint, lpPaint->hdc, lpPaint->rcPaint.left, lpPaint->rcPaint.top, lpPaint->rcPaint.right, lpPaint->rcPaint.bottom);
 
 	// if not fullscreen or not desktop win, just proxy the call
-	if(!dxw.IsFullScreen()){
+	if(!dxw.IsFullScreen() || (dxw.dwFlags6 & SHAREDDC)){
 		ret=(*pEndPaint)(hwnd, lpPaint);
 		return ret;
 	}
 
 	// avoid access to real desktop
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
+
 	switch(dxw.GDIEmulationMode){
 		case GDIMODE_EMULATED:
 			ret=dxw.ReleaseEmulatedDC(hwnd);
-			break;
-		case GDIMODE_SHAREDDC:
-#if 1
-			if(lpPaint) dxw.MapClient((LPRECT)&(lpPaint->rcPaint));
-			ret=(*pEndPaint)(hwnd, lpPaint);
-#else
-			PAINTSTRUCT Paint;
-			Paint = *lpPaint;
-			Paint.hdc = sdc.GetHdc();
-			(*pEndPaint)(hwnd, &Paint);
-			if(lpPaint) dxw.MapClient((LPRECT)&(lpPaint->rcPaint));
-			ret=(*pEndPaint)(hwnd, lpPaint);
-#endif
 			break;
 		default:
 			ret=(*pEndPaint)(hwnd, lpPaint);
@@ -2476,53 +2413,10 @@ BOOL WINAPI extDrawFocusRect(HDC hDC, const RECT *lprc)
 	return TRUE;
 }
 
-BOOL WINAPI extScrollDC(HDC hdc, int dx, int dy, const RECT *lprcScroll, const RECT *lprcClip, HRGN hrgnUpdate, LPRECT lprcUpdate)
+BOOL WINAPI extScrollDC(HDC hDC, int dx, int dy, const RECT *lprcScroll, const RECT *lprcClip, HRGN hrgnUpdate, LPRECT lprcUpdate)
 {
-	BOOL res;
-	if(IsTraceDW){
-		char sRect[81];
-		if(lprcScroll) sprintf(sRect, "(%d,%d)-(%d,%d)", lprcScroll->left, lprcScroll->top, lprcScroll->right, lprcScroll->bottom);
-		else strcpy(sRect, "NULL");
-		char sClip[81];
-		if(lprcClip) sprintf(sClip, "(%d,%d)-(%d,%d)", lprcClip->left, lprcClip->top, lprcClip->right, lprcClip->bottom);
-		else strcpy(sClip, "NULL");
-		OutTraceDW("ScrollDC: hdc=%x dxy=(%d,%d) scrollrect=%s cliprect=%s hrgn=%x\n", 
-			hdc, dx, dy, sRect, sClip, hrgnUpdate);
-	}
-
-	if(dxw.IsToRemap(hdc)){
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				res=(*pScrollDC)(sdc.GetHdc(), dx, dy, lprcScroll, lprcClip, hrgnUpdate, lprcUpdate);
-				sdc.PutPrimaryDC(hdc, TRUE, lprcUpdate->left, lprcUpdate->top, lprcUpdate->right-lprcUpdate->left, lprcUpdate->bottom-lprcUpdate->top);
-				return res;
-				break;
-			case GDIMODE_EMULATED:
-#if 0
-				// not working with 688(I) sonar !!!
-				if(dxw.IsVirtual(hdc)){
-					RECT rcScroll, rcClip;
-					if(lprcScroll) {
-						rcScroll = *lprcScroll;
-						OffsetRect(&rcScroll, dxw.VirtualOffsetX, dxw.VirtualOffsetY);
-					}
-					if(lprcClip) {
-						rcClip = *lprcClip;
-						OffsetRect(&rcClip, dxw.VirtualOffsetX, dxw.VirtualOffsetY);
-					}
-					res=(*pScrollDC)(hdc, dx, dy, &rcScroll, &rcClip, hrgnUpdate, lprcUpdate);
-					return res;	
-				}
-#endif
-				break;
-			default:
-				break;
-		}
-	}
-
-	res=(*pScrollDC)(hdc, dx, dy, lprcScroll, lprcClip, hrgnUpdate, lprcUpdate);
-	return res;	
+	MessageBox(0, "ScrollDC", "to do", MB_OK);
+	return TRUE;
 }
 
 HWND WINAPI extGetTopWindow(HWND hwnd)
@@ -2544,10 +2438,11 @@ LONG WINAPI extTabbedTextOutA(HDC hdc, int X, int Y, LPCTSTR lpString, int nCoun
 	if(dxw.IsToRemap(hdc)){
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				res=(*pTabbedTextOutA)(sdc.GetHdc(), X, Y, lpString, nCount, nTabPositions, lpnTabStopPositions, nTabOrigin);
-				sdc.PutPrimaryDC(hdc, TRUE);
-				return res;
+				if(sdc.GetPrimaryDC(hdc)){
+					res=(*pTabbedTextOutA)(sdc.GetHdc(), X, Y, lpString, nCount, nTabPositions, lpnTabStopPositions, nTabOrigin);
+					sdc.PutPrimaryDC(hdc);
+					return res;
+				}
 				break;
 			case GDIMODE_STRETCHED: 
 				dxw.MapClient(&X, &Y);
@@ -2561,43 +2456,10 @@ LONG WINAPI extTabbedTextOutA(HDC hdc, int X, int Y, LPCTSTR lpString, int nCoun
 			default:
 				break;
 		}
-		OutTraceDW("TabbedTextOutA: fixed dest=(%d,%d)\n", X, Y);
+		OutTraceDW("TextOut: fixed dest=(%d,%d)\n", X, Y);
 	}
 
 	res=(*pTabbedTextOutA)(hdc, X, Y, lpString, nCount, nTabPositions, lpnTabStopPositions, nTabOrigin);
-	return res;
-}
-
-LONG WINAPI extTabbedTextOutW(HDC hdc, int X, int Y, LPCWSTR lpString, int nCount, int nTabPositions, const LPINT lpnTabStopPositions, int nTabOrigin)
-{
-	BOOL res;
-	OutTraceDW("TabbedTextOutW: hdc=%x xy=(%d,%d) nCount=%d nTP=%d nTOS=%d str=(%d)\"%ls\"\n", 
-		hdc, X, Y, nCount, nTabPositions, nTabOrigin, lpString);
-
-	if(dxw.IsToRemap(hdc)){
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				res=(*pTabbedTextOutW)(sdc.GetHdc(), X, Y, lpString, nCount, nTabPositions, lpnTabStopPositions, nTabOrigin);
-				sdc.PutPrimaryDC(hdc, TRUE);
-				return res;
-				break;
-			case GDIMODE_STRETCHED: 
-				dxw.MapClient(&X, &Y);
-				break;
-			case GDIMODE_EMULATED:
-				if(dxw.IsVirtual(hdc)){
-					X+=dxw.VirtualOffsetX;
-					Y+=dxw.VirtualOffsetY;
-				}
-				break;
-			default:
-				break;
-		}
-		OutTraceDW("TabbedTextOutW: fixed dest=(%d,%d)\n", X, Y);
-	}
-
-	res=(*pTabbedTextOutW)(hdc, X, Y, lpString, nCount, nTabPositions, lpnTabStopPositions, nTabOrigin);
 	return res;
 }
 
@@ -2669,47 +2531,46 @@ BOOL gFixed;
 int WINAPI extDrawTextA(HDC hdc, LPCTSTR lpchText, int nCount, LPRECT lpRect, UINT uFormat)
 {
 	int ret;
-	OutTraceDW("DrawTextA: hdc=%x rect=(%d,%d)-(%d,%d) Format=%x(%s) Text=(%d)\"%s\"\n", 
+	OutTraceDW("DrawText: hdc=%x rect=(%d,%d)-(%d,%d) Format=%x(%s) Text=(%d)\"%s\"\n", 
 		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, uFormat, ExplainDTFormat(uFormat), nCount, lpchText);
+
     gFixed = TRUE; // semaphore to avoid multiple scaling with HOT patching
 	if(dxw.IsToRemap(hdc)){
 
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pDrawTextA)(sdc.GetHdc(), lpchText, nCount, lpRect, uFormat);
-				if(nCount)
-					sdc.PutPrimaryDC(hdc, TRUE, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
-				else
-					sdc.PutPrimaryDC(hdc, FALSE); // Diablo makes a DrawText of nuull string in the intro ...
-				return ret;
+				if(sdc.GetPrimaryDC(hdc)){
+					ret=(*pDrawText)(sdc.GetHdc(), lpchText, nCount, lpRect, uFormat);
+					sdc.PutPrimaryDC(hdc, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
+					return ret;
+				}
 				break;
 			case GDIMODE_STRETCHED: 
 				dxw.MapClient((RECT *)lpRect);
-				OutTraceDW("DrawTextA: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-				ret=(*pDrawTextA)(hdc, lpchText, nCount, lpRect, uFormat);
+				OutTraceDW("DrawText: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+				ret=(*pDrawText)(hdc, lpchText, nCount, lpRect, uFormat);
 				dxw.UnmapClient((RECT *)lpRect);
-				OutTraceDW("DrawTextA: fixed output rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+				OutTraceDW("DrawText: fixed output rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 				break;
 			default:
-				ret=(*pDrawTextA)(hdc, lpchText, nCount, lpRect, uFormat);
+				ret=(*pDrawText)(hdc, lpchText, nCount, lpRect, uFormat);
 				break;
 		}
 	}
 	else {
-		ret=(*pDrawTextA)(hdc, lpchText, nCount, lpRect, uFormat);
+		ret=(*pDrawText)(hdc, lpchText, nCount, lpRect, uFormat);
 	}
 	gFixed = FALSE;
 
 	// if nCount is zero, DrawRect returns 0 as text heigth, but this is not an error! (ref. "Imperialism II")
-	if(nCount && !ret) OutTraceE("DrawTextA: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	if(nCount && !ret) OutTraceE("DrawText: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
 }
 
 int WINAPI extDrawTextExA(HDC hdc, LPTSTR lpchText, int nCount, LPRECT lpRect, UINT dwDTFormat, LPDRAWTEXTPARAMS lpDTParams)
 {
 	int ret;
-	OutTraceDW("DrawTextExA: hdc=%x rect=(%d,%d)-(%d,%d) DTFormat=%x Text=(%d)\"%s\"\n", 
+	OutTraceDW("DrawTextEx: hdc=%x rect=(%d,%d)-(%d,%d) DTFormat=%x Text=(%d)\"%s\"\n", 
 		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, dwDTFormat, nCount, lpchText);
        if (IsDebug){
             if(lpDTParams)
@@ -2724,113 +2585,31 @@ int WINAPI extDrawTextExA(HDC hdc, LPTSTR lpchText, int nCount, LPRECT lpRect, U
 	if(dxw.IsToRemap(hdc)){
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pDrawTextExA)(sdc.GetHdc(), lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-				sdc.PutPrimaryDC(hdc, TRUE, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
-				return ret;
+				if(sdc.GetPrimaryDC(hdc)){
+					ret=(*pDrawTextEx)(sdc.GetHdc(), lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
+					sdc.PutPrimaryDC(hdc, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
+					return ret;
+				}
 				break;
 			case GDIMODE_STRETCHED: 
 				dxw.MapClient((RECT *)lpRect);
-				OutTraceDW("DrawTextA: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-				ret=(*pDrawTextExA)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
+				OutTraceDW("DrawText: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+				ret=(*pDrawTextEx)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
 				dxw.UnmapClient((RECT *)lpRect);
-				OutTraceDW("DrawTextA: fixed output rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+				OutTraceDW("DrawText: fixed output rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 				break;
 			default:
-				ret=(*pDrawTextExA)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
+				ret=(*pDrawTextEx)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
 				break;
 		}
 	}
 	else {
-		ret=(*pDrawTextExA)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
+		ret=(*pDrawTextEx)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
 	}
 	gFixed = FALSE;
 
 	// if nCount is zero, DrawRect returns 0 as text heigth, but this is not an error! (ref. "Imperialism II")
-	if(nCount && !ret) OutTraceE("DrawTextA: ERROR ret=%x err=%d\n", ret, GetLastError()); 
-	return ret;
-}
-
-int WINAPI extDrawTextW(HDC hdc, LPCWSTR lpchText, int nCount, LPRECT lpRect, UINT uFormat)
-{
-	int ret;
-	OutTraceDW("DrawTextW: hdc=%x rect=(%d,%d)-(%d,%d) Format=%x(%s) Text=(%d)\"%ls\"\n", 
-		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, uFormat, ExplainDTFormat(uFormat), nCount, lpchText);
-
-    gFixed = TRUE; // semaphore to avoid multiple scaling with HOT patching
-	if(dxw.IsToRemap(hdc)){
-
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pDrawTextW)(sdc.GetHdc(), lpchText, nCount, lpRect, uFormat);
-				sdc.PutPrimaryDC(hdc, TRUE, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
-				return ret;
-				break;
-			case GDIMODE_STRETCHED: 
-				dxw.MapClient((RECT *)lpRect);
-				OutTraceDW("DrawTextW: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-				ret=(*pDrawTextW)(hdc, lpchText, nCount, lpRect, uFormat);
-				dxw.UnmapClient((RECT *)lpRect);
-				OutTraceDW("DrawTextW: fixed output rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-				break;
-			default:
-				ret=(*pDrawTextW)(hdc, lpchText, nCount, lpRect, uFormat);
-				break;
-		}
-	}
-	else {
-		ret=(*pDrawTextW)(hdc, lpchText, nCount, lpRect, uFormat);
-	}
-	gFixed = FALSE;
-
-	// if nCount is zero, DrawRect returns 0 as text heigth, but this is not an error! (ref. "Imperialism II")
-	if(nCount && !ret) OutTraceE("DrawTextW: ERROR ret=%x err=%d\n", ret, GetLastError()); 
-	return ret;
-}
-
-int WINAPI extDrawTextExW(HDC hdc, LPCWSTR lpchText, int nCount, LPRECT lpRect, UINT dwDTFormat, LPDRAWTEXTPARAMS lpDTParams)
-{
-	int ret;
-	OutTraceDW("DrawTextExW: hdc=%x rect=(%d,%d)-(%d,%d) DTFormat=%x Text=(%d)\"%ls\"\n", 
-		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, dwDTFormat, nCount, lpchText);
-       if (IsDebug){
-            if(lpDTParams)
-                  OutTrace("DTParams: size=%d (L,R)margins=(%d,%d) TabLength=%d lDrawn=%d\n",
-                  lpDTParams->cbSize, lpDTParams->iLeftMargin, lpDTParams->iRightMargin,
-                  lpDTParams->iTabLength, lpDTParams->uiLengthDrawn);
-            else
-                  OutTrace("DTParams: NULL\n");
-      }
-
-    gFixed = TRUE; // semaphore to avoid multiple scaling with HOT patching
-	if(dxw.IsToRemap(hdc)){
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pDrawTextExW)(sdc.GetHdc(), lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-				sdc.PutPrimaryDC(hdc, TRUE, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
-				return ret;
-				break;
-			case GDIMODE_STRETCHED: 
-				dxw.MapClient((RECT *)lpRect);
-				OutTraceDW("DrawTextExW: fixed rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-				ret=(*pDrawTextExW)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-				dxw.UnmapClient((RECT *)lpRect);
-				OutTraceDW("DrawTextExW: fixed output rect=(%d,%d)-(%d,%d)\n", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-				break;
-			default:
-				ret=(*pDrawTextExW)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-				break;
-		}
-	}
-	else {
-		ret=(*pDrawTextExW)(hdc, lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-	}
-	gFixed = FALSE;
-
-	// if nCount is zero, DrawRect returns 0 as text heigth, but this is not an error! (ref. "Imperialism II")
-	if(nCount && !ret) OutTraceE("DrawTextExW: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	if(nCount && !ret) OutTraceE("DrawText: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
 }
 
@@ -3227,7 +3006,7 @@ UINT WINAPI extGetDIBColorTable(HDC hdc, UINT uStartIndex, UINT cEntries, RGBQUA
 	UINT ret;
 	OutTraceDW("GetDIBColorTable: hdc=%x start=%d entries=%d\n", hdc, uStartIndex, cEntries);
 
-	//if((OBJ_DC == (*pGetObjectType)(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
+	//if((OBJ_DC == GetObjectType(hdc)) && (dxw.dwFlags1 & EMULATESURFACE)){
 	//	//extern PALETTEENTRY PalEntries[256];
 	//	extern DWORD *PaletteEntries;
 	//	if((uStartIndex+cEntries) > 256) cEntries = 256 - uStartIndex;
@@ -3381,9 +3160,6 @@ HHOOK WINAPI extSetWindowsHookEx(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWOR
 	// v2.03.39: "One Must Fall Battlegrounds" keyboard fix
 	if((idHook == WH_KEYBOARD) && (dwThreadId == NULL)) dwThreadId = GetCurrentThreadId();
 
-	// v2.03.54: disable the disable Alt-Tab fix
-	if((dxw.dwFlags7 & DISABLEDISABLEALTTAB) && (idHook == WH_KEYBOARD_LL)) return NULL;
-
 	ret=(*pSetWindowsHookEx)(idHook, lpfn, hMod, dwThreadId);
 
 	return ret;
@@ -3499,7 +3275,6 @@ BOOL InvalidateRgn(
 
 HWND WINAPI extGetParent(HWND hWnd)
 {
-	// Beware: can cause recursion on HOT PATCH mode
 	HWND ret;
 
 	ret = (*pGetParent)(hWnd);
@@ -3507,7 +3282,7 @@ HWND WINAPI extGetParent(HWND hWnd)
 
 	if(dxw.IsFullScreen()){
 		if(ret == dxw.GethWnd()) {
-			OutTraceB("GetParent: setting desktop reached\n");
+			OutTraceDW("GetParent: setting desktop reached\n");
 			ret = 0; // simulate reaching the desktop
 		}
 	}
@@ -3524,103 +3299,4 @@ BOOL WINAPI extInvalidateRgn(HWND hWnd, HRGN hRgn, BOOL bErase)
 	}
 
 	return (*pInvalidateRgn)(hWnd, hRgn, bErase);
-}
-
-BOOL WINAPI extDrawIcon(HDC hdc, int X, int Y, HICON hIcon)
-{
-	BOOL ret;
-	OutTraceDW("DrawIcon: hdcdest=%x pos=(%d,%d) hicon=%x\n", hdc, X, Y, hIcon);
-	if(dxw.IsToRemap(hdc)){
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_STRETCHED: 
-				dxw.MapClient(&X, &Y);
-				OutTraceDW("OffsetRgn: fixed STRETCHED pos=(%d,%d)\n", X, Y);
-				break;
-			case GDIMODE_SHAREDDC: 
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pDrawIcon)(sdc.GetHdc(),  X, Y, hIcon);
-				sdc.PutPrimaryDC(hdc, TRUE);
-				return ret;
-				break;
-		default:
-			break;
-		}
-	}
-
-	ret = (*pDrawIcon)(hdc, X, Y, hIcon);
-	if(!ret) OutTraceE("DrawIcon ERROR: err=%d\n", GetLastError());
-	return ret;
-}
-
-
-BOOL WINAPI extDrawIconEx( HDC hdc, int xLeft, int yTop, HICON hIcon, int cxWidth, int cyWidth, UINT istepIfAniCur, HBRUSH hbrFlickerFreeDraw, UINT diFlags)
-{
-	BOOL ret;
-	OutTraceDW("DrawIconEx: hdc=%x pos=(%d,%d) hicon=%x size=(%d,%d) istep=%x flags=%x\n",
-		hdc, xLeft, yTop, hIcon, cxWidth, cyWidth, istepIfAniCur, diFlags);
-	if(dxw.IsToRemap(hdc)){
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_STRETCHED: 
-				dxw.MapClient(&xLeft, &yTop, &cxWidth, &cyWidth);
-				OutTraceDW("DrawIconEx: fixed STRETCHED pos=(%d,%d) size=(%d,%d)\n", xLeft, yTop, cxWidth, cyWidth);
-				break;
-			case GDIMODE_SHAREDDC: 
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pDrawIconEx)(sdc.GetHdc(), xLeft, yTop, hIcon, cxWidth, cyWidth, istepIfAniCur, hbrFlickerFreeDraw, diFlags);
-				sdc.PutPrimaryDC(hdc, TRUE, xLeft, yTop, cxWidth, cyWidth);
-				return ret;
-				break;
-		default:
-			break;
-		}
-	}
-	ret = (*pDrawIconEx)(hdc, xLeft, yTop, hIcon, cxWidth, cyWidth, istepIfAniCur, hbrFlickerFreeDraw, diFlags);
-	if(!ret) OutTraceE("DrawIconEx ERROR: err=%d\n", GetLastError());
-	return ret;
-}
-
-BOOL WINAPI extDrawCaption(HWND hwnd, HDC hdc, LPCRECT lprc, UINT uFlags)
-{
-	BOOL ret;
-	OutTraceDW("DrawCaption: hwnd=%x hdc=%x rect=(%d,%d)-(%d,%d) flags=%x\n", hwnd, hdc, lprc->left, lprc->top, lprc->right, lprc->bottom, uFlags);
-	if(dxw.IsToRemap(hdc)){
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_STRETCHED: 
-				dxw.MapClient((LPRECT)lprc);
-				OutTraceDW("DrawIconEx: fixed STRETCHED rect=(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
-				break;
-			case GDIMODE_SHAREDDC: 
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pDrawCaption)(hwnd, sdc.GetHdc(), lprc, uFlags);
-				sdc.PutPrimaryDC(hdc, TRUE, lprc->left, lprc->top, lprc->right, lprc->bottom);
-				return ret;
-				break;
-		default:
-			break;
-		}
-	}
-	ret = (*pDrawCaption)(hwnd, hdc, lprc, uFlags);
-	if(!ret) OutTraceE("DrawCaption ERROR: err=%d\n", GetLastError());
-	return ret;
-}
-
-BOOL WINAPI extPaintDesktop(HDC hdc)
-{
-	BOOL ret;
-	OutTraceDW("PaintDesktop: hdc=%x\n", hdc);
-	if(dxw.IsToRemap(hdc)){
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_SHAREDDC: 
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pPaintDesktop)(sdc.GetHdc());
-				sdc.PutPrimaryDC(hdc, TRUE);
-				return ret;
-				break;
-		default:
-			break;
-		}
-	}
-	ret = (*pPaintDesktop)(hdc);
-	if(!ret) OutTraceE("PaintDesktop ERROR: err=%d\n", GetLastError());
-	return ret;
 }

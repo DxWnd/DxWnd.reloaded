@@ -8,6 +8,7 @@
 #include <psapi.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
+#include "shareddc.hpp"
 #include "dxhook.h"
 #include "glhook.h"
 #include "glidehook.h"
@@ -28,6 +29,7 @@
 dxwCore dxw;
 dxwSStack dxwss;
 dxwWStack dxwws;
+dxwSDC sdc;
 
 extern LRESULT CALLBACK MessageHook(int, WPARAM, LPARAM);
 
@@ -1368,7 +1370,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	InitScreenParameters();
 	if(hwnd) HookWindowProc(hwnd);
 	// in fullscreen mode, messages seem to reach and get processed by the parent window
-	if((!dxw.Windowize) && hwnd) HookWindowProc(GetParent(hwnd));
+	if((!dxw.Windowize) && hwnd) HookWindowProc(dxw.hParentWnd);
 
 	// initialize window: if
 	// 1) not in injection mode (hwnd != 0) and
@@ -1409,8 +1411,9 @@ FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
 	void *remapped_addr;
 	for(; Hooks->APIName; Hooks++){
 		if (!strcmp(proc,Hooks->APIName)){
-			if((((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
-				((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED)))){ // force hot patch and not already hooked
+			if  ((Hooks->HookStatus == HOOK_HOT_REQUIRED) ||
+				((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
+				((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED))){ // force hot patch and not already hooked
 											 
 			if(!Hooks->OriginalAddress) {
 					Hooks->OriginalAddress=(*pGetProcAddress)(hModule, Hooks->APIName);
@@ -1462,7 +1465,8 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 		//	continue;
 		//}
 
-		if((((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
+		if(((Hooks->HookStatus == HOOK_HOT_REQUIRED) ||
+			((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
 			((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED))) // force hot patch and not already hooked
 			&&
 			Hooks->StoreAddress){							 // and save ptr available

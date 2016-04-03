@@ -9,6 +9,7 @@
 //#undef IsTraceDW
 //#define IsTraceDW TRUE
 #define LOCKINJECTIONTHREADS
+#define TRYFATNAMES TRUE
 
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 LPVOID WINAPI extVirtualAlloc(LPVOID, SIZE_T, DWORD, DWORD);
@@ -792,6 +793,7 @@ HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwS
 							DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
 {
 	HANDLE ret;
+	int err=0;
 	OutTraceDW("CreateFile: FileName=%s DesiredAccess=%x SharedMode=%x Disposition=%x Flags=%x\n", 
 		lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes);
 
@@ -809,8 +811,29 @@ HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwS
 		if(ret && (ret != (HANDLE)INVALID_SET_FILE_POINTER)) 
 			OutTrace("CreateFile: ret=%x\n", ret);
 		else
-			OutTrace("CreateFile ERROR: err=%d\n", GetLastError());
+			OutTrace("CreateFile ERROR: err=%d\n", err=GetLastError());
 	}
+
+#if 0
+	if(TRYFATNAMES && (!ret) && (err==ERROR_FILE_NOT_FOUND)){
+		char ShortPath[MAX_PATH+1];
+		int iLastBackSlash, iFnameLength;
+		char *sFileName;
+		strncpy(ShortPath, lpFileName, MAX_PATH);
+		iLastBackSlash = -1;
+		for(size_t i=0; i<strlen(ShortPath); i++) if((ShortPath[i]=='\\') || (ShortPath[i]=='/')) iLastBackSlash=i;
+		sFileName = &ShortPath[iLastBackSlash+1];
+		for(size_t i=0; i<strlen(sFileName); i++) if(sFileName[i]=='.') iFnameLength=i;
+		if(iFnameLength > 8){
+			sFileName[6] = '~';
+			sFileName[7] = '1';
+			strcpy(&sFileName[8], &sFileName[iFnameLength]);
+		}
+		OutTrace("CreateFile: try FAT path=\"%s\"\n", ShortPath);
+		ret=(*pCreateFile)(ShortPath, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	}
+#endif
+
 	return ret;
 } 
 

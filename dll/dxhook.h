@@ -47,6 +47,7 @@ extern FARPROC Remap_DInput8_ProcAddress(LPCSTR, HMODULE);
 typedef enum {
 	HOOK_IAT_CANDIDATE = 0,
 	HOOK_HOT_CANDIDATE,
+	HOOK_HOT_REQUIRED,
 	HOOK_IAT_LINKED,
 	HOOK_HOT_LINKED
 } HookEntry_Status;

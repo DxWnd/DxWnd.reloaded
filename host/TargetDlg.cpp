@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include "shlwapi.h"
 #include "dxwndhost.h"
 #include "TargetDlg.h"
 
@@ -59,6 +60,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_EASportsHack = FALSE;
 	m_LegacyAlloc = FALSE;
 	m_DisableMaxWinMode = FALSE;
+	m_DisableDisableAltTab = FALSE;
 	m_NoImagehlp = FALSE;
 	m_ReplacePrivOps = FALSE;
 	m_ForcesHEL = FALSE;
@@ -103,8 +105,8 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_Windowize = TRUE; // default true !!
 	m_HotPatch = FALSE; 
 	m_HookDLLs = TRUE; // default true !!
-	m_TerminateOnClose = FALSE; // default true !!
-	m_ConfirmOnClose = FALSE; // default true !!
+	m_TerminateOnClose = FALSE; 
+	m_ConfirmOnClose = FALSE; 
 	m_HookEnabled = TRUE; // default true !!
 	m_EmulateRegistry = FALSE; 
 	m_OverrideRegistry = FALSE; 
@@ -231,19 +233,6 @@ BOOL CTargetDlg::OnInitDialog()
 	int i=0;
 	AfxEnableControlContainer();
 	CDialog::OnInitDialog();
-#if 0
-	m_tabdxTabCtrl.InsertItem(i++, _T("Main"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Video"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Input"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("DirectX"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Timing"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Log"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Libs"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Compat"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Registry"));
-	m_tabdxTabCtrl.InsertItem(i++, _T("Notes"));
-	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T("Debug"));
-#else
 	char sCaption[48+1];
 	LoadString(AfxGetResourceHandle(), DXW_TAB_MAIN, sCaption, sizeof(sCaption));
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
@@ -269,7 +258,6 @@ BOOL CTargetDlg::OnInitDialog()
 	m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
 	LoadString(AfxGetResourceHandle(), DXW_TAB_DEBUG, sCaption, sizeof(sCaption));
 	if (gbDebug) m_tabdxTabCtrl.InsertItem(i++, _T(sCaption));
-#endif
 	m_tabdxTabCtrl.Init();
 	return TRUE;
 }
@@ -293,7 +281,94 @@ BEGIN_MESSAGE_MAP(CTargetDlg, CDialog)
 	//{{AFX_MSG_MAP(CTargetDlg)
 	//}}AFX_MSG_MAP
 
+	ON_BN_CLICKED(IDTRY, &CTargetDlg::OnBnClickedTry)
+	ON_BN_CLICKED(IDKILL, &CTargetDlg::OnBnClickedKill)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CTargetDlg Message Handler
+
+void CTargetDlg::OnBnClickedTry()
+{
+#if 0
+	NMHDR nmh;
+	nmh.code = ID_PRUN;
+	nmh.idFrom = NULL;
+	nmh.hwndFrom = NULL;
+	this->GetParent()->SendMessage(WM_NOTIFY, 0, (LPARAM)&nmh);
+#else
+	char path[MAX_PATH+1];
+	char fullpath[MAX_PATH+1];
+	char sMsg[81];
+	int iHookStatus;
+	STARTUPINFO sinfo;
+	PROCESS_INFORMATION pinfo;
+	TARGETMAP RestrictedMaps[2];
+	extern void SetTargetFromDlg(TARGETMAP *, CTargetDlg *);
+	extern BOOL CheckStatus(void);
+
+	static BOOL IsLocked = FALSE;
+	if(IsLocked) return;
+	if (CheckStatus()) return; // don't try when status is active
+	IsLocked = TRUE;
+	m_tabdxTabCtrl.OnOK();	
+	SetTargetFromDlg(&RestrictedMaps[0], this);
+	memset(&RestrictedMaps[1], 0, sizeof(TARGETMAP));
+	strcpy_s(path, sizeof(path), m_FilePath.GetBuffer());
+	PathRemoveFileSpec(path);
+	SetTarget(RestrictedMaps);	
+	iHookStatus=GetHookStatus(NULL);
+	if(iHookStatus == DXW_IDLE) StartHook();
+	if(m_StartDebug){
+		extern DWORD WINAPI StartDebug(void *);
+		TARGETMAP TargetMap;
+		PRIVATEMAP PrivateMap;
+		ThreadInfo_Type ThreadInfo;
+		strcpy(TargetMap.path, m_FilePath);
+		strcpy(PrivateMap.launchpath, m_LaunchPath);
+		ThreadInfo.TM=&TargetMap;
+		ThreadInfo.PM=&PrivateMap;
+		CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
+	}
+	else{
+		ZeroMemory(&sinfo, sizeof(sinfo));
+		sinfo.cb = sizeof(sinfo);
+		strncpy(fullpath, m_LaunchPath.IsEmpty() ? m_FilePath.GetBuffer() : m_LaunchPath.GetBuffer(), MAX_PATH);
+		if(!CreateProcess(NULL, fullpath, 
+			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo)){
+			sprintf(sMsg, "CreateProcess ERROR %d", GetLastError());
+			MessageBox(sMsg, "Error", MB_ICONEXCLAMATION);
+		}
+		CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
+		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
+	}
+	// wait & recover
+	Sleep(5000);
+	//SetTarget(CDxwndhostView::TargetMaps);	
+	if(iHookStatus == DXW_IDLE) EndHook();
+	IsLocked = FALSE;
+#endif
+}
+
+void CTargetDlg::OnBnClickedKill()
+{
+	char FilePath[MAX_PATH+1];
+	char *lpProcName, *lpNext;
+	HRESULT res;
+	extern BOOL KillProcByName(char *, BOOL);
+
+	strncpy(FilePath, m_FilePath.GetBuffer(), MAX_PATH);
+	lpProcName=FilePath;
+	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
+
+	if(!KillProcByName(lpProcName, FALSE)){
+		wchar_t *wcstring = new wchar_t[48+1];
+		mbstowcs_s(NULL, wcstring, 48, lpProcName, _TRUNCATE);
+		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
+		if(res!=IDYES) return;
+		KillProcByName(lpProcName, TRUE);
+	}
+	else{
+		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
+	}
+}

@@ -199,6 +199,7 @@ public:
 	BOOL	m_EASportsHack;
 	BOOL	m_LegacyAlloc;
 	BOOL	m_DisableMaxWinMode;
+	BOOL	m_DisableDisableAltTab;
 	BOOL	m_NoImagehlp;
 	BOOL	m_ForcesHEL;
 	BOOL	m_SetZBufferBitDepths;
@@ -256,6 +257,8 @@ protected:
 public:
 	virtual BOOL OnInitDialog();
 
+	afx_msg void OnBnClickedTry();
+	afx_msg void OnBnClickedKill();
 };
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ Will insert additional declarations immediately before the previous line.

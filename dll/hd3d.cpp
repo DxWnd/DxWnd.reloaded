@@ -20,6 +20,8 @@
 extern void D3D9TextureHandling(void *, int);
 extern void D3D8TextureHandling(void *, int);
 
+void *lpD3DActiveDevice = NULL;
+
 typedef HRESULT (WINAPI *QueryInterface_Type)(void *, REFIID riid, void** ppvObj);
 
 // D3D8/9 API
@@ -212,6 +214,7 @@ typedef HRESULT (WINAPI *SetTexture9_Type)(void *, DWORD, void *);
 
 //typedef ULONG	(WINAPI *CreateRenderTarget8_Type)(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, IDirect3DSurface8**);
 typedef ULONG	(WINAPI *CreateRenderTarget8_Type)(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, void**);
+typedef ULONG	(WINAPI *CreateRenderTarget9_Type)(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, void**);
 typedef ULONG	(WINAPI *BeginScene_Type)(void *);
 typedef ULONG	(WINAPI *EndScene_Type)(void *);
 
@@ -250,6 +253,7 @@ BOOL  WINAPI voidDisableD3DSpy(void);
 
 //ULONG WINAPI extCreateRenderTarget8(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, IDirect3DSurface8**);
 ULONG WINAPI extCreateRenderTarget8(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, void**);
+ULONG WINAPI extCreateRenderTarget9(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, void**);
 ULONG WINAPI extBeginScene8(void *);
 ULONG WINAPI extEndScene8(void *);
 ULONG WINAPI extBeginScene9(void *);
@@ -291,6 +295,7 @@ SetGammaRamp_Type pSetGammaRamp = 0;
 GetGammaRamp_Type pGetGammaRamp = 0;
 
 CreateRenderTarget8_Type pCreateRenderTarget8 = 0;
+CreateRenderTarget9_Type pCreateRenderTarget9 = 0;
 BeginScene_Type pBeginScene8 = 0;
 EndScene_Type pEndScene8 = 0;
 BeginScene_Type pBeginScene9 = 0;
@@ -540,6 +545,7 @@ void HookD3DDevice9(void** ppD3Ddev9)
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 124), extUpdateTexture, (void **)&pUpdateTexture, "UpdateTexture(D9)");
 #endif
 
+	//SetHook((void *)(**(DWORD **)ppD3Ddev9 + 112), extCreateRenderTarget9, (void **)&pCreateRenderTarget9, "CreateRenderTarget(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 164), extBeginScene9, (void **)&pBeginScene9, "BeginScene(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 168), extEndScene9, (void **)&pEndScene9, "EndScene(D9)");
 	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
@@ -1153,6 +1159,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 		return res;
 	}
 	OutTraceD3D("SUCCESS! device=%x\n", *ppd3dd);
+	lpD3DActiveDevice = *ppd3dd;
 
 	if(dwD3DVersion == 8){ 
 		HookD3DDevice8(ppd3dd);
@@ -1259,6 +1266,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 		return res;
 	}
 	OutTraceD3D("SUCCESS!\n"); 
+	lpD3DActiveDevice = *ppd3dd;
 
 	HookD3DDevice9(ppd3dd);
 

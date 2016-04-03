@@ -54,3 +54,4 @@ extern char *ExplainDICooperativeFlags(DWORD);
 extern char *ExplainRegionType(DWORD);
 extern char *ExplainPixelFormat(LPDDPIXELFORMAT);
 extern char *ExplainZBufferBitDepths(DWORD);
+extern char *GetObjectTypeStr(HDC);

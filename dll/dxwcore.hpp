@@ -56,6 +56,7 @@ public: // methods
 	void SetFullScreen(BOOL);
 	void SetFullScreen(BOOL, int);
 	BOOL IsFullScreen();
+	BOOL IsToRemap(HDC);
 	BOOL IsDesktop(HWND);
 	BOOL IsRealDesktop(HWND);
 	POINT FixCursorPos(POINT);
@@ -357,8 +358,12 @@ typedef enum {
 	DXVK_SIZE
 };
 
-#define GDIMODE_STRETCHED  0
-#define GDIMODE_EMULATED   1
+typedef enum {
+	GDIMODE_NONE = 0,
+	GDIMODE_STRETCHED,
+	GDIMODE_EMULATED,
+	GDIMODE_SHAREDDC
+};
 
 typedef HRESULT (WINAPI *ColorConversion_Type)(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
 extern ColorConversion_Type pColorConversion;

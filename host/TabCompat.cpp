@@ -42,6 +42,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_EASPORTSHACK, cTarget->m_EASportsHack);
 	DDX_Check(pDX, IDC_LEGACYALLOC, cTarget->m_LegacyAlloc);
 	DDX_Check(pDX, IDC_DISABLEMAXWINMODE, cTarget->m_DisableMaxWinMode);
+	DDX_Check(pDX, IDC_DISABLEDISABLEALTTAB, cTarget->m_DisableDisableAltTab);
 	DDX_Check(pDX, IDC_NOIMAGEHLP, cTarget->m_NoImagehlp);
 	DDX_Check(pDX, IDC_REPLACEPRIVOPS, cTarget->m_ReplacePrivOps);
 

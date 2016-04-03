@@ -31,6 +31,8 @@ extern UINT m_InitialState;
 extern char m_ConfigFileName[20+1];
 extern BOOL Inject(DWORD, const char *);
 extern int KillProcByName(char *, BOOL);
+extern BOOL gTransientMode;
+extern int iProgIndex;
 
 PRIVATEMAP *pTitles; // global ptr: get rid of it!!
 TARGETMAP *pTargets; // idem.
@@ -141,7 +143,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 END_MESSAGE_MAP()
 
 // v2.1.68: dialog box for status check.
-static BOOL CheckStatus()
+BOOL CheckStatus()
 { 
 	if(GetHookStatus(NULL)==DXW_RUNNING){
 		MessageBoxLang(DXW_STRING_WAITTASK, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
@@ -163,7 +165,7 @@ static void RevertScreenChanges(DEVMODE *InitDevMode)
 	}
 }
 
-static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
+void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 {
 	strcpy_s(t->path, sizeof(t->path), dlg->m_FilePath);
 	strcpy_s(t->module, sizeof(t->module), dlg->m_Module);
@@ -221,6 +223,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 0: break;
 		case 1: t->flags2 |= GDISTRETCHED; break;
 		case 2: t->flags3 |= GDIEMULATEDC; break;
+		case 3: t->flags6 |= SHAREDDC; break;
 		//case 3: t->flags |= MAPGDITOPRIMARY; break;
 	}
 
@@ -300,6 +303,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_EASportsHack) t->flags5 |= EASPORTSHACK;
 	if(dlg->m_LegacyAlloc) t->flags6 |= LEGACYALLOC;
 	if(dlg->m_DisableMaxWinMode) t->flags6 |= DISABLEMAXWINMODE;
+	if(dlg->m_DisableDisableAltTab) t->flags7 |= DISABLEDISABLEALTTAB;
 	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
 	if(dlg->m_SetZBufferBitDepths) t->flags6 |= SETZBUFFERBITDEPTHS;
@@ -335,7 +339,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
 	if(dlg->m_FixTextOut) t->flags |= FIXTEXTOUT;
-	if(dlg->m_SharedDC) t->flags6 |= SHAREDDC;
 	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
 	if(dlg->m_RemapMCI) t->flags5 |= REMAPMCI;
 	if(dlg->m_NoMovies) t->flags6 |= NOMOVIES;
@@ -472,6 +475,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DCEmulationMode = 0;
 	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
 	if(t->flags3 & GDIEMULATEDC) dlg->m_DCEmulationMode = 2;
+	if(t->flags6 & SHAREDDC    ) dlg->m_DCEmulationMode = 3;
 	//if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
 
 	dlg->m_ResTypes = 0;
@@ -525,6 +529,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_EASportsHack = t->flags5 & EASPORTSHACK ? 1 : 0;
 	dlg->m_LegacyAlloc = t->flags6 & LEGACYALLOC ? 1 : 0;
 	dlg->m_DisableMaxWinMode = t->flags6 & DISABLEMAXWINMODE ? 1 : 0;
+	dlg->m_DisableDisableAltTab = t->flags7 & DISABLEDISABLEALTTAB ? 1 : 0;
 	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
 	dlg->m_SetZBufferBitDepths = t->flags6 & SETZBUFFERBITDEPTHS ? 1 : 0;
@@ -1075,6 +1080,10 @@ void CDxwndhostView::OnInitialUpdate()
 	this->isUpdated=FALSE;
 	pTitles = &PrivateMaps[0];
 	pTargets= &TargetMaps[0];
+
+	if(gTransientMode){
+		this->OnRun();
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1753,9 +1762,10 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 	char sMsg[1024];
 	char *Status;
 	char DllVersion[21];
-	int TickCount;
+	int TickCount, IdleCount;
 	PrevDxStatus=-1; // a different one...
 	TickCount=0;
+	IdleCount=0;
 	while (TRUE) {
 		// once a second ...
 		Sleep(1000);
@@ -1770,10 +1780,18 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 			TickCount=0;
 			Tray->StopAnimation();
 			Tray->SetIcon(IconId);
+			if(gTransientMode) {
+				IdleCount++;
+				if(IdleCount > 2) {
+					delete(Tray->GetAncestor(GA_ROOTOWNER));
+					exit(0);
+				}
+			}
 		}
 		else {
 			// animation state machine ....
 			TickCount++;
+			IdleCount=0;
 			if (DxStatus!=PrevDxStatus) {
 				Tray->SetIcon(IconId);
 			}
@@ -1999,12 +2017,6 @@ static char *ExceptionCaption(DWORD ec)
 // For thread messaging
 #define DEBUG_EVENT_MESSAGE		WM_APP + 0x100
 
-typedef struct {
-	TARGETMAP *TM;
-	PRIVATEMAP *PM;
-} ThreadInfo_Type;
-ThreadInfo_Type ThreadInfo;
-
 DWORD WINAPI StartDebug(void *p)
 {
 	ThreadInfo_Type *ThInfo;
@@ -2137,22 +2149,37 @@ DWORD WINAPI StartDebug(void *p)
 
 void CDxwndhostView::OnRun() 
 {
+	static BOOL IsLocked = FALSE;
+	if(IsLocked) return;
+	IsLocked = TRUE;
 	CListCtrl& listctrl = GetListCtrl();
 	POSITION pos;
 	int i;
 	STARTUPINFO sinfo;
 	PROCESS_INFORMATION pinfo;
 	char path[MAX_PATH];
+	TARGETMAP RestrictedMaps[2];
 	//extern CString GetFileNameFromHandle(HANDLE);
 
-	if(!listctrl.GetSelectedCount()) return;
-	pos = listctrl.GetFirstSelectedItemPosition();
-	i = listctrl.GetNextSelectedItem(pos);
+	if(gTransientMode){
+		i=iProgIndex-1;
+		if(i<0) i=0;
+	}
+	else {
+		if(!listctrl.GetSelectedCount()) return;
+		pos = listctrl.GetFirstSelectedItemPosition();
+		i = listctrl.GetNextSelectedItem(pos);
+	}
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo);
+	// create a virtually single entry in the targetmap array
+	memcpy(&RestrictedMaps[0], &TargetMaps[i], sizeof(TARGETMAP));
+	memset(&RestrictedMaps[1], 0, sizeof(TARGETMAP));
 	strcpy_s(path, sizeof(path), TargetMaps[i].path);
 	PathRemoveFileSpec(path);
+	SetTarget(RestrictedMaps);	
 	if(TargetMaps[i].flags2 & STARTDEBUG){
+		ThreadInfo_Type ThreadInfo;
 		ThreadInfo.TM=&TargetMaps[i];
 		ThreadInfo.PM=&PrivateMaps[i];
 		CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
@@ -2164,6 +2191,10 @@ void CDxwndhostView::OnRun()
 		CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
 		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
 	}
+	// wait & recover
+	Sleep(5000);
+	SetTarget(TargetMaps);	
+	IsLocked = FALSE;
 }
 
 void SwitchToColorDepth(int bpp)

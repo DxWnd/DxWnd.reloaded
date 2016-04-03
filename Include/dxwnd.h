@@ -216,6 +216,7 @@
 
 // seventh flags DWORD dxw.dwFlags7:
 #define LIMITDDRAW			0x00000001 // Limit the maximum available ddraw object version
+#define DISABLEDISABLEALTTAB 0x00000002 // Disables the compatibility patch that disables the Alt-Tab key and other special combinations
 
 // eighth flags DWORD dxw.dwFlags8:
 

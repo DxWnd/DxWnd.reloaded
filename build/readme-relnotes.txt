@@ -1023,3 +1023,10 @@ fix: avoid hooking directinput dlls if not requested when loaded dynamically
 fix: added recovery of lost device in DirectInput GetDeviceData method
 fix: changed SetHook so that it can get function pointers without necessarily replacing them
 add: option "Limit ddraw interface" to exclude support for IDirectDrawInterface greater than limit (range 1-7)
+
+v2.03.53(skipped)
+v2.03.54
+add: syslib shared dc mode preliminary implementation, thank to Narzoul's ideas. Works for "MS Golf 98" and "Deadlock II rel. 1.2"
+fix: handling of cursor hide/show for programs that don't go through the message window ("Deadlock II rel. 1.2")
+add: /R:n command line option to automatically start DxWnd in icon tray, run the n-th program in configuration and terminate.
+add: option to disable the disabling of Alt-Tab key through SetWindowHooks through WH_KEYBOARD_LL event. Mae it posssible to use Alt-Tab key on "Dungeon Kepper II".
