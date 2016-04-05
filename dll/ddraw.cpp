@@ -89,8 +89,8 @@ HRESULT WINAPI extWaitForVerticalBlank4(LPDIRECTDRAW, DWORD, HANDLE);
 HRESULT WINAPI extWaitForVerticalBlank7(LPDIRECTDRAW, DWORD, HANDLE);
     /*** Added in the V2 Interface ***/
 HRESULT WINAPI extGetAvailableVidMem2(LPDIRECTDRAW, LPDDSCAPS, LPDWORD, LPDWORD);
-HRESULT WINAPI extGetAvailableVidMem4(LPDIRECTDRAW, LPDDSCAPS, LPDWORD, LPDWORD);
-HRESULT WINAPI extGetAvailableVidMem7(LPDIRECTDRAW, LPDDSCAPS, LPDWORD, LPDWORD);
+HRESULT WINAPI extGetAvailableVidMem4(LPDIRECTDRAW, LPDDSCAPS2, LPDWORD, LPDWORD);
+HRESULT WINAPI extGetAvailableVidMem7(LPDIRECTDRAW, LPDDSCAPS2, LPDWORD, LPDWORD);
     /*** Added in the V4 Interface ***/
 HRESULT WINAPI extTestCooperativeLevel4(LPDIRECTDRAW);
 HRESULT WINAPI extTestCooperativeLevel7(LPDIRECTDRAW);
@@ -283,7 +283,8 @@ SetDisplayMode1_Type pSetDisplayMode1;
 SetDisplayMode2_Type pSetDisplayMode2, pSetDisplayMode4, pSetDisplayMode7;
 WaitForVerticalBlank_Type pWaitForVerticalBlank1, pWaitForVerticalBlank2, pWaitForVerticalBlank4, pWaitForVerticalBlank7;
 GetSurfaceFromDC_Type pGetSurfaceFromDC;
-GetAvailableVidMem_Type pGetAvailableVidMem2, pGetAvailableVidMem4, pGetAvailableVidMem7;
+GetAvailableVidMem_Type pGetAvailableVidMem2; 
+GetAvailableVidMem4_Type pGetAvailableVidMem4, pGetAvailableVidMem7;
 RestoreAllSurfaces_Type pRestoreAllSurfaces;
 TestCooperativeLevel_Type pTestCooperativeLevel4, pTestCooperativeLevel7;
 GetDeviceIdentifier_Type pGetDeviceIdentifier;
@@ -619,6 +620,7 @@ void InitDSScreenParameters(int dxversion, LPDIRECTDRAWSURFACE lpdds)
 
 void InitScreenParameters(int dxversion)
 {
+	extern void FixPixelFormat(int , DDPIXELFORMAT *);
 	DEVMODE CurrDevMode;
 	static int DoOnce = FALSE;
 
@@ -642,6 +644,8 @@ void InitScreenParameters(int dxversion)
 	// initialize to default null values, but dwRGBBitCount
 	dxw.ActualPixelFormat.dwRGBBitCount=CurrDevMode.dmBitsPerPel;
 	dxw.VirtualPixelFormat.dwRGBBitCount=CurrDevMode.dmBitsPerPel; // until set differently
+	if(dxw.dwFlags2 & INIT8BPP) FixPixelFormat(8, &dxw.VirtualPixelFormat);
+	if(dxw.dwFlags2 & INIT16BPP) FixPixelFormat(16, &dxw.VirtualPixelFormat);
 	OutTraceDW("InitScreenParameters: dxversion=%d RGBBitCount=%d\n", dxversion, CurrDevMode.dmBitsPerPel);
 	SetBltTransformations(dxversion);
 
@@ -1616,6 +1620,16 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 
 	if(lpPrimaryDD==NULL) lpPrimaryDD=*lplpdd; // do not override the value set when creating the primary surface!
 	bFlippedDC = FALSE; // v02.03.30
+#ifdef AUTOSETCOOPERATIVELEVEL
+	OutTrace("Setting cooperative level version=%d hwnd=%x\n", dxw.dwDDVersion, dxw.GethWnd());
+	switch(dxw.dwDDVersion){
+		case 1: res=(*pSetCooperativeLevel1)(*lplpdd, dxw.GethWnd(), DDSCL_NORMAL); break;
+		case 2: res=(*pSetCooperativeLevel2)(*lplpdd, dxw.GethWnd(), DDSCL_NORMAL); break;
+		case 4: res=(*pSetCooperativeLevel4)(*lplpdd, dxw.GethWnd(), DDSCL_NORMAL); break;
+		case 7: res=(*pSetCooperativeLevel7)(*lplpdd, dxw.GethWnd(), DDSCL_NORMAL); break;
+	}
+	if(res) OutTraceE("SetCooperativeLevel ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+#endif
 	return DD_OK;
 }
 
@@ -2087,24 +2101,13 @@ HRESULT WINAPI extGetDisplayMode(GetDisplayMode_Type pGetDisplayMode, LPDIRECTDR
 }
 
 HRESULT WINAPI extGetDisplayMode1(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
-{
-	return extGetDisplayMode(pGetDisplayMode1, lpdd, lpddsd);
-}
-
+{ return extGetDisplayMode(pGetDisplayMode1, lpdd, lpddsd); }
 HRESULT WINAPI extGetDisplayMode2(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
-{
-	return extGetDisplayMode(pGetDisplayMode2, lpdd, lpddsd);
-}
-
+{ return extGetDisplayMode(pGetDisplayMode2, lpdd, lpddsd); }
 HRESULT WINAPI extGetDisplayMode4(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
-{
-	return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode4, lpdd, (LPDDSURFACEDESC)lpddsd);
-}
-
+{ return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode4, lpdd, (LPDDSURFACEDESC)lpddsd); }
 HRESULT WINAPI extGetDisplayMode7(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
-{
-	return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode7, lpdd, (LPDDSURFACEDESC)lpddsd);
-}
+{ return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode7, lpdd, (LPDDSURFACEDESC)lpddsd); }
 
 HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pSetCooperativeLevel, LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
 {
@@ -2329,8 +2332,7 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 		dxwss.PopSurface(lpDDSEmu_Prim);
 
 		if (dxw.dwFlags3 & FORCECLIPPER){
-			OutTraceDW("CreateSurface: FORCE SetClipper on primary hwnd=%x lpdds=%x\n", 
-				dxw.GethWnd(), lpDDSEmu_Prim);
+			OutTraceDW("CreateSurface: FORCE SetClipper on primary hwnd=%x lpdds=%x\n", dxw.GethWnd(), lpDDSEmu_Prim);
 			res=lpdd->CreateClipper(0, &lpddC, NULL);
 			if (res) OutTraceE("CreateSurface: CreateClipper ERROR res=%x(%s)\n", res, ExplainDDError(res));
 			res=lpddC->SetHWnd(0, dxw.GethWnd());
@@ -5657,14 +5659,14 @@ HRESULT WINAPI extDDSetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 	return ret;
 }
 
-static HRESULT WINAPI extGetAvailableVidMem(GetAvailableVidMem_Type pGetAvailableVidMem, LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
+static HRESULT WINAPI extGetAvailableVidMem(int dxversion, GetAvailableVidMem4_Type pGetAvailableVidMem, LPDIRECTDRAW lpdd, LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	HRESULT res; 
 	//const DWORD dwMaxMem = 0x7FFFF000;
         // v03.01.01: limit to smaller value to allow "Breath of Fire IV" card detection
 	const DWORD dwMaxMem = 0x70000000; 
 	const DWORD dwHugeMem = 0xF0000000; 
-	OutTraceDDRAW("GetAvailableVidMem(D): lpdd=%x\n", lpdd);
+	OutTraceDDRAW("GetAvailableVidMem(D%d): lpdd=%x\n", dxversion, lpdd);
 	res=(*pGetAvailableVidMem)(lpdd, lpDDSCaps, lpdwTotal, lpdwFree);
 	if(res){
 		if((dxw.dwFlags3 & FORCESHEL) && (res==DDERR_NODIRECTDRAWHW)){
@@ -5678,8 +5680,17 @@ static HRESULT WINAPI extGetAvailableVidMem(GetAvailableVidMem_Type pGetAvailabl
 		return res; 
 	}
 
-	OutTraceDW("GetAvailableVidMem(D): DDSCaps=%x(%s) Total=%x Free=%x\n", 
-		*lpDDSCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
+	if(dxversion == 2){
+		OutTraceDW("GetAvailableVidMem(D2): DDSCaps=%x(%s) Total=%x Free=%x\n", 
+			lpDDSCaps->dwCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
+	}
+	else{
+		OutTraceDW("GetAvailableVidMem(D%d): DDSCaps=%x(%s).%x.%x.%x volumedepth=%d Total=%x Free=%x\n", 
+			dxversion,
+			lpDDSCaps->dwCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), 
+			lpDDSCaps->dwCaps2, lpDDSCaps->dwCaps3, lpDDSCaps->dwCaps4, lpDDSCaps->dwVolumeDepth,
+			lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
+	}
 
 	if(!(dxw.dwFlags2 & LIMITRESOURCES)) return res;
 	
@@ -5714,12 +5725,11 @@ static HRESULT WINAPI extGetAvailableVidMem(GetAvailableVidMem_Type pGetAvailabl
 }
 
 HRESULT WINAPI extGetAvailableVidMem2(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
-{ return extGetAvailableVidMem(pGetAvailableVidMem2, lpdd, lpDDSCaps, lpdwTotal, lpdwFree); }
-HRESULT WINAPI extGetAvailableVidMem4(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
-{ return extGetAvailableVidMem(pGetAvailableVidMem4, lpdd, lpDDSCaps, lpdwTotal, lpdwFree); }
-HRESULT WINAPI extGetAvailableVidMem7(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
-{ return extGetAvailableVidMem(pGetAvailableVidMem7, lpdd, lpDDSCaps, lpdwTotal, lpdwFree); }
-
+{ return extGetAvailableVidMem(2, (GetAvailableVidMem4_Type)pGetAvailableVidMem2, lpdd, (LPDDSCAPS2)lpDDSCaps, lpdwTotal, lpdwFree); }
+HRESULT WINAPI extGetAvailableVidMem4(LPDIRECTDRAW lpdd, LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
+{ return extGetAvailableVidMem(4, pGetAvailableVidMem4, lpdd, lpDDSCaps, lpdwTotal, lpdwFree); }
+HRESULT WINAPI extGetAvailableVidMem7(LPDIRECTDRAW lpdd, LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
+{ return extGetAvailableVidMem(7, pGetAvailableVidMem7, lpdd, lpDDSCaps, lpdwTotal, lpdwFree); }
 
 HRESULT WINAPI extSetSurfaceDesc(SetSurfaceDesc_Type pSetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpDDsd2, DWORD dwFlags)
 {

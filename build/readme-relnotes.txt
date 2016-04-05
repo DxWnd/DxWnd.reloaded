@@ -1101,4 +1101,9 @@ fix: X,Y starting win position can now be negative integer (in multimonitor syst
 
 v2.03.66
 fix: terminated the separation between ddraw method interfaces
-fix: force clipper now builds a clipper for the real primary surface (useful when desktop composition is disabled)
+fix: force clipper now builds a clipper for the real primary surface (useful when desktop composition is disabled and on XP)
+
+v2.03.67
+fix: D3D7 hooks to make NBA2002 working
+fix: better virtual color depth settings to allow "Moto Racer 2" believe it is running on a fake 16bpp desktop
+fix: GUI placement coordinates are not saved when terminating in minimized or maximized state

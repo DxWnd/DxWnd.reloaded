@@ -68,7 +68,8 @@ FindDevice_Type pFindDevice = NULL;
 CreateDevice2_Type pCreateDevice2 = NULL;
 CreateDevice3_Type pCreateDevice3 = NULL;
 CreateDevice7_Type pCreateDevice7 = NULL;
-EnumZBufferFormats_Type pEnumZBufferFormats = NULL;
+EnumZBufferFormats_Type pEnumZBufferFormats3 = NULL;
+EnumZBufferFormats_Type pEnumZBufferFormats7 = NULL;
 
 HRESULT WINAPI extQueryInterfaceD31(void *, REFIID, LPVOID *);
 HRESULT WINAPI extQueryInterfaceD32(void *, REFIID, LPVOID *);
@@ -82,7 +83,8 @@ HRESULT WINAPI extCreateLight1(void *, LPDIRECT3DLIGHT *, IUnknown *);
 HRESULT WINAPI extCreateLight2(void *, LPDIRECT3DLIGHT *, IUnknown *);
 HRESULT WINAPI extCreateLight3(void *, LPDIRECT3DLIGHT *, IUnknown *);
 
-HRESULT WINAPI extEnumZBufferFormats(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
+HRESULT WINAPI extEnumZBufferFormats3(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
+HRESULT WINAPI extEnumZBufferFormats7(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 
 // Direct3DDevice-n interfaces
 
@@ -447,13 +449,13 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateViewport3, (void **)&pCreateViewport3, "CreateViewport(3)");
 		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice3, (void **)&pCreateDevice3, "CreateDevice(D3D3)");
-		SetHook((void *)(**(DWORD **)lplpdd +  40), extEnumZBufferFormats, (void **)&pEnumZBufferFormats, "EnumZBufferFormats(D3D)");
+		SetHook((void *)(**(DWORD **)lplpdd +  40), extEnumZBufferFormats3, (void **)&pEnumZBufferFormats3, "EnumZBufferFormats(D3D3)");
 		break;
 	case 7:
 		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD37, (void **)&pQueryInterfaceD37, "QueryInterface(D3S7)");
 		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices7, (void **)&pEnumDevices7, "EnumDevices(7)");
 		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateDevice7, (void **)&pCreateDevice7, "CreateDevice(D3D7)");
-		SetHook((void *)(**(DWORD **)lplpdd +  24), extEnumZBufferFormats, (void **)&pEnumZBufferFormats, "EnumZBufferFormats(D3D3)");
+		SetHook((void *)(**(DWORD **)lplpdd +  24), extEnumZBufferFormats7, (void **)&pEnumZBufferFormats7, "EnumZBufferFormats(D3D7)");
 		break;
 	}
 } 
@@ -1638,7 +1640,7 @@ HRESULT WINAPI extZBufferProxy(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
 	return res;
 }
 
-HRESULT WINAPI extEnumZBufferFormats(void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
+static HRESULT WINAPI extEnumZBufferFormats(EnumZBufferFormats_Type pEnumZBufferFormats, void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
 {
 	HRESULT ret;
 	CallbackZBufArg Arg;
@@ -1649,6 +1651,11 @@ HRESULT WINAPI extEnumZBufferFormats(void *lpd3d, REFCLSID riidDevice, LPD3DENUM
 	OutTraceE("Direct3D::EnumZBufferFormats res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
+
+HRESULT WINAPI extEnumZBufferFormats3(void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
+{ return extEnumZBufferFormats(pEnumZBufferFormats3, lpd3d, riidDevice, lpEnumCallback, lpContext); }
+HRESULT WINAPI extEnumZBufferFormats7(void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
+{ return extEnumZBufferFormats(pEnumZBufferFormats7, lpd3d, riidDevice, lpEnumCallback, lpContext); }
 
 // Beware: using service surfaces with DDSCAPS_SYSTEMMEMORY capability may lead to crashes in D3D operations
 // like Vievport::Clear() in "Forsaken" set in emulation AERO-friendly mode. To avoid the problem, you can 

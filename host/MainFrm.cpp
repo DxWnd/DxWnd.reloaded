@@ -83,6 +83,7 @@ CMainFrame::~CMainFrame()
 	rect.left = x;
 	rect.right = x + cx;
 	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, 1);
+
 	x = rect.left;
 	y = rect.top;
 	cx = rect.right - rect.left;
@@ -143,6 +144,11 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 void CMainFrame::OnMove(int x, int y)
 {
 	CFrameWnd::OnMove(x, y);
+	WINDOWPLACEMENT wndpl;
+	wndpl.length = sizeof(wndpl);
+	this->GetWindowPlacement(&wndpl);
+	if(wndpl.showCmd != SW_SHOWNORMAL) return;
+
 	this->x=x;
 	this->y=y;
 }
@@ -150,6 +156,10 @@ void CMainFrame::OnMove(int x, int y)
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
 	CFrameWnd::OnSize(nType, cx, cy);
+	WINDOWPLACEMENT wndpl;
+	wndpl.length = sizeof(wndpl);
+	this->GetWindowPlacement(&wndpl);
+	if(wndpl.showCmd != SW_SHOWNORMAL) return;
 	this->cx=cx;
 	this->cy=cy;
 }

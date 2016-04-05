@@ -7,7 +7,7 @@ opengllib0=
 notes0=
 ver0=0
 coord0=0
-flag0=134217762
+flag0=134217770
 flagg0=1744830464
 flagh0=1040
 flagi0=1212153860
@@ -30,3 +30,7 @@ maxres0=-1
 flagk0=0
 swapeffect0=0
 registry0=[HKEY_LOCAL_MACHINE\SOFTWARE]\n\n; Road Rash\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts\RoadRash 95]\n""=""\n"Path"="."\n"CheckDialup"=hex:00\n"ChatState"=hex:02\n"MiniDash"=hex:00\n"OpponentList"=hex:01\n
+flagl0=0
+flagm0=0
+dflag0=0
+maxddinterface0=7

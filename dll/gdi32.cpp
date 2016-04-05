@@ -2652,6 +2652,7 @@ int WINAPI extDescribePixelFormat(HDC hdc, int iPixelFormat, UINT nBytes, LPPIXE
 {
 	int res;
 	OutTraceDW("DescribePixelFormat: hdc=%x PixelFormat=%d Bytes=%d\n", hdc, iPixelFormat, nBytes);
+
 	res=(*pDescribePixelFormat)(hdc, iPixelFormat, nBytes, ppfd);
 	if(!res){
 		OutTraceE("DescribePixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
@@ -2663,6 +2664,48 @@ int WINAPI extDescribePixelFormat(HDC hdc, int iPixelFormat, UINT nBytes, LPPIXE
 			ppfd->dwFlags, ppfd->iPixelType, ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
 			ppfd->cRedBits, ppfd->cGreenBits, ppfd->cBlueBits,
 			ppfd->cRedShift, ppfd->cGreenShift, ppfd->cBlueShift);
+		if((hdc==0) && dxw.IsFullScreen() && (ppfd->iPixelType==PFD_TYPE_RGBA)){ 
+			OutTraceDW("DescribePixelFormat: emulating virtual desktop pixelformat bpp=%d\n", dxw.VirtualPixelFormat.dwRGBBitCount); 
+			switch(dxw.VirtualPixelFormat.dwRGBBitCount){
+				case 8:
+					ppfd->cColorBits = 8;
+					OutTrace("colorbits=%d to be fixed!\n", ppfd->cColorBits);
+					break;
+				case 16:
+					ppfd->cColorBits = 16;
+					switch(dxw.VirtualPixelFormat.dwGBitMask){
+						case 0x0007E0: // RGB565
+							ppfd->cColorBits=16;
+							ppfd->cRedBits=5;
+							ppfd->cRedShift=0;
+							ppfd->cGreenBits=6;
+							ppfd->cGreenShift=5;
+							ppfd->cBlueBits=5;
+							ppfd->cBlueShift=11;
+							ppfd->cAlphaBits=0;
+							ppfd->cAlphaShift=0;
+							break;
+						case 0x0003E0: // RGB555
+							ppfd->cColorBits=15;
+							ppfd->cRedBits=5;
+							ppfd->cRedShift=0;
+							ppfd->cGreenBits=5;
+							ppfd->cGreenShift=5;
+							ppfd->cBlueBits=5;
+							ppfd->cBlueShift=10;
+							ppfd->cAlphaBits=1;
+							ppfd->cAlphaShift=15;
+							break;
+					}
+					break;
+				case 24:
+					if (ppfd->cColorBits != 24) OutTrace("colorbits=%d to be fixed!\n", ppfd->cColorBits);
+					break;
+				case 32:
+					if (ppfd->cColorBits != 24) OutTrace("colorbits=%d to be fixed!\n", ppfd->cColorBits);
+					break;
+			}
+		}
 	}
 	else {
 		OutTraceDW("DescribePixelFormat: res=%d\n", res);
