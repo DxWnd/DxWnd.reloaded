@@ -1,3 +1,4 @@
+#define  _CRT_SECURE_NO_WARNINGS
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"

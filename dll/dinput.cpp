@@ -1,4 +1,5 @@
-#define DIRECTINPUT_VERSION 0x800
+#define DIRECTINPUT_VERSION 0x700
+#define DIRECTINPUT8_VERSION 0x800
 #define  _CRT_SECURE_NO_WARNINGS
 
 #define RECOVERINPUTLOST TRUE // to become a flag?
@@ -19,6 +20,10 @@
 #endif
 
 extern BOOL WINAPI extGetCursorPos(LPPOINT);
+
+#ifndef OLDDIRECTINPUTVERSION
+#define OLDDIRECTINPUTVERSION 0x8007047e
+#endif
 
 /*
 DEFINE_GUID(IID_IDirectInputA,     0x89521360,0xAA8A,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
@@ -56,11 +61,12 @@ typedef HRESULT (WINAPI *DIEnumDevicesW_Type)(void *, DWORD, LPDIENUMDEVICESCALL
 typedef HRESULT (WINAPI *Acquire_Type)(LPDIRECTINPUTDEVICE);
 typedef HRESULT (WINAPI *Unacquire_Type)(LPDIRECTINPUTDEVICE);
 typedef HRESULT (WINAPI *DirectInput8Create_Type)(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
+//typedef HRESULT (WINAPI *DIFindDeviceA8_Type)(void *, REFGUID, LPCSTR, LPGUID);
+//typedef HRESULT (WINAPI *EnumDevicesBySemantics_Type)(void *, LPCTSTR, LPDIACTIONFORMAT, LPDIENUMDEVICESBYSEMANTICSCB, LPVOID, DWORD);
  
 HRESULT WINAPI extDirectInputCreateA(HINSTANCE, DWORD, LPDIRECTINPUTA *, LPUNKNOWN);
 HRESULT WINAPI extDirectInputCreateW(HINSTANCE, DWORD, LPDIRECTINPUTW *, LPUNKNOWN);
-HRESULT WINAPI extDirectInputCreateExA(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
-HRESULT WINAPI extDirectInputCreateExW(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
+HRESULT WINAPI extDirectInputCreateEx(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
 HRESULT WINAPI extDirectInput8Create(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
 HRESULT WINAPI extDICreateDeviceA1(LPDIRECTINPUTA, REFGUID, LPDIRECTINPUTDEVICEA *, LPUNKNOWN);
 HRESULT WINAPI extDICreateDeviceA2(LPDIRECTINPUTA, REFGUID, LPDIRECTINPUTDEVICEA *, LPUNKNOWN);
@@ -88,10 +94,12 @@ HRESULT WINAPI extDIEnumDevicesW8(void *, DWORD, LPDIENUMDEVICESCALLBACKW, LPVOI
 HRESULT WINAPI extAcquire(LPDIRECTINPUTDEVICE);
 HRESULT WINAPI extUnacquire(LPDIRECTINPUTDEVICE);
 HRESULT WINAPI extDirectInput8Create(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
+//HRESULT WINAPI extDIFindDeviceA8(void *, REFGUID, LPCSTR, LPGUID);
+//HRESULT WINAPI extEnumDevicesBySemantics(void *, LPCTSTR, LPDIACTIONFORMAT, LPDIENUMDEVICESBYSEMANTICSCB, LPVOID, DWORD);
 
 DirectInputCreateA_Type pDirectInputCreateA = NULL;
 DirectInputCreateW_Type pDirectInputCreateW = NULL;
-DirectInputCreateEx_Type pDirectInputCreateExA, pDirectInputCreateExW;
+DirectInputCreateEx_Type pDirectInputCreateEx;
 DICreateDeviceA_Type pDICreateDeviceA1, pDICreateDeviceA2, pDICreateDeviceA7, pDICreateDeviceA8;
 DICreateDeviceW_Type pDICreateDeviceW1, pDICreateDeviceW2, pDICreateDeviceW7, pDICreateDeviceW8;
 DICreateDeviceEx_Type pDICreateDeviceExA, pDICreateDeviceExW;
@@ -106,11 +114,13 @@ DIEnumDevicesW_Type pDIEnumDevicesW1, pDIEnumDevicesW2, pDIEnumDevicesW7, pDIEnu
 Acquire_Type pAcquire = NULL;
 Unacquire_Type pUnacquire = NULL;
 DirectInput8Create_Type pDirectInput8Create = NULL;
+//DIFindDeviceA8_Type pDIFindDeviceA8 = NULL;
+//EnumDevicesBySemantics_Type pEnumDevicesBySemantics = NULL;
 
 static HookEntryEx_Type diHooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "DirectInputCreateA", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateA, (FARPROC)extDirectInputCreateA},
 	{HOOK_HOT_CANDIDATE, 0, "DirectInputCreateW", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateW, (FARPROC)extDirectInputCreateW},
-	{HOOK_HOT_CANDIDATE, 0, "DirectInputCreateExA", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateExA, (FARPROC)extDirectInputCreateExA},
+	{HOOK_HOT_CANDIDATE, 0, "DirectInputCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateEx, (FARPROC)extDirectInputCreateEx},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -159,15 +169,15 @@ void HookDirectInput(HMODULE module)
 	if(!(dxw.dwFlags1 & HOOKDI)) return;
 
 	HookLibraryEx(module, diHooks, "dinput.dll");
-	if(!pDirectInputCreateA && !pDirectInputCreateW && !pDirectInputCreateExA){
+	if(!pDirectInputCreateA && !pDirectInputCreateW && !pDirectInputCreateEx){
 		hinst = LoadLibrary("dinput.dll");
 		pDirectInputCreateA = (DirectInputCreateA_Type)GetProcAddress(hinst, "DirectInputCreateA");
 		if(pDirectInputCreateA)
 			if(!extDirectInputCreateA(GetModuleHandle(0), DIRECTINPUT_VERSION,
 				&lpdi, 0)) lpdi->Release();
-		pDirectInputCreateExA = (DirectInputCreateEx_Type)GetProcAddress(hinst, "DirectInputCreateEx");
-		if(pDirectInputCreateExA)
-			if(!extDirectInputCreateExA(GetModuleHandle(0), DIRECTINPUT_VERSION,
+		pDirectInputCreateEx = (DirectInputCreateEx_Type)GetProcAddress(hinst, "DirectInputCreateEx");
+		if(pDirectInputCreateEx)
+			if(!extDirectInputCreateEx(GetModuleHandle(0), DIRECTINPUT_VERSION,
 				di7, (void **)&lpdi, 0)) lpdi->Release();
 	}
 }
@@ -185,7 +195,7 @@ void HookDirectInput8(HMODULE module)
 		hinst = LoadLibrary("dinput8.dll");
 		pDirectInput8Create = (DirectInput8Create_Type)GetProcAddress(hinst, "DirectInput8Create");
 		if(pDirectInput8Create)
-			if(!extDirectInput8Create(GetModuleHandle(0), DIRECTINPUT_VERSION,
+			if(!extDirectInput8Create(GetModuleHandle(0), DIRECTINPUT8_VERSION,
 				di8, (LPVOID *)&lpdi, 0)) lpdi->Release();
 	}
 }
@@ -204,6 +214,10 @@ FARPROC Remap_DInput8_ProcAddress(LPCSTR proc, HMODULE hModule)
 	return NULL;
 }
 
+const GUID FAR IID_IDirectInput8A = { 0xBF798030,0x483A,0x4DA2,0xAA,0x99,0x5D,0x64,0xED,0x36,0x97,0x00 };
+const GUID FAR IID_IDirectInput8W = { 0xBF798031,0x483A,0x4DA2,0xAA,0x99,0x5D,0x64,0xED,0x36,0x97,0x00 };
+#define OLDDIVERSION FALSE
+
 HRESULT WINAPI extDirectInputCreateA(HINSTANCE hinst, DWORD dwversion, LPDIRECTINPUT *lplpdi, LPUNKNOWN pu)
 {
 	HRESULT res;
@@ -212,6 +226,18 @@ HRESULT WINAPI extDirectInputCreateA(HINSTANCE hinst, DWORD dwversion, LPDIRECTI
 
 	res = (*pDirectInputCreateA)(hinst, dwversion, lplpdi, pu);
 	if(res) {
+		if ((res == OLDDIRECTINPUTVERSION) && (dwversion == 0x800) && OLDDIVERSION){
+			OutTraceE("DirectInputCreateA: ERROR err=OLDDIRECTINPUTVERSION version=800 try to call DirectInput8 interface\n");
+			if(!pDirectInput8Create) {
+				HMODULE hDI8;
+				hDI8 = (*pLoadLibraryA)("dinput8.dll");
+				pDirectInput8Create = (DirectInput8Create_Type)(*pGetProcAddress)(hDI8, "DirectInput8Create");
+			}
+			if(pDirectInput8Create){
+				res = extDirectInput8Create(hinst, dwversion, IID_IDirectInput8A, (LPVOID *)lplpdi, pu);
+				return res;
+			}
+		}
 		OutTraceE("DirectInputCreateA: ERROR err=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
@@ -229,6 +255,18 @@ HRESULT WINAPI extDirectInputCreateW(HINSTANCE hinst, DWORD dwversion, LPDIRECTI
 
 	res = (*pDirectInputCreateW)(hinst, dwversion, lplpdi, pu);
 	if(res) {
+		if ((res == OLDDIRECTINPUTVERSION) && (dwversion == 0x800) && OLDDIVERSION){
+			OutTraceE("DirectInputCreateA: ERROR err=OLDDIRECTINPUTVERSION version=800 try to call DirectInput8 interface\n");
+			if(!pDirectInput8Create) {
+				HMODULE hDI8;
+				hDI8 = (*pLoadLibraryA)("dinput8.dll");
+				pDirectInput8Create = (DirectInput8Create_Type)(*pGetProcAddress)(hDI8, "DirectInput8Create");
+			}
+			if(pDirectInput8Create){
+				res = extDirectInput8Create(hinst, dwversion, IID_IDirectInput8W, (LPVOID *)lplpdi, pu);
+				return res;
+			}
+		}
 		OutTraceE("DirectInputCreateW: ERROR err=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
@@ -238,50 +276,56 @@ HRESULT WINAPI extDirectInputCreateW(HINSTANCE hinst, DWORD dwversion, LPDIRECTI
 	return 0;
 }
 
-HRESULT WINAPI extDirectInputCreateExA(HINSTANCE hinst, DWORD dwversion, REFIID riidltf, LPVOID *ppvout, LPUNKNOWN pu)
+HRESULT WINAPI extDirectInputCreateEx(HINSTANCE hinst, DWORD dwversion, REFIID riidltf, LPVOID *ppvout, LPUNKNOWN pu)
 {
 	HRESULT res;
 
-	OutTraceDW("DirectInputCreateExA: dwVersion=%x REFIID=%x\n",
-		dwversion, riidltf.Data1);
+	OutTraceDW("DirectInputCreateEx: dwVersion=%x REFIID=%x(%s)\n",
+		dwversion, riidltf.Data1, ExplainGUID((GUID *)&riidltf));
 
-	res = (*pDirectInputCreateExA)(hinst, dwversion, riidltf, ppvout, pu);
+	res = (*pDirectInputCreateEx)(hinst, dwversion, riidltf, ppvout, pu);
 	if(res) {
-		OutTraceE("DirectInputCreateExA: ERROR err=%x(%s)\n", res, ExplainDDError(res));
+		if ((res == OLDDIRECTINPUTVERSION) && (dwversion == 0x800) && OLDDIVERSION){
+			OutTraceE("DirectInputCreateA: ERROR err=OLDDIRECTINPUTVERSION version=800 try to call DirectInput8 interface\n");
+			if(!pDirectInput8Create) {
+				HMODULE hDI8;
+				hDI8 = (*pLoadLibraryA)("dinput8.dll");
+				pDirectInput8Create = (DirectInput8Create_Type)(*pGetProcAddress)(hDI8, "DirectInput8Create");
+			}
+			if(pDirectInput8Create){
+				switch (riidltf.Data1){
+					case 0x9A4CB684: res = extDirectInput8Create(hinst, dwversion, IID_IDirectInput8A, ppvout, pu); break;
+					case 0x9A4CB685: res = extDirectInput8Create(hinst, dwversion, IID_IDirectInput8W, ppvout, pu); break;
+				}
+				return res;
+			}
+		}
+		OutTraceE("DirectInputCreateEx: ERROR err=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
-	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDeviceA7, (void **)&pDICreateDeviceA7, "CreateDevice(IA7)");
-	SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevicesA7, (void **)&pDIEnumDevicesA7, "EnumDevices(IA7)");
-	if(dwversion >= 700)
-		SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceExA, (void **)&pDICreateDeviceExA, "CreateDeviceEx(IA7)");
-	return 0;
-}
-
-HRESULT WINAPI extDirectInputCreateExW(HINSTANCE hinst, DWORD dwversion, REFIID riidltf, LPVOID *ppvout, LPUNKNOWN pu)
-{
-	HRESULT res;
-
-	OutTraceDW("DirectInputCreateExW: dwVersion=%x REFIID=%x\n",
-		dwversion, riidltf.Data1);
-
-	res = (*pDirectInputCreateExW)(hinst, dwversion, riidltf, ppvout, pu);
-	if(res) {
-		OutTraceE("DirectInputCreateExW: ERROR err=%x(%s)\n", res, ExplainDDError(res));
-		return res;
+	switch (riidltf.Data1){
+		case 0x9A4CB684: 
+			SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDeviceA7, (void **)&pDICreateDeviceA7, "CreateDevice(IA7)");
+			SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevicesA7, (void **)&pDIEnumDevicesA7, "EnumDevices(IA7)");
+			if(dwversion >= 700)
+				SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceExA, (void **)&pDICreateDeviceExA, "CreateDeviceEx(IA7)");
+			break;
+		case 0x9A4CB685:
+				SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDeviceW7, (void **)&pDICreateDeviceA7, "CreateDevice(IA7)");
+				SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevicesW7, (void **)&pDIEnumDevicesA7, "EnumDevices(IA7)");
+				if(dwversion >= 700)
+					SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceExW, (void **)&pDICreateDeviceExA, "CreateDeviceEx(IA7)");
+		break;
 	}
-	SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDeviceW7, (void **)&pDICreateDeviceA7, "CreateDevice(IA7)");
-	SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevicesW7, (void **)&pDIEnumDevicesA7, "EnumDevices(IA7)");
-	if(dwversion >= 700)
-		SetHook((void *)(**(DWORD **)ppvout + 36), extDICreateDeviceExW, (void **)&pDICreateDeviceExA, "CreateDeviceEx(IA7)");
-	return 0;
+	return res;
 }
 
 HRESULT WINAPI extDIQueryInterface(void * lpdi, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 
-	OutTraceDW("QueryInterface(I): REFIID=%x\n",
-		riid.Data1);
+	OutTraceDW("QueryInterface(I): REFIID=%x(%s)\n",
+		riid.Data1, ExplainGUID((GUID *)&riid));
 
 	res = (*pDIQueryInterface)(lpdi, riid, obp);
 	if(res) return res;
@@ -320,8 +364,8 @@ HRESULT WINAPI extDirectInput8Create(HINSTANCE hinst, DWORD dwversion, REFIID ri
 {
 	HRESULT res;
 
-	OutTraceDW("DirectInput8Create: dwVersion=%x REFIID=%x\n",
-		dwversion, riidltf.Data1);
+	OutTraceDW("DirectInput8Create: dwVersion=%x REFIID=%x(%s)\n",
+		dwversion, riidltf.Data1, ExplainGUID((GUID *)&riidltf));
 
 	res = (*pDirectInput8Create)(hinst, dwversion, riidltf, ppvout, pu);
 	if(res) {
@@ -333,12 +377,18 @@ HRESULT WINAPI extDirectInput8Create(HINSTANCE hinst, DWORD dwversion, REFIID ri
 		case 0xBF798030:
 			SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDeviceA8, (void **)&pDICreateDeviceA8, "CreateDevice(IA8)");
 			SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevicesA8, (void **)&pDIEnumDevicesA8, "EnumDevices(IA8)");
+			//SetHook((void *)(**(DWORD **)ppvout + 32), extDIFindDeviceA8, (void **)&pDIFindDeviceA8, "FindDevice(IA8)");
 			break;
 		case 0xBF798031:
 			SetHook((void *)(**(DWORD **)ppvout + 12), extDICreateDeviceW8, (void **)&pDICreateDeviceW8, "CreateDevice(IW8)");
 			SetHook((void *)(**(DWORD **)ppvout + 16), extDIEnumDevicesW8, (void **)&pDIEnumDevicesW8, "EnumDevices(IW8)");
+			//SetHook((void *)(**(DWORD **)ppvout + 32), extDIFindDeviceW8, (void **)&pDIFindDeviceW8, "FindDevice(IW8)");
+			break;
+		default:
+			MessageBox(0, "Bad DirectInput REFIID", "warning", 0);
 			break;
 	}
+	//SetHook((void *)(**(DWORD **)ppvout + 36), extEnumDevicesBySemantics, (void **)&pEnumDevicesBySemantics, "EnumDevicesBySemantics(I8)");
 	return 0;
 }
 
@@ -852,3 +902,27 @@ void ToggleAcquiredDevices(BOOL flag)
 		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
 	}
 }
+
+//HRESULT WINAPI extDIFindDeviceA8(void *di, REFGUID rguidClass, LPCSTR ptszName, LPGUID pguidInstance)
+//{
+//	HRESULT res;
+//	MessageBox(0, "calling FindDevice", "debug", 0);
+//	res=(*pDIFindDeviceA8)(di, rguidClass, ptszName, pguidInstance);
+//	return res;
+//}
+
+//HRESULT WINAPI extEnumDevicesBySemantics(void *di, LPCTSTR ptszUserName, LPDIACTIONFORMAT lpdiActionFormat, LPDIENUMDEVICESBYSEMANTICSCB lpCallback, LPVOID pvRef, DWORD dwFlags)
+//{
+//	HRESULT res;
+//	MessageBox(0, "calling EnumDevicesBySemantics", "debug", 0);
+//	res=(*pEnumDevicesBySemantics)(di, ptszUserName, lpdiActionFormat, lpCallback, pvRef, dwFlags);
+//	return res;
+//}
+
+//BOOL WINAPI extDIEnumDevicesBySemanticsCallback(LPCDIDEVICEINSTANCE lpddi, LPDIRECTINPUTDEVICE8 lpdid,  DWORD dwFlags, DWORD dwRemaining, LPVOID pvRef)
+//{
+//	BOOL res;
+//	MessageBox(0, "calling EnumDevicesBySemanticsCallback", "debug", 0);
+//	res=(*pDIFindDeviceA8)(di, rguidClass, ptszName, pguidInstance);
+//	return res;
+//}

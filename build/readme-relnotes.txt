@@ -1185,3 +1185,9 @@ add: hint for obfuscated IAT detection
 add: hint for safedisk and securom game protection
 add: hint to show safedisc version 
 fix: centralized handling of window styles
+
+v2.03.79
+fix: proper handling of DirectInputCreateEx function - fixes "Gothik 2" mouse and window control
+fix: avoids setting the pixel format of a window more than once through GDI SetPixelFormat call. Fixes "Bugdom" OpenGL rendering
+fix: improved bilinear filtering speed through gsky916 loop optimization 
+fix: added delay handling to several gdi32 amnd user32 routines blitting to screen

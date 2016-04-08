@@ -2344,7 +2344,8 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 
 	// avoid access to real desktop
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
-	switch(dxw.GDIEmulationMode){
+		dxw.HandleFPS(); // handle refresh delays
+		switch(dxw.GDIEmulationMode){
 		case GDIMODE_EMULATED:
 			ret=dxw.ReleaseEmulatedDC(hwnd);
 			break;

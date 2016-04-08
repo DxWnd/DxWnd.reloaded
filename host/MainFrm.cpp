@@ -107,11 +107,14 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
+	char InitPath[MAX_PATH];
 	int iMaxX, iMaxY, iMinX, iMinY;
-	cs.x = GetPrivateProfileInt("window", "posx", 50, gInitPath);
-	cs.y = GetPrivateProfileInt("window", "posy", 50, gInitPath);
-	cs.cx = GetPrivateProfileInt("window", "sizx", 320, gInitPath);
-	cs.cy = GetPrivateProfileInt("window", "sizy", 200, gInitPath);
+	GetCurrentDirectory(MAX_PATH, InitPath);
+	strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
+	cs.x = GetPrivateProfileInt("window", "posx", 50, InitPath);
+	cs.y = GetPrivateProfileInt("window", "posy", 50, InitPath);
+	cs.cx = GetPrivateProfileInt("window", "sizx", 320, InitPath);
+	cs.cy = GetPrivateProfileInt("window", "sizy", 200, InitPath);
 
 	// keep window inside desktop boundaries
 #ifdef MULTIMONITOR

@@ -215,7 +215,7 @@ HGLRC WINAPI extwglCreateContext(HDC hdc)
 	HGLRC ret;
 	OutTraceDW("wglCreateContext: hdc=%x\n", hdc);
 	// v2.02.31: don't let it use desktop hdc
-	if(dxw.IsDesktop(WindowFromDC(hdc))){
+	if(dxw.IsRealDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
 		OutTraceDW("wglCreateContext: remapped desktop hdc=%x->%x hWnd=%x\n", oldhdc, hdc, dxw.GethWnd());

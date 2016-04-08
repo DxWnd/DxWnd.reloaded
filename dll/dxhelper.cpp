@@ -1013,6 +1013,23 @@ char *ExplainGUID(GUID FAR *lpguid)
 		case 0xD7B70EE0: sguid="CLSID_DirectDraw"; break;
 		case 0x3c305196: sguid="CLSID_DirectDraw7"; break;
 		case 0x593817A0: sguid="CLSID_DirectDrawClipper"; break;
+		case 0x89521360: sguid="IID_IDirectInputA"; break;
+		case 0x89521361: sguid="IID_IDirectInputW"; break;
+		case 0x5944E662: sguid="IID_IDirectInput2A"; break;
+		case 0x5944E663: sguid="IID_IDirectInput2W"; break;
+		case 0x9A4CB684: sguid="IID_IDirectInput7A"; break;
+		case 0x9A4CB685: sguid="IID_IDirectInput7W"; break;
+		case 0xBF798030: sguid="IID_IDirectInput8A"; break;
+		case 0xBF798031: sguid="IID_IDirectInput8W"; break;
+		case 0x5944E680: sguid="IID_IDirectInputDeviceA"; break;
+		case 0x5944E681: sguid="IID_IDirectInputDeviceW"; break;
+		case 0x5944E682: sguid="IID_IDirectInputDevice2A"; break;
+		case 0x5944E683: sguid="IID_IDirectInputDevice2W"; break;
+		case 0x57D7C6BC: sguid="IID_IDirectInputDevice7A"; break;
+		case 0x57D7C6BD: sguid="IID_IDirectInputDevice7W"; break;
+		case 0x54D41080: sguid="IID_IDirectInputDevice8A"; break;
+		case 0x54D41081: sguid="IID_IDirectInputDevice8W"; break;
+		case 0xE7E1F7C0: sguid="IID_IDirectInputEffect"; break;
 		default: sguid="UNKNOWN"; break;
 	}
 	return sguid;

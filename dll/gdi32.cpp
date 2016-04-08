@@ -1055,6 +1055,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 						break;
 					case 1: // memory to screen
 					case 3: // screen to screen
+						dxw.HandleFPS(); // handle refresh delays
 						sdc.GetPrimaryDC(hdcDest);
 						res=(*pGDIBitBlt)(sdc.GetHdc(), nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 						sdc.PutPrimaryDC(hdcDest, TRUE, nXDest, nYDest, nWidth, nHeight);
@@ -1072,6 +1073,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 				switch(Flux){
 					case 1: // memory to screen
 						// v1.03.58: BitBlt can blitfrom negative coordinates, StretchBlt can't!
+						dxw.HandleFPS(); // handle refresh delays
 						if(nXDest < 0){
 							int nXshift = -nXDest;
 							nXDest = 0;
@@ -1098,7 +1100,10 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 				OutTraceB("GDI.BitBlt: DEBUG DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
 				break;
 			case GDIMODE_EMULATED:
-				if (hdcDest==dxw.RealHDC) hdcDest=dxw.VirtualHDC;
+				if (hdcDest==dxw.RealHDC) { 
+					hdcDest=dxw.VirtualHDC;
+					dxw.HandleFPS(); // handle refresh delays
+					}
 			    res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 				OutTraceB("GDI.BitBlt: DEBUG emulated hdc dest=%x->%x\n", dxw.RealHDC, hdcDest);
 				break;
@@ -1773,6 +1778,7 @@ int WINAPI extStretchDIBits(HDC hdc, int XDest, int YDest, int nDestWidth, int n
 	}
 
 	if(dxw.IsToRemap(hdc)){
+		dxw.HandleFPS(); // handle refresh delays
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_SHAREDDC:
 				sdc.GetPrimaryDC(hdc);
@@ -2576,11 +2582,19 @@ int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
 
 //BEWARE: SetPixelFormat must be issued on the same hdc used by OpenGL wglCreateContext, otherwise 
 // a failure err=2000 ERROR INVALID PIXEL FORMAT occurs!!
+//
+//Remarks: https://msdn.microsoft.com/en-us/library/ms537559(VS.85).aspx
+//
+// If hdc references a window, calling the SetPixelFormat function also changes the pixel format of the window. 
+// Setting the pixel format of a window more than once can lead to significant complications for the Window 
+// Manager and for multithread applications, so it is not allowed. An application can only set the pixel format
+// of a window one time. Once a window's pixel format is set, it cannot be changed.
 
 BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDESCRIPTOR *ppfd)
 {
 	BOOL res;
 	BOOL bRemappedDC = FALSE;
+	static int iCounter = 0;
 
 	OutTraceDW("SetPixelFormat: hdc=%x PixelFormat=%d Flags=%x PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
 		hdc, iPixelFormat, 
@@ -2588,19 +2602,18 @@ BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDES
 		ppfd->cRedBits, ppfd->cGreenBits, ppfd->cBlueBits,
 		ppfd->cRedShift, ppfd->cGreenShift, ppfd->cBlueShift);
 	//if(dxw.dwFlags1 & EMULATESURFACE) {
-	//	OutTraceDW("SetPixelFormat: prevent pixelformat change\n");
-	//	// obtain a detailed description of that pixel format  
-	//	DescribePixelFormat(hdc, iPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), (LPPIXELFORMATDESCRIPTOR)ppfd);
-	//	iPixelFormat = GetPixelFormat(hdc);
-	//	return TRUE;
-	//}
-	if(dxw.IsDesktop(WindowFromDC(hdc))){
+	if(dxw.IsRealDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
-		hdc=(*pGDIGetDC)(dxw.GethWnd()); // potential DC leakage
+		hdc=(*pGDIGetDC)(dxw.GethWnd()); // potential leakage
 		bRemappedDC = TRUE;
 		OutTraceDW("SetPixelFormat: remapped desktop hdc=%x->%x hWnd=%x\n", oldhdc, hdc, dxw.GethWnd());
-	}	
-	res=(*pGDISetPixelFormat)(hdc, iPixelFormat, ppfd);
+	}
+	if(iCounter && bRemappedDC)
+		res = TRUE; // avoid calling SetPixelFormat moe than once on same hdc
+	else {
+		res=(*pGDISetPixelFormat)(hdc, iPixelFormat, ppfd);
+		iCounter++;
+	}
 	if(bRemappedDC) (*pGDIReleaseDC)(dxw.GethWnd(), hdc); // fixed DC leakage
 	dxw.ActualPixelFormat.dwRGBBitCount = ppfd->cColorBits;
 	if(!res) OutTraceE("SetPixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
@@ -2625,19 +2638,54 @@ int WINAPI extGDIGetPixelFormat(HDC hdc)
 	return res;
 }
 
+static char *ExplainPFFlags(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"PFD_");
+	if (c & PFD_DOUBLEBUFFER) strcat(eb, "DOUBLEBUFFER+");
+	if (c & PFD_STEREO) strcat(eb, "STEREO+");
+	if (c & PFD_DRAW_TO_WINDOW) strcat(eb, "DRAW_TO_WINDOW+");
+	if (c & PFD_DRAW_TO_BITMAP) strcat(eb, "DRAW_TO_BITMAP+");
+	if (c & PFD_SUPPORT_GDI) strcat(eb, "SUPPORT_GDI+");
+	if (c & PFD_SUPPORT_OPENGL) strcat(eb, "SUPPORT_OPENGL+");
+	if (c & PFD_GENERIC_FORMAT) strcat(eb, "GENERIC_FORMAT+");
+	if (c & PFD_NEED_PALETTE) strcat(eb, "NEED_PALETTE+");
+	if (c & PFD_NEED_SYSTEM_PALETTE) strcat(eb, "NEED_SYSTEM_PALETTE+");
+	if (c & PFD_SWAP_EXCHANGE) strcat(eb, "SWAP_EXCHANGE+");
+	if (c & PFD_SWAP_COPY) strcat(eb, "SWAP_COPY+");
+	if (c & PFD_SWAP_LAYER_BUFFERS) strcat(eb, "SWAP_LAYER_BUFFERS+");
+	if (c & PFD_GENERIC_ACCELERATED) strcat(eb, "GENERIC_ACCELERATED+");
+	if (c & PFD_SUPPORT_DIRECTDRAW) strcat(eb, "SUPPORT_DIRECTDRAW+");
+	if (c & PFD_DIRECT3D_ACCELERATED) strcat(eb, "DIRECT3D_ACCELERATED+");
+	if (c & PFD_SUPPORT_COMPOSITION) strcat(eb, "SUPPORT_COMPOSITION+");
+	if (c & PFD_DEPTH_DONTCARE) strcat(eb, "DEPTH_DONTCARE+");
+	if (c & PFD_DOUBLEBUFFER_DONTCARE) strcat(eb, "DOUBLEBUFFER_DONTCARE+");
+	if (c & PFD_STEREO_DONTCARE) strcat(eb, "STEREO_DONTCARE+");
+	l=strlen(eb);
+	if (l>strlen("PFD_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
 int WINAPI extChoosePixelFormat(HDC hdc, const PIXELFORMATDESCRIPTOR *ppfd)
 {
 	int res;
-	OutTraceDW("ChoosePixelFormat: hdc=%x Flags=%x PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
+	OutTraceDW("ChoosePixelFormat: hdc=%x Flags=%x(%s) PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
 		hdc, 
-		ppfd->dwFlags, ppfd->iPixelType, ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
+		ppfd->dwFlags, ExplainPFFlags(ppfd->dwFlags),
+		ppfd->iPixelType, ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
 		ppfd->cRedBits, ppfd->cGreenBits, ppfd->cBlueBits,
 		ppfd->cRedShift, ppfd->cGreenShift, ppfd->cBlueShift);
-	//PIXELFORMATDESCRIPTOR myppfd;
-	//memcpy(&myppfd, ppfd, sizeof(PIXELFORMATDESCRIPTOR));
-	//myppfd.dwFlags |= PFD_DRAW_TO_WINDOW;
-	//res=(*pChoosePixelFormat)(hdc, &myppfd);
-	res=(*pChoosePixelFormat)(hdc, ppfd);
+	if(0){ // if necessary, add a flag here .....
+		PIXELFORMATDESCRIPTOR myppfd;
+		memcpy(&myppfd, ppfd, sizeof(PIXELFORMATDESCRIPTOR));
+		myppfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+		myppfd.dwFlags |= PFD_DRAW_TO_WINDOW;
+		res=(*pChoosePixelFormat)(hdc, &myppfd);
+	} else {
+		res=(*pChoosePixelFormat)(hdc, ppfd);
+	}
 	if(!res) OutTraceE("ChoosePixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	else OutTraceDW("ChoosePixelFormat: res=%d\n", res);
 	return res;
