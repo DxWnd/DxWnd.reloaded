@@ -567,12 +567,17 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	}
 	tmp=(void *)dwTmp;
 
-	if (*hookedproc && *hookedproc!=tmp) {
-		sprintf(msg,"SetHook: proc=%s oldhook=%x->%x newhook=%x\n", hookname, hookedproc, *(DWORD *)hookedproc, tmp);
-		OutTraceDW(msg);
-		if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
-		tmp = *hookedproc;
+	__try {
+		if (*hookedproc && (*hookedproc)!=tmp) {
+			sprintf(msg,"SetHook: proc=%s oldhook=%x->%x newhook=%x\n", hookname, hookedproc, *(DWORD *)hookedproc, tmp);
+			OutTraceDW(msg);
+			if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
+			// tmp = *hookedproc; -- commented out in v2.03.83, causing crash in GTA3
+		}
 	}
+	__except(EXCEPTION_EXECUTE_HANDLER){
+			OutTrace("SetHook: %s exception\n", hookname);
+	};
 	*hookedproc = tmp;
 	OutTraceH("SetHook: DEBUG2 *hookedproc=%x, name=%s\n", tmp, hookname);
 }

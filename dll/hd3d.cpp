@@ -296,7 +296,7 @@ static HookEntryEx_Type d3d9Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "Direct3DCreate9", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9, (FARPROC)extDirect3DCreate9},
 	{HOOK_HOT_CANDIDATE, 0, "Direct3DCreate9Ex", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9Ex, (FARPROC)extDirect3DCreate9Ex},
 	{HOOK_HOT_CANDIDATE, 0, "CheckFullScreen", (FARPROC)NULL, (FARPROC *)&pCheckFullScreen, (FARPROC)extCheckFullScreen},
-	{HOOK_HOT_CANDIDATE, 0, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)&pDisableD3DSpy, (FARPROC)extDisableD3DSpy},
+	//{HOOK_HOT_CANDIDATE, 0, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)&pDisableD3DSpy, (FARPROC)extDisableD3DSpy},
 	{HOOK_HOT_CANDIDATE, 0, "D3DPERF_SetOptions", (FARPROC)NULL, (FARPROC *)&pD3DPERF_SetOptions, (FARPROC)extD3DPERF_SetOptions},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -305,7 +305,7 @@ static HookEntryEx_Type d3d9Extra[]={
 	{HOOK_HOT_CANDIDATE, 0, "Direct3DShaderValidatorCreate9", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDirect3DShaderValidatorCreate9},
 	{HOOK_HOT_CANDIDATE, 0, "DebugSetLevel", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDebugSetLevel},
 	{HOOK_HOT_CANDIDATE, 0, "DebugSetMute", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDebugSetMute},
-	{HOOK_HOT_CANDIDATE, 0, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDisableD3DSpy},
+	{HOOK_HOT_CANDIDATE, 0, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDisableD3DSpy}, 
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 

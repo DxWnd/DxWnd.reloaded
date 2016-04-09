@@ -3152,6 +3152,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 
 	// creation of the primary surface....
 	if(ddsd.dwFlags & DDSD_CAPS && ddsd.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE){
+		dxwss.ClearSurfaceList(); // v2.03.83: "Daytona USA" would saturate the list otherwise
 		SetVSyncDelays(dxversion, lpdd);
 		GetHookInfo()->Height=(short)dxw.GetScreenHeight();
 		GetHookInfo()->Width=(short)dxw.GetScreenWidth();
@@ -4322,6 +4323,7 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 	POINT upleft={0,0};
 	LPDIRECTDRAWSURFACE lpDDSPrim;
 	Blt_Type pBlt;
+	GetGDISurface_Type pGetGDISurface;
 
 	// this hooker operates on 
 	// Beware!!! for strange reason, the function gets hooked to ANY surface, also non primary ones!!!
@@ -4337,17 +4339,16 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 	}
 
 	switch(dxversion){
-		case 1: pBlt=pBlt1; break;
-		case 2: pBlt=pBlt2; break;
-		case 3: pBlt=pBlt3; break;
-		case 4: pBlt=pBlt4; break;
-		case 7: pBlt=pBlt7; break;
+		case 1: pBlt=pBlt1; pGetGDISurface=pGetGDISurface1; break;
+		case 2: pBlt=pBlt2; pGetGDISurface=pGetGDISurface2; break;
+		case 4: pBlt=pBlt4; pGetGDISurface=pGetGDISurface4; break;
+		case 7: pBlt=pBlt7; pGetGDISurface=pGetGDISurface7; break;
 	}
 
 	// V2.02.43: Empire Earth does some test Lock operations apparently before the primary surface is created
 	if(lpPrimaryDD){
 		lpDDSPrim=0;
-		res2=(*pGetGDISurface1)(lpPrimaryDD, &lpDDSPrim);
+		res2=(*pGetGDISurface)(lpPrimaryDD, &lpDDSPrim);
 		if(res2)
 			OutTraceE("Lock: GetGDISurface ERROR res=%x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
 		else

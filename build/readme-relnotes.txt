@@ -1220,3 +1220,9 @@ fix: fixed logic for ZBUFFER capabilities: "The Creed" seems to have two, one in
 fix: avoid setting cursor clipping when client area is returned with zero size. 
 fix: fixed CreateProcessA hooker for "suspended process" injection type to forward all parameters to the system call
 add: added "Fix glBindTexture texture" flag to compensate for the missing glActiveTexture call. Fixes "bugdom" 2D panels.
+
+v2.03.83
+fix: cleared surface list on primary surface creation: "Daytona USA" keeps creating new primary surfaces, so it saturated the surface list.
+fix: calling the proper GetGDISurface pointer in Lock wrapper
+fix: HookProc routine causing crash with GTA3, fixed for Win7 and Win10
+fix: LoadLibrayA/W after a SetWorkingDir invocation didn't load the local modules. Fixes "The Rage".

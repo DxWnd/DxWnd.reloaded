@@ -515,8 +515,20 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 {
 	HMODULE libhandle;
 	int idx;
-	
+
 	libhandle=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
+
+	// found in "The Rage" (1996): loading a module with relative path after a SetCurrentDirectory may fail, though
+	// the module is present in the current directory folder. To fix this problem in case of failure it is possible 
+	// to retry the operation using a full pathname composed concatenating current dir and module filename.
+	if(!libhandle){
+		char lpBuffer[MAX_PATH+1];
+		GetCurrentDirectory(MAX_PATH, lpBuffer);
+		sprintf_s(lpBuffer, MAX_PATH, "%s/%s", lpBuffer, lpFileName);
+		OutTrace("GHODEBUG: fullpath=\"%s\"\n", lpBuffer);
+		libhandle=(*pLoadLibraryExA)(lpBuffer, hFile, dwFlags);
+	}
+
 	OutTraceDW("%s: FileName=%s hFile=%x Flags=%x(%s) hmodule=%x\n", api, lpFileName, hFile, dwFlags, ExplainLoadLibFlags(dwFlags), libhandle);
 	if(!libhandle){
 		OutTraceE("%s: ERROR FileName=%s err=%d\n", api, lpFileName, GetLastError());
