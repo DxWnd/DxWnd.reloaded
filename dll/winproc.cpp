@@ -617,6 +617,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		if(dxw.dwFlags6 & TERMINATEONCLOSE) TerminateProcess(GetCurrentProcess(),0);
 		break;
 	case WM_SYSKEYDOWN:
+		if ((dxw.dwFlags1 & HANDLEALTF4) && (wparam == VK_F4)) {
+			OutTraceDW("WindowProc: WM_SYSKEYDOWN(ALT-F4) - terminating process\n");
+			TerminateProcess(GetCurrentProcess(),0);
+		}
+		// fall through
 	case WM_KEYDOWN:
 		if(!(dxw.dwFlags4 & ENABLEHOTKEYS)) break;
 		OutTraceW("event %s wparam=%x lparam=%x\n", (message==WM_SYSKEYDOWN)?"WM_SYSKEYDOWN":"WM_KEYDOWN", wparam, lparam);
@@ -669,7 +674,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			break;
 		case DXVK_ALTF4:
 			if (dxw.dwFlags1 & HANDLEALTF4) {
-				OutTraceDW("WindowProc: WM_SYSKEYDOWN(ALT-F4) - terminating process\n");
+				OutTraceDW("WindowProc: WM_SYSKEYDOWN(virtual Alt-F4) - terminating process\n");
 				TerminateProcess(GetCurrentProcess(),0);
 			}
 			break;

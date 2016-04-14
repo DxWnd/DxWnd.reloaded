@@ -1077,3 +1077,9 @@ add: block process priority class
 add: autohide DxWnd feature
 fix: GUI kill process now kills the whole process tree to avoid leaving live processes around. Happens for instance in Win7 with rundll32.exe for compatibility in 64 bit environment, and that one uses a full core CPU!
 fix: added CDS_UPDATEREGISTRY to the ChangeDisplaySettings modes to be neutralized. Needed in "Severance: Blade of Darkness".
+
+v2.03.62
+fix: flag "Intercept Alt-F4 key" now working also alone with no need to set "Enable hot keys"
+fix: file open dialogs initialization on WinXP platform
+fix: hooked ANSI & WIDECHAR version of DirectInput8Create: makes "Gooka the Mystery of Janatris" working.
+fix: rebuild up-to-date dxwnd proxies

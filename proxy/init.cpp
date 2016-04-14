@@ -44,16 +44,10 @@ void InitDxWnd(void)
 			target.flags5  = GetIntEntry("flagj0", AEROBOOST|CENTERTOWIN);
 			target.flags6  = GetIntEntry("flagk0", 0);
 			target.tflags  = GetIntEntry("tflag0", 0);
-			target.initx   = GetIntEntry("initx0", 0);
-			target.inity   = GetIntEntry("inity0", 0);
 			target.posx    = GetIntEntry("posx0", 0);
 			target.posy    = GetIntEntry("posy0", 0);
             target.sizx    = GetIntEntry("sizx0", 0);
             target.sizy    = GetIntEntry("sizy0", 0);
-			target.maxx    = GetIntEntry("maxx0", 0);
-			target.maxy    = GetIntEntry("maxy0", 0);
-			target.minx    = GetIntEntry("minx0", 0);
-			target.miny    = GetIntEntry("miny0", 0);
             target.coordinates = GetIntEntry("coord0", 1); // centered to desktop
             target.MaxFPS  = GetIntEntry("maxfps0", 0);
 			target.dxversion = GetIntEntry("ver0", 0);

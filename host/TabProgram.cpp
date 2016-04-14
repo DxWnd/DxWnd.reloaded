@@ -69,6 +69,15 @@ END_MESSAGE_MAP()
 
 extern void GetFolderFromPath(char *);
 
+static BOOL IsWinXP()
+{
+	OSVERSIONINFO osvi;
+	ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+	GetVersionEx(&osvi);
+	return osvi.dwMajorVersion == 5;
+}
+
 void CTabProgram::OnOpen() 
 {
 	// TODO: Please add your control notification handler code here
@@ -77,6 +86,8 @@ void CTabProgram::OnOpen()
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
 	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitPath);
 	if(!dirExists(path)) strcpy(path, "");
+	// XP fix: path must end with '\.' 
+	if(IsWinXP()) strcat(path, ".");
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
@@ -97,6 +108,8 @@ void CTabProgram::OnOpenLaunch()
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
 	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitPath);
 	if(!dirExists(path)) strcpy(path, "");
+	// XP fix: path must end with '\.' 
+	if(IsWinXP()) strcat(path, ".");
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
