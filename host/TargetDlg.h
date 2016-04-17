@@ -60,6 +60,7 @@ public:
 	BOOL	m_Windowize;
 	BOOL	m_HotPatch;
 	BOOL	m_HookDLLs;
+	BOOL	m_AnsiWide;
 	BOOL	m_TerminateOnClose;
 	BOOL	m_ConfirmOnClose;
 	BOOL	m_EmulateRegistry;
@@ -257,6 +258,7 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(CTargetDlg)
 	afx_msg void OnOpen();
+	afx_msg void OnOpenLaunch();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

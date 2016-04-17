@@ -175,18 +175,18 @@ static void dx_Cornerize(HWND hwnd)
 
 	if (bCornerized){ 	// toggle ....
 		OutTraceDW("DxWnd: exiting corner mode\n");
-		(*pSetWindowLongA)(hwnd, GWL_STYLE, OldStyle);
-		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, OldExtStyle);
+		(*pSetWindowLong)(hwnd, GWL_STYLE, OldStyle);
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, OldExtStyle);
 		(*pMoveWindow)(hwnd, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom, TRUE);
 		memset(&WinRect, 0, sizeof(WinRect));
 	}
 	else {
 		OutTraceDW("DxWnd: entering corner mode\n");
 		(*pGetWindowRect)(hwnd, &WinRect);
-		OldStyle = (*pGetWindowLongA)(hwnd, GWL_STYLE);
-		OldExtStyle = (*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
-		(*pSetWindowLongA)(hwnd, GWL_STYLE, WS_VISIBLE|WS_CLIPSIBLINGS|WS_OVERLAPPED);
-		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0);
+		OldStyle = (*pGetWindowLong)(hwnd, GWL_STYLE);
+		OldExtStyle = (*pGetWindowLong)(hwnd, GWL_EXSTYLE);
+		(*pSetWindowLong)(hwnd, GWL_STYLE, WS_VISIBLE|WS_CLIPSIBLINGS|WS_OVERLAPPED);
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0);
 		(*pMoveWindow)(hwnd, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), TRUE);
 	}
 	bCornerized = !bCornerized; // switch toggle
@@ -211,8 +211,8 @@ void dx_FullScreenToggle(HWND hwnd)
 			MessageBox(NULL,"Error: Failed to recover display mode.", "Error", 0);
 		}
 		// MoveWindow doesn't recover the exact position!!!
-		(*pSetWindowLongA)(hwnd, GWL_STYLE, OldStyle);
-		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, OldExtStyle);
+		(*pSetWindowLong)(hwnd, GWL_STYLE, OldStyle);
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, OldExtStyle);
 		(*pSetWindowPos)(hwnd, HWND_TOP, 
 			WinRect.left, WinRect.top, (WinRect.right-WinRect.left), (WinRect.bottom-WinRect.top), 
 			SWP_DRAWFRAME|SWP_FRAMECHANGED|SWP_SHOWWINDOW);
@@ -224,8 +224,8 @@ void dx_FullScreenToggle(HWND hwnd)
 		if((WinRect.left==0) && (WinRect.right==0) && (WinRect.top==0) && (WinRect.bottom==0)) (*pGetWindowRect)(hwnd, &WinRect);
 		OldStyle = (*pGetWindowLongA)(hwnd, GWL_STYLE);
 		OldExtStyle = (*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
-		(*pSetWindowLongA)(hwnd, GWL_STYLE, WS_VISIBLE|WS_CLIPSIBLINGS|WS_OVERLAPPED);
-		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0);
+		(*pSetWindowLong)(hwnd, GWL_STYLE, WS_VISIBLE|WS_CLIPSIBLINGS|WS_OVERLAPPED);
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0);
 		(*pMoveWindow)(hwnd, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), TRUE);
 		(*pUpdateWindow)(hwnd);
 
@@ -278,8 +278,8 @@ static void dx_DesktopToggle(HWND hwnd, BOOL bWorkArea)
 	if (bDesktopToggle){ 	// toggle ....
 		OutTraceDW("DxWnd: exiting desktop mode: style=%x extstyle=%x pos=(%d,%d)-(%d,%d)\n",
 			OldStyle, OldExtStyle, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
-		(*pSetWindowLongA)(hwnd, GWL_STYLE, OldStyle);
-		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, OldExtStyle);
+		(*pSetWindowLong)(hwnd, GWL_STYLE, OldStyle);
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, OldExtStyle);
 		// MoveWindow doesn't recover the exact position!!!
 		(*pSetWindowPos)(hwnd, HWND_TOP, 
 			WinRect.left, WinRect.top, (WinRect.right-WinRect.left), (WinRect.bottom-WinRect.top), 
@@ -294,8 +294,8 @@ static void dx_DesktopToggle(HWND hwnd, BOOL bWorkArea)
 		if((WinRect.left==0) && (WinRect.right==0) && (WinRect.top==0) && (WinRect.bottom==0)) (*pGetWindowRect)(hwnd, &WinRect);
 		OldStyle = (*pGetWindowLongA)(hwnd, GWL_STYLE);
 		OldExtStyle = (*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
-		(*pSetWindowLongA)(hwnd, GWL_STYLE, WS_VISIBLE|WS_CLIPSIBLINGS|WS_OVERLAPPED);
-		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0);
+		(*pSetWindowLong)(hwnd, GWL_STYLE, WS_VISIBLE|WS_CLIPSIBLINGS|WS_OVERLAPPED);
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0);
 		(*pUpdateWindow)(hwnd);
 		DesktopWnd = (*pGetDesktopWindow)();
 		hClientDC=(*pGDIGetDC)(hwnd);

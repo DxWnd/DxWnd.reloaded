@@ -197,6 +197,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_UnNotify) t->flags |= UNNOTIFY;
 	if(dlg->m_Windowize) t->flags2 |= WINDOWIZE;
 	if(dlg->m_HookDLLs) t->flags3 |= HOOKDLLS;
+	if(dlg->m_AnsiWide) t->flags5 |= ANSIWIDE;
 	if(dlg->m_TerminateOnClose) t->flags6 |= TERMINATEONCLOSE;
 	if(dlg->m_ConfirmOnClose) t->flags6 |= CONFIRMONCLOSE;
 	if(dlg->m_EmulateRegistry) t->flags3 |= EMULATEREGISTRY;
@@ -468,6 +469,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_Windowize = t->flags2 & WINDOWIZE ? 1 : 0;
 	dlg->m_HotPatch = t->flags4 & HOTPATCH ? 1 : 0;
 	dlg->m_HookDLLs = t->flags3 & HOOKDLLS ? 1 : 0;
+	dlg->m_AnsiWide = t->flags5 & ANSIWIDE ? 1 : 0;
 	dlg->m_TerminateOnClose = t->flags6 & TERMINATEONCLOSE ? 1 : 0;
 	dlg->m_ConfirmOnClose = t->flags6 & CONFIRMONCLOSE ? 1 : 0;
 	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
@@ -2476,10 +2478,10 @@ void CDxwndhostView::OnRun()
 
 	// self-elevation if configured and necessary
 	if(TargetMaps[i].flags & NEEDADMINCAPS){
-		extern BOOL DxSelfElevate();
+		extern BOOL DxSelfElevate(CDxwndhostView *);
 		OSVERSIONINFO osver = { sizeof(osver) };
 		if (GetVersionEx(&osver) && (osver.dwMajorVersion >= 6)){
-			DxSelfElevate();
+			DxSelfElevate(this);
 		}
 	}
 

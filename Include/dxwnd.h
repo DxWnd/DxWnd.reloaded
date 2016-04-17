@@ -150,7 +150,7 @@
 #define DIABLOTWEAK			0x00000001 // ... ??? ...
 #define CLEARTARGET			0x00000002 // forces a D3D clean on target surface upon each BeginScene invocation
 #define NOWINPOSCHANGES		0x00000004 // suppress WM_WINDOWPOSCHANGING/CHANGED messages (RollerCoaster Tycoon...)
-//#define NOSYSTEMMEMORY		0x00000008 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on surfaces
+#define ANSIWIDE			0x00000008 // by default uses Widechar version of API intead od ANSI
 #define NOBLT				0x00000010 // suppress blit to primary surface
 //#define NOSYSTEMEMULATED	0x00000020 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated front & backbuffer surfaces
 #define DOFASTBLT			0x00000040 // use FastBlt to primary surface

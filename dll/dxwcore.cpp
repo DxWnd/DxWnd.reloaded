@@ -137,6 +137,12 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	if (dwFlags2 & GDISTRETCHED)	GDIEmulationMode = GDIMODE_STRETCHED;  
 	if (dwFlags3 & GDIEMULATEDC)	GDIEmulationMode = GDIMODE_EMULATED; 
 	if (dwFlags6 & SHAREDDC)		GDIEmulationMode = GDIMODE_SHAREDDC; 
+
+	extern GetWindowLong_Type pGetWindowLong;
+	extern SetWindowLong_Type pSetWindowLong;
+	// made before hooking !!!
+	pGetWindowLong = (dwFlags5 & ANSIWIDE) ? GetWindowLongW : GetWindowLongA;
+	pSetWindowLong = (dwFlags5 & ANSIWIDE) ? SetWindowLongW : SetWindowLongA;
 }
 
 void dxwCore::SetScreenSize(void) 
@@ -1516,7 +1522,7 @@ void dxwCore::FixWindowFrame(HWND hwnd)
 
 	OutTraceDW("FixWindowFrame: hwnd=%x\n", hwnd);
 
-	nOldStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
+	nOldStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 	if (!nOldStyle){
 		OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
 		return;
@@ -1553,7 +1559,7 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 			lpSS->styleNew= WS_OVERLAPPEDWINDOW;
 		}
 		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
-			lpSS->styleNew= (*pGetWindowLongA)(hwnd, GWL_STYLE);
+			lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_STYLE);
 		}
 		if (dxw.dwFlags1 & PREVENTMAXIMIZE){ // disable maximize settings
 			if (lpSS->styleNew & WS_MAXIMIZE){
@@ -1569,7 +1575,7 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 			lpSS->styleNew= 0;
 		}
 		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
-				lpSS->styleNew= (*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
+				lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 		}
 		if ((dxw.dwFlags1 & PREVENTMAXIMIZE) && (hwnd==hWnd)){ // disable maximize settings
 			if (lpSS->styleNew & WS_EX_TOPMOST){

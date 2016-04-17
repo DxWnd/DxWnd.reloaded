@@ -80,45 +80,65 @@ static BOOL IsWinXP()
 
 void CTabProgram::OnOpen() 
 {
-	// TODO: Please add your control notification handler code here
     char path[MAX_PATH];
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
 	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitPath);
 	if(!dirExists(path)) strcpy(path, "");
 	// XP fix: path must end with '\.' 
-	if(IsWinXP()) strcat(path, ".");
-	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
-        "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
-	if( dlg.DoModal() == IDOK) {
-		cTarget->m_File.SetWindowText(dlg.GetPathName());
-		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)){
-			strcpy(path, dlg.GetPathName());
-			GetFolderFromPath(path);
-			WritePrivateProfileString("window", "exepath", path, gInitPath);
+	if(IsWinXP()) if((strlen(path) > 2) && (path[strlen(path)-1] == '\\')) strcat(path, ".");
+	while(TRUE){
+		int ret;
+		CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+			"Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
+		ret = dlg.DoModal();
+		//char debug[512];
+		//sprintf(debug, "ret=%x path=%s", ret, path);
+		//MessageBox(debug, "debug", MB_OK);
+		if(ret==IDOK){ 
+			cTarget->m_File.SetWindowText(dlg.GetPathName());
+			if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)){
+				strcpy(path, dlg.GetPathName());
+				GetFolderFromPath(path);
+				WritePrivateProfileString("window", "exepath", path, gInitPath);
+			}	
+			break;
 		}
+		if(ret==IDCANCEL) break;
+		//else
+		strcpy(path,"");
 	}
 }
 
 void CTabProgram::OnOpenLaunch() 
 {
-	// TODO: Please add your control notification handler code here
     char path[MAX_PATH];
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
 	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitPath);
 	if(!dirExists(path)) strcpy(path, "");
 	// XP fix: path must end with '\.' 
-	if(IsWinXP()) strcat(path, ".");
-	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
-        "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
-	if( dlg.DoModal() == IDOK) {
-		cTarget->m_Launch.SetWindowText(dlg.GetPathName());
-		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)){
-			strcpy(path, dlg.GetPathName());
-			GetFolderFromPath(path);
-			WritePrivateProfileString("window", "exepath", path, gInitPath);
+	if(IsWinXP()) if((strlen(path) > 2) && (path[strlen(path)-1] == '\\')) strcat(path, ".");
+	while(TRUE){
+		int ret;
+		CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+			"Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
+		ret = dlg.DoModal();
+		//char debug[512];
+		//sprintf(debug, "ret=%x path=%s", ret, path);
+		//MessageBox(debug, "debug", MB_OK);
+		if(ret==IDOK){ 
+			cTarget->m_Launch.SetWindowText(dlg.GetPathName());
+			if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)){
+				strcpy(path, dlg.GetPathName());
+				GetFolderFromPath(path);
+				WritePrivateProfileString("window", "exepath", path, gInitPath);
+			}
+			break;
 		}
+		if(ret==IDCANCEL) break;
+		//else
+		strcpy(path,"");
 	}
 }
 

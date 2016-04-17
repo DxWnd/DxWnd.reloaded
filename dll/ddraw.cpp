@@ -3978,13 +3978,13 @@ HRESULT WINAPI extSetPalette(SetPalette_Type pSetPalette, LPDIRECTDRAWSURFACE lp
 HRESULT WINAPI extSetPalette1(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
 { return extSetPalette(pSetPalette1, lpdds, lpddp); }
 HRESULT WINAPI extSetPalette2(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette1, lpdds, lpddp); }
+{ return extSetPalette(pSetPalette2, lpdds, lpddp); }
 HRESULT WINAPI extSetPalette3(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette1, lpdds, lpddp); }
+{ return extSetPalette(pSetPalette3, lpdds, lpddp); }
 HRESULT WINAPI extSetPalette4(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette1, lpdds, lpddp); }
+{ return extSetPalette(pSetPalette4, lpdds, lpddp); }
 HRESULT WINAPI extSetPalette7(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette1, lpdds, lpddp); }
+{ return extSetPalette(pSetPalette7, lpdds, lpddp); }
 
 HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dwstart, DWORD dwcount, LPPALETTEENTRY lpentries)
 {

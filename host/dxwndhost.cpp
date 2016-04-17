@@ -138,12 +138,6 @@ BOOL CDxwndhostApp::InitInstance()
 
 	// standard initialization
 
-//#ifdef _AFXDLL
-//	Enable3dControls();		// if MFC is in shared DLL use this call.
-//#else
-//	Enable3dControlsStatic();	// if MFC is statically linked use this call.
-//#endif
-
 	// Register the document template.
 
 	CSingleDocTemplate* pDocTemplate;
@@ -228,11 +222,11 @@ BOOL CDxwndhostApp::InitInstance()
 	m_pMainWnd->UpdateWindow();
 
 	BOOL bCheckAdminRights = GetPrivateProfileInt("window", "checkadmin", 0, InitPath); 
-	extern BOOL DxSelfElevate();
+	extern BOOL DxSelfElevate(CDxwndhostView *);
     OSVERSIONINFO osver = { sizeof(osver) };
 	// self elevation at start if configured for the whole DxWnd session
     if (bCheckAdminRights && (GetVersionEx(&osver)) && (osver.dwMajorVersion >= 6)){
-		DxSelfElevate();
+		DxSelfElevate((CDxwndhostView *)NULL);
 	}
 	return TRUE;
 }

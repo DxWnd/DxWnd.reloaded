@@ -29,6 +29,8 @@ dxwCore dxw;
 dxwSStack dxwss;
 dxwWStack dxwws;
 dxwSDC sdc;
+GetWindowLong_Type pGetWindowLong;
+SetWindowLong_Type pSetWindowLong;
 
 extern LRESULT CALLBACK MessageHook(int, WPARAM, LPARAM);
 
@@ -99,7 +101,7 @@ static char *Flag4Names[32]={
 };
 
 static char *Flag5Names[32]={
-	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "**",
+	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "ANSIWIDE",
 	"NOBLT", "**", "DOFASTBLT", "AEROBOOST",
 	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
 	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
@@ -564,8 +566,8 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 
 	RECT UnmappedRect;
 	UnmappedRect=rect;
-	dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
-	dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
+	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
+	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
 	hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 	AdjustWindowRectEx(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
@@ -624,7 +626,7 @@ void HookWindowProc(HWND hwnd)
 
 	if(dxw.dwFlags6 & NOWINDOWHOOKS) return;
 
-	pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
+	pWindowProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
 	// don't hook twice ....	
 	if ((pWindowProc == extWindowProc) ||
 		(pWindowProc == extChildWindowProc) ||

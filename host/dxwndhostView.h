@@ -16,13 +16,13 @@ class CDxwndhostView : public CListView
 protected: // Create from serialization only features.
 	CDxwndhostView();
 	DECLARE_DYNCREATE(CDxwndhostView)
+	BOOL isUpdated;
+	void SaveConfigFile();
 
 private:
 	void Resize(void);
-	void SaveConfigFile();
 	TARGETMAP TargetMaps[MAXTARGETS];
 	PRIVATEMAP PrivateMaps[MAXTARGETS];
-	BOOL isUpdated;
 	DEVMODE InitDevMode;
 	CSystemTray SystemTray;
 	int LastX, LastY, LastCX, LastCY;

@@ -1081,5 +1081,11 @@ fix: added CDS_UPDATEREGISTRY to the ChangeDisplaySettings modes to be neutraliz
 v2.03.62
 fix: flag "Intercept Alt-F4 key" now working also alone with no need to set "Enable hot keys"
 fix: file open dialogs initialization on WinXP platform
-fix: hooked ANSI & WIDECHAR version of DirectInput8Create: makes "Gooka the Mystery of Janatris" working.
+fix: hooked ANSI & WIDECHAR version of DirectInput8CreateDevice: makes "Gooka the Mystery of Janatris" working.
 fix: rebuild up-to-date dxwnd proxies
+
+v2.03.63
+fix: saved config changes in case DxWnd is restarted for acquiring admin caps
+fix: duplicated several function pointers in D3D8/9 wrappers: fix some GTA3 crashes and reduce the need to suppress Reset operation
+add: flag "Widechar program vs. ANSI" to replace default ansi calls with widechar equivalents: fixes "Tomb Raider Anniversary" mouse problems
+

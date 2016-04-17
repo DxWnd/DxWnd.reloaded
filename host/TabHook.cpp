@@ -32,6 +32,7 @@ void CTabHook::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_STARTDEBUG, cTarget->m_StartDebug);
 	DDX_Check(pDX, IDC_HOTPATCH, cTarget->m_HotPatch);
 	DDX_Check(pDX, IDC_HOOKDLLS, cTarget->m_HookDLLs);
+	DDX_Check(pDX, IDC_ANSIWIDE, cTarget->m_AnsiWide);
 	DDX_Check(pDX, IDC_HOOKCHILDWIN, cTarget->m_HookChildWin);
 
 	// Kernel32

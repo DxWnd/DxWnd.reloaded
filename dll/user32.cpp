@@ -488,11 +488,11 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 			RECT client, full;
 			LONG dwStyle, dwExStyle;
 			HMENU hMenu;
-			extern GetWindowLong_Type pGetWindowLongA;
+			extern GetWindowLong_Type pGetWindowLong;
 			(*pGetClientRect)(hwnd, &client);
 			full=client;
-			dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
-			dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
+			dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
+			dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 			hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 			AdjustWindowRectEx(&full, dwStyle, (hMenu!=NULL), dwExStyle);
 			if (hMenu && (hMenu != (HMENU)-1)) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
@@ -531,8 +531,8 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 		HMENU hMenu;
 		int minx, miny;
 		wrect = dxw.GetScreenRect();
-		dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
-		dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
+		dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
+		dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 		hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 		AdjustWindowRectEx(&wrect, dwStyle, (hMenu!=NULL), dwExStyle);
 		minx = wrect.right - wrect.left;
@@ -724,7 +724,7 @@ LONG WINAPI extGetWindowLongW(HWND hwnd, int nIndex)
 	return extGetWindowLong(pGetWindowLongW, "GetWindowLongW", hwnd, nIndex);
 }
 
-LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLong_Type pSetWindowLong)
+LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLong_Type pSetWindowLong, GetWindowLong_Type pGetWindowLong)
 {
 	LONG res;
 
@@ -735,11 +735,11 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		if(dxw.dwFlags1 & LOCKWINSTYLE){
 			if(nIndex==GWL_STYLE){
 				OutTraceDW("SetWindowLong: Lock GWL_STYLE=%x\n", dwNewLong);
-				return (*pGetWindowLongA)(hwnd, nIndex);
+				return (*pGetWindowLong)(hwnd, nIndex);
 			}
 			if(nIndex==GWL_EXSTYLE){
 				OutTraceDW("SetWindowLong: Lock GWL_EXSTYLE=%x\n", dwNewLong);
-				return (*pGetWindowLongA)(hwnd, nIndex);
+				return (*pGetWindowLong)(hwnd, nIndex);
 			}
 		}
 
@@ -781,7 +781,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		}
 		// end of GPL fix
 
-		OldProc = (WNDPROC)(*pGetWindowLongA)(hwnd, nIndex);
+		OldProc = (WNDPROC)(*pGetWindowLong)(hwnd, nIndex);
 		// v2.02.70 fix
 		if((OldProc==extWindowProc) || 
 			(OldProc==extChildWindowProc)||
@@ -790,11 +790,11 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
 		res=(LONG)OldProc;
 		SetLastError(0);
-		lres=(WNDPROC)(*pSetWindowLongA)(hwnd, nIndex, (LONG)extWindowProc);
+		lres=(WNDPROC)(*pSetWindowLong)(hwnd, nIndex, (LONG)extWindowProc);
 		if(!lres && GetLastError())OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 	else {
-		res=(*pSetWindowLongA)(hwnd, nIndex, dwNewLong);
+		res=(*pSetWindowLong)(hwnd, nIndex, dwNewLong);
 	}
 
 	OutTraceDW("SetWindowLong: hwnd=%x, nIndex=%x, Val=%x, res=%x\n", hwnd, nIndex, dwNewLong, res);
@@ -803,12 +803,12 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 
 LONG WINAPI extSetWindowLongA(HWND hwnd, int nIndex, LONG dwNewLong)
 {
-	return extSetWindowLong(hwnd, nIndex, dwNewLong, pSetWindowLongA);
+	return extSetWindowLong(hwnd, nIndex, dwNewLong, pSetWindowLongA, pGetWindowLongA);
 }
 
 LONG WINAPI extSetWindowLongW(HWND hwnd, int nIndex, LONG dwNewLong)
 {
-	return extSetWindowLong(hwnd, nIndex, dwNewLong, pSetWindowLongW);
+	return extSetWindowLong(hwnd, nIndex, dwNewLong, pSetWindowLongW, pGetWindowLongW);
 }
 
 BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags)
@@ -832,7 +832,7 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 		r.right = X + cx;
 		r.top = Y;
 		r.bottom = Y + cy;
-		if ((*pGetWindowLongA)(hwnd, GWL_STYLE) & WS_CHILD){
+		if ((*pGetWindowLong)(hwnd, GWL_STYLE) & WS_CHILD){
 			r = dxw.MapClientRect(&r);
 		}
 		else {
@@ -884,8 +884,8 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 	RECT rect;
 	rect.top=rect.left=0;
 	rect.right=cx; rect.bottom=cy;
-	dwCurStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE);
-	dwExStyle=(*pGetWindowLongA)(hwnd, GWL_EXSTYLE);
+	dwCurStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
+	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
 	hMenu = (dwCurStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 	AdjustWindowRectEx(&rect, dwCurStyle, (hMenu!=NULL), dwExStyle);
@@ -1386,7 +1386,7 @@ static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
 
 	if(dxw.dwFlags6 & NOWINDOWHOOKS) return;
 
-	pWindowProc = (WNDPROC)(*pGetWindowLongA)(hwnd, GWL_WNDPROC);
+	pWindowProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
 	if((pWindowProc == extWindowProc) || 
 		(pWindowProc == extChildWindowProc) ||
 		(pWindowProc == extDialogWindowProc)){ // avoid recursions 
@@ -1402,11 +1402,11 @@ static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
 	dxwws.PutProc(hwnd, pWindowProc);
 	if(dwStyle & WS_CHILD){
 		OutTraceDW("%s: Hooking CHILD hwnd=%x father WindowProc %x->%x\n", ApiName, hwnd, pWindowProc, extChildWindowProc);
-		res=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extChildWindowProc);
+		res=(*pSetWindowLong)(hwnd, GWL_WNDPROC, (LONG)extChildWindowProc);
 	}
 	else { // must be dwStyle & WS_DLGFRAME
 		OutTraceDW("%s: Hooking DLGFRAME hwnd=%x father WindowProc %x->%x\n", ApiName, hwnd, pWindowProc, extDialogWindowProc);
-		res=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extDialogWindowProc);
+		res=(*pSetWindowLong)(hwnd, GWL_WNDPROC, (LONG)extDialogWindowProc);
 	}
 	if(!res) OutTraceE("%s: SetWindowLong ERROR %x\n", ApiName, GetLastError());
 }
@@ -1612,8 +1612,8 @@ static HWND WINAPI extCreateWindowCommon(
 	if ((!isValidHandle) && dxw.IsFullScreen()){
 		dxw.SethWnd(hwnd);
 		extern void AdjustWindowPos(HWND, DWORD, DWORD);
-		(*pSetWindowLongA)(hwnd, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
-		(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0); 
+		(*pSetWindowLong)(hwnd, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0); 
 		OutTraceDW("%s: hwnd=%x, set style=WS_OVERLAPPEDWINDOW extstyle=0\n", ApiName, hwnd); 
 		AdjustWindowPos(hwnd, nWidth, nHeight);
 		(*pShowWindow)(hwnd, SW_SHOWNORMAL);
@@ -2360,7 +2360,7 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 	if(	lpDialogFunc &&
 		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug option
 		dxwws.PutProc(RetHWND, (WNDPROC)lpDialogFunc);
-		if(!(*pSetWindowLongA)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
+		if(!(*pSetWindowLong)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 			OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 
@@ -2384,7 +2384,7 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	if(	lpDialogFunc &&
 		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug option
 		dxwws.PutProc(RetHWND, (WNDPROC)lpDialogFunc);
-		if(!(*pSetWindowLongA)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
+		if(!(*pSetWindowLong)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 			OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 
@@ -2417,7 +2417,7 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 			BOOL isChild;
 			(*pClientToScreen)(dxw.GethWnd(),&upleft);
 			(*pGetClientRect)(dxw.GethWnd(),&client);
-			if ((*pGetWindowLongA)(hwnd, GWL_STYLE) & WS_CHILD){
+			if ((*pGetWindowLong)(hwnd, GWL_STYLE) & WS_CHILD){
 				isChild=TRUE;
 				// child coordinate adjustement
 				X = (X * client.right) / dxw.GetScreenWidth();
@@ -2446,7 +2446,7 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 				POINT upleft = {0,0};
 				(*pGetClientRect)(dxw.GethWnd(),&screen);
 				(*pClientToScreen)(dxw.GethWnd(),&upleft);
-				if((dwStyle=(*pGetWindowLongA)(hwnd, GWL_STYLE)) && WS_CHILDWINDOW){
+				if((dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE)) && WS_CHILDWINDOW){
 					// Big main child window: see "Reah"
 					X=Y=0;
 				}

@@ -8,7 +8,7 @@
 extern BOOL IsProcessElevated();
 extern BOOL IsUserInAdminGroup();
 
-BOOL DxSelfElevate()
+BOOL DxSelfElevate(CDxwndhostView *view)
 {
 	BOOL const fInAdminGroup = IsUserInAdminGroup();
 	if(!fInAdminGroup) return TRUE;
@@ -20,6 +20,11 @@ BOOL DxSelfElevate()
 	MustRestart=MessageBoxLang(DXW_STRING_ADMINCAP, DXW_STRING_WARNING, MB_OKCANCEL | MB_ICONQUESTION);
 	if(MustRestart==IDOK){
 		extern HANDLE GlobalLocker;
+		// Autoelevation at startup has no HostView yet, but nothing to save either
+		if (view && view->isUpdated){
+			if (MessageBoxLang(DXW_STRING_LISTUPDATE, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION)==IDYES) 
+				view->SaveConfigFile();
+		}
 		CloseHandle(GlobalLocker);
 		char szPath[MAX_PATH];
 		if (GetModuleFileName(NULL, szPath, ARRAYSIZE(szPath)))

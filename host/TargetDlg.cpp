@@ -110,6 +110,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_Windowize = TRUE; // default true !!
 	m_HotPatch = FALSE; 
 	m_HookDLLs = TRUE; // default true !!
+	m_AnsiWide = FALSE; 
 	m_TerminateOnClose = FALSE; 
 	m_ConfirmOnClose = FALSE; 
 	m_HookEnabled = TRUE; // default true !!

@@ -1,0 +1,29 @@
+[target]
+title0=Mechwarrior 3
+path0=D:\Games\Mechwarrior 3 (full)\Mech3.exe
+launchpath0=
+module0=
+opengllib0=
+notes0=
+registry0=\n[HKEY_LOCAL_MACHINE\Software]\n[HKEY_LOCAL_MACHINE\Software\MicroProse]\n[HKEY_LOCAL_MACHINE\Software\MicroProse\MechWarrior 3 EP1]\n[HKEY_LOCAL_MACHINE\Software\MicroProse\MechWarrior 3 EP1\1.0]\n"Program"="..\\"\n"Version"="1.0"\n"InstallOptions"=dword:00050707\n\n[HKEY_LOCAL_MACHINE\Software\Microsoft]\n[HKEY_LOCAL_MACHINE\Software\Microsoft\DirectPlay]\n[HKEY_LOCAL_MACHINE\Software\Microsoft\DirectPlay\Applications]\n[HKEY_LOCAL_MACHINE\Software\Microsoft\DirectPlay\Applications\MechWarrior 3 EP1]\n"Guid"="{FA96C421-18DD-11D3-95AF-0060089877F0}"\n"File"="Mech3.exe"\n"CommandLine"="\n"Path"=".\\"\n"CurrentDirectory"=".\\"\n\n
+ver0=0
+coord0=0
+flag0=136331398
+flagg0=1207959552
+flagh0=9236
+flagi0=1277165574
+flagj0=4224
+flagk0=65600
+flagl0=0
+flagm0=0
+tflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
