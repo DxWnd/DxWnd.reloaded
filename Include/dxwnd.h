@@ -251,6 +251,7 @@
 // DxWnd host app data to be passed to the hook callback
 typedef struct TARGETMAP
 {
+	int index;
 	char path[MAX_PATH+1];
 	char module[60+1];
 	char OpenGLLib[20+1];
@@ -264,7 +265,8 @@ typedef struct TARGETMAP
 	int flags6;
 	int flags7;
 	int flags8;
-	int tflags;
+	int tflags; // trace flags (cleared when exported/imported)
+	int dflags; // debug flags (cleared when exported/imported)
 	short posx;
 	short posy;
 	short sizx;
@@ -281,6 +283,7 @@ typedef struct
 {
 	short Status;
 	short TaskIdx;
+	short OrigIdx;
 	short IsFullScreen;
 	short Width, Height;
 	short ColorDepth;

@@ -97,6 +97,12 @@ BOOL WINAPI extPaintDesktop(HDC);
 typedef VOID (WINAPI *mouse_event_Type)(DWORD, DWORD, DWORD, DWORD, ULONG_PTR);
 mouse_event_Type pmouse_event = NULL;
 VOID WINAPI extmouse_event(DWORD, DWORD, DWORD, DWORD, ULONG_PTR);
+typedef BOOL (WINAPI *ShowScrollBar_Type)(HWND, int, BOOL);
+ShowScrollBar_Type pShowScrollBar = NULL;
+BOOL WINAPI extShowScrollBar(HWND, int, BOOL);
+typedef BOOL (WINAPI *DrawMenuBar_Type)(HWND);
+DrawMenuBar_Type pDrawMenuBar = NULL;
+BOOL WINAPI extDrawMenuBar(HWND);
 
 
 #ifdef TRACEPALETTE
@@ -181,6 +187,10 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "ScrollDC", (FARPROC)NULL, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
 	//{HOOK_IAT_CANDIDATE, 0, "mouse_event", (FARPROC)NULL, (FARPROC *)&pmouse_event, (FARPROC)extmouse_event}, 
 
+	// both added to fix the Galapagos menu bar, but with no success !!!!
+	{HOOK_HOT_CANDIDATE, 0, "ShowScrollBar", (FARPROC)ShowScrollBar, (FARPROC *)&pShowScrollBar, (FARPROC)extShowScrollBar},
+	{HOOK_HOT_CANDIDATE, 0, "DrawMenuBar", (FARPROC)DrawMenuBar, (FARPROC *)&pDrawMenuBar, (FARPROC)extDrawMenuBar},
+
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -192,13 +202,12 @@ static HookEntryEx_Type RemapHooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "MapWindowPoints", (FARPROC)MapWindowPoints, (FARPROC *)&pMapWindowPoints, (FARPROC)extMapWindowPoints},
 	{HOOK_HOT_CANDIDATE, 0, "GetUpdateRgn", (FARPROC)GetUpdateRgn, (FARPROC *)&pGetUpdateRgn, (FARPROC)extGetUpdateRgn},
 	//{HOOK_IAT_CANDIDATE, 0, "GetUpdateRect", (FARPROC)GetUpdateRect, (FARPROC *)&pGetUpdateRect, (FARPROC)extGetUpdateRect},
-	//{HOOK_IAT_CANDIDATE, 0, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
+	{HOOK_IAT_CANDIDATE, 0, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "FrameRect", (FARPROC)FrameRect, (FARPROC *)&pFrameRect, (FARPROC)extFrameRect}, 
-	{HOOK_IAT_CANDIDATE, 0, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
 	{HOOK_IAT_CANDIDATE, 0, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
 	{HOOK_HOT_CANDIDATE, 0, "InvalidateRgn", (FARPROC)InvalidateRgn, (FARPROC *)&pInvalidateRgn, (FARPROC)extInvalidateRgn},
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
@@ -2902,22 +2911,19 @@ BOOL WINAPI extRedrawWindow(HWND hWnd, const RECT *lprcUpdate, HRGN hrgnUpdate, 
 	RECT rcUpdate;
 	BOOL ret;
 
-	OutTraceDW("RedrawWindow: hwnd=%x flags=%x\n", hWnd, flags);
+	OutTraceDW("RedrawWindow: hwnd=%x hrgn=%x flags=%x\n", hWnd, hrgnUpdate, flags);
 
-	rcUpdate = *lprcUpdate;
+	// v2.03.64 fix: if hrgnUpdate is set, lprcUpdate is ignored, so it can't be scaled
+	// beware: they both could be null, and that means the whole window
+	if (!hrgnUpdate && lprcUpdate) rcUpdate = *lprcUpdate;
 	// avoid redrawing the whole desktop
 	if(dxw.Windowize && dxw.IsRealDesktop(hWnd)) hWnd=dxw.GethWnd();
 	if(dxw.IsFullScreen()){
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_STRETCHED: 
-				rcUpdate = dxw.MapClientRect((LPRECT)lprcUpdate);
-				break;
-			default:
-				break;
-		}
+		// v2.03.64 fix: if hrgnUpdate is set, lprcUpdate is ignored, so it can't be scaled
+		if (!hrgnUpdate && lprcUpdate) rcUpdate = dxw.MapClientRect((LPRECT)lprcUpdate);
 	}
 
-	ret = (*pRedrawWindow)(hWnd, &rcUpdate, hrgnUpdate, flags);
+	ret = (*pRedrawWindow)(hWnd, lprcUpdate ? &rcUpdate : NULL, hrgnUpdate, flags);
 	if(ret) OutTraceE("RedrawWindow ERROR: err=%d\n", GetLastError());
 	return ret;
 }
@@ -3649,4 +3655,24 @@ VOID WINAPI extmouse_event(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData, ULON
 {
 	OutTrace("mouse_event: flags=%x xy=(%d,%d) data=%x, extrainfo=%lx\n", dwFlags, dx, dy, dwData, dwExtraInfo);
 	return (*pmouse_event)(dwFlags, dx, dy, dwData, dwExtraInfo);
+}
+
+BOOL WINAPI extShowScrollBar(HWND hWnd, int wBar, BOOL bShow)
+{
+	BOOL ret;
+	OutTraceDW("ShowScrollBar: hwnd=%x wBar=%x show=%x\n", hWnd, wBar, bShow);
+	if(dxw.Windowize && dxw.IsRealDesktop(hWnd)) hWnd=dxw.GethWnd();
+	ret=(*pShowScrollBar)(hWnd, wBar, bShow);
+	if(!ret) OutTraceE("ShowScrollBar ERROR: err=%d\n", GetLastError());
+	return ret;
+}
+
+BOOL WINAPI extDrawMenuBar(HWND hWnd)
+{
+	BOOL ret;
+	OutTraceDW("DrawMenuBar: hwnd=%x\n", hWnd);
+	if(dxw.Windowize && dxw.IsRealDesktop(hWnd)) hWnd=dxw.GethWnd();
+	ret=(*pDrawMenuBar)(hWnd);
+	if(!ret) OutTraceE("DrawMenuBar ERROR: err=%d\n", GetLastError());
+	return ret;
 }

@@ -157,37 +157,36 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
 					return 0; // just tell you found it.
 				}
 
-#ifdef KILLSINGLEPROCESS
-				// First open for termination
-				hProc=OpenProcess(PROCESS_TERMINATE,FALSE,aiPID[i]);
-				if(hProc)
-				{
-					if(TerminateProcess(hProc,0))
-					{
-						// process terminated
-						CloseHandle(hProc);
-                        FreeLibrary(hInstLib);
-						return 0;
+				if(osvi.dwMajorVersion == 5){
+					// First open for termination
+					hProc=OpenProcess(PROCESS_TERMINATE,FALSE,aiPID[i]);
+					if(hProc){
+						if(TerminateProcess(hProc,0)){
+							// process terminated
+							CloseHandle(hProc);
+							FreeLibrary(hInstLib);
+							return 0;
+						}
+						else{
+							// Unable to terminate process
+							CloseHandle(hProc);
+							FreeLibrary(hInstLib);
+							return 602;
+						}
 					}
-					else
-					{
-						// Unable to terminate process
-						CloseHandle(hProc);
-                        FreeLibrary(hInstLib);
-						return 602;
+					else{
+						// Unable to open process for termination
+						FreeLibrary(hInstLib);
+						return 604;
 					}
 				}
-				else
-				{
-					// Unable to open process for termination
-                    FreeLibrary(hInstLib);
-					return 604;
+				else {
+					// this will kill the whole process tree - though with no feedback retcode.
+					extern void KillProcessTree(DWORD);
+					KillProcessTree(aiPID[i]);
+					FreeLibrary(hInstLib);	
+					return 0;
 				}
-#else
-				// this will kill the whole process tree - though with no feedback retcode.
-				extern void KillProcessTree(DWORD);
-				KillProcessTree(aiPID[i]);
-#endif
 			}
 		}
 	}

@@ -11,8 +11,8 @@ extern void TextureHandling(LPDIRECTDRAWSURFACE);
 typedef HRESULT (WINAPI *LockRect_Type)(void *, UINT, D3DLOCKED_RECT *, CONST RECT *, DWORD);
 typedef HRESULT (WINAPI *UnlockRect_Type)(void *, UINT);
 
-extern LockRect_Type pLockRect;
-extern UnlockRect_Type pUnlockRect;
+extern LockRect_Type pLockRect8;
+extern UnlockRect_Type pUnlockRect8;
 
 extern void D3DTextureDump(D3DSURFACE_DESC, D3DLOCKED_RECT);
 extern void D3DTextureHighlight(D3DSURFACE_DESC, D3DLOCKED_RECT);
@@ -49,7 +49,7 @@ void D3D8TextureHandling(void *arg, int Level)
 	}
 	if(Desc.Usage == D3DUSAGE_RENDERTARGET)return;
 	//pSurfaceLevel->GetRenderTargetData(&pRenderTarget, &pDestSurface);	
-	res=(*pLockRect)(lpd3dtex, Level, &LockedRect, NULL, 0);
+	res=(*pLockRect8)(lpd3dtex, Level, &LockedRect, NULL, 0);
 	OutTrace("D3D8TextureHandling: lpd3dtex=%x level=%d format=0x%x(%s) size=(%dx%d) bits=%x pitch=%d\n", 
 		lpd3dtex, Level, Desc.Format, ExplainD3DSurfaceFormat(Desc.Format), 
 		Desc.Width, Desc.Height, LockedRect.pBits, LockedRect.Pitch);
@@ -67,5 +67,5 @@ void D3D8TextureHandling(void *arg, int Level)
 			D3DTextureTransp(Desc, LockedRect);
 			break;
 	}
-	res=(*pUnlockRect)(lpd3dtex, Level);
+	res=(*pUnlockRect8)(lpd3dtex, Level);
 }

@@ -66,12 +66,14 @@ void CStatusDialog::OnTimer(UINT_PTR nIDEvent)
 		Target=&pTargets[DxWndStatus.TaskIdx];
 
 		sprintf_s(sMsg2, 1024, 
-			"\nTask=%s\n"
+			"\nTask=(%d): %s\n"
+			"pid=%x\n"
 			"Screen = (%dx%d) Color BPP=%d\n"
 			"FullScreen = %s\nDX version = %d\n"
 			"Logging = %s\n"
 			"Cursor = (%d,%d)",
-			pTitles[DxWndStatus.TaskIdx].title,
+			(DxWndStatus.OrigIdx+1), pTitles[DxWndStatus.OrigIdx].title,
+			DxWndStatus.dwPid,
 			DxWndStatus.Width, DxWndStatus.Height, DxWndStatus.ColorDepth, 
 			DxWndStatus.IsFullScreen ? "Yes":"No", DxWndStatus.DXVersion,
 			DxWndStatus.isLogging?"ON":"OFF",

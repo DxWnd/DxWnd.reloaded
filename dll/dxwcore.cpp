@@ -446,6 +446,7 @@ void dxwCore::SetClipCursor()
 		OutTraceDW("SetClipCursor: ASSERT hWnd==NULL\n");
 		return;
 	}
+
 	// check for errors to avoid setting random clip regions
 	if(!(*pGetClientRect)(hWnd, &Rect)){
 		OutTraceE("SetClipCursor: GetClientRect ERROR err=%d at %d\n", GetLastError(), __LINE__);

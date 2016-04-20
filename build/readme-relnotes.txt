@@ -1089,3 +1089,8 @@ fix: saved config changes in case DxWnd is restarted for acquiring admin caps
 fix: duplicated several function pointers in D3D8/9 wrappers: fix some GTA3 crashes and reduce the need to suppress Reset operation
 add: flag "Widechar program vs. ANSI" to replace default ansi calls with widechar equivalents: fixes "Tomb Raider Anniversary" mouse problems
 
+v2.03.64
+fix: completed the hook pointers separation per COM interface version: this is of growing importance on Win10 because of the system updates (shims?)
+fix: fixed incoherences in task refences of the GUI
+fix: recovered task kill on WinXP
+fix: updated RedrawWindow, now allows better handling of "Galapagos" pause screen

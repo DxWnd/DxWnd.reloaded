@@ -134,7 +134,11 @@ HRESULT WINAPI extDeleteAttachedSurface2(LPDIRECTDRAWSURFACE,  DWORD, LPDIRECTDR
 HRESULT WINAPI extDeleteAttachedSurface3(LPDIRECTDRAWSURFACE,  DWORD, LPDIRECTDRAWSURFACE);
 HRESULT WINAPI extDeleteAttachedSurface4(LPDIRECTDRAWSURFACE,  DWORD, LPDIRECTDRAWSURFACE);
 HRESULT WINAPI extDeleteAttachedSurface7(LPDIRECTDRAWSURFACE,  DWORD, LPDIRECTDRAWSURFACE);
-HRESULT WINAPI extEnumAttachedSurfaces(LPDIRECTDRAWSURFACE, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumAttachedSurfaces1(LPDIRECTDRAWSURFACE, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumAttachedSurfaces2(LPDIRECTDRAWSURFACE, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumAttachedSurfaces3(LPDIRECTDRAWSURFACE, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumAttachedSurfaces4(LPDIRECTDRAWSURFACE, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumAttachedSurfaces7(LPDIRECTDRAWSURFACE, LPVOID, LPDDENUMSURFACESCALLBACK);
 HRESULT WINAPI extFlip1(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, DWORD);
 HRESULT WINAPI extFlip2(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, DWORD);
 HRESULT WINAPI extFlip3(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, DWORD);
@@ -190,8 +194,16 @@ HRESULT WINAPI extReleaseDC2(LPDIRECTDRAWSURFACE, HDC);
 HRESULT WINAPI extReleaseDC3(LPDIRECTDRAWSURFACE, HDC);
 HRESULT WINAPI extReleaseDC4(LPDIRECTDRAWSURFACE, HDC);
 HRESULT WINAPI extReleaseDC7(LPDIRECTDRAWSURFACE, HDC);
-HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE, LPDIRECTDRAWCLIPPER);
-HRESULT WINAPI extSetColorKey(LPDIRECTDRAWSURFACE, DWORD, LPDDCOLORKEY);
+HRESULT WINAPI extSetClipper1(LPDIRECTDRAWSURFACE, LPDIRECTDRAWCLIPPER);
+HRESULT WINAPI extSetClipper2(LPDIRECTDRAWSURFACE, LPDIRECTDRAWCLIPPER);
+HRESULT WINAPI extSetClipper3(LPDIRECTDRAWSURFACE, LPDIRECTDRAWCLIPPER);
+HRESULT WINAPI extSetClipper4(LPDIRECTDRAWSURFACE, LPDIRECTDRAWCLIPPER);
+HRESULT WINAPI extSetClipper7(LPDIRECTDRAWSURFACE, LPDIRECTDRAWCLIPPER);
+HRESULT WINAPI extSetColorKey1(LPDIRECTDRAWSURFACE, DWORD, LPDDCOLORKEY);
+HRESULT WINAPI extSetColorKey2(LPDIRECTDRAWSURFACE, DWORD, LPDDCOLORKEY);
+HRESULT WINAPI extSetColorKey3(LPDIRECTDRAWSURFACE, DWORD, LPDDCOLORKEY);
+HRESULT WINAPI extSetColorKey4(LPDIRECTDRAWSURFACE, DWORD, LPDDCOLORKEY);
+HRESULT WINAPI extSetColorKey7(LPDIRECTDRAWSURFACE, DWORD, LPDDCOLORKEY);
 HRESULT WINAPI extSetPalette1(LPDIRECTDRAWSURFACE, LPDIRECTDRAWPALETTE);
 HRESULT WINAPI extSetPalette2(LPDIRECTDRAWSURFACE, LPDIRECTDRAWPALETTE);
 HRESULT WINAPI extSetPalette3(LPDIRECTDRAWSURFACE, LPDIRECTDRAWPALETTE);
@@ -286,7 +298,7 @@ Blt_Type pBlt1, pBlt2, pBlt3, pBlt4, pBlt7;
 //BltBatch_Type pBltBatch;
 BltFast_Type pBltFast1, pBltFast2, pBltFast3, pBltFast4, pBltFast7;
 DeleteAttachedSurface_Type pDeleteAttachedSurface1, pDeleteAttachedSurface2, pDeleteAttachedSurface3, pDeleteAttachedSurface4, pDeleteAttachedSurface7;
-EnumAttachedSurfaces_Type pEnumAttachedSurfaces;
+EnumAttachedSurfaces_Type pEnumAttachedSurfaces1, pEnumAttachedSurfaces2, pEnumAttachedSurfaces3, pEnumAttachedSurfaces4, pEnumAttachedSurfaces7;
 EnumOverlayZOrders_Type pEnumOverlayZOrders;
 Flip_Type pFlip1, pFlip2, pFlip3, pFlip4, pFlip7;
 GetAttachedSurface_Type pGetAttachedSurface1, pGetAttachedSurface2, pGetAttachedSurface3, pGetAttachedSurface4, pGetAttachedSurface7;
@@ -307,8 +319,8 @@ Lock_Type pLock1, pLock2, pLock3, pLock4, pLock7;
 IsLost_Type pIsLost;
 ReleaseDC_Type pReleaseDC1, pReleaseDC2, pReleaseDC3, pReleaseDC4, pReleaseDC7;
 Restore_Type pRestore;
-SetClipper_Type pSetClipper;
-SetColorKey_Type pSetColorKey;
+SetClipper_Type pSetClipper1, pSetClipper2, pSetClipper3, pSetClipper4, pSetClipper7;
+SetColorKey_Type pSetColorKey1, pSetColorKey2, pSetColorKey3, pSetColorKey4, pSetColorKey7;
 SetOverlayPosition_Type pSetOverlayPosition;
 SetPalette_Type pSetPalette1, pSetPalette2, pSetPalette3, pSetPalette4, pSetPalette7;
 Unlock1_Type pUnlock1, pUnlock2, pUnlock3;
@@ -1149,11 +1161,8 @@ static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
 {
 	OutTraceDW("Hooking directdraw clipper dd=%x\n", *lplpDDClipper);
 
-	// IDirectDrawClipper::Release
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 8), extReleaseC, (void **)&pReleaseC, "Release(C)");
-	// IDirectDrawClipper::GetClipList
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 12), extGetClipList, (void **)&pGetClipList, "GetClipList(C)");
-	// IDirectDrawClipper::SetHWnd
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 32), extSetHWnd, (void **)&pSetHWnd, "SetHWnd(C)");
 }
 
@@ -1162,9 +1171,7 @@ static void HookDDPalette(LPDIRECTDRAWPALETTE FAR* lplpDDPalette)
 	OutTraceDW("Hooking directdraw palette dd=%x\n", *lplpDDPalette);
 
     /*** IDirectDrawPalette methods ***/
-	// IDirectDrawPalette::Release
 	SetHook((void *)(**(DWORD **)lplpDDPalette + 8), extReleaseP, (void **)&pReleaseP, "Release(P)");
-	// IDirectDrawPalette::SetEntries
 	SetHook((void *)(**(DWORD **)lplpDDPalette + 24), extSetEntries, (void **)&pSetEntries, "SetEntries(P)");
 }
 
@@ -1176,8 +1183,6 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 	OutTraceDW("Hooking surface dds=%x dxversion=%d prim=%x thread_id=%x\n", 
 		*lplpdds, dxversion, isPrim, GetCurrentThreadId());
 
-	// IDirectDrawSurface::EnumAttachedSurfaces
-	SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces, (void **)&pEnumAttachedSurfaces, "EnumAttachedSurfaces(S)");
 	switch(dxversion) {
 	case 1:
 		SetHook((void *)(**(DWORD **)lplpdds), extQueryInterfaceS1, (void **)&pQueryInterfaceS1, "QueryInterface(S1)");
@@ -1186,6 +1191,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast1, (void **)&pBltFast1, "BltFast(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt1, (void **)&pBlt1, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface1, (void **)&pDeleteAttachedSurface1, "DeleteAttachedSurface(S1)");
+		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces1, (void **)&pEnumAttachedSurfaces1, "EnumAttachedSurfaces(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip1, (void **)&pFlip1, "Flip(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface1, (void **)&pGetAttachedSurface1, "GetAttachedSurface(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps1S, (void **)&pGetCaps1S, "GetCaps(S1)");
@@ -1206,6 +1212,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast2, (void **)&pBltFast2, "BltFast(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt2, (void **)&pBlt2, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface2, (void **)&pDeleteAttachedSurface2, "DeleteAttachedSurface(S2)");
+		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces2, (void **)&pEnumAttachedSurfaces2, "EnumAttachedSurfaces(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip2, (void **)&pFlip2, "Flip(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface2, (void **)&pGetAttachedSurface2, "GetAttachedSurface(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps2S, (void **)&pGetCaps2S, "GetCaps(S2)");
@@ -1226,6 +1233,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast3, (void **)&pBltFast3, "BltFast(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt3, (void **)&pBlt3, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface3, (void **)&pDeleteAttachedSurface3, "DeleteAttachedSurface(S3)");
+		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces3, (void **)&pEnumAttachedSurfaces3, "EnumAttachedSurfaces(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip3, (void **)&pFlip3, "Flip(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface3, (void **)&pGetAttachedSurface3, "GetAttachedSurface(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps3S, (void **)&pGetCaps3S, "GetCaps(S3)");
@@ -1248,6 +1256,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast4, (void **)&pBltFast4, "BltFast(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt4, (void **)&pBlt4, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface4, (void **)&pDeleteAttachedSurface4, "DeleteAttachedSurface(S4)");
+		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces4, (void **)&pEnumAttachedSurfaces4, "EnumAttachedSurfaces(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip4, (void **)&pFlip4, "Flip(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface4, (void **)&pGetAttachedSurface4, "GetAttachedSurface(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps4S, (void **)&pGetCaps4S, "GetCaps(S4)");
@@ -1270,6 +1279,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast7, (void **)&pBltFast7, "BltFast(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt7, (void **)&pBlt7, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface7, (void **)&pDeleteAttachedSurface7, "DeleteAttachedSurface(S7)");
+		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces7, (void **)&pEnumAttachedSurfaces7, "EnumAttachedSurfaces(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip7, (void **)&pFlip7, "Flip(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface7, (void **)&pGetAttachedSurface7, "GetAttachedSurface(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps7S, (void **)&pGetCaps7S, "GetCaps(S7)");
@@ -1289,19 +1299,26 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 
 	if (!isPrim) return;
 
-	SetHook((void *)(**(DWORD **)lplpdds + 112), extSetClipper, (void **)&pSetClipper, "SetClipper(S)");
-	// IDirectDrawSurface::SetColorKey
-	SetHook((void *)(**(DWORD **)lplpdds + 116), extSetColorKey, (void **)&pSetColorKey, "SetColorKey(S)");
 	switch(dxversion) {
 	case 1:
+		SetHook((void *)(**(DWORD **)lplpdds + 112), extSetClipper1, (void **)&pSetClipper1, "SetClipper(S1)");
+		SetHook((void *)(**(DWORD **)lplpdds + 116), extSetColorKey1, (void **)&pSetColorKey1, "SetColorKey(S1)");
 		break;
 	case 2:
+		SetHook((void *)(**(DWORD **)lplpdds + 112), extSetClipper2, (void **)&pSetClipper2, "SetClipper(S2)");
+		SetHook((void *)(**(DWORD **)lplpdds + 116), extSetColorKey2, (void **)&pSetColorKey2, "SetColorKey(S2)");
 		break;
 	case 3:
+		SetHook((void *)(**(DWORD **)lplpdds + 112), extSetClipper3, (void **)&pSetClipper3, "SetClipper(S3)");
+		SetHook((void *)(**(DWORD **)lplpdds + 116), extSetColorKey3, (void **)&pSetColorKey3, "SetColorKey(S3)");
 		break;
 	case 4:
+		SetHook((void *)(**(DWORD **)lplpdds + 112), extSetClipper4, (void **)&pSetClipper4, "SetClipper(S4)");
+		SetHook((void *)(**(DWORD **)lplpdds + 116), extSetColorKey4, (void **)&pSetColorKey4, "SetColorKey(S4)");
 		break;
 	case 7:
+		SetHook((void *)(**(DWORD **)lplpdds + 112), extSetClipper7, (void **)&pSetClipper7, "SetClipper(S7)");
+		SetHook((void *)(**(DWORD **)lplpdds + 116), extSetColorKey7, (void **)&pSetColorKey7, "SetColorKey(S7)");
 		break;
 	}
 }
@@ -1444,7 +1461,7 @@ static void HandleCapsD(char *sLabel, LPDDCAPS c)
 		OutTraceDDRAW("GetCaps(%s): FIXED VidMemTotal=%x VidMemFree=%x\n", sLabel, c->dwVidMemTotal, c->dwVidMemFree);
 }
 
-HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
+static HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 {
 	HRESULT res;
 	OutTraceDDRAW("GetCaps(D): lpdd=%x %s %s\n", lpdd, c1?"c1":"NULL", c2?"c2":"NULL");
@@ -1647,7 +1664,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	return DD_OK;
 }
 
-HRESULT WINAPI extInitialize(Initialize_Type pInitialize, LPDIRECTDRAW lpdd, GUID FAR *lpguid)
+static HRESULT WINAPI extInitialize(Initialize_Type pInitialize, LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 {
 	HRESULT res;
 	GUID FAR *lpPrivGuid = lpguid;
@@ -1674,7 +1691,7 @@ HRESULT WINAPI extInitialize4(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 HRESULT WINAPI extInitialize7(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 { return extInitialize(pInitialize7, lpdd, lpguid); }
 
-HRESULT WINAPI extQueryInterfaceD(QueryInterface_Type pQueryInterfaceD, void *lpdd, REFIID riid, LPVOID *obp)
+static HRESULT WINAPI extQueryInterfaceD(QueryInterface_Type pQueryInterfaceD, void *lpdd, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 	unsigned int dwLocalDDVersion;
@@ -1767,7 +1784,7 @@ HRESULT WINAPI extQueryInterfaceD7(void *lpdd, REFIID riid, LPVOID *obp)
 // some unhandled interfaces in emulation mode:
 // REFIID={84e63de0-46aa-11cf-816f-0000c020156e}: IID_IDirect3DHALDevice
 
-HRESULT WINAPI extQueryInterfaceS(QueryInterface_Type pQueryInterfaceS, void *lpdds, REFIID riid, LPVOID *obp)
+static HRESULT WINAPI extQueryInterfaceS(QueryInterface_Type pQueryInterfaceS, void *lpdds, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -4020,7 +4037,7 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 	return res;
 }
 
-HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
+static HRESULT WINAPI extSetClipper(SetClipper_Type pSetClipper, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
 {
 	HRESULT res;
 	BOOL isPrim;
@@ -4063,10 +4080,21 @@ HRESULT WINAPI extSetClipper(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpdd
 	return res;
 }
 
+HRESULT WINAPI extSetClipper1(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
+{ return extSetClipper(pSetClipper1, lpdds, lpddc); }
+HRESULT WINAPI extSetClipper2(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
+{ return extSetClipper(pSetClipper2, lpdds, lpddc); }
+HRESULT WINAPI extSetClipper3(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
+{ return extSetClipper(pSetClipper3, lpdds, lpddc); }
+HRESULT WINAPI extSetClipper4(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
+{ return extSetClipper(pSetClipper4, lpdds, lpddc); }
+HRESULT WINAPI extSetClipper7(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
+{ return extSetClipper(pSetClipper7, lpdds, lpddc); }
+
 DDSURFACEDESC SaveSurfaceDesc;
 LPDIRECTDRAWSURFACE SaveSurface = NULL;
 
-HRESULT WINAPI extLock(Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
+static HRESULT WINAPI extLock(Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 {
 	HRESULT res;
 
@@ -4112,23 +4140,18 @@ HRESULT WINAPI extLock(Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect
 
 HRESULT WINAPI extLock1(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 { return extLock(pLock1, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
-
 HRESULT WINAPI extLock2(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 { return extLock(pLock2, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
-
 HRESULT WINAPI extLock3(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 { return extLock(pLock3, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
-
 HRESULT WINAPI extLock4(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 { return extLock(pLock4, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
-
 HRESULT WINAPI extLock7(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 { return extLock(pLock7, lpdds, lprect, lpDDSurfaceDesc, flags, hEvent); }
 
-
 LPDIRECTDRAWSURFACE2 lpDDSBuffer = NULL;
 
-HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
+static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 {
 	HRESULT res, res2;
 	static RECT client;
@@ -4235,7 +4258,7 @@ HRESULT WINAPI extLockDir7(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACE
 #define MARK16COLOR 0x7C1F
 #define MARK32COLOR 0x00FF00FF
 
-HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
+static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -4343,20 +4366,16 @@ HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFAC
 
 HRESULT WINAPI extUnlock1(LPDIRECTDRAWSURFACE lpdds, LPVOID lpvoid)
 { return extUnlock(1, (Unlock4_Type)pUnlock1, lpdds, (LPRECT)lpvoid); }
-
 HRESULT WINAPI extUnlock2(LPDIRECTDRAWSURFACE lpdds, LPVOID lpvoid)
 { return extUnlock(2, (Unlock4_Type)pUnlock2, lpdds, (LPRECT)lpvoid); }
-
 HRESULT WINAPI extUnlock3(LPDIRECTDRAWSURFACE lpdds, LPVOID lpvoid)
 { return extUnlock(3, (Unlock4_Type)pUnlock3, lpdds, (LPRECT)lpvoid); }
-
 HRESULT WINAPI extUnlock4(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 { return extUnlock(4, pUnlock4, lpdds, lprect); }
-
 HRESULT WINAPI extUnlock7(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 { return extUnlock(7, pUnlock7, lpdds, lprect); }
 
-HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
+static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
 {
 	HRESULT res;
 	//RECT screen, rect;
@@ -4438,7 +4457,7 @@ ReleaseDC with Unlock, returning the surface memory ptr (???) as HDC
 and avoiding the consistency check performed by surface::GetDC (why
 should it bother if the screen is 32BPP and the surface is not??? */
 
-HRESULT WINAPI extGetDC(int dxversion, GetDC_Type pGetDC, LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
+static HRESULT WINAPI extGetDC(int dxversion, GetDC_Type pGetDC, LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -4907,7 +4926,7 @@ HRESULT WINAPI extReleaseS4(LPDIRECTDRAWSURFACE lpdds)
 HRESULT WINAPI extReleaseS7(LPDIRECTDRAWSURFACE lpdds)
 { return extReleaseS(pReleaseS7, lpdds); }
 
-HRESULT WINAPI extSetColorKey(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
+static HRESULT WINAPI extSetColorKey(SetColorKey_Type pSetColorKey, LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -4926,7 +4945,18 @@ HRESULT WINAPI extSetColorKey(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORK
 	return res;
 }
 
-HRESULT WINAPI extGetColorKey(GetColorKey_Type pGetColorKey, LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
+HRESULT WINAPI extSetColorKey1(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
+{ return extSetColorKey(pSetColorKey1, lpdds, flags, lpDDColorKey); }
+HRESULT WINAPI extSetColorKey2(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
+{ return extSetColorKey(pSetColorKey2, lpdds, flags, lpDDColorKey); }
+HRESULT WINAPI extSetColorKey3(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
+{ return extSetColorKey(pSetColorKey3, lpdds, flags, lpDDColorKey); }
+HRESULT WINAPI extSetColorKey4(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
+{ return extSetColorKey(pSetColorKey4, lpdds, flags, lpDDColorKey); }
+HRESULT WINAPI extSetColorKey7(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
+{ return extSetColorKey(pSetColorKey7, lpdds, flags, lpDDColorKey); }
+
+static HRESULT WINAPI extGetColorKey(GetColorKey_Type pGetColorKey, LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -4953,7 +4983,7 @@ HRESULT WINAPI extGetColorKey4(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLOR
 HRESULT WINAPI extGetColorKey7(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
 { return extGetColorKey(pGetColorKey7, lpdds, flags, lpDDColorKey); }
 
-HRESULT WINAPI extEnumAttachedSurfaces(LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+static HRESULT WINAPI extEnumAttachedSurfaces(EnumAttachedSurfaces_Type pEnumAttachedSurfaces, LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -4994,7 +5024,18 @@ HRESULT WINAPI extEnumAttachedSurfaces(LPDIRECTDRAWSURFACE lpdds, LPVOID lpConte
 	return res;
 }
 
-HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttachedSurface, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddsadd)
+HRESULT WINAPI extEnumAttachedSurfaces1(LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+{ return extEnumAttachedSurfaces(pEnumAttachedSurfaces1, lpdds, lpContext, lpEnumSurfacesCallback); }
+HRESULT WINAPI extEnumAttachedSurfaces2(LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+{ return extEnumAttachedSurfaces(pEnumAttachedSurfaces2, lpdds, lpContext, lpEnumSurfacesCallback); }
+HRESULT WINAPI extEnumAttachedSurfaces3(LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+{ return extEnumAttachedSurfaces(pEnumAttachedSurfaces3, lpdds, lpContext, lpEnumSurfacesCallback); }
+HRESULT WINAPI extEnumAttachedSurfaces4(LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+{ return extEnumAttachedSurfaces(pEnumAttachedSurfaces4, lpdds, lpContext, lpEnumSurfacesCallback); }
+HRESULT WINAPI extEnumAttachedSurfaces7(LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+{ return extEnumAttachedSurfaces(pEnumAttachedSurfaces7, lpdds, lpContext, lpEnumSurfacesCallback); }
+
+static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttachedSurface, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddsadd)
 {
 	HRESULT res;
 	BOOL IsPrim, IsBack;
@@ -5059,7 +5100,7 @@ HRESULT WINAPI extAddAttachedSurface4(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSUR
 HRESULT WINAPI extAddAttachedSurface7(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWSURFACE lpddsadd)
 { return extAddAttachedSurface(pAddAttachedSurface7, lpdds, lpddsadd); }
 
-HRESULT WINAPI extDeleteAttachedSurface(DeleteAttachedSurface_Type pDeleteAttachedSurface, LPDIRECTDRAWSURFACE lpdds,  DWORD dwflags, LPDIRECTDRAWSURFACE lpddsdel)
+static HRESULT WINAPI extDeleteAttachedSurface(DeleteAttachedSurface_Type pDeleteAttachedSurface, LPDIRECTDRAWSURFACE lpdds,  DWORD dwflags, LPDIRECTDRAWSURFACE lpddsdel)
 {
 	HRESULT res;
 	OutTraceDDRAW("DeleteAttachedSurface: lpdds=%x flags=%x lpddsdel=%x\n", lpdds, dwflags, lpddsdel);
@@ -5092,7 +5133,7 @@ HRESULT WINAPI cbDump(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
 	return 1;
 }
 
-HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS caps)
+static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS caps)
 {
 	HRESULT res;
 	BOOL IsPrim, IsBack, IsFixed;
@@ -5144,27 +5185,17 @@ HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRA
 }
 
 HRESULT WINAPI extGetCaps1S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS caps)
-{
-	return extGetCapsS(1, pGetCaps1S, lpdds, caps);
-}
+{ return extGetCapsS(1, pGetCaps1S, lpdds, caps); }
 HRESULT WINAPI extGetCaps2S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS caps)
-{
-	return extGetCapsS(2, pGetCaps2S, lpdds, caps);
-}
+{ return extGetCapsS(2, pGetCaps2S, lpdds, caps); }
 HRESULT WINAPI extGetCaps3S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS caps)
-{
-	return extGetCapsS(3, pGetCaps3S, lpdds, caps);
-}
+{ return extGetCapsS(3, pGetCaps3S, lpdds, caps); }
 HRESULT WINAPI extGetCaps4S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 caps)
-{
-	return extGetCapsS(4, (GetCapsS_Type)pGetCaps4S, lpdds, (LPDDSCAPS)caps);
-}
+{ return extGetCapsS(4, (GetCapsS_Type)pGetCaps4S, lpdds, (LPDDSCAPS)caps); }
 HRESULT WINAPI extGetCaps7S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 caps)
-{
-	return extGetCapsS(7, (GetCapsS_Type)pGetCaps7S, lpdds, (LPDDSCAPS)caps);
-}
+{ return extGetCapsS(7, (GetCapsS_Type)pGetCaps7S, lpdds, (LPDDSCAPS)caps); }
 
-ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECTDRAW lpdd)
+static ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECTDRAW lpdd)
 {
 	ULONG ActualRef;
 	LONG VirtualRef;
@@ -5212,17 +5243,14 @@ ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECTDRAW lp
 
 ULONG WINAPI extReleaseD1(LPDIRECTDRAW lpdd)
 { return extReleaseD(1, pReleaseD1, lpdd); }
-
 ULONG WINAPI extReleaseD2(LPDIRECTDRAW lpdd)
 { return extReleaseD(2, pReleaseD2, lpdd); }
-
 ULONG WINAPI extReleaseD4(LPDIRECTDRAW lpdd)
 { return extReleaseD(4, pReleaseD4, lpdd); }
-
 ULONG WINAPI extReleaseD7(LPDIRECTDRAW lpdd)
 { return extReleaseD(7, pReleaseD7, lpdd); }
 
-HRESULT WINAPI extCreateClipper(CreateClipper_Type pCreateClipper, LPDIRECTDRAW lpdd, DWORD dwflags, 
+static HRESULT WINAPI extCreateClipper(CreateClipper_Type pCreateClipper, LPDIRECTDRAW lpdd, DWORD dwflags, 
 		LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
 {
 	HRESULT res;
@@ -5317,7 +5345,7 @@ HRESULT WINAPI extSetHWnd(LPDIRECTDRAWCLIPPER lpddClip, DWORD w, HWND hwnd)
 	return res;
 }
 
-HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
+static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
 {
 	HRESULT res;
 	BOOL IsPrim, IsBack, IsFixed;
@@ -5356,19 +5384,10 @@ HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetSurfaceD
 	if (IsBack) {
 		OutTraceDW("GetSurfaceDesc: fixing BACKBUFFER surface\n");
 		IsFixed=TRUE;
-		//lpddsd->ddsCaps.dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); // you never know....
-		//lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
-		//if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
-
-		//if(!(dxw.dwFlags6 & FLIPEMULATION)){
-		//	lpddsd->ddsCaps.dwCaps |= (DDSCAPS_3DDEVICE); // you never know....
-		//	lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_COMPLEX|DDSCAPS_FLIP); // backbuffer surfaces can't be this way
-		//}
-	// try ...
+		// flags that backbuffer surfaces must have set
 		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_3DDEVICE|DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
-		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN|DDSCAPS_COMPLEX|DDSCAPS_FLIP); // backbuffer surfaces can't be this way
-
-
+		// flags that backbuffer surfaces can't have set
+		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN|DDSCAPS_COMPLEX|DDSCAPS_FLIP); 
 	}
 
 	if (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
@@ -5592,7 +5611,7 @@ HRESULT WINAPI extDDSetGammaRamp(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPDDG
 	return ret;
 }
 
-HRESULT WINAPI extGetAvailableVidMem(GetAvailableVidMem_Type pGetAvailableVidMem, LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
+static HRESULT WINAPI extGetAvailableVidMem(GetAvailableVidMem_Type pGetAvailableVidMem, LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	HRESULT res; 
 	//const DWORD dwMaxMem = 0x7FFFF000;

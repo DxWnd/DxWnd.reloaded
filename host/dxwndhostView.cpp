@@ -767,6 +767,8 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
+	sprintf_s(key, sizeof(key), "dflag%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->dflags);
 	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "posx%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->posx);
@@ -879,6 +881,7 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	char *sBuf;
 	sBuf = (char *)malloc(1000000);
 	extern BOOL gbDebug;
+	TargetMap->index = i;
 	// -------
 	sprintf_s(key, sizeof(key), "path%i", i);
 	GetPrivateProfileString("target", key, "", TargetMap->path, MAX_PATH, InitPath);
@@ -940,6 +943,9 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	// -------
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	TargetMap->tflags = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "dflag%i", i);
+	TargetMap->dflags = GetPrivateProfileInt("target", key, 0, InitPath);
 	// -------
 	sprintf_s(key, sizeof(key), "posx%i", i);
 	TargetMap->posx = GetPrivateProfileInt("target", key, 0, InitPath);
@@ -1514,6 +1520,7 @@ void CDxwndhostView::OnSort()
 		listitem.pszText = PrivateMaps[i].title;
 		listctrl.SetItem(&listitem);
 		listctrl.InsertItem(&listitem);
+		TargetMaps[i].index = i; // renumber
 	}
 
 	SetTarget(TargetMaps);
@@ -1568,12 +1575,12 @@ void CDxwndhostView::OnPause()
 	CTargetDlg dlg;
 	HRESULT res;
 	DXWNDSTATUS DxWndStatus;
-	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
+	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) /*|| (DxWndStatus.hWnd==NULL)*/ ) {
 		MessageBoxLang(DXW_STRING_NOPAUSETASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
 	}
 	else {
 		wchar_t *wcstring = new wchar_t[48+1];
-		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.OrigIdx].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_PAUSETASK, DXW_STRING_INFO, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		PauseResumeThreadList(DxWndStatus.dwPid, FALSE);
@@ -1585,12 +1592,12 @@ void CDxwndhostView::OnResume()
 	CTargetDlg dlg;
 	HRESULT res;
 	DXWNDSTATUS DxWndStatus;
-	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
+	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) /*|| (DxWndStatus.hWnd==NULL)*/) {
 		MessageBoxLang(DXW_STRING_NORESUMETASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
 	}
 	else {
 		wchar_t *wcstring = new wchar_t[48+1];
-		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.OrigIdx].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_RESUMETASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		PauseResumeThreadList(DxWndStatus.dwPid, TRUE);
@@ -1639,12 +1646,12 @@ void CDxwndhostView::OnKill()
 	HRESULT res;
 	HANDLE TargetHandle;
 	DXWNDSTATUS DxWndStatus;
-	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) || (DxWndStatus.hWnd==NULL)) {
+	if ((GetHookStatus(&DxWndStatus) != DXW_RUNNING) /*|| (DxWndStatus.hWnd==NULL)*/) {
 		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
 	}
 	else {
 		wchar_t *wcstring = new wchar_t[48+1];
-		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.TaskIdx].title, _TRUNCATE);
+		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[DxWndStatus.OrigIdx].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
 		DxWndStatus.dwPid;
@@ -1730,6 +1737,7 @@ void CDxwndhostView::OnAdd()
 			len=FilePath.ReverseFind('\\');	
 			FilePath=FilePath.Right(FilePath.GetLength()-len-1);
 			strncpy_s(PrivateMaps[i].title, sizeof(PrivateMaps[i].title), FilePath.GetString(), sizeof(PrivateMaps[i].title)-1);
+			TargetMaps[i].index = i;
 		}
 		listitem.pszText = PrivateMaps[i].title;
 		listctrl.InsertItem(&listitem);
@@ -1766,6 +1774,7 @@ void CDxwndhostView::OnDuplicate()
 		listitem.pszText = PrivateMaps[i].title;
 		listctrl.SetItem(&listitem);
 		listctrl.InsertItem(&listitem);
+		TargetMaps[i].index = i;
 	}
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
@@ -2065,7 +2074,7 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 			GetHookStatus(&DxWndStatus);
 			sprintf_s(sMsg, 1024, 
 				"Running \"%s\"\nScreen = (%dx%d) %dBPP\nFullScreen = %s\nDX version = %d", 
-			pTitles[DxWndStatus.TaskIdx].title,
+			pTitles[DxWndStatus.OrigIdx].title,
 			DxWndStatus.Width, DxWndStatus.Height, DxWndStatus.ColorDepth, 
 			DxWndStatus.IsFullScreen ? "Yes":"No", DxWndStatus.DXVersion);    
 		}
@@ -2171,6 +2180,7 @@ void CDxwndhostView::Resize()
 	int i, tmp, size = 0;
 	
 	for(i = 0; i < MAXTARGETS; i ++){
+		TargetMaps[i].index = i; // renumber the items
 		if(strlen(TargetMaps[i].path) == 0) break;
 		tmp = listctrl.GetStringWidth(PrivateMaps[i].title);
 		if(size < tmp) size = tmp;
