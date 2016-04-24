@@ -1094,3 +1094,7 @@ fix: completed the hook pointers separation per COM interface version: this is o
 fix: fixed incoherences in task refences of the GUI
 fix: recovered task kill on WinXP
 fix: updated RedrawWindow, now allows better handling of "Galapagos" pause screen
+
+v2.03.65
+fix: handling of fullscreen switching on closest monitor (in multimonitor systems)
+fix: X,Y starting win position can now be negative integer (in multimonitor systems)

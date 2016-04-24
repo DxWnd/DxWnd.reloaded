@@ -7,6 +7,8 @@
 // TabProgram.h : header file
 //
 #include "resource.h"
+#include "afxwin.h"
+#include "specialedit.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CTabProgram dialog
@@ -40,6 +42,9 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	BOOL OnInitDialog();
+protected:
+	CSpecialEdit m_EditPosX;
+	CSpecialEdit m_EditPosY;
 };
 
 //{{AFX_INSERT_LOCATION}}

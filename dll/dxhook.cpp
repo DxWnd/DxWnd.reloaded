@@ -585,16 +585,26 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 	}
 
 	// shift down-right so that the border is visible
-	// and also update the iPosX,iPosY upper-left coordinates of the client area
-	if(rect.left < 0){
-		rect.right -= rect.left;
-		rect.left = 0;
+	if(rect.left < dxw.VirtualDesktop.left){
+		rect.right = dxw.VirtualDesktop.left - rect.left + rect.right;
+		rect.left = dxw.VirtualDesktop.left;
 	}
-	if(rect.top < 0){
-		rect.bottom -= rect.top;
-		rect.top = 0;
+	if(rect.top < dxw.VirtualDesktop.top){
+		rect.bottom = dxw.VirtualDesktop.top - rect.top + rect.bottom;
+		rect.top = dxw.VirtualDesktop.top;
 	}
 
+	// shift up-left so that the windows doesn't exceed on the other side
+	if(rect.right > dxw.VirtualDesktop.right){
+		rect.left = dxw.VirtualDesktop.right - rect.right + rect.left;
+		rect.right = dxw.VirtualDesktop.right;
+	}
+	if(rect.bottom > dxw.VirtualDesktop.bottom){
+		rect.top = dxw.VirtualDesktop.bottom - rect.bottom + rect.top;
+		rect.bottom = dxw.VirtualDesktop.bottom;
+	}
+
+	// update the arguments for the window creation
 	wp->x=rect.left;
 	wp->y=rect.top;
 	wp->cx=rect.right-rect.left;
@@ -1193,6 +1203,7 @@ extern HHOOK hMouseHook;
 
 void HookInit(TARGETMAP *target, HWND hwnd)
 {
+	static BOOL DoOnce = TRUE;
 	HMODULE base;
 	char *sModule;
 	char sModuleBuf[60+1];
@@ -1229,6 +1240,17 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	}
 	if(dxw.dwFlags5 & GDIMODE) dxw.dwFlags1 |= EMULATESURFACE;
 	if(dxw.dwFlags5 & STRESSRESOURCES) dxw.dwFlags5 |= LIMITRESOURCES;
+
+	if(DoOnce){
+		DoOnce = FALSE;
+		dxw.VirtualDesktop.left		= GetSystemMetrics(SM_XVIRTUALSCREEN);
+		dxw.VirtualDesktop.top		= GetSystemMetrics(SM_YVIRTUALSCREEN);
+		dxw.VirtualDesktop.right	= dxw.VirtualDesktop.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		dxw.VirtualDesktop.bottom	= dxw.VirtualDesktop.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+		OutTraceDW("Virtual Desktop: monitors=%d area=(%d,%d)-(%d,%d)\n", 
+			GetSystemMetrics(SM_CMONITORS),
+			dxw.VirtualDesktop.left, dxw.VirtualDesktop.top, dxw.VirtualDesktop.right, dxw.VirtualDesktop.bottom);
+	}
 
 	if(hwnd){ // v2.02.32: skip this when in code injection mode.
 		// v2.1.75: is it correct to set hWnd here?

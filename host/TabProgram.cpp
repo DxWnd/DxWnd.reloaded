@@ -5,6 +5,7 @@
 #include "TargetDlg.h"
 #include "TabProgram.h"
 #include "dxwndhost.h"
+#include "specialedit.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -33,8 +34,11 @@ CTabProgram::CTabProgram(CWnd* pParent /*=NULL*/)
 
 void CTabProgram::DoDataExchange(CDataExchange* pDX)
 {
+	CString sPosX, sPosY;
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
+	sPosX.Format("%d", cTarget->m_PosX);
+	sPosY.Format("%d", cTarget->m_PosY);
 	DDX_Radio(pDX, IDC_COORDINATES, cTarget->m_Coordinates);
 	DDX_Control(pDX, IDC_FILE, cTarget->m_File);
 	DDX_Control(pDX, IDC_LAUNCH, cTarget->m_Launch);
@@ -50,10 +54,14 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SAVELOAD, cTarget->m_SaveLoad);
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);
-	DDX_Text(pDX, IDC_POSX, cTarget->m_PosX);
-	DDX_Text(pDX, IDC_POSY, cTarget->m_PosY);
+	//DDX_Text(pDX, IDC_POSX, cTarget->m_PosX);
+	//DDX_Text(pDX, IDC_POSY, cTarget->m_PosY);
+	DDX_Text(pDX, IDC_POSX, sPosX);
+	DDX_Text(pDX, IDC_POSY, sPosY);
 	DDX_Text(pDX, IDC_SIZX, cTarget->m_SizX);
 	DDX_Text(pDX, IDC_SIZY, cTarget->m_SizY);
+	cTarget->m_PosX = atoi(sPosX);
+	cTarget->m_PosY = atoi(sPosY);
 }
 
 BEGIN_MESSAGE_MAP(CTabProgram, CDialog)
@@ -147,6 +155,7 @@ BOOL CTabProgram::OnInitDialog()
 	HINSTANCE Hinst;
 	HICON Icon, PrevIcon;
 	CStatic *IconBox;
+	IFormat *m_pRelIntegerFormat = new(RelIntegerFormat);
 
 	CDialog::OnInitDialog();
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
@@ -159,5 +168,11 @@ BOOL CTabProgram::OnInitDialog()
 		IconBox->SetIcon(::LoadIcon(NULL, IDI_ERROR));  
 	::FreeLibrary(Hinst);
 	if(PrevIcon) ::DestroyIcon(PrevIcon);
+
+	m_EditPosX.SubclassDlgItem(IDC_POSX, this);
+	m_EditPosY.SubclassDlgItem(IDC_POSY, this);
+	m_EditPosX.SetFormatter(m_pRelIntegerFormat);
+	m_EditPosY.SetFormatter(m_pRelIntegerFormat);
 	return TRUE;
 }
+

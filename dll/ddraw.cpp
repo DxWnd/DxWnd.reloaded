@@ -5358,11 +5358,26 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 		return DDERR_INVALIDPARAMS;
 	}
 
+#define FIXSURFACEDESCSIZE TRUE
+	if(FIXSURFACEDESCSIZE){
+		switch(dxversion){
+			case 1:
+			case 2:
+			case 3: 
+				lpddsd->dwSize = sizeof(DDSURFACEDESC);
+				break;
+			case 4:
+			case 7:
+				lpddsd->dwSize = sizeof(DDSURFACEDESC2);
+				break;
+		}
+	}
+
 	res=(*pGetSurfaceDesc)(lpdds, lpddsd);
 	OutTraceDDRAW("GetSurfaceDesc: %slpdds=%x%s res=%x(%s)\n", 
 		res?"ERROR ":"", lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), res, ExplainDDError(res));
 	if(res) {
-		OutTraceE("GetSurfaceDesc: ERROR err=%d(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		OutTraceE("GetSurfaceDesc: ERROR err=%x(%s) dxversion=%d s->len=%d at %d\n", res, ExplainDDError(res), dxversion, lpddsd->dwSize, __LINE__);
 		return res;
 	}
 

@@ -382,6 +382,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SpecialEdit.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\StatusDialog.cpp"
 				>
 			</File>
@@ -534,6 +538,10 @@
 			</File>
 			<File
 				RelativePath=".\Resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SpecialEdit.h"
 				>
 			</File>
 			<File

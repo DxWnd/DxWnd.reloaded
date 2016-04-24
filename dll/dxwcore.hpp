@@ -177,6 +177,7 @@ public: // simple data variables
 	HDC VirtualHDC;
 	int GDIEmulationMode;
 	BOOL TimeFreeze;
+	RECT VirtualDesktop;
 
 // Implementation
 protected:
