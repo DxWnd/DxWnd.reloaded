@@ -64,7 +64,7 @@ CreateMaterial3_Type pCreateMaterial3 = NULL;
 CreateViewport1_Type pCreateViewport1 = NULL;
 CreateViewport2_Type pCreateViewport2 = NULL;
 CreateViewport3_Type pCreateViewport3 = NULL;
-FindDevice_Type pFindDevice = NULL;
+FindDevice_Type pFindDevice1, pFindDevice2, pFindDevice3;
 CreateDevice2_Type pCreateDevice2 = NULL;
 CreateDevice3_Type pCreateDevice3 = NULL;
 CreateDevice7_Type pCreateDevice7 = NULL;
@@ -196,7 +196,9 @@ HRESULT WINAPI extCreateMaterial3(void *, LPDIRECT3DMATERIAL3 *, IUnknown *);
 HRESULT WINAPI extCreateViewport1(void *, LPDIRECT3DVIEWPORT *, IUnknown *);
 HRESULT WINAPI extCreateViewport2(void *, LPDIRECT3DVIEWPORT2 *, IUnknown *);
 HRESULT WINAPI extCreateViewport3(void *, LPDIRECT3DVIEWPORT3 *, IUnknown *);
-HRESULT WINAPI extFindDevice(void *, LPD3DFINDDEVICESEARCH, LPD3DFINDDEVICERESULT);
+HRESULT WINAPI extFindDevice1(void *, LPD3DFINDDEVICESEARCH, LPD3DFINDDEVICERESULT);
+HRESULT WINAPI extFindDevice2(void *, LPD3DFINDDEVICESEARCH, LPD3DFINDDEVICERESULT);
+HRESULT WINAPI extFindDevice3(void *, LPD3DFINDDEVICESEARCH, LPD3DFINDDEVICERESULT);
 HRESULT WINAPI extCreateDevice2(void *, REFCLSID, LPDIRECTDRAWSURFACE, LPDIRECT3DDEVICE2 *);
 HRESULT WINAPI extCreateDevice3(void *, REFCLSID, LPDIRECTDRAWSURFACE4, LPDIRECT3DDEVICE3 *, LPUNKNOWN);
 HRESULT WINAPI extCreateDevice7(void *, REFCLSID, LPDIRECTDRAWSURFACE7, LPDIRECT3DDEVICE7 *);
@@ -447,7 +449,7 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateMaterial1, (void **)&pCreateMaterial1, "CreateMaterial(1)");
 #endif
 		SetHook((void *)(**(DWORD **)lplpdd +  28), extCreateViewport1, (void **)&pCreateViewport1, "CreateViewport(1)");
-		SetHook((void *)(**(DWORD **)lplpdd +  32), extFindDevice, (void **)&pFindDevice, "FindDevice");	
+		SetHook((void *)(**(DWORD **)lplpdd +  32), extFindDevice1, (void **)&pFindDevice1, "FindDevice(1)");	
 		break;
 	case 2:
 		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD32, (void **)&pQueryInterfaceD32, "QueryInterface(D3S2)");
@@ -457,7 +459,7 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateMaterial2, (void **)&pCreateMaterial2, "CreateMaterial(2)");
 #endif
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateViewport2, (void **)&pCreateViewport2, "CreateViewport(2)");
-		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
+		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice2, (void **)&pFindDevice2, "FindDevice(2)");
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice2, (void **)&pCreateDevice2, "CreateDevice(D3D2)");
 		break;
 	case 3:
@@ -468,7 +470,7 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateMaterial3, (void **)&pCreateMaterial3, "CreateMaterial(3)");
 #endif
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateViewport3, (void **)&pCreateViewport3, "CreateViewport(3)");
-		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
+		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice3, (void **)&pFindDevice3, "FindDevice(3)");
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice3, (void **)&pCreateDevice3, "CreateDevice(D3D3)");
 		SetHook((void *)(**(DWORD **)lplpdd +  40), extEnumZBufferFormats3, (void **)&pEnumZBufferFormats3, "EnumZBufferFormats(D3D3)");
 		break;
@@ -697,7 +699,7 @@ HRESULT WINAPI extQueryInterfaceD3(int d3dversion, QueryInterfaceD3_Type pQueryI
 		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateMaterial1, (void **)&pCreateMaterial1, "CreateMaterial(1)");
 #endif
 		SetHook((void *)(**(DWORD **)ppvObj +  28), extCreateViewport1, (void **)&pCreateViewport1, "CreateViewport(1)");
-		SetHook((void *)(**(DWORD **)ppvObj +  32), extFindDevice, (void **)&pFindDevice, "FindDevice");	
+		SetHook((void *)(**(DWORD **)ppvObj +  32), extFindDevice1, (void **)&pFindDevice1, "FindDevice(1)");	
 		break;
 	case 2:
 		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices2, (void **)&pEnumDevices2, "EnumDevices(2)");
@@ -706,16 +708,16 @@ HRESULT WINAPI extQueryInterfaceD3(int d3dversion, QueryInterfaceD3_Type pQueryI
 		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial2, (void **)&pCreateMaterial2, "CreateMaterial(2)");
 #endif
 		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateViewport2, (void **)&pCreateViewport2, "CreateViewport(2)"); 
-		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
+		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice2, (void **)&pFindDevice2, "FindDevice(2)");
 		break;
 	case 3:
-		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices3, (void **)&pEnumDevices3, "EnumDevices");
+		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices3, (void **)&pEnumDevices3, "EnumDevices(3)");
 		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight3, (void **)&pCreateLight3, "CreateLight(3)");
 #ifdef TRACEMATERIAL
 		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial3, (void **)&pCreateMaterial3, "CreateMaterial(3)");
 #endif
 		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateViewport3, (void **)&pCreateViewport3, "CreateViewport(3)"); 
-		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
+		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice3, (void **)&pFindDevice3, "FindDevice(3)");
 		break;
 	case 7:
 		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices7, (void **)&pEnumDevices7, "EnumDevices(7)");
@@ -986,12 +988,12 @@ HRESULT WINAPI extCreateViewport3(void *lpd3d, LPDIRECT3DVIEWPORT3 *lpViewport, 
 	return res;
 }
 
-HRESULT WINAPI extFindDevice(void *lpd3d, LPD3DFINDDEVICESEARCH p1, LPD3DFINDDEVICERESULT p2)
+static HRESULT WINAPI extFindDevice(int d3dversion, FindDevice_Type pFindDevice, void *lpd3d, LPD3DFINDDEVICESEARCH p1, LPD3DFINDDEVICERESULT p2)
 {
 	HRESULT res;
 
-	OutTraceD3D("FindDevice: d3d=%x devsearch=%x (size=%d flags=%x caps=%x primcaps=%x colormodel=%x hw=%x guid=%x) p2=%x\n", 
-		lpd3d, p1, p1->dwSize, p1->dwFlags, p1->dwCaps, p1->dpcPrimCaps, p1->dcmColorModel, p1->bHardware, p1->guid, p2);
+	OutTraceD3D("FindDevice(%d): d3d=%x devsearch=%x (size=%d flags=%x caps=%x primcaps=%x colormodel=%x hw=%x guid=%x) p2=%x\n", 
+		d3dversion, lpd3d, p1, p1->dwSize, p1->dwFlags, p1->dwCaps, p1->dpcPrimCaps, p1->dcmColorModel, p1->bHardware, p1->guid, p2);
 	res=(*pFindDevice)(lpd3d, p1, p2);
 	if(res) OutTraceE("FindDevice ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else {
@@ -1001,6 +1003,13 @@ HRESULT WINAPI extFindDevice(void *lpd3d, LPD3DFINDDEVICESEARCH p1, LPD3DFINDDEV
 	}
 	return res;
 }
+
+HRESULT WINAPI extFindDevice1(void *lpd3d, LPD3DFINDDEVICESEARCH p1, LPD3DFINDDEVICERESULT p2)
+{ return extFindDevice(1, pFindDevice1, lpd3d, p1, p2); }
+HRESULT WINAPI extFindDevice2(void *lpd3d, LPD3DFINDDEVICESEARCH p1, LPD3DFINDDEVICERESULT p2)
+{ return extFindDevice(2, pFindDevice2, lpd3d, p1, p2); }
+HRESULT WINAPI extFindDevice3(void *lpd3d, LPD3DFINDDEVICESEARCH p1, LPD3DFINDDEVICERESULT p2)
+{ return extFindDevice(3, pFindDevice3, lpd3d, p1, p2); }
 
 HRESULT WINAPI extSetViewport(int dxversion, SetViewport_Type pSetViewport, void *lpvp, LPD3DVIEWPORT vpd)
 {

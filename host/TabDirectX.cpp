@@ -38,7 +38,6 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SUPPRESSRELEASE, cTarget->m_SuppressRelease);
 	DDX_Check(pDX, IDC_VIDEOTOSYSTEMMEM, cTarget->m_VideoToSystemMem);
 	DDX_Check(pDX, IDC_SUPPRESSDXERRORS, cTarget->m_SuppressDXErrors);
-	DDX_Check(pDX, IDC_BACKBUFATTACH, cTarget->m_BackBufAttach);
 	DDX_Check(pDX, IDC_NOPALETTEUPDATE, cTarget->m_NoPaletteUpdate);
 	DDX_Check(pDX, IDC_NOPIXELFORMAT, cTarget->m_NoPixelFormat);
 	DDX_Check(pDX, IDC_NOALPHACHANNEL, cTarget->m_NoAlphaChannel);
@@ -46,6 +45,7 @@ void CTabDirectX::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FLIPEMULATION, cTarget->m_FlipEmulation);
 	DDX_Check(pDX, IDC_SETCOMPATIBILITY, cTarget->m_SetCompatibility);
 	DDX_Check(pDX, IDC_AEROBOOST, cTarget->m_AEROBoost);
+	DDX_Check(pDX, IDC_LOCKCOLORDEPTH, cTarget->m_LockColorDepth);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirectX, CDialog)

@@ -40,7 +40,10 @@ void CTabDirectX2::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_DEINTERLACE, cTarget->m_Deinterlace);
 	DDX_Check(pDX, IDC_LIMITDDRAW, cTarget->m_LimitDdraw);
 	DDX_Check(pDX, IDC_SUPPRESSOVERLAY, cTarget->m_SuppressOverlay);
+	DDX_Check(pDX, IDC_BLACKWHITE, cTarget->m_BlackWhite);
+	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
 	DDX_CBIndex(pDX, IDC_DDWAWLIMITCOMBO, cTarget->m_MaxDdrawInterface);
+	DDX_Check(pDX, IDC_BACKBUFATTACH, cTarget->m_BackBufAttach);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirectX2, CDialog)

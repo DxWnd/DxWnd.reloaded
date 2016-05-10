@@ -41,6 +41,7 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FORCEHOOKOPENGL, cTarget->m_ForceHookOpenGL);
 	DDX_Check(pDX, IDC_FIXPIXELZOOM, cTarget->m_FixPixelZoom);
 	DDX_Check(pDX, IDC_FIXBINDTEXTURE, cTarget->m_FixBindTexture);
+	DDX_Check(pDX, IDC_HOOKGLUT32, cTarget->m_HookGlut32);
 	DDX_Text(pDX, IDC_OPENGLLIB, cTarget->m_OpenGLLib);
 
 	// Glide

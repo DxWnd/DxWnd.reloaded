@@ -100,6 +100,7 @@ public:
 	BOOL	m_SlowDown;
 	BOOL	m_BlitFromBackBuffer;
 	BOOL	m_NoFlipEmulation;
+	BOOL	m_LockColorDepth;
 	BOOL	m_SuppressClipping;
 	BOOL	m_ForceClipper;
 	BOOL	m_DisableGammaRamp;
@@ -175,6 +176,7 @@ public:
 	BOOL	m_ForceHookOpenGL;
 	BOOL	m_FixPixelZoom;
 	BOOL	m_FixBindTexture;
+	BOOL	m_HookGlut32;
 	BOOL	m_FakeVersion;
 	BOOL	m_FullRectBlt;
 	BOOL	m_CenterToWin;
@@ -251,10 +253,14 @@ public:
 	BOOL	m_Enum16bitModes;
 	BOOL	m_Force16BPP;
 	BOOL	m_LimitScreenRes;
+	BOOL	m_InitialRes;
+	BOOL	m_MaximumRes;
 	int		m_PosX;
 	int		m_PosY;
 	int		m_SizX;
 	int		m_SizY;
+	int		m_InitResW;
+	int		m_InitResH;
 	int		m_MaxFPS;
 	int		m_InitTS;
 	int		m_FakeVersionId;

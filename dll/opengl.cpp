@@ -20,6 +20,19 @@
 #define COMPRESSED_RGBA_S3TC_DXT5_EXT                  0x83F3
 #endif
 
+typedef void (WINAPI *glutFullScreen_Type)(void);
+glutFullScreen_Type pglutFullScreen;
+void WINAPI extglutFullScreen(void);
+typedef void (WINAPI *glutInitWindowSize_Type)(int, int);
+glutInitWindowSize_Type pglutInitWindowSize;
+void extglutInitWindowSize(int, int);
+typedef void (WINAPI *glutInitWindowPosition_Type)(int, int);
+glutInitWindowPosition_Type pglutInitWindowPosition;
+void extglutInitWindowPosition(int, int);
+typedef void (WINAPI *glutSetWindow_Type)(HWND);
+glutSetWindow_Type pglutSetWindow;
+void WINAPI extglutSetWindow(HWND);
+
 //void WINAPI extglDrawPixels(GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
 //typedef void (WINAPI *glDrawPixels_Type)(GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
 //glDrawPixels_Type pglDrawPixels = NULL;
@@ -45,11 +58,20 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
+static HookEntryEx_Type GlutHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "glutFullScreen", NULL, (FARPROC *)&pglutFullScreen, (FARPROC)extglutFullScreen},
+	{HOOK_IAT_CANDIDATE, 0, "glutInitWindowSize", NULL, (FARPROC *)&pglutInitWindowSize, (FARPROC)extglutInitWindowSize},
+	{HOOK_IAT_CANDIDATE, 0, "glutInitWindowPosition", NULL, (FARPROC *)&pglutInitWindowPosition, (FARPROC)extglutInitWindowPosition},
+	{HOOK_IAT_CANDIDATE, 0, "glutSetWindow", NULL, (FARPROC *)&pglutSetWindow, (FARPROC)extglutSetWindow},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
+};
+
 FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	if(!(dxw.dwFlags2 & HOOKOPENGL)) return NULL; 
 	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
+	if (dxw.dwFlags7 & HOOKGLUT32) if(addr=RemapLibraryEx(proc, hModule, GlutHooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
 }
@@ -115,6 +137,8 @@ void HookOpenGL(HMODULE module, char *customlib)
 	else
 		HookLibraryEx(module, Hooks, customlib);
 
+	if(dxw.dwFlags7 & HOOKGLUT32) HookLibraryEx(module, GlutHooks, "glut32.dll");
+
 	return;
 }
 
@@ -130,7 +154,6 @@ void WINAPI extglViewport(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height
 	RECT client;
 	POINT p={0,0};
 	HWND hwnd;
-	//if (dxw.dwFlags2 & HANDLEFPS) if(dxw.HandleFPS()) return;
 	hwnd=dxw.GethWnd();
 	(*pGetClientRect)(hwnd, &client);
 	OutTraceDW("glViewport: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
@@ -571,3 +594,44 @@ void WINAPI extglPixelStorei(GLenum pname,  GLint param)
 	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }
+
+void WINAPI extglutFullScreen(void)
+{
+	if(!dxw.Windowize) return (*pglutFullScreen)();
+	OutTrace("glutFullScreen BYPASS\n");
+	dxw.SetFullScreen(TRUE);
+}
+
+void extglutInitWindowSize(int width, int height)
+{
+	int dummy1, dummy2;
+	if(dxw.Windowize){
+		dummy1=0;
+		dummy2=0;
+		OutTrace("glutInitWindowSize: width=%d height=%d\n", width, height);
+		dxw.MapWindow(&dummy1, &dummy2, &width, &height);	
+		OutTrace("glutInitWindowSize: FIXED width=%d height=%d\n", width, height);
+	}
+	(*pglutInitWindowSize)(width, height);
+}
+
+void extglutInitWindowPosition(int x, int y)
+{
+	int dummy1, dummy2;
+	if(dxw.Windowize){
+		dummy1=0;
+		dummy2=0;
+		OutTrace("glutInitWindowPosition: x=%d y=%d\n", x, y);
+		dxw.MapWindow(&x, &y, &dummy1, &dummy2);
+		OutTrace("glutInitWindowPosition: FIXED x=%d y=%d\n", x, y);
+	}
+	(*pglutInitWindowPosition)(x, y);
+}
+
+void WINAPI extglutSetWindow(HWND win)
+{
+	OutTrace("glutSetWindow: win=%x\n", win);
+	if(dxw.Windowize && dxw.IsRealDesktop(win)) win=dxw.GethWnd();
+	(*pglutSetWindow)(win);
+}
+

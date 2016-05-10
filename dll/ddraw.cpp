@@ -2124,6 +2124,12 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 	if((int)dwwidth < 0) dwwidth = dxw.GetScreenWidth();
 	if((int)dwheight < 0) dwheight = dxw.GetScreenHeight();
 
+	// v2.03.90: add LOCKCOLORDEPTH, easiest way to manage "Ahlgrens bisplet"!
+	if(dxw.dwFlags7 & LOCKCOLORDEPTH){
+		OutTraceDW("SetDisplayMode: LOCKCOLORDEPTH bpp=%d->%d\n", dwbpp, dxw.ActualPixelFormat.dwRGBBitCount);
+		dwbpp = dxw.ActualPixelFormat.dwRGBBitCount;
+	}
+
 	dxw.SetScreenSize(dwwidth, dwheight);
 	GetHookInfo()->Height=(short)dxw.GetScreenHeight();
 	GetHookInfo()->Width=(short)dxw.GetScreenWidth();
@@ -2198,9 +2204,9 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 	if(res) OutTraceE("SetDisplayMode: error=%x(%s)\n", res, ExplainDDError(res));
 
 	SetVSyncDelays(dxversion, lpdd);
+
 	// set a default palette ???
-	if(dxw.VirtualPixelFormat.dwRGBBitCount == 8) 
-		mySetPalette(0, 256, DefaultSystemPalette);
+	if(dxw.VirtualPixelFormat.dwRGBBitCount == 8) mySetPalette(0, 256, DefaultSystemPalette);
 
 	if(dxw.bAutoScale) dxw.AutoScale();
 
@@ -4621,6 +4627,7 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 		// Texture Handling on Unlock
 		TextureHandling(lpdds, dxversion);
 	}
+
 	return res;
 }
 
@@ -4837,9 +4844,11 @@ HRESULT WINAPI extFlipToGDISurface4(LPDIRECTDRAW lpdd)
 HRESULT WINAPI extFlipToGDISurface7(LPDIRECTDRAW lpdd)
 { return extFlipToGDISurface(pFlipToGDISurface7, lpdd); }
 
-HRESULT WINAPI extGetGDISurface(GetGDISurface_Type pGetGDISurface, LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
+HRESULT WINAPI extGetGDISurface(int dxversion, GetGDISurface_Type pGetGDISurface, LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
 {
 	int res;
+
+	OutTraceDDRAW("GetGDISurface(%d): lpdd=%x\n", dxversion, lpdd);
 
 	// v2.02.31:
 	// in EMULATED mode, should not return the actual ddraw primary surface, but the virtual one.
@@ -4861,15 +4870,15 @@ HRESULT WINAPI extGetGDISurface(GetGDISurface_Type pGetGDISurface, LPDIRECTDRAW 
 }
 
 HRESULT WINAPI extGetGDISurface1(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
-{ return extGetGDISurface(pGetGDISurface1, lpdd, w); }
+{ return extGetGDISurface(1, pGetGDISurface1, lpdd, w); }
 HRESULT WINAPI extGetGDISurface2(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
-{ return extGetGDISurface(pGetGDISurface2, lpdd, w); }
+{ return extGetGDISurface(2, pGetGDISurface2, lpdd, w); }
 HRESULT WINAPI extGetGDISurface3(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
-{ return extGetGDISurface(pGetGDISurface3, lpdd, w); }
+{ return extGetGDISurface(3, pGetGDISurface3, lpdd, w); }
 HRESULT WINAPI extGetGDISurface4(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
-{ return extGetGDISurface(pGetGDISurface4, lpdd, w); }
+{ return extGetGDISurface(4, pGetGDISurface4, lpdd, w); }
 HRESULT WINAPI extGetGDISurface7(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
-{ return extGetGDISurface(pGetGDISurface7, lpdd, w); }
+{ return extGetGDISurface(7, pGetGDISurface7, lpdd, w); }
 
 // debug function to dump all video modes queried by the DirectDrav::EnumDisplayModes method
 
@@ -4907,20 +4916,30 @@ typedef struct {
 
 static BOOL CheckResolutionLimit(LPDDSURFACEDESC lpDDSurfaceDesc)
 {
-	#define HUGE 100000
-	DWORD maxw, maxh;
-	maxw=HUGE; maxh=HUGE;
-	switch(dxw.MaxScreenRes){
-		case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
-		case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
-		case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
-		case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
-		case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
+	if(dxw.dwFlags4 & LIMITSCREENRES) {
+		#define HUGE 100000
+		DWORD maxw, maxh;
+		maxw=HUGE; maxh=HUGE;
+		switch(dxw.MaxScreenRes){
+			case DXW_LIMIT_320x200: maxw=320; maxh=200; break;
+			case DXW_LIMIT_640x480: maxw=640; maxh=480; break;
+			case DXW_LIMIT_800x600: maxw=800; maxh=600; break;
+			case DXW_LIMIT_1024x768: maxw=1024; maxh=768; break;
+			case DXW_LIMIT_1280x960: maxw=1280; maxh=960; break;
+		}
+		if((lpDDSurfaceDesc->dwWidth > maxw) || (lpDDSurfaceDesc->dwHeight > maxh)){
+			OutTraceDW("EnumDisplaySettings: hide device mode=(%d,%d)\n", maxw, maxh);
+			return TRUE;
+		}
 	}
-	if((lpDDSurfaceDesc->dwWidth > maxw) || (lpDDSurfaceDesc->dwHeight > maxh)){
-		OutTraceDW("EnumDisplaySettings: hide device mode=(%d,%d)\n", maxw, maxh);
-		return TRUE;
+
+	if(dxw.dwFlags7 & MAXIMUMRES) {
+		if((lpDDSurfaceDesc->dwWidth > (DWORD)dxw.iMaxW) || (lpDDSurfaceDesc->dwHeight > (DWORD)dxw.iMaxH)){
+			OutTraceDW("EnumDisplaySettings: hide device mode=(%d,%d)\n", dxw.iMaxW, dxw.iMaxH);
+			return TRUE;
+		}	
 	}
+
 	return FALSE;
 }
 
@@ -4942,7 +4961,7 @@ HRESULT WINAPI myEnumModesFilterDirect(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 	for (int ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
 		lpDDSurfaceDesc->dwHeight=SupportedRes[ResIdx].h;
 		lpDDSurfaceDesc->dwWidth=SupportedRes[ResIdx].w;
-		if((dxw.dwFlags4 & LIMITSCREENRES) && CheckResolutionLimit(lpDDSurfaceDesc)) return DDENUMRET_OK;
+		if(CheckResolutionLimit(lpDDSurfaceDesc)) return DDENUMRET_OK;
 		if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 			// if PREVENTMAXIMIZE is set, don't let the caller know about forbidden screen settings.
 			if((lpDDSurfaceDesc->dwHeight > dxw.GetScreenHeight()) ||
@@ -4973,7 +4992,7 @@ HRESULT WINAPI myEnumModesFilterNative(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID l
 		}
 	}
 
-	if((dxw.dwFlags4 & LIMITSCREENRES) && CheckResolutionLimit(lpDDSurfaceDesc)) return DDENUMRET_OK;
+	if(CheckResolutionLimit(lpDDSurfaceDesc)) return DDENUMRET_OK;
 	res=(*((NewContext_Type *)lpContext)->lpCallback)(lpDDSurfaceDesc, ((NewContext_Type *)lpContext)->lpContext);
 	OutTraceDW("EnumDisplayModes(D): native size=(%d,%d) res=%x\n", lpDDSurfaceDesc->dwWidth, lpDDSurfaceDesc->dwHeight, res);
 	return res;
@@ -5021,8 +5040,7 @@ HRESULT WINAPI extEnumDisplayModes(int dxversion, EnumDisplayModes1_Type pEnumDi
 		for (ResIdx=0; SupportedRes[ResIdx].h; ResIdx++){
 			EmuDesc.dwHeight=SupportedRes[ResIdx].h;
 			EmuDesc.dwWidth=SupportedRes[ResIdx].w;
-			if((dxw.dwFlags4 & LIMITSCREENRES) && 
-				CheckResolutionLimit((LPDDSURFACEDESC)&EmuDesc)) break;
+			if(CheckResolutionLimit((LPDDSURFACEDESC)&EmuDesc)) break;
 			EmuDesc.ddpfPixelFormat.dwSize=sizeof(DDPIXELFORMAT);
 			EmuDesc.ddpfPixelFormat.dwFlags=DDPF_RGB;
 			for (DepthIdx=0; SupportedDepths[DepthIdx]; DepthIdx++) {
@@ -5419,7 +5437,7 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 		caps->dwCaps |= DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE; // primary surfaces must be this way
 		caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
 		if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= DDSCAPS_LOCALVIDMEM;
-		}
+	}
 
 	if (IsBack) {
 		IsFixed=TRUE;
@@ -5431,7 +5449,8 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 	}
 
 	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
-	if(caps->dwCaps & DDSCAPS_ZBUFFER) {
+	// v2.03.90: "Galapagos" fix - if there's a DDSCAPS_SYSTEMMEMORY or DDSCAPS_VIDEOMEMORY spec, let it be.
+	if ((caps->dwCaps & DDSCAPS_ZBUFFER) && !(caps->dwCaps & (DDSCAPS_SYSTEMMEMORY|DDSCAPS_VIDEOMEMORY))) {
 		DWORD dwCaps;
 		dwCaps = dxwcdb.GetCaps(lpdds);
 		// beware! the ZBUFFER surface could have never been registered!

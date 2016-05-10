@@ -1166,6 +1166,7 @@ BOOL WINAPI extScreenToClient(HWND hwnd, LPPOINT lppoint)
 	else {
 		res=(*pScreenToClient)(hwnd, lppoint);
 	}
+	OutTraceB("ScreenToClient: returned point=(%d,%d)\n", lppoint->x, lppoint->y);
 	return res;
 }
 
@@ -1564,7 +1565,8 @@ static HWND WINAPI CreateWindowCommon(
 		}
 		nWidth=dxw.GetScreenWidth();
 		nHeight=dxw.GetScreenHeight();
-		OutTraceDW("%s: fixed client pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
+		OutTraceDW("%s: fixed client pos=(%d,%d) size=(%d,%d) valid=%x\n", 
+			ApiName, x, y, nWidth, nHeight, isValidHandle);
 		dxw.SetFullScreen(TRUE);
 	}
 
@@ -2093,6 +2095,13 @@ LONG WINAPI extEnumDisplaySettings(LPCTSTR lpszDeviceName, DWORD iModeNum, DEVMO
 			OutTraceDW("EnumDisplaySettings: limit device size=(%d,%d)\n", maxw, maxh);
 			lpDevMode->dmPelsWidth = maxw;
 			lpDevMode->dmPelsHeight = maxh;
+		}
+	}
+	if(dxw.dwFlags7 & MAXIMUMRES){
+		if((lpDevMode->dmPelsWidth > (DWORD)dxw.iMaxW) || (lpDevMode->dmPelsHeight > (DWORD)dxw.iMaxH)){
+			OutTraceDW("EnumDisplaySettings: limit device size=(%d,%d)\n", dxw.iMaxW, dxw.iMaxH);
+			lpDevMode->dmPelsWidth = dxw.iMaxW;
+			lpDevMode->dmPelsHeight = dxw.iMaxH;
 		}
 	}
 

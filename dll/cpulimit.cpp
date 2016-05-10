@@ -21,7 +21,7 @@ DWORD WINAPI CpuSlow(LPVOID lpThreadParameter)
 	Sleep(100);
 	while(TRUE) SlowCpuSpeed(dwOwnerPID, dwOwnerThread, iSlowDownRatio);
 	return TRUE;
-}
+} 
 
 DWORD WINAPI CpuLimit(LPVOID lpThreadParameter) 
 {

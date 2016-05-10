@@ -177,6 +177,8 @@ public: // simple data variables
 	long iPosY;
 	long iSizX;
 	long iSizY;
+	long iMaxW;
+	long iMaxH;
 	int iRatioX;
 	int iRatioY;
 	char *CustomOpenGLLib;

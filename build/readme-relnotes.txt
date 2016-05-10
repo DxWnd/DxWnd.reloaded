@@ -1273,3 +1273,10 @@ fix: fixed the logic for centering the main window for desktop with non-zero off
 fix: improved logic for window placement in CreateWindowEx call
 fix: added wrapper for winmm/GetJoyPos() virtual joystick referenced in "Jane's FA18"
 
+v2.03.90
+add: added flags/fields to define initial/maximum screen resolution
+add: "Lock color depth" ddraw flag. Fixes "Ahlgrens Bilspelet" color problems
+add: preliminary opengl/glut32 hook
+fix: ZBUFFER capabilities - allow "Galapagos" to run in hw accelerated mode
+fix: separated D3D FindDevice hookers for D3D version 1/2/3
+fix: some unused code cleanup

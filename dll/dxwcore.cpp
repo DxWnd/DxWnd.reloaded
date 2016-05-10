@@ -130,6 +130,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	iSizY = target->sizy;
 	iPosX = target->posx;
 	iPosY = target->posy;
+	iMaxW = target->resw;
+	iMaxH = target->resh;
 	// Aspect Ratio from window size, or traditional 4:3 by default
 	iRatioX = iSizX ? iSizX : 800;
 	iRatioY = iSizY ? iSizY : 600;
@@ -156,12 +158,19 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	bHintActive = (dwFlags7 & SHOWHINTS) ? TRUE : FALSE;
 
 	MonitorId = target->monitorid;
+
+	// if specified, set the custom initial resolution
+	if(dxw.dwFlags7 & INITIALRES) SetScreenSize(target->resw, target->resh);
 }
 
 void dxwCore::SetScreenSize(void) 
 {
-	if(dxw.Windowize)
+	// if specified, use values registered in InitTarget
+	if(dxw.dwFlags7 & INITIALRES) return;
+
+	if(dxw.Windowize){
 		SetScreenSize(800, 600); // set to default screen resolution
+	}
 	else{
 		int sizx, sizy;
 		sizx = GetSystemMetrics(SM_CXSCREEN);
@@ -198,6 +207,14 @@ void dxwCore::SetScreenSize(int x, int y)
 			// v2.02.95 setting new virtual desktop size 
 			dwScreenWidth = p->Width = (short)maxw;
 			dwScreenHeight= p->Height = (short)maxh;
+		}
+	}
+	if(dxw.dwFlags7 & MAXIMUMRES){
+		if(((long)p->Width > dxw.iMaxW) || ((long)p->Height > dxw.iMaxH)){
+			OutTraceDW("DXWND: limit device size=(%d,%d)\n", dxw.iMaxW, dxw.iMaxH);
+			// v2.03.90 setting new virtual desktop size 
+			dwScreenWidth = p->Width = (short)dxw.iMaxW;
+			dwScreenHeight= p->Height = (short)dxw.iMaxH;
 		}
 	}
 }
@@ -1497,6 +1514,11 @@ BOOL dxwCore::CheckScreenResolution(unsigned int w, unsigned int h)
 		}
 		if((w > maxw) || (h > maxh)) return FALSE;
 	}
+
+	if(dxw.dwFlags7 & MAXIMUMRES){
+		if(((long)w > dxw.iMaxW) || ((long)h > dxw.iMaxH)) return FALSE;
+	}
+
 	return TRUE;
 }
 

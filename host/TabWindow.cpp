@@ -52,8 +52,6 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_COLORCURRENT, cTarget->m_InitColorDepth);
 	DDX_Check(pDX, IDC_DISABLEGAMMARAMP, cTarget->m_DisableGammaRamp);
 	DDX_Check(pDX, IDC_FORCE16BPP, cTarget->m_Force16BPP);
-	DDX_Check(pDX, IDC_BLACKWHITE, cTarget->m_BlackWhite);
-	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
 	DDX_Check(pDX, IDC_LOCKSYSCOLORS, cTarget->m_LockSysColors);
 	DDX_Check(pDX, IDC_LOCKRESERVEDPALETTE, cTarget->m_LockReservedPalette);
 
@@ -61,6 +59,10 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_LIMITSCREENRES, cTarget->m_LimitScreenRes);
 	DDX_LBIndex(pDX, IDC_LISTRES, cTarget->m_MaxScreenRes);
 	DDX_Radio(pDX, IDC_SUPPORTSVGA, cTarget->m_ResTypes);
+	DDX_Check(pDX, IDC_INITIALRES, cTarget->m_InitialRes);
+	DDX_Check(pDX, IDC_MAXIMUMRES, cTarget->m_MaximumRes);
+	DDX_Text(pDX, IDC_INITW, cTarget->m_InitResW);
+	DDX_Text(pDX, IDC_INITH, cTarget->m_InitResH);
 }
 
 static char *Resolutions[]={

@@ -237,6 +237,10 @@
 #define ENUM16BITMODES		0x00080000 // Enumerates 16 bit video modes when using DirectDraw8/9::EnumAdapterModes on a Win10 OS
 #define SHAREDKEYBOARD		0x00100000 // Forces DirectInput cooperative level to NONEXCLUSIVE mode for the keyboard
 #define HOOKNOUPDATE		0x00200000 // Updates the original addresses when changed
+#define HOOKGLUT32			0x00400000 // Hook glut32.dll opengl extension library
+#define INITIALRES			0x00800000 // Set initial screen resolution accorting to sizw x sizh fields
+#define MAXIMUMRES			0x01000000 // Set maximum screen resolution accorting to sizw x sizh fields
+#define LOCKCOLORDEPTH		0x02000000 // lock ddraw color depth to current desktop value (used in SetDisplayMode)
 
 // eighth flags DWORD dxw.dwFlags8:
 
@@ -288,6 +292,8 @@ typedef struct TARGETMAP
 	short posy;
 	short sizx;
 	short sizy;
+	short resw;
+	short resh;
 	short MaxFPS;
 	short InitTS;
 	short FakeVersionId;

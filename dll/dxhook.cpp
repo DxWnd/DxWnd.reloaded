@@ -134,8 +134,8 @@ static char *Flag7Names[32]={
 	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
 	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "INJECTSUSPENDED",
 	"SSUPPRESSDIERRORS", "HOOKNORUN", "FIXBINDTEXTURE", "ENUM16BITMODES",
-	"SHAREDKEYBOARD", "HOOKNOUPDATE", "", "",
-	"", "", "", "",
+	"SHAREDKEYBOARD", "HOOKNOUPDATE", "HOOKGLUT32", "INITIALRES",
+	"MAXIMUMRES", "LOCKCOLORDEPTH", "", "",
 	"", "", "", "",
 };
 
@@ -1405,6 +1405,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 				osinfo.dwMajorVersion, osinfo.dwMinorVersion, osinfo.dwPlatformId, osinfo.dwPlatformId, osinfo.szCSDVersion);
 		}
 		if (dxw.dwFlags4 & LIMITSCREENRES) OutTrace("HookInit: max resolution=%s\n", (dxw.MaxScreenRes<6)?Resolutions[dxw.MaxScreenRes]:"unknown");
+		if (dxw.dwFlags7 & MAXIMUMRES) OutTrace("HookInit: max resolution=(%dx%d)\n", dxw.iMaxW, dxw.iMaxH);
 		if (dxw.dwFlags7 & LIMITDDRAW) OutTrace("HookInit: max supported IDidrectDrawInterface=%d\n", dxw.MaxDdrawInterface);
 		if (dxw.dwFlags7 & CPUSLOWDOWN) OutTrace("HookInit: CPU slowdown ratio 1:%d\n", dxw.SlowRatio);
 		if (dxw.dwFlags7 & CPUMAXUSAGE) OutTrace("HookInit: CPU maxusage ratio 1:%d\n", dxw.SlowRatio);

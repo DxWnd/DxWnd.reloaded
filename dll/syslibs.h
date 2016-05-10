@@ -503,7 +503,6 @@ extern BOOL WINAPI extImmGetOpenStatus(HIMC);
 // GDI32.dll:
 extern BOOL WINAPI extGDIBitBlt(HDC, int, int, int, int, HDC, int, int, DWORD);
 extern HDC WINAPI extGDICreateCompatibleDC(HDC);
-extern HDC WINAPI extEMUCreateCompatibleDC(HDC);
 extern HDC WINAPI extGDICreateDCA(LPSTR, LPSTR, LPSTR, CONST DEVMODE *);
 extern HDC WINAPI extGDICreateDCW(LPWSTR, LPWSTR, LPWSTR, CONST DEVMODE *);
 extern HFONT WINAPI extCreateFont(int, int, int, int, int, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, LPCTSTR);

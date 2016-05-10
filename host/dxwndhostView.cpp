@@ -384,6 +384,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SlowDown) t->flags |= SLOWDOWN;
 	if(dlg->m_BlitFromBackBuffer) t->flags |= BLITFROMBACKBUFFER;
 	if(dlg->m_NoFlipEmulation) t->flags4 |= NOFLIPEMULATION;
+	if(dlg->m_LockColorDepth) t->flags7 |= LOCKCOLORDEPTH;
 	if(dlg->m_SuppressClipping) t->flags |= SUPPRESSCLIPPING;
 	if(dlg->m_ForceClipper) t->flags3 |= FORCECLIPPER;
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
@@ -457,6 +458,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ForceHookOpenGL) t->flags3 |= FORCEHOOKOPENGL;
 	if(dlg->m_FixPixelZoom) t->flags6 |= FIXPIXELZOOM;
 	if(dlg->m_FixBindTexture) t->flags7 |= FIXBINDTEXTURE;
+	if(dlg->m_HookGlut32) t->flags7 |= HOOKGLUT32;
 	if(dlg->m_WireFrame) t->flags2 |= WIREFRAME;
 	if(dlg->m_NoTextures) t->flags4 |= NOTEXTURES;
 	if(dlg->m_BlackWhite) t->flags3 |= BLACKWHITE;
@@ -479,6 +481,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoWinErrors) t->flags7 |= NOWINERRORS;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
+	if(dlg->m_InitialRes) t->flags7 |= INITIALRES;
+	if(dlg->m_MaximumRes) t->flags7 |= MAXIMUMRES;
 	t->posx = dlg->m_PosX;
 	t->posy = dlg->m_PosY;
 	t->sizx = dlg->m_SizX;
@@ -488,6 +492,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	t->FakeVersionId = dlg->m_FakeVersionId;
 	t->MaxScreenRes = dlg->m_MaxScreenRes;
 	t->SwapEffect = dlg->m_SwapEffect;
+	t->resw = dlg->m_InitResW;
+	t->resh = dlg->m_InitResH;
 	strcpy_s(t->module, sizeof(t->module), dlg->m_Module);
 	strcpy_s(t->OpenGLLib, sizeof(t->OpenGLLib), dlg->m_OpenGLLib);
 }
@@ -662,6 +668,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
 	dlg->m_NoFlipEmulation = t->flags4 & NOFLIPEMULATION ? 1 : 0;
+	dlg->m_LockColorDepth = t->flags7 & LOCKCOLORDEPTH ? 1 : 0;
 	dlg->m_SuppressClipping = t->flags & SUPPRESSCLIPPING ? 1 : 0;
 	dlg->m_ForceClipper = t->flags3 & FORCECLIPPER ? 1 : 0;
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
@@ -733,6 +740,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ForceHookOpenGL = t->flags3 & FORCEHOOKOPENGL ? 1 : 0;
 	dlg->m_FixPixelZoom = t->flags6 & FIXPIXELZOOM ? 1 : 0;
 	dlg->m_FixBindTexture = t->flags7 & FIXBINDTEXTURE ? 1 : 0;
+	dlg->m_HookGlut32 = t->flags7 & HOOKGLUT32 ? 1 : 0;
 	dlg->m_WireFrame = t->flags2 & WIREFRAME ? 1 : 0;
 	dlg->m_NoTextures = t->flags4 & NOTEXTURES ? 1 : 0;
 	dlg->m_BlackWhite = t->flags3 & BLACKWHITE ? 1 : 0;
@@ -755,6 +763,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoWinErrors = t->flags7 & NOWINERRORS ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
+	dlg->m_InitialRes = t->flags7 & INITIALRES ? 1 : 0;
+	dlg->m_MaximumRes = t->flags7 & MAXIMUMRES ? 1 : 0;
 	dlg->m_PosX = t->posx;
 	dlg->m_PosY = t->posy;
 	dlg->m_SizX = t->sizx;
@@ -763,6 +773,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_InitTS = t->InitTS+8;
 	dlg->m_FakeVersionId = t->FakeVersionId;
 	dlg->m_MaxScreenRes = t->MaxScreenRes;
+	dlg->m_InitResW = t->resw;
+	dlg->m_InitResH = t->resh;
 	dlg->m_SwapEffect = t->SwapEffect;
 }
 
@@ -896,6 +908,14 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	// -------
 	sprintf_s(key, sizeof(key), "slowratio%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->SlowRatio);
+	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "initresw%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->resw);
+	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "initresh%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->resh);
 	WritePrivateProfileString("target", key, val, InitPath);
 
 	free(EscBuf);
@@ -1085,6 +1105,12 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	// -------
 	sprintf_s(key, sizeof(key), "slowratio%i", i);
 	TargetMap->SlowRatio = GetPrivateProfileInt("target", key, 1, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "initresw%i", i);
+	TargetMap->resw = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "initresh%i", i);
+	TargetMap->resh = GetPrivateProfileInt("target", key, 0, InitPath);
 	
 	if (!gbDebug){
 		// clear debug flags

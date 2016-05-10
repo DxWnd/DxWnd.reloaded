@@ -984,35 +984,6 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	return RetHdc;
 }
 
-/*----------------------------------------*/
-HBITMAP VirtualPic;
-
-static HDC FillVirtualDC(HDC hdc)
-{
-	HDC VirtualHDC;
-	HBITMAP VirtualPic;
-
-	if(!(VirtualHDC=CreateCompatibleDC(hdc)))
-		OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-
-	if(!(VirtualPic=CreateCompatibleBitmap(hdc, dxw.GetScreenWidth(), dxw.GetScreenHeight())))
-		OutTraceE("dxwSDC::GetPrimaryDC: CreateCompatibleBitmap ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-
-	if(!SelectObject(VirtualHDC, VirtualPic))
-		OutTraceE("dxwSDC::GetPrimaryDC: SelectObject ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-
-	if(!(*pGDIBitBlt)(VirtualHDC, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), hdc, 0, 0, SRCCOPY))
-		OutTraceE("dxwSDC::GetPrimaryDC: StretchBlt ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-
-	return VirtualHDC;
-}
-
-static void FlushVirtualDC(HDC VirtualHDC)
-{
-	DeleteObject(VirtualHDC);
-	DeleteObject(VirtualPic);
-}
-
 /*-------------------------------------------*/
 
 BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
@@ -1038,12 +1009,12 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	if(hdcDest == NULL){
 		// happens in Reah, hdc is NULL despite the fact that BeginPaint returns a valid DC. Too bad, we recover here ...
 		hdcDest = (*pGDIGetDC)(dxw.GethWnd());
-		OutTraceB("GDI.StretchBlt: DEBUG hdc dest=NULL->%x\n", hdcDest);
+		OutTraceB("GDI.BitBlt: DEBUG hdc dest=NULL->%x\n", hdcDest);
 		IsDCLeakageDest = TRUE;
 	}
 	if(hdcSrc == NULL){
 		hdcSrc = (*pGDIGetDC)(dxw.GethWnd());
-		OutTraceB("GDI.StretchBlt: DEBUG hdc src=NULL->%x\n", hdcSrc);
+		OutTraceB("GDI.BitBlt: DEBUG hdc src=NULL->%x\n", hdcSrc);
 		IsDCLeakageSrc = TRUE;
 	}
 
