@@ -36,6 +36,7 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FIXCLIPPERAREA, cTarget->m_FixClipperArea);
 	DDX_Check(pDX, IDC_CREATEDESKTOP, cTarget->m_CreateDesktop);
 	DDX_Check(pDX, IDC_SYNCPALETTE, cTarget->m_SyncPalette);
+	DDX_Check(pDX, IDC_NOWINERRORS, cTarget->m_NoWinErrors);
 
 	// OpenGL
 	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL); // duplicated

@@ -224,6 +224,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_FixClipperArea = FALSE; // ??
 	m_CreateDesktop = FALSE;
 	m_SyncPalette = FALSE;
+	m_NoWinErrors = FALSE;
 	m_AnalyticMode = FALSE;
 	m_NoPaletteUpdate = FALSE;
 	m_WireFrame = FALSE;

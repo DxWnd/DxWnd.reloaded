@@ -446,6 +446,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FixClipperArea) t->flags7 |= FIXCLIPPERAREA;
 	if(dlg->m_CreateDesktop) t->flags6 |= CREATEDESKTOP;
 	if(dlg->m_SyncPalette) t->flags6 |= SYNCPALETTE;
+	if(dlg->m_NoWinErrors) t->flags7 |= NOWINERRORS;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	t->posx = dlg->m_PosX;
@@ -706,6 +707,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FixClipperArea = t->flags7 & FIXCLIPPERAREA ? 1 : 0;
 	dlg->m_CreateDesktop = t->flags6 & CREATEDESKTOP ? 1 : 0;
 	dlg->m_SyncPalette = t->flags6 & SYNCPALETTE ? 1 : 0;
+	dlg->m_NoWinErrors = t->flags7 & NOWINERRORS ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_PosX = t->posx;

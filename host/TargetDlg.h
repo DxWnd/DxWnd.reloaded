@@ -179,6 +179,7 @@ public:
 	BOOL	m_FixClipperArea;
 	BOOL	m_CreateDesktop;
 	BOOL	m_SyncPalette;
+	BOOL	m_NoWinErrors;
 	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;

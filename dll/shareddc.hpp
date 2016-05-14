@@ -26,7 +26,7 @@ public: // methods
 
 private:
 	void copyDcAttributes(HDC, HDC, POINT);
-	void setClippingRegion(HDC, HDC, HWND, bool, const POINT &);
+	void setClippingRegion(HDC, HDC, POINT);
 
 	HDC PrimaryDC;
 	HDC VirtualHDC;

@@ -1,6 +1,6 @@
 [target]
-title0=Microsoft Golf '98 trial (win)
-path0=D:\Games\MSGolf98\MSGOLF98\GAME.EXE
+title0=Microsoft Golf 1998 Edition
+path0=D:\Games\Microsoft Golf 1998 Edition\game.exe
 launchpath0=
 module0=
 opengllib0=
@@ -13,10 +13,11 @@ flagg0=-671088640
 flagh0=1302
 flagi0=1212547076
 flagj0=4224
-flagk0=67436544
-flagl0=4
+flagk0=327680
+flagl0=260
 flagm0=0
 tflag0=0
+dflag0=0
 posx0=50
 posy0=50
 sizx0=0
@@ -27,3 +28,4 @@ winver0=0
 maxres0=-1
 swapeffect0=0
 maxddinterface0=7
+slowratio0=1

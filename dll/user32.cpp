@@ -2636,6 +2636,7 @@ BOOL WINAPI extDestroyWindow(HWND hWnd)
 	// v2.02.43: "Empire Earth" builds test surfaces that must be destroyed!
 	// v2.03.20: "Prince of Persia 3D" destroys the main window that must be preserved! 
 	BOOL res;
+
 	OutTraceB("DestroyWindow: hwnd=%x\n", hWnd);
 	if (hWnd == dxw.GethWnd()) {
 		if(dxw.dwFlags6 & NODESTROYWINDOW) {
@@ -2651,6 +2652,8 @@ BOOL WINAPI extDestroyWindow(HWND hWnd)
 	}
 	res=(*pDestroyWindow)(hWnd);
 	if(!res)OutTraceE("DestroyWindow: ERROR err=%d\n", GetLastError());
+
+	if(dxw.dwFlags7 & NOWINERRORS) return TRUE; // v2.03.69: suppress unessential errors
 	return res;
 }
 
@@ -3132,14 +3135,12 @@ BOOL WINAPI extGetCursorInfo(PCURSORINFO pci)
 	return ret;
 }
 
-// --- to be hooked ....
-
 HWND WINAPI extWindowFromPoint(POINT Point)
 {
 	HWND ret;
 	OutTraceDW("WindowFromPoint: point=(%d,%d)\n", Point.x, Point.y); 
 	if(dxw.IsFullScreen()){
-		dxw.UnmapWindow(&Point);
+		dxw.MapWindow(&Point); // v2.03.69 fix
 		OutTraceDW("WindowFromPoint: FIXED point=(%d,%d)\n", Point.x, Point.y);
 	}
 	ret = (*pWindowFromPoint)(Point);
@@ -3152,7 +3153,7 @@ HWND WINAPI extChildWindowFromPoint(HWND hWndParent, POINT Point)
 	HWND ret;
 	OutTraceDW("ChildWindowFromPoint: hWndParent=%x point=(%d,%d)\n", hWndParent, Point.x, Point.y); 
 	if(dxw.IsDesktop(hWndParent) && dxw.IsFullScreen() && dxw.Windowize){
-		dxw.UnmapClient(&Point);
+		dxw.MapClient(&Point);
 		OutTraceDW("ChildWindowFromPoint: FIXED point=(%d,%d)\n", Point.x, Point.y);
 	}
 	ret = (*pChildWindowFromPoint)(hWndParent, Point);

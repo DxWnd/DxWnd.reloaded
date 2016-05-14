@@ -1111,3 +1111,9 @@ fix: GUI placement coordinates are not saved when terminating in minimized or ma
 v2.03.68
 add: options to limit the cpu usage of program threads, either inconditionally ("CPU slow down") or only for CPU consuming threads ("CPU max usage").
 fix: some logging details 
+
+v2.03.69
+fix: fixed "CPU max usage" option
+fix: WindowFromPoint & WindowFromPointEx hooks
+fix: recovered partilly working implementation of "shared dc" mode
+add: "Suppress Win errors" option, needed to skip a blocking error and make "Migrosoft Golf '98" starting

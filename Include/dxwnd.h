@@ -223,7 +223,7 @@
 #define BLOCKPRIORITYCLASS  0x00000020 // blocks attempts to change the process priority class
 #define CPUSLOWDOWN			0x00000040 // reduces CPU time dedicated to non time critical threads
 #define CPUMAXUSAGE			0x00000080 // reduces CPU time to non time critical threads that consume more than the given ratio
-
+#define NOWINERRORS			0x00000100 // suppress some possible window errors returning OK also in case of failure
 // eighth flags DWORD dxw.dwFlags8:
 
 // logging Tflags DWORD:
