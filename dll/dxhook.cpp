@@ -127,7 +127,7 @@ static char *Flag6Names[32]={
 static char *Flag7Names[32]={
 	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "HOOKDIRECTSOUND",
 	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
-	"", "", "", "",
+	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1312,14 +1312,6 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		if (dxw.dwFlags7 & CPUMAXUSAGE) OutTrace("HookInit: CPU maxusage ratio 1:%d\n", dxw.SlowRatio);
 	}
 
-	{
-		// Beware: for some strange & mysterious reason, this call makes Warcraft II and other games
-		// work better, avoiding something that resembles a black palette (no blit errors, but the
-		// whole screen black!!) and an AERO rupture.
-		PIXELFORMATDESCRIPTOR pfd;
-		DescribePixelFormat(GetDC(GetDesktopWindow()), 1, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
-	}
-
 	if (hwnd && IsDebug){
 		DWORD dwStyle, dwExStyle;
 		char ClassName[81];
@@ -1425,8 +1417,8 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	if (dxw.dwFlags1 & MESSAGEPROC){
 		extern HINSTANCE hInst;
 		typedef HHOOK (WINAPI *SetWindowsHookEx_Type)(int, HOOKPROC, HINSTANCE, DWORD);
-		extern SetWindowsHookEx_Type pSetWindowsHookEx;
-		hMouseHook=(*pSetWindowsHookEx)(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
+		extern SetWindowsHookEx_Type pSetWindowsHookExA;
+		hMouseHook=(*pSetWindowsHookExA)(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
 		if(hMouseHook==NULL) OutTraceE("SetWindowsHookEx WH_GETMESSAGE failed: error=%d\n", GetLastError());
 	}
  

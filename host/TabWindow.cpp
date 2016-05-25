@@ -50,15 +50,13 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_ACTIVATEAPP, cTarget->m_ActivateApp);
 
 	// color management
-	DDX_Check(pDX, IDC_INIT8BPP, cTarget->m_Init8BPP);
-	DDX_Check(pDX, IDC_INIT16BPP, cTarget->m_Init16BPP);
+	DDX_Radio(pDX, IDC_COLORCURRENT, cTarget->m_InitColorDepth);
 	DDX_Check(pDX, IDC_DISABLEGAMMARAMP, cTarget->m_DisableGammaRamp);
 	DDX_Check(pDX, IDC_FORCE16BPP, cTarget->m_Force16BPP);
 	DDX_Check(pDX, IDC_BLACKWHITE, cTarget->m_BlackWhite);
 	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
 	DDX_Check(pDX, IDC_LOCKSYSCOLORS, cTarget->m_LockSysColors);
 	DDX_Check(pDX, IDC_LOCKRESERVEDPALETTE, cTarget->m_LockReservedPalette);
-	DDX_Check(pDX, IDC_COLORFIX, cTarget->m_ColorFix);
 
 	// screen resolution management
 	DDX_Check(pDX, IDC_LIMITSCREENRES, cTarget->m_LimitScreenRes);

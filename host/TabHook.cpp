@@ -37,6 +37,10 @@ void CTabHook::DoDataExchange(CDataExchange* pDX)
 
 	// Kernel32
 	DDX_Radio(pDX, IDC_SONDEFAULT, cTarget->m_SonProcessMode);
+
+	// additional hooks
+	DDX_Check(pDX, IDC_HOOKSMACKW32, cTarget->m_HookSmackW32);
+	DDX_Check(pDX, IDC_HOOKDIRECTSOUND, cTarget->m_HookDirectSound);
 }
 
 BEGIN_MESSAGE_MAP(CTabHook, CDialog)

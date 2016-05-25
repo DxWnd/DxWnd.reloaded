@@ -27,6 +27,7 @@ public:
 	CEdit	m_Launch;
 	int		m_DXVersion;
 	int		m_Coordinates;
+	int		m_InitColorDepth;
 	int		m_DxEmulationMode;
 	int		m_DxFilterMode;
 	int		m_DCEmulationMode;
@@ -168,6 +169,7 @@ public:
 	BOOL	m_CenterToWin;
 	BOOL	m_Deinterlace;
 	BOOL	m_LimitDdraw;
+	BOOL	m_SuppressOverlay;
 	BOOL	m_SurfaceWarn;
 	BOOL	m_CapMask;
 	BOOL	m_NoWindowHooks;

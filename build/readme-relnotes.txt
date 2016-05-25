@@ -1117,3 +1117,10 @@ fix: fixed "CPU max usage" option
 fix: WindowFromPoint & WindowFromPointEx hooks
 fix: recovered partilly working implementation of "shared dc" mode
 add: "Suppress Win errors" option, needed to skip a blocking error and make "Migrosoft Golf '98" starting
+
+v2.03.70
+add: ddraw Overlay tracing (waiting to implement an emulation strategy)
+add: SetWindowsHookExA logging, SetWindowsHookExW hooking
+fix: MessageHook logging
+GUI: some rearrangements / rationalizations to the interface
+add: INIT24BPP and INIT32BPP flags

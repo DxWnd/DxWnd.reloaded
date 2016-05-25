@@ -224,6 +224,10 @@
 #define CPUSLOWDOWN			0x00000040 // reduces CPU time dedicated to non time critical threads
 #define CPUMAXUSAGE			0x00000080 // reduces CPU time to non time critical threads that consume more than the given ratio
 #define NOWINERRORS			0x00000100 // suppress some possible window errors returning OK also in case of failure
+#define SUPPRESSOVERLAY		0x00000200 // Supress ddraw overlay capabilities (moto racer 2)
+#define INIT24BPP			0x00000400 // simulate a 24BPP initial desktop setting (in GetDeviceCaps API)
+#define INIT32BPP			0x00000800 // simulate a 24BPP initial desktop setting (in GetDeviceCaps API)
+
 // eighth flags DWORD dxw.dwFlags8:
 
 // logging Tflags DWORD:

@@ -46,9 +46,8 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_DISABLEDISABLEALTTAB, cTarget->m_DisableDisableAltTab);
 	DDX_Check(pDX, IDC_NOIMAGEHLP, cTarget->m_NoImagehlp);
 	DDX_Check(pDX, IDC_REPLACEPRIVOPS, cTarget->m_ReplacePrivOps);
-	DDX_Check(pDX, IDC_HOOKDIRECTSOUND, cTarget->m_HookDirectSound);
-	DDX_Check(pDX, IDC_HOOKSMACKW32, cTarget->m_HookSmackW32);
 	DDX_Check(pDX, IDC_BLOCKPRIORITYCLASS, cTarget->m_BlockPriorityClass);
+	DDX_Check(pDX, IDC_COLORFIX, cTarget->m_ColorFix);
 
 	// Registry management
 	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);

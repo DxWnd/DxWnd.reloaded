@@ -228,6 +228,14 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 			break;
 	}
 
+	switch(dlg->m_InitColorDepth){
+		case 0: break;
+		case 1: t->flags2 |= INIT8BPP; break;
+		case 2: t->flags2 |= INIT16BPP; break;
+		case 3: t->flags7 |= INIT24BPP; break;
+		case 4: t->flags7 |= INIT32BPP; break;
+	}
+
 	switch(dlg->m_DxFilterMode){
 		case 0: break;
 		case 1: t->flags4 |= BILINEAR2XFILTER; break;
@@ -403,8 +411,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FixNCHITTEST) t->flags2 |= FIXNCHITTEST;
 	if(dlg->m_RecoverScreenMode) t->flags2 |= RECOVERSCREENMODE;
 	if(dlg->m_RefreshOnResize) t->flags2 |= REFRESHONRESIZE;
-	if(dlg->m_Init8BPP) t->flags2 |= INIT8BPP;
-	if(dlg->m_Init16BPP) t->flags2 |= INIT16BPP;
+	//if(dlg->m_Init8BPP) t->flags2 |= INIT8BPP;
+	//if(dlg->m_Init16BPP) t->flags2 |= INIT16BPP;
 	if(dlg->m_BackBufAttach) t->flags2 |= BACKBUFATTACH;
 	if(dlg->m_HandleAltF4) t->flags |= HANDLEALTF4;
 	if(dlg->m_LimitFPS) t->flags2 |= LIMITFPS;
@@ -434,6 +442,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_CenterToWin) t->flags5 |= CENTERTOWIN;
 	if(dlg->m_Deinterlace) t->flags5 |= DEINTERLACE;
 	if(dlg->m_LimitDdraw) t->flags7 |= LIMITDDRAW;
+	if(dlg->m_SuppressOverlay) t->flags7 |= SUPPRESSOVERLAY;
 	if(dlg->m_NoPaletteUpdate) t->flags2 |= NOPALETTEUPDATE;
 	if(dlg->m_SurfaceWarn) t->flags3 |= SURFACEWARN;
 	if(dlg->m_CapMask) t->flags3 |= CAPMASK;
@@ -533,6 +542,12 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags4 & SUPPRESSCHILD) dlg->m_SonProcessMode = 1;
 	if(t->flags5 & ENABLESONHOOK) dlg->m_SonProcessMode = 2;
 	if(t->flags5 & INJECTSON) dlg->m_SonProcessMode = 3;
+
+	dlg->m_InitColorDepth = 0;
+	if(t->flags2 & INIT8BPP)  dlg->m_InitColorDepth = 1;
+	if(t->flags2 & INIT16BPP) dlg->m_InitColorDepth = 2;
+	if(t->flags7 & INIT24BPP) dlg->m_InitColorDepth = 3;
+	if(t->flags7 & INIT32BPP) dlg->m_InitColorDepth = 4;
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
@@ -664,8 +679,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FixNCHITTEST = t->flags2 & FIXNCHITTEST ? 1 : 0;
 	dlg->m_RecoverScreenMode = t->flags2 & RECOVERSCREENMODE ? 1 : 0;
 	dlg->m_RefreshOnResize = t->flags2 & REFRESHONRESIZE ? 1 : 0;
-	dlg->m_Init8BPP = t->flags2 & INIT8BPP ? 1 : 0;
-	dlg->m_Init16BPP = t->flags2 & INIT16BPP ? 1 : 0;
+	//dlg->m_Init8BPP = t->flags2 & INIT8BPP ? 1 : 0;
+	//dlg->m_Init16BPP = t->flags2 & INIT16BPP ? 1 : 0;
 	dlg->m_BackBufAttach = t->flags2 & BACKBUFATTACH ? 1 : 0;
 	dlg->m_HandleAltF4 = t->flags & HANDLEALTF4 ? 1 : 0;
 	dlg->m_LimitFPS = t->flags2 & LIMITFPS ? 1 : 0;
@@ -695,6 +710,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_CenterToWin = t->flags5 & CENTERTOWIN ? 1 : 0;
 	dlg->m_Deinterlace = t->flags5 & DEINTERLACE ? 1 : 0;
 	dlg->m_LimitDdraw = t->flags7 & LIMITDDRAW ? 1 : 0;
+	dlg->m_SuppressOverlay = t->flags7 & SUPPRESSOVERLAY ? 1 : 0;
 	dlg->m_NoPaletteUpdate = t->flags2 & NOPALETTEUPDATE ? 1 : 0;
 	dlg->m_SurfaceWarn = t->flags3 & SURFACEWARN ? 1 : 0;
 	dlg->m_CapMask = t->flags3 & CAPMASK ? 1 : 0;

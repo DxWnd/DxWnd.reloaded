@@ -11,6 +11,17 @@
 
 extern HHOOK hMouseHook;
 
+/*
+typedef struct tagMSG {
+  HWND   hwnd;			// A handle to the window whose window procedure receives the message. This member is NULL when the message is a thread message.    
+  UINT   message;		// The message identifier. Applications can only use the low word; the high word is reserved by the system. 
+  WPARAM wParam;        // Additional information about the message. The exact meaning depends on the value of the message member. 
+  LPARAM lParam;        // Additional information about the message. The exact meaning depends on the value of the message member. 
+  DWORD  time;			// The time at which the message was posted.
+  POINT  pt;            // The cursor position, in screen coordinates, when the message was posted. 
+} MSG, *PMSG, *LPMSG;
+*/
+
 LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 {
 	static BOOL SizeMoving = FALSE;
@@ -19,8 +30,8 @@ LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 		if(dxw.IsFullScreen()){
 			MSG *msg;
 			msg = (MSG *)lParam;
-			OutTraceC("MessageHook: hwnd=%x message=%d(%s) remove=%d pt=(%d,%d)\n", 
-				msg->hwnd, msg->message, ExplainWinMessage(msg->message), msg->wParam, msg->pt.x, msg->pt.y);
+			OutTraceC("MessageHook: hwnd=%x message=%d(%s) remove=%d params=(L:%x,R:%x) pt=(%d,%d)\n", 
+				msg->hwnd, msg->message, ExplainWinMessage(msg->message), wParam, msg->lParam, msg->wParam, msg->pt.x, msg->pt.y);
 
 			switch(msg->message){
 				case WM_ENTERSIZEMOVE: SizeMoving = TRUE; break;
@@ -43,8 +54,11 @@ LRESULT CALLBACK MessageHook(int code, WPARAM wParam, LPARAM lParam)
 				// fix the message point coordinates
 				POINT upleft={0,0};
 				POINT pt;
-				// v2.03.36: offset to be calculated from target window
-				(*pClientToScreen)(msg->hwnd, &upleft);
+                HWND hwnd;
+                // v2.03.36: offset to be calculated from target window
+                // v2-03.70: unless is a thread message (hwnd == NULL) !!
+                hwnd=(msg->hwnd)?msg->hwnd:dxw.GethWnd();
+                (*pClientToScreen)(hwnd, &upleft);
 				pt = msg->pt;
 				pt = dxw.SubCoordinates(pt, upleft);
 				pt=dxw.FixCursorPos(pt);

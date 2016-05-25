@@ -303,7 +303,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_NCHITTEST:
+		// which one is good ?
 		if((dxw.dwFlags2 & FIXNCHITTEST) && (dxw.dwFlags1 & MODIFYMOUSE)){ // mouse processing 
+		//if((dxw.dwFlags2 & FIXNCHITTEST) && (dxw.dwFlags1 & MODIFYMOUSE) && !(dxw.dwFlags1 & MESSAGEPROC)){ // mouse processing 
 			POINT cursor;
 			LRESULT ret;
 			ret=(*pDefWindowProcA)(hwnd, message, wparam, lparam);
@@ -312,6 +314,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 				cursor.y=HIWORD(lparam);
 				dxw.FixNCHITCursorPos(&cursor);
 				lparam = MAKELPARAM(cursor.x, cursor.y); 
+				OutTraceC("WindowProc[%x]: fixed WM_NCHITTEST pt=(%d,%d)\n", hwnd, cursor.x, cursor.y);
 			}
 			else
 				return ret;

@@ -46,6 +46,7 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SETZBUFFERBITDEPTHS, cTarget->m_SetZBufferBitDepths);
 	DDX_Check(pDX, IDC_DEINTERLACE, cTarget->m_Deinterlace);
 	DDX_Check(pDX, IDC_LIMITDDRAW, cTarget->m_LimitDdraw);
+	DDX_Check(pDX, IDC_SUPPRESSOVERLAY, cTarget->m_SuppressOverlay);
 	DDX_CBIndex(pDX, IDC_DDWAWLIMITCOMBO, cTarget->m_MaxDdrawInterface);
 
 	// Texture management

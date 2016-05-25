@@ -219,6 +219,16 @@ HRESULT WINAPI extUnlockDir2(LPDIRECTDRAWSURFACE, LPVOID);
 HRESULT WINAPI extUnlockDir3(LPDIRECTDRAWSURFACE, LPVOID);
 HRESULT WINAPI extUnlockDir4(LPDIRECTDRAWSURFACE, LPRECT);
 HRESULT WINAPI extUnlockDir7(LPDIRECTDRAWSURFACE, LPRECT);
+HRESULT WINAPI extEnumOverlayZOrders1(LPDIRECTDRAWSURFACE, DWORD, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumOverlayZOrders2(LPDIRECTDRAWSURFACE, DWORD, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumOverlayZOrders3(LPDIRECTDRAWSURFACE, DWORD, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumOverlayZOrders4(LPDIRECTDRAWSURFACE, DWORD, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extEnumOverlayZOrders7(LPDIRECTDRAWSURFACE, DWORD, LPVOID, LPDDENUMSURFACESCALLBACK);
+HRESULT WINAPI extAddOverlayDirtyRect1(LPDIRECTDRAWSURFACE, LPRECT);
+HRESULT WINAPI extAddOverlayDirtyRect2(LPDIRECTDRAWSURFACE, LPRECT);
+HRESULT WINAPI extAddOverlayDirtyRect3(LPDIRECTDRAWSURFACE, LPRECT);
+HRESULT WINAPI extAddOverlayDirtyRect4(LPDIRECTDRAWSURFACE, LPRECT);
+HRESULT WINAPI extAddOverlayDirtyRect7(LPDIRECTDRAWSURFACE, LPRECT);
 
 HRESULT WINAPI extCreateSurface(int, CreateSurface_Type, LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extSetSurfaceDesc3(LPDIRECTDRAWSURFACE, LPDDSURFACEDESC, DWORD);
@@ -315,6 +325,8 @@ GetPixelFormat_Type pGetPixelFormat1, pGetPixelFormat2, pGetPixelFormat3, pGetPi
 GetSurfaceDesc_Type pGetSurfaceDesc1, pGetSurfaceDesc2, pGetSurfaceDesc3;
 GetSurfaceDesc2_Type pGetSurfaceDesc4, pGetSurfaceDesc7;
 Lock_Type pLock1, pLock2, pLock3, pLock4, pLock7;
+EnumOverlayZOrders_Type pEnumOverlayZOrders1, pEnumOverlayZOrders2, pEnumOverlayZOrders3, pEnumOverlayZOrders4, pEnumOverlayZOrders7;
+AddOverlayDirtyRect_Type pAddOverlayDirtyRect1, pAddOverlayDirtyRect2, pAddOverlayDirtyRect3, pAddOverlayDirtyRect4, pAddOverlayDirtyRect7;
 
 //Initialize
 IsLost_Type pIsLost;
@@ -646,6 +658,8 @@ void InitScreenParameters(int dxversion)
 	dxw.VirtualPixelFormat.dwRGBBitCount=CurrDevMode.dmBitsPerPel; // until set differently
 	if(dxw.dwFlags2 & INIT8BPP) FixPixelFormat(8, &dxw.VirtualPixelFormat);
 	if(dxw.dwFlags2 & INIT16BPP) FixPixelFormat(16, &dxw.VirtualPixelFormat);
+	if(dxw.dwFlags7 & INIT24BPP) FixPixelFormat(24, &dxw.VirtualPixelFormat);
+	if(dxw.dwFlags7 & INIT32BPP) FixPixelFormat(32, &dxw.VirtualPixelFormat);
 	OutTraceDW("InitScreenParameters: dxversion=%d RGBBitCount=%d\n", dxversion, CurrDevMode.dmBitsPerPel);
 	SetBltTransformations(dxversion);
 
@@ -1220,10 +1234,12 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds), extQueryInterfaceS1, (void **)&pQueryInterfaceS1, "QueryInterface(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 8), extReleaseS1, (void **)&pReleaseS1, "Release(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 12), extAddAttachedSurface1, (void **)&pAddAttachedSurface1, "AddAttachedSurface(S1)");
+		SetHook((void *)(**(DWORD **)lplpdds + 16), extAddOverlayDirtyRect1, (void **)&pAddOverlayDirtyRect1, "AddOverlayDirtyRect(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast1, (void **)&pBltFast1, "BltFast(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt1, (void **)&pBlt1, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface1, (void **)&pDeleteAttachedSurface1, "DeleteAttachedSurface(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces1, (void **)&pEnumAttachedSurfaces1, "EnumAttachedSurfaces(S1)");
+		SetHook((void *)(**(DWORD **)lplpdds + 40), extEnumOverlayZOrders1, (void **)&pEnumOverlayZOrders1, "EnumOverlayZOrders(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip1, (void **)&pFlip1, "Flip(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface1, (void **)&pGetAttachedSurface1, "GetAttachedSurface(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps1S, (void **)&pGetCaps1S, "GetCaps(S1)");
@@ -1241,10 +1257,12 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds), extQueryInterfaceS2, (void **)&pQueryInterfaceS2, "QueryInterface(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 8), extReleaseS2, (void **)&pReleaseS2, "Release(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 12), extAddAttachedSurface2, (void **)&pAddAttachedSurface2, "AddAttachedSurface(S2)");
+		SetHook((void *)(**(DWORD **)lplpdds + 16), extAddOverlayDirtyRect2, (void **)&pAddOverlayDirtyRect2, "AddOverlayDirtyRect(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast2, (void **)&pBltFast2, "BltFast(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt2, (void **)&pBlt2, "Blt(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface2, (void **)&pDeleteAttachedSurface2, "DeleteAttachedSurface(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces2, (void **)&pEnumAttachedSurfaces2, "EnumAttachedSurfaces(S2)");
+		SetHook((void *)(**(DWORD **)lplpdds + 40), extEnumOverlayZOrders2, (void **)&pEnumOverlayZOrders2, "EnumOverlayZOrders(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip2, (void **)&pFlip2, "Flip(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface2, (void **)&pGetAttachedSurface2, "GetAttachedSurface(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps2S, (void **)&pGetCaps2S, "GetCaps(S2)");
@@ -1262,10 +1280,12 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds), extQueryInterfaceS3, (void **)&pQueryInterfaceS3, "QueryInterface(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 8), extReleaseS3, (void **)&pReleaseS3, "Release(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 12), extAddAttachedSurface3, (void **)&pAddAttachedSurface3, "AddAttachedSurface(S3)");
+		SetHook((void *)(**(DWORD **)lplpdds + 16), extAddOverlayDirtyRect3, (void **)&pAddOverlayDirtyRect3, "AddOverlayDirtyRect(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast3, (void **)&pBltFast3, "BltFast(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt3, (void **)&pBlt3, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface3, (void **)&pDeleteAttachedSurface3, "DeleteAttachedSurface(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces3, (void **)&pEnumAttachedSurfaces3, "EnumAttachedSurfaces(S3)");
+		SetHook((void *)(**(DWORD **)lplpdds + 40), extEnumOverlayZOrders3, (void **)&pEnumOverlayZOrders3, "EnumOverlayZOrders(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip3, (void **)&pFlip3, "Flip(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface3, (void **)&pGetAttachedSurface3, "GetAttachedSurface(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps3S, (void **)&pGetCaps3S, "GetCaps(S3)");
@@ -1285,10 +1305,12 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds), extQueryInterfaceS4, (void **)&pQueryInterfaceS4, "QueryInterface(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 8), extReleaseS4, (void **)&pReleaseS4, "Release(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 12), extAddAttachedSurface4, (void **)&pAddAttachedSurface4, "AddAttachedSurface(S4)");
+		SetHook((void *)(**(DWORD **)lplpdds + 16), extAddOverlayDirtyRect4, (void **)&pAddOverlayDirtyRect4, "AddOverlayDirtyRect(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast4, (void **)&pBltFast4, "BltFast(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt4, (void **)&pBlt4, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface4, (void **)&pDeleteAttachedSurface4, "DeleteAttachedSurface(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces4, (void **)&pEnumAttachedSurfaces4, "EnumAttachedSurfaces(S4)");
+		SetHook((void *)(**(DWORD **)lplpdds + 40), extEnumOverlayZOrders4, (void **)&pEnumOverlayZOrders4, "EnumOverlayZOrders(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip4, (void **)&pFlip4, "Flip(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface4, (void **)&pGetAttachedSurface4, "GetAttachedSurface(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps4S, (void **)&pGetCaps4S, "GetCaps(S4)");
@@ -1308,10 +1330,12 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds), extQueryInterfaceS7, (void **)&pQueryInterfaceS7, "QueryInterface(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 8), extReleaseS7, (void **)&pReleaseS7, "Release(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 12), extAddAttachedSurface7, (void **)&pAddAttachedSurface7, "AddAttachedSurface(S7)");
+		SetHook((void *)(**(DWORD **)lplpdds + 16), extAddOverlayDirtyRect7, (void **)&pAddOverlayDirtyRect7, "AddOverlayDirtyRect(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 28), extBltFast7, (void **)&pBltFast7, "BltFast(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 20), extBlt7, (void **)&pBlt7, "Blt(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 32), extDeleteAttachedSurface7, (void **)&pDeleteAttachedSurface7, "DeleteAttachedSurface(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 36), extEnumAttachedSurfaces7, (void **)&pEnumAttachedSurfaces7, "EnumAttachedSurfaces(S7)");
+		SetHook((void *)(**(DWORD **)lplpdds + 40), extEnumOverlayZOrders7, (void **)&pEnumOverlayZOrders7, "EnumOverlayZOrders(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 44), extFlip7, (void **)&pFlip7, "Flip(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 48), extGetAttachedSurface7, (void **)&pGetAttachedSurface7, "GetAttachedSurface(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps7S, (void **)&pGetCaps7S, "GetCaps(S7)");
@@ -1465,6 +1489,8 @@ static void HandleCapsD(char *sLabel, LPDDCAPS c)
 		c->dwCKeyCaps, ExplainDDCKeyCaps(c->dwCKeyCaps));
 	OutTraceDDRAW("GetCaps(%s): VidMemTotal=%x VidMemFree=%x ZBufferBitDepths=%x(%s)\n", 
 		sLabel, c->dwVidMemTotal, c->dwVidMemFree, c->dwZBufferBitDepths, ExplainZBufferBitDepths(c->dwZBufferBitDepths));
+	OutTraceDDRAW("GetCaps(%s): MaxVisibleOverlays=%x CurrVisibleOverlays=%x\n",
+		sLabel, c->dwMaxVisibleOverlays, c->dwCurrVisibleOverlays);
 	if(dxw.dwFlags2 & LIMITRESOURCES){ // check for memory value overflow
 		const DWORD dwMaxMem = 0x70000000; 
 		if(c->dwVidMemTotal > dwMaxMem) c->dwVidMemTotal = dwMaxMem;
@@ -1529,6 +1555,14 @@ static HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRE
 	if((dxw.dwFlags3 & MINIMALCAPS)) SetMinimalCaps(c1, c2);
 
 	if(dxw.dwFlags3 & CAPMASK) MaskCapsD(c1, c2);
+
+	if(dxw.dwFlags7 & SUPPRESSOVERLAY){
+#define LAYERCAPS (DDCAPS_OVERLAY|DDCAPS_OVERLAYCANTCLIP|DDCAPS_OVERLAYFOURCC|DDCAPS_OVERLAYSTRETCH)
+		c1->ddsCaps.dwCaps &= ~LAYERCAPS;
+		c2->ddsCaps.dwCaps &= ~LAYERCAPS;
+		c1->dwMaxVisibleOverlays = c1->dwCurrVisibleOverlays = 0;
+		c2->dwMaxVisibleOverlays = c2->dwCurrVisibleOverlays = 0;
+	}
 
 	return res;
 }
@@ -2080,9 +2114,11 @@ HRESULT WINAPI extGetDisplayMode(GetDisplayMode_Type pGetDisplayMode, LPDIRECTDR
 		lpddsd->dwHeight = dxw.GetScreenHeight();
 
 		// v2.1.96: fake screen color depth
-		if(dxw.dwFlags2 & (INIT8BPP|INIT16BPP)){ // v2.02.32 fix
+		if((dxw.dwFlags2 & (INIT8BPP|INIT16BPP)) || (dxw.dwFlags7 & (INIT24BPP|INIT32BPP))){ // v2.02.32 fix
 			if(dxw.dwFlags2 & INIT8BPP) FixPixelFormat(8, &lpddsd->ddpfPixelFormat);
 			if(dxw.dwFlags2 & INIT16BPP) FixPixelFormat(16, &lpddsd->ddpfPixelFormat);
+			if(dxw.dwFlags7 & INIT24BPP) FixPixelFormat(24, &lpddsd->ddpfPixelFormat);
+			if(dxw.dwFlags7 & INIT32BPP) FixPixelFormat(32, &lpddsd->ddpfPixelFormat);
 			OutTraceDW("GetDisplayMode: fix RGBBitCount=%d\n", lpddsd->ddpfPixelFormat.dwRGBBitCount);
 		}
 	}
@@ -5759,3 +5795,49 @@ HRESULT WINAPI extDirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 	HookDDClipper(lplpDDClipper);
 	return res;
 }
+
+HRESULT WINAPI extEnumOverlayZOrders(int dxversion, EnumOverlayZOrders_Type pEnumOverlayZOrders, LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback)
+{
+	HRESULT res;
+	OutTrace("EnumOverlayZOrders(%d): lpdds=%x flags=%x(%s)\n", dxversion, lpdds, dwFlags, dwFlags?"FRONTTOBACK":"BACKTOFRONT");
+	res = (*pEnumOverlayZOrders)(lpdds, dwFlags, lpContext, lpfnCallback);
+	OutTrace("EnumOverlayZOrders: res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extEnumOverlayZOrders1(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback)
+{ return extEnumOverlayZOrders(1, pEnumOverlayZOrders1, lpdds, dwFlags, lpContext, lpfnCallback); }
+HRESULT WINAPI extEnumOverlayZOrders2(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback)
+{ return extEnumOverlayZOrders(2, pEnumOverlayZOrders2, lpdds, dwFlags, lpContext, lpfnCallback); }
+HRESULT WINAPI extEnumOverlayZOrders3(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback)
+{ return extEnumOverlayZOrders(3, pEnumOverlayZOrders3, lpdds, dwFlags, lpContext, lpfnCallback); }
+HRESULT WINAPI extEnumOverlayZOrders4(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback)
+{ return extEnumOverlayZOrders(4, pEnumOverlayZOrders4, lpdds, dwFlags, lpContext, lpfnCallback); }
+HRESULT WINAPI extEnumOverlayZOrders7(LPDIRECTDRAWSURFACE lpdds, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback)
+{ return extEnumOverlayZOrders(7, pEnumOverlayZOrders7, lpdds, dwFlags, lpContext, lpfnCallback); }
+
+HRESULT WINAPI extAddOverlayDirtyRect(int dxversion, AddOverlayDirtyRect_Type pAddOverlayDirtyRect, LPDIRECTDRAWSURFACE lpdds, LPRECT lpRect)
+{
+	HRESULT res;
+	char sInfo[128];
+	if (lpRect)
+		sprintf(sInfo, "(%d,%d)-(%d,%d)", lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+	else
+		sprintf(sInfo, "(NULL)");
+
+	OutTrace("AddOverlayDirtyRect(%d): lpdds=%x rect=%s\n", dxversion, lpdds, sInfo);
+	res=(*pAddOverlayDirtyRect)(lpdds, lpRect);
+	OutTrace("AddOverlayDirtyRect: res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extAddOverlayDirtyRect1(LPDIRECTDRAWSURFACE lpdds, LPRECT lpRect)
+{ return extAddOverlayDirtyRect(1, pAddOverlayDirtyRect1, lpdds, lpRect); }
+HRESULT WINAPI extAddOverlayDirtyRect2(LPDIRECTDRAWSURFACE lpdds, LPRECT lpRect)
+{ return extAddOverlayDirtyRect(2, pAddOverlayDirtyRect2, lpdds, lpRect); }
+HRESULT WINAPI extAddOverlayDirtyRect3(LPDIRECTDRAWSURFACE lpdds, LPRECT lpRect)
+{ return extAddOverlayDirtyRect(3, pAddOverlayDirtyRect3, lpdds, lpRect); }
+HRESULT WINAPI extAddOverlayDirtyRect4(LPDIRECTDRAWSURFACE lpdds, LPRECT lpRect)
+{ return extAddOverlayDirtyRect(4, pAddOverlayDirtyRect4, lpdds, lpRect); }
+HRESULT WINAPI extAddOverlayDirtyRect7(LPDIRECTDRAWSURFACE lpdds, LPRECT lpRect)
+{ return extAddOverlayDirtyRect(7, pAddOverlayDirtyRect7, lpdds, lpRect); }

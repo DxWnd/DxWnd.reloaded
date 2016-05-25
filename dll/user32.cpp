@@ -32,8 +32,10 @@ typedef BOOL (WINAPI *SetForegroundWindow_Type)(HWND);
 SetForegroundWindow_Type pSetForegroundWindow = NULL;
 BOOL WINAPI extSetForegroundWindow(HWND);
 typedef HHOOK (WINAPI *SetWindowsHookEx_Type)(int, HOOKPROC, HINSTANCE, DWORD);
-SetWindowsHookEx_Type pSetWindowsHookEx = NULL;
-HHOOK WINAPI extSetWindowsHookEx(int, HOOKPROC, HINSTANCE, DWORD);
+SetWindowsHookEx_Type pSetWindowsHookExA = NULL;
+SetWindowsHookEx_Type pSetWindowsHookExW = NULL;
+HHOOK WINAPI extSetWindowsHookExA(int, HOOKPROC, HINSTANCE, DWORD);
+HHOOK WINAPI extSetWindowsHookExW(int, HOOKPROC, HINSTANCE, DWORD);
 typedef BOOL (WINAPI *PostMessageA_Type)(HWND, UINT, WPARAM, LPARAM);
 PostMessageA_Type pPostMessageA = NULL;
 BOOL WINAPI extPostMessageA(HWND, UINT, WPARAM, LPARAM);
@@ -167,7 +169,8 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "ChildWindowFromPoint", (FARPROC)ChildWindowFromPoint, (FARPROC *)&pChildWindowFromPoint, (FARPROC)extChildWindowFromPoint},
 	{HOOK_HOT_CANDIDATE, 0, "ChildWindowFromPointEx", (FARPROC)ChildWindowFromPointEx, (FARPROC *)&pChildWindowFromPointEx, (FARPROC)extChildWindowFromPointEx},
 	{HOOK_HOT_CANDIDATE, 0, "WindowFromPoint", (FARPROC)WindowFromPoint, (FARPROC *)&pWindowFromPoint, (FARPROC)extWindowFromPoint},
-	{HOOK_HOT_REQUIRED,  0 ,"SetWindowsHookExA", (FARPROC)SetWindowsHookExA, (FARPROC *)&pSetWindowsHookEx, (FARPROC)extSetWindowsHookEx},
+	{HOOK_HOT_REQUIRED,  0 ,"SetWindowsHookExA", (FARPROC)SetWindowsHookExA, (FARPROC *)&pSetWindowsHookExA, (FARPROC)extSetWindowsHookExA},
+	{HOOK_HOT_REQUIRED,  0 ,"SetWindowsHookExW", (FARPROC)SetWindowsHookExW, (FARPROC *)&pSetWindowsHookExW, (FARPROC)extSetWindowsHookExW},
 
 	//{HOOK_HOT_CANDIDATE, 0, "MessageBoxTimeoutA", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutA, (FARPROC)extMessageBoxTimeoutA},
 	//{HOOK_HOT_CANDIDATE, 0, "MessageBoxTimeoutW", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutW, (FARPROC)extMessageBoxTimeoutW},
@@ -3050,6 +3053,7 @@ BOOL WINAPI extSystemParametersInfoA(UINT uiAction, UINT uiParam, PVOID pvParam,
 		*cli = dxw.GetScreenRect();
 		OutTraceDW("SystemParametersInfoA: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
 	}
+	if(!ret) OutTraceE("SystemParametersInfoA ERROR: err=%d\n", GetLastError());
 	return ret;
 }
 
@@ -3070,6 +3074,7 @@ BOOL WINAPI extSystemParametersInfoW(UINT uiAction, UINT uiParam, PVOID pvParam,
 		*cli = dxw.GetScreenRect();
 		OutTraceDW("SystemParametersInfoW: resized client workarea rect=(%d,%d)-(%d,%d)\n", cli->left, cli->top, cli->right, cli->bottom);
 	}
+	if(!ret) OutTraceE("SystemParametersInfoW ERROR: err=%d\n", GetLastError());
 	return ret;
 }
 
@@ -3396,10 +3401,14 @@ LRESULT CALLBACK extMessageHookProc(int code, WPARAM wParam, LPARAM lParam)
 	return ret;
 }
 
-HHOOK WINAPI extSetWindowsHookEx(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWORD dwThreadId)
+static HHOOK WINAPI extSetWindowsHookEx(SetWindowsHookEx_Type pSetWindowsHookEx, int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWORD dwThreadId)
 {
 	HHOOK ret;
+
+	OutTraceDW("SetWindowsHookEx: id=%x threadid=%x\n", idHook, dwThreadId);
+
 	if(dxw.dwFlags5 & EASPORTSHACK){
+		OutTraceDW("SetWindowsHookEx: EASPORTSHACK bypass active\n");
 		if(idHook == WH_MOUSE) return NULL;
 		if(idHook == WH_GETMESSAGE) {
 			glpMessageHookProcessFunction = lpfn;
@@ -3407,16 +3416,26 @@ HHOOK WINAPI extSetWindowsHookEx(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWOR
 		}
 	}
 	// v2.03.39: "One Must Fall Battlegrounds" keyboard fix
-	if((idHook == WH_KEYBOARD) && (dwThreadId == NULL)) dwThreadId = GetCurrentThreadId();
+	if((idHook == WH_KEYBOARD) && (dwThreadId == NULL)) {
+		dwThreadId = GetCurrentThreadId();
+		OutTraceDW("SetWindowsHookEx: fixing WH_KEYBOARD thread=0->%x\n", dwThreadId);
+	}
 
 	// v2.03.54: disable the disable Alt-Tab fix
-	if((dxw.dwFlags7 & DISABLEDISABLEALTTAB) && (idHook == WH_KEYBOARD_LL)) return NULL;
+	if((dxw.dwFlags7 & DISABLEDISABLEALTTAB) && (idHook == WH_KEYBOARD_LL)) {
+		OutTraceDW("SetWindowsHookEx: DISABLEDISABLEALTTAB bypass active\n");
+		return NULL;
+	}
 
 	ret=(*pSetWindowsHookEx)(idHook, lpfn, hMod, dwThreadId);
 
 	return ret;
 }
 
+HHOOK WINAPI extSetWindowsHookExA(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWORD dwThreadId)
+{ return extSetWindowsHookEx(pSetWindowsHookExA, idHook, lpfn, hMod, dwThreadId); }
+HHOOK WINAPI extSetWindowsHookExW(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWORD dwThreadId)
+{ return extSetWindowsHookEx(pSetWindowsHookExW, idHook, lpfn, hMod, dwThreadId); }
 
 HRESULT WINAPI extMessageBoxTimeoutA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType, WORD wLanguageId, DWORD dwMilliseconds)
 {

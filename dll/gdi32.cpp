@@ -125,8 +125,13 @@ BOOL WINAPI extRoundRect(HDC, int, int, int, int, int, int);
 typedef BOOL (WINAPI *PolyPolygon_Type)(HDC, const POINT *, const INT *, int);
 PolyPolygon_Type pPolyPolygon = NULL;
 BOOL WINAPI extPolyPolygon(HDC, const POINT *, const INT *, int);
+//typedef BOOL (WINAPI *DPtoLP_Type)(HDC, LPPOINT, int);
+//DPtoLP_Type pDPtoLP = NULL;
+//BOOL WINAPI extDPtoLP(HDC, LPPOINT, int);
 
 static HookEntryEx_Type Hooks[]={
+
+	//{HOOK_IAT_CANDIDATE, 0, "DPtoLP", (FARPROC)DPtoLP, (FARPROC *)&pDPtoLP, (FARPROC)extDPtoLP},
 
 	{HOOK_IAT_CANDIDATE, 0, "GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
 	{HOOK_IAT_CANDIDATE, 0, "ScaleWindowExtEx", (FARPROC)ScaleWindowExtEx, (FARPROC *)&pGDIScaleWindowExtEx, (FARPROC)extScaleWindowExtEx},
@@ -426,9 +431,11 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 		break;
 	case BITSPIXEL:
 	case COLORRES:
-		if(dxw.dwFlags2 & (INIT8BPP|INIT16BPP)){ // v2.02.32 fix
+		if((dxw.dwFlags2 & (INIT8BPP|INIT16BPP)) || (dxw.dwFlags7 & (INIT24BPP|INIT32BPP))){ // v2.02.32 fix
 			if(dxw.dwFlags2 & INIT8BPP) res = 8;
 			if(dxw.dwFlags2 & INIT16BPP) res = 16;
+			if(dxw.dwFlags7 & INIT24BPP) res = 24;
+			if(dxw.dwFlags7 & INIT32BPP) res = 32;
 			OutTraceDW("GetDeviceCaps: fix(2) BITSPIXEL/COLORRES cap=%d\n", res);
 		}
 		break;
@@ -452,6 +459,8 @@ int WINAPI extGetDeviceCaps(HDC hdc, int nindex)
 			if(dxw.VirtualPixelFormat.dwRGBBitCount!=0) res = dxw.VirtualPixelFormat.dwRGBBitCount;
 			if(dxw.dwFlags2 & INIT8BPP) res = 8;
 			if(dxw.dwFlags2 & INIT16BPP) res = 16;
+			if(dxw.dwFlags7 & INIT24BPP) res = 24;
+			if(dxw.dwFlags7 & INIT32BPP) res = 32;
 			if(PrevRes != res) OutTraceDW("GetDeviceCaps: fix(3) BITSPIXEL/COLORRES cap=%d\n", res);
 			break;
 		case SIZEPALETTE:
@@ -3291,3 +3300,15 @@ BOOL WINAPI extPolyPolygon(HDC hdc, const POINT *lpPoints, const INT *lpPolyCoun
 	if(!ret) OutTraceE("PolyPolygon ERROR: err=%d\n", GetLastError());
 	return ret;
 }
+
+#if 0
+BOOL WINAPI extDPtoLP(HDC hdc, LPPOINT lpPoints, int nCount)
+{
+	BOOL ret;
+	OutTrace("DPtoLP: hdc=%x, nCount=%d\n", hdc, nCount);
+	for(int i=0; i<nCount; i++) OutTrace("point[%d]=(%d,%d)\n", i, lpPoints[i].x, lpPoints[i].y);
+	ret = (*pDPtoLP)(hdc, lpPoints, nCount);
+	for(int i=0; i<nCount; i++) OutTrace("point[%d]=(%d,%d)\n", i, lpPoints[i].x, lpPoints[i].y);
+	return ret;
+}
+#endif

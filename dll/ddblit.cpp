@@ -176,7 +176,8 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	// any blit operation!
 	if(destrect.left == -32000) return DD_OK; // no blit on invisible window
 
-	if(!(lpddssrc || (dwflags & DDBLT_COLORFILL))) {
+	//if(!(lpddssrc || (dwflags & DDBLT_COLORFILL))) {
+	if((lpddssrc==0) && !(dwflags & DDBLT_COLORFILL)){
 		lpddssrc = dxwss.GetBackBufferSurface();
 		OutTraceDW("Flip: setting flip chain to lpdds=%x\n", lpddssrc);
 	}
