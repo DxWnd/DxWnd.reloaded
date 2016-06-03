@@ -783,6 +783,9 @@ UINT WINAPI extGetSystemPaletteUse(HDC hdc)
 	UINT res;
 	OutTraceDW("GDI.GetSystemPaletteUse: hdc=%x\n", hdc);
 	res=(*pGetSystemPaletteUse)(hdc);
+
+	if((res == SYSPAL_ERROR) && (dxw.dwFlags6 & SYNCPALETTE)) res = SYSPAL_NOSTATIC;
+
 	OutTraceDW("GetSystemPaletteUse: res=%x(%s)\n", res, ExplainPaletteUse(res));
 	return res;
 }

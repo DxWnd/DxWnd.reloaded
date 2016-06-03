@@ -30,7 +30,11 @@ typedef HRESULT (WINAPI *Initialize_Type)(void *);
 typedef HRESULT (WINAPI *EnumDevices_Type)(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
 typedef HRESULT (WINAPI *EnumDevices7_Type)(void *, LPD3DENUMDEVICESCALLBACK7, LPVOID);
 typedef HRESULT (WINAPI *CreateLight_Type)(void *, LPDIRECT3DLIGHT *, IUnknown *);
-typedef HRESULT (WINAPI *CreateMaterial_Type)(void *, LPDIRECT3DMATERIAL *, IUnknown *);
+#ifdef TRACEMATERIAL
+typedef HRESULT (WINAPI *CreateMaterial1_Type)(void *, LPDIRECT3DMATERIAL *, IUnknown *);
+typedef HRESULT (WINAPI *CreateMaterial2_Type)(void *, LPDIRECT3DMATERIAL2 *, IUnknown *);
+typedef HRESULT (WINAPI *CreateMaterial3_Type)(void *, LPDIRECT3DMATERIAL3 *, IUnknown *);
+#endif
 typedef HRESULT (WINAPI *CreateViewport1_Type)(void *, LPDIRECT3DVIEWPORT *, IUnknown *);
 typedef HRESULT (WINAPI *CreateViewport2_Type)(void *, LPDIRECT3DVIEWPORT2 *, IUnknown *);
 typedef HRESULT (WINAPI *CreateViewport3_Type)(void *, LPDIRECT3DVIEWPORT3 *, IUnknown *);
@@ -45,7 +49,11 @@ Initialize_Type pInitialize = NULL;
 EnumDevices_Type pEnumDevices = NULL;
 EnumDevices7_Type pEnumDevices7 = NULL;
 CreateLight_Type pCreateLight = NULL;
-CreateMaterial_Type pCreateMaterial = NULL;
+#ifdef TRACEMATERIAL
+CreateMaterial1_Type pCreateMaterial1 = NULL;
+CreateMaterial2_Type pCreateMaterial2 = NULL;
+CreateMaterial3_Type pCreateMaterial3 = NULL;
+#endif
 CreateViewport1_Type pCreateViewport1 = NULL;
 CreateViewport2_Type pCreateViewport2 = NULL;
 CreateViewport3_Type pCreateViewport3 = NULL;
@@ -114,8 +122,6 @@ SwapTextureHandles2_Type pSwapTextureHandles2 = NULL;
 
 typedef HRESULT (WINAPI *InitializeVP_Type)(void *, LPDIRECT3D);
 typedef HRESULT (WINAPI *SetViewport_Type)(void *, LPD3DVIEWPORT);
-typedef HRESULT (WINAPI *SetMaterial_Type)(void *, LPD3DMATERIAL);
-typedef HRESULT (WINAPI *GetMaterial_Type)(void *, LPD3DMATERIAL);
 typedef HRESULT (WINAPI *GetViewport_Type)(void *, LPD3DVIEWPORT);
 typedef HRESULT (WINAPI *GetViewport2_Type)(void *, LPD3DVIEWPORT);
 typedef HRESULT (WINAPI *SetViewport2_Type)(void *, LPD3DVIEWPORT);
@@ -129,10 +135,15 @@ typedef HRESULT (WINAPI *DeleteViewport2_Type)(void *, LPDIRECT3DVIEWPORT2);
 typedef HRESULT (WINAPI *NextViewport2_Type)(void *, LPDIRECT3DVIEWPORT2, LPDIRECT3DVIEWPORT2 *, DWORD);
 typedef HRESULT (WINAPI *ViewportClear_Type)(void *, DWORD, LPD3DRECT, DWORD);
 
+#ifdef TRACEMATERIAL
+// IDirect3DMaterial interfaces
+
+typedef HRESULT (WINAPI *SetMaterial_Type)(void *, LPD3DMATERIAL);
+typedef HRESULT (WINAPI *GetMaterial_Type)(void *, LPD3DMATERIAL);
+#endif
+
 InitializeVP_Type pInitializeVP = NULL;
 SetViewport_Type pSetViewport = NULL;
-SetMaterial_Type pSetMaterial = NULL;
-GetMaterial_Type pGetMaterial = NULL;
 GetViewport_Type pGetViewport = NULL;
 GetViewport2_Type pGetViewport2 = NULL;
 SetViewport2_Type pSetViewport2 = NULL;
@@ -146,11 +157,20 @@ DeleteViewport2_Type pDeleteViewport2 = NULL;
 NextViewport2_Type pNextViewport2 = NULL;
 ViewportClear_Type pViewportClear = NULL;
 
+#ifdef TRACEMATERIAL
+SetMaterial_Type pSetMaterial = NULL;
+GetMaterial_Type pGetMaterial = NULL;
+#endif
+
 HRESULT WINAPI extInitialize(void *);
 HRESULT WINAPI extEnumDevices(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
 HRESULT WINAPI extEnumDevices7(void *, LPD3DENUMDEVICESCALLBACK7, LPVOID);
 HRESULT WINAPI extCreateLight(void *, LPDIRECT3DLIGHT *, IUnknown *);
-HRESULT WINAPI extCreateMaterial(void *, LPDIRECT3DMATERIAL *, IUnknown *);
+#ifdef TRACEMATERIAL
+HRESULT WINAPI extCreateMaterial1(void *, LPDIRECT3DMATERIAL *, IUnknown *);
+HRESULT WINAPI extCreateMaterial2(void *, LPDIRECT3DMATERIAL2 *, IUnknown *);
+HRESULT WINAPI extCreateMaterial3(void *, LPDIRECT3DMATERIAL3 *, IUnknown *);
+#endif
 HRESULT WINAPI extCreateViewport1(void *, LPDIRECT3DVIEWPORT *, IUnknown *);
 HRESULT WINAPI extCreateViewport2(void *, LPDIRECT3DVIEWPORT2 *, IUnknown *);
 HRESULT WINAPI extCreateViewport3(void *, LPDIRECT3DVIEWPORT3 *, IUnknown *);
@@ -167,8 +187,10 @@ HRESULT WINAPI extViewportClear(void *, DWORD, LPD3DRECT, DWORD);
 HRESULT WINAPI extInitializeVP(void *, LPDIRECT3D);
 HRESULT WINAPI extSetViewport(void *, LPD3DVIEWPORT);
 HRESULT WINAPI extGetViewport(void *, LPD3DVIEWPORT);
+#ifdef TRACEMATERIAL
 HRESULT WINAPI extSetMaterial(void *, LPD3DMATERIAL);
 HRESULT WINAPI extGetMaterial(void *, LPD3DMATERIAL);
+#endif
 HRESULT WINAPI extQueryInterfaceD3(void *, REFIID, LPVOID *);
 HRESULT WINAPI extQueryInterfaceD3D(void *, REFIID, LPVOID *);
 
@@ -382,7 +404,9 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +  12), extInitialize, (void **)&pInitialize, "Initialize(1)");
 		SetHook((void *)(**(DWORD **)lplpdd +  16), extEnumDevices, (void **)&pEnumDevices, "EnumDevices");
 		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateLight, (void **)&pCreateLight, "CreateLight");
-		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateMaterial, (void **)&pCreateMaterial, "CreateMaterial");
+#ifdef TRACEMATERIAL
+		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateMaterial1, (void **)&pCreateMaterial1, "CreateMaterial(1)");
+#endif
 		SetHook((void *)(**(DWORD **)lplpdd +  28), extCreateViewport1, (void **)&pCreateViewport1, "CreateViewport(1)");
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extFindDevice, (void **)&pFindDevice, "FindDevice");	
 		break;
@@ -390,7 +414,9 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
 		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices, (void **)&pEnumDevices, "EnumDevices(2)");
 		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateLight, (void **)&pCreateLight, "CreateLight");
-		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateMaterial, (void **)&pCreateMaterial, "CreateMaterial");
+#ifdef TRACEMATERIAL
+		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateMaterial2, (void **)&pCreateMaterial2, "CreateMaterial(2)");
+#endif
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateViewport2, (void **)&pCreateViewport2, "CreateViewport(2)");
 		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice2, (void **)&pCreateDevice2, "CreateDevice(D3D2)");
@@ -399,7 +425,9 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
 		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices, (void **)&pEnumDevices, "EnumDevices(3)");
 		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateLight, (void **)&pCreateLight, "CreateLight");
-		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateMaterial, (void **)&pCreateMaterial, "CreateMaterial");
+#ifdef TRACEMATERIAL
+		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateMaterial3, (void **)&pCreateMaterial3, "CreateMaterial(3)");
+#endif
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateViewport3, (void **)&pCreateViewport3, "CreateViewport(3)");
 		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice3, (void **)&pCreateDevice3, "CreateDevice(D3D3)");
@@ -563,6 +591,7 @@ void HookViewport(LPDIRECT3DVIEWPORT *lpViewport, int d3dversion)
 	}
 }
 
+#ifdef TRACEMATERIAL
 void HookMaterial(LPDIRECT3DMATERIAL *lpMaterial, int d3dversion)
 {
 	OutTraceD3D("HookMaterial: Material=%x d3dversion=%d\n", *lpMaterial, d3dversion);
@@ -578,6 +607,7 @@ void HookMaterial(LPDIRECT3DMATERIAL *lpMaterial, int d3dversion)
 		break;
 	}
 }
+#endif
 
 void HookTexture(LPVOID *lpTexture, int version)
 {
@@ -618,21 +648,27 @@ HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID *ppvObj)
 		SetHook((void *)(**(DWORD **)ppvObj +  12), extInitialize, (void **)&pInitialize, "Initialize");
 		SetHook((void *)(**(DWORD **)ppvObj +  16), extEnumDevices, (void **)&pEnumDevices, "EnumDevices");
 		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateLight, (void **)&pCreateLight, "CreateLight");
-		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateMaterial, (void **)&pCreateMaterial, "CreateMaterial");
+#ifdef TRACEMATERIAL
+		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateMaterial1, (void **)&pCreateMaterial1, "CreateMaterial(1)");
+#endif
 		SetHook((void *)(**(DWORD **)ppvObj +  28), extCreateViewport1, (void **)&pCreateViewport1, "CreateViewport(1)");
 		SetHook((void *)(**(DWORD **)ppvObj +  32), extFindDevice, (void **)&pFindDevice, "FindDevice");	
 		break;
 	case 2:
 		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices, (void **)&pEnumDevices, "EnumDevices");
 		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight, (void **)&pCreateLight, "CreateLight");
-		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial, (void **)&pCreateMaterial, "CreateMaterial");
+#ifdef TRACEMATERIAL
+		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial2, (void **)&pCreateMaterial2, "CreateMaterial(2)");
+#endif
 		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateViewport2, (void **)&pCreateViewport2, "CreateViewport(2)"); 
 		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
 		break;
 	case 3:
 		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices, (void **)&pEnumDevices, "EnumDevices");
 		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight, (void **)&pCreateLight, "CreateLight");
-		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial, (void **)&pCreateMaterial, "CreateMaterial");
+#ifdef TRACEMATERIAL
+		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial3, (void **)&pCreateMaterial3, "CreateMaterial(3)");
+#endif
 		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateViewport3, (void **)&pCreateViewport3, "CreateViewport(3)"); 
 		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
 		break;
@@ -778,17 +814,43 @@ HRESULT WINAPI extCreateLight(void *lpd3d, LPDIRECT3DLIGHT *lpLight, IUnknown *p
 	return res;
 }
 
-HRESULT WINAPI extCreateMaterial(void *lpd3d, LPDIRECT3DMATERIAL *lpMaterial, IUnknown *p0)
+#ifdef TRACEMATERIAL
+HRESULT WINAPI extCreateMaterial1(void *lpd3d, LPDIRECT3DMATERIAL *lpMaterial, IUnknown *p0)
 {
 	HRESULT res;
 
-	OutTraceD3D("CreateMaterial: d3d=%x\n", lpd3d);
-	res=(*pCreateMaterial)(lpd3d, lpMaterial, p0);
+	OutTraceD3D("CreateMaterial(1): d3d=%x\n", lpd3d);
+	res=(*pCreateMaterial1)(lpd3d, lpMaterial, p0);
 	if(res) OutTraceE("CreateMaterial ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("CreateMaterial: OK\n");
 	HookMaterial(lpMaterial, GD3DDeviceVersion);
 	return res;
 }
+
+HRESULT WINAPI extCreateMaterial2(void *lpd3d, LPDIRECT3DMATERIAL2 *lpMaterial, IUnknown *p0)
+{
+	HRESULT res;
+
+	OutTraceD3D("CreateMaterial(2): d3d=%x\n", lpd3d);
+	res=(*pCreateMaterial2)(lpd3d, lpMaterial, p0);
+	if(res) OutTraceE("CreateMaterial ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	else OutTraceD3D("CreateMaterial: OK\n");
+	//HookMaterial(lpMaterial, GD3DDeviceVersion);
+	return res;
+}
+
+HRESULT WINAPI extCreateMaterial3(void *lpd3d, LPDIRECT3DMATERIAL3 *lpMaterial, IUnknown *p0)
+{
+	HRESULT res;
+
+	OutTraceD3D("CreateMaterial(1): d3d=%x\n", lpd3d);
+	res=(*pCreateMaterial3)(lpd3d, lpMaterial, p0);
+	if(res) OutTraceE("CreateMaterial ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	else OutTraceD3D("CreateMaterial: OK\n");
+	//HookMaterial(lpMaterial, GD3DDeviceVersion);
+	return res;
+}
+#endif
 
 HRESULT WINAPI extCreateViewport1(void *lpd3d, LPDIRECT3DVIEWPORT *lpViewport, IUnknown *p0)
 {
@@ -1412,6 +1474,7 @@ HRESULT WINAPI extSetTexture7(void *d3dd, DWORD flags, LPDIRECTDRAWSURFACE7 lpte
 	return res;
 }
 
+#ifdef TRACEMATERIAL
 HRESULT WINAPI extSetMaterial(void *d3dd, LPD3DMATERIAL lpMaterial)
 {
 	HRESULT res;
@@ -1450,6 +1513,7 @@ HRESULT WINAPI extGetMaterial(void *d3dd, LPD3DMATERIAL lpMaterial)
 		}
 	return res;
 }
+#endif
 
 HRESULT WINAPI extSwapTextureHandles(void *d3dd, LPDIRECT3DTEXTURE t1, LPDIRECT3DTEXTURE t2)
 {

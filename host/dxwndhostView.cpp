@@ -2166,7 +2166,10 @@ void CDxwndhostView::OnRun()
 		if(i<0) i=0;
 	}
 	else {
-		if(!listctrl.GetSelectedCount()) return;
+		if(!listctrl.GetSelectedCount()) {
+			IsLocked = FALSE;
+			return;
+		}
 		pos = listctrl.GetFirstSelectedItemPosition();
 		i = listctrl.GetNextSelectedItem(pos);
 	}

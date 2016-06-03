@@ -295,6 +295,7 @@ LPDIRECTDRAWSURFACE lpDDZBuffer=NULL;
 LPDIRECTDRAW lpPrimaryDD=NULL;
 int iBakBufferVersion;
 LPDIRECTDRAWPALETTE lpDDP=NULL;
+int iDDPExtraRefCounter=0;
 // v2.02.37: globals to store requested main surface capabilities 
 DDSURFACEDESC2 DDSD_Prim;
 DWORD DDZBufferCaps;
@@ -2392,7 +2393,10 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		}
 		// this must be done after hooking - who knows why?
 		res=(*pSetPalette)(*lplpdds, lpDDP);
-		if(res) OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+		if(res) {
+			OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+		}
+		else iDDPExtraRefCounter++;
 	}
 
 	// set a global capability value for surfaces that have to blit to primary
@@ -2469,7 +2473,10 @@ static HRESULT BuildPrimaryFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pCrea
 		}
 		// this must be done after hooking - who knows why?
 		res=(*pSetPalette)(*lplpdds, lpDDP);
-		if(res) OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+		if(res) {
+			OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+		}
+		else iDDPExtraRefCounter++;
 	}
 
 	// set a global capability value for surfaces that have to blit to primary
@@ -2590,7 +2597,10 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 		}
 		// this must be done after hooking - who knows why?
 		res=(*pSetPalette)(*lplpdds, lpDDP);
-		if(res) OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+		if(res) {
+			OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+		}
+		else iDDPExtraRefCounter++;
 	}
 
 	// V2.1.85/V2.2.34: tricky !!!!
@@ -2646,7 +2656,10 @@ static HRESULT BuildBackBufferFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pC
 		}
 		// this must be done after hooking - who knows why?
 		res=(*pSetPalette)(*lplpdds, lpDDP);
-		if(res) OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+		if(res) {
+			OutTraceE("CreateSurface: SetPalette ERROR err=%x at %d\n", res, __LINE__);
+		}
+		else iDDPExtraRefCounter++;
 	}
 
 	return DD_OK;
@@ -2798,8 +2811,10 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		res=(*pSetPalette)(*lplpdds, lpDDP);
 		if(res)
 			OutTraceE("SetPalette: ERROR on lpdds=%x(Emu_Generic) res=%x(%s) at %d\n", *lplpdds, res, ExplainDDError(res), __LINE__);
-		else
+		else {
 			OutTraceDW("CreateSurface: applied lpddp=%x to lpdds=%x\n", lpDDP, *lplpdds);
+			iDDPExtraRefCounter++;
+		}
 	}
 
 	// diagnostic hooks ....
@@ -2849,8 +2864,10 @@ static HRESULT BuildGenericFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pCrea
 		res=(*pSetPalette)(*lplpdds, lpDDP);
 		if(res)
 			OutTraceE("SetPalette: ERROR on lpdds=%x(Emu_Generic) res=%x(%s) at %d\n", *lplpdds, res, ExplainDDError(res), __LINE__);
-		else
+		else {
 			OutTraceDW("CreateSurface: applied lpddp=%x to lpdds=%x\n", lpDDP, *lplpdds);
+			iDDPExtraRefCounter++;
+		}
 	}
 
 	// diagnostic hooks ....
@@ -3815,6 +3832,7 @@ HRESULT WINAPI extGetPalette(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lpl
 		OutTraceDW("GetPalette: retrieve PRIMARY palette for emulated surface lpDDP=%x\n", lpDDP);
 		*lplpddp = lpDDP;
 		lpDDP->AddRef();
+		iDDPExtraRefCounter++;
 		res=DD_OK;
 	}
 
@@ -4267,6 +4285,7 @@ HRESULT WINAPI extGetDC(LPDIRECTDRAWSURFACE lpdds, HDC FAR *pHDC)
 			OutTraceE("GetDC: SetPalette ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
+		iDDPExtraRefCounter++;
 		// retry ....
 		res=(*pGetDC)(lpdds, pHDC);
 	}
@@ -4878,6 +4897,7 @@ ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECTDRAW lp
 			lpDDSEmu_Prim=NULL;
 			lpDDSEmu_Back=NULL;
 			lpDDP=NULL;
+			iDDPExtraRefCounter = 0;
 			lpPrimaryDD=NULL; // v2.02.31
 		}
 	}
@@ -5136,12 +5156,19 @@ HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 	ULONG ref;
 	
 	ref = (*pReleaseP)(lpddPalette);
-
 	OutTraceDDRAW("Release(P): lpddPalette=%x ref=%x\n", lpddPalette, ref);
-	if(lpddPalette==lpDDP && ref==0){
-		OutTraceDW("Release(P): clearing lpDDP=%x->NULL\n", lpDDP);
-		lpDDP=NULL;
+
+	if (lpddPalette == lpDDP) {
+		OutTraceDW("Release(P): lpDDP extrarefcount=%d\n", iDDPExtraRefCounter);
+		ref -= iDDPExtraRefCounter;
+		if (ref <= 0) {
+			ref = 0;
+			OutTraceDW("Release(P): clearing lpDDP=%x->NULL\n", lpDDP);
+			lpDDP=NULL;
+		}
+		if(dxw.dwFlags4 & RETURNNULLREF) ref = 0;
 	}
+
 	return ref;
 }
 
