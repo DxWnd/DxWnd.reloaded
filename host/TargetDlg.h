@@ -206,6 +206,7 @@ public:
 	BOOL	m_DisableDisableAltTab;
 	BOOL	m_NoImagehlp;
 	BOOL	m_ForcesHEL;
+	BOOL	m_MinimalCaps;
 	BOOL	m_SetZBufferBitDepths;
 	BOOL	m_ForcesSwapEffect;
 	BOOL	m_ColorFix;

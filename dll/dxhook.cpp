@@ -42,7 +42,7 @@ Preparedisasm_Type pPreparedisasm;
 Finishdisasm_Type pFinishdisasm;
 Disasm_Type pDisasm;
 
-extern void InitScreenParameters();
+extern void InitScreenParameters(int);
 extern void *HotPatch(void *, const char *, void *);
 extern void *IATPatch(HMODULE, char *, void *, const char *, void *);
 extern void *IATPatchEx(HMODULE, DWORD, char *, void *, const char *, void *);
@@ -1382,7 +1382,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		if(hMouseHook==NULL) OutTraceE("SetWindowsHookEx WH_GETMESSAGE failed: error=%d\n", GetLastError());
 	}
  
-	InitScreenParameters();
+	InitScreenParameters(0); // still unknown
 	if(hwnd) HookWindowProc(hwnd);
 	// in fullscreen mode, messages seem to reach and get processed by the parent window
 	if((!dxw.Windowize) && hwnd) HookWindowProc(dxw.hParentWnd);

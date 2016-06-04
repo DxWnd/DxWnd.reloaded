@@ -332,11 +332,11 @@ FARPROC Remap_GDI32_ProcAddress(LPCSTR proc, HMODULE hModule)
 //--------------------------------------------------------------------------------------------
 
 extern DWORD PaletteEntries[256];
-extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
-extern HRESULT WINAPI sBlt(char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
+extern Unlock4_Type pUnlockMethod();
+extern HRESULT WINAPI sBlt(int, Blt_Type, char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
 
 extern GetDC_Type pGetDC;
-extern ReleaseDC_Type pReleaseDC;
+extern ReleaseDC_Type pReleaseDC1;
 
 //--------------------------------------------------------------------------------------------
 //
@@ -688,11 +688,13 @@ HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
 			ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
 		}
 		else{
+			extern GetDC_Type pGetDCMethod();
+			extern ReleaseDC_Type pReleaseDCMethod();
 			LPDIRECTDRAWSURFACE lpDDSPrim;
 			lpDDSPrim = dxwss.GetPrimarySurface();
-			(*pGetDC)(lpDDSPrim, &hdc);
+			(*pGetDCMethod())(lpDDSPrim, &hdc);
 			ret=(*pGDISelectPalette)(hdc, hpal, bForceBackground);
-			(*pReleaseDC)(lpDDSPrim, hdc);
+			(*pReleaseDCMethod())(lpDDSPrim, hdc);
 		}
 	}
 	else{

@@ -13,23 +13,31 @@
 extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
 extern LPDIRECTDRAW lpPrimaryDD;
 extern Blt_Type pBlt;
-extern ReleaseS_Type pReleaseS;
+extern ReleaseS_Type pReleaseSMethod();
 extern CreateSurface1_Type pCreateSurface1;
 extern CreateSurface1_Type pCreateSurface2;
 extern CreateSurface1_Type pCreateSurface3;
 extern CreateSurface2_Type pCreateSurface4;
 extern CreateSurface2_Type pCreateSurface7;
-extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
+extern Unlock4_Type pUnlockMethod();
 extern HDC hFlippedDC;
 extern BOOL bFlippedDC;
-extern ReleaseDC_Type pReleaseDC;
+extern ReleaseDC_Type pReleaseDC1;
+extern ReleaseDC_Type pReleaseDC2;
+extern ReleaseDC_Type pReleaseDC3;
+extern ReleaseDC_Type pReleaseDC4;
+extern ReleaseDC_Type pReleaseDC7;
 
 extern void BlitError(HRESULT, LPRECT, LPRECT, int);
 extern void BlitTrace(char *, LPRECT, LPRECT, int);
 extern void DescribeSurface(LPDIRECTDRAWSURFACE, int, char *, int);
 extern void TextureHandling(LPDIRECTDRAWSURFACE);
+extern GetSurfaceDesc2_Type pGetSurfaceDescMethod();
+extern int GetSurfaceDescSize();
+extern GetSurfaceDesc2_Type GetSurfaceDescMethod();
+extern Blt_Type pBltMethod();
 
-static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
+static HRESULT sBltNoPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx)
 {
 	RECT srcrect;
@@ -89,8 +97,8 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	//	}
 	//	break;
 	case DDERR_SURFACEBUSY:
-		(*pUnlockMethod(lpdds))(lpdds, NULL);
-		if (lpddssrc) (*pUnlockMethod(lpddssrc))(lpddssrc, NULL);	
+		(*pUnlockMethod())(lpdds, NULL);
+		if (lpddssrc) (*pUnlockMethod())(lpddssrc, NULL);	
 		if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
 		res=(*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags|DDBLT_WAIT, lpddbltfx);
 		break;
@@ -110,7 +118,7 @@ static HRESULT sBltNoPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	return res;
 }
 
-static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
+static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx, BOOL isFlipping)
 {
 	HRESULT res;
@@ -184,7 +192,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		if (lpdds != lpddssrc) {
 			dxw.ShowOverlay(lpddssrc);
 			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
-			res=(*pPrimaryBlt)(lpdds, &destrect, lpddssrc, lpsrcrect);
+			res=(*pPrimaryBlt)(dxversion, pBlt, lpdds, &destrect, lpddssrc, lpsrcrect);
 		}
 		if(res){
 			BlitError(res, lpsrcrect, &destrect, __LINE__);
@@ -194,8 +202,8 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 			}
 			// Try to handle HDC lock concurrency....		
 			if(res==DDERR_SURFACEBUSY){
-				(*pUnlockMethod(lpdds))(lpdds, NULL);
-				if(lpddssrc) (*pUnlockMethod(lpdds))(lpdds, NULL);
+				(*pUnlockMethod())(lpdds, NULL);
+				if(lpddssrc) (*pUnlockMethod())(lpdds, NULL);
 				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, __LINE__);
 				res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
@@ -203,26 +211,26 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 			// Try to handle DDBLT_KEYSRC on primary surface
 			if((res==DDERR_INVALIDPARAMS) && (dwflags & DDBLT_KEYSRC)){
 				// to do: handle possible situations with surface 2 / 4 / 7 types
-				DDSURFACEDESC ddsd;
-				LPDIRECTDRAWSURFACE lpddsTmp;
-				extern GetSurfaceDesc_Type pGetSurfaceDesc1;
+				DDSURFACEDESC2 ddsd;
+				LPDIRECTDRAWSURFACE2 lpddsTmp;
+				extern CreateSurface2_Type pCreateSurfaceMethod();
 				if (IsDebug) BlitTrace("KEYSRC", lpsrcrect, &destrect, __LINE__);
 				memset(&ddsd, 0, sizeof(ddsd));
-				ddsd.dwSize = sizeof(ddsd);
-				(*pGetSurfaceDesc1)(lpddssrc, &ddsd);
-				res=(*pCreateSurface1)(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
+				ddsd.dwSize = GetSurfaceDescSize();
+				(*pGetSurfaceDescMethod())((LPDIRECTDRAWSURFACE2)lpddssrc, &ddsd);
+				res=(*pCreateSurfaceMethod())(lpPrimaryDD, &ddsd, (LPDIRECTDRAWSURFACE *)&lpddsTmp, NULL);
 				if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				// copy background
-				res= (*pBlt)(lpddsTmp, lpsrcrect, lpdds, &destrect, DDBLT_WAIT, NULL);
+				res= (*pBlt)((LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, lpdds, &destrect, DDBLT_WAIT, NULL);
 				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				// overlay texture
-				res= (*pBlt)(lpddsTmp, lpsrcrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+				res= (*pBlt)((LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				// copy back to destination
-				res= (*pBlt)(lpdds, &destrect, lpddsTmp, lpsrcrect, DDBLT_WAIT, lpddbltfx);
+				res= (*pBlt)(lpdds, &destrect, (LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, DDBLT_WAIT, lpddbltfx);
 				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
-				(*pReleaseS)(lpddsTmp);
+				(*pReleaseSMethod())((LPDIRECTDRAWSURFACE)lpddsTmp);
 			}
 			if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 		}
@@ -287,14 +295,24 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 
 		// Try to handle HDC lock concurrency....		
 		if(res==DDERR_SURFACEBUSY){
-			if (bFlippedDC) (*pReleaseDC)(lpdds, hFlippedDC);
+			if (bFlippedDC) {
+				ReleaseDC_Type pReleaseDC;
+				switch(dxversion){
+					case 1: pReleaseDC=pReleaseDC1; break;
+					case 2: pReleaseDC=pReleaseDC2; break;
+					case 3: pReleaseDC=pReleaseDC3; break;
+					case 4: pReleaseDC=pReleaseDC4; break;
+					case 7: pReleaseDC=pReleaseDC7; break;
+				}
+				(*pReleaseDC)(lpdds, hFlippedDC);
+			}
 
 			// v2.03.49: resumed because if fixes locked surfaces on "Red Alert 1" on WinXP as reported by cloudstr 
 			if(lpddssrc) { // lpddssrc could be NULL!!!
-			res=(*pUnlockMethod(lpddssrc))(lpddssrc, NULL);
+			res=(*pUnlockMethod())(lpddssrc, NULL);
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpddssrc, res, ExplainDDError(res));
 			}
-			res=(*pUnlockMethod(lpdds))(lpdds, NULL); // v2.03.24 reintroduced because of "Virtua Cop"
+			res=(*pUnlockMethod())(lpdds, NULL); // v2.03.24 reintroduced because of "Virtua Cop"
 			if(res && (res!=DDERR_NOTLOCKED)) OutTraceE("Unlock ERROR: lpdds=%x err=%x(%s)\n", lpdds, res, ExplainDDError(res));
 
 			if (IsDebug) BlitTrace("BUSY", &emurect, &destrect, __LINE__);
@@ -307,7 +325,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	}
 
 	LPDIRECTDRAWSURFACE lpDDSSource;
-	if (res=(*pColorConversion)(lpdds, emurect, &lpDDSSource)) {
+	if (res=(*pColorConversion)(dxversion, lpdds, emurect, &lpDDSSource)) {
 		OutTraceE("sBlt ERROR: Color conversion failed res=%x(%s)\n", res, ExplainDDError(res));
 		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 		return res;
@@ -321,7 +339,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 		emurect.bottom <<= 1;
 	}
 	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
-	res=(*pPrimaryBlt)(lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect);
+	res=(*pPrimaryBlt)(dxversion, pBlt, lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect);
 
 	if (res) BlitError(res, &emurect, &destrect, __LINE__);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
@@ -329,7 +347,7 @@ static HRESULT sBltToPrimary(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdest
 	return res;
 }
 
-HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
+HRESULT WINAPI sBlt(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx, BOOL isFlipping)
 {
 	POINT p = {0, 0};
@@ -396,9 +414,9 @@ HRESULT WINAPI sBlt(char *api, LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect,
 	}
 
 	if(ToPrim)
-		res = sBltToPrimary(api, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx, isFlipping);
+		res = sBltToPrimary(dxversion, pBlt, api, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx, isFlipping);
 	else
-		res = sBltNoPrimary(api, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+		res = sBltNoPrimary(dxversion, pBlt, api, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 
 	return res;
 }

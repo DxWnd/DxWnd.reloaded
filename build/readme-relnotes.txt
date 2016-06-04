@@ -1060,3 +1060,11 @@ fix: reorganized menu commands
 fix: proper handling of DEFAULT win size on CreateWindowEx - fixes "Imperialism" problem
 fix: fixed stretced blit operation because Blt behaves differently from StretchBlt. Fixes "3D Minigolf" partial background
 fix: GetPixel logging
+
+v2.03.59
+fix: added extra ref to surface for ddraw version 2: fixes "Warhammer Chaos Gate"
+add: view shims menu command, to analyze Win7/Win10 compatibility patches
+GUI: added the hook tab to move hooking flags in a single tab page
+
+v2.03.60 
+too many things, sorry, I'll fix it later.

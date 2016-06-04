@@ -13,9 +13,9 @@
 #include "dxhelper.h"
 #include "syslibs.h"
 
-extern GetDC_Type pGetDC;
-extern ReleaseDC_Type pReleaseDC;
-extern Unlock1_Type pUnlock1;
+extern GetDC_Type pGetDCMethod();
+extern ReleaseDC_Type pReleaseDCMethod();
+extern Unlock1_Type pUnlockMethod();
 
 void BlitToWindow(HWND w, LPDIRECTDRAWSURFACE s)
 {
@@ -25,7 +25,7 @@ void BlitToWindow(HWND w, LPDIRECTDRAWSURFACE s)
 	BOOL ret;
 
 	if(!s) return; // for surface color fill 
-	res=(*pGetDC)(s, &shdc);
+	res=(*pGetDCMethod())(s, &shdc);
 	if(res) {
 		OutTrace("ddraw GetDC error lpdds=%x res=%x(%s)\n", s, res, ExplainDDError(res));
 		return;
@@ -54,9 +54,8 @@ void BlitToWindow(HWND w, LPDIRECTDRAWSURFACE s)
 		if(!ret) OutTrace("GDI StretchBlt error=%d\n", GetLastError());
 	}
 	dxw.ShowOverlay(thdc);
-	res=(*pReleaseDC)(s, shdc);
+	res=(*pReleaseDCMethod())(s, shdc);
 	if(res) OutTrace("ddraw ReleaseDC error lpdds=%x res=%x(%s)\n", s, res, ExplainDDError(res));
 	ret=(*pGDIReleaseDC)(w, thdc);
 	if(!ret) OutTrace("GDI ReleaseDC error=%d\n", GetLastError());
 }
-

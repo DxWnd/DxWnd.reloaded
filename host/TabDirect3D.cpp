@@ -33,8 +33,6 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOPOWER2FIX, cTarget->m_NoPower2Fix);
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
-	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
-	DDX_Check(pDX, IDC_SETZBUFFERBITDEPTHS, cTarget->m_SetZBufferBitDepths);
 
 	// Ddraw tweaks
 	DDX_Check(pDX, IDC_NOSYSMEMPRIMARY, cTarget->m_NoSysMemPrimary);
@@ -43,8 +41,9 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_POWER2WIDTH, cTarget->m_Power2Width);
 	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
 	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
-	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
-	DDX_Check(pDX, IDC_CENTERTOWIN, cTarget->m_CenterToWin);
+	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
+	DDX_Check(pDX, IDC_MINIMALCAPS, cTarget->m_MinimalCaps);
+	DDX_Check(pDX, IDC_SETZBUFFERBITDEPTHS, cTarget->m_SetZBufferBitDepths);
 	DDX_Check(pDX, IDC_DEINTERLACE, cTarget->m_Deinterlace);
 	DDX_Check(pDX, IDC_LIMITDDRAW, cTarget->m_LimitDdraw);
 	DDX_CBIndex(pDX, IDC_DDWAWLIMITCOMBO, cTarget->m_MaxDdrawInterface);

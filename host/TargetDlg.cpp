@@ -67,6 +67,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_NoImagehlp = FALSE;
 	m_ReplacePrivOps = FALSE;
 	m_ForcesHEL = FALSE;
+	m_MinimalCaps = FALSE;
 	m_SetZBufferBitDepths = FALSE;
 	m_ForcesSwapEffect = FALSE;
 	m_ColorFix = FALSE;

@@ -15,9 +15,9 @@ typedef HRESULT (WINAPI *Lock_Type)(LPDIRECTDRAWSURFACE, LPRECT, LPDDSURFACEDESC
 typedef HRESULT (WINAPI *Unlock4_Type)(LPDIRECTDRAWSURFACE, LPRECT);
 typedef HRESULT (WINAPI *Unlock1_Type)(LPDIRECTDRAWSURFACE, LPVOID);
 
-extern Lock_Type pLock;
-extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
-extern int Set_dwSize_From_Surface(LPDIRECTDRAWSURFACE);
+extern Lock_Type pLockMethod();
+extern Unlock4_Type pUnlockMethod();
+extern int Set_dwSize_From_Surface();
 
 #define GRIDSIZE 16
 
@@ -109,9 +109,9 @@ void TextureHighlight(LPDIRECTDRAWSURFACE s)
 	int x, y, w, h;
 	HRESULT res;
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
-	ddsd.dwSize = Set_dwSize_From_Surface(s);
+	ddsd.dwSize = Set_dwSize_From_Surface();
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("TextureHigh: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
@@ -171,7 +171,7 @@ void TextureHighlight(LPDIRECTDRAWSURFACE s)
 				break;
 		}
 	}
-	res=(*pUnlockMethod(s))(s, NULL);
+	res=(*pUnlockMethod())(s, NULL);
 	if (res) OutTraceE("TextureHigh: Unlock ERROR lpdds=%x res=%x(%s) at %d\n", s, res, ExplainDDError(res), __LINE__);
 }
 
@@ -198,9 +198,9 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 	}
 
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
-	ddsd.dwSize = Set_dwSize_From_Surface(s);
+	ddsd.dwSize = Set_dwSize_From_Surface();
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("TextureDump: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
@@ -294,7 +294,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s)
 		fclose(hf);
 		break;
 	}
-	res=(*pUnlockMethod(s))(s, NULL);
+	res=(*pUnlockMethod())(s, NULL);
 	if (res) OutTraceE("TextureDump: Unlock ERROR lpdds=%x res=%x(%s) at %d\n", s, res, ExplainDDError(res), __LINE__);
 }
 
@@ -305,9 +305,9 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 	HRESULT res;
 
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
-	ddsd.dwSize = Set_dwSize_From_Surface(s);
+	ddsd.dwSize = Set_dwSize_From_Surface();
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("TextureHack: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return;
 	}
@@ -382,7 +382,7 @@ static void TextureHack(LPDIRECTDRAWSURFACE s)
 		fclose(hf);
 		break;
 	}
-	res=(*pUnlockMethod(s))(s, NULL);
+	res=(*pUnlockMethod())(s, NULL);
 	if (res) OutTraceE("TextureHack: Unlock ERROR lpdds=%x res=%x(%s) at %d\n", s, res, ExplainDDError(res), __LINE__);
 }
 

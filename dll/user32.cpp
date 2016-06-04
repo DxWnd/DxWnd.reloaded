@@ -108,10 +108,10 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
 	//{HOOK_IAT_CANDIDATE, 0, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
 	//{HOOK_IAT_CANDIDATE, 0, "SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
-	{HOOK_HOT_CANDIDATE, 0, "ChangeDisplaySettingsA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettingsA, (FARPROC)extChangeDisplaySettingsA},
-	{HOOK_HOT_CANDIDATE, 0, "ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsExA, (FARPROC *)&pChangeDisplaySettingsExA, (FARPROC)extChangeDisplaySettingsExA},
-	{HOOK_HOT_CANDIDATE, 0, "ChangeDisplaySettingsW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsW, (FARPROC)extChangeDisplaySettingsW}, // ref. by Knights of Honor
-	{HOOK_HOT_CANDIDATE, 0, "ChangeDisplaySettingsExW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsExW, (FARPROC)extChangeDisplaySettingsExW},
+	{HOOK_HOT_CANDIDATE, 0x25, "ChangeDisplaySettingsA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettingsA, (FARPROC)extChangeDisplaySettingsA},
+	{HOOK_HOT_CANDIDATE, 0x26, "ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsExA, (FARPROC *)&pChangeDisplaySettingsExA, (FARPROC)extChangeDisplaySettingsExA},
+	{HOOK_HOT_CANDIDATE, 0x28, "ChangeDisplaySettingsW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsW, (FARPROC)extChangeDisplaySettingsW}, // ref. by Knights of Honor
+	{HOOK_HOT_CANDIDATE, 0x27, "ChangeDisplaySettingsExW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsExW, (FARPROC)extChangeDisplaySettingsExW},
 	{HOOK_HOT_CANDIDATE, 0, "GetMonitorInfoA", (FARPROC)GetMonitorInfoA, (FARPROC *)&pGetMonitorInfoA, (FARPROC)extGetMonitorInfoA},
 	{HOOK_HOT_CANDIDATE, 0, "GetMonitorInfoW", (FARPROC)GetMonitorInfoW, (FARPROC *)&pGetMonitorInfoW, (FARPROC)extGetMonitorInfoW},
 	{HOOK_HOT_CANDIDATE, 0, "ShowCursor", (FARPROC)ShowCursor, (FARPROC *)&pShowCursor, (FARPROC)extShowCursor},
@@ -359,9 +359,9 @@ RECT ClipRegion;
 int LastCurPosX, LastCurPosY;
 
 extern GetDC_Type pGetDC;
-extern ReleaseDC_Type pReleaseDC;
+extern ReleaseDC_Type pReleaseDC1;
 //extern void FixWindowFrame(HWND);
-extern HRESULT WINAPI sBlt(char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
+extern HRESULT WINAPI sBlt(int, Blt_Type, char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
 
 LONG WINAPI MyChangeDisplaySettings(char *fname, BOOL WideChar, void *lpDevMode, DWORD dwflags)
 {

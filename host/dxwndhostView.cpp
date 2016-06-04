@@ -324,6 +324,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DisableDisableAltTab) t->flags7 |= DISABLEDISABLEALTTAB;
 	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
+	if(dlg->m_MinimalCaps) t->flags3 |= MINIMALCAPS;
 	if(dlg->m_SetZBufferBitDepths) t->flags6 |= SETZBUFFERBITDEPTHS;
 	if(dlg->m_ForcesSwapEffect) t->flags6 |= FORCESWAPEFFECT;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
@@ -558,6 +559,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DisableDisableAltTab = t->flags7 & DISABLEDISABLEALTTAB ? 1 : 0;
 	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
+	dlg->m_MinimalCaps = t->flags3 & MINIMALCAPS ? 1 : 0;
 	dlg->m_SetZBufferBitDepths = t->flags6 & SETZBUFFERBITDEPTHS ? 1 : 0;
 	dlg->m_ForcesSwapEffect = t->flags6 & FORCESWAPEFFECT ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;

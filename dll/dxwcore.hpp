@@ -366,6 +366,6 @@ typedef enum {
 	GDIMODE_SHAREDDC
 };
 
-typedef HRESULT (WINAPI *ColorConversion_Type)(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+typedef HRESULT (WINAPI *ColorConversion_Type)(int, LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
 extern ColorConversion_Type pColorConversion;
 extern void ToggleAcquiredDevices(BOOL);

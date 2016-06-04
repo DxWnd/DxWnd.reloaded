@@ -437,6 +437,7 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
 		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices7, (void **)&pEnumDevices7, "EnumDevices(7)");
 		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateDevice7, (void **)&pCreateDevice7, "CreateDevice(D3D7)");
+		SetHook((void *)(**(DWORD **)lplpdd +  24), extEnumZBufferFormats, (void **)&pEnumZBufferFormats, "EnumZBufferFormats(D3D3)");
 		break;
 	}
 } 

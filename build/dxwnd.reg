@@ -1,0 +1,14 @@
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games\Golf '98]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games\Golf '98\Version 1.0 Demo]
+"AppPath"="D:\\Games\\MSGolf98\\MSGOLF98"
+"InstallType"="1"
+"InstallPath"="D:\\Games\\MSGolf98\\MSGOLF98\\"
+"CDPath"="D:\\Games\\MSGolf98\\MSGOLF98"
+"Launched"="1"
+"PID"=""
+"Path"="D:\\Games\\MSGolf98\\MSGOLF98"
+"VersionType"="TrialVersion"
+"InstalledGroup"="1"
+"LangID"=dword:00000009

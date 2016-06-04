@@ -15,8 +15,8 @@ BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 LPVOID WINAPI extVirtualAlloc(LPVOID, SIZE_T, DWORD, DWORD);
 UINT WINAPI extWinExec(LPCSTR, UINT);
 
-extern HRESULT WINAPI extDirectDrawEnumerate(LPDDENUMCALLBACK, LPVOID);
-extern HRESULT WINAPI extDirectDrawEnumerateEx(LPDDENUMCALLBACKEX, LPVOID, DWORD);
+extern HRESULT WINAPI extDirectDrawEnumerateA(LPDDENUMCALLBACK, LPVOID);
+extern HRESULT WINAPI extDirectDrawEnumerateExA(LPDDENUMCALLBACKEX, LPVOID, DWORD);
 
 typedef LPVOID (WINAPI *VirtualAlloc_Type)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, 
@@ -151,8 +151,8 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	return NULL;
 }
 
-extern DirectDrawEnumerate_Type pDirectDrawEnumerate;
-extern DirectDrawEnumerateEx_Type pDirectDrawEnumerateEx;
+extern DirectDrawEnumerateA_Type pDirectDrawEnumerateA;
+extern DirectDrawEnumerateExA_Type pDirectDrawEnumerateExA;
 extern void HookModule(HMODULE, int);
 
 int WINAPI extIsDebuggerPresent(void)
@@ -666,26 +666,26 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		switch(idx){
 		case SYSLIBIDX_DIRECTDRAW:
 			switch((DWORD)proc){
-			case 0x0008: // DirectDrawCreate
-				pDirectDrawCreate=(DirectDrawCreate_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreate);
-				return (FARPROC)extDirectDrawCreate;
-				break;
-			case 0x000A: // DirectDrawCreateEx
-				pDirectDrawCreateEx=(DirectDrawCreateEx_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreateEx);
-				return (FARPROC)extDirectDrawCreateEx;
-				break;
-			case 0x000B: // DirectDrawEnumerateA
-				pDirectDrawEnumerate=(DirectDrawEnumerate_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerate);
-				return (FARPROC)extDirectDrawEnumerate;
-				break;
-			case 0x000C: // DirectDrawEnumerateExA
-				pDirectDrawEnumerateEx=(DirectDrawEnumerateEx_Type)(*pGetProcAddress)(hModule, proc);
-				OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerateEx);
-				return (FARPROC)extDirectDrawEnumerateEx;
-				break;
+				case 0x0008: // DirectDrawCreate
+					pDirectDrawCreate=(DirectDrawCreate_Type)(*pGetProcAddress)(hModule, proc);
+					OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreate);
+					return (FARPROC)extDirectDrawCreate;
+					break;
+				case 0x000A: // DirectDrawCreateEx
+					pDirectDrawCreateEx=(DirectDrawCreateEx_Type)(*pGetProcAddress)(hModule, proc);
+					OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), pDirectDrawCreateEx);
+					return (FARPROC)extDirectDrawCreateEx;
+					break;
+				case 0x000B: // DirectDrawEnumerateA
+					pDirectDrawEnumerateA=(DirectDrawEnumerateA_Type)(*pGetProcAddress)(hModule, proc);
+					OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerateA);
+					return (FARPROC)extDirectDrawEnumerateA;
+					break;
+				case 0x000C: // DirectDrawEnumerateExA
+					pDirectDrawEnumerateExA=(DirectDrawEnumerateExA_Type)(*pGetProcAddress)(hModule, proc);
+					OutTraceP("GetProcAddress: hooking proc=%s at addr=%x\n", proc, pDirectDrawEnumerateExA);
+					return (FARPROC)extDirectDrawEnumerateExA;
+					break;
 			}
 			break;
 		case SYSLIBIDX_USER32:

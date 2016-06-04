@@ -97,7 +97,7 @@
 #define GDIEMULATEDC		0x00008000 // Map GDI/user32 calls to primary to a memory surface to be stretch-blitted to the primary
 #define FULLSCREENONLY		0x00010000 // assume that the program is always in fullscreen mode
 #define FONTBYPASS			0x00020000 // bypass font unsupported API
-//#define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
+#define MINIMALCAPS			0x00040000 // Simulate minimal HW caps (copied from VMWare virtual screen)
 #define DEFAULTMESSAGES		0x00080000 // peocess  offending messages that are typical of a window with default action
 #define BUFFEREDIOFIX		0x00100000 // fix buffered IO incompatibilities between pre-Win98 and post-WinNT
 #define FILTERMESSAGES		0x00200000 // ignore offending messages that are typical of a window and are hot handled by a fullscreeen app

@@ -9,8 +9,8 @@
 #include "resource.h"
 #include "hddraw.h"
 #include "d3d9.h"
-extern GetDC_Type pGetDC;
-extern ReleaseDC_Type pReleaseDC;
+extern GetDC_Type pGetDCMethod();
+extern ReleaseDC_Type pReleaseDC1;
 extern HandleDDThreadLock_Type pReleaseDDThreadLock;
 
 /* ------------------------------------------------------------------ */
@@ -963,7 +963,7 @@ void dxwCore::ScreenRefresh(void)
 	#define DXWREFRESHINTERVAL 20
 
 	LPDIRECTDRAWSURFACE lpDDSPrim;
-	extern HRESULT WINAPI extBlt(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx);
+	extern HRESULT WINAPI extBlt(int, Blt_Type, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX);
 
 	static int t = -1;
 	if (t == -1)
@@ -975,7 +975,9 @@ void dxwCore::ScreenRefresh(void)
 
 	// if not too early, refresh primary surface ....
 	lpDDSPrim=dxwss.GetPrimarySurface();
-	if (lpDDSPrim) extBlt(lpDDSPrim, NULL, lpDDSPrim, NULL, 0, NULL);
+	extern Blt_Type pBltMethod();
+	extern int lpddsHookedVersion();
+	if (lpDDSPrim) extBlt(lpddsHookedVersion(), pBltMethod(), lpDDSPrim, NULL, lpDDSPrim, NULL, 0, NULL); 
 
 	// v2.02.44 - used for what? Commenting out seems to fix the palette update glitches  
 	// and make the "Palette updates don't blit" option useless....
@@ -1309,13 +1311,13 @@ void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
 {
 	typedef HRESULT (WINAPI *GetDC_Type) (LPDIRECTDRAWSURFACE, HDC FAR *);
 	typedef HRESULT (WINAPI *ReleaseDC_Type)(LPDIRECTDRAWSURFACE, HDC);
-	extern GetDC_Type pGetDC;
-	extern ReleaseDC_Type pReleaseDC;
+	extern GetDC_Type pGetDCMethod();
+	extern ReleaseDC_Type pReleaseDCMethod();
 	if (MustShowOverlay) {
 		HDC hdc; // the working dc
 		int h, w;
 		if(!lpdds) return;
-		if (FAILED((*pGetDC)(lpdds, &hdc))) return;
+		if (FAILED((*pGetDCMethod())(lpdds, &hdc))) return; 
 		w = this->GetScreenWidth();
 		h = this->GetScreenHeight();
 		if(this->dwFlags4 & BILINEAR2XFILTER) {
@@ -1323,7 +1325,7 @@ void dxwCore::ShowOverlay(LPDIRECTDRAWSURFACE lpdds)
 			h <<=1;
 		}
 		this->ShowOverlay(hdc, w, h);
-		(*pReleaseDC)(lpdds, hdc);
+		(*pReleaseDCMethod())(lpdds, hdc);
 	}
 }
 
@@ -1674,6 +1676,7 @@ BOOL dxwCore::IsVirtual(HDC hdc)
 
 HDC dxwCore::AcquireSharedDC(HWND hwnd)
 {
+#if 0
 	extern HDC hFlippedDC;
 	LPDIRECTDRAWSURFACE lpDDSPrim;
 	lpDDSPrim = dxwss.GetPrimarySurface();
@@ -1704,6 +1707,8 @@ HDC dxwCore::AcquireSharedDC(HWND hwnd)
 
 	OutTraceDW("AcquireSharedDC: remapping flipped GDI lpDDSPrim=%x hdc=%x\n", lpDDSPrim, hFlippedDC);
 	return hFlippedDC;
+#endif
+	return 0;
 }
 
 BOOL dxwCore::ReleaseSharedDC(HWND hwnd, HDC hDC)
@@ -1713,7 +1718,7 @@ BOOL dxwCore::ReleaseSharedDC(HWND hwnd, HDC hDC)
 	lpDDSPrim = dxwss.GetPrimarySurface();
 	if(!lpDDSPrim) return(TRUE);
 	OutTraceDW("GDI.ReleaseDC: releasing flipped GDI hdc=%x\n", hDC);
-	ret=(*pReleaseDC)(dxwss.GetPrimarySurface(), hDC);
+	ret=(*pReleaseDC1)(dxwss.GetPrimarySurface(), hDC);
 	if (!(hwnd == dxw.GethWnd())) {
 		POINT father, child, offset;
 		RECT rect;

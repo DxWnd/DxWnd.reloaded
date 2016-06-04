@@ -18,10 +18,9 @@
 #define _Warn(s) 
 #endif
 
-
-extern ReleaseDC_Type pReleaseDC;
 extern HandleDDThreadLock_Type pReleaseDDThreadLock;
-extern GetDC_Type pGetDC;
+extern GetDC_Type pGetDCMethod();
+extern ReleaseDC_Type pReleaseDCMethod();
 
 /*---------------------------------------------------------------------------------+
 |                                                                                  |
@@ -56,8 +55,6 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc)
 {
 	HRESULT res;
 	extern HandleDDThreadLock_Type pReleaseDDThreadLock;
-	extern GetDC_Type pGetDC;
-	extern ReleaseDC_Type pReleaseDC;
 	extern void *lpD3DActiveDevice;
 
 	OutTraceB("dxwSDC::GetPrimaryDC: hdc=%x\n", hdc);
@@ -67,12 +64,12 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc)
 	lpDDSPrimary = dxwss.GetPrimarySurface();
 	if (lpDDSPrimary) {
 		if(pReleaseDDThreadLock)(*pReleaseDDThreadLock)();
-		res=((*pGetDC)(lpDDSPrimary, &PrimaryDC));
+		res=((*pGetDCMethod())(lpDDSPrimary, &PrimaryDC));
 		while((PrimaryDC == NULL) && lpDDSPrimary) { 
 			OutTraceB("dxwSDC::GetPrimaryDC: found primary surface with no DC, unref lpdds=%x\n", lpDDSPrimary);
 			dxwss.UnrefSurface(lpDDSPrimary);
 			lpDDSPrimary = dxwss.GetPrimarySurface();
-			if (lpDDSPrimary) (*pGetDC)(lpDDSPrimary, &PrimaryDC);
+			if (lpDDSPrimary) (*pGetDCMethod())(lpDDSPrimary, &PrimaryDC);
 		}
 		if (!PrimaryDC) {
 			_Warn("No primary DC");
@@ -219,7 +216,6 @@ HDC	dxwSDC::GetHdc(void)
 
 BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen, int XDest, int YDest, int nDestWidth, int nDestHeight)
 {
-	extern ReleaseDC_Type pReleaseDC;
 	extern Unlock1_Type pUnlock1;
 	BOOL ret;
 	HRESULT res;
@@ -250,7 +246,7 @@ BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen, int XDest, int YDest, int 
 				if(!ret || (ret==GDI_ERROR)) {
 					OutTraceE("dxwSDC::PutPrimaryDC: BitBlt ERROR ret=%x err=%d\n", ret, GetLastError()); 
 				}
-				res=(*pReleaseDC)(lpDDSPrimary, PrimaryDC);
+				res=(*pReleaseDCMethod())(lpDDSPrimary, PrimaryDC);
 				if(res){
 					OutTraceE("dxwSDC::PutPrimaryDC: ReleaseDC ERROR res=%x\n", res); 
 				}
@@ -284,7 +280,7 @@ BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen, int XDest, int YDest, int 
 	else {
 		switch(VirtualSurfaceType){
 			case VIRTUAL_ON_DDRAW: 
-				res=(*pReleaseDC)(lpDDSPrimary, PrimaryDC);
+				res=(*pReleaseDCMethod())(lpDDSPrimary, PrimaryDC);
 				if(res){
 					OutTraceE("dxwSDC::PutPrimaryDC: ReleaseDC ERROR res=%x\n", res); 
 				}

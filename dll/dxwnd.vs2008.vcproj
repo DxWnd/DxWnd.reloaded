@@ -31,7 +31,7 @@
 			<Tool
 				Name="VCCustomBuildTool"
 				Description="embed manifest"
-				CommandLine="mt.exe -nologo -manifest dxwnd.dll.manifest -outputresource:&quot;../Debug/dxwnd.dll;#1"
+				CommandLine="mt.exe -nologo -manifest dxwnd.dll.manifest -outputresource:&quot;../Debug/dxwnd.dll;#1&#x0D;&#x0A;"
 				Outputs="manifest.out.txt"
 			/>
 			<Tool
@@ -135,7 +135,7 @@
 			<Tool
 				Name="VCCustomBuildTool"
 				Description="embed manifest"
-				CommandLine="mt.exe -nologo -manifest dxwnd.dll.manifest -outputresource:&quot;../Release/dxwnd.dll;#1"
+				CommandLine="mt.exe -nologo -manifest dxwnd.dll.manifest -outputresource:&quot;../Release/dxwnd.dll;#1&#x0D;&#x0A;"
 				Outputs="manifest.out.txt"
 			/>
 			<Tool
@@ -447,6 +447,10 @@
 			</File>
 			<File
 				RelativePath=".\kernel32.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\mincaps.cpp"
 				>
 			</File>
 			<File

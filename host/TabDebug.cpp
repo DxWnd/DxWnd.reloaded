@@ -47,6 +47,8 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HOTPATCHALWAYS, cTarget->m_HotPatchAlways);
 	DDX_Check(pDX, IDC_FREEZEINJECTEDSON, cTarget->m_FreezeInjectedSon);
 	DDX_Check(pDX, IDC_STRESSRESOURCES, cTarget->m_StressResources);
+	DDX_Check(pDX, IDC_FULLRECTBLT, cTarget->m_FullRectBlt);
+	DDX_Check(pDX, IDC_CENTERTOWIN, cTarget->m_CenterToWin);
 //	DDX_Check(pDX, IDC_NOSYSTEMMEMORY, cTarget->m_NoSystemMemory);
 }
 

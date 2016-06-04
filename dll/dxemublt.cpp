@@ -11,8 +11,8 @@ typedef HRESULT (WINAPI *Lock_Type)(LPDIRECTDRAWSURFACE, LPRECT, LPDDSURFACEDESC
 typedef HRESULT (WINAPI *Unlock4_Type)(LPDIRECTDRAWSURFACE, LPRECT);
 typedef HRESULT (WINAPI *Unlock1_Type)(LPDIRECTDRAWSURFACE, LPVOID);
 
-extern Lock_Type pLock;
-extern Unlock4_Type pUnlockMethod(LPDIRECTDRAWSURFACE);
+extern Lock_Type pLockMethod();
+extern Unlock4_Type pUnlockMethod();
 
 extern DWORD PaletteEntries[256];
 extern DWORD *Palette16BPP;
@@ -134,7 +134,7 @@ static void SetPalette16BPP()
 	}
 }
 
-static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_8_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -148,27 +148,27 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt8_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
 		}
@@ -198,14 +198,14 @@ static HRESULT WINAPI EmuBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI BilinearBlt_8_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -224,27 +224,27 @@ static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 	lpdestrect->bottom <<= 1;
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("BilBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("BilBlt8_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("BilBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
 		}
@@ -297,14 +297,14 @@ static HRESULT WINAPI BilinearBlt_8_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, 2*w, 2*h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("BilBlt8_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_16_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -318,27 +318,27 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt16_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
@@ -371,14 +371,14 @@ static HRESULT WINAPI EmuBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI Deinterlace_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI Deinterlace_16_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -392,27 +392,27 @@ static HRESULT WINAPI Deinterlace_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt16_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
@@ -472,14 +472,14 @@ static HRESULT WINAPI Deinterlace_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI BilinearBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI BilinearBlt_16_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -498,27 +498,27 @@ static HRESULT WINAPI BilinearBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 	lpdestrect->bottom <<= 1;
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("BilBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("BilBlt16_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("BilBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
@@ -573,14 +573,14 @@ static HRESULT WINAPI BilinearBlt_16_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, 2*w, 2*h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("BilBlt16_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_24_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -594,27 +594,27 @@ static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt24_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt24_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt24_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
@@ -647,9 +647,9 @@ static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt24_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt24_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
@@ -657,7 +657,7 @@ static HRESULT WINAPI EmuBlt_24_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 // note: better avoid direct blitting in case of identical color depth (e.g. EmuBlt_32_to_32, EmuBlt_16_to_16)
 // because it does not work between complex surfaces when DDSDCAPS_SYSTEMMEMORY is not omogeneous!
 
-static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_32_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	DWORD x, y, w, h;
@@ -671,27 +671,27 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt32_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return res;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
@@ -721,14 +721,14 @@ static HRESULT WINAPI EmuBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst,lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst,lpdestrect);
 	if (res) OutTraceE("EmuBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_8_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -742,27 +742,27 @@ static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt8_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
 		}
@@ -792,14 +792,14 @@ static HRESULT WINAPI EmuBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdest
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt8_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt8_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI BilinearBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI BilinearBlt_8_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -820,9 +820,9 @@ static HRESULT WINAPI BilinearBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 	lpdestrect->bottom <<= 1;
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("BilBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
@@ -830,19 +830,19 @@ static HRESULT WINAPI BilinearBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 	Melt16 = (ddsd_dst.ddpfPixelFormat.dwGBitMask == 0x3E0) ? Melt16_555 : Melt16_565;
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("BilBlt8_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("BilBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
 		}
@@ -894,14 +894,14 @@ static HRESULT WINAPI BilinearBlt_8_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT l
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, 2*w, 2*h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt8_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("BilBlt8_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI EmuBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_16_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 #if 0
@@ -919,27 +919,27 @@ static HRESULT WINAPI EmuBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt16_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt16_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt16_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
 		}
@@ -999,14 +999,14 @@ static HRESULT WINAPI EmuBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt16_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt16_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI BilinearBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI BilinearBlt_16_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -1027,9 +1027,9 @@ static HRESULT WINAPI BilinearBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 	lpdestrect->bottom <<= 1;
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("BilBlt16_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
@@ -1037,19 +1037,19 @@ static HRESULT WINAPI BilinearBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 	Melt16 = (ddsd_dst.ddpfPixelFormat.dwGBitMask == 0x3E0) ? Melt16_555 : Melt16_565;
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("BilBlt16_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("BilBlt16_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
@@ -1102,15 +1102,15 @@ static HRESULT WINAPI BilinearBlt_16_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect16((SHORT *)dest0, 2*w, 2*h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt16_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("BilBlt16_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
 
-static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_24_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -1124,27 +1124,27 @@ static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt24_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt24_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt24_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
 		}
@@ -1174,14 +1174,14 @@ static HRESULT WINAPI EmuBlt_24_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt24_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt24_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI EmuBlt_32_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_32_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -1195,27 +1195,27 @@ static HRESULT WINAPI EmuBlt_32_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 	h = lpdestrect->bottom - lpdestrect->top; 
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt32_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("EmuBlt32_16: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("EmuBlt32_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return 0;
 		}
@@ -1245,14 +1245,14 @@ static HRESULT WINAPI EmuBlt_32_to_16(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdes
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect16(dest0, w, h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("EmuBlt32_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("EmuBlt32_16: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI BilinearBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI BilinearBlt_32_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	HRESULT res;
@@ -1271,27 +1271,27 @@ static HRESULT WINAPI BilinearBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 	lpdestrect->bottom <<= 1;
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
-	ddsd_dst.dwSize = Set_dwSize_From_Surface(lpddsdst);
+	ddsd_dst.dwSize = Set_dwSize_From_Surface();
 	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
-	if(res=(*pLock)(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod())(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("BilBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;
 	}
 
 	memset(&ddsd_src,0,sizeof(DDSURFACEDESC2));
-	ddsd_src.dwSize = Set_dwSize_From_Surface(lpddssrc);
+	ddsd_src.dwSize = Set_dwSize_From_Surface();
 	ddsd_src.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
 	if (lpsurface) { // already locked, just get info ....
 		if(res=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd_src)) {
 			OutTraceE("BilBlt32_32: GetSurfaceDesc ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
-			(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+			(*pUnlockMethod())(lpddsdst, lpdestrect);
+			(*pUnlockMethod())(lpddssrc, lpsrcrect);
 			return 0;
 		}
 	}
 	else {
-		if(res=(*pLock)(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(lpddsdst))(lpddsdst,0);
+		if(res=(*pLockMethod())(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
+			(*pUnlockMethod())(lpddsdst,0);
 			OutTraceE("BilBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			return res;
 		}
@@ -1347,14 +1347,14 @@ static HRESULT WINAPI BilinearBlt_32_to_32(LPDIRECTDRAWSURFACE lpddsdst, LPRECT 
 
 	if(dxw.dwFlags3 & MARKBLIT) MarkRect32(dest0, 2*w, 2*h, destpitch);
 
-	res=(*pUnlockMethod(lpddsdst))(lpddsdst, lpdestrect);
+	res=(*pUnlockMethod())(lpddsdst, lpdestrect);
 	if (res) OutTraceE("BilBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddsdst, res, ExplainDDError(res), __LINE__);
-	res=(*pUnlockMethod(lpddssrc))(lpddssrc, lpsrcrect);
+	res=(*pUnlockMethod())(lpddssrc, lpsrcrect);
 	if (res) OutTraceE("BilBlt32_32: Unlock ERROR dds=%x res=%x(%s) at %d\n", lpddssrc, res, ExplainDDError(res), __LINE__);
 	return res;
 }
 
-static HRESULT WINAPI EmuBlt_Null(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
+static HRESULT WINAPI EmuBlt_Null(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrect,
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPVOID lpsurface)
 {
 	char *sMsg="EmuBlt: undefined color depth\n";
@@ -1367,7 +1367,7 @@ static HRESULT WINAPI EmuBlt_Null(LPDIRECTDRAWSURFACE lpddsdst, LPRECT lpdestrec
 // exported methods
 //--------------------------------------------------------------------------------------------//
 
-void SetBltTransformations()
+void SetBltTransformations(int dxversion)
 {
 	pPrimaryBlt = PrimaryBlt;
 	if(dxw.dwFlags5 & AEROBOOST) pPrimaryBlt = PrimaryStretchBlt;
@@ -1376,9 +1376,9 @@ void SetBltTransformations()
 	if(dxw.dwFlags5 & CENTERTOWIN) pPrimaryBlt = PrimaryFastBlt; 
 	if(dxw.dwFlags5 & NOBLT) pPrimaryBlt = PrimaryNoBlt; // debug opt
 
-	extern HRESULT WINAPI ColorConversionDDRAW(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
-	extern HRESULT WINAPI ColorConversionGDI(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
-	extern HRESULT WINAPI ColorConversionEmulated(LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+	extern HRESULT WINAPI ColorConversionDDRAW(int, LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+	extern HRESULT WINAPI ColorConversionGDI(int, LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
+	extern HRESULT WINAPI ColorConversionEmulated(int, LPDIRECTDRAWSURFACE, RECT, LPDIRECTDRAWSURFACE *);
 	pColorConversion = ColorConversionDDRAW; // default for no emulation mode
 	if(dxw.dwFlags1 & EMULATESURFACE) {
 		pColorConversion = ColorConversionEmulated; // default for emulation mode
