@@ -10,9 +10,9 @@
 #include "msvfwhook.h"
 #undef DXWDECLARATIONS
 
-typedef DWORD (WINAPI *ICDrawBegin_Type)(HIC, DWORD, HPALETTE, HWND,  HDC, int, int, int, int, LPBITMAPINFOHEADER, int, int, int, int, DWORD, DWORD);
+typedef DWORD (WINAPIV *ICDrawBegin_Type)(HIC, DWORD, HPALETTE, HWND,  HDC, int, int, int, int, LPBITMAPINFOHEADER, int, int, int, int, DWORD, DWORD);
 ICDrawBegin_Type pICDrawBegin = NULL;
-DWORD WINAPI extICDrawBegin(HIC, DWORD, HPALETTE, HWND,  HDC, int, int, int, int, LPBITMAPINFOHEADER, int, int, int, int, DWORD, DWORD);
+DWORD WINAPIV extICDrawBegin(HIC, DWORD, HPALETTE, HWND,  HDC, int, int, int, int, LPBITMAPINFOHEADER, int, int, int, int, DWORD, DWORD);
 typedef BOOL (WINAPI *DrawDibDraw_Type)(HDRAWDIB, HDC, int, int, int, int, LPBITMAPINFOHEADER, LPVOID, int, int, int, int, UINT);
 DrawDibDraw_Type pDrawDibDraw = NULL;
 BOOL WINAPI extDrawDibDraw(HDRAWDIB, HDC, int, int, int, int, LPBITMAPINFOHEADER, LPVOID, int, int, int, int, UINT);
@@ -34,7 +34,7 @@ static HookEntryEx_Type Hooks[]={
 	//{HOOK_HOT_CANDIDATE, 0, "ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
 	{HOOK_HOT_CANDIDATE, 0, "MCIWndCreateA", (FARPROC)NULL, (FARPROC *)&pMCIWndCreateA, (FARPROC)extMCIWndCreateA}, // "Man in Black" - beware: this is NOT STDCALL!!!
 	{HOOK_HOT_CANDIDATE, 0, "ICGetDisplayFormat", (FARPROC)NULL, (FARPROC *)&pICGetDisplayFormat, (FARPROC)extICGetDisplayFormat}, // "Man in Black" - beware: this is NOT STDCALL!!!
-	{HOOK_HOT_CANDIDATE, 0, "ICDrawBegin", (FARPROC)NULL, (FARPROC *)&pICDrawBegin, (FARPROC)extICDrawBegin}, 
+	{HOOK_HOT_CANDIDATE, 0, "ICDrawBegin", (FARPROC)NULL, (FARPROC *)&pICDrawBegin, (FARPROC)extICDrawBegin}, // AoE demo: not a STDCALL !!
 	{HOOK_HOT_CANDIDATE, 0, "DrawDibDraw", (FARPROC)NULL, (FARPROC *)&pDrawDibDraw, (FARPROC)extDrawDibDraw}, 
 	{HOOK_HOT_CANDIDATE, 0, "DrawDibBegin", (FARPROC)NULL, (FARPROC *)&pDrawDibBegin, (FARPROC)extDrawDibBegin}, 
 	{HOOK_HOT_CANDIDATE, 0, "DrawDibStart", (FARPROC)NULL, (FARPROC *)&pDrawDibStart, (FARPROC)extDrawDibStart}, 
@@ -237,7 +237,7 @@ HIC WINAPI extICGetDisplayFormat(HIC hic, LPBITMAPINFOHEADER lpbiIn, LPBITMAPINF
 
 	return ret;
 }
-DWORD WINAPI extICDrawBegin(HIC hic, DWORD dwFlags, HPALETTE hpal, HWND hwnd,  HDC hdc, int xDst, int yDst, int dxDst, int dyDst, LPBITMAPINFOHEADER lpbi, int xSrc, int ySrc, int dxSrc, int dySrc, DWORD dwRate, DWORD dwScale)
+DWORD WINAPIV extICDrawBegin(HIC hic, DWORD dwFlags, HPALETTE hpal, HWND hwnd,  HDC hdc, int xDst, int yDst, int dxDst, int dyDst, LPBITMAPINFOHEADER lpbi, int xSrc, int ySrc, int dxSrc, int dySrc, DWORD dwRate, DWORD dwScale)
 {
 	OutTrace("ICDrawBegin\n");
 
@@ -253,6 +253,7 @@ BOOL WINAPI extDrawDibDraw(HDRAWDIB hdd, HDC hdc, int xDst, int yDst, int dxDst,
 	ret = (*pDrawDibDraw)(hdd, hdc, xDst, yDst, dxDst, dyDst, lpbi, lpBits, xSrc, ySrc, dxSrc, dySrc, wFlags);
 	return ret;
 }
+
 BOOL WINAPI extDrawDibBegin(HDRAWDIB hdd, HDC hdc, int dxDest, int dyDest, LPBITMAPINFOHEADER lpbi, int dxSrc, int dySrc, UINT wFlags)
 {
 	// Reah game transitions

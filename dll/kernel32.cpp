@@ -521,12 +521,25 @@ LoadLibrary (hooking) related APIs
 
 HMODULE SysLibs[SYSLIBIDX_MAX];
 
-HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags, char *api)
+HMODULE WINAPI LoadLibraryExWrapper(LPVOID lpFileName, BOOL IsWidechar, HANDLE hFile, DWORD dwFlags, char *api)
 {
 	HMODULE libhandle;
 	int idx;
+	// recursion control: this is necessary so far only on WinXP while other OS like Win7,8,10 don't get into 
+	// recursion problems, but in any case better to leave it here, you never know ....
+	static BOOL Recursed = FALSE;
 
-	libhandle=(*pLoadLibraryExA)(lpFileName, hFile, dwFlags);
+	if(IsWidechar){
+		OutTraceB("%s: file=%ls flags=%x\n", api, lpFileName, dwFlags);
+		libhandle=(*pLoadLibraryExW)((LPCWSTR)lpFileName, hFile, dwFlags);
+	}
+	else{
+		OutTraceB("%s: file=%s flags=%x\n", api, lpFileName, dwFlags);
+		libhandle=(*pLoadLibraryExA)((LPCTSTR)lpFileName, hFile, dwFlags);
+	}
+
+	if(Recursed) return libhandle;
+	Recursed = TRUE;
 
 	// found in "The Rage" (1996): loading a module with relative path after a SetCurrentDirectory may fail, though
 	// the module is present in the current directory folder. To fix this problem in case of failure it is possible 
@@ -534,14 +547,23 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 	if(!libhandle){
 		char lpBuffer[MAX_PATH+1];
 		GetCurrentDirectory(MAX_PATH, lpBuffer);
+		if(IsWidechar)
+			sprintf_s(lpBuffer, MAX_PATH, "%s/%ls", lpBuffer, lpFileName);
+		else
 		sprintf_s(lpBuffer, MAX_PATH, "%s/%s", lpBuffer, lpFileName);
-		OutTrace("GHODEBUG: fullpath=\"%s\"\n", lpBuffer);
+
+		OutTrace("LoadLibrary: RETRY fullpath=\"%s\"\n", lpBuffer);
 		libhandle=(*pLoadLibraryExA)(lpBuffer, hFile, dwFlags);
 	}
 
+	if(IsWidechar)
+		OutTraceDW("%s: FileName=%ls hFile=%x Flags=%x(%s) hmodule=%x\n", api, lpFileName, hFile, dwFlags, ExplainLoadLibFlags(dwFlags), libhandle);
+	else
 	OutTraceDW("%s: FileName=%s hFile=%x Flags=%x(%s) hmodule=%x\n", api, lpFileName, hFile, dwFlags, ExplainLoadLibFlags(dwFlags), libhandle);
+
 	if(!libhandle){
 		OutTraceE("%s: ERROR FileName=%s err=%d\n", api, lpFileName, GetLastError());
+		Recursed = FALSE;
 		return libhandle;
 	}
 
@@ -549,46 +571,45 @@ HMODULE WINAPI LoadLibraryExWrapper(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFl
 	// there's no symbol map, then itìs no possible to hook function calls.
 	if(dwFlags & (LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE|LOAD_LIBRARY_AS_DATAFILE)) return libhandle;
 
+	char *AnsiFileName;
+	if(IsWidechar){	
+		static char sFileName[256+1];
+		wcstombs_s(NULL, sFileName, (LPCWSTR)lpFileName, 80);
+		AnsiFileName = sFileName;
+	}
+	else
+		AnsiFileName = (char *)lpFileName;
+
 	idx=dxw.GetDLLIndex((char *)lpFileName);
 	if(idx != -1) {
-		OutTraceDW("%s: push idx=%x library=%s hdl=%x\n", api, idx, lpFileName, libhandle);
+		OutTraceDW("%s: push idx=%x library=%s hdl=%x\n", api, idx, AnsiFileName, libhandle);
 		SysLibs[idx]=libhandle;
 	}
 	// handle custom OpenGL library
-	if(!lstrcmpi(lpFileName,dxw.CustomOpenGLLib)){
+	if(!lstrcmpi(AnsiFileName,dxw.CustomOpenGLLib)){
 		idx=SYSLIBIDX_OPENGL;
 		SysLibs[idx]=libhandle;
 	}
 	if (idx == -1) {
-		OutTraceDW("%s: hooking lib=\"%s\" handle=%x\n", api, lpFileName, libhandle);
+		OutTraceDW("%s: hooking lib=\"%s\" handle=%x\n", api, AnsiFileName, libhandle);
 		HookModule(libhandle, 0);
 	}
+	
+	Recursed = FALSE;
 	return libhandle;
 }
 
 HMODULE WINAPI extLoadLibraryA(LPCTSTR lpFileName)
-{
-	return LoadLibraryExWrapper(lpFileName, NULL, 0, "LoadLibraryA");
-}
+{ return LoadLibraryExWrapper((LPVOID)lpFileName, FALSE, NULL, 0, "LoadLibraryA"); }
 
 HMODULE WINAPI extLoadLibraryW(LPCWSTR lpFileName)
-{
-	char sFileName[256+1];
-	wcstombs_s(NULL, sFileName, lpFileName, 80);
-	return LoadLibraryExWrapper(sFileName, NULL, 0, "LoadLibraryW");;
-}
+{ return LoadLibraryExWrapper((LPVOID)lpFileName, TRUE, NULL, 0, "LoadLibraryW"); }
 
 HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags)
-{
-	return LoadLibraryExWrapper(lpFileName, hFile, dwFlags, "LoadLibraryExA");
-}
+{ return LoadLibraryExWrapper((LPVOID)lpFileName, FALSE, hFile, dwFlags, "LoadLibraryExA"); }
 
 HMODULE WINAPI extLoadLibraryExW(LPCWSTR lpFileName, HANDLE hFile, DWORD dwFlags)
-{
-	char sFileName[256+1];
-	wcstombs_s(NULL, sFileName, lpFileName, 80);
-	return LoadLibraryExWrapper(sFileName, hFile, dwFlags, "LoadLibraryExW");;
-}
+{ return LoadLibraryExWrapper((LPVOID)lpFileName, TRUE, hFile, dwFlags, "LoadLibraryExW"); }
 
 extern DirectDrawCreate_Type pDirectDrawCreate;
 extern DirectDrawCreateEx_Type pDirectDrawCreateEx;

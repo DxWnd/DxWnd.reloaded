@@ -302,6 +302,13 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 3: t->tflags |= (OUTTRACE|OUTSEPARATED); break;
 	}	
 
+	switch(dlg->m_WinMovementType){
+		case 0: break;
+		case 1: t->flags |= LOCKWINPOS; break;
+		case 2: t->flags |= LOCKWINPOS; t->flags2 |= LOCKEDSIZE; break;
+		case 3: t->flags |= LOCKWINPOS; t->flags7 |= ANCHORED; break;
+	}
+
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
 	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
@@ -419,17 +426,15 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_GDIColorConv) t->flags5 |= GDICOLORCONV;
 	if(dlg->m_PreventMaximize) t->flags |= PREVENTMAXIMIZE;
 	if(dlg->m_ClientRemapping) t->flags |= CLIENTREMAPPING;
-	if(dlg->m_LockWinPos) t->flags |= LOCKWINPOS;
 	if(dlg->m_LockWinStyle) t->flags |= LOCKWINSTYLE;
 	if(dlg->m_FixParentWin) t->flags |= FIXPARENTWIN;
 	if(dlg->m_ModalStyle) t->flags2 |= MODALSTYLE;
 	if(dlg->m_KeepAspectRatio) t->flags2 |= KEEPASPECTRATIO;
 	if(dlg->m_ForceWinResize) t->flags2 |= FORCEWINRESIZE;
 	if(dlg->m_HideMultiMonitor) t->flags2 |= HIDEMULTIMONITOR;
-//	if(dlg->m_WallpaperMode) t->flags2 |= WALLPAPERMODE;
 	if(dlg->m_FixD3DFrame) t->flags3 |= FIXD3DFRAME;
 	if(dlg->m_NoWindowMove) t->flags3 |= NOWINDOWMOVE;
-	if(dlg->m_Force16BPP) t->flags3 |= FORCE16BPP;
+	//if(dlg->m_Force16BPP) t->flags3 |= FORCE16BPP;
 	if(dlg->m_HookChildWin) t->flags |= HOOKCHILDWIN;
 	if(dlg->m_MessageProc) t->flags |= MESSAGEPROC;
 	//if(dlg->m_NoMouseProc) t->flags6 |= NOMOUSEPROC;
@@ -589,6 +594,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->tflags & ERASELOGFILE)	dlg->m_LogMode = 1; 
 	if(t->tflags & OUTSEPARATED)	dlg->m_LogMode = 3;
 
+	dlg->m_WinMovementType = 0;
+	if(t->flags & LOCKWINPOS)		dlg->m_WinMovementType = 1;
+	if(t->flags2 & LOCKEDSIZE)		dlg->m_WinMovementType = 2;
+	if(t->flags7 & ANCHORED)		dlg->m_WinMovementType = 3;
+
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
 	dlg->m_EmulateRelMouse = t->flags6 & EMULATERELMOUSE ? 1 : 0;
@@ -706,17 +716,15 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_GDIColorConv = t->flags5 & GDICOLORCONV ? 1 : 0;
 	dlg->m_PreventMaximize = t->flags & PREVENTMAXIMIZE ? 1 : 0;
 	dlg->m_ClientRemapping = t->flags & CLIENTREMAPPING ? 1 : 0;
-	dlg->m_LockWinPos = t->flags & LOCKWINPOS ? 1 : 0;
 	dlg->m_LockWinStyle = t->flags & LOCKWINSTYLE ? 1 : 0;
 	dlg->m_FixParentWin = t->flags & FIXPARENTWIN ? 1 : 0;
 	dlg->m_ModalStyle = t->flags2 & MODALSTYLE ? 1 : 0;
 	dlg->m_KeepAspectRatio = t->flags2 & KEEPASPECTRATIO ? 1 : 0;
 	dlg->m_ForceWinResize = t->flags2 & FORCEWINRESIZE ? 1 : 0;
 	dlg->m_HideMultiMonitor = t->flags2 & HIDEMULTIMONITOR ? 1 : 0;
-	//dlg->m_WallpaperMode = t->flags2 & WALLPAPERMODE ? 1 : 0;
 	dlg->m_FixD3DFrame = t->flags3 & FIXD3DFRAME ? 1 : 0;
 	dlg->m_NoWindowMove = t->flags3 & NOWINDOWMOVE ? 1 : 0;
-	dlg->m_Force16BPP = t->flags3 & FORCE16BPP ? 1 : 0;
+	//dlg->m_Force16BPP = t->flags3 & FORCE16BPP ? 1 : 0;
 	dlg->m_HookChildWin = t->flags & HOOKCHILDWIN ? 1 : 0;
 	dlg->m_MessageProc = t->flags & MESSAGEPROC ? 1 : 0;
 	dlg->m_FixNCHITTEST = t->flags2 & FIXNCHITTEST ? 1 : 0;
@@ -2271,6 +2279,24 @@ void CDxwndhostView::OnClearAllLogs()
 	_unlink(FilePath);
 }
 
+DWORD WINAPI SilentUpdate(CSystemTray *Tray)
+{
+	int DxStatus;
+	int IdleCount;
+	IdleCount=0;
+	while (TRUE) {
+		// once a second ...
+		Sleep(1000);
+		DxStatus=GetHookStatus(NULL);
+		if (DxStatus != DXW_RUNNING){
+			IdleCount++;
+			if(IdleCount >= 2) exit(0);
+		}
+		else {
+			IdleCount=0;
+		}
+	}
+}
 
 DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 {
@@ -2359,6 +2385,8 @@ void CDxwndhostView::OnGoToTrayIcon()
 			"DxWnd", 
 			NIIF_INFO, 10)){
 			MessageBoxLang(DXW_STRING_TRAYFAIL, DXW_STRING_ERROR, MB_OK);
+			// error path: if can't create a system tray icon, transient logic must be silently placed here
+			if (gTransientMode) StatusThread= CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SilentUpdate, (LPVOID)NULL, 0, &dwThrdId);
 			return;
 		}
 		IconId=(menu->GetMenuState(ID_HOOK_START, MF_BYCOMMAND)==MF_CHECKED)?IDI_DXWAIT:IDI_DXIDLE;

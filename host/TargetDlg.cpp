@@ -174,17 +174,15 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_GDIColorConv = FALSE;
 	m_PreventMaximize = FALSE;
 	m_ClientRemapping = TRUE; // default true !!
-	m_LockWinPos = FALSE;
 	m_LockWinStyle = FALSE;
 	m_FixParentWin = FALSE;
 	m_ModalStyle = FALSE;
 	m_KeepAspectRatio = FALSE;
 	m_ForceWinResize = FALSE;
 	m_HideMultiMonitor = FALSE;
-	//m_WallpaperMode = FALSE;
 	m_FixD3DFrame = FALSE;
 	m_NoWindowMove = FALSE;
-	m_Force16BPP = FALSE;
+	//m_Force16BPP = FALSE;
 	m_HookChildWin = FALSE;
 	m_MessageProc = FALSE;
 	//m_NoMouseProc = FALSE;
@@ -250,6 +248,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_InitTS = 8;
 	m_SwapEffect = 0;
 	m_InjectionMode = 0;
+	m_WinMovementType = 0;
 	//}}AFX_DATA_INIT
 
 }

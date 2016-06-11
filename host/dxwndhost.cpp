@@ -64,6 +64,8 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 	// /e -- terminates (Ends) the active dxwnd session
 	// /r:<n> -- run the n-th game in configuration and terminate together with it
 	// /a -- auto-hide mode while a game is running
+	// /q -- quiet mode, no error/message dialog boxes
+
 	if(bFlag) {
 		CString sParam(lpszParam);
 		if (sParam.MakeLower() == "t"){

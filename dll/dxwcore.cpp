@@ -126,8 +126,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 		pTimeShifter = TimeShifterCoarse;
 		pTimeShifter64 = TimeShifter64Coarse;
 	}
-	iSizX = target->sizx;
-	iSizY = target->sizy;
+	iSiz0X = iSizX = target->sizx;
+	iSiz0Y = iSizY = target->sizy;
 	iPosX = target->posx;
 	iPosY = target->posy;
 	iMaxW = target->resw;
@@ -1013,6 +1013,8 @@ void dxwCore::ShowBanner(HWND hwnd)
 
 	hClientDC=(*pGDIGetDC)(hwnd); 
 	(*pGetClientRect)(hwnd, &client);
+	//(*pInvalidateRect)((*pGetDesktopWindow)(), NULL, FALSE); // invalidate full desktop, no erase.
+	(*pInvalidateRect)(0, NULL, FALSE); // invalidate full desktop, no erase.
 	(*pGDIBitBlt)(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
 
 	if(JustOnce || (dwFlags2 & NOBANNER)) return;

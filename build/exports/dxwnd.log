@@ -1,31 +1,6 @@
-OnRun idx=16 prog="F:\Games\Adrenix\Adrenix.exe"
+OnRun idx=7 prog="F:\Games\Warhammer 40K Rites Of War\RoW.exe"
 setwindowshook mode
-OnRun idx=17 prog="F:\Games\Adrenix\AdrenixD.exe"
+OnRun idx=7 prog="F:\Games\Warhammer 40K Rites Of War\RoW.exe"
 setwindowshook mode
-OnRun idx=16 prog="F:\Games\Adrenix\Adrenix.exe"
-checksafediscversion
-setwindowshook mode
-OnRun idx=16 prog="F:\Games\Adrenix\Adrenix.exe"
-setwindowshook mode
-OnRun idx=16 prog="F:\Games\Adrenix\Adrenix.exe"
-setwindowshook mode
-OnRun idx=18 prog="V:\ADRENIX.EXE"
-setwindowshook mode
-OnRun idx=19 prog="V:\ADRENIXD.EXE"
-setwindowshook mode
-OnRun idx=20 prog="V:\ADRHEAT.EXE"
-setwindowshook mode
-OnRun idx=21 prog="V:\ADRHEATD.EXE"
-setwindowshook mode
-OnRun idx=22 prog="V:\ADX_VID.EXE"
-setwindowshook mode
-OnRun idx=16 prog="F:\Games\Adrenix\Adrenix.exe"
-setwindowshook mode
-OnRun idx=17 prog="F:\Games\Adrenix\AdrenixD.exe"
-setwindowshook mode
-OnRun idx=17 prog="F:\Games\Adrenix\AdrenixD.exe"
-setwindowshook mode
-OnRun idx=16 prog="F:\Games\Adrenix\Adrenix.exe"
-setwindowshook mode
-OnRun idx=16 prog="F:\Games\Adrenix\Adrenix.exe"
+OnRun idx=7 prog="F:\Games\Warhammer 40K Rites Of War\RoW.exe"
 setwindowshook mode

@@ -410,6 +410,10 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
 		}
 		else{
+			if((dxw.dwFlags2 & LOCKEDSIZE) || (dxw.dwFlags7 & ANCHORED)){
+				iSizX = iSiz0X;
+				iSizY = iSiz0Y;
+			}
 			MaxX = iSizX;
 			MaxY = iSizY;
 		}

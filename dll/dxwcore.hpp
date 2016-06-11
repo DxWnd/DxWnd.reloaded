@@ -176,6 +176,8 @@ public: // simple data variables
 	long iPosY;
 	long iSizX;
 	long iSizY;
+	long iSiz0X;
+	long iSiz0Y;
 	long iMaxW;
 	long iMaxH;
 	int iRatioX;

@@ -78,7 +78,7 @@ static char *Flag2Names[32]={
 	"KEEPASPECTRATIO", "INIT8BPP", "FORCEWINRESIZE", "INIT16BPP",
 	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "INDEPENDENTREFRESH", "FIXNCHITTEST",
 	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
-	"TIMESTRETCH", "HOOKOPENGL", "-------", "SHOWHWCURSOR",
+	"TIMESTRETCH", "HOOKOPENGL", "LOCKEDSIZE", "SHOWHWCURSOR",
 	"GDISTRETCHED", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
 	"NOPALETTEUPDATE", "SUPPRESSIME", "NOBANNER", "WINDOWIZE",
 	"LIMITRESOURCES", "STARTDEBUG", "SETCOMPATIBILITY", "WIREFRAME",
@@ -136,7 +136,7 @@ static char *Flag7Names[32]={
 	"SSUPPRESSDIERRORS", "HOOKNORUN", "FIXBINDTEXTURE", "ENUM16BITMODES",
 	"SHAREDKEYBOARD", "HOOKNOUPDATE", "HOOKGLUT32", "INITIALRES",
 	"MAXIMUMRES", "LOCKCOLORDEPTH", "FIXSMACKLOOP", "FIXFREELIBRARY",
-	"", "", "", "",
+	"ANCHORED", "", "", "",
 };
 
 static char *Flag8Names[32]={
@@ -1616,7 +1616,7 @@ void HookLibraryEx(HMODULE hModule, HookEntryEx_Type *Hooks, char *DLLName)
 			((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED))) // force hot patch and not already hooked
 			&&
 			Hooks->StoreAddress){							 // and save ptr available
-			// Hot Patch - beware! This way yo're likely to hook unneeded libraries.
+			// Hot Patch - beware! This way you're likely to hook unneeded libraries.
 			if(!Hooks->OriginalAddress) {
 				if(!hDLL) {
 					hDLL = (*pLoadLibraryA)(DLLName);

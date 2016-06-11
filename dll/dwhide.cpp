@@ -41,15 +41,15 @@ void gShowHideTaskBar(BOOL bHide /*=FALSE*/)
 		// Code to Hide the System Task Bar
 		rectWorkArea.bottom += (rectTaskBar.bottom - rectTaskBar.top);
 		(*pSystemParametersInfoA)(SPI_SETWORKAREA, 0, (LPVOID)&rectWorkArea, 0);
-		ShowWindow(pWnd, SW_HIDE);
-		ShowWindow(pStart, SW_HIDE);
+		(*pShowWindow)(pWnd, SW_HIDE);
+		(*pShowWindow)(pStart, SW_HIDE);
 	}
 	else{
 		// Code to Show the System Task Bar
 		rectWorkArea.bottom -= (rectTaskBar.bottom - rectTaskBar.top);
 		(*pSystemParametersInfoA)(SPI_SETWORKAREA, 0, (LPVOID)&rectWorkArea, 0);
-		ShowWindow(pWnd, SW_SHOW);
-		ShowWindow(pStart, SW_SHOW);
+		(*pShowWindow)(pWnd, SW_SHOW);
+		(*pShowWindow)(pStart, SW_SHOW);
 	}
 }
 

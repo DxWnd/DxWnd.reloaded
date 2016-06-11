@@ -32,26 +32,24 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	// window management
 	DDX_Check(pDX, IDC_FIXWINFRAME, cTarget->m_FixWinFrame);
 	DDX_Check(pDX, IDC_PREVENTMAXIMIZE, cTarget->m_PreventMaximize);
-	DDX_Check(pDX, IDC_LOCKWINPOS, cTarget->m_LockWinPos);
 	DDX_Check(pDX, IDC_LOCKWINSTYLE, cTarget->m_LockWinStyle);
 	DDX_Check(pDX, IDC_FIXPARENTWIN, cTarget->m_FixParentWin);
 	DDX_Check(pDX, IDC_MODALSTYLE, cTarget->m_ModalStyle);
 	DDX_Check(pDX, IDC_FORCEWINRESIZE, cTarget->m_ForceWinResize);
 	DDX_Check(pDX, IDC_HIDEMULTIMONITOR, cTarget->m_HideMultiMonitor);
-	//DDX_Check(pDX, IDC_WALLPAPERMODE, cTarget->m_WallpaperMode);
 	DDX_Check(pDX, IDC_RECOVERSCREENMODE, cTarget->m_RecoverScreenMode);
 	DDX_Check(pDX, IDC_REFRESHONRESIZE, cTarget->m_RefreshOnResize);
-	DDX_Check(pDX, IDC_FIXD3DFRAME, cTarget->m_FixD3DFrame);
-	DDX_Check(pDX, IDC_NOWINDOWMOVE, cTarget->m_NoWindowMove);
 	DDX_Check(pDX, IDC_HIDETASKBAR, cTarget->m_HideTaskbar);
 	DDX_Check(pDX, IDC_UNLOCKZORDER, cTarget->m_UnlockZOrder);
 	DDX_Check(pDX, IDC_NODESTROYWINDOW, cTarget->m_NoDestroyWindow);
 	DDX_Check(pDX, IDC_ACTIVATEAPP, cTarget->m_ActivateApp);
 
+	DDX_Radio(pDX, IDC_FREEMOVE, cTarget->m_WinMovementType);
+
 	// color management
 	DDX_Radio(pDX, IDC_COLORCURRENT, cTarget->m_InitColorDepth);
 	DDX_Check(pDX, IDC_DISABLEGAMMARAMP, cTarget->m_DisableGammaRamp);
-	DDX_Check(pDX, IDC_FORCE16BPP, cTarget->m_Force16BPP);
+	//DDX_Check(pDX, IDC_FORCE16BPP, cTarget->m_Force16BPP);
 	DDX_Check(pDX, IDC_LOCKSYSCOLORS, cTarget->m_LockSysColors);
 	DDX_Check(pDX, IDC_LOCKRESERVEDPALETTE, cTarget->m_LockReservedPalette);
 

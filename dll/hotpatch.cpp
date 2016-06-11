@@ -98,4 +98,4 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	OutTrace("HotPatch: api=%s addr=%x->%x hook=%x\n", apiname, apiproc, orig_address, hookproc);
 	return orig_address;
 #endif
-}
+}  

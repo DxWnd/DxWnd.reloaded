@@ -40,6 +40,18 @@ MMRESULT WINAPI extjoyGetPos(DWORD, LPJOYINFO);
 typedef MMRESULT (WINAPI *auxGetNumDevs_Type)(void);
 auxGetNumDevs_Type pauxGetNumDevs = NULL;
 MMRESULT WINAPI extauxGetNumDevs(void);
+typedef BOOL (WINAPI *mciGetErrorStringA_Type)(DWORD, LPCSTR, UINT);
+mciGetErrorStringA_Type pmciGetErrorStringA;
+BOOL WINAPI extmciGetErrorStringA(DWORD, LPCSTR, UINT);
+typedef MMRESULT (WINAPI *mixerGetLineControlsA_Type)(HMIXEROBJ, LPMIXERLINECONTROLS, DWORD);
+mixerGetLineControlsA_Type pmixerGetLineControlsA;
+MMRESULT WINAPI extmixerGetLineControlsA(HMIXEROBJ, LPMIXERLINECONTROLS, DWORD);
+typedef UINT (WINAPI *waveOutGetNumDevs_Type)(void);
+waveOutGetNumDevs_Type pwaveOutGetNumDevs;
+UINT WINAPI extwaveOutGetNumDevs(void);
+typedef UINT (WINAPI *mixerGetNumDevs_Type)(void);
+mixerGetNumDevs_Type pmixerGetNumDevs;
+UINT WINAPI extmixerGetNumDevs(void);
 
 static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
@@ -71,12 +83,22 @@ static HookEntryEx_Type JoyHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
+static HookEntryEx_Type DebugHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "mciGetErrorStringA", NULL, (FARPROC *)&pmciGetErrorStringA, (FARPROC)extmciGetErrorStringA},
+	{HOOK_IAT_CANDIDATE, 0, "mixerGetLineControlsA", NULL, (FARPROC *)&pmixerGetLineControlsA, (FARPROC)extmixerGetLineControlsA},
+	{HOOK_IAT_CANDIDATE, 0, "waveOutGetNumDevs", NULL, (FARPROC *)&pwaveOutGetNumDevs, (FARPROC)extwaveOutGetNumDevs},
+	{HOOK_IAT_CANDIDATE, 0, "auxGetNumDevs", NULL, (FARPROC *)&pauxGetNumDevs, (FARPROC)extauxGetNumDevs},
+	{HOOK_IAT_CANDIDATE, 0, "mixerGetNumDevs", NULL, (FARPROC *)&pmixerGetNumDevs, (FARPROC)extmixerGetNumDevs},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
+};
+
 void HookWinMM(HMODULE module, char *libname)
 {
 	HookLibraryEx(module, Hooks, libname);
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibraryEx(module, TimeHooks, libname);
 	if(dxw.dwFlags5 & REMAPMCI) HookLibraryEx(module, RemapHooks, libname);
 	if(dxw.dwFlags6 & VIRTUALJOYSTICK) HookLibraryEx(module, JoyHooks, libname);
+	if(IsDebug) HookLibraryEx(module, DebugHooks, libname);
 }
 
 FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -90,6 +112,8 @@ FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
 		if (addr=RemapLibraryEx(proc, hModule, RemapHooks)) return addr;
 	if(dxw.dwFlags6 & VIRTUALJOYSTICK)
 		if (addr=RemapLibraryEx(proc, hModule, JoyHooks)) return addr;
+	if(IsDebug)
+		if (addr=RemapLibraryEx(proc, hModule, DebugHooks)) return addr;
 
 	return NULL;
 }
@@ -651,9 +675,42 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
     DeleteDC(hdcMem);
 }
 
-// dangerous thing to do: it interferes with "Imperialism II" !!!
 MMRESULT WINAPI extauxGetNumDevs(void)
 {
-	OutTraceDW("auxGetNumDevs: returning fake 1\n");
-	return 1;
+	UINT ret;
+	ret = (*pauxGetNumDevs)();
+	OutTrace("auxGetNumDevs: ret=%d\n", ret);
+	return ret;
+}
+
+BOOL WINAPI extmciGetErrorStringA(DWORD fdwError, LPCSTR lpszErrorText, UINT cchErrorText)
+{
+	BOOL ret;
+	ret = (*pmciGetErrorStringA)(fdwError, lpszErrorText, cchErrorText);
+	OutTrace("mciGetErrorStringA: ret=%x err=%d text=(%d)\"%s\"\n", ret, fdwError, cchErrorText, lpszErrorText);
+	return ret;
+}
+
+MMRESULT WINAPI extmixerGetLineControlsA(HMIXEROBJ hmxobj, LPMIXERLINECONTROLS pmxlc, DWORD fdwControls)
+{
+	MMRESULT ret;
+	ret = (*pmixerGetLineControlsA)(hmxobj, pmxlc, fdwControls);
+	OutTrace("mixerGetLineControlsA: ret=%x hmxobj=%x Controls=%x\n", ret, hmxobj, fdwControls);
+	return ret;
+}
+
+UINT WINAPI extwaveOutGetNumDevs(void)
+{
+	UINT ret;
+	ret = (*pwaveOutGetNumDevs)();
+	OutTrace("waveOutGetNumDevs: ret=%d\n", ret);
+	return ret;
+}
+
+UINT WINAPI extmixerGetNumDevs(void)
+{
+	UINT ret;
+	ret = (*pmixerGetNumDevs)();
+	OutTrace("mixerGetNumDevs: ret=%d\n", ret);
+	return ret;
 }

@@ -342,12 +342,11 @@ void HookUser32(HMODULE hModule)
 {
 
 	HookLibraryEx(hModule, Hooks, libname);
+	HookLibraryEx(hModule, WinHooks, libname);
+
 	if (dxw.GDIEmulationMode != GDIMODE_NONE) HookLibraryEx(hModule, SyscallHooks, libname);
 	if (dxw.dwFlags2 & GDISTRETCHED)	HookLibraryEx(hModule, ScaledHooks, libname);
-
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibraryEx(hModule, RemapHooks, libname);
-	//if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)) HookLibraryEx(hModule, WinHooks, libname);
-	HookLibraryEx(hModule, WinHooks, libname);
 	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibraryEx(hModule, MouseHooks, libname);
 	if (dxw.dwFlags3 & PEEKALLMESSAGES) HookLibraryEx(hModule, PeekAllHooks, libname);
 	if (dxw.dwFlags2 & TIMESTRETCH) HookLibraryEx(hModule, TimeHooks, libname);
@@ -370,14 +369,15 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
-	if (dxw.dwFlags1 & CLIENTREMAPPING) if (addr=RemapLibraryEx(proc, hModule, RemapHooks)) return addr;
-	if (dxw.GDIEmulationMode != GDIMODE_NONE) if(addr=RemapLibraryEx(proc, hModule, SyscallHooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, WinHooks)) return addr;
 
-	if (dxw.dwFlags2 & GDISTRETCHED)	
+	if (dxw.dwFlags1 & CLIENTREMAPPING) 
+		if (addr=RemapLibraryEx(proc, hModule, RemapHooks)) return addr;
+	if (dxw.GDIEmulationMode != GDIMODE_NONE) 
+		if(addr=RemapLibraryEx(proc, hModule, SyscallHooks)) return addr;
+	if (dxw.dwFlags2 & GDISTRETCHED) 
 		if (addr=RemapLibraryEx(proc, hModule, ScaledHooks)) return addr;  
-	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))
-		if (addr=RemapLibraryEx(proc, hModule, WinHooks)) return addr;
-	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED))
+	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) 
 		if (addr=RemapLibraryEx(proc, hModule, MouseHooks)) return addr;
 	if (dxw.dwFlags3 & PEEKALLMESSAGES)
 		if (addr=RemapLibraryEx(proc, hModule, PeekAllHooks)) return addr;
@@ -536,13 +536,31 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 		if(wp->cx>MaxPos.cx) { wp->cx=MaxPos.cx; UpdFlag=1; }
 		if(wp->cy>MaxPos.cy) { wp->cy=MaxPos.cy; UpdFlag=1; }
 		if (UpdFlag) 
-			OutTraceDW("%s: SET max dim=(%d,%d)\n", ApiName, wp->cx, wp->cy);
+			OutTraceDW("%s: SET max size=(%dx%d)\n", ApiName, wp->cx, wp->cy);
 	}
 
-	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
-		dxw.CalculateWindowPos(hwnd, MaxX, MaxY, wp);
-		OutTraceDW("%s: LOCK pos=(%d,%d) dim=(%d,%d)\n", ApiName, wp->x, wp->y, wp->cx, wp->cy);
-	}
+	if (dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){
+		if (dxw.dwFlags1 & LOCKWINPOS){ 
+			dxw.CalculateWindowPos(hwnd, MaxX, MaxY, wp);
+			OutTraceDW("%s: LOCK pos=(%d,%d) size=(%dx%d)\n", ApiName, wp->x, wp->y, wp->cx, wp->cy);
+		}
+		// v2.03.95: locked size
+		if (dxw.dwFlags2 & LOCKEDSIZE){ 
+			WINDOWPOS MaxPos;
+			dxw.CalculateWindowPos(hwnd, MaxX, MaxY, &MaxPos);
+			wp->cx = MaxPos.cx;
+			wp->cy = MaxPos.cy;
+			OutTraceDW("%s: SET locked size=(%dx%d)\n", ApiName, wp->cx, wp->cy);
+		}
+		if (dxw.dwFlags7 & ANCHORED){ 
+			WINDOWPOS MaxPos;
+			dxw.CalculateWindowPos(hwnd, MaxX, MaxY, &MaxPos);
+			wp->cx = MaxPos.cx;
+			wp->cy = MaxPos.cy;
+			wp->x  = MaxPos.x;
+			wp->y  = MaxPos.y;
+			OutTraceDW("%s: SET anchored pos=(%d,%d) size=(%dx%d)\n", ApiName, wp->x, wp->y, wp->cx, wp->cy);
+		}	}
 
 	if ((dxw.dwFlags2 & KEEPASPECTRATIO) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
 		// note: while keeping aspect ration, resizing from one corner doesn't tell
@@ -739,6 +757,8 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 {
 	BOOL res;
 	extern HWND hTrayWnd;
+	static long iLastSizX, iLastSizY;
+	//static long iLastPosX, iLastPosY;
 
 	OutTraceDW("ShowWindow: hwnd=%x, CmdShow=%x(%s)\n", hwnd, nCmdShow, ExplainShowCmd(nCmdShow));
 
@@ -765,6 +785,25 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 	}	
 
 	res=(*pShowWindow)(hwnd, nCmdShow);
+	// v2.03.95: force zero size when minimize and drefresh window coordinates
+	if(hwnd == dxw.GethWnd()){
+		if(nCmdShow==SW_MINIMIZE) {
+			iLastSizX = dxw.iSizX;
+			iLastSizY = dxw.iSizY;
+			//iLastPosX = dxw.iPosX;
+			//iLastPosY = dxw.iPosY;
+			dxw.iSizX = dxw.iSizY = 0;
+		}
+		else {
+			if((dxw.iSizX == 0) && (dxw.iSizY == 0)){
+				dxw.iSizX = iLastSizX;
+				dxw.iSizY = iLastSizY;
+				//dxw.iPosX = iLastPosX;
+				//dxw.iPosY = iLastPosY;
+			}
+		}
+	}
+	//dxw.UpdateDesktopCoordinates();
 	OutTraceDW("ShowWindow: res=%x\n", res);
 
 	return res;
@@ -3012,12 +3051,33 @@ BOOL WINAPI extUpdateWindow(HWND hwnd)
 	return ret;
 }
 
+static char *sRedrawFlags(UINT flags)
+{
+	static char s[256];
+	strcpy(s, "RDW_");
+	if(flags & RDW_ERASE) strcat(s, "ERASE+");
+	if(flags & RDW_FRAME) strcat(s, "FRAME+");
+	if(flags & RDW_INTERNALPAINT) strcat(s, "INTERNALPAINT+");
+	if(flags & RDW_INVALIDATE) strcat(s, "INVALIDATE+");
+	if(flags & RDW_NOERASE) strcat(s, "NOERASE+");
+	if(flags & RDW_NOFRAME) strcat(s, "NOFRAME+");
+	if(flags & RDW_NOINTERNALPAINT) strcat(s, "NOINTERNALPAINT+");
+	if(flags & RDW_VALIDATE) strcat(s, "VALIDATE+");
+	if(flags & RDW_ERASENOW) strcat(s, "ERASENOW+");
+	if(flags & RDW_UPDATENOW) strcat(s, "UPDATENOW+");
+	if(flags & RDW_ALLCHILDREN) strcat(s, "ALLCHILDREN+");
+	if(flags & RDW_NOCHILDREN) strcat(s, "NOCHILDREN+");
+	if(strlen(s)>strlen("RDW_")) s[strlen(s)-1]=0;
+	else s[0]=0;
+	return s;
+}
+
 BOOL WINAPI extRedrawWindow(HWND hWnd, const RECT *lprcUpdate, HRGN hrgnUpdate, UINT flags)
 {
 	RECT rcUpdate;
 	BOOL ret;
 
-	OutTraceDW("RedrawWindow: hwnd=%x hrgn=%x flags=%x\n", hWnd, hrgnUpdate, flags);
+	OutTraceDW("RedrawWindow: hwnd=%x hrgn=%x flags=%x(%s)\n", hWnd, hrgnUpdate, flags, sRedrawFlags(flags));
 
 	// v2.03.64 fix: if hrgnUpdate is set, lprcUpdate is ignored, so it can't be scaled
 	// beware: they both could be null, and that means the whole window

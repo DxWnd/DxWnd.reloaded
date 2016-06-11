@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.94.fx3"
+#define VERSION "2.03.95"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS
@@ -59,6 +59,8 @@ BOOL APIENTRY DllMain( HANDLE hmodule,
 	HANDLE hCurrentThread;
 
 	if(dwreason == DLL_PROCESS_DETACH){
+		//if(pInvalidateRect && pGetDesktopWindow) (*pInvalidateRect)((*pGetDesktopWindow)(), NULL, FALSE); // invalidate full desktop, no erase.
+		if(pInvalidateRect) (*pInvalidateRect)(0, NULL, FALSE); // invalidate full desktop, no erase.
 		UnmapViewOfFile(pMapping);
 		CloseHandle(hMapping);
 	}

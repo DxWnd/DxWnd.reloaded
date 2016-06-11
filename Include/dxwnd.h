@@ -63,7 +63,7 @@
 #define HIDEMULTIMONITOR	0x00008000 // hide multimonitor configurations: GetAdapterCount returns 1.
 #define TIMESTRETCH			0x00010000 // make system time stretchable 
 #define HOOKOPENGL			0x00020000 // Hook OpenGL calls
-//#define WALLPAPERMODE		0x00040000 // mouse events are discarded (good for screensaver-like)
+#define LOCKEDSIZE			0x00040000 // window resizzing is not allowed
 #define SHOWHWCURSOR		0x00080000 // enable hardware cursor
 #define GDISTRETCHED		0x00100000 // Stretch GDI/user32 coordinates to adapt to window size
 #define SHOWFPSOVERLAY		0x00200000 // shows FPS value to status win / log / screen overlay
@@ -243,6 +243,7 @@
 #define LOCKCOLORDEPTH		0x02000000 // lock ddraw color depth to current desktop value (used in SetDisplayMode)
 #define FIXSMACKLOOP		0x04000000 // fix Smack loop by insert processmessage and blit between frames
 #define FIXFREELIBRARY		0x08000000 // fix FreeLibrary simulating retcode 0(error) when attempting free of unallocated module
+#define ANCHORED			0x10000000 // Anchored position & size, mo stretching or sliding is allowed
 
 // eighth flags DWORD dxw.dwFlags8:
 

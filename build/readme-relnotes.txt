@@ -1331,3 +1331,11 @@ fix: corrected clipping bug introduced in v2.03.93.
 fix: SetWindowLog hooker preventing to set DxWnd windowproc when not in fullscreen mode. Fixes "Nascar Racing 3" recursion and crash.
 fix: eliminated useless filter to suppress high resolutions detection in PREVENTMAXIMAZE mode
 fix: fixed mciSendCommand wrapper log messages that could crash the program
+
+v2.03.95:
+fix: fixed prototype for ICDrawBegin wrapper
+add: extended logging for mci multimedia API
+add: window position selector & "locked size" + "anchored" modes
+fix: transient mode when system tray is not available
+fix: recursion problem in kernel32 LoadLibrary* wrappers. Allows "Hot patch" on WinXP.
+fix: initial position problem.

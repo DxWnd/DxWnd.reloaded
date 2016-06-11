@@ -40,6 +40,7 @@ public:
 	int		m_SlowRatio;
 	int		m_LogMode;
 	int		m_MonitorId;
+	int		m_WinMovementType;
 	BOOL	m_HookDI;
 	BOOL	m_HookDI8;
 	BOOL	m_EmulateRelMouse;
@@ -135,14 +136,12 @@ public:
 	BOOL	m_GDIColorConv;
 	BOOL	m_PreventMaximize;
 	BOOL	m_ClientRemapping;
-	BOOL	m_LockWinPos;
 	BOOL	m_LockWinStyle;
 	BOOL	m_FixParentWin;
 	BOOL	m_ModalStyle;
 	BOOL	m_KeepAspectRatio;
 	BOOL	m_ForceWinResize;
 	BOOL	m_HideMultiMonitor;
-	//BOOL	m_WallpaperMode;
 	BOOL	m_FixD3DFrame;
 	BOOL	m_NoWindowMove;
 	BOOL	m_HookChildWin;
@@ -253,7 +252,7 @@ public:
 	BOOL	m_BlackWhite;
 	BOOL	m_SuppressD3DExt;
 	BOOL	m_Enum16bitModes;
-	BOOL	m_Force16BPP;
+	//BOOL	m_Force16BPP;
 	BOOL	m_LimitScreenRes;
 	BOOL	m_InitialRes;
 	BOOL	m_MaximumRes;
