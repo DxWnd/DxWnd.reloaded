@@ -33,7 +33,6 @@ public:
 	int		m_DxFilterMode;
 	int		m_DCEmulationMode;
 	int		m_MouseVisibility;
-	int		m_MouseClipper;
 	int		m_OffendingMessages;
 	int		m_TextureHandling;
 	int		m_SonProcessMode;
@@ -111,8 +110,8 @@ public:
 	BOOL	m_IndependentRefresh;
 	BOOL	m_TextureFormat;
 	BOOL	m_FixWinFrame;
-	//BOOL	m_EnableClipping;
-	//BOOL	m_CursorClipping;
+	BOOL	m_EnableClipping;
+	BOOL	m_CursorClipping;
 	BOOL	m_VideoToSystemMem;
 	BOOL	m_FixTextOut;
 	BOOL	m_SharedDC;
@@ -235,7 +234,6 @@ public:
 	BOOL	m_DisableDisableAltTab;
 	BOOL	m_NoImagehlp;
 	BOOL	m_ForcesHEL;
-	BOOL	m_NoHALDevice;
 	BOOL	m_MinimalCaps;
 	BOOL	m_SetZBufferBitDepths;
 	BOOL	m_ForcesSwapEffect;

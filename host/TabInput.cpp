@@ -31,8 +31,8 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_CURSORAUTOMATIC, cTarget->m_MouseVisibility);
 	// Cursor Handling
 	DDX_Check(pDX, IDC_MODIFYMOUSE, cTarget->m_ModifyMouse);
-	//DDX_Check(pDX, IDC_DISABLECLIPPING, cTarget->m_EnableClipping);
-	//DDX_Check(pDX, IDC_CLIPCURSOR, cTarget->m_CursorClipping);
+	DDX_Check(pDX, IDC_ENABLECLIPPING, cTarget->m_EnableClipping);
+	DDX_Check(pDX, IDC_CLIPCURSOR, cTarget->m_CursorClipping);
 	DDX_Check(pDX, IDC_KEEPCURSORWITHIN, cTarget->m_KeepCursorWithin);
 	DDX_Check(pDX, IDC_KEEPCURSORFIXED, cTarget->m_KeepCursorFixed);
 	DDX_Check(pDX, IDC_MESSAGEPROC, cTarget->m_MessageProc);
@@ -41,8 +41,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SLOW, cTarget->m_SlowDown);
 	DDX_Check(pDX, IDC_RELEASEMOUSE, cTarget->m_ReleaseMouse);
 	DDX_Check(pDX, IDC_VIRTUALJOYSTICK, cTarget->m_VirtualJoystick);
-	// Cursor Clipper
-	DDX_Radio(pDX, IDC_CLIPPERAUTO, cTarget->m_MouseClipper);
+	//DDX_Check(pDX, IDC_FRAMECOMPENSATION, cTarget->m_FrameCompensation);
 	// DirectInput
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);
 	DDX_Check(pDX, IDC_HOOKDI8, cTarget->m_HookDI8);

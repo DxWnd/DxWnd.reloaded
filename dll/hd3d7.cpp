@@ -800,6 +800,23 @@ typedef struct {
 	LPVOID arg;
 } CallbackArg7;
 
+static void HexDump(unsigned char *buf, int len)
+{
+	char line[3*32 + 40];
+	char hex[6];
+	int count=0;
+	while(len){
+		sprintf(line,"%04X: ", count);
+		for(int i=32; i && len; i--, len--, buf++){
+			sprintf(hex, "%02X.", *buf);
+			strcat(line, hex);
+		}
+		strcat(line, "\n");
+		OutTrace(line);
+		count += 32;
+	}
+}
+
 static void DumpD3DDeviceDesc(LPD3DDEVICEDESC d3, char *label)
 {
 	if(IsTraceD3D){
@@ -817,7 +834,7 @@ static void DumpD3DDeviceDesc(LPD3DDEVICEDESC d3, char *label)
 			if(d3->dwFlags & D3DDD_MAXBUFFERSIZE) OutTrace("MaxBufferSize=%d ", d3->dwMaxBufferSize);
 			if(d3->dwFlags & D3DDD_MAXVERTEXCOUNT) OutTrace("MaxVertexCount=%d ", d3->dwMaxVertexCount);
 			OutTrace("Texture min=(%dx%d) max=(%dx%d)\n", d3->dwMinTextureWidth, d3->dwMinTextureHeight, d3->dwMaxTextureWidth, d3->dwMaxTextureHeight);
-			HexTrace((unsigned char *)d3, d3->dwSize);
+			HexDump((unsigned char *)d3, d3->dwSize);
 		}
 		else
 			OutTrace("EnumDevices: CALLBACK dev=%s ddesc=NULL\n", label);
@@ -844,7 +861,7 @@ static void DumpD3DDeviceDesc7(LPD3DDEVICEDESC7 d3, char *label)
 			OutTrace("Texture min=(%dx%d) max=(%dx%d)\n", d3->dwMinTextureWidth, d3->dwMinTextureHeight, d3->dwMaxTextureWidth, d3->dwMaxTextureHeight);
 			// to be completed ....
 			//OutTrace("\n");
-			HexTrace((unsigned char *)d3, sizeof(D3DDEVICEDESC7));
+			HexDump((unsigned char *)d3, sizeof(D3DDEVICEDESC7));
 		}
 		else
 			OutTrace("EnumDevices: CALLBACK dev=%s ddesc=NULL\n", label);
@@ -857,14 +874,6 @@ HRESULT WINAPI extDeviceProxy(GUID FAR *lpGuid, LPSTR lpDeviceDescription, LPSTR
 	OutTraceD3D("EnumDevices: CALLBACK GUID=%x(%s) DeviceDescription=\"%s\", DeviceName=\"%s\", arg=%x\n", lpGuid->Data1, ExplainGUID(lpGuid), lpDeviceDescription, lpDeviceName, ((CallbackArg *)arg)->arg);
 	DumpD3DDeviceDesc(lpd3ddd1, "HWDEV");
 	DumpD3DDeviceDesc(lpd3ddd2, "SWDEV");
-
-	// IID_IDirect3DHALDevice = 0x84e63de0....
-	if((dxw.dwFlags8 & NOHALDEVICE) && (lpGuid->Data1 == 0x84e63de0))
-	{
-		OutTraceDW("EnumDevices: D3DHALDEVICE SKIP\n");
-		return TRUE;
-	}
-
 	if(dxw.dwFlags4 & NOPOWER2FIX){ 
 		D3DDEVICEDESC lpd3ddd1fix, lpd3ddd2fix;
 		if(lpd3ddd1) memcpy(&lpd3ddd1fix, lpd3ddd1, sizeof(D3DDEVICEDESC));
@@ -887,9 +896,6 @@ HRESULT WINAPI extDeviceProxy7(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LP
 	HRESULT res;
 	OutTraceD3D("EnumDevices(D3D7): CALLBACK DeviceDescription=\"%s\", DeviceName=\"%s\", arg=%x\n", lpDeviceDescription, lpDeviceName, ((CallbackArg *)arg)->arg);
 	DumpD3DDeviceDesc((LPD3DDEVICEDESC)lpd3ddd, "DEV");
-
-	// to do: NOHALDEVICE handling, we have no GUID here!
-
 	if(dxw.dwFlags4 & NOPOWER2FIX){ 
 		D3DDEVICEDESC7 lpd3dddfix;
 		if(lpd3ddd) memcpy(&lpd3dddfix, lpd3ddd, sizeof(D3DDEVICEDESC7));
@@ -1124,23 +1130,12 @@ HRESULT WINAPI extInitializeVP(void *lpvp, LPDIRECT3D lpd3d)
 	return res;
 }
 
-#ifndef D3DERR_NOTAVAILABLE
-#define _FACD3D  0x876
-#define D3DERR_NOTAVAILABLE MAKE_HRESULT(1, _FACD3D, 2154)
-#endif
-
-
 HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE lpdds, LPDIRECT3DDEVICE2 *lplpd3dd)
 {
 	HRESULT res;
 
 	OutTraceD3D("CreateDevice(D3D2): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
 		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
-
-	if((dxw.dwFlags8 & NOHALDEVICE) && (Guid.Data1 == 0x84e63de0)) {
-		OutTraceDW("CreateDevice(D3D2): D3DHALDEVICE SKIP\n");
-		return D3DERR_NOTAVAILABLE;
-	}
 
 	res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
 	if(res!=DD_OK) {
@@ -1160,11 +1155,6 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 
 	OutTraceD3D("CreateDevice(D3D3): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
 		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
-
-	if((dxw.dwFlags8 & NOHALDEVICE) && (Guid.Data1 == 0x84e63de0)) {
-		OutTraceDW("CreateDevice(D3D3): D3DHALDEVICE SKIP\n");
-		return D3DERR_NOTAVAILABLE;
-	}
 
 	res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
 	if(res!=DD_OK) {

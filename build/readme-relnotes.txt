@@ -1375,7 +1375,6 @@ fix: fixed the policy for redrecting the WindowProc routine. Fixes "Ultimate Spi
 v2.03.99
 fix: unwanted hook to directsound when passing by CoCreateInstance()
 fix: transient mode, now checks for both the target and the launcher to be dead before terminating
-add: Direct3D TRIMTEXTUREFORMAT flag, to mimic MS "DirectXTrimTextureFormat" shim. Fixes problems in "Heavy Gear 2" and "Star Wars: Rogue Squardon 3D".
+add: Direct3D TRIMTEXTUREFORMAT flag, to mimic MS "DirectXTrimTextureFormat" shim. Fixes problems in ....
 add: D3DDevice GetCaps hooking and full dump of D3DDevice capabilities
-add: "No HAL Device" flag, making it unavailable the IID_Direct3DHALDevice device. Fixes "Grand Prix World" when the 3D car models are invisible.
-add: reorganization of mouse clipper fields, with the addition of LOCK mode (useful for Tribal Rage)
+

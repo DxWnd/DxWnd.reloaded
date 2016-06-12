@@ -1555,7 +1555,6 @@ static void HandleCapsD(char *sLabel, LPDDCAPS c)
 		sLabel, c->dwVidMemTotal, c->dwVidMemFree, c->dwZBufferBitDepths, ExplainZBufferBitDepths(c->dwZBufferBitDepths));
 	OutTraceDDRAW("GetCaps(%s): MaxVisibleOverlays=%x CurrVisibleOverlays=%x\n",
 		sLabel, c->dwMaxVisibleOverlays, c->dwCurrVisibleOverlays);
-	if(IsDebug) HexTrace((unsigned char *)c, c->dwSize);
 
 	if(dxw.bHintActive){
 		if(c->dwVidMemTotal > dwMaxMem) ShowHint(HINT_LIMITMEM);
@@ -1592,13 +1591,12 @@ static HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRE
 	HRESULT res;
 	OutTraceDDRAW("GetCaps(D%d): lpdd=%x %s %s\n", dxversion, lpdd, c1?"c1":"NULL", c2?"c2":"NULL");
 	res=(*pGetCapsD)(lpdd, c1, c2);
-	if(res) {
+	if(res) 
 		OutTraceE("GetCaps(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		return res;
+	else {
+		if (c1) HandleCapsD("D-HW", c1);
+		if (c2) HandleCapsD("D-SW", c2);
 	}
-
-	if (c1) HandleCapsD("D-HW", c1);
-	if (c2) HandleCapsD("D-SW", c2);
 
 	if((dxw.dwFlags3 & FORCESHEL) && c1) {
 		DDCAPS_DX7 swcaps; // DDCAPS_DX7 because it is the bigger in size
@@ -1619,20 +1617,6 @@ static HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRE
 		if(c1->dwVidMemFree  == 0) c1->dwVidMemFree =0x20000000; // 500 MB
 		if (c1) HandleCapsD("D-HW(fixed)", c1);
 		if (c2) HandleCapsD("D-SW(fixed)", c2);
-	}
-
-	if((dxw.dwFlags8 & NOHALDEVICE) && c1) {
-		OutTraceDW("GetCaps(D): NOHALDEVICE\n");
-		c1->ddsCaps.dwCaps = DDCAPS_NOHARDWARE;
-		c1->ddsCaps.dwCaps2 = DDCAPS2_CANRENDERWINDOWED;
-		c1->dwPalCaps = 0;
-		c1->dwFXCaps = 0;
-		c1->dwFXAlphaCaps = 0;
-		c1->dwCKeyCaps = 0;
-		c1->dwVidMemTotal = c1->dwVidMemFree = 0;
-		c1->dwZBufferBitDepths = 0;
-		c1->dwMaxVisibleOverlays = c1->dwCurrVisibleOverlays = 0;
-		HandleCapsD("D-HW(NoHAL)", c1);
 	}
 
 	if((dxw.dwFlags3 & MINIMALCAPS)) SetMinimalCaps(c1, c2);
@@ -2617,13 +2601,6 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 				OutTraceDW("GetAttachedSurface(%d): no attached BACKBUFFER\n", dxversion); 
 				return DDERR_NOTFOUND;
 			}
-		}
-
-		if((dxw.dwFlags8 & NOHALDEVICE) && (lpddsc->dwCaps & DDSCAPS_ZBUFFER)){
-			// tested with "Grand Prix World": if a ZBUFFER is returned, CreateDevice fails!
-			*lplpddas = NULL;
-			OutTraceDW("GetAttachedSurface(%d): NOHALDEVICE no attached ZBUFFER\n", dxversion);
-			return DDERR_NOTFOUND;
 		}
 	}
 	else {
@@ -4820,7 +4797,6 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 		caps->dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM); // you never know....
 		caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
 		if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= DDSCAPS_LOCALVIDMEM;
-		//if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= (DDSCAPS_LOCALVIDMEM | DDSCAPS_COMPLEX);
 	}
 
 	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...

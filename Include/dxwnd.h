@@ -27,7 +27,7 @@
 #define FIXWINFRAME			0x00002000
 #define HIDEHWCURSOR		0x00004000
 #define SLOWDOWN			0x00008000 
-#define DISABLECLIPPING		0x00010000
+#define ENABLECLIPPING		0x00010000
 #define LOCKWINSTYLE		0x00020000
 #define MAPGDITOPRIMARY	 	0x00040000 
 #define FIXTEXTOUT			0x00080000
@@ -255,8 +255,6 @@
 #define FORCENOVSYNC		0x00000008 // Forces NO hardware VSync 
 #define VSYNCSCANLINE		0x00000010 // Activates WaitForVerticalBlank algorythm based on reaching a given scan line
 #define TRIMTEXTUREFORMATS	0x00000020 // Emulates "DirectXTrimTextureFormats" shim to fix textures in Heavy Gear II
-#define NOHALDEVICE			0x00000040 // Simulates a situation of lack of 3D hardware support, like in presence of remote desktop
-#define CLIPLOCKED			0x00000080 // never destroy cursor clipper on window move events ....
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -357,7 +355,6 @@ void OutTraceHex(BYTE *, int);
 void *HookAPI(HMODULE, char *, void *, const char *, void *);
 void AdjustWindowFrame(HWND, DWORD, DWORD);
 char *hexdump(unsigned char *, int);
-void HexTrace(unsigned char *, int);
 
 LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK extChildWindowProc(HWND, UINT, WPARAM, LPARAM);

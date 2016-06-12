@@ -384,8 +384,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			dxw.dwFlags1 &= ~LOCKWINPOS;
 		}
 		while((*pShowCursor)(1) < 0);
-		if((dxw.dwFlags1 & CLIPCURSOR) && !(dxw.dwFlags8 & CLIPLOCKED)) dxw.EraseClipCursor();
-		if(dxw.dwFlags1 & DISABLECLIPPING) dxw.EraseClipCursor();
+		if(dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
+		if(dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
 	case WM_EXITSIZEMOVE:
 		if(IsToBeLocked){
@@ -394,7 +394,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		if((dxw.dwFlags1 & HIDEHWCURSOR) && dxw.IsFullScreen()) while((*pShowCursor)(0) >= 0);
 		if(dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
-		if(dxw.dwFlags1 & DISABLECLIPPING) extClipCursor(lpClipRegion);
+		if(dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		if(dxw.dwFlags2 & REFRESHONRESIZE) dxw.ScreenRefresh();
 		if(dxw.dwFlags4 & HIDEDESKTOP) dxw.HideDesktop(dxw.GethWnd());
 		if(dxw.dwFlags5 & CENTERTOWIN) {
@@ -489,12 +489,12 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_SETFOCUS:
 		OutTraceDW("WindowProc: hwnd=%x GOT FOCUS\n", hwnd);
 		if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
-		if (dxw.dwFlags1 & DISABLECLIPPING) extClipCursor(lpClipRegion);
+		if (dxw.dwFlags1 & ENABLECLIPPING) extClipCursor(lpClipRegion);
 		break;
 	case WM_KILLFOCUS:
 		OutTraceDW("WindowProc: hwnd=%x LOST FOCUS\n", hwnd);
-		if((dxw.dwFlags1 & CLIPCURSOR) && !(dxw.dwFlags8 & CLIPLOCKED)) dxw.EraseClipCursor();
-		if (dxw.dwFlags1 & DISABLECLIPPING) dxw.EraseClipCursor();
+		if (dxw.dwFlags1 & CLIPCURSOR) dxw.EraseClipCursor();
+		if (dxw.dwFlags1 & ENABLECLIPPING) (*pClipCursor)(NULL);
 		break;
 	case WM_SYSCOMMAND:
 		// v2.03.56.fix1 by FunkyFr3sh: ensure that "C&C Red Alert 2" receives the WM_SYSCOMMAND / SC_CLOSE message

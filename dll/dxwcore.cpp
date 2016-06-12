@@ -363,7 +363,7 @@ POINT dxwCore::FixCursorPos(POINT prev)
 		if (h) curr.y = (curr.y * dxw.GetScreenHeight()) / h;
 	}
 
-	if((dxw.dwFlags1 & DISABLECLIPPING) && lpClipRegion){
+	if((dxw.dwFlags1 & ENABLECLIPPING) && lpClipRegion){
 		// v2.1.93:
 		// in clipping mode, avoid the cursor position to lay outside the valid rect
 		// note 1: the rect follow the convention and valid coord lay between left to righ-1,
