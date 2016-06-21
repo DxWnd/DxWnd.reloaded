@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <psapi.h>
+#include <dbghelp.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "shareddc.hpp"
@@ -35,6 +36,8 @@ SetWindowLong_Type pSetWindowLong;
 extern LRESULT CALLBACK MessageHook(int, WPARAM, LPARAM);
 extern DWORD WINAPI CpuLimit(LPVOID); 
 extern DWORD WINAPI CpuSlow(LPVOID); 
+
+extern HMODULE SysLibs[];
 
 typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
 typedef int (*Preparedisasm_Type)(void);
@@ -72,7 +75,7 @@ static char *FlagNames[32]={
 static char *Flag2Names[32]={
 	"RECOVERSCREENMODE", "REFRESHONRESIZE", "BACKBUFATTACH", "MODALSTYLE",
 	"KEEPASPECTRATIO", "INIT8BPP", "FORCEWINRESIZE", "INIT16BPP",
-	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "**", "FIXNCHITTEST",
+	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "INDEPENDENTREFRESH", "FIXNCHITTEST",
 	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
 	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
 	"GDISTRETCHED", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
@@ -897,31 +900,55 @@ void HookExceptionHandler(void)
 	(*pSetUnhandledExceptionFilter)((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
 }
 
+static void InitModuleHooks()
+{
+	for (int i=0; i<SYSLIBIDX_MAX; i++) SysLibs[i]=NULL;
+}
+
+void SetModuleHooks()
+{
+	int i;
+	HMODULE hModule;
+
+	for (i=0; i<SYSLIBIDX_MAX; i++){
+		if(SysLibs[i]==NULL){
+			hModule = GetModuleHandle(SysNames[i]);
+			if(hModule) {
+				SysLibs[i]=hModule;
+				OutTraceDW("InitModuleHooks: lib=%s hmodule=%x\n", SysNames[i], hModule);
+			}
+		}
+	}
+}
+
 void HookModule(HMODULE base, int dxversion)
 {
-	HookKernel32(base);
-	HookUser32(base);
-	HookOle32(base);
-	HookWinMM(base, "winmm.dll");
-	if(dxw.dwFlags6 & HOOKGOGLIBS) HookWinMM(base, "win32.dll");
-	//if(dxw.dwFlags2 & SUPPRESSIME) HookImeLib(module);
-	HookGDI32(base);
-	if(dxw.dwFlags1 & HOOKDI) HookDirectInput(base);
-	if(dxw.dwFlags1 & HOOKDI8) HookDirectInput8(base);
-	if(dxw.dwTargetDDVersion != HOOKDDRAWNONE) HookDirectDraw(base, dxversion);
-	HookDirect3D(base, dxversion);
-	HookDirect3D7(base, dxversion);
-	if(dxw.dwFlags2 & HOOKOPENGL) HookOpenGLLibs(base, dxw.CustomOpenGLLib); 
-	if(dxw.dwFlags4 & HOOKGLIDE) HookGlideLibs(base); 
-	if( (dxw.dwFlags3 & EMULATEREGISTRY) || 
-		(dxw.dwFlags4 & OVERRIDEREGISTRY) || 
-		(dxw.dwFlags6 & (WOW32REGISTRY|WOW64REGISTRY)) || 
-		(dxw.dwTFlags & OUTREGISTRY)) HookAdvApi32(base);
-	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
-	HookAVIFil32(base);
-	if(dxw.dwFlags7 & HOOKSMACKW32) HookSmackW32(base);
-	if(dxw.dwFlags7 & HOOKDIRECTSOUND) HookDirectSound(base); 
-	//HookComDlg32(base);
+	SetModuleHooks();
+
+	HookKernel32(base);						//SYSLIBIDX_KERNEL32
+	HookUser32(base); 						// SYSLIBIDX_USER32
+	HookGDI32(base);						// SYSLIBIDX_GDI32
+	HookImeLib(base);						// SYSLIBIDX_IMELIB
+	HookAdvApi32(base);						// SYSLIBIDX_ADVAPI32
+	HookOle32(base);						// SYSLIBIDX_OLE32
+	HookDirectDraw(base, dxversion);		// SYSLIBIDX_DIRECTDRAW, SYSLIBIDX_DIRECT3D8, SYSLIBIDX_DIRECT3D9, SYSLIBIDX_DIRECT3D10, SYSLIBIDX_DIRECT3D10_1, SYSLIBIDX_DIRECT3D11,
+	HookOpenGL(base, dxw.CustomOpenGLLib);	// SYSLIBIDX_OPENGL,
+	HookMSV4WLibs(base);					// SYSLIBIDX_MSVFW -- used by Aliens & Amazons demo: what for?
+	HookSmackW32(base);						// SYSLIBIDX_SMACK
+	HookDirectSound(base);					// SYSLIBIDX_DSOUND
+	HookWinMM(base, "winmm.dll");			// SYSLIBIDX_WINMM
+	if(dxw.dwFlags6 & HOOKGOGLIBS) HookWinMM(base, "win32.dll"); // SYSLIBIDX_WINMM
+	HookDirectInput(base);					// SYSLIBIDX_DINPUT,
+	HookDirectInput8(base);					// SYSLIBIDX_DINPUT8,
+	HookTrust(base);						// SYSLIBIDX_WINTRUST
+	HookDirect3D(base, dxversion);			// SYSLIBIDX_DIRECT3D,
+	HookDirect3D7(base, dxversion);			// SYSLIBIDX_DIRECT3D700,
+	HookImagehlp(base);						// SYSLIBIDX_IMAGEHLP
+	HookComDlg32(base);						// SYSLIBIDX_COMDLG32
+	HookComCtl32(base);						// SYSLIBIDX_COMCTL32
+	HookAVIFil32(base); // SYSLIBIDX_AVIFIL32
+	// unimplemented
+	if(dxw.dwFlags4 & HOOKGLIDE) HookGlideLibs(base); 	
 }
 
 #define USEWINNLSENABLE
@@ -998,36 +1025,67 @@ void SetSingleProcessAffinity(BOOL first)
 		OutTraceE("SetProcessAffinityMask: ERROR err=%d\n", GetLastError());
 }
 
+static BOOL GetTextSegment(char *module, unsigned char **start, DWORD *len)
+{
+	typedef BOOL (WINAPI *GetModuleInformation_Type)(HANDLE, HMODULE, LPMODULEINFO, DWORD);
+	MODULEINFO mi;
+	HMODULE psapilib;	
+	GetModuleInformation_Type pGetModuleInformation;
+	// getting segment size
+	psapilib=(*pLoadLibraryA)("psapi.dll");
+	if(!psapilib) {
+		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", "psapi.dll", GetLastError());
+		return FALSE;
+	}
+
+	pGetModuleInformation=(GetModuleInformation_Type)(*pGetProcAddress)(psapilib, "GetModuleInformation");
+	(*pGetModuleInformation)(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(mi));
+	FreeLibrary(psapilib);
+
+	typedef IMAGE_NT_HEADERS *(WINAPI *ImageNtHeader_Type)(PVOID);
+	ImageNtHeader_Type pImageNtHeader = NULL;
+	HMODULE hDbgLib = LoadLibrary("dbghelp.dll");
+	if(!hDbgLib) {
+		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", "dbghelp.dll", GetLastError());
+		return FALSE;
+	}
+	pImageNtHeader = (ImageNtHeader_Type)GetProcAddress(hDbgLib, "ImageNtHeader");
+	if (!pImageNtHeader) return FALSE;
+
+	*start = NULL;
+	*len = 0;
+	IMAGE_NT_HEADERS *pNtHdr = (*pImageNtHeader)(GetModuleHandle(module));
+	IMAGE_SECTION_HEADER *pSectionHdr = (IMAGE_SECTION_HEADER *)(pNtHdr+1);
+	OutTrace("sections=%d\n", pNtHdr->FileHeader.NumberOfSections);
+	for(int i=0; i<pNtHdr->FileHeader.NumberOfSections; i++){
+		char *name = (char *)pSectionHdr->Name;
+		if ((memcmp(name, ".text", 5) == 0) || (memcmp(name, "CODE", 4) == 0)){
+			*start = (unsigned char *)mi.lpBaseOfDll + pSectionHdr->VirtualAddress;
+			*len = pSectionHdr->SizeOfRawData;
+			break;
+		}
+	} 
+	FreeLibrary(hDbgLib);
+	return (*start != NULL);
+}
+
 static void ReplaceRDTSC()
 {
 	typedef BOOL (WINAPI *GetModuleInformation_Type)(HANDLE, HMODULE, LPMODULEINFO, DWORD);
 	HMODULE disasmlib;
 	unsigned char *opcodes;
 	t_disasm da;
-	MODULEINFO mi;
-	HMODULE psapilib;
-	GetModuleInformation_Type pGetModuleInformation;
 	DWORD dwSegSize;
 	DWORD oldprot;
 
 	if (!(disasmlib=LoadDisasm())) return;
-
-	// getting segment size
-	psapilib=(*pLoadLibraryA)("psapi.dll");
-	if(!psapilib) {
-		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", "psapi.dll", GetLastError());
-		return;
-	}
-	pGetModuleInformation=(GetModuleInformation_Type)(*pGetProcAddress)(psapilib, "GetModuleInformation");
-	(*pGetModuleInformation)(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(mi));
-	dwSegSize = mi.SizeOfImage;
-	FreeLibrary(psapilib);
-
 	(*pPreparedisasm)();
-	opcodes = (unsigned char *)mi.lpBaseOfDll;
+
+	if(!GetTextSegment(NULL, &opcodes, &dwSegSize)) return;
+
 	unsigned int offset = 0;
 	BOOL cont = TRUE;
-	OutTraceDW("DXWND: opcode starting at addr=%x size=%x\n", opcodes, dwSegSize);
+	OutTraceDW("DXWND: ReplaceRDTSC starting at addr=%x size=%x\n", opcodes, dwSegSize);
 	while (cont) {
 		int cmdlen = 0;
 		__try{
@@ -1036,13 +1094,7 @@ static void ReplaceRDTSC()
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER){
 			OutTrace("exception at offset=%x\n", offset);
-			if(opcodes+offset < mi.EntryPoint) {
-				offset = (unsigned char *)mi.EntryPoint - (unsigned char *)mi.lpBaseOfDll;
-				OutTraceDW("DXWND: opcode resuming at addr=%x\n", opcodes+offset);
-				continue;
-			}
-			else
-				cont=FALSE;
+			cont=FALSE;
 		}		
 		if (cmdlen==0) break;
 		// search for RDTSC opcode 0x0F31
@@ -1075,7 +1127,7 @@ static void ReplaceRDTSC()
 			}
 		}
 		offset+=cmdlen; 
-		if((offset+0x10) > (int)mi.lpBaseOfDll + dwSegSize) break; // skip last 16 bytes, just in case....
+		if((offset+0x10) > dwSegSize) break; // skip last 16 bytes, just in case....
 	}
 
 	return;
@@ -1085,54 +1137,49 @@ static void ReplaceRDTSC()
 
 static void ReplacePrivilegedOps()
 {
-	typedef BOOL (WINAPI *GetModuleInformation_Type)(HANDLE, HMODULE, LPMODULEINFO, DWORD);
 	HMODULE disasmlib;
 	unsigned char *opcodes;
 	t_disasm da;
-	MODULEINFO mi;
-	HMODULE psapilib;
-	GetModuleInformation_Type pGetModuleInformation;
 	DWORD dwSegSize;
 	DWORD oldprot;
+	static BOOL bDoOnce=FALSE;
+
+	if(bDoOnce) return;
+	bDoOnce = TRUE;
 
 	if (!(disasmlib=LoadDisasm())) return;
-
-	// getting segment size
-	psapilib=(*pLoadLibraryA)("psapi.dll");
-	if(!psapilib) {
-		OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", "psapi.dll", GetLastError());
-		return;
-	}
-	pGetModuleInformation=(GetModuleInformation_Type)(*pGetProcAddress)(psapilib, "GetModuleInformation");
-	(*pGetModuleInformation)(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(mi));
-	dwSegSize = mi.SizeOfImage;
-	FreeLibrary(psapilib);
-
 	(*pPreparedisasm)();
-	opcodes = (unsigned char *)mi.lpBaseOfDll;
+
+	if(!GetTextSegment(NULL, &opcodes, &dwSegSize)) return;
+
 	unsigned int offset = 0;
 	BOOL cont = TRUE;
-	OutTraceDW("DXWND: opcode starting at addr=%x size=%x\n", opcodes, dwSegSize);
+	OutTraceDW("DXWND: ReplacePrivilegedOps starting at addr=%x size=%x\n", opcodes, dwSegSize);
 	while (cont) {
 		int cmdlen = 0;
+		char *sOpcode;
+		BOOL bPriv;
 		__try{
 			cmdlen=(*pDisasm)(opcodes+offset,20,offset,&da,0,NULL,NULL);
 			//OutTrace("offset=%x opcode=%x\n", offset, *(opcodes+offset));
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER){
 			OutTrace("exception at offset=%x\n", offset);
-			if(opcodes+offset < mi.EntryPoint) {
-				offset = (unsigned char *)mi.EntryPoint - (unsigned char *)mi.lpBaseOfDll;
-				OutTraceDW("DXWND: opcode resuming at addr=%x\n", opcodes+offset);
-				continue;
-			}
-			else
-				cont=FALSE;
+			cont=FALSE;
 		}		
 		if (cmdlen==0) break;
-		// search for IN opcode 0xEC (IN AL, DX)
-		if(*(opcodes+offset) == 0xEC){
-			OutTraceDW("DXWND: IN opcode found at addr=%x\n", (opcodes+offset));
+		// search for following opcodes:
+		// 0xEC (IN AL, DX)
+		// 0x6D (INS DWORD PTR ES:[EDI],DX)
+		// 0x6E (OUTS DX,BYTE PTR DS:[ESI])  
+		bPriv = FALSE;
+		switch(*(opcodes+offset)){
+			case 0x6D: sOpcode = "INS";  bPriv=TRUE; break; 
+			case 0x6E: sOpcode = "OUTS"; bPriv=TRUE; break; 
+			case 0xEC: sOpcode = "IN";   bPriv=TRUE; break; 
+		}
+		if(bPriv){
+			OutTraceDW("DXWND: %s opcode found at addr=%x\n", sOpcode, (opcodes+offset));
 			if(!VirtualProtect((LPVOID)(opcodes+offset), 8, PAGE_READWRITE, &oldprot)) {
 				OutTrace("VirtualProtect ERROR: target=%x err=%d at %d\n", opcodes+offset, GetLastError(), __LINE__);
 				return; // error condition
@@ -1150,7 +1197,7 @@ static void ReplacePrivilegedOps()
 			}
 		}
 		offset+=cmdlen; 
-		if((offset+0x10) > (int)mi.lpBaseOfDll + dwSegSize) break; // skip last 16 bytes, just in case....
+		if((offset+0x10) > dwSegSize) break; // skip last 16 bytes, just in case....
 	}
 
 	return;
@@ -1264,6 +1311,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if(DoOnce){
 		DoOnce = FALSE;
+		InitModuleHooks();
 		dxw.VirtualDesktop.left		= GetSystemMetrics(SM_XVIRTUALSCREEN);
 		dxw.VirtualDesktop.top		= GetSystemMetrics(SM_YVIRTUALSCREEN);
 		dxw.VirtualDesktop.right	= dxw.VirtualDesktop.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
@@ -1508,6 +1556,7 @@ FARPROC RemapLibraryEx(LPCSTR proc, HMODULE hModule, HookEntryEx_Type *Hooks)
 void HookLibraryEx(HMODULE hModule, HookEntryEx_Type *Hooks, char *DLLName)
 {
 	HMODULE hDLL = NULL;
+
 	//OutTrace("HookLibrary: hModule=%x dll=%s\n", hModule, DLLName);
 	for(; Hooks->APIName; Hooks++){
 		void *remapped_addr;

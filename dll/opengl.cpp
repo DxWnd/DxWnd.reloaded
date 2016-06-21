@@ -55,6 +55,7 @@ PROC Remap_wgl_ProcAddress(LPCSTR proc)
 {
 	int i;
 	HookEntryEx_Type *Hook;
+	if(!(dxw.dwFlags2 & HOOKOPENGL)) return NULL; 
 	for(i=0; Hooks[i].APIName; i++){
 		Hook=&Hooks[i];
 		if (!strcmp(proc,Hook->APIName)){
@@ -97,22 +98,19 @@ void ForceHookOpenGL(HMODULE base) // to do .....
 	return;
 }
 
-void HookOpenGL(HMODULE module, char *customlib) 
+void HookOpenGL(HMODULE module, char *customlib)
 {
-	HookLibraryEx(module, Hooks, customlib);
-}
+	if(!(dxw.dwFlags2 & HOOKOPENGL)) return;
 
-void HookOpenGLLibs(HMODULE module, char *customlib)
-{
 	char *DefOpenGLModule="OpenGL32.dll";
 
 	if (!customlib) customlib=DefOpenGLModule;
 
-	OutTraceDW("HookOpenGLLibs module=%x lib=\"%s\" forced=%x\n", module, customlib, (dxw.dwFlags3 & FORCEHOOKOPENGL)?1:0);
+	OutTraceDW("HookOpenGL module=%x lib=\"%s\" forced=%x\n", module, customlib, (dxw.dwFlags3 & FORCEHOOKOPENGL)?1:0);
 	if (dxw.dwFlags3 & FORCEHOOKOPENGL) 
 		ForceHookOpenGL(module);
 	else
-		HookOpenGL(module, customlib);
+		HookLibraryEx(module, Hooks, customlib);
 
 	return;
 }

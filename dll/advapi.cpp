@@ -29,12 +29,20 @@ static HookEntryEx_Type Hooks[]={
  
 void HookAdvApi32(HMODULE module)
 {
+	if( (dxw.dwFlags3 & EMULATEREGISTRY) || 
+		(dxw.dwFlags4 & OVERRIDEREGISTRY) || 
+		(dxw.dwFlags6 & (WOW32REGISTRY|WOW64REGISTRY)) || 
+		(dxw.dwTFlags & OUTREGISTRY))
 	HookLibraryEx(module, Hooks, "ADVAPI32.dll");
 }
 
 FARPROC Remap_AdvApi32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	if(!(dxw.dwFlags3 & EMULATEREGISTRY) || 
+		(dxw.dwFlags4 & OVERRIDEREGISTRY) || 
+		(dxw.dwFlags6 & (WOW32REGISTRY|WOW64REGISTRY)) || 
+		(dxw.dwTFlags & OUTREGISTRY)) return NULL;
 	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }

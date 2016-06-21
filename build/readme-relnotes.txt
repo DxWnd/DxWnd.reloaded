@@ -1129,3 +1129,9 @@ v2.03.71
 fix: no need to save configuration before running with fake registry
 add: icons to notify for non-empty registry and notes tabs
 fix: hooked ddrawex.dll DirectDrawEx methods - fixes "Whiteout", what else?
+
+v2.03.72
+fix: inserted bypass for DirectDraw::Compact method, that is unimplemented but can return errors. Fixes "Crazy Climber" error detection.
+fix: error in d3d9::CrerateDeviceEx method preventing it to work when moving fullscreen devices to window mode, as tipically happens using DxWnd. Fixes d3d9 version of "Saint's Row the Third"
+fix: accurate determination of ".text" or "CODE" segments where to apply the REPLACERTSC and REPLACEPRIVOPS flags.
+fix: error in logic to add extra reference to backbuffer surface: fixes "Warhammer 40k Rites of War".

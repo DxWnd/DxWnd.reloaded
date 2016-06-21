@@ -30,6 +30,7 @@ static HookEntryEx_Type Hooks[]={
 FARPROC Remap_smack_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	if(!(dxw.dwFlags7 & HOOKSMACKW32)) return NULL;
 	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
@@ -39,6 +40,7 @@ static char *libname = "smackw32.dll";
 
 void HookSmackW32(HMODULE hModule)
 {
+	if(!(dxw.dwFlags7 & HOOKSMACKW32)) return;
 	HookLibraryEx(hModule, Hooks, libname);
 	return;
 }

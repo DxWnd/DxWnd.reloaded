@@ -44,6 +44,7 @@ static HookEntryEx_Type Hooks[]={
 FARPROC Remap_DSound_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	if(!(dxw.dwFlags7 & HOOKDIRECTSOUND)) return NULL;
 	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
@@ -52,6 +53,7 @@ static char *libname = "dsound.dll";
 
 void HookDirectSound(HMODULE hModule)
 {
+	if(!(dxw.dwFlags7 & HOOKDIRECTSOUND)) return;
 	HookLibraryEx(hModule, Hooks, "dsound.dll");
 }
 

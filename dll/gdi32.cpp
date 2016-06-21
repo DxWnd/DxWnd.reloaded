@@ -128,6 +128,9 @@ BOOL WINAPI extPolyPolygon(HDC, const POINT *, const INT *, int);
 //typedef BOOL (WINAPI *DPtoLP_Type)(HDC, LPPOINT, int);
 //DPtoLP_Type pDPtoLP = NULL;
 //BOOL WINAPI extDPtoLP(HDC, LPPOINT, int);
+typedef BOOL (WINAPI *PlayEnhMetaFile_Type)(HDC, HENHMETAFILE, const RECT *);
+PlayEnhMetaFile_Type pPlayEnhMetaFile = NULL;
+BOOL WINAPI extPlayEnhMetaFile(HDC, HENHMETAFILE, const RECT *);
 
 static HookEntryEx_Type Hooks[]={
 
@@ -168,6 +171,7 @@ static HookEntryEx_Type RemapHooks[]={
 	//{HOOK_IAT_CANDIDATE, 0, "GetRegionData", (FARPROC)NULL, (FARPROC *)&pGetRegionData, (FARPROC)extGetRegionData},
 	{HOOK_IAT_CANDIDATE, 0, "CreateCompatibleDC", (FARPROC)CreateCompatibleDC, (FARPROC *)&pGDICreateCompatibleDC, (FARPROC)extGDICreateCompatibleDC}, /* to check */
 	//TODO {HOOK_IAT_CANDIDATE, 0, "DrawEscape", (FARPROC)DrawEscape, (FARPROC *)&pDrawEscape, (FARPROC)extDrawEscape}, /* to check */
+	{HOOK_IAT_CANDIDATE, 0, "GetDCOrgEx", (FARPROC)GetDCOrgEx, (FARPROC *)&pGetDCOrgEx, (FARPROC)extGetDCOrgEx}, 
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator 
 };
 
@@ -226,6 +230,9 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC}, // for tracing only!
 	{HOOK_IAT_CANDIDATE, 0, "CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDCA, (FARPROC)extGDICreateDCA}, 
 	{HOOK_IAT_CANDIDATE, 0, "CreateDCW", (FARPROC)CreateDCW, (FARPROC *)&pGDICreateDCW, (FARPROC)extGDICreateDCW}, 
+
+	{HOOK_IAT_CANDIDATE, 0, "PlayEnhMetaFile", (FARPROC)PlayEnhMetaFile, (FARPROC *)&pPlayEnhMetaFile, (FARPROC)extPlayEnhMetaFile}, 
+
 	// CreateDCW .....	
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator 
 };
@@ -3312,3 +3319,23 @@ BOOL WINAPI extDPtoLP(HDC hdc, LPPOINT lpPoints, int nCount)
 	return ret;
 }
 #endif
+
+BOOL WINAPI extPlayEnhMetaFile(HDC hdc, HENHMETAFILE hemf, const RECT *lpRect)
+{
+	BOOL ret;
+	MessageBox(0, "PlayEnhMetaFile", "dxwnd", MB_OK);
+	ret = pPlayEnhMetaFile(hdc, hemf, lpRect);
+	return ret;
+}
+
+BOOL WINAPI extGetDCOrgEx(HDC hdc, LPPOINT lpPoint)
+{
+	BOOL ret;
+	ret = pGetDCOrgEx(hdc, lpPoint);
+	OutTraceDW("GetDCOrgEx: hdc=%x pt=(%d,%d)\n", hdc, lpPoint->x, lpPoint->y);
+	if(ret && dxw.IsFullScreen()){ // ?? and dxw.isDesktop() ???
+		dxw.UnmapClient(lpPoint);
+		OutTraceDW("GetDCOrgEx: fixed pt=(%d,%d)\n", lpPoint->x, lpPoint->y);
+	}
+	return ret;
+}

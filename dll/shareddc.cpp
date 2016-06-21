@@ -185,8 +185,8 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc)
 
 	POINT origin = {};
 	POINT mainwin = {};
-	GetDCOrgEx(hdc, &origin);
-	GetDCOrgEx((*pGDIGetDC)(dxw.GethWnd()), &mainwin);
+	(*pGetDCOrgEx)(hdc, &origin);
+	(*pGetDCOrgEx)((*pGDIGetDC)(dxw.GethWnd()), &mainwin);
 	origin.x -= mainwin.x;
 	origin.y -= mainwin.y;
 	OutTraceB("dxwSDC::GetPrimaryDC: origin=(%d,%d)\n", origin.x, origin.y);
@@ -398,7 +398,7 @@ void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT origin)
 	//(*pClientToScreen)(dxw.GethWnd(), &upleft);
 	(*pClientToScreen)(CurrenthWnd, &upleft);
 	if(IsDebug){
-		OutTraceB("dxwSDC::setClippingRegion: upleft=(%d,%d)\n", upleft.x, upleft.y);
+		OutTraceB("dxwSDC::setClippingRegion: hwnd=%x upleft=(%d,%d)\n", CurrenthWnd, upleft.x, upleft.y);
 	}
 	OffsetRgn(clipRgn, -upleft.x, -upleft.y);
 	if(IsDebug){

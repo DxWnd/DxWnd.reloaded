@@ -23,12 +23,14 @@ static HookEntryEx_Type Hooks[]={
 
 void HookImeLib(HMODULE module)
 {
+	if(!(dxw.dwFlags2 & SUPPRESSIME)) return; 
 	HookLibraryEx(module, Hooks, "IMM32.dll");
 }
 
 FARPROC Remap_ImeLib_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
+	if(!(dxw.dwFlags2 & SUPPRESSIME)) return NULL; 
 	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }

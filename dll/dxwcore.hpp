@@ -259,6 +259,42 @@ extern dxwCore dxw;
 extern dxwSStack dxwss;
 extern dxwWStack dxwws;
 
+#if 0
+typedef enum {
+	SYSLIBIDX_VERSION = 0,
+	SYSLIBIDX_DPLAYX,
+	SYSLIBIDX_WSOCK,
+	SYSLIBIDX_SHFOLDER,
+	SYSLIBIDX_SHELL32,
+	SYSLIBIDX_WS2_32,
+	SYSLIBIDX_TAPI32,
+	SYSLIBIDX_NETAPI32,
+	SYSLIBIDX_GLIDE,
+	SYSLIBIDX_GLIDE2X,
+	SYSLIBIDX_GLIDE3X,
+}
+enum_skipsyslibraries;
+
+#ifdef SYSLIBNAMES_DEFINES
+char *SkipNames[]={
+	"version",
+	"dplayx",
+	"wsock32",
+	"shfolder",
+	"shell32",
+	"ws2_32",
+	"tapi32",
+	"netapi32",
+	"glide",
+	"glide2x",
+	"glide3x",
+	NULL
+}
+#else
+extern char *SkipNames[];
+#endif
+#endif
+
 typedef enum {
 	SYSLIBIDX_KERNEL32 = 0,
 	SYSLIBIDX_USER32,
@@ -275,29 +311,20 @@ typedef enum {
 	SYSLIBIDX_OPENGL,
 	SYSLIBIDX_MSVFW,
 	SYSLIBIDX_SMACK,
-	SYSLIBIDX_VERSION,
-	SYSLIBIDX_DPLAYX,
 	SYSLIBIDX_DSOUND,
 	SYSLIBIDX_WINMM,
 	SYSLIBIDX_IMM32,
-	SYSLIBIDX_WSOCK,
 	SYSLIBIDX_DINPUT,
 	SYSLIBIDX_DINPUT8,
-	SYSLIBIDX_SHFOLDER,
-	SYSLIBIDX_SHELL32,
-	SYSLIBIDX_WS2_32,
-	SYSLIBIDX_TAPI32,
-	SYSLIBIDX_NETAPI32,
 	SYSLIBIDX_WINTRUST,
 	SYSLIBIDX_DIRECT3D,
 	SYSLIBIDX_DIRECT3D700,
-//	SYSLIBIDX_DBGHELP,
 	SYSLIBIDX_IMAGEHLP,
-//	SYSLIBIDX_GLIDE,
-//	SYSLIBIDX_GLIDE2X,
-//	SYSLIBIDX_GLIDE3X,
 	SYSLIBIDX_COMDLG32,
-	SYSLIBIDX_MAX } 
+	SYSLIBIDX_COMCTL32,
+	SYSLIBIDX_AVIFIL32,
+	SYSLIBIDX_MAX 
+} 
 enum_syslibraries;
 
 #ifdef SYSLIBNAMES_DEFINES
@@ -317,27 +344,18 @@ char *SysNames[]={
 	"opengl32",
 	"msvfw32",
 	"smackw32",
-	"version",
-	"dplayx",
 	"dsound",
 	"winmm",
 	"imm32",
-	"wsock32",
 	"dinput",
 	"dinput8",
-	"shfolder",
-	"shell32",
-	"ws2_32",
-	"tapi32",
-	"netapi32",
 	"wintrust",
 	"d3dim",
 	"d3dim700",
 	"imagehlp",
-//	"+glide",
-//	"+glide2x",
-//	"+glide3x",
 	"comdlg32",
+	"comctl32",
+	"AVIFIL32",
 	NULL
 };	
 #else

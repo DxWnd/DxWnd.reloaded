@@ -1,6 +1,6 @@
 #include "gl.h"
 
-extern void HookOpenGLLibs(HMODULE, char *);
+extern void HookOpenGL(HMODULE, char *);
 
 typedef GLenum (WINAPI *glGetError_Type)();
 typedef void (WINAPI *glViewport_Type)(GLint, GLint, GLsizei, GLsizei);

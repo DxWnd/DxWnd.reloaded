@@ -101,6 +101,21 @@ static HRESULT sBltNoPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 		if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
 		res=(*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags|DDBLT_WAIT, lpddbltfx);
 		break;
+	case DDERR_UNSUPPORTED: 
+		// to be fixed: parameters coming from BltFast in Star Defender 1 are not compatible with Blt transformation, so clear all....
+		if(dwflags & (DDBLT_KEYDEST|DDBLT_KEYSRC)){
+#if 1
+			res= (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, 0, 0);
+#else
+			DDBLTFX ddbltfx;
+			memset(&ddbltfx, 0, sizeof(ddbltfx));
+			ddbltfx.dwSize = sizeof(ddbltfx);
+			if(dwflags & DDBLT_KEYDEST) ddbltfx.dwROP |= DDCKEYCAPS_DESTBLT;
+			if(dwflags & DDBLT_KEYSRC ) ddbltfx.dwROP |= DDCKEYCAPS_SRCBLT;
+			res= (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags|DDBLT_ROP, &ddbltfx);
+#endif
+		}
+		break;
 	default:
 		break;
 	}

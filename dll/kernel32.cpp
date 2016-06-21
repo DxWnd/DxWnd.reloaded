@@ -591,6 +591,9 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 	if((DWORD)proc & 0xFFFF0000){
 		FARPROC remap;
 		switch(idx){
+			case SYSLIBIDX_AVIFIL32:
+			if (remap=Remap_AVIFil32_ProcAddress(proc, hModule)) return remap;
+			break;
 		case SYSLIBIDX_DIRECTDRAW:
 			if (remap=Remap_ddraw_ProcAddress(proc, hModule)) return remap;
 			break;
@@ -630,11 +633,6 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_OPENGL:
 			if(dxw.Windowize) if (remap=Remap_gl_ProcAddress(proc, hModule)) return remap;
 			break;
-//		case SYSLIBIDX_GLIDE:
-//		case SYSLIBIDX_GLIDE2X:
-//		case SYSLIBIDX_GLIDE3X:
-//			if (remap=Remap_Glide_ProcAddress(proc, hModule)) return remap;
-//			break;
 		case SYSLIBIDX_MSVFW:
 			if (remap=Remap_vfw_ProcAddress(proc, hModule)) return remap;
 			break;
@@ -661,6 +659,12 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 			break;
 		case SYSLIBIDX_DINPUT8:
 			if (remap=Remap_DInput8_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_COMCTL32:
+			if (remap=Remap_ComCtl32_ProcAddress(proc, hModule)) return remap;
+			break;
+		case SYSLIBIDX_COMDLG32:
+			if (remap=Remap_ComDlg32_ProcAddress(proc, hModule)) return remap;
 			break;
 		default:
 			break;			

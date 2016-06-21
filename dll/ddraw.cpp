@@ -15,6 +15,18 @@
 
 #define EMULATEZBUFFERATTACH FALSE
 
+#ifdef CHECKMETHODPOINTERS
+static void NullMethodPointer(char *s) 
+{
+	char msg[80];
+	sprintf(msg, "NULL %s method", s);
+	MessageBox(0, msg, "DxWnd", MB_OK);
+}
+#define CHECKPTR(p, s) if(!p) NullMethodPointer(s)
+#else
+#define CHECKPTR(p, s)
+#endif
+
 extern BOOL IsChangeDisplaySettingsHotPatched;
 DWORD dwBackBufferCaps;
 extern void TextureHandling(LPDIRECTDRAWSURFACE, int);
@@ -42,7 +54,9 @@ ULONG WINAPI extReleaseD1(LPDIRECTDRAW);
 ULONG WINAPI extReleaseD2(LPDIRECTDRAW);
 ULONG WINAPI extReleaseD4(LPDIRECTDRAW);
 ULONG WINAPI extReleaseD7(LPDIRECTDRAW);
+
     /*** IDirectDraw methods ***/
+HRESULT WINAPI extCompact(LPDIRECTDRAW); // unimplemented method ???
 HRESULT WINAPI extCreateClipper1(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
 HRESULT WINAPI extCreateClipper2(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
 HRESULT WINAPI extCreateClipper4(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
@@ -758,6 +772,8 @@ static void BypassGOGDDrawRedirector()
 
 int HookDirectDraw(HMODULE module, int version)
 {
+	if(dxw.dwTargetDDVersion == HOOKDDRAWNONE) return 0;
+
 	if ((dxw.dwFlags2 & SETCOMPATIBILITY) ||
 		(dxw.dwFlags6 & DISABLEMAXWINMODE)){
 		static BOOL AlreadyDone = FALSE;
@@ -842,6 +858,7 @@ CreatePalette_Type pCreatePaletteMethod(int dxversion)
 		case 4: pCreatePalette = pCreatePalette4; break;
 		case 7: pCreatePalette = pCreatePalette7; break;
 	}
+	CHECKPTR(pCreatePalette, "CreatePalette"); 
 	return pCreatePalette;
 }
 
@@ -854,6 +871,7 @@ SetPalette_Type pSetPaletteMethod(int dxversion)
 		case 4: pSetPalette=pSetPalette4; break;
 		case 7: pSetPalette=pSetPalette7; break;
 	}
+	CHECKPTR(pSetPalette, "SetPalette"); 
 	return pSetPalette;
 }
 
@@ -867,6 +885,7 @@ ReleaseS_Type pReleaseSMethod(int dxversion)
 		case 4: pReleaseS=pReleaseS4; break;
 		case 7: pReleaseS=pReleaseS7; break;
 	}
+	CHECKPTR(pReleaseS, "Surface::Release"); 
 	return pReleaseS;
 }
 
@@ -880,6 +899,7 @@ ReleaseDC_Type pReleaseDCMethod()
 		case 4: pReleaseDC=pReleaseDC4; break;
 		case 7: pReleaseDC=pReleaseDC7; break;
 	}
+	CHECKPTR(pReleaseDC, "ReleaseDC"); 
 	return pReleaseDC;
 }
 
@@ -893,6 +913,7 @@ SetClipper_Type pSetClipperMethod(int dxversion)
 		case 4: pSetClipper=pSetClipper4; break;
 		case 7: pSetClipper=pSetClipper7; break;
 	}
+	CHECKPTR(pSetClipper, "SetClipper"); 
 	return pSetClipper;
 }
 
@@ -906,6 +927,7 @@ Blt_Type pBltMethod()
 		case 4: pBlt=pBlt4; break;
 		case 7: pBlt=pBlt7; break;
 	}
+	CHECKPTR(pBlt, "Blt"); 
 	return pBlt;
 }
 
@@ -919,6 +941,7 @@ GetDC_Type pGetDCMethod()
 		case 4: pGetDC=pGetDC4; break;
 		case 7: pGetDC=pGetDC7; break;
 	}
+	CHECKPTR(pGetDC, "GetDC"); 
 	return pGetDC;
 }
 
@@ -932,6 +955,7 @@ Unlock4_Type pUnlockMethod(int dxversion)
 		case 4: pUnlock=(Unlock4_Type)pUnlock4; break;
 		case 7: pUnlock=(Unlock4_Type)pUnlock7; break;
 	}
+	CHECKPTR(pUnlock, "Unlock"); 
 	return pUnlock;
 }
 
@@ -945,6 +969,7 @@ Lock_Type pLockMethod(int dxversion)
 		case 4: pLock=pLock4; break;
 		case 7: pLock=pLock7; break;
 	}
+	CHECKPTR(pLock, "Lock"); 
 	return pLock;
 }
 
@@ -958,6 +983,7 @@ CreateSurface2_Type pCreateSurfaceMethod(int dxversion)
 		case 4: pCreateSurface=(CreateSurface2_Type)pCreateSurface4; break;
 		case 7: pCreateSurface=(CreateSurface2_Type)pCreateSurface7; break;
 	}
+	CHECKPTR(pCreateSurface, "CreateSurface"); 
 	return pCreateSurface;
 }
 
@@ -972,6 +998,7 @@ GetSurfaceDesc2_Type pGetSurfaceDescMethod()
 		case 4: pGetSurfaceDesc=(GetSurfaceDesc2_Type)pGetSurfaceDesc4; break;
 		case 7: pGetSurfaceDesc=(GetSurfaceDesc2_Type)pGetSurfaceDesc7; break;
 	}
+	CHECKPTR(pGetSurfaceDesc, "GetSurfaceDesc"); 
 	return pGetSurfaceDesc;
 }
 
@@ -985,6 +1012,7 @@ GetGDISurface_Type pGetGDISurfaceMethod(int dxversion)
 		case 4: pGetGDISurface = pGetGDISurface4; break;
 		case 7: pGetGDISurface = pGetGDISurface7; break;
 	}
+	CHECKPTR(pGetGDISurface, "GetGDISurface"); 
 	return pGetGDISurface;
 }
 
@@ -1091,6 +1119,7 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	OutTraceDW("Hooking directdraw session dd=%x dxversion=%d thread_id=%x\n", 
 		*lplpdd, dxversion, GetCurrentThreadId());
 
+	SetHook((void *)(**(DWORD **)lplpdd + 12), extCompact, (void **)&pCompact, "Compact");
 	switch(dxversion) {
 	case 1:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD1, (void **)&pQueryInterfaceD1, "QueryInterface(D1)");
@@ -3123,7 +3152,9 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		// v2.2.84: avoid the extra referenced in non windowed mode since it causes the window shift reported by gsky916
 		// for Wind Fantasy SP.
 		// v2.3.59: same extra reference is needed by "Wahammer Chaos Gate" that uses ddraw interface release 2
-		if((dxw.dwDDVersion>=2) && dxw.Windowize) lpdd->AddRef();
+		// v2.3.72: fixed previous fix: condition is <=2, not >=2 ! 
+		// Be aware that it may perhaps become <=3, if we get the same problem elsewhere
+		if((dxw.dwDDVersion<=2) && dxw.Windowize) lpdd->AddRef();
 
 		return DD_OK;
 	}
@@ -3812,7 +3843,8 @@ HRESULT WINAPI extBlt4(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRA
 HRESULT WINAPI extBlt7(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx)
 { return extBlt(7, pBlt7, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx); }
 
-HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy, 
+HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, BltFast_Type pBltFast, 
+	LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy, 
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwtrans)
 {
 	// BltFast is supported just on screen surfaces, so it has to be replaced
@@ -3834,8 +3866,18 @@ HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpdd
 		char sRect[81];
 		if (lpsrcrect) sprintf(sRect, "(%d,%d)-(%d,%d)", lpsrcrect->left, lpsrcrect->top, lpsrcrect->right, lpsrcrect->bottom);
 		else strcpy(sRect, "(NULL)");
-		OutTrace("BltFast: dest=%x%s src=%x%s dwTrans=%x(%s) (x,y)=(%d,%d) srcrect=%s\n", 
-			lpdds, ToPrim?"(PRIM)":"", lpddssrc, FromPrim?"(PRIM)":"", dwtrans, ExplainBltFastFlags(dwtrans), dwx, dwy, sRect);
+		OutTrace("BltFast(%d): dest=%x%s src=%x%s dwTrans=%x(%s) (x,y)=(%d,%d) srcrect=%s\n", 
+			dxversion, lpdds, ToPrim?"(PRIM)":"", lpddssrc, FromPrim?"(PRIM)":"", dwtrans, ExplainBltFastFlags(dwtrans), dwx, dwy, sRect);
+	}
+
+	// try the actual method first, it may work in some corcumstances....
+	// when ret is DDERR_UNSUPPORTED try the emulated path.
+	if(!(ToPrim || FromPrim)) {
+		ret = pBltFast(lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans);
+		if(ret != DDERR_UNSUPPORTED) {
+			if(ret) OutTraceE("BltFast ERROR: res=%x(%s)\n", ret, ExplainDDError(ret));
+			return ret;
+		}
 	}
 
 	// consistency check ....
@@ -3849,7 +3891,6 @@ HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpdd
 	if(dwtrans & DDBLTFAST_WAIT) flags = DDBLT_WAIT;
 	if(dwtrans & DDBLTFAST_DESTCOLORKEY) flags |= DDBLT_KEYDEST;
 	if(dwtrans & DDBLTFAST_SRCCOLORKEY) flags |= DDBLT_KEYSRC;
-	//if(dwtrans & DDBLTFAST_SRCCOLORKEY) flags |= DDBLT_COLORFILL;
 
 	if ((dxw.dwFlags2 & FULLRECTBLT) && ToPrim){
 		 return sBlt(dxversion, pBlt, "BltFast", lpdds, NULL, lpddssrc, lpsrcrect, flags, NULL, FALSE);
@@ -3890,15 +3931,15 @@ HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFACE lpdd
 }
 
 HRESULT WINAPI extBltFast1(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwtrans)
-{ return extBltFast(1, pBlt1, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
+{ return extBltFast(1, pBlt1, pBltFast1, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
 HRESULT WINAPI extBltFast2(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwtrans)
-{ return extBltFast(2, pBlt2, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
+{ return extBltFast(2, pBlt2, pBltFast2, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
 HRESULT WINAPI extBltFast3(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwtrans)
-{ return extBltFast(3, pBlt3, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
+{ return extBltFast(3, pBlt3, pBltFast3, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
 HRESULT WINAPI extBltFast4(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwtrans)
-{ return extBltFast(4, pBlt4, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
+{ return extBltFast(4, pBlt4, pBltFast4, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
 HRESULT WINAPI extBltFast7(LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwtrans)
-{ return extBltFast(7, pBlt7, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
+{ return extBltFast(7, pBlt7, pBltFast7, lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans); }
 
 HRESULT WINAPI extWaitForVerticalBlank(WaitForVerticalBlank_Type pWaitForVerticalBlank, LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE hevent)
 {
@@ -4139,8 +4180,8 @@ static HRESULT WINAPI extLock(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFAC
 		char sRect[81];
 		if (lprect) sprintf_s(sRect, 80, "(%d,%d)-(%d,%d)", lprect->left, lprect->top, lprect->right, lprect->bottom);
 		else strcpy(sRect, "(NULL)");
-		OutTrace("Lock: lpdds=%x%s flags=%x(%s) lpDDSurfaceDesc=%x rect=%s\n", 
-			lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc, sRect);
+		OutTrace("Lock(%d): lpdds=%x%s flags=%x(%s) lpDDSurfaceDesc=%x rect=%s\n", 
+			dxversion, lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc, sRect);
 	}
 
 	res=(*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
@@ -4202,8 +4243,8 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 		char sRect[81];
 		if (lprect) sprintf_s(sRect, 80, "(%d,%d)-(%d,%d)", lprect->left, lprect->top, lprect->right, lprect->bottom);
 		else strcpy(sRect, "(NULL)");
-		OutTrace("Lock: lpdds=%x%s flags=%x(%s) lpDDSurfaceDesc=%x rect=%s\n", 
-			lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc, sRect);
+		OutTrace("Lock(%d): lpdds=%x%s flags=%x(%s) lpDDSurfaceDesc=%x rect=%s\n", 
+			dxversion, lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc, sRect);
 	}
 
 	switch(dxversion){
@@ -5806,3 +5847,9 @@ HRESULT WINAPI extAddOverlayDirtyRect4(LPDIRECTDRAWSURFACE lpdds, LPRECT lpRect)
 { return extAddOverlayDirtyRect(4, pAddOverlayDirtyRect4, lpdds, lpRect); }
 HRESULT WINAPI extAddOverlayDirtyRect7(LPDIRECTDRAWSURFACE lpdds, LPRECT lpRect)
 { return extAddOverlayDirtyRect(7, pAddOverlayDirtyRect7, lpdds, lpRect); }
+
+HRESULT WINAPI extCompact(LPDIRECTDRAW lpdd)
+{
+	OutTraceDW("Compact: lpdd=%x\n", lpdd);
+	return DD_OK;
+}

@@ -156,6 +156,8 @@ void HookDirectInput(HMODULE module)
 	HINSTANCE hinst;
 	LPDIRECTINPUT lpdi;
 
+	if(!(dxw.dwFlags1 & HOOKDI)) return;
+
 	HookLibraryEx(module, diHooks, "dinput.dll");
 	if(!pDirectInputCreateA && !pDirectInputCreateW && !pDirectInputCreateExA){
 		hinst = LoadLibrary("dinput.dll");
@@ -175,6 +177,8 @@ void HookDirectInput8(HMODULE module)
 	const GUID di8 = {0xBF798030,0x483A,0x4DA2,0xAA,0x99,0x5D,0x64,0xED,0x36,0x97,0x00};
 	HINSTANCE hinst;
 	LPDIRECTINPUT lpdi;
+
+	if(!(dxw.dwFlags1 & HOOKDI8)) return;
 
 	HookLibraryEx(module, di8Hooks, "dinput8.dll");
 	if(!pDirectInput8Create){

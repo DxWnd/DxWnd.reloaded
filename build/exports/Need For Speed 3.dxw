@@ -1,0 +1,31 @@
+[target]
+title0=Need For Speed 3
+path0=D:\Games\Need For Speed III\NFS3.EXE
+launchpath0=
+module0=
+opengllib0=
+notes0=To install the game on x64 systems copy the following folders and files from\nthe CD to a NFS3 directory on the hard drive:\nFEDATA\\nGAMEDATA\\nd3da.dll\neacsnd.dll\nnfs3.exe\nsofttria.dll\n\nThen copy paste the text below to notepad and save it to your NFS3 directory\nas "INSTALL.WIN". (Remember to set file type to "All Files" when saving.)\n\nenglish\nlocal\n.\GameData\\n.\GameData\Tracks\\n.\GameData\Tracks\Tutor\\n.\GameData\CarModel\\n.\GameData\Render\pc\\n.\GameData\DashHud\\n.\GameData\Audio\pc\\n.\GameData\Audio\SFX\\n.\GameData\Audio\Speech\English\\n.\GameData\Audio\Speech\German\\n.\GameData\Audio\Speech\French\\n.\GameData\Audio\Speech\Spanish\\n.\GameData\Audio\Speech\Italian\\n.\FeData\art\\n.\FeData\text\\n.\FeData\text\\n.\FeData\save\\n.\FeData\stats\\n.\FeData\config\\n.\FeData\audio\\n.\FeData\Art\Slides\\n.\FeData\Art\Track\\n.\FeData\Art\Showcase\\n.\FeData\movies\\n.\FeData\stats\prh\\n
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts\Need For Speed III]\n"3D Card"="[Direct 3D]"\n"Thrash Driver"="d3d"\n"Group"="D3D"\n"Hardware Acceleration"=dword:00000001\n\n# These values set up NFS3 to run in Direct3D mode. If you want to run the\n# game in software rendering mode turn off the Compat. tab option\n# "Emulate Registry".\n
+ver0=0
+coord0=0
+flag0=136314914
+flagg0=1744830464
+flagh0=1556
+flagi0=138412036
+flagj0=4224
+flagk0=65536
+flagl0=0
+flagm0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2

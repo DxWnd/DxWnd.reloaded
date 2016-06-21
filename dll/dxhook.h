@@ -9,18 +9,21 @@ extern void HookDirectSound(HMODULE);
 extern void HookImeLib(HMODULE);
 extern void HookKernel32(HMODULE);
 extern void HookUser32(HMODULE);
+extern void HookTrust(HMODULE);
 extern void HookWinMM(HMODULE, char *libname);
 extern void HookAdvApi32(HMODULE);
 extern void HookImagehlp(HMODULE);
 extern void HookSmackW32(HMODULE);
 extern void HookAVIFil32(HMODULE);
 extern void HookComDlg32(HMODULE);
+extern void HookComCtl32(HMODULE);
 
 extern void InitPosition(int, int, int, int, int, int);
 //void InitWindowPos(int, int, int, int);
 extern LPCSTR ProcToString(LPCSTR proc);
 extern HRESULT HookDxDiag(REFIID, LPVOID FAR*);
 
+extern FARPROC Remap_AVIFil32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_ddraw_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_d3d7_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_d3d8_ProcAddress(LPCSTR, HMODULE);
@@ -43,6 +46,8 @@ extern FARPROC Remap_Glide_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_Imagehlp_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_DInput_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_DInput8_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_ComCtl32_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_ComDlg32_ProcAddress(LPCSTR, HMODULE);
 
 typedef enum {
 	HOOK_IAT_CANDIDATE = 0,

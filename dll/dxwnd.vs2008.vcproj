@@ -238,6 +238,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\comctl32.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\comdlg32.cpp"
 				>
 			</File>

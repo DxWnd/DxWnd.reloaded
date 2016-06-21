@@ -31,6 +31,7 @@ typedef void* (WINAPI *Direct3DCreate9_Type)(UINT);
 typedef HRESULT (WINAPI *Direct3DCreate9Ex_Type)(UINT, IDirect3D9Ex **);
 typedef HRESULT (WINAPI *CheckFullScreen_Type)(void);
 typedef BOOL (WINAPI * DisableD3DSpy_Type)(void);
+typedef void (WINAPI * D3DPERF_SetOptions_Type)(DWORD);
 
 void* WINAPI extDirect3DCreate8(UINT);
 void* WINAPI extDirect3DCreate9(UINT);
@@ -41,12 +42,14 @@ void WINAPI voidDebugSetLevel(void);
 void WINAPI voidDebugSetMute(void);
 BOOL WINAPI voidDisableD3DSpy(void);
 BOOL WINAPI extDisableD3DSpy(void);
+void WINAPI extD3DPERF_SetOptions(DWORD);
 
 Direct3DCreate8_Type pDirect3DCreate8 = 0;
 Direct3DCreate9_Type pDirect3DCreate9 = 0;
 Direct3DCreate9Ex_Type pDirect3DCreate9Ex = 0;
 CheckFullScreen_Type pCheckFullScreen = 0;
 DisableD3DSpy_Type pDisableD3DSpy = 0;
+D3DPERF_SetOptions_Type pD3DPERF_SetOptions = 0;
 
 // IDirect3D8/9 methods 
 
@@ -294,6 +297,7 @@ static HookEntryEx_Type d3d9Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "Direct3DCreate9Ex", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9Ex, (FARPROC)extDirect3DCreate9Ex},
 	{HOOK_HOT_CANDIDATE, 0, "CheckFullScreen", (FARPROC)NULL, (FARPROC *)&pCheckFullScreen, (FARPROC)extCheckFullScreen},
 	{HOOK_HOT_CANDIDATE, 0, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)&pDisableD3DSpy, (FARPROC)extDisableD3DSpy},
+	{HOOK_HOT_CANDIDATE, 0, "D3DPERF_SetOptions", (FARPROC)NULL, (FARPROC *)&pD3DPERF_SetOptions, (FARPROC)extD3DPERF_SetOptions},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -1083,12 +1087,12 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 		}
 		res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		if(res){
-			OutTraceD3D("switching to mode=%x\n", mode.Format);
+			OutTraceD3D("err=%x switching to mode=%x\n", res, mode.Format);
 			param[2] = mode.Format; // first attempt: current screen mode
 			res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		}
 		if(res){
-			OutTraceD3D("switching to mode=D3DFMT_UNKNOWN\n");
+			OutTraceD3D("err=%x switching to mode=D3DFMT_UNKNOWN\n", res);
 			param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
 			res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		}
@@ -1106,19 +1110,19 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 		}
 		res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		if(res){
-			OutTraceD3D("switching to mode=%x\n", mode.Format);
+			OutTraceD3D("err=%x switching to mode=%x\n", res, mode.Format);
 			param[2] = mode.Format; // first attempt: current screen mode
 			res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		}
 		if(res){
-			OutTraceD3D("switching to mode=D3DFMT_UNKNOWN\n");
+			OutTraceD3D("err=%x switching to mode=D3DFMT_UNKNOWN\n", res);
 			param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
 			res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		}
 	}
 
 	if(res){
-		OutTraceD3D("FAILED! %x\n", res);
+		OutTraceD3D("FAILED! err=%x\n", res);
 		return res;
 	}
 	OutTraceD3D("SUCCESS! device=%x\n", *ppd3dd);
@@ -1216,21 +1220,26 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 		param[8] = 1;			//Windowed
 		param[12] = 0;			//FullScreen_RefreshRateInHz;
 		param[13] = D3DPRESENT_INTERVAL_DEFAULT;	//PresentationInterval
+		// from MSDN:
+		// The display mode for when the device is set to fullscreen. See D3DDISPLAYMODEEX. 
+		// If BehaviorFlags specifies D3DCREATE_ADAPTERGROUP_DEVICE, this parameter is an array. 
+		// This parameter must be NULL for windowed mode.
+		pFullscreenDisplayMode = NULL;
 	}
 
 	res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
 	if(res){
-		OutTraceD3D("switching to mode=%x\n", mode.Format);
+		OutTraceD3D("err=%x switching to mode=%x\n", res, mode.Format);
 		param[2] = mode.Format; // first attempt: current screen mode
 		res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
 	}
 	if(res){
-		OutTraceD3D("switching to mode=D3DFMT_UNKNOWN\n");
+		OutTraceD3D("err=%x switching to mode=D3DFMT_UNKNOWN\n", res);
 		param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
 		res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
 	}
 	if(res){
-		OutTraceD3D("FAILED! %x\n", res);
+		OutTraceD3D("FAILED! err=%x\n", res);
 		return res;
 	}
 	OutTraceD3D("SUCCESS!\n"); 
@@ -2243,6 +2252,12 @@ HRESULT WINAPI extUnlockRect8(void *lpd3dtex, UINT Level)
 { return extUnlockRect(pUnlockRect8, lpd3dtex, Level, D3D8TextureHandling); }
 HRESULT WINAPI extUnlockRect9(void *lpd3dtex, UINT Level)
 { return extUnlockRect(pUnlockRect9, lpd3dtex, Level, D3D9TextureHandling); }
+
+void WINAPI extD3DPERF_SetOptions(DWORD dwOptions)
+{
+	if(dwOptions) OutTraceD3D("circumvent D3DPERF_SetOptions\n");
+	pD3DPERF_SetOptions(0);
+}
 
 void RestoreD3DSurfaces(BOOL bFullScreen)
 {
