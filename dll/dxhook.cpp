@@ -51,8 +51,7 @@ Disasm_Type pDisasm;
 
 extern void InitScreenParameters(int);
 extern void *HotPatch(void *, const char *, void *);
-extern void *IATPatch(HMODULE, char *, void *, const char *, void *);
-extern void *IATPatchEx(HMODULE, DWORD, char *, void *, const char *, void *);
+extern void *IATPatch(HMODULE, DWORD, char *, void *, const char *, void *);
 void HookModule(HMODULE, int);
 void RecoverScreenMode();
 static void LockScreenMode(DWORD, DWORD, DWORD);
@@ -131,7 +130,7 @@ static char *Flag7Names[32]={
 	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "HOOKDIRECTSOUND",
 	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
 	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
-	"", "", "", "",
+	"FIXGLOBALUNLOCK", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -151,7 +150,7 @@ static char *Flag8Names[32]={
 
 static char *TFlagNames[32]={
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
-	"**", "**", "ASSERTDIALOG", "OUTIMPORTTABLE",
+	"OUTSEPARATED", "**", "ASSERTDIALOG", "OUTIMPORTTABLE",
 	"OUTDEBUG", "OUTREGISTRY", "TRACEHOOKS", "OUTD3DTRACE",
 	"OUTDXWINTRACE", "ADDTIMESTAMP", "OUTDEBUGSTRING", "ERASELOGFILE",
 	"", "", "", "",
@@ -224,7 +223,21 @@ void OutTrace(const char *format, ...)
 		char *OpenMode = (tFlags & ERASELOGFILE) ? "w+" : "a+";
 		pGetTick = GetTickCount; // save function pointer
 		GetCurrentDirectory(MAX_PATH, path);
-		strcat(path, "\\dxwnd.log");
+		if(tFlags & OUTSEPARATED){
+			char *p = path + strlen(path); 
+			strcat(path, "\\dxwnd.log");
+			if(fp = fopen(path, "r")){
+				fclose(fp);
+				for (int i=1; ; i++){
+					sprintf(p, "\\dxwnd(%d).log", i);
+					if(fp = fopen(path, "r")) fclose(fp);
+					else break;
+				}
+			}
+		}
+		else {
+			strcat(path, "\\dxwnd.log");
+		}
 		fp = fopen(path, OpenMode);
 		if (fp==NULL){ // in case of error (e.g. current dir on unwritable CD unit)... 
 			strcpy(path, GetDxWndPath());
@@ -387,6 +400,14 @@ void HookDlls(HMODULE module)
 	return;
 }
 
+// Note: when pidesc->OriginalFirstThunk is NULL, the pidesc->FirstThunk points to an array of 
+// RVA for imported function names in the PE file, but when the loader loads the program these
+// values gets replaced by the function addresses. The only way to retrieve the function names 
+// after that event is to point to the dll name and get the list of the followin strings sequentially
+// taking in account that the function names have variable length and are aligned to a DWORD
+// boundary, so that a practical way to retrieve the next name is this piece of code:
+// for(; *fname; fname++); for(; !*fname; fname++);
+
 void DumpImportTable(HMODULE module)
 {
 	PIMAGE_NT_HEADERS pnth;
@@ -413,6 +434,7 @@ void DumpImportTable(HMODULE module)
 		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
 
 		while(pidesc->FirstThunk){
+			char *fname;
 			impmodule = (PSTR)(base + pidesc->Name);
 			OutTrace("DumpImportTable: ENTRY timestamp=%x module=%s forwarderchain=%x\n", 
 				pidesc->TimeDateStamp, impmodule, pidesc->ForwarderChain);
@@ -421,6 +443,8 @@ void DumpImportTable(HMODULE module)
 			}
 			else{
 				ptname = 0;
+				fname = impmodule;
+				for(; *fname; fname++); for(; !*fname; fname++);
 				OutTrace("DumpImportTable: no PE OFTs - stripped module=%s\n", impmodule);
 			}
 			ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
@@ -433,6 +457,10 @@ void DumpImportTable(HMODULE module)
 						OutTrace(" hint=%x name=%s", piname->Hint, piname->Name);
 						ptname ++;
 					}
+				}
+				else {
+					OutTrace(" name=%s", fname);
+					for(; *fname; fname++); for(; !*fname; fname++);
 				}
 				OutTrace("\n");
 			}
@@ -519,7 +547,7 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 		if(orig) return orig;
 	}
 
-	return IATPatch(module, dll, apiproc, apiname, hookproc);
+	return IATPatch(module, 0, dll, apiproc, apiname, hookproc);
 }
 
 // v.2.1.80: unified positioning logic into CalculateWindowPos routine
@@ -1593,7 +1621,7 @@ void HookLibraryEx(HMODULE hModule, HookEntryEx_Type *Hooks, char *DLLName)
 			}
 		}
 
-		remapped_addr = IATPatchEx(hModule, Hooks->ordinal, DLLName, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
+		remapped_addr = IATPatch(hModule, Hooks->ordinal, DLLName, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
 		if(remapped_addr)  {
 			Hooks->HookStatus = HOOK_IAT_LINKED;
 			if (Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)remapped_addr;

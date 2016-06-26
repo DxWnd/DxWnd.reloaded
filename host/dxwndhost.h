@@ -62,6 +62,7 @@ public:
 // Implementation
 	//{{AFX_MSG(CDxwndhostApp)
 	afx_msg void OnAppAbout();
+	afx_msg void OnViewHelp();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

@@ -1,0 +1,175 @@
+﻿<html>
+	
+<head>
+	<title>GDI</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("GDI");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">GDI</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Libs.html">Libs</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Libs.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="Libs.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="OpenGL.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<p class="rvps2"><span class="rvts6">These flags determine the strategy for managing pure GDI programs or, in the most complicated case, hybrid games that mix GDI calls with other renderers like DirectDraw or Direct3D.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">No GDI handling</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">GDINONE</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disables video-related GDI/user32 API hooking.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Scaled GDI calls</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">HOOKGDI</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Scales GDI API coordinates to fit the window stretching.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Emulated Device Context</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">EMULATEDC</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Handle an emulated GDI device context.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Share ddraw and GDI DC</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Remap Client Rect</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">CLIENTREMAPPING</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Enabled by default. Makes DxWnd remap the window client coordinates so that the program receives the same values as if the program was running in fullscreen mode.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">??? Map DC to Primary Surface</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">GDIEMULATEDC</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Use the ddraw primary surface device context for GDI operations.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Scale font parameters</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FIXTEXTOUT</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Tries to scale font parameters to fit the window stretching.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress FillRect</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Reuse emulated DC</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix clipper area in shared DC</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Syncronize GDI to ddraw palette</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="182" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress Win common errors</span></p>
+</td>
+<td width="128" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1227" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+<p class="rvps5"><span class="rvts12">Created with the Personal Edition of HelpNDoc: </span><a class="rvts13" href="http://www.helpndoc.com/feature-tour">Easily create HTML Help documents</a></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

@@ -1,0 +1,108 @@
+﻿<html>
+	
+<head>
+	<title>The Interface</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("TheInterface");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">The Interface</h1>
+				
+				</div>
+			<div id="topic_header_nav">
+				<a href="Gettinghelp.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="File.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<p class="rvps2"><span class="rvts6">DxWnd comes with a nice and simple Graphic User Interface: when started, it shows a form pretty muck like the one in the following picture:</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><img alt="" style="padding : 1px;" src="lib/dxwnd.png"></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">In the main window there is the list of hooked programs: DxWnd can currently handle up to 256. Trying to add more than that will give an error message. Keep in mind that DxWnd bundles contain a export subfolder where all supported games have their own default configuration ready to be imported, but because of the program absolute path value, these entries will actually work only after updating the path with the proper local value.</span></p>
+<p class="rvps2"><span class="rvts6">As shown in the picture, each configuration line includes an icon which color tells the general status of the program, as follows:</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="146" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><img alt="" style="padding : 1px;" src="lib/NewItem.png"></p>
+</td>
+<td width="1397" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">blank icon: the configuration refers to a not existent program's path, so that the entry won't work unless the path is corrected.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="146" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><img alt="" style="padding : 1px;" src="lib/NewItem1.png"></p>
+</td>
+<td width="1397" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">grey icon: the hook is not enabled: this program can be activated by the DxWnd menu, but won't be windowed.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="146" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><img alt="" style="padding : 1px;" src="lib/NewItem2.png"></p>
+</td>
+<td width="1397" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">green icon: the hook is enabled and the program will be windowed when run either from the DxWnd interface or however else.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="146" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><img alt="" style="padding : 1px;" src="lib/NewItem3.png"></p>
+</td>
+<td width="1397" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">red icon: the program requires code injection, then it will need to be activated from the DxWnd interface only.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">You can activate command either via the top menu, or by right clicking on a row in the application list.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">DxWnd is also able to operate iconized in the System Tray, from where it shows its state (either IDLE, READY or RUNNING) and run a few useful commands. </span></p>
+<p class="rvps2"><span class="rvts6">DxWnd detects the video settings when is started, and compares it to the current value after killing a task or terminating itself: in case it finds differences, it prompts you asking whether you want the previous screen setting to be restored. This is quite useful to handle all the games that terminates without restoring the previous setting, as it may happen when they die abnormally.</span></p>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

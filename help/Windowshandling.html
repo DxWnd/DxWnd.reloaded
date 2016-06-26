@@ -1,0 +1,221 @@
+﻿<html>
+	
+<head>
+	<title>Windows handling</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Windowshandling");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Windows handling</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Video.html">Video</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Video.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="Video.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Initialvirtualcolorsetting.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix Window Frame Style</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FIXWINFRAME</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Initializes the game window with a title bar and resizeable borders.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Prevent Win Maximize</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">PREVENTMAXIMIZE</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some modern games don't actually go into fullscreen mode, but just make the window occupy the whole screen. This option intercepts Windows messages and user32 calls to avoid changing the window position and size to make it a fullscreen window.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Lock win coordinates</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">LOCKWINPOS</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercepts messages and calls that the program makes to itself to change its own window coordinates. This prevents you from changing the game window's position and size.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Lock win style</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">LOCKWINSTYLE</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercepts messages and calls that the program makes to itself to change its own windowstyle.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Recover screen mode</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">RECOVERSCREENMODE</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Sets the screen mode to registry default settings. In general, DxWnd intercepts any attempt to change display settings and prevents unwanted operations, but some programs still send display settings instructions before DxWnd can possibly intercept them (e.g. before the window is created and the windows hook is invoked). In this case, changing the display settings right afterward is the only possible solution. Try this when other options don't work.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Refresh on win resize</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">REFRESHONRESIZE</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Any decently written Windows application should take care of refreshing the screen primary surface when resized, and most fullscreen games do it. Some don't, because they were not supposed to ever be resized. This flag is forces a refresh (useful for the game Uprising).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix Parent Window</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FIXPARENTWIN</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Typically, a game is started with an invisible program window, and then it creates a separate child window for handling the graphics. Some games use the parent window instead of the child window. In this case, the parent window becomes visible, then needs to be properly resized. This feature is currently experimental, but it seems to successfully manage several tough games, such as Solaris, SleepWalker, Sid Meier's Sim Golf, and the Worms series.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Modal Style</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">MODALSTYLE</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When "Fix Window Frame Style" is set, a borderless and titleless modal style is chosen instead of the default one.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Force win resize</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FORCEWINRESIZE</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Experimental (and not working very well so far): should force window resizing messages to be processed so that the window can be resized by dragging its borders.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hide multi-monitor config</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">HIDEMULTIMONITOR</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Makes the program ignore multiple monitors in your system configuration, giving information about the primary monitor only.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Wallpaper mode</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">WALLPAPERMODE</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Experimental – forces the program's Z-order to the lowest level so that it runs below any other task, behaving like an active wallpaper.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix window frame in D3D</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FIXD3DFRAME</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Tries to prevent D3D from rendering on the whole window surface including the window border. It activates a small trick that cause the program to render to a child modal surface within the main window borders.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Don't move D3D rendering window</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">NOWINDOWMOVE</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Do not try to update the window position and size on D3D rendering. In some cases, the window may be movable but the rendering area does not move with it. In this case, avoid moving the window at all. It is an experimental feature and doesn't always work.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hide desktop background</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">HIDEDESKTOP</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Starts the windowized program together with four black borderless windows that surround it entirely, eliminating distracting background windows and providing a more focused gaming experience. The whole idea was borrowed from "Mr. Hide": https://sourceforge.net/projects/mrhyde/</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hide Taskbar</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Unlock Z-order</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress main window destruction</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="212" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Send WM_ACTIVATEAPP message</span></p>
+</td>
+<td width="141" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1183" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+<p class="rvps5"><span class="rvts12">Created with the Personal Edition of HelpNDoc: </span><a class="rvts13" href="http://www.helpndoc.com/help-authoring-tool">Easy to use tool to create HTML Help files and Help web sites</a></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

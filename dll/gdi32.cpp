@@ -22,7 +22,7 @@ static void Stopper(char *s, int line)
 //#define STOPPER_TEST // comment out to eliminate
 #ifdef STOPPER_TEST
 #define STOPPER(s) Stopper(s, __LINE__)
-#elsedxw
+#else
 #define STOPPER(s)
 #endif
 
@@ -146,7 +146,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "RealizePalette", (FARPROC)RealizePalette, (FARPROC *)&pGDIRealizePalette, (FARPROC)extRealizePalette},
 	{HOOK_HOT_CANDIDATE, 0, "GetSystemPaletteEntries", (FARPROC)GetSystemPaletteEntries, (FARPROC *)&pGDIGetSystemPaletteEntries, (FARPROC)extGetSystemPaletteEntries},
 	{HOOK_HOT_CANDIDATE, 0, "SetSystemPaletteUse", (FARPROC)SetSystemPaletteUse, (FARPROC *)&pSetSystemPaletteUse, (FARPROC)extSetSystemPaletteUse},
-	{HOOK_IAT_CANDIDATE, 0, "SetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDISetPixelFormat, (FARPROC)extGDISetPixelFormat},
+	{HOOK_HOT_CANDIDATE, 0, "SetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDISetPixelFormat, (FARPROC)extGDISetPixelFormat},
 	{HOOK_IAT_CANDIDATE, 0, "GetPixelFormat", (FARPROC)NULL, (FARPROC *)&pGDIGetPixelFormat, (FARPROC)extGDIGetPixelFormat},
 	{HOOK_IAT_CANDIDATE, 0, "ChoosePixelFormat", (FARPROC)NULL, (FARPROC *)&pChoosePixelFormat, (FARPROC)extChoosePixelFormat},
 	{HOOK_IAT_CANDIDATE, 0, "DescribePixelFormat", (FARPROC)NULL, (FARPROC *)&pDescribePixelFormat, (FARPROC)extDescribePixelFormat},
@@ -722,8 +722,37 @@ HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
 BOOL WINAPI extAnimatePalette(HPALETTE hpal, UINT iStartIndex, UINT cEntries, const PALETTEENTRY *ppe)
 {
 	// Invoked by "Pharaoh's Ascent 1.4"
-	// STOPPER("AnimatePalette");
-	return TRUE;
+	// Used by "Yu No"
+	BOOL ret;
+
+#if 0
+	if((dxw.dwFlags1 & EMULATESURFACE)  && (dxw.dwFlags6 & SYNCPALETTE) && bFlippedDC){
+		hDesktopPalette=hpal;
+		if(hFlippedDC){
+			ret = (*pAnimatePalette)(hpal, iStartIndex, cEntries, ppe);
+		}
+		else{
+			HDC hdc;
+			extern GetDC_Type pGetDCMethod();
+			extern ReleaseDC_Type pReleaseDCMethod();
+			LPDIRECTDRAWSURFACE lpDDSPrim;
+			lpDDSPrim = dxwss.GetPrimarySurface();
+			(*pGetDCMethod())(lpDDSPrim, &hdc);
+			ret = (*pAnimatePalette)(hpal, iStartIndex, cEntries, ppe);
+			(*pReleaseDCMethod())(lpDDSPrim, hdc);
+		}
+	}
+	else{
+		ret = (*pAnimatePalette)(hpal, iStartIndex, cEntries, ppe);
+	}
+#else
+	ret = (*pAnimatePalette)(hpal, iStartIndex, cEntries, ppe);
+#endif
+	if(!ret) {
+		OutTraceE("AnimatePalette ERROR: err=%d\n", GetLastError());
+		ret = TRUE;
+	}
+	return ret;
 }
 
 UINT WINAPI extRealizePalette(HDC hdc) 
@@ -2618,6 +2647,9 @@ BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDES
 		ppfd->cRedShift, ppfd->cGreenShift, ppfd->cBlueShift);
 	//if(dxw.dwFlags1 & EMULATESURFACE) {
 	//	OutTraceDW("SetPixelFormat: prevent pixelformat change\n");
+	//	// obtain a detailed description of that pixel format  
+	//	DescribePixelFormat(hdc, iPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), (LPPIXELFORMATDESCRIPTOR)ppfd);
+	//	iPixelFormat = GetPixelFormat(hdc);
 	//	return TRUE;
 	//}
 	if(dxw.IsDesktop(WindowFromDC(hdc))){

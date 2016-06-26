@@ -1,0 +1,728 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+	<title>DxWnd- Table of Contents</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/silver-theme/jquery-ui-1.8.12.custom.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/dynatree/chm/ui.dynatree.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+    <link type="text/css" rel="stylesheet" media="all" href="css/toc.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#tabs .ui-widget-header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/jquery-ui-1.8.17.custom.min.js"></script>
+    <script type="text/javascript" src="js/jquery.cookie.js"></script>
+    <script type="text/javascript" src="js/jquery.dynatree.min.js"></script>
+	<script type="text/javascript" src="js/hndjsse.js"></script>
+	<script type="text/javascript">
+	
+		window.bSearchDataLoaded = false;
+		var sHelpIdToActivate = '';
+	
+		$(document).ready(function()
+		{
+			var sAnchorName = '';
+			try { sAnchorName = top.location.href.substring(top.location.href.lastIndexOf("#") + 1, top.location.href.length); }
+			catch(err) { sAnchorName = ''; }
+			var nSelectedTab = 0;
+			if (sAnchorName == '_index') nSelectedTab = 1
+			else if (sAnchorName == '_search') nSelectedTab = 2;			
+			$("#tabs").tabs({
+				selected: nSelectedTab,
+				select: function(event, ui) { HideKwPopup(); }
+			});
+			
+			// Toc
+			if ($("#tab-toc").length) {
+				$("#tab-toc").dynatree({
+					clickFolderMode: 1,
+					debugLevel: 0,
+					imagePath: 'css/dynatree/chm/',
+					onActivate: function(node){
+						if ($("#tab-keywords").length && $("#tab-keywords").dynatree && $("#tab-keywords").dynatree("getTree") && $("#tab-keywords").dynatree("getTree").activateKey)
+							$("#tab-keywords").dynatree("getTree").activateKey(null);
+						if(node.data.href && node.data.href != '#'){
+							window.open(node.data.href, node.data.target);
+						}
+					}
+				});
+				// Expand all nodes if required
+				$("#tab-toc").dynatree("getRoot").visit(function(node){
+						node.expand(true);
+					});
+				// Select the active help id
+				if (sHelpIdToActivate != '') $("#tab-toc").dynatree("getTree").activateKey(sHelpIdToActivate);
+			}
+			
+			// Keywords
+			
+			if ($("#tab-keywords").length) {
+				$("#tab-keywords").dynatree({
+					clickFolderMode: 1,
+					debugLevel: 0,
+					imagePath: 'css/dynatree/chm/',
+					onClick: function(node, event){
+						HideKwPopup();
+						if (node.data && node.data.click)
+						{
+							var aRefList = null;
+							eval('aRefList=' + node.data.click);
+							if (ShowKwPopup(node.li, aRefList))
+							{
+								if ($("#tab-toc") && $("#tab-toc").dynatree && $("#tab-toc").dynatree("getTree") && $("#tab-toc").dynatree("getTree").activateKey)
+									$("#tab-toc").dynatree("getTree").activateKey(null);
+								if(node.data.href && node.data.href != '#'){
+									window.open(node.data.href, node.data.target);
+								}
+							}
+						}
+					}
+				});
+				// Expand all nodes if required
+				$("#tab-keywords").dynatree("getRoot").visit(function(node){
+						node.expand(true);
+					});
+				}
+			
+			// Load search data
+			(function() {
+				var se = document.createElement('script'); se.type = 'text/javascript'; se.async = true;
+				se.src = 'js/hndsd.js';
+				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(se, s);
+			})();
+		});
+		
+		$('body').click(function() {
+			HideKwPopup();
+		});
+		
+		function SelectTocItem(sHelpId)
+		{
+			if ($("#tab-toc").length && $("#tab-toc").dynatree && $("#tab-toc").dynatree("getTree") && $("#tab-toc").dynatree("getTree").getNodeByKey) {
+				$("#tab-toc").dynatree("getTree").getNodeByKey(sHelpId).activateSilently();
+			}
+			else {
+				sHelpIdToActivate = sHelpId;
+			}
+		}
+		
+		function HideKwPopup()
+		{
+			if($("#popupMenu")) $("#popupMenu").remove();
+		}
+		
+		function ShowKwPopup(oSender, aLinks)
+		{
+			HideKwPopup();
+			if (!aLinks || !aLinks.length || aLinks.length == 0) return false
+			else if (aLinks.length == 1) return true
+			else
+			{
+				var oParentDiv = document.createElement("DIV");
+				oParentDiv.id = "popupMenu";
+				var oLink = null;
+				// Close button
+				oLink = document.createElement("SPAN");
+				oLink.className = "close-button";
+				oLink.innerHTML = "X";
+				oLink.href = "#";
+				oLink.onclick = HideKwPopup;
+				oParentDiv.appendChild(oLink);
+				// Items
+				for (var nCnt=0; nCnt<aLinks.length; nCnt++)
+				{
+					oLink = document.createElement("A");
+					oLink.innerHTML = aLinks[nCnt][0];
+					oLink.href = aLinks[nCnt][1];
+					oLink.target = "FrameMain";
+					oLink.onclick = HideKwPopup;
+					oParentDiv.appendChild(oLink);
+				}
+				document.body.appendChild(oParentDiv);
+				var pos = $(oSender).offset(); 
+				var height = $(oSender).height();
+				$(oParentDiv).css({
+					"left": (pos.left+20) + "px",
+					"top": (pos.top + height + 5) + "px"
+				});
+				$(oParentDiv).show();
+				return false;
+			}
+		}
+		
+		function PerformSearch()
+		{
+			if (!window.bSearchDataLoaded) {
+				$("#search_results").html("Search engine data hasn't been fully loaded yet or an error occurred while loading it. This usually happens when documentation is browsed locally.");
+				return;
+			}
+			sValue = $("#search_value").val();
+			$("#search_results").html('Searching...');
+			var oSearchEngine = new HndJsSe;
+			oSearchEngine.ParseInput(sValue);			
+			oSearchEngine.PerformSearch();
+			if (!oSearchEngine.aResults || !oSearchEngine.aResults.length)
+			{
+				$("#search_results").html('No results found.');
+			}
+			else
+			{
+				$("#search_results").html('<div id="search_results_content"></div>');
+				var oUl = $("#search_results_content").append("<ul id='lr'></ul>").find("ul");
+				for (var nCnt = 0; nCnt < oSearchEngine.aResults.length; nCnt++)
+				{
+					if (oSearchEngine.aResults[nCnt][0] < aTl.length)
+					{
+						oUl.append("<li><a href='" + aTl[oSearchEngine.aResults[nCnt][0]][0] + "?search=" + escape(sValue) + "' target='FrameMain'>" + unescape(aTl[oSearchEngine.aResults[nCnt][0]][1]) + "</a></li>");
+					}
+				}
+				// Tree
+				$("#search_results_content").dynatree({
+					clickFolderMode: 1,
+					debugLevel: 0,
+					imagePath: 'css/dynatree/chm/',
+					onActivate: function(node){
+						if ($("#search_results_content") && $("#search_results_content").dynatree && $("#search_results_content").dynatree("getTree") && $("#search_results_content").dynatree("getTree").activateKey)
+							$("#search_results_content").dynatree("getTree").activateKey(null);
+						if(node.data.href && node.data.href != '#'){
+							window.open(node.data.href, node.data.target);
+						}
+					}
+				});
+			}
+		}
+	</script>
+</head>
+
+<body>
+
+	<div id="tabs">
+		<ul>
+			<li><a href="#tab-toc">Contents</a></li>
+			<li><a href="#tab-keywords">Index</a></li>
+			<li><a href="#tab-search">Search</a></li>
+			</ul>
+		<div id="tab-toc">
+			<ul id="toc" class="">
+
+				<li class="" id="Introduction" data="">
+							<a
+							href="Introduction.html"
+							target="FrameMain">
+								Introduction</a>
+
+				</li><li class="folder" id="GettingStarted" data="">
+							<a
+							href="GettingStarted.html"
+							target="FrameMain">
+								Getting Started</a>
+
+				<ul><li class="" id="Systemrequirements" data="">
+							<a
+							href="Systemrequirements.html"
+							target="FrameMain">
+								System requirements</a>
+
+				</li><li class="" id="Gettinghelp" data="">
+							<a
+							href="Gettinghelp.html"
+							target="FrameMain">
+								Getting help</a>
+
+				</li></ul></li><li class="folder" id="TheInterface" data="">
+							<a
+							href="TheInterface.html"
+							target="FrameMain">
+								The Interface</a>
+
+				<ul><li class="folder" id="File" data="">
+							<a
+							href="File.html"
+							target="FrameMain">
+								File</a>
+
+				<ul><li class="" id="Hook" data="">
+							<a
+							href="Hook.html"
+							target="FrameMain">
+								Hook</a>
+
+				</li></ul></li><li class="folder" id="Edit" data="">
+							<a
+							href="Edit.html"
+							target="FrameMain">
+								Edit</a>
+
+				<ul><li class="" id="Move" data="">
+							<a
+							href="Move.html"
+							target="FrameMain">
+								Move</a>
+
+				</li><li class="" id="Log1" data="">
+							<a
+							href="Log1.html"
+							target="FrameMain">
+								Log</a>
+
+				</li></ul></li><li class="folder" id="Tools" data="">
+							<a
+							href="Tools.html"
+							target="FrameMain">
+								Tools</a>
+
+				<ul><li class="" id="Window1" data="">
+							<a
+							href="Window1.html"
+							target="FrameMain">
+								Window</a>
+
+				</li><li class="" id="Process" data="">
+							<a
+							href="Process.html"
+							target="FrameMain">
+								Process</a>
+
+				</li><li class="" id="Desktoptaskbar" data="">
+							<a
+							href="Desktoptaskbar.html"
+							target="FrameMain">
+								Desktop taskbar</a>
+
+				</li><li class="" id="Desktopcolordepth" data="">
+							<a
+							href="Desktopcolordepth.html"
+							target="FrameMain">
+								Desktop color depth</a>
+
+				</li></ul></li><li class="" id="Help" data="">
+							<a
+							href="Help.html"
+							target="FrameMain">
+								Help</a>
+
+				</li><li class="folder" id="View" data="">
+							<a
+							href="View.html"
+							target="FrameMain">
+								View</a>
+
+				<ul><li class="" id="Status" data="">
+							<a
+							href="Status.html"
+							target="FrameMain">
+								Status</a>
+
+				</li><li class="" id="TimeSlider" data="">
+							<a
+							href="TimeSlider.html"
+							target="FrameMain">
+								Time Slider</a>
+
+				</li><li class="" id="Palette1" data="">
+							<a
+							href="Palette1.html"
+							target="FrameMain">
+								Palette</a>
+
+				</li><li class="" id="Desktop" data="">
+							<a
+							href="Desktop.html"
+							target="FrameMain">
+								Desktop</a>
+
+				</li><li class="" id="Shims" data="">
+							<a
+							href="Shims.html"
+							target="FrameMain">
+								Shims</a>
+
+				</li></ul></li></ul></li><li class="" id="ProgramList" data="">
+							<a
+							href="ProgramList.html"
+							target="FrameMain">
+								Program List</a>
+
+				</li><li class="" id="DxWndintheSystemTray" data="">
+							<a
+							href="DxWndintheSystemTray.html"
+							target="FrameMain">
+								DxWnd in the System Tray</a>
+
+				</li><li class="folder" id="Theconfigurationpanel" data="">
+							<a
+							href="Theconfigurationpanel.html"
+							target="FrameMain">
+								The configuration panel</a>
+
+				<ul><li class="folder" id="Main" data="">
+							<a
+							href="Main.html"
+							target="FrameMain">
+								Main</a>
+
+				<ul><li class="" id="Generic" data="">
+							<a
+							href="Generic.html"
+							target="FrameMain">
+								Generic</a>
+
+				</li><li class="" id="Position" data="">
+							<a
+							href="Position.html"
+							target="FrameMain">
+								Position</a>
+
+				</li></ul></li><li class="folder" id="Hook1" data="">
+							<a
+							href="Hook1.html"
+							target="FrameMain">
+								Hook</a>
+
+				<ul><li class="" id="Sonprocesshook" data="">
+							<a
+							href="Sonprocesshook.html"
+							target="FrameMain">
+								Son process hook</a>
+
+				</li><li class="" id="Additionallibrarieshook" data="">
+							<a
+							href="Additionallibrarieshook.html"
+							target="FrameMain">
+								Additional libraries hook</a>
+
+				</li></ul></li><li class="folder" id="Video" data="">
+							<a
+							href="Video.html"
+							target="FrameMain">
+								Video</a>
+
+				<ul><li class="" id="Windowshandling" data="">
+							<a
+							href="Windowshandling.html"
+							target="FrameMain">
+								Windows handling</a>
+
+				</li><li class="" id="Initialvirtualcolorsetting" data="">
+							<a
+							href="Initialvirtualcolorsetting.html"
+							target="FrameMain">
+								Initial virtual color setting</a>
+
+				</li><li class="" id="Colormanagement" data="">
+							<a
+							href="Colormanagement.html"
+							target="FrameMain">
+								Color management</a>
+
+				</li><li class="" id="Screenresolution" data="">
+							<a
+							href="Screenresolution.html"
+							target="FrameMain">
+								Screen resolution</a>
+
+				</li></ul></li><li class="folder" id="Input" data="">
+							<a
+							href="Input.html"
+							target="FrameMain">
+								Input</a>
+
+				<ul><li class="" id="Cursorvisibility" data="">
+							<a
+							href="Cursorvisibility.html"
+							target="FrameMain">
+								Cursor visibility</a>
+
+				</li><li class="" id="Cursorhandling" data="">
+							<a
+							href="Cursorhandling.html"
+							target="FrameMain">
+								Cursor handling</a>
+
+				</li><li class="" id="DirectInput" data="">
+							<a
+							href="DirectInput.html"
+							target="FrameMain">
+								DirectInput</a>
+
+				</li><li class="" id="Messagehandling" data="">
+							<a
+							href="Messagehandling.html"
+							target="FrameMain">
+								Message handling</a>
+
+				</li><li class="" id="Keyboardhandling" data="">
+							<a
+							href="Keyboardhandling.html"
+							target="FrameMain">
+								Keyboard handling</a>
+
+				</li></ul></li><li class="folder" id="DirectX" data="">
+							<a
+							href="DirectX.html"
+							target="FrameMain">
+								DirectX</a>
+
+				<ul><li class="" id="DirectXVersionHook" data="">
+							<a
+							href="DirectXVersionHook.html"
+							target="FrameMain">
+								DirectX Version Hook</a>
+
+				</li><li class="" id="Emulation" data="">
+							<a
+							href="Emulation.html"
+							target="FrameMain">
+								Emulation</a>
+
+				</li><li class="" id="Filtering" data="">
+							<a
+							href="Filtering.html"
+							target="FrameMain">
+								Filtering</a>
+
+				</li><li class="" id="DirectDrawSurfacehandling" data="">
+							<a
+							href="DirectDrawSurfacehandling.html"
+							target="FrameMain">
+								DirectDraw Surface handling</a>
+
+				</li><li class="" id="AEROhandling" data="">
+							<a
+							href="AEROhandling.html"
+							target="FrameMain">
+								AERO handling</a>
+
+				</li></ul></li><li class="folder" id="Direct3D" data="">
+							<a
+							href="Direct3D.html"
+							target="FrameMain">
+								Direct3D</a>
+
+				<ul><li class="" id="Ddrawtweaks" data="">
+							<a
+							href="Ddrawtweaks.html"
+							target="FrameMain">
+								Ddraw tweaks</a>
+
+				</li><li class="" id="SwapEffect" data="">
+							<a
+							href="SwapEffect.html"
+							target="FrameMain">
+								Swap Effect</a>
+
+				</li><li class="" id="Direct3Dtweaks" data="">
+							<a
+							href="Direct3Dtweaks.html"
+							target="FrameMain">
+								Direct3D tweaks</a>
+
+				</li><li class="" id="Texturehandling" data="">
+							<a
+							href="Texturehandling.html"
+							target="FrameMain">
+								Texture handling</a>
+
+				</li><li class="" id="3Deffects1" data="">
+							<a
+							href="3Deffects1.html"
+							target="FrameMain">
+								3D effects</a>
+
+				</li></ul></li><li class="folder" id="Timing" data="">
+							<a
+							href="Timing.html"
+							target="FrameMain">
+								Timing</a>
+
+				<ul><li class="" id="FrameperSecond" data="">
+							<a
+							href="FrameperSecond.html"
+							target="FrameMain">
+								Frame per Second</a>
+
+				</li><li class="" id="TimeStretching" data="">
+							<a
+							href="TimeStretching.html"
+							target="FrameMain">
+								Time Stretching</a>
+
+				</li><li class="" id="Systemspeed" data="">
+							<a
+							href="Systemspeed.html"
+							target="FrameMain">
+								System speed</a>
+
+				</li></ul></li><li class="folder" id="Logs" data="">
+							<a
+							href="Logs.html"
+							target="FrameMain">
+								Logs</a>
+
+				<ul><li class="" id="dxwndlogs" data="">
+							<a
+							href="dxwndlogs.html"
+							target="FrameMain">
+								dxwnd logs</a>
+
+				</li><li class="" id="loggedinfo" data="">
+							<a
+							href="loggedinfo.html"
+							target="FrameMain">
+								logged info</a>
+
+				</li></ul></li><li class="folder" id="Libs" data="">
+							<a
+							href="Libs.html"
+							target="FrameMain">
+								Libs</a>
+
+				<ul><li class="" id="GDI" data="">
+							<a
+							href="GDI.html"
+							target="FrameMain">
+								GDI</a>
+
+				</li><li class="" id="OpenGL" data="">
+							<a
+							href="OpenGL.html"
+							target="FrameMain">
+								OpenGL</a>
+
+				</li><li class="" id="MMmultimedia" data="">
+							<a
+							href="MMmultimedia.html"
+							target="FrameMain">
+								MM (multimedia)</a>
+
+				</li><li class="" id="Glide" data="">
+							<a
+							href="Glide.html"
+							target="FrameMain">
+								Glide</a>
+
+				</li></ul></li><li class="folder" id="Compatibility" data="">
+							<a
+							href="Compatibility.html"
+							target="FrameMain">
+								Compatibility</a>
+
+				<ul><li class="" id="Tweaks" data="">
+							<a
+							href="Tweaks.html"
+							target="FrameMain">
+								Tweaks</a>
+
+				</li><li class="" id="Registry" data="">
+							<a
+							href="Registry.html"
+							target="FrameMain">
+								Registry</a>
+
+				</li><li class="" id="FakeVersion" data="">
+							<a
+							href="FakeVersion.html"
+							target="FrameMain">
+								Fake Version</a>
+
+				</li><li class="" id="GOG" data="">
+							<a
+							href="GOG.html"
+							target="FrameMain">
+								GOG</a>
+
+				</li><li class="" id="IOtweaks" data="">
+							<a
+							href="IOtweaks.html"
+							target="FrameMain">
+								I/O tweaks</a>
+
+				</li></ul></li><li class="" id="Registry1" data="">
+							<a
+							href="Registry1.html"
+							target="FrameMain">
+								Registry</a>
+
+				</li><li class="" id="Notes" data="">
+							<a
+							href="Notes.html"
+							target="FrameMain">
+								Notes</a>
+
+				</li></ul></li><li class="folder" id="Configurationfile" data="">
+							<a
+							href="Configurationfile.html"
+							target="FrameMain">
+								Configuration file</a>
+
+				<ul><li class="folder" id="Window" data="">
+							<a
+							href="Window.html"
+							target="FrameMain">
+								Window</a>
+
+				<ul><li class="" id="Language" data="">
+							<a
+							href="Language.html"
+							target="FrameMain">
+								Language</a>
+
+				</li><li class="" id="Position1" data="">
+							<a
+							href="Position1.html"
+							target="FrameMain">
+								Position</a>
+
+				</li></ul></li><li class="" id="Keymapping" data="">
+							<a
+							href="Keymapping.html"
+							target="FrameMain">
+								Keymapping</a>
+
+				</li></ul></li><li class="" id="Specialkeys" data="">
+							<a
+							href="Specialkeys.html"
+							target="FrameMain">
+								Special keys</a>
+
+				</li><li class="" id="Commandlinearguments" data="">
+							<a
+							href="Commandlinearguments.html"
+							target="FrameMain">
+								Command line arguments</a>
+
+				</li></ul>
+		</div>
+		
+		<div id="tab-keywords">
+			<ul id="keywords">
+
+				</ul>
+		</div>
+		
+		<div id="tab-search">
+			<form onsubmit="PerformSearch(); return false;">
+				<label for="search_value">Search:</label>
+				<input id="search_value" name="search_value"></input>
+				<input type="submit" value="Search"/>
+			</form>
+			<div id="search_results"></div>
+		</div>
+		
+		</div>
+    
+</body>
+
+</html>
+

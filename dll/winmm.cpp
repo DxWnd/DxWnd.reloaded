@@ -162,6 +162,7 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 				pw->hWnd, pw->nCmdShow);
 			//fdwCommand |= MCI_ANIM_WINDOW_ENABLE_STRETCH;
 			//fdwCommand &= ~MCI_ANIM_WINDOW_DISABLE_STRETCH;
+			//fdwCommand &= ~MCI_ANIM_WINDOW_HWND;
 			if(dxw.IsRealDesktop(pw->hWnd)) {
 				pw->hWnd = dxw.GethWnd();
 				OutTraceB("mciSendCommand: REDIRECT hwnd=%x\n", pw->hWnd);

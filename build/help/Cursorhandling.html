@@ -1,0 +1,212 @@
+﻿<html>
+	
+<head>
+	<title>Cursor handling</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Cursorhandling");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Cursor handling</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Input.html">Input</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Input.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="Input.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Keyboardhandling.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hide cursor</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HIDEHWCURSOR</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces hiding the hardware cursor.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Show Cursor</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SHOWHWCURSOR</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces showing the hardware cursor.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Correct mouse position</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">MODIFYMOUSE</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Compensate for X,Y mouse coordinates when the window is moved or resized. It should be typically set for most games.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Force cursor clipping</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">CLIPCURSOR</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set hardware cursor clipping within the window's region. It greately improves the game playability in some cases (namely, the Dungeon Keeper series).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Keep cursor within window</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">KEEPCURSORWITHIN</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Avoid moving the cursor outside the window area. Doing so was used as “Cursor OFF” directive in some games.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Keep cursor fixed</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">KEEPCURSORFIXED</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Inhibits the SetCursorPos() API: in some cases, it affects the program's behaviour (e.g. “Necrodrome”).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercept GDI cursor clipping</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">ENABLECLIPPING</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disables GDI clipping, avoiding unpleasant effects such as the mouse that is not free to move within the whole window.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Message processing</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">MESSAGEPROC</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Most programs get X,Y mouse coordinates from &nbsp;the mouse messages or from the specific API. One tricky way to get the same info, though, is to listen from the windows message queue using PeekMessag / GetMessage, and retrieve the X,Y coordinates from ANY received message in the pt field. Checking this box make DxWnd to fix the X,Y coordinates on this uncommon situation as well (see “Uprising”).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix WM_NCHITTEST</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FIXNCHITTEST</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fixes the </span><span class="rvts15">WM_NCHITTEST</span><span class="rvts6"> message X,Y coordinates. When the window's border behaves strangely, set this flag to correct the position of the mouse cursor.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Slow down mouse polling</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SLOW</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some old programs have this bad habit to continuously loop through the mouse status polling with no delay, using 100% of CPU time. This flag introduces a minimal and unnoticeable delay between mouse polls, saving most of CPU &nbsp;time.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Release mouse outside window</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">RELEASEMOUSE</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Normally, when the mouse is placed outside the window and the window keeps receiving mouse messages, the mouse cursor is placed on the corresponding window border and the program performs video scrolling or so forth. The re are some cases in which you don't want this to happen, for instance when you want to use two programs alternatively, such as a game and a keyboard simulator. Checking this flag causes DxWnd to detect the mouse outside window condition, and in this case it places the cursor right in the middle of the screen, where it is supposed to make no harm.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Filter offending messages</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">DEFAULTMESSAGES</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">While a well-designed window program should react to all window system messages, it is possible that a fullscreen program was designed without an appropriate reaction to such unexpected messages, like window stretching. This option makes DxWnd automatically process all these messages that an application might not correctly handle. It should be turned on if operations like window resizing or movement cause crashes or other problems.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Peek all messages in queue</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">PEEKALLMESSAGES</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">In Windows 7 and newer, any window application MUST empty its message queue. The operating system considers any application that does not do this within a defined timeout period (about 5 seconds) to be malfunctioning, and kills the process (although it keeps displaying the window's contents). Programs developed before Windows 7 didn't take this constraint into account and may easily fail to get messages during processes such as unskippable cutscenes or long calculations. This option periodically empties the system queue, ensuring that the program won't be killed. However, there is a small chance that some events (like mouse clicks) could get lost occasionally and will need to be repeated.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DirectInput Hooking</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HOOKDI</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hooks DirectInput libraries, making sure that the DirectInput modes are appropriate for a non fullscreen program and enabling all other flags in the same group.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DirectInput8 Hooking</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HOOKDI8</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hooks DirectInput8 libraries, making sure that the DirectInput8 modes are appropriate for a non fullscreen program and enabling all other flags in the same group.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Unacquire devices on input lost</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">UNACQUIRE</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Unacquire DirectInput/DirectInput8 devices when they lose focus and acquire them back when they regain focus. This option should be set if the program using DirectInput libraries keeps listening to mouse input even when the program's window is inactive, or when it keeps ignoring mouse input even when the program's window becomes active once again.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Emulates mouse relative movement</span></p>
+</td>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATERELMOUSE</span></p>
+</td>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Emulates the DirectInput detection of relative mouse position by keeping the mouse at the center of the window and looking for movements. It should be used whenever the native DirectInput mechanism doesn't work properly.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

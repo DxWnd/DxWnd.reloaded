@@ -22,7 +22,7 @@ static HookEntryEx_Type Hooks[]={
 
 void HookComCtl32(HMODULE module)
 {
-	HookLibraryEx(module, Hooks, "comtl32.dll");
+	HookLibraryEx(module, Hooks, "comctl32.dll");
 }
 
 FARPROC Remap_ComCtl32_ProcAddress(LPCSTR proc, HMODULE hModule)

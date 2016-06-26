@@ -37,6 +37,7 @@ public:
 	int		m_SonProcessMode;
 	int		m_MaxDdrawInterface;
 	int		m_SlowRatio;
+	int		m_LogMode;
 	BOOL	m_HookDI;
 	BOOL	m_HookDI8;
 	BOOL	m_EmulateRelMouse;
@@ -45,8 +46,8 @@ public:
 	BOOL	m_Unacquire;
 	BOOL	m_OutDebug;
 	BOOL	m_CursorTrace;
-	BOOL	m_LogEnabled;
-	BOOL	m_EraseLogFile;
+//	BOOL	m_LogEnabled;
+//	BOOL	m_EraseLogFile;
 	BOOL	m_AddTimeStamp;
 	BOOL	m_AddRelativeTime;
 	BOOL	m_OutDebugString;
@@ -54,7 +55,6 @@ public:
 	BOOL	m_OutDWTrace;
 	BOOL	m_OutD3DTrace;
 	BOOL	m_OutDDRAWTrace;
-	//BOOL	m_DXProxed;
 	BOOL	m_AssertDialog;
 	BOOL	m_ImportTable;
 	BOOL	m_RegistryOp;
@@ -220,6 +220,7 @@ public:
 	BOOL	m_SetZBufferBitDepths;
 	BOOL	m_ForcesSwapEffect;
 	BOOL	m_ColorFix;
+	BOOL	m_FixGlobalUnlock;
 	BOOL	m_NoPixelFormat;
 	BOOL	m_NoAlphaChannel;
 	BOOL	m_FixRefCounter;
@@ -239,8 +240,6 @@ public:
 	BOOL	m_BlackWhite;
 	BOOL	m_SuppressD3DExt;
 	BOOL	m_Force16BPP;
-	//BOOL	m_ForceYUVtoRGB;
-	//BOOL	m_ForceRGBtoYUV;
 	BOOL	m_LimitScreenRes;
 	int		m_PosX;
 	int		m_PosY;

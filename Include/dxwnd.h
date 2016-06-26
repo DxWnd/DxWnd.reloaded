@@ -227,6 +227,7 @@
 #define SUPPRESSOVERLAY		0x00000200 // Supress ddraw overlay capabilities (moto racer 2)
 #define INIT24BPP			0x00000400 // simulate a 24BPP initial desktop setting (in GetDeviceCaps API)
 #define INIT32BPP			0x00000800 // simulate a 24BPP initial desktop setting (in GetDeviceCaps API)
+#define FIXGLOBALUNLOCK		0x00001000 // Fix GlobalUnlock kernel32 API when it keeps returning the 1 retcode. 
 
 // eighth flags DWORD dxw.dwFlags8:
 
@@ -235,7 +236,7 @@
 #define OUTDDRAWTRACE		0x00000002 // traces DxWnd directdraw screen handling
 #define OUTWINMESSAGES		0x00000004 // traces windows messages
 #define OUTCURSORTRACE		0x00000008 // traces cursor positions & operations
-//#define OUTPROXYTRACE		0x00000010 // enables all operations through proxy functions
+#define OUTSEPARATED		0x00000010 // write the log on a separate file named dxwnd(n).log where n is the figure of first non-existent file
 //#define DXPROXED			0x00000020 // hook DX proxy methods to log each call in original behaviour
 #define ASSERTDIALOG		0x00000040 // show assert messages in Dialog Box
 #define OUTIMPORTTABLE		0x00000080 // dump import table contents

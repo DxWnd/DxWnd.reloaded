@@ -1,0 +1,164 @@
+﻿<html>
+	
+<head>
+	<title>Tweaks</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Tweaks");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Tweaks</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Compatibility.html">Compatibility</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Compatibility.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="FakeVersion.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="3Deffects.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress d3d9 extensions</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSD3DEXT</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">D3d9.dll comes in different versions depending on the platform: on older windows releases it exports the Direct3DCreate API, while in more recent versions there are many further exported calls. The flag suppresses the additional entries.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Textures not power of 2 fix</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOPOWER2FIX</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games don't properly check whether the hardware could manage textures that are not a power of 2 in size (e.g. 16, 32, 64, 128 bits). If textures of a different size are processed by hardware without this capability, you get diagonal effects on the rendered image. The option fixes this problem.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Clean ZBUFFER @0.0 fix</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">ZBUFFER0CLEAN</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games don't properly clear the zeta buffer between frames, producing effects like wrong z-ordering of surfaces. This flag fixes this problem.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Clean ZBUFFER @1.0 fix</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">ZBUFFERCLEAN</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games don't properly clear the zeta buffer between frames, producing effects like wrong z-ordering of surfaces. This flag fixes this problem. It is similar to </span><span class="rvts15">ZBUFFER0CLEAN</span><span class="rvts6">, but it works in different contexts.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Bypass font unsupported api</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FONTBYPASS</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games may attempt to manage old font styles that were present by default on legacy platforms and are no longer supported. This flag simulates a success operation to let the program continue. Of course, the font will be wrong, but Windows will approximate the choice with the most similar available font.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set single core process affinity</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SINGLEPROCAFFINITY</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games are not properly synchronized to run on physically separated multiple core CPUs, or simply don't properly handle powerful CPUs. This option sets the program's core affinity so that the program is run by a single core (the first one).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set last core affinity</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">USELASTCORE</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as </span><span class="rvts15">SINGLEPROCAFFINITY</span><span class="rvts6">, but picks the last CPU core.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress d3d9 extensions</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">duplicate entry? ???</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress IME</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSIME</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">The flag tries to suppress IME windows, though that is not fully working yet!</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Handle exceptions</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HANDLEEXCEPTIONS</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Setting this flag causes DxWnd to set its own exception handler that tries (and often succeds!) to fix sevral common exceptions such as the divide by zero exception of old games that were trying to calculate the CPU speed.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Limit available resources</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">LIMITRESOURCES</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Makes the query for available resources (either RAM, hard disk free space and so on) to return a limited value: some old games can't handle a very big integer number and see it as a negative value, refusing to start.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

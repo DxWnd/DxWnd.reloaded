@@ -1,0 +1,94 @@
+﻿<html>
+	
+<head>
+	<title>DxWnd in the System Tray</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("DxWndintheSystemTray");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">DxWnd in the System Tray</h1>
+				
+				</div>
+			<div id="topic_header_nav">
+				<a href="ProgramList.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Theconfigurationpanel.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<p class="rvps2"><span class="rvts6">Once you move DxWnd in the system tray and until the program is terminated, an icon will be visible in the system tray. Right-clicking on the icon, you get a subset of the DxWnd commands, plus the Show command that shows the DxWnd window again. The Show command is the menu default, so you can activate it also by double-clicking on the DxWnd tray icon.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><img alt="" style="padding : 1px;" src="lib/NewItem11.png"></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="154" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><img alt="" style="padding : 1px;" src="lib/NewItem12.png"><span class="rvts6"> - READY state</span></p>
+</td>
+<td width="1389" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DxWnd is ready to hook a program</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="154" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><img alt="" style="padding : 1px;" src="lib/NewItem13.png"><span class="rvts6"> - IDLE state</span></p>
+</td>
+<td width="1389" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DxWnd is running, but will not affect any program</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="154" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><img alt="" style="padding : 1px;" src="lib/NewItem14.png"><span class="rvts6"> - RUNNING state</span></p>
+</td>
+<td width="1389" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DxWnd is currently operating on a program</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

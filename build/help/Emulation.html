@@ -1,0 +1,128 @@
+﻿<html>
+	
+<head>
+	<title>Emulation</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Emulation");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Emulation</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="DirectX.html">DirectX</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="DirectX.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="DirectXVersionHook.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="DirectDrawSurfacehandling.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<p class="rvps2"><span class="rvts6">DirectX emulation determines how the fullscreen DirectX operations are managed to fit a windowed environment, with the following options:</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">None</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">(default)</span></p>
+</td>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">The primary surface and backbuffers are simply scaled to the desired size, but no other characteristic is altered. In particular, the pixel color depth and mode are not altered.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Primary Buffer</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATEBUFFER</span></p>
+</td>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as "None," but blit operations are made against a memory surface and then transferred to the real primary surface – this handles the otherwise known pitch-bug problem.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Locked Surface</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">LOCKEDSURFACE</span></p>
+</td>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as "Primary Buffer" (</span><span class="rvts15">EMULATEBUFFER</span><span class="rvts6">) but the buffer is the surface of an </span><span class="rvts15">OFFSCREENPLAIN</span><span class="rvts6"> DirectDraw surface, so it is handled similarly to a DirectX surfacebuffer.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Primary Surface</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATESURFACE</span></p>
+</td>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">The virtual primary surface has a different color depth from the real primary surface, and DxWnd takes care of the color transformation internally: it might be a little slower but it involves no screen mode changes. Furthermore, this option allows you to set the "Set AERO compatible mode" that avoids making a temporary color conversion and stretching it to the primary surface (which would break the AERO desktop composition mode).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hybrid mode</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HYBRIDMODE</span></p>
+</td>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Similar to "Primary Surface" mode (</span><span class="rvts15">EMULATESURFACE</span><span class="rvts6">), but the palette and color conversion are forwarded to GDI calls instead of internally managed by DxWnd. It is usually less compatible than primary surface, but in some rare cases it may better at managing unusual color conversions. Try this option if the game works but the colors are wrong or the screen is black.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">GDI mode</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">GDIMODE</span></p>
+</td>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Similar to "Primary Surface" mode (</span><span class="rvts15">EMULATESURFACE</span><span class="rvts6">), but all the conversion between the virtual primary interface and the window surface is forwarded to GDI calls instead of being internally managed by DxWnd. Because of recent optimizations to GDI that can now take advantage of hardware-accelerated functions, this mode is becoming particularly interesting, and the lack of extra service surfaces makes it more adherent to the original game schema. It is also quite respectful of AERO desktop modes.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">Note that the chosen option only influences DirectDraw1 through DirectDraw7 interfaces. Interfaces with d3d8 and up (or OpenGL) are not affected by these options.</span></p>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

@@ -1,0 +1,116 @@
+﻿<html>
+	
+<head>
+	<title>Time Stretching</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("TimeStretching");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Time Stretching</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Timing.html">Timing</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Timing.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="FrameperSecond.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Log2.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="154" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Time Stretching – initial</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">TIMESTRETCH</span></p>
+</td>
+<td width="1247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">If this option is checked, DxWnd tries to emulate an accelerated (xn) or decelerated (:n) time flow. The value set in the listbox is the initial value, that can be altered by means of the time control slider in the time panel. When checked, DxWnd stretches time in timing API such as GetSystemTime(), the query performance APIs and the Sleep APIs, that are the most used ways to control a program timing. </span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="154" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Show time stretch</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SHOWTIMESTRETCH</span></p>
+</td>
+<td width="1247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the time stretch ratio is drawn as an overlay of the program client area, in a corner of the screen and periodically and randomly moved to other cornes whenever it is updated.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="154" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fine time adjust</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FINETIMING</span></p>
+</td>
+<td width="1247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the time stretch ratio coarse becomes finer, from a 1.5 (50%)ratio to a 1.1 (10%) ratio for each tick. This allows a better and finer control of timing, despite the more limited range (about 0.5x up to 2.0x).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="154" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercept RDTSC opcode</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">INTERCEPTRDTSC</span></p>
+</td>
+<td width="1247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Program timing is usually determined by system calls that can be easily and safely hooked to stretch the flow of time. There is one possible exception, however: when the program embeds in its assembly the RDTSC assembly instruction opcodes that directly access the hardware clock. This timing value can still be intercepted and manipulated, but using a more delicate technique that is searching for the assembly code and replacing it with specific calls. This is why I preferred to leave this possibility with a dedicated flag to be activated when necessary. The flag should be set whenever adjusting the time stretching option does not alter the time flow.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="154" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Stretch timers</span></p>
+</td>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">STRETCHTIMERS</span></p>
+</td>
+<td width="1247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the window timers are stretched, namely the user32.dll timers set by SetTimer and the multimiedia timers in winmm.dll set by timeSetEvent().</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

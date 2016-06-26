@@ -48,6 +48,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_REPLACEPRIVOPS, cTarget->m_ReplacePrivOps);
 	DDX_Check(pDX, IDC_BLOCKPRIORITYCLASS, cTarget->m_BlockPriorityClass);
 	DDX_Check(pDX, IDC_COLORFIX, cTarget->m_ColorFix);
+	DDX_Check(pDX, IDC_FIXGLOBALUNLOCK, cTarget->m_FixGlobalUnlock);
 
 	// Registry management
 	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);

@@ -1,0 +1,113 @@
+﻿<html>
+	
+<head>
+	<title>Position</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Position");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Position</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Main.html">Main</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Main.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="Generic.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Hook1.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<p class="rvps2"><span class="rvts6">The following flags have an effect only when the "run in window" option is selected (with the </span><span class="rvts16">WINDOWIZE</span><span class="rvts6"> flag).</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="194" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Keep aspect ratio</span></p>
+</td>
+<td width="130" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">KEEPASPECTRATIO</span></p>
+</td>
+<td width="1213" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When the window is resized, the aspect ratio set by the window initial size is preserved (by default the 4:3 aspect ratio such as 800x600).</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">Selecting a fake fullscreen mode calculates the aspect ratio according to the window's initial aspect ratio. This way, you can have fake fullscreen modes with ratios other than 4:3 - for example, set a width of 16 and a height of 9 to fill a 16:9 widescreen monitor.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="194" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Window initial position &amp; size</span></p>
+</td>
+<td width="130" style="border-color: #000000; border-style: solid; padding: 1px;"><br/>
+</td>
+<td width="1213" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Four values for the initial X, Y coordinates of the upperleft window corner and the window width and height. All values are referred to the window client area rather than the outside border. The values are used depending on the Position selection: for "X, Y" coordinates they are all used, for "Desktop center" DxWnd automatically centers the position and uses only the height and width, and in the remaining fake-fullscreen modes the height and width are used only as a reference for the desired aspect ratio when "Keep aspect ratio" (the </span><span class="rvts16">KEEPASPECTRATIO</span><span class="rvts6"> flag) is set (if it has not been set, the height and width are ignored).</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="194" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Position</span></p>
+</td>
+<td width="130" style="border-color: #000000; border-style: solid; padding: 1px;"><br/>
+</td>
+<td width="1213" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">A selection of 4 possible cases:</span></p>
+<ul style="text-indent: 0px; margin-left: 24px; list-style-position: outside; list-style-type: disc;"><ul style="text-indent: 0px; margin-left: 48px; list-style-position: outside; list-style-type: circle;">
+<li style="margin-left: 0px" class="rvps6"><span class="rvts6">X, Y coordinates: the window is placed at the chosen coordinates </span></li>
+<li style="margin-left: 0px" class="rvps6"><span class="rvts6">Desktop center: the window is centered on the screen, and only the width and height fields are used.</span></li>
+<li style="margin-left: 0px" class="rvps6"><span class="rvts6">Desktop work area: the window occupies the whole screen but the bottom taskbar. </span></li>
+<li style="margin-left: 0px" class="rvps6"><span class="rvts6">Desktop: the window occupies the whole screen, as if it was fullscreen (a.k.a. Fake-fullscreen mode)</span></li>
+</ul></ul>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">Note that the first two modes are windowed modes, while the last two modes can be considered fake fullscreen modes. This is because the behavior of the </span><span class="rvts16">KEEPASPECTRATIO</span><span class="rvts6"> flag changes along with this classification.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+<p class="rvps5"><span class="rvts12">Created with the Personal Edition of HelpNDoc: </span><a class="rvts13" href="http://www.helpndoc.com">Easy EBook and documentation generator</a></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

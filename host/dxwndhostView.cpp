@@ -282,6 +282,13 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 3: t->flags5 |= INJECTSON; break;
 	}	
 
+	switch(dlg->m_LogMode){
+		case 0: break;
+		case 1: t->tflags |= (OUTTRACE|ERASELOGFILE); break;
+		case 2: t->tflags |= OUTTRACE; break;
+		case 3: t->tflags |= (OUTTRACE|OUTSEPARATED); break;
+	}	
+
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
 	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
@@ -290,9 +297,9 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_Unacquire) t->flags6 |= UNACQUIRE;
 	if(dlg->m_OutDebug) t->tflags |= OUTDEBUG;
 	if(dlg->m_CursorTrace) t->tflags |= OUTCURSORTRACE;
-	if(dlg->m_LogEnabled) t->tflags |= OUTTRACE;
+	//if(dlg->m_LogEnabled) t->tflags |= OUTTRACE;
 	if(dlg->m_OutDebugString) t->tflags |= OUTDEBUGSTRING;
-	if(dlg->m_EraseLogFile) t->tflags |= ERASELOGFILE;
+	//if(dlg->m_EraseLogFile) t->tflags |= ERASELOGFILE;
 	if(dlg->m_AddTimeStamp) t->tflags |= ADDTIMESTAMP;
 	if(dlg->m_AddRelativeTime) t->tflags |= ADDRELATIVETIME;
 	if(dlg->m_OutWinMessages) t->tflags |= OUTWINMESSAGES;
@@ -341,6 +348,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SetZBufferBitDepths) t->flags6 |= SETZBUFFERBITDEPTHS;
 	if(dlg->m_ForcesSwapEffect) t->flags6 |= FORCESWAPEFFECT;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
+	if(dlg->m_FixGlobalUnlock) t->flags7 |= FIXGLOBALUNLOCK;
 	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
 	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
 	if(dlg->m_FixRefCounter) t->flags4 |= FIXREFCOUNTER;
@@ -353,8 +361,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoDestroyWindow) t->flags6 |= NODESTROYWINDOW;
 	if(dlg->m_LockSysColors) t->flags3 |= LOCKSYSCOLORS;
 	if(dlg->m_LockReservedPalette) t->flags5 |= LOCKRESERVEDPALETTE;
-	//if(dlg->m_ForceYUVtoRGB) t->flags3 |= YUV2RGB;
-	//if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
 	if(dlg->m_LimitScreenRes) t->flags4 |= LIMITSCREENRES;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_UseLastCore) t->flags5 |= USELASTCORE;
@@ -549,6 +555,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags7 & INIT24BPP) dlg->m_InitColorDepth = 3;
 	if(t->flags7 & INIT32BPP) dlg->m_InitColorDepth = 4;
 
+	dlg->m_LogMode = 0;
+	if(t->tflags & OUTTRACE)		dlg->m_LogMode = 2; // must be first one ....
+	if(t->tflags & ERASELOGFILE)	dlg->m_LogMode = 1; 
+	if(t->tflags & OUTSEPARATED)	dlg->m_LogMode = 3;
+
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
 	dlg->m_EmulateRelMouse = t->flags6 & EMULATERELMOUSE ? 1 : 0;
@@ -557,9 +568,9 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_Unacquire = t->flags6 & UNACQUIRE ? 1 : 0;
 	dlg->m_OutDebug = t->tflags & OUTDEBUG ? 1 : 0;
 	dlg->m_CursorTrace = t->tflags & OUTCURSORTRACE ? 1 : 0;
-	dlg->m_LogEnabled = t->tflags & OUTTRACE ? 1 : 0;
+//	dlg->m_LogEnabled = t->tflags & OUTTRACE ? 1 : 0;
 	dlg->m_OutDebugString = t->tflags & OUTDEBUGSTRING ? 1 : 0;
-	dlg->m_EraseLogFile = t->tflags & ERASELOGFILE ? 1 : 0;
+//	dlg->m_EraseLogFile = t->tflags & ERASELOGFILE ? 1 : 0;
 	dlg->m_AddTimeStamp = t->tflags & ADDTIMESTAMP ? 1 : 0;
 	dlg->m_AddRelativeTime = t->tflags & ADDRELATIVETIME ? 1 : 0;
 	dlg->m_OutWinMessages = t->tflags & OUTWINMESSAGES ? 1 : 0;
@@ -589,6 +600,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SetZBufferBitDepths = t->flags6 & SETZBUFFERBITDEPTHS ? 1 : 0;
 	dlg->m_ForcesSwapEffect = t->flags6 & FORCESWAPEFFECT ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
+	dlg->m_FixGlobalUnlock = t->flags7 & FIXGLOBALUNLOCK ? 1 : 0;
 	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
 	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
 	dlg->m_FixRefCounter = t->flags4 & FIXREFCOUNTER ? 1 : 0;
@@ -601,8 +613,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoDestroyWindow = t->flags6 & NODESTROYWINDOW ? 1 : 0;
 	dlg->m_LockSysColors = t->flags3 & LOCKSYSCOLORS ? 1 : 0;
 	dlg->m_LockReservedPalette = t->flags5 & LOCKRESERVEDPALETTE ? 1 : 0;
-	//dlg->m_ForceRGBtoYUV = t->flags3 & RGB2YUV ? 1 : 0;
-	//dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
 	dlg->m_LimitScreenRes = t->flags4 & LIMITSCREENRES ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
 	dlg->m_UseLastCore = t->flags5 & USELASTCORE ? 1 : 0;

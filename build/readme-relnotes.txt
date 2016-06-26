@@ -1135,3 +1135,10 @@ fix: inserted bypass for DirectDraw::Compact method, that is unimplemented but c
 fix: error in d3d9::CrerateDeviceEx method preventing it to work when moving fullscreen devices to window mode, as tipically happens using DxWnd. Fixes d3d9 version of "Saint's Row the Third"
 fix: accurate determination of ".text" or "CODE" segments where to apply the REPLACERTSC and REPLACEPRIVOPS flags.
 fix: error in logic to add extra reference to backbuffer surface: fixes "Warhammer 40k Rites of War".
+
+v2.03.73
+fix: address hooking for GDI SetPixelFormat(): avoids resolution changes in "T-Zwey" configured for D3D8 rendering engine.
+fix: logic for restering last window position on multimonitor configurations
+add: "Help -> View Help" to show help page
+add: "Fix GlobalUnlock" flag to fix GlobalUnlock bad errorcodes in "Grand Prix World" and possibly other games.
+add: revised log configuration, added "Separate" mode to make each process to write on a dedicated file.

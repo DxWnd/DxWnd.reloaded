@@ -26,7 +26,6 @@ CTabLogs::CTabLogs(CWnd* pParent /*=NULL*/)
 //{
 //	extern BOOL gbDebug;
 //	CDialog::OnInitDialog();
-//	(CButton *)(this->GetDlgItem(IDC_DXPROXED))->EnableWindow(gbDebug ? TRUE : FALSE);
 //	(CButton *)(this->GetDlgItem(IDC_ASSERT))->EnableWindow(gbDebug ? TRUE : FALSE);
 //	return TRUE;
 //}
@@ -36,13 +35,15 @@ void CTabLogs::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	//extern BOOL gbDebug;
+	DDX_Radio(pDX, IDC_LOG_NONE, cTarget->m_LogMode);
+
 	DDX_Check(pDX, IDC_OUTD3DTRACE, cTarget->m_OutD3DTrace);
 	DDX_Check(pDX, IDC_OUTDDRAWTRACE, cTarget->m_OutDDRAWTrace);
 	DDX_Check(pDX, IDC_OUTDEBUG, cTarget->m_OutDebug);
 	DDX_Check(pDX, IDC_CURSORTRACE, cTarget->m_CursorTrace);
-	DDX_Check(pDX, IDC_LOGENABLED, cTarget->m_LogEnabled);
+	//DDX_Check(pDX, IDC_LOGENABLED, cTarget->m_LogEnabled);
 	DDX_Check(pDX, IDC_OUTDEBUGSTRING, cTarget->m_OutDebugString);
-	DDX_Check(pDX, IDC_ERASELOGFILE, cTarget->m_EraseLogFile);
+	//DDX_Check(pDX, IDC_ERASELOGFILE, cTarget->m_EraseLogFile);
 	DDX_Check(pDX, IDC_ADDTIMESTAMP, cTarget->m_AddTimeStamp);
 	DDX_Check(pDX, IDC_ADDRELATIVETIME, cTarget->m_AddRelativeTime);
 	DDX_Check(pDX, IDC_OUTWINMESSAGES, cTarget->m_OutWinMessages);

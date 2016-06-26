@@ -11,24 +11,27 @@
 #define LOCKINJECTIONTHREADS
 #define TRYFATNAMES TRUE
 
+extern HRESULT WINAPI extDirectDrawEnumerateA(LPDDENUMCALLBACK, LPVOID);
+extern HRESULT WINAPI extDirectDrawEnumerateExA(LPDDENUMCALLBACKEX, LPVOID, DWORD);
+
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 LPVOID WINAPI extVirtualAlloc(LPVOID, SIZE_T, DWORD, DWORD);
 UINT WINAPI extWinExec(LPCSTR, UINT);
 BOOL WINAPI extSetPriorityClass(HANDLE, DWORD);
-
-extern HRESULT WINAPI extDirectDrawEnumerateA(LPDDENUMCALLBACK, LPVOID);
-extern HRESULT WINAPI extDirectDrawEnumerateExA(LPDDENUMCALLBACKEX, LPVOID, DWORD);
+BOOL WINAPI extGlobalUnlock(HGLOBAL);
 
 typedef LPVOID (WINAPI *VirtualAlloc_Type)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, 
 										   BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION);
 typedef BOOL (WINAPI *SetPriorityClass_Type)(HANDLE, DWORD);
 typedef UINT (WINAPI *WinExec_Type)(LPCSTR, UINT);
+typedef BOOL (WINAPI *GlobalUnlock_Type)(HGLOBAL);
 
 CreateProcessA_Type pCreateProcessA = NULL;
 VirtualAlloc_Type pVirtualAlloc = NULL;
 WinExec_Type pWinExec = NULL;
 SetPriorityClass_Type pSetPriorityClass = NULL;
+GlobalUnlock_Type pGlobalUnlock = NULL;
 
 #ifdef NOFREELIBRARY
 typedef BOOL (WINAPI *FreeLibrary_Type)(HMODULE);
@@ -58,6 +61,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "CreateProcessA", (FARPROC)NULL, (FARPROC *)&pCreateProcessA, (FARPROC)extCreateProcessA},
 	//{HOOK_IAT_CANDIDATE, 0, "WinExec", (FARPROC)NULL, (FARPROC *)&pWinExec, (FARPROC)extWinExec},
 	{HOOK_HOT_CANDIDATE, 0, "SetPriorityClass", (FARPROC)SetPriorityClass, (FARPROC *)&pSetPriorityClass, (FARPROC)extSetPriorityClass},
+	{HOOK_HOT_CANDIDATE, 0, "GlobalUnlock", (FARPROC)GlobalUnlock, (FARPROC *)&pGlobalUnlock, (FARPROC)extGlobalUnlock},
 #ifdef NOFREELIBRARY
 	{HOOK_HOT_CANDIDATE, 0, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
 #endif
@@ -1150,4 +1154,19 @@ BOOL WINAPI extSetPriorityClass(HANDLE hProcess, DWORD dwPriorityClass)
 		return TRUE;
 	}
 	return (*pSetPriorityClass)(hProcess, dwPriorityClass);
+}
+
+BOOL WINAPI extGlobalUnlock(HGLOBAL hMem)
+{
+	BOOL ret;
+	ret = (*pGlobalUnlock)(hMem);
+	if((dxw.dwFlags7 & FIXGLOBALUNLOCK) && (ret == 1)){
+		static HGLOBAL hLastMem = NULL;
+		if(hMem == hLastMem){
+			ret = 0;
+			OutTraceDW("GlobalUnlock: FIXED RETCODE hMem=%x\n", hMem);
+		}
+		hLastMem = hMem;
+	}
+	return ret;
 }

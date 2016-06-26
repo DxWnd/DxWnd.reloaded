@@ -1,0 +1,117 @@
+﻿<html>
+	
+<head>
+	<title>Color management</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Colormanagement");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Color management</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Video.html">Video</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Video.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="Initialvirtualcolorsetting.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Screenresolution.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="197" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Simulate BW monitor</span></p>
+</td>
+<td width="161" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">BLACKWHITE</span></p>
+</td>
+<td width="1179" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Activate a tweak in the palette handling that causes all colors to be replaced with the corresponding grayscale color. It works only on 8BPP palettized games or while emulating 16BPP on a 32BPP desktop.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="197" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set 16BPP RGB565 encoding</span></p>
+</td>
+<td width="161" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">USERGB565</span></p>
+</td>
+<td width="1179" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default, DxWnd emulates 16BPP color with RGB555 encoding. The option forces RGB565. This option only impacts the video in emulation mode and with 16BPP color depth.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="197" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Lock Sys Colors</span></p>
+</td>
+<td width="161" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">LOCKSYSCOLORS</span></p>
+</td>
+<td width="1179" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="197" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Lock reserved palette entries</span></p>
+</td>
+<td width="161" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+</td>
+<td width="1179" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="197" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disable setting gamma ramp</span></p>
+</td>
+<td width="161" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">DISABLEGAMMARAMP</span></p>
+</td>
+<td width="1179" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Prevents the API from altering the default gamma ramp, making the screen lighter or darker. Since the API affects the whole screen, this flag is mainly useful to prevent a game's gamma settings from affecting your entire desktop.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+<p class="rvps5"><span class="rvts12">Created with the Personal Edition of HelpNDoc: </span><a class="rvts13" href="http://www.helpndoc.com/feature-tour">Easily create CHM Help documents</a></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+
