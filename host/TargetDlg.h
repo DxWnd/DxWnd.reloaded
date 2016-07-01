@@ -34,6 +34,7 @@ public:
 	int		m_SonProcessMode;
 	BOOL	m_HookDI;
 	BOOL	m_HookDI8;
+	BOOL	m_EmulateRelMouse;
 	BOOL	m_ModifyMouse;
 	BOOL	m_VirtualJoystick;
 	BOOL	m_Unacquire;
@@ -223,12 +224,6 @@ public:
 	BOOL	m_ForceYUVtoRGB;
 	BOOL	m_ForceRGBtoYUV;
 	BOOL	m_LimitScreenRes;
-	int		m_InitX;
-	int		m_InitY;
-	int		m_MaxX;
-	int		m_MaxY;
-	int		m_MinX;
-	int		m_MinY;
 	int		m_PosX;
 	int		m_PosY;
 	int		m_SizX;

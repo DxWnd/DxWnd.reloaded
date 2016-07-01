@@ -405,7 +405,7 @@ static CHAR *LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 
 static void DumpPixFmt(LPDDSURFACEDESC2 lpdds)
 {
-	OutTrace("PixelFormat: lpddsd=%x %s\n", DumpPixelFormat(lpdds));
+	OutTrace("PixelFormat: lpdds=%x %s\n", DumpPixelFormat(lpdds));
 }
 
 void DescribeSurface(LPDIRECTDRAWSURFACE lpdds, int dxversion, char *label, int line)

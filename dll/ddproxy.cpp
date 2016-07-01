@@ -356,6 +356,7 @@ int HookDDProxy(HMODULE module, int dxVersion)
 	case 1:
 	case 2:
 	case 3:
+	case 4:
 	case 5:
 	case 6:
 		hinst = LoadLibrary("ddraw.dll");

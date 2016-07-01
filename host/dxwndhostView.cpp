@@ -24,6 +24,7 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 #define	WM_ICON_NOTIFY WM_APP+10
+#define strcasecmp lstrcmpi
 
 extern UINT m_StartToTray;
 extern UINT m_InitialState;
@@ -176,6 +177,8 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	t->flags4 = 0;
 	t->flags5 = 0;
 	t->flags6 = 0;
+	t->flags7 = 0;
+	t->flags8 = 0;
 	t->tflags = 0;
 	if(dlg->m_UnNotify) t->flags |= UNNOTIFY;
 	if(dlg->m_Windowize) t->flags2 |= WINDOWIZE;
@@ -248,6 +251,7 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
+	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_VirtualJoystick) t->flags6 |= VIRTUALJOYSTICK;
 	if(dlg->m_Unacquire) t->flags6 |= UNACQUIRE;
@@ -411,12 +415,6 @@ static void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SyncPalette) t->flags6 |= SYNCPALETTE;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
-	t->initx = dlg->m_InitX;
-	t->inity = dlg->m_InitY;
-	t->minx = dlg->m_MinX;
-	t->miny = dlg->m_MinY;
-	t->maxx = dlg->m_MaxX;
-	t->maxy = dlg->m_MaxY;
 	t->posx = dlg->m_PosX;
 	t->posy = dlg->m_PosY;
 	t->sizx = dlg->m_SizX;
@@ -495,6 +493,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
+	dlg->m_EmulateRelMouse = t->flags6 & EMULATERELMOUSE ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_VirtualJoystick = t->flags6 & VIRTUALJOYSTICK ? 1 : 0;
 	dlg->m_Unacquire = t->flags6 & UNACQUIRE ? 1 : 0;
@@ -659,12 +658,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SyncPalette = t->flags6 & SYNCPALETTE ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
-	dlg->m_InitX = t->initx;
-	dlg->m_InitY = t->inity;
-	dlg->m_MinX = t->minx;
-	dlg->m_MinY = t->miny;
-	dlg->m_MaxX = t->maxx;
-	dlg->m_MaxY = t->maxy;
 	dlg->m_PosX = t->posx;
 	dlg->m_PosY = t->posy;
 	dlg->m_SizX = t->sizx;
@@ -718,26 +711,20 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(key, sizeof(key), "flagk%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags6);
 	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagl%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags7);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagm%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags8);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagl%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags7);
+	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "flagm%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags8);
+	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
-	WritePrivateProfileString("target", key, val, InitPath);
-	sprintf_s(key, sizeof(key), "initx%i", i);
-	sprintf_s(val, sizeof(val), "%i", TargetMap->initx);
-	WritePrivateProfileString("target", key, val, InitPath);
-	sprintf_s(key, sizeof(key), "inity%i", i);
-	sprintf_s(val, sizeof(val), "%i", TargetMap->inity);
-	WritePrivateProfileString("target", key, val, InitPath);
-	sprintf_s(key, sizeof(key), "minx%i", i);
-	sprintf_s(val, sizeof(val), "%i", TargetMap->minx);
-	WritePrivateProfileString("target", key, val, InitPath);
-	sprintf_s(key, sizeof(key), "miny%i", i);
-	sprintf_s(val, sizeof(val), "%i", TargetMap->miny);
-	WritePrivateProfileString("target", key, val, InitPath);
-	sprintf_s(key, sizeof(key), "maxx%i", i);
-	sprintf_s(val, sizeof(val), "%i", TargetMap->maxx);
-	WritePrivateProfileString("target", key, val, InitPath);
-	sprintf_s(key, sizeof(key), "maxy%i", i);
-	sprintf_s(val, sizeof(val), "%i", TargetMap->maxy);
 	WritePrivateProfileString("target", key, val, InitPath);
 	sprintf_s(key, sizeof(key), "posx%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->posx);
@@ -794,6 +781,10 @@ static void ClearTarget(int i, char *InitPath)
 	sprintf_s(key, sizeof(key), "flagj%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "flagk%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagl%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagm%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
@@ -894,26 +885,14 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	sprintf_s(key, sizeof(key), "flagk%i", i);
 	TargetMap->flags6 = GetPrivateProfileInt("target", key, 0, InitPath);
 	// -------
+	sprintf_s(key, sizeof(key), "flagl%i", i);
+	TargetMap->flags7 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "flagm%i", i);
+	TargetMap->flags8 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	TargetMap->tflags = GetPrivateProfileInt("target", key, 0, InitPath);
-	// -------
-	sprintf_s(key, sizeof(key), "initx%i", i);
-	TargetMap->initx = GetPrivateProfileInt("target", key, 0, InitPath);
-	// -------
-	sprintf_s(key, sizeof(key), "inity%i", i);
-	TargetMap->inity = GetPrivateProfileInt("target", key, 0, InitPath);
-	// -------
-	sprintf_s(key, sizeof(key), "minx%i", i);
-	TargetMap->minx = GetPrivateProfileInt("target", key, 0, InitPath);
-	// -------
-	sprintf_s(key, sizeof(key), "miny%i", i);
-	TargetMap->miny = GetPrivateProfileInt("target", key, 0, InitPath);
-	// -------
-	sprintf_s(key, sizeof(key), "maxx%i", i);
-	TargetMap->maxx = GetPrivateProfileInt("target", key, 0, InitPath);
-	// -------
-	sprintf_s(key, sizeof(key), "maxy%i", i);
-	TargetMap->maxy = GetPrivateProfileInt("target", key, 0, InitPath);
 	// -------
 	sprintf_s(key, sizeof(key), "posx%i", i);
 	TargetMap->posx = GetPrivateProfileInt("target", key, 0, InitPath);
@@ -1137,6 +1116,14 @@ void CDxwndhostView::OnExport()
 		DWORD TFlags;
 		TARGETMAP *TargetMap;
 		strcpy(path, dlg.GetPathName().GetBuffer());
+		// XP fix:
+		if(strlen(path)>4){
+			char *p;
+			p = &path[strlen(path-4)];
+			if(strcasecmp(p, ".dxw")) strcat(path, ".dxw");
+		}
+		else
+			strcat(path, ".dxw");
 		//MessageBox(path, "PathName", MB_OK);
 		// export with no trace flags active
 		TargetMap = &TargetMaps[i];
@@ -1384,8 +1371,6 @@ void CDxwndhostView::OnSetRegistry()
 	fwrite(Registry, strlen(Registry), 1, regfp);
 	fclose(regfp);
 }
-
-#define strcasecmp lstrcmpi
 
 void CDxwndhostView::OnSort() 
 {

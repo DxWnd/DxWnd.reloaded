@@ -12,6 +12,14 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+static BOOL dirExists(char *path)
+{
+	DWORD ftyp = GetFileAttributesA(path);
+	if (ftyp == INVALID_FILE_ATTRIBUTES) return FALSE;  //something is wrong with your path!
+	if (ftyp & FILE_ATTRIBUTE_DIRECTORY) return TRUE;   // this is a directory!
+	return false;    // this is not a directory!
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CTabProgram dialog
 
@@ -73,6 +81,7 @@ void CTabProgram::OnOpen()
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
 	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitPath);
+	if(!dirExists(path)) strcpy(path, "");
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {
@@ -92,6 +101,7 @@ void CTabProgram::OnOpenLaunch()
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	cTarget->m_File.GetWindowText(path, MAX_PATH);
 	GetPrivateProfileString("window", "exepath", NULL, path, MAX_PATH, gInitPath);
+	if(!dirExists(path)) strcpy(path, "");
 	CFileDialog dlg( TRUE, "*.*", path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
         "Program (*.exe)|*.exe|All Files (*.*)|*.*||",  this);
 	if( dlg.DoModal() == IDOK) {

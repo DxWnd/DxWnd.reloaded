@@ -1,7 +1,7 @@
 /*
 DXWnd/dxwnd.cpp
 DirectX Hook Module
-Copyright(C) 2004-2011 SFB7/GHO
+Copyright(C) 2004-2016 SFB7/GHO
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.50"
+#define VERSION "2.03.51"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS

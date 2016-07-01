@@ -46,12 +46,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);
 	DDX_Check(pDX, IDC_HOOKDI8, cTarget->m_HookDI8);
 	DDX_Check(pDX, IDC_UNACQUIRE, cTarget->m_Unacquire);
-	DDX_Text(pDX, IDC_INITX, cTarget->m_InitX);
-	DDX_Text(pDX, IDC_INITY, cTarget->m_InitY);
-	DDX_Text(pDX, IDC_MAXX, cTarget->m_MaxX);
-	DDX_Text(pDX, IDC_MAXY, cTarget->m_MaxY);
-	DDX_Text(pDX, IDC_MINX, cTarget->m_MinX);
-	DDX_Text(pDX, IDC_MINY, cTarget->m_MinY);
+	DDX_Check(pDX, IDC_EMULATERELMOUSE, cTarget->m_EmulateRelMouse);
 	// Message processing
 	DDX_Check(pDX, IDC_FILTERMESSAGES, cTarget->m_FilterMessages);
 	DDX_Check(pDX, IDC_PEEKALLMESSAGES, cTarget->m_PeekAllMessages);

@@ -453,7 +453,7 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 	tmp=(void *)dwTmp;
 
 	if (*hookedproc && *hookedproc!=tmp) {
-		sprintf(msg,"SetHook: proc=%s oldhook=%x newhook=%x\n", hookname, hookedproc, tmp);
+		sprintf(msg,"SetHook: proc=%s oldhook=%x->%x newhook=%x\n", hookname, hookedproc, *(DWORD *)hookedproc, tmp);
 		OutTraceDW(msg);
 		if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
 	}
@@ -1310,11 +1310,8 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	}
 
 	// make InitPosition used for both DInput and DDraw
-	if(dxw.Windowize){
-		InitPosition(target->initx, target->inity,
-			target->minx, target->miny, target->maxx, target->maxy);
-		dxw.InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);
-	}
+	if(dxw.Windowize) dxw.InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);
+	
 
 	OutTraceB("HookInit: base hmodule=%x\n", base);
 	HookModule(base, dxw.dwTargetDDVersion);
@@ -1346,7 +1343,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		hMouseHook=(*pSetWindowsHookEx)(WH_GETMESSAGE, MessageHook, hInst, GetCurrentThreadId());
 		if(hMouseHook==NULL) OutTraceE("SetWindowsHookEx WH_GETMESSAGE failed: error=%d\n", GetLastError());
 	}
-
+ 
 	InitScreenParameters();
 	if(hwnd) HookWindowProc(hwnd);
 	// in fullscreen mode, messages seem to reach and get processed by the parent window
@@ -1357,7 +1354,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	// 2) in Windowed mode and
 	// 3) supposedly in fullscreen mode (dxw.IsFullScreen()) and
 	// 4) configuration ask for a overlapped bordered window (dxw.dwFlags1 & FIXWINFRAME) then
-	// update window styles: just this window or, when FIXPARENTWIN is set, the father one as well.
+	// update window styles: just this window or, when FIXPARENTWIN is set, the father one as well. 
 
 	if (hwnd && dxw.Windowize && dxw.IsFullScreen() && (dxw.dwFlags1 & FIXWINFRAME)) {
 		dxw.FixWindowFrame(dxw.hChildWnd);

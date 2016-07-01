@@ -212,6 +212,10 @@
 #define UNACQUIRE			0x10000000 // Unacquire DirectInput devices when losing focus and acquire back when gaining focus
 #define HOOKGOGLIBS			0x20000000 // Hook additional libraries provided by GOG with different names but same functionalities as system ones
 #define BYPASSGOGLIBS		0x40000000 // Bypass GOG proxy system libraries loading directly the system libraries from the system folder
+#define EMULATERELMOUSE		0x80000000 // Emulates the dinput detection of relative mouse position by keeping the mouse at the center of window and looking for movements
+
+// seventh flags DWORD dxw.dwFlags7:
+// eighth flags DWORD dxw.dwFlags8:
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -251,13 +255,9 @@ typedef struct TARGETMAP
 	int flags4;
 	int flags5;
 	int flags6;
+	int flags7;
+	int flags8;
 	int tflags;
-	short initx;
-	short inity;
-	short minx;
-	short miny;
-	short maxx;
-	short maxy;
 	short posx;
 	short posy;
 	short sizx;

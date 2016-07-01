@@ -1001,3 +1001,12 @@ fix: improvements (not finished) in dinput handling
 add: the OS version info is traced in the log file
 fix: added cursor clipping when requested on new main window creation
 fix: handling of cursor clipping when the window gain/lose focus threough DefWindowProc message handling
+
+v2.03.51
+fix: WinXP select file dialog bug, not appearing if pointing to nonexistent directory
+fix: export file bug - now forces the file to have a .dxw extension
+fix: eliminated 6 useless fields in dinput handling, now their value is calculated automatically and at runtime
+add: DirectInput / "Emulate mouse relative movement". Eliminates the fake clipped regions inside the window (fix Geneforge series)
+fix: directinput mouse mode (absolute vs. relative) now correctly checked using the mouse device
+fix: attempt to fix FIXMOVIESCOLOR flag for 32BPP target color depth, but it doesn't still work on Win10
+fix: directinput RELEASEMOUSE flag applied to mouse device only

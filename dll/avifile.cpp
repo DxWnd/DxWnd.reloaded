@@ -76,7 +76,10 @@ PGETFRAME WINAPI extAVIStreamGetFrameOpen(PAVISTREAM pavi, LPBITMAPINFOHEADER lp
 		biWanted.biSize = sizeof(BITMAPINFOHEADER);
 		biWanted.biBitCount = (WORD)dxw.VirtualPixelFormat.dwRGBBitCount;
 		biWanted.biPlanes = 1;
+		if(biWanted.biBitCount < 32) 
 		biWanted.biClrUsed = (0x1 << biWanted.biBitCount); // 8 -> 256;
+		else
+			biWanted.biClrUsed = 0;
 		biWanted.biClrImportant = biWanted.biClrUsed;
 		return (*pAVIStreamGetFrameOpen)(pavi, &biWanted);
 	}

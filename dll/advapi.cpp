@@ -26,7 +26,7 @@ static HookEntry_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, "RegEnumValueA", NULL, (FARPROC *)&pRegEnumValueA, (FARPROC)extRegEnumValueA},
 	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
 };
-
+ 
 void HookAdvApi32(HMODULE module)
 {
 	HookLibrary(module, Hooks, "ADVAPI32.dll");
