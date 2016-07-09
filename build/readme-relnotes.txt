@@ -1226,3 +1226,12 @@ fix: cleared surface list on primary surface creation: "Daytona USA" keeps creat
 fix: calling the proper GetGDISurface pointer in Lock wrapper
 fix: HookProc routine causing crash with GTA3, fixed for Win7 and Win10
 fix: LoadLibrayA/W after a SetWorkingDir invocation didn't load the local modules. Fixes "The Rage".
+
+v2.03.84
+add: new flag "No hook update" (HOOKNOUPDATE) to disable update of original call address in case of change 
+add: hint message for "No hook update" condition
+add: hint message for memory signed integer overflow
+add: GUI flag "Name by Folder" to default the program name field with the program folder instead of program filename
+add: new flag "Set keyboard shared coop. level" (SHAREDKEYBOARD) to change directinput keyboard cooperative level mode
+add: new flag Direct3D / "Enumerate 16bit modes" (ENUM16BITMODES) to force enumeration of 16 bit video modes on Win10 desktop when not listed
+fix: GUI randomic value for Injection mode selector when adding new entry

@@ -90,6 +90,7 @@ void CGlobalSettings::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CONFIG_DEBUGMODE, m_DebugMode);
 	DDX_Check(pDX, IDC_CONFIG_AUTOHIDE, m_AutoHideMode);
 	DDX_Check(pDX, IDC_CONFIG_CHECKADMIN, m_CheckAdminRights);
+	DDX_Check(pDX, IDC_CONFIG_NAMEFROMFOLDER, m_NameFromFolder);
 	DDX_Check(pDX, IDC_CONFIG_SAVEPATHS, m_UpdatePaths);
 	DDX_Text (pDX, IDC_TEX_MINX, m_TexMinX);
 	DDX_Text (pDX, IDC_TEX_MINY, m_TexMinY);
@@ -155,6 +156,7 @@ BOOL CGlobalSettings::OnInitDialog()
 	m_DebugMode = GetPrivateProfileInt("window", "debug", 0, gInitPath);
 	m_AutoHideMode = GetPrivateProfileInt("window", "autohide", 0, gInitPath); 
 	m_CheckAdminRights = GetPrivateProfileInt("window", "checkadmin", 0, gInitPath);
+	m_NameFromFolder = GetPrivateProfileInt("window", "namefromfolder", 0, gInitPath);
 	m_UpdatePaths = GetPrivateProfileInt("window", "updatepaths", 1, gInitPath);
 	m_TexMinX = GetPrivateProfileInt("texture", "MinTexX", 0, gInitPath);
 	m_TexMinY = GetPrivateProfileInt("texture", "MinTexY", 0, gInitPath);
@@ -176,6 +178,8 @@ void CGlobalSettings::OnOK()
 	WritePrivateProfileString("window", "autohide", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", m_CheckAdminRights);
 	WritePrivateProfileString("window", "checkadmin", val, gInitPath);
+	sprintf_s(val, sizeof(val), "%i", m_NameFromFolder);
+	WritePrivateProfileString("window", "namefromfolder", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", m_UpdatePaths);
 	WritePrivateProfileString("window", "updatepaths", val, gInitPath);
 	// texture limits

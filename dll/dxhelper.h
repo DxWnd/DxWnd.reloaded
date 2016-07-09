@@ -55,3 +55,4 @@ extern char *ExplainRegionType(DWORD);
 extern char *ExplainPixelFormat(LPDDPIXELFORMAT);
 extern char *ExplainZBufferBitDepths(DWORD);
 extern char *GetObjectTypeStr(HDC);
+extern char *ExplainD3DSurfaceFormat(DWORD);

@@ -33,6 +33,7 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOPOWER2FIX, cTarget->m_NoPower2Fix);
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
+	DDX_Check(pDX, IDC_ENUM16BITMODES, cTarget->m_Enum16bitModes);
 
 	// Texture management
 	DDX_Radio(pDX, IDC_TEXTURENONE, cTarget->m_TextureHandling);

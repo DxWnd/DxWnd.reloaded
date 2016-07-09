@@ -56,6 +56,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HandleExceptions = FALSE;
 	m_SuppressIME = FALSE;
 	m_SuppressD3DExt = FALSE;
+	m_Enum16bitModes = FALSE;
 	m_SetCompatibility = TRUE; // default true !!
 	m_AEROBoost = TRUE; // default true !!
 	m_DiabloTweak = FALSE;
@@ -113,6 +114,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HookDLLs = TRUE; // default true !!
 	m_AnsiWide = FALSE; 
 	m_HookNoRun = FALSE; 
+	m_HookNoUpdate = FALSE; 
 	m_TerminateOnClose = FALSE; 
 	m_ConfirmOnClose = FALSE; 
 	m_HookEnabled = TRUE; // default true !!
@@ -238,6 +240,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_MaxFPS = 0;
 	m_InitTS = 8;
 	m_SwapEffect = 0;
+	m_InjectionMode = 0;
 	//}}AFX_DATA_INIT
 
 }

@@ -27,11 +27,15 @@ HintEntry_Type HintTable[]={
 	{FALSE, "Executable obfuscation detected. Impossible to hook this file"},
 	{FALSE, "SafeDisk dependency detected. Check for compatibility with current OS"},
 	{FALSE, "SecuRom dependency detected. Check for compatibility with current OS"},
+	{FALSE, "Integer32 memory size overflow. May need limit resources flag"},
+	{FALSE, "Hooked address update. May need to check the \"No hook update\" (HOOKNOUPDATE) flag"},
 	{FALSE, ""}
 };
 
 void ShowHint(int HintId)
 {
+	//if(!dxw.bHintActive) return;
+
 	// boundary checks
 	if ((HintId < HINT_HINT) || (HintId >= HINT_LAST)) return;
 

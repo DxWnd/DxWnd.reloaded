@@ -10,6 +10,47 @@
 
 extern unsigned int HashSurface(BYTE *, int, int, int);
 
+static WORD Melt_123(WORD c1, WORD c2)
+{
+	WORD r1, r2, g1, g2, b1, b2;
+	WORD r, g, b;
+	r1 = (c1 & 0xF800) >> 11;
+	r2 = (c2 & 0xF800) >> 11;
+	g1 = (c1 & 0x07E0) >> 5;
+	g2 = (c2 & 0x07E0) >> 5;
+	b1 = (c1 & 0x001F) >> 0;
+	b2 = (c2 & 0x001F) >> 0;
+	r = (((r2 * 2) + r1) / 3) & 0x1F;
+	g = (((g2 * 2) + g1) / 3) & 0x3F;
+	b = (((b2 * 2) + b1) / 3) & 0x1F;
+	return (r << 11) | (g << 5) | (b << 0);
+}
+
+static DWORD Melt32_123(WORD c1, WORD c2)
+{
+	WORD r1, r2, g1, g2, b1, b2;
+	DWORD r, g, b;
+	r1 = (c1 & 0xF800) >> 11;
+	r2 = (c2 & 0xF800) >> 11;
+	g1 = (c1 & 0x07E0) >> 5;
+	g2 = (c2 & 0x07E0) >> 5;
+	b1 = (c1 & 0x001F) >> 0;
+	b2 = (c2 & 0x001F) >> 0;
+	r = (((r2 * 2) + r1) / 3) & 0x1F;
+	g = (((g2 * 2) + g1) / 3) & 0x3F;
+	b = (((b2 * 2) + b1) / 3) & 0x1F;
+	return (r << (16+3)) | (g << (8+2)) | (b << (0+3));
+}
+
+static DWORD Conv32(WORD c)
+{
+	DWORD r, g, b;
+	r = ((c & 0xF800) >> 11) & 0x1F;
+	g = ((c & 0x07E0) >> 5) & 0x3F;
+	b = ((c & 0x001F) >> 0) & 0x1F;
+	return (r << (16+3)) | (g << (8+2)) | (b << (0+3));
+}
+
 char *ExplainD3DSurfaceFormat(DWORD dwFormat)
 {
 	char *s;
@@ -81,47 +122,6 @@ char *ExplainD3DSurfaceFormat(DWORD dwFormat)
 		default: s = "Unknown"; break;
 	}
 	return s;
-}
-
-static WORD Melt_123(WORD c1, WORD c2)
-{
-	WORD r1, r2, g1, g2, b1, b2;
-	WORD r, g, b;
-	r1 = (c1 & 0xF800) >> 11;
-	r2 = (c2 & 0xF800) >> 11;
-	g1 = (c1 & 0x07E0) >> 5;
-	g2 = (c2 & 0x07E0) >> 5;
-	b1 = (c1 & 0x001F) >> 0;
-	b2 = (c2 & 0x001F) >> 0;
-	r = (((r2 * 2) + r1) / 3) & 0x1F;
-	g = (((g2 * 2) + g1) / 3) & 0x3F;
-	b = (((b2 * 2) + b1) / 3) & 0x1F;
-	return (r << 11) | (g << 5) | (b << 0);
-}
-
-static DWORD Melt32_123(WORD c1, WORD c2)
-{
-	WORD r1, r2, g1, g2, b1, b2;
-	DWORD r, g, b;
-	r1 = (c1 & 0xF800) >> 11;
-	r2 = (c2 & 0xF800) >> 11;
-	g1 = (c1 & 0x07E0) >> 5;
-	g2 = (c2 & 0x07E0) >> 5;
-	b1 = (c1 & 0x001F) >> 0;
-	b2 = (c2 & 0x001F) >> 0;
-	r = (((r2 * 2) + r1) / 3) & 0x1F;
-	g = (((g2 * 2) + g1) / 3) & 0x3F;
-	b = (((b2 * 2) + b1) / 3) & 0x1F;
-	return (r << (16+3)) | (g << (8+2)) | (b << (0+3));
-}
-
-static DWORD Conv32(WORD c)
-{
-	DWORD r, g, b;
-	r = ((c & 0xF800) >> 11) & 0x1F;
-	g = ((c & 0x07E0) >> 5) & 0x3F;
-	b = ((c & 0x001F) >> 0) & 0x1F;
-	return (r << (16+3)) | (g << (8+2)) | (b << (0+3));
 }
 
 #define GRIDSIZE 16

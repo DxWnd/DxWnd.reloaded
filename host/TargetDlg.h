@@ -44,6 +44,7 @@ public:
 	BOOL	m_EmulateRelMouse;
 	BOOL	m_SkipDevTypeHID;
 	BOOL	m_SuppressDIErrors;
+	BOOL	m_SharedKeyboard;
 	BOOL	m_ModifyMouse;
 	BOOL	m_VirtualJoystick;
 	BOOL	m_Unacquire;
@@ -68,6 +69,7 @@ public:
 	BOOL	m_HookDLLs;
 	BOOL	m_AnsiWide;
 	BOOL	m_HookNoRun;
+	BOOL	m_HookNoUpdate;
 	BOOL	m_TerminateOnClose;
 	BOOL	m_ConfirmOnClose;
 	BOOL	m_EmulateRegistry;
@@ -245,6 +247,7 @@ public:
 	BOOL	m_NoTextures;
 	BOOL	m_BlackWhite;
 	BOOL	m_SuppressD3DExt;
+	BOOL	m_Enum16bitModes;
 	BOOL	m_Force16BPP;
 	BOOL	m_LimitScreenRes;
 	int		m_PosX;

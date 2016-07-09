@@ -234,6 +234,9 @@
 #define SUPPRESSDIERRORS	0x00010000 // Suppress DirectInput common errors
 #define HOOKNORUN			0x00020000 // Hook process but don't start it from DxWnd interface
 #define FIXBINDTEXTURE		0x00040000 // Fix the problems caused by the lack of glActiveTexture on some Windows OpenGL32.dll versions
+#define ENUM16BITMODES		0x00080000 // Enumerates 16 bit video modes when using DirectDraw8/9::EnumAdapterModes on a Win10 OS
+#define SHAREDKEYBOARD		0x00100000 // Forces DirectInput cooperative level to NONEXCLUSIVE mode for the keyboard
+#define HOOKNOUPDATE		0x00200000 // Updates the original addresses when changed
 
 // eighth flags DWORD dxw.dwFlags8:
 

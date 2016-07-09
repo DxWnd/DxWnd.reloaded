@@ -55,7 +55,8 @@ D3DPERF_SetOptions_Type pD3DPERF_SetOptions = 0;
 
 typedef UINT	(WINAPI *GetAdapterCount_Type)(void *);
 typedef HRESULT (WINAPI *GetAdapterIdentifier_Type)(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
-typedef UINT	(WINAPI *GetAdapterModeCount_Type)(void *, UINT, D3DFORMAT);
+typedef UINT	(WINAPI *GetAdapterModeCount8_Type)(void *, UINT);
+typedef UINT	(WINAPI *GetAdapterModeCount9_Type)(void *, UINT, D3DFORMAT);
 typedef HRESULT (WINAPI *EnumAdapterModes8_Type)(void *, UINT, UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *EnumAdapterModes9_Type)(void *, UINT, D3DFORMAT ,UINT, D3DDISPLAYMODE *);
 typedef HRESULT (WINAPI *GetAdapterDisplayMode_Type)(void *, UINT, D3DDISPLAYMODE *);
@@ -71,6 +72,8 @@ UINT WINAPI extGetAdapterCount8(void *);
 UINT WINAPI extGetAdapterCount9(void *);
 HRESULT WINAPI extGetAdapterIdentifier8(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
 HRESULT WINAPI extGetAdapterIdentifier9(void *, UINT, DWORD, D3DADAPTER_IDENTIFIER9 *);
+UINT WINAPI extGetAdapterModeCount8(void *, UINT);
+UINT WINAPI extGetAdapterModeCount9(void *, UINT, D3DFORMAT);
 HRESULT WINAPI extCheckDeviceType8(void *, UINT, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, BOOL);
 HRESULT WINAPI extCheckDeviceType9(void *, UINT, D3DDEVTYPE, D3DFORMAT, D3DFORMAT, BOOL);
 HRESULT WINAPI extD3DGetDeviceCaps8(void *, UINT, D3DDEVTYPE, D3DCAPS8 *);
@@ -82,6 +85,8 @@ HRESULT WINAPI extCreateDevice9(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESEN
 HRESULT WINAPI extCreateDeviceEx(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, D3DDISPLAYMODEEX *, void **);
 
 GetAdapterCount_Type pGetAdapterCount8, pGetAdapterCount9;
+GetAdapterModeCount8_Type pGetAdapterModeCount8;
+GetAdapterModeCount9_Type pGetAdapterModeCount9;
 GetAdapterIdentifier_Type pGetAdapterIdentifier8, pGetAdapterIdentifier9;
 CheckDeviceType_Type pCheckDeviceType8, pCheckDeviceType9;
 D3DGetDeviceCaps8_Type pD3DGetDeviceCaps8 = 0;
@@ -553,6 +558,7 @@ void HookDirect3D8(void *lpd3d)
 	SetHook((void *)(*(DWORD *)lpd3d +  0), extQueryInterfaceD3D8, (void **)&pQueryInterfaceD3D8, "QueryInterface(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount8, (void **)&pGetAdapterCount8, "GetAdapterCount(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier8, (void **)&pGetAdapterIdentifier8, "GetAdapterIdentifier(D8)");
+	SetHook((void *)(*(DWORD *)lpd3d + 24), extGetAdapterModeCount8, (void **)&pGetAdapterModeCount8, "GetAdapterGetAdapterModeCount(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes8, (void **)&pEnumAdapterModes8, "EnumAdapterModes(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode8, (void **)&pGetAdapterDisplayMode8, "GetAdapterDisplayMode(D8)");
 	SetHook((void *)(*(DWORD *)lpd3d + 36), extCheckDeviceType8, (void **)&pCheckDeviceType8, "CheckDeviceType(D8)");
@@ -589,6 +595,7 @@ void HookDirect3D9(void *lpd3d, BOOL ex)
 	SetHook((void *)(*(DWORD *)lpd3d +  0), extQueryInterfaceD3D9, (void **)&pQueryInterfaceD3D9, "QueryInterface(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount9, (void **)&pGetAdapterCount9, "GetAdapterCount(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier9, (void **)&pGetAdapterIdentifier9, "GetAdapterIdentifier(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 24), extGetAdapterModeCount9, (void **)&pGetAdapterModeCount9, "GetAdapterGetAdapterModeCount(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes9, (void **)&pEnumAdapterModes9, "EnumAdapterModes(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode9, (void **)&pGetAdapterDisplayMode9, "GetAdapterDisplayMode(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 36), extCheckDeviceType9, (void **)&pCheckDeviceType9, "CheckDeviceType(D9)");
@@ -925,8 +932,21 @@ HRESULT WINAPI extEnumAdapterModes8(void *lpd3d, UINT Adapter, UINT Mode, D3DDIS
 {
 	HRESULT res;
 	OutTraceD3D("EnumAdapterModes(8): adapter=%d mode=%d pMode=%x\n", Adapter, Mode, pMode);
-	res=(*pEnumAdapterModes8)(lpd3d, Adapter, Mode, pMode);
-	if(res) OutTraceE("EnumAdapterModes ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+	if(dxw.dwFlags7 & ENUM16BITMODES){
+		res=(*pEnumAdapterModes8)(lpd3d, Adapter, Mode/2, pMode);
+		if((res == D3D_OK) && (Mode % 2)){
+			pMode->Format = (dxw.dwFlags1 & USERGB565)? D3DFMT_R5G6B5 : D3DFMT_A1R5G5B5;
+		}
+	}
+	else
+		res=(*pEnumAdapterModes8)(lpd3d, Adapter, Mode, pMode);
+	if(res) {
+		OutTraceE("EnumAdapterModes ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+	}
+	else {
+		OutTraceD3D("EnumAdapterModes(8): res=(%dx%d) refresh=%dHz format=%d(%s)\n", 
+			pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format, ExplainD3DSurfaceFormat(pMode->Format));
+	}
 	return res;
 }
 
@@ -934,8 +954,21 @@ HRESULT WINAPI extEnumAdapterModes9(void *lpd3d, UINT Adapter, D3DFORMAT Format,
 {
 	HRESULT res;
 	OutTraceD3D("EnumAdapterModes(9): adapter=%d format=%x mode=%d pMode=%x\n", Adapter, Format, Mode, pMode);
-	res=(*pEnumAdapterModes9)(lpd3d, Adapter, Format, Mode, pMode);
-	if(res) OutTraceE("EnumAdapterModes ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+	if(dxw.dwFlags7 & ENUM16BITMODES){
+		res=(*pEnumAdapterModes9)(lpd3d, Adapter, Format, Mode/2, pMode);
+		if((res == D3D_OK) && (Mode % 2)){
+			pMode->Format = (dxw.dwFlags1 & USERGB565)? D3DFMT_R5G6B5 : D3DFMT_A1R5G5B5;
+		}
+	}
+	else
+		res=(*pEnumAdapterModes9)(lpd3d, Adapter, Format, Mode, pMode);
+	if(res) {
+		OutTraceE("EnumAdapterModes ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+	}
+	else {
+		OutTraceD3D("EnumAdapterModes(9): res=(%dx%d) refresh=%dHz format=%d(%s)\n", 
+			pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format, ExplainD3DSurfaceFormat(pMode->Format));
+	}
 	return res;
 }
 
@@ -2098,11 +2131,15 @@ static UINT WINAPI extGetAvailableTextureMem(GetAvailableTextureMem_Type pGetAva
 	// const DWORD dwMaxMem = 0x70000000; = 1.8G
 	UINT AvailableTextureMem = (*pGetAvailableTextureMem)(lpd3dd);
 	OutTraceD3D("GetAvailableTextureMem: lpd3dd=%x AvailableTextureMem=%u(%dMB)\n", lpd3dd, AvailableTextureMem, AvailableTextureMem>>20);
+
+	if(dxw.bHintActive && (AvailableTextureMem > TextureMemoryLimit)) ShowHint(HINT_LIMITMEM);
+
 	if((dxw.dwFlags2 & LIMITRESOURCES) && (AvailableTextureMem > TextureMemoryLimit)){
 		OutTraceDW("GetAvailableTextureMem: LIMIT AvailableTextureMem=%u->%u\n", AvailableTextureMem, TextureMemoryLimit);
 		AvailableTextureMem = TextureMemoryLimit;
 	}
 	if(dxw.dwFlags5 & STRESSRESOURCES) AvailableTextureMem = 0xFFFFFFFF;
+
 	return AvailableTextureMem;
 }
 
@@ -2280,4 +2317,31 @@ void RestoreD3DSurfaces(BOOL bFullScreen)
 	//	if(res != DD_OK) OutTraceE("RestoreD3DSurfaces: Reset size=(%dx%d) err=%x(%s)\n", 
 	//		param[0], param[1], res, ExplainDDError(res));
 	//}
+}
+
+UINT WINAPI extGetAdapterModeCount8(void *lpd3d, UINT Adapter)
+{
+	UINT ret;
+	OutTraceD3D("GetAdapterModeCount(8): d3d=%x adapter=%d\n", lpd3d, Adapter);
+	ret = (*pGetAdapterModeCount8)(lpd3d, Adapter);
+	if(dxw.dwFlags7 & ENUM16BITMODES){
+		OutTraceDW("GetAdapterModeCount(8): DOUBLED MODES %d->%d\n", ret, ret*2);
+		ret = ret * 2;
+	}
+	OutTraceD3D("GetAdapterModeCount(8): ret=%d\n", ret);
+	return ret;
+}
+
+UINT WINAPI extGetAdapterModeCount9(void *lpd3d, UINT Adapter, D3DFORMAT Format)
+{
+	UINT ret;
+	OutTraceD3D("GetAdapterModeCount(9): d3d=%x adapter=%d format=%d(%s)\n",
+		lpd3d, Adapter, Format, ExplainD3DSurfaceFormat(Format));
+	ret = (*pGetAdapterModeCount9)(lpd3d, Adapter, Format);
+	if(dxw.dwFlags7 & ENUM16BITMODES){
+		OutTraceDW("GetAdapterModeCount(9): DOUBLED MODES %d->%d\n", ret, ret*2);
+		ret = ret * 2;
+	}
+	OutTraceD3D("GetAdapterModeCount(9): ret=%d\n", ret);
+	return ret;
 }

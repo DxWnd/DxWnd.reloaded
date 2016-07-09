@@ -1471,6 +1471,9 @@ static void MaskCapsD(LPDDCAPS c1, LPDDCAPS c2)
 
 static void HandleCapsD(char *sLabel, LPDDCAPS c)
 {
+	const DWORD dwMaxMem  = 0x70000000; 
+	const DWORD dwHugeMem = 0xFFFFFFFF;
+
 	OutTraceDDRAW(
 		"GetCaps(%s): caps=%x(%s) caps2=%x(%s) palcaps=%x(%s) "
 		"fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
@@ -1485,14 +1488,17 @@ static void HandleCapsD(char *sLabel, LPDDCAPS c)
 		sLabel, c->dwVidMemTotal, c->dwVidMemFree, c->dwZBufferBitDepths, ExplainZBufferBitDepths(c->dwZBufferBitDepths));
 	OutTraceDDRAW("GetCaps(%s): MaxVisibleOverlays=%x CurrVisibleOverlays=%x\n",
 		sLabel, c->dwMaxVisibleOverlays, c->dwCurrVisibleOverlays);
+
+	if(dxw.bHintActive){
+		if(c->dwVidMemTotal > dwMaxMem) ShowHint(HINT_LIMITMEM);
+		if(c->dwVidMemFree  > dwMaxMem) ShowHint(HINT_LIMITMEM);
+	}
+
 	if(dxw.dwFlags2 & LIMITRESOURCES){ // check for memory value overflow
-		const DWORD dwMaxMem = 0x70000000; 
 		if(c->dwVidMemTotal > dwMaxMem) c->dwVidMemTotal = dwMaxMem;
 		if(c->dwVidMemFree  > dwMaxMem) c->dwVidMemFree  = dwMaxMem;
 	}
 	if(dxw.dwFlags5 & STRESSRESOURCES){
-		//const DWORD dwHugeMem = 0xF0000000; 
-		const DWORD dwHugeMem = 0xFFFFFFFF; 
 		c->dwVidMemTotal = dwHugeMem;		
 		c->dwVidMemFree  = dwHugeMem;	
 	}
@@ -5334,8 +5340,17 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 
 	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
 	if(caps->dwCaps & DDSCAPS_ZBUFFER) {
-		caps->dwCaps = dxwcdb.GetCaps(lpdds);
-		OutTraceDW("GetCaps: FIXED ZBUFFER caps=%x(%s)\n", caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
+		DWORD dwCaps;
+		dwCaps = dxwcdb.GetCaps(lpdds);
+		// beware! the ZBUFFER surface could have never been registered!
+		// in this case better keep the original capabilities (or adapt to the primary/backbuffer ones?)
+		if(dwCaps) {
+			caps->dwCaps = dwCaps; 
+			OutTraceDW("GetCaps: FIXED ZBUFFER caps=%x(%s)\n", caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
+		}
+		else {
+			OutTraceDW("GetCaps: UNREGISTERED ZBUFFER caps=%x(%s)\n", caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
+		}
 	}
 
 	// v2.03.78: fix for "Gothik 2": pretend that 3DDEVICE surface are ALWAYS in video memory
@@ -5825,6 +5840,12 @@ static HRESULT WINAPI extGetAvailableVidMem(int dxversion, GetAvailableVidMem4_T
 
 	if(!(dxw.dwFlags2 & LIMITRESOURCES)) return res;
 	
+	// may need hints ....
+	if(dxw.bHintActive){
+		if(lpdwTotal && (*lpdwTotal > dwMaxMem)) ShowHint(HINT_LIMITMEM);
+		if(lpdwFree  && (*lpdwFree  > dwMaxMem)) ShowHint(HINT_LIMITMEM);
+	}
+
 	// simulate a value overflow condition
 	if(dxw.dwFlags5 & STRESSRESOURCES){
 		if(lpdwTotal) *lpdwTotal = dwHugeMem;

@@ -206,6 +206,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookDLLs) t->flags3 |= HOOKDLLS;
 	if(dlg->m_AnsiWide) t->flags5 |= ANSIWIDE;
 	if(dlg->m_HookNoRun) t->flags7 |= HOOKNORUN;
+	if(dlg->m_HookNoUpdate) t->flags7 |= HOOKNOUPDATE;
 	if(dlg->m_TerminateOnClose) t->flags6 |= TERMINATEONCLOSE;
 	if(dlg->m_ConfirmOnClose) t->flags6 |= CONFIRMONCLOSE;
 	if(dlg->m_EmulateRegistry) t->flags3 |= EMULATEREGISTRY;
@@ -305,6 +306,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
 	if(dlg->m_SkipDevTypeHID) t->flags7 |= SKIPDEVTYPEHID;
 	if(dlg->m_SuppressDIErrors) t->flags7 |= SUPPRESSDIERRORS;
+	if(dlg->m_SharedKeyboard) t->flags7 |= SHAREDKEYBOARD;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_VirtualJoystick) t->flags6 |= VIRTUALJOYSTICK;
 	if(dlg->m_Unacquire) t->flags6 |= UNACQUIRE;
@@ -344,6 +346,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_Power2Width) t->flags6 |= POWER2WIDTH;
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
+	if(dlg->m_Enum16bitModes) t->flags7 |= ENUM16BITMODES;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
@@ -504,6 +507,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookDLLs = t->flags3 & HOOKDLLS ? 1 : 0;
 	dlg->m_AnsiWide = t->flags5 & ANSIWIDE ? 1 : 0;
 	dlg->m_HookNoRun = t->flags7 & HOOKNORUN ? 1 : 0;
+	dlg->m_HookNoUpdate = t->flags7 & HOOKNOUPDATE ? 1 : 0;
 	dlg->m_TerminateOnClose = t->flags6 & TERMINATEONCLOSE ? 1 : 0;
 	dlg->m_ConfirmOnClose = t->flags6 & CONFIRMONCLOSE ? 1 : 0;
 	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
@@ -580,6 +584,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_EmulateRelMouse = t->flags6 & EMULATERELMOUSE ? 1 : 0;
 	dlg->m_SkipDevTypeHID = t->flags7 & SKIPDEVTYPEHID ? 1 : 0;
 	dlg->m_SuppressDIErrors = t->flags7 & SUPPRESSDIERRORS ? 1 : 0;
+	dlg->m_SharedKeyboard = t->flags7 & SHAREDKEYBOARD ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_VirtualJoystick = t->flags6 & VIRTUALJOYSTICK ? 1 : 0;
 	dlg->m_Unacquire = t->flags6 & UNACQUIRE ? 1 : 0;
@@ -599,6 +604,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HandleExceptions = t->flags & HANDLEEXCEPTIONS ? 1 : 0;
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
+	dlg->m_Enum16bitModes = t->flags7 & ENUM16BITMODES ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
@@ -1906,10 +1912,14 @@ void CDxwndhostView::OnAdd(char *sInitialPath)
 			CString	FilePath;
 			FilePath=TargetMaps[i].path;
 			len=FilePath.ReverseFind('\\');	
+			if(GetPrivateProfileInt("window", "namefromfolder", 0, gInitPath)){
+				FilePath=FilePath.Left(len);
+				len=FilePath.ReverseFind('\\');	
+			}
 			FilePath=FilePath.Right(FilePath.GetLength()-len-1);
 			strncpy_s(PrivateMaps[i].title, sizeof(PrivateMaps[i].title), FilePath.GetString(), sizeof(PrivateMaps[i].title)-1);
-			TargetMaps[i].index = i;
 		}
+		TargetMaps[i].index = i;
 		listitem.pszText = PrivateMaps[i].title;
 		listctrl.InsertItem(&listitem);
 		Resize();

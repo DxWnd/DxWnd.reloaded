@@ -778,6 +778,10 @@ HRESULT WINAPI extDISetCooperativeLevel(LPDIRECTINPUTDEVICE lpdid, HWND hwnd, DW
 	if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();
 
 	if(lpdid == lpDIDSysMouse) dwflags = (DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+	// v2.03.84: SHAREDKEYBOARD option to prevent situations like "Planet of the Apes"
+	// not processing the PrintScreen syskeys.
+	if((lpdid == lpDIDKeyboard) && (dxw.dwFlags7 & SHAREDKEYBOARD))
+		dwflags = (DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
 
 	res = (*pDISetCooperativeLevel)(lpdid, hwnd, dwflags);
 	if(res != DD_OK){

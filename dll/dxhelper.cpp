@@ -1955,3 +1955,4 @@ char *GetObjectTypeStr(HDC hdc)
 	}
 	return s;
 }
+

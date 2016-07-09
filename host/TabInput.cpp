@@ -49,6 +49,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_EMULATERELMOUSE, cTarget->m_EmulateRelMouse);
 	DDX_Check(pDX, IDC_SKIPDEVTYPEHID, cTarget->m_SkipDevTypeHID);
 	DDX_Check(pDX, IDC_SUPPRESSDIERRORS, cTarget->m_SuppressDIErrors);
+	DDX_Check(pDX, IDC_SHAREDKEYBOARD, cTarget->m_SharedKeyboard);
 	// Message processing
 	DDX_Radio(pDX, IDC_PROCESSALLMESSAGES, cTarget->m_OffendingMessages);
 	//DDX_Check(pDX, IDC_FILTERMESSAGES, cTarget->m_FilterMessages);

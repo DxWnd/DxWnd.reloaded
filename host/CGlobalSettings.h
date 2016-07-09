@@ -33,6 +33,7 @@ protected:
 	BOOL m_UpdatePaths;
 	BOOL m_AutoHideMode;
 	BOOL m_CheckAdminRights;
+	BOOL m_NameFromFolder;
 	int m_TexMinX;
 	int m_TexMinY;
 	int m_TexMaxX;

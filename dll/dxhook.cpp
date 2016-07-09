@@ -132,8 +132,8 @@ static char *Flag7Names[32]={
 	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
 	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
 	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "INJECTSUSPENDED",
-	"SSUPPRESSDIERRORS", "", "", "",
-	"", "", "", "",
+	"SSUPPRESSDIERRORS", "HOOKNORUN", "FIXBINDTEXTURE", "ENUM16BITMODES",
+	"SHAREDKEYBOARD", "HOOKNOUPDATE", "", "",
 	"", "", "", "",
 	"", "", "", "",
 };
@@ -275,6 +275,17 @@ void OutTrace(const char *format, ...)
 
 	dxw.dwTFlags = tFlags; // restore settings
 }
+
+// from MSDN:
+// GetVersionEx may be altered or unavailable for releases after Windows 8.1. Instead, use the Version Helper functions
+//
+// With the release of Windows 8.1, the behavior of the GetVersionEx API has changed in the value it will return for the 
+// operating system version. The value returned by the GetVersionEx function now depends on how the application is manifested.
+//
+// Applications not manifested for Windows 8.1 or Windows 10 will return the Windows 8 OS version value (6.2). 
+// Once an application is manifested for a given operating system version, GetVersionEx will always return the version 
+// that the application is manifested for in future releases. 
+// To manifest your applications for Windows 8.1 or Windows 10, refer to Targeting your application for Windows.
 
 static BOOL CheckCompatibilityFlags()
 {
@@ -572,7 +583,9 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 			sprintf(msg,"SetHook: proc=%s oldhook=%x->%x newhook=%x\n", hookname, hookedproc, *(DWORD *)hookedproc, tmp);
 			OutTraceDW(msg);
 			if (IsAssertEnabled) MessageBox(0, msg, "SetHook", MB_OK | MB_ICONEXCLAMATION);
-			// tmp = *hookedproc; -- commented out in v2.03.83, causing crash in GTA3
+			if (dxw.bHintActive) ShowHint(HINT_HOOKUPDATE);
+			// v2.03.83: updating the pointer sometimes is good, sometimes is bad!
+			if(!(dxw.dwFlags7 & HOOKNOUPDATE)) tmp = *hookedproc; 
 		}
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER){
