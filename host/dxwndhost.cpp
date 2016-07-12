@@ -39,6 +39,7 @@ BOOL gWarnOnExit = FALSE;
 BOOL gTransientMode = FALSE;
 BOOL gAutoHideMode = FALSE;
 BOOL gQuietMode = FALSE;
+BOOL gMustDie = FALSE;
 int iProgIndex;
 extern char m_ConfigFileName[20+1] = "dxwnd.ini";
 

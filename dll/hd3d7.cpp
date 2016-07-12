@@ -45,6 +45,7 @@ typedef HRESULT (WINAPI *CreateDevice2_Type)(void *, REFCLSID, LPDIRECTDRAWSURFA
 typedef HRESULT (WINAPI *CreateDevice3_Type)(void *, REFCLSID, LPDIRECTDRAWSURFACE4, LPDIRECT3DDEVICE3 *, LPUNKNOWN);
 typedef HRESULT (WINAPI *CreateDevice7_Type)(void *, REFCLSID, LPDIRECTDRAWSURFACE7, LPDIRECT3DDEVICE7 *);
 typedef HRESULT (WINAPI *EnumZBufferFormats_Type)(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
+typedef HRESULT (WINAPI *EnumTextureFormats_Type)(void *, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 
 QueryInterfaceD3_Type pQueryInterfaceD31 = NULL;
 QueryInterfaceD3_Type pQueryInterfaceD32 = NULL;
@@ -73,6 +74,8 @@ CreateDevice7_Type pCreateDevice7 = NULL;
 EnumZBufferFormats_Type pEnumZBufferFormats3 = NULL;
 EnumZBufferFormats_Type pEnumZBufferFormats7 = NULL;
 
+EnumTextureFormats_Type pEnumTextureFormats1, pEnumTextureFormats2, pEnumTextureFormats3, pEnumTextureFormats7;
+
 HRESULT WINAPI extQueryInterfaceD31(void *, REFIID, LPVOID *);
 HRESULT WINAPI extQueryInterfaceD32(void *, REFIID, LPVOID *);
 HRESULT WINAPI extQueryInterfaceD33(void *, REFIID, LPVOID *);
@@ -88,13 +91,18 @@ HRESULT WINAPI extCreateLight3(void *, LPDIRECT3DLIGHT *, IUnknown *);
 HRESULT WINAPI extEnumZBufferFormats3(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 HRESULT WINAPI extEnumZBufferFormats7(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 
+HRESULT WINAPI extEnumTextureFormats1(void *, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
+HRESULT WINAPI extEnumTextureFormats2(void *, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
+HRESULT WINAPI extEnumTextureFormats3(void *, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
+HRESULT WINAPI extEnumTextureFormats7(void *, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
+
 // Direct3DDevice-n interfaces
 
 typedef ULONG   (WINAPI *ReleaseD3D_Type)(LPDIRECT3DDEVICE);
 typedef HRESULT (WINAPI *QueryInterfaceD3D_Type)(void *, REFIID, LPVOID *);
 typedef HRESULT (WINAPI *D3DInitialize_Type)(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
 typedef HRESULT (WINAPI *D3DGetCaps_Type)(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
-typedef HRESULT (WINAPI *D3DGetCaps3_Type)(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
+typedef HRESULT (WINAPI *D3DGetCaps7_Type)(void *, LPD3DDEVICEDESC7);
 typedef HRESULT (WINAPI *AddViewport1_Type)(void *, LPDIRECT3DVIEWPORT);
 typedef HRESULT (WINAPI *AddViewport2_Type)(void *, LPDIRECT3DVIEWPORT2);
 typedef HRESULT (WINAPI *AddViewport3_Type)(void *, LPDIRECT3DVIEWPORT3);
@@ -115,8 +123,8 @@ typedef HRESULT (WINAPI *SwapTextureHandles2_Type)(void *, LPDIRECT3DTEXTURE2, L
 QueryInterfaceD3_Type pQueryInterfaceD3D = NULL;
 ReleaseD3D_Type pReleaseD3D1, pReleaseD3D2, pReleaseD3D3, pReleaseD3D7;
 D3DInitialize_Type pD3DInitialize = NULL;
-D3DGetCaps_Type pD3DGetCaps = NULL;
-D3DGetCaps3_Type pGetCaps3 = NULL;
+D3DGetCaps_Type pD3DGetCaps1, pD3DGetCaps2, pD3DGetCaps3;
+D3DGetCaps7_Type pD3DGetCaps7;
 AddViewport1_Type pAddViewport1 = NULL;
 AddViewport2_Type pAddViewport2 = NULL;
 AddViewport3_Type pAddViewport3 = NULL;
@@ -225,7 +233,6 @@ HRESULT WINAPI extQueryInterfaceD3(void *, REFIID, LPVOID *);
 HRESULT WINAPI extQueryInterfaceD3D(void *, REFIID, LPVOID *);
 
 HRESULT WINAPI extD3DInitialize(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
-HRESULT WINAPI extD3DGetCaps(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
 
 ULONG WINAPI extReleaseD3D1(LPDIRECT3DDEVICE);
 ULONG WINAPI extReleaseD3D2(LPDIRECT3DDEVICE);
@@ -242,7 +249,10 @@ HRESULT WINAPI extEndScene7(void *);
 HRESULT WINAPI extSetRenderState2(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extSetRenderState3(void *, D3DRENDERSTATETYPE, DWORD);
 HRESULT WINAPI extSetRenderState7(void *, D3DRENDERSTATETYPE, DWORD);
-HRESULT WINAPI extGetCaps3(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
+HRESULT WINAPI extD3DGetCaps1(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
+HRESULT WINAPI extD3DGetCaps2(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
+HRESULT WINAPI extD3DGetCaps3(void *, LPD3DDEVICEDESC, LPD3DDEVICEDESC);
+HRESULT WINAPI extD3DGetCaps7(void *, LPD3DDEVICEDESC7);
 HRESULT WINAPI extSetLightState3(void *d3dd, D3DLIGHTSTATETYPE d3dls, DWORD t);
 HRESULT WINAPI extSetViewport3(void *, LPD3DVIEWPORT);
 HRESULT WINAPI extGetViewport3(void *, LPD3DVIEWPORT);
@@ -494,24 +504,26 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 	case 1:
 		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D1, (void **)&pReleaseD3D1, "ReleaseD3D(1)");
-		//SetHook((void *)(**(DWORD **)lpd3ddev +  16), extGetCaps1, (void **)&pGetCaps1, "GetCaps(1)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extD3DGetCaps1, (void **)&pD3DGetCaps1, "GetCaps(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  32), extExecute, (void **)&pExecute, "Execute(1)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  32), extExecute, NULL, "Execute(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extAddViewport1, (void **)&pAddViewport1, "AddViewport(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extDeleteViewport1, (void **)&pDeleteViewport1, "DeleteViewport(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  44), extNextViewport1, (void **)&pNextViewport1, "NextViewport(1)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  56), extEnumTextureFormats1, (void **)&pEnumTextureFormats1, "EnumTextureFormats(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  76), extBeginScene1, (void **)&pBeginScene1, "BeginScene(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extEndScene1, (void **)&pEndScene1, "EndScene(1)");
 		break;
 	case 2:
 		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D2, (void **)&pReleaseD3D2, "ReleaseD3D(2)");
-		//SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps2, (void **)&pGetCaps2, "GetCaps(2)");
-		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  12), extD3DGetCaps2, (void **)&pD3DGetCaps2, "GetCaps(2)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extAddViewport2, (void **)&pAddViewport2, "AddViewport(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  28), extDeleteViewport2, (void **)&pDeleteViewport2, "DeleteViewport(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  32), extNextViewport2, (void **)&pNextViewport2, "NextViewport(2)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extEnumTextureFormats2, (void **)&pEnumTextureFormats2, "EnumTextureFormats(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extBeginScene2, (void **)&pBeginScene2, "BeginScene(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  44), extEndScene2, (void **)&pEndScene2, "EndScene(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetCurrentViewport2, (void **)&pSetCurrentViewport2, "SetCurrentViewport(2)");
@@ -526,8 +538,9 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 	case 3:
 		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D3, (void **)&pReleaseD3D3, "ReleaseD3D(3)");
-		SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps3, (void **)&pGetCaps3, "GetCaps(3)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  12), extD3DGetCaps3, (void **)&pD3DGetCaps3, "GetCaps(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extAddViewport3, (void **)&pAddViewport3, "AddViewport(3)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  32), extEnumTextureFormats3, (void **)&pEnumTextureFormats3, "EnumTextureFormats(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extBeginScene3, (void **)&pBeginScene3, "BeginScene(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extEndScene3, (void **)&pEndScene3, "EndScene(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  48), extSetCurrentViewport3, (void **)&pSetCurrentViewport3, "SetCurrentViewport(3)");
@@ -544,6 +557,8 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 	case 7:
 		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D7, (void **)&pReleaseD3D7, "ReleaseD3D(7)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  12), extD3DGetCaps7, (void **)&pD3DGetCaps7, "GetCaps(7)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extEnumTextureFormats7, (void **)&pEnumTextureFormats7, "EnumTextureFormats(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
@@ -785,7 +800,7 @@ typedef struct {
 	LPVOID arg;
 } CallbackArg7;
 
-static void DumpD3DDevideDesc(LPD3DDEVICEDESC d3, char *label)
+static void DumpD3DDeviceDesc(LPD3DDEVICEDESC d3, char *label)
 {
 	if(IsTraceD3D){
 		if(d3){
@@ -802,7 +817,34 @@ static void DumpD3DDevideDesc(LPD3DDEVICEDESC d3, char *label)
 			if(d3->dwFlags & D3DDD_MAXBUFFERSIZE) OutTrace("MaxBufferSize=%d ", d3->dwMaxBufferSize);
 			if(d3->dwFlags & D3DDD_MAXVERTEXCOUNT) OutTrace("MaxVertexCount=%d ", d3->dwMaxVertexCount);
 			OutTrace("Texture min=(%dx%d) max=(%dx%d)\n", d3->dwMinTextureWidth, d3->dwMinTextureHeight, d3->dwMaxTextureWidth, d3->dwMaxTextureHeight);
+			HexTrace((unsigned char *)d3, d3->dwSize);
+		}
+		else
+			OutTrace("EnumDevices: CALLBACK dev=%s ddesc=NULL\n", label);
+	}
+}
+
+static void DumpD3DPrimCaps(char *label, D3DPRIMCAPS *pc)
+{
+	OutTrace("%s={siz=%d Misc=%x Raster=%x ZCmp=%x SrcBlend=%x DestBlend=%x AlphaCmp=%x Shade=%x Tex=%x TexFil=%x TexBlend=%x TexAddr=%x Stipple=(%dx%d)} ", 
+		label,
+		pc->dwSize, pc->dwMiscCaps, pc->dwRasterCaps, pc->dwZCmpCaps, pc->dwSrcBlendCaps, pc->dwDestBlendCaps, pc->dwAlphaCmpCaps,
+		pc->dwShadeCaps, pc->dwTextureCaps, pc->dwTextureFilterCaps, pc->dwTextureBlendCaps, pc->dwTextureAddressCaps,
+		pc->dwStippleWidth, pc->dwStippleHeight);
+}
+
+static void DumpD3DDeviceDesc7(LPD3DDEVICEDESC7 d3, char *label)
+{
+	if(IsTraceD3D){
+		if(d3){
+			OutTrace("EnumDevices: CALLBACK dev=%s DevCaps=%x ", label, d3->dwDevCaps);
+			DumpD3DPrimCaps("LineCaps", &d3->dpcLineCaps);
+			DumpD3DPrimCaps("TriCaps", &d3->dpcLineCaps);
+			OutTrace("RenderBitDepth=%d ZBufferBitDepth", d3->dwDeviceRenderBitDepth, d3->dwDeviceZBufferBitDepth);
+			OutTrace("Texture min=(%dx%d) max=(%dx%d)\n", d3->dwMinTextureWidth, d3->dwMinTextureHeight, d3->dwMaxTextureWidth, d3->dwMaxTextureHeight);
+			// to be completed ....
 			//OutTrace("\n");
+			HexTrace((unsigned char *)d3, sizeof(D3DDEVICEDESC7));
 		}
 		else
 			OutTrace("EnumDevices: CALLBACK dev=%s ddesc=NULL\n", label);
@@ -813,8 +855,16 @@ HRESULT WINAPI extDeviceProxy(GUID FAR *lpGuid, LPSTR lpDeviceDescription, LPSTR
 {
 	HRESULT res;
 	OutTraceD3D("EnumDevices: CALLBACK GUID=%x(%s) DeviceDescription=\"%s\", DeviceName=\"%s\", arg=%x\n", lpGuid->Data1, ExplainGUID(lpGuid), lpDeviceDescription, lpDeviceName, ((CallbackArg *)arg)->arg);
-	DumpD3DDevideDesc(lpd3ddd1, "HWDEV");
-	DumpD3DDevideDesc(lpd3ddd2, "SWDEV");
+	DumpD3DDeviceDesc(lpd3ddd1, "HWDEV");
+	DumpD3DDeviceDesc(lpd3ddd2, "SWDEV");
+
+	// IID_IDirect3DHALDevice = 0x84e63de0....
+	if((dxw.dwFlags8 & NOHALDEVICE) && (lpGuid->Data1 == 0x84e63de0))
+	{
+		OutTraceDW("EnumDevices: D3DHALDEVICE SKIP\n");
+		return TRUE;
+	}
+
 	if(dxw.dwFlags4 & NOPOWER2FIX){ 
 		D3DDEVICEDESC lpd3ddd1fix, lpd3ddd2fix;
 		if(lpd3ddd1) memcpy(&lpd3ddd1fix, lpd3ddd1, sizeof(D3DDEVICEDESC));
@@ -836,7 +886,10 @@ HRESULT WINAPI extDeviceProxy7(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LP
 {
 	HRESULT res;
 	OutTraceD3D("EnumDevices(D3D7): CALLBACK DeviceDescription=\"%s\", DeviceName=\"%s\", arg=%x\n", lpDeviceDescription, lpDeviceName, ((CallbackArg *)arg)->arg);
-	DumpD3DDevideDesc((LPD3DDEVICEDESC)lpd3ddd, "DEV");
+	DumpD3DDeviceDesc((LPD3DDEVICEDESC)lpd3ddd, "DEV");
+
+	// to do: NOHALDEVICE handling, we have no GUID here!
+
 	if(dxw.dwFlags4 & NOPOWER2FIX){ 
 		D3DDEVICEDESC7 lpd3dddfix;
 		if(lpd3ddd) memcpy(&lpd3dddfix, lpd3ddd, sizeof(D3DDEVICEDESC7));
@@ -1000,8 +1053,8 @@ static HRESULT WINAPI extFindDevice(int d3dversion, FindDevice_Type pFindDevice,
 	if(res) OutTraceE("FindDevice ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else {
 		OutTraceD3D("FindDevice: GUID=%x.%x.%x.%x\n", p2->guid.Data1, p2->guid.Data2, p2->guid.Data3, p2->guid.Data4);
-		DumpD3DDevideDesc(&(p2->ddHwDesc), "HWDEV");
-		DumpD3DDevideDesc(&(p2->ddSwDesc), "SWDEV");
+		DumpD3DDeviceDesc(&(p2->ddHwDesc), "HWDEV");
+		DumpD3DDeviceDesc(&(p2->ddSwDesc), "SWDEV");
 	}
 	return res;
 }
@@ -1071,12 +1124,23 @@ HRESULT WINAPI extInitializeVP(void *lpvp, LPDIRECT3D lpd3d)
 	return res;
 }
 
+#ifndef D3DERR_NOTAVAILABLE
+#define _FACD3D  0x876
+#define D3DERR_NOTAVAILABLE MAKE_HRESULT(1, _FACD3D, 2154)
+#endif
+
+
 HRESULT WINAPI extCreateDevice2(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE lpdds, LPDIRECT3DDEVICE2 *lplpd3dd)
 {
 	HRESULT res;
 
 	OutTraceD3D("CreateDevice(D3D2): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
 		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
+
+	if((dxw.dwFlags8 & NOHALDEVICE) && (Guid.Data1 == 0x84e63de0)) {
+		OutTraceDW("CreateDevice(D3D2): D3DHALDEVICE SKIP\n");
+		return D3DERR_NOTAVAILABLE;
+	}
 
 	res=(*pCreateDevice2)(lpd3d, Guid, lpdds, lplpd3dd);
 	if(res!=DD_OK) {
@@ -1096,6 +1160,11 @@ HRESULT WINAPI extCreateDevice3(void *lpd3d, REFCLSID Guid, LPDIRECTDRAWSURFACE4
 
 	OutTraceD3D("CreateDevice(D3D3): d3d=%x GUID=%x(%s) lpdds=%x%s\n", 
 		lpd3d, Guid.Data1, ExplainGUID((GUID *)&Guid), lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds));
+
+	if((dxw.dwFlags8 & NOHALDEVICE) && (Guid.Data1 == 0x84e63de0)) {
+		OutTraceDW("CreateDevice(D3D3): D3DHALDEVICE SKIP\n");
+		return D3DERR_NOTAVAILABLE;
+	}
 
 	res=(*pCreateDevice3)(lpd3d, Guid, lpdds, lplpd3dd, unk);
 	if(res!=DD_OK) {
@@ -1137,18 +1206,7 @@ HRESULT WINAPI extD3DInitialize(void *d3dd, LPDIRECT3D lpd3d, LPGUID lpGuid, LPD
 	OutTraceD3D("Initialize: d3dd=%x lpd3d=%x GUID=%x lpd3ddd=%x\n", d3dd, lpd3d, lpGuid->Data1, lpd3dd);
 	res=(*pD3DInitialize)(d3dd, lpd3d, lpGuid, lpd3dd);
 	if(res) OutTraceE("Initialize ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	DumpD3DDevideDesc(lpd3dd, "INIT");
-	return res;
-}
-
-HRESULT WINAPI extD3DGetCaps(void *d3dd, LPD3DDEVICEDESC lpd3dd ,LPD3DDEVICEDESC lpd3dd2)
-{
-	HRESULT res;
-	OutTraceD3D("GetCaps(D3D): d3dd=%x lpd3dd=%x lpd3dd2=%x \n", d3dd, lpd3dd, lpd3dd2);
-	res=(*pD3DGetCaps)(d3dd, lpd3dd, lpd3dd2);
-	if(res) OutTraceE("GetCaps(D3D) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	DumpD3DDevideDesc(lpd3dd, "HWDEV");
-	DumpD3DDevideDesc(lpd3dd2, "SWDEV");
+	DumpD3DDeviceDesc(lpd3dd, "INIT");
 	return res;
 }
 
@@ -1368,23 +1426,58 @@ HRESULT WINAPI extEndScene7(void *d3dd)
 	return res;
 }
 
-HRESULT WINAPI extGetCaps3(void *d3dd, LPD3DDEVICEDESC hd, LPD3DDEVICEDESC sd)
+HRESULT WINAPI extD3DGetCaps(int d3dversion, D3DGetCaps_Type pD3DGetCaps, void *d3dd, LPD3DDEVICEDESC hd, LPD3DDEVICEDESC sd)
 {
 	HRESULT res;
-	OutTraceD3D("GetCaps(3): d3dd=%x hd=%x sd=%x\n", d3dd, hd, sd);
-	res=(*pGetCaps3)(d3dd, hd, sd);
+	OutTraceD3D("GetCaps(D3D%d): d3dd=%x hd=%x sd=%x\n", d3dversion, d3dd, hd, sd);
+	res=(*pD3DGetCaps)(d3dd, hd, sd);
 	if(res) {
-		OutTraceE("GetCaps(3): res=%x(%s)\n", res, ExplainDDError(res));
+		OutTraceE("GetCaps(D3D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
+
+	DumpD3DDeviceDesc(hd, "HWDEV");
+	DumpD3DDeviceDesc(sd, "SWDEV");
+
 	if(dxw.dwFlags4 & NOPOWER2FIX){
 		if(hd) {
+			OutTraceDW("GetCaps(D3D): Fixing NOPOWER2FIX hw caps\n");
             hd->dpcLineCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
             hd->dpcTriCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
         }
         if(sd) {
+			OutTraceDW("GetCaps(D3D): Fixing NOPOWER2FIX sw caps\n");
             sd->dpcLineCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
             sd->dpcTriCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+        }
+    }
+	return res;
+}
+
+HRESULT WINAPI extD3DGetCaps1(void *d3dd, LPD3DDEVICEDESC hd, LPD3DDEVICEDESC sd)
+{ return extD3DGetCaps(1, pD3DGetCaps1, d3dd, hd, sd); }
+HRESULT WINAPI extD3DGetCaps2(void *d3dd, LPD3DDEVICEDESC hd, LPD3DDEVICEDESC sd)
+{ return extD3DGetCaps(2, pD3DGetCaps2, d3dd, hd, sd); }
+HRESULT WINAPI extD3DGetCaps3(void *d3dd, LPD3DDEVICEDESC hd, LPD3DDEVICEDESC sd)
+{ return extD3DGetCaps(3, pD3DGetCaps3, d3dd, hd, sd); }
+
+HRESULT WINAPI extD3DGetCaps7(void *d3dd, LPD3DDEVICEDESC7 lpd3ddd)
+{
+	HRESULT res;
+	OutTraceD3D("GetCaps(D3D7): d3dd=%x lpd3ddd=%x\n", d3dd, lpd3ddd);
+	res=(*pD3DGetCaps7)(d3dd, lpd3ddd);
+	if(res) {
+		OutTraceE("GetCaps(D3D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		return res;
+	}
+
+	DumpD3DDeviceDesc7(lpd3ddd, "DEV7");
+
+	if(dxw.dwFlags4 & NOPOWER2FIX){
+		if(lpd3ddd) {
+			OutTraceDW("GetCaps(D3D): Fixing NOPOWER2FIX hw caps\n");
+            lpd3ddd->dpcLineCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
+            lpd3ddd->dpcTriCaps.dwTextureCaps|=D3DPTEXTURECAPS_NONPOW2CONDITIONAL|D3DPTEXTURECAPS_POW2;
         }
     }
 	return res;
@@ -1787,33 +1880,90 @@ HRESULT WINAPI extTexUnload(void *t)
 typedef struct {
 	LPD3DENUMPIXELFORMATSCALLBACK *cb;
 	LPVOID arg;
-} CallbackZBufArg;
+} CallbackPixFmtArg;
 
 HRESULT WINAPI extZBufferProxy(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
 {
 	HRESULT res;
-	OutTraceD3D("EnumZBufferFormats: CALLBACK context=%x %s \n", ((CallbackZBufArg *)lpContext)->arg, ExplainPixelFormat(lpDDPixFmt));
-	res = (*(((CallbackZBufArg *)lpContext)->cb))(lpDDPixFmt, ((CallbackZBufArg *)lpContext)->arg);
+	OutTraceD3D("EnumZBufferFormats: CALLBACK context=%x %s \n", ((CallbackPixFmtArg *)lpContext)->arg, ExplainPixelFormat(lpDDPixFmt));
+	res = (*(((CallbackPixFmtArg *)lpContext)->cb))(lpDDPixFmt, ((CallbackPixFmtArg *)lpContext)->arg);
 	OutTraceD3D("EnumZBufferFormats: CALLBACK ret=%x\n", res);
 	return res;
 }
 
-static HRESULT WINAPI extEnumZBufferFormats(EnumZBufferFormats_Type pEnumZBufferFormats, void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
+#define MAXPFTABLESIZE 50
+#define MAXTRIMMEDENTRIES 3
+
+typedef struct {
+	int nEntries;
+//	LPDDPIXELFORMAT lpPixelFormatEntries;
+	DDPIXELFORMAT lpPixelFormatEntries[MAXPFTABLESIZE];
+} PixelFormatTable_Type;
+
+HRESULT WINAPI FillPixelFormatTable(LPDDPIXELFORMAT lpDDPixFmt, LPVOID Arg)
+{
+	PixelFormatTable_Type *lpPixelFormatTable = (PixelFormatTable_Type *)Arg;
+	OutTraceD3D("EnumZBufferFormats: FILL CALLBACK entry=%d %s\n", lpPixelFormatTable->nEntries, ExplainPixelFormat(lpDDPixFmt));
+	if(lpPixelFormatTable->nEntries >= MAXPFTABLESIZE) return FALSE;
+	memcpy((LPVOID)&(lpPixelFormatTable->lpPixelFormatEntries[lpPixelFormatTable->nEntries]), (LPVOID)lpDDPixFmt, sizeof(DDPIXELFORMAT));
+	lpPixelFormatTable->nEntries ++;
+	//lpPixelFormatTable->lpPixelFormatEntries = (LPDDPIXELFORMAT)realloc((LPVOID)(lpPixelFormatTable->lpPixelFormatEntries), lpPixelFormatTable->nEntries * sizeof(DDPIXELFORMAT));
+	//OutTrace("lp=%x err=%s\n", lpPixelFormatTable->lpPixelFormatEntries, GetLastError());
+	return TRUE;
+}
+
+static HRESULT WINAPI extEnumZBufferFormats(int d3dversion, EnumZBufferFormats_Type pEnumZBufferFormats, void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
 {
 	HRESULT ret;
-	CallbackZBufArg Arg;
-	OutTraceD3D("Direct3D::EnumZBufferFormats d3d=%x clsid=%x context=%x\n", lpd3d, riidDevice.Data1, lpContext);
-	Arg.cb= &lpEnumCallback;
-	Arg.arg=lpContext;
-	ret = (*pEnumZBufferFormats)(lpd3d, riidDevice, (LPD3DENUMPIXELFORMATSCALLBACK)extZBufferProxy, (LPVOID)&Arg);
+	OutTraceD3D("Direct3D::EnumZBufferFormats(%d) d3d=%x clsid=%x context=%x\n", d3dversion, lpd3d, riidDevice.Data1, lpContext);
+
+	if(dxw.dwFlags8 & TRIMTEXTUREFORMATS){
+		int iIndex;
+		int iEnumerated;
+		PixelFormatTable_Type PixelFormatTable;
+		PixelFormatTable.nEntries = 0;
+		//PixelFormatTable.lpPixelFormatEntries = (LPDDPIXELFORMAT)malloc(sizeof(DDPIXELFORMAT));
+		ret = (*pEnumZBufferFormats)(lpd3d, riidDevice, (LPD3DENUMPIXELFORMATSCALLBACK)FillPixelFormatTable, (LPVOID)&PixelFormatTable);
+		OutTraceD3D("EnumZBufferFormats: collected entries=%d\n", PixelFormatTable.nEntries);
+		// bubble sorting;
+		while(TRUE){
+			BOOL bSorted = FALSE;
+			for(iIndex=0; iIndex<PixelFormatTable.nEntries-1; iIndex++){
+				if(PixelFormatTable.lpPixelFormatEntries[iIndex].dwRGBBitCount > PixelFormatTable.lpPixelFormatEntries[iIndex+1].dwRGBBitCount){
+					DDPIXELFORMAT tmp;
+					tmp = PixelFormatTable.lpPixelFormatEntries[iIndex];
+					PixelFormatTable.lpPixelFormatEntries[iIndex] = PixelFormatTable.lpPixelFormatEntries[iIndex+1];
+					PixelFormatTable.lpPixelFormatEntries[iIndex+1] = tmp;
+					bSorted = TRUE;
+				}
+			}
+			if(!bSorted) break;
+		}
+		for(iIndex=0, iEnumerated=0; (iIndex < PixelFormatTable.nEntries) && (iEnumerated < MAXTRIMMEDENTRIES); iIndex++){
+			if(PixelFormatTable.lpPixelFormatEntries[iIndex].dwRGBBitCount >= 32) break;
+			if((dxw.dwFlags7 & CLEARTEXTUREFOURCC) && (PixelFormatTable.lpPixelFormatEntries[iIndex].dwFlags & DDPF_FOURCC)) continue;
+			ret = (*lpEnumCallback)(&(PixelFormatTable.lpPixelFormatEntries[iIndex]), lpContext);
+			OutTraceD3D("EnumZBufferFormats: CALLBACK entry=%d ret=%x %s\n", iIndex, ret, ExplainPixelFormat(&PixelFormatTable.lpPixelFormatEntries[iIndex]));
+			if(!ret) break;
+			iEnumerated++;
+		}
+		//free((LPVOID)(PixelFormatTable.lpPixelFormatEntries));
+		ret = DD_OK;
+	}
+	else {
+		CallbackPixFmtArg Arg;
+		Arg.cb= &lpEnumCallback;
+		Arg.arg=lpContext;
+		ret = (*pEnumZBufferFormats)(lpd3d, riidDevice, (LPD3DENUMPIXELFORMATSCALLBACK)extZBufferProxy, (LPVOID)&Arg);
+	}
 	OutTraceE("Direct3D::EnumZBufferFormats res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
 
 HRESULT WINAPI extEnumZBufferFormats3(void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
-{ return extEnumZBufferFormats(pEnumZBufferFormats3, lpd3d, riidDevice, lpEnumCallback, lpContext); }
+{ return extEnumZBufferFormats(3, pEnumZBufferFormats3, lpd3d, riidDevice, lpEnumCallback, lpContext); }
 HRESULT WINAPI extEnumZBufferFormats7(void *lpd3d, REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
-{ return extEnumZBufferFormats(pEnumZBufferFormats7, lpd3d, riidDevice, lpEnumCallback, lpContext); }
+{ return extEnumZBufferFormats(7, pEnumZBufferFormats7, lpd3d, riidDevice, lpEnumCallback, lpContext); }
 
 // Beware: using service surfaces with DDSCAPS_SYSTEMMEMORY capability may lead to crashes in D3D operations
 // like Vievport::Clear() in "Forsaken" set in emulation AERO-friendly mode. To avoid the problem, you can 
@@ -1845,3 +1995,48 @@ HRESULT WINAPI extExecute(void *lpd3d, LPDIRECT3DEXECUTEBUFFER eb, LPDIRECT3DVIE
 	if (ret) OutTraceE("Direct3DDevice::Execute res=%x(%s)\n", ret, ExplainDDError(ret));
 	return DD_OK;
 }
+
+static HRESULT CALLBACK lpTextureTrimmer(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
+{
+	HRESULT res;
+	OutTraceD3D("EnumTextureFormats: CALLBACK context=%x %s \n", lpContext, ExplainPixelFormat(lpDDPixFmt));
+	if(lpDDPixFmt->dwFlags & DDPF_FOURCC)
+		res = DD_OK;
+	else
+		res = (*(((CallbackPixFmtArg *)lpContext)->cb))(lpDDPixFmt, ((CallbackPixFmtArg *)lpContext)->arg);
+	return res;
+}
+
+static HRESULT CALLBACK lpTextureDumper(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
+{
+	OutTraceD3D("EnumTextureFormats: CALLBACK context=%x %s \n", lpContext, ExplainPixelFormat(lpDDPixFmt));
+	return TRUE;
+}
+
+HRESULT WINAPI extEnumTextureFormats(int d3dversion, EnumTextureFormats_Type pEnumTextureFormats, void *lpd3dd, LPD3DENUMPIXELFORMATSCALLBACK lptfcallback, LPVOID arg)
+{
+	HRESULT res;
+	OutTrace("EnumTextureFormats(%d): lpd3dd=%x cb=%x arg=%x\n", d3dversion, lpd3dd, lptfcallback, arg);
+	if(IsDebug) (*pEnumTextureFormats)(lpd3dd, lpTextureDumper, arg);
+
+	if(dxw.dwFlags7 & CLEARTEXTUREFOURCC){
+		CallbackPixFmtArg Arg;
+		Arg.cb= &lptfcallback;
+		Arg.arg=arg;
+		res = (*pEnumTextureFormats)(lpd3dd, lpTextureTrimmer, (LPVOID)&Arg);
+	}
+	else{
+		res = (*pEnumTextureFormats)(lpd3dd, lptfcallback, arg);
+	}
+	if(res) OutTrace("EnumTextureFormats: res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extEnumTextureFormats1(void *lpd3dd, LPD3DENUMPIXELFORMATSCALLBACK lptfcallback, LPVOID arg)
+{ return extEnumTextureFormats(1, pEnumTextureFormats1, lpd3dd, lptfcallback, arg); }
+HRESULT WINAPI extEnumTextureFormats2(void *lpd3dd, LPD3DENUMPIXELFORMATSCALLBACK lptfcallback, LPVOID arg)
+{ return extEnumTextureFormats(2, pEnumTextureFormats2, lpd3dd, lptfcallback, arg); }
+HRESULT WINAPI extEnumTextureFormats3(void *lpd3dd, LPD3DENUMPIXELFORMATSCALLBACK lptfcallback, LPVOID arg)
+{ return extEnumTextureFormats(3, pEnumTextureFormats3, lpd3dd, lptfcallback, arg); }
+HRESULT WINAPI extEnumTextureFormats7(void *lpd3dd, LPD3DENUMPIXELFORMATSCALLBACK lptfcallback, LPVOID arg)
+{ return extEnumTextureFormats(7, pEnumTextureFormats7, lpd3dd, lptfcallback, arg); }

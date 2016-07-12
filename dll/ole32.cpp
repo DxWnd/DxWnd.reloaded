@@ -153,7 +153,7 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 			break;
 		case 0x47d4d946: // CLSID_DirectSound
 			OutTraceDW("CoCreateInstance: CLSID_DirectSound object\n");
-			HookDirectSoundObj((LPDIRECTSOUND *)ppv);
+			HookDirectSoundObj((LPDIRECTSOUND *)ppv); 
 			break;
 		case 0x4fd2a832: // CLSID_DirectDrawFactory 
 			if ((rclsid.Data2==0x86c8) && (rclsid.Data3 == 0x11d0)){

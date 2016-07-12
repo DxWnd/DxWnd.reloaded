@@ -67,7 +67,7 @@ static char *FlagNames[32]={
 	"HOOKDI", "MODIFYMOUSE", "HANDLEEXCEPTIONS", "SAVELOAD",
 	"EMULATEBUFFER", "HOOKDI8", "BLITFROMBACKBUFFER", "SUPPRESSCLIPPING",
 	"AUTOREFRESH", "FIXWINFRAME", "HIDEHWCURSOR", "SLOWDOWN",
-	"ENABLECLIPPING", "LOCKWINSTYLE", "MAPGDITOPRIMARY", "FIXTEXTOUT",
+	"DISABLECLIPPING", "LOCKWINSTYLE", "MAPGDITOPRIMARY", "FIXTEXTOUT",
 	"KEEPCURSORWITHIN", "USERGB565", "SUPPRESSDXERRORS", "PREVENTMAXIMIZE",
 	"LOCKEDSURFACE", "FIXPARENTWIN", "SWITCHVIDEOMEMORY", "CLIENTREMAPPING",
 	"HANDLEALTF4", "LOCKWINPOS", "HOOKCHILDWIN", "MESSAGEPROC"
@@ -141,7 +141,7 @@ static char *Flag7Names[32]={
 
 static char *Flag8Names[32]={
 	"FORCEWAIT", "FORCENOWAIT", "FORCEVSYNC", "FORCENOVSYNC",
-	"VSYNCSCANLINES", "", "", "",
+	"VSYNCSCANLINES", "TRIMTEXTUREFORMATS", "NOHALDEVICE", "CLIPLOCK",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -275,6 +275,23 @@ void OutTrace(const char *format, ...)
 	ReleaseMutex(hTraceMutex);
 
 	dxw.dwTFlags = tFlags; // restore settings
+}
+
+void HexTrace(unsigned char *buf, int len)
+{
+	char line[3*32 + 40];
+	char hex[6];
+	int count=0;
+	while(len){
+		sprintf(line,"%04X: ", count);
+		for(int i=32; i && len; i--, len--, buf++){
+			sprintf(hex, "%02X.", *buf);
+			strcat(line, hex);
+		}
+		strcat(line, "\n");
+		OutTrace(line);
+		count += 32;
+	}
 }
 
 // from MSDN:

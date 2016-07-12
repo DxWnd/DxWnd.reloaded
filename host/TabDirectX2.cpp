@@ -35,6 +35,7 @@ void CTabDirectX2::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
 	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
 	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
+	DDX_Check(pDX, IDC_NOHALDEVICE, cTarget->m_NoHALDevice);
 	DDX_Check(pDX, IDC_MINIMALCAPS, cTarget->m_MinimalCaps);
 	DDX_Check(pDX, IDC_SETZBUFFERBITDEPTHS, cTarget->m_SetZBufferBitDepths);
 	DDX_Check(pDX, IDC_DEINTERLACE, cTarget->m_Deinterlace);

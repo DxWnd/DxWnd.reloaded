@@ -34,6 +34,7 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 	DDX_Check(pDX, IDC_ENUM16BITMODES, cTarget->m_Enum16bitModes);
+	DDX_Check(pDX, IDC_TRIMTEXTUREFORMATS, cTarget->m_TrimTextureFormats);
 
 	// Direct3D window tweaks
 	DDX_Check(pDX, IDC_FIXD3DFRAME, cTarget->m_FixD3DFrame);

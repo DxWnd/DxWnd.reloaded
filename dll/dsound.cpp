@@ -73,6 +73,8 @@ void HookDirectSoundInit()
 
 void HookDirectSoundObj(LPDIRECTSOUND *lpds)
 {
+	// v2.03.99: check or DirectSound could be hooked through CoCreateInstance !!
+	if(!(dxw.dwFlags7 & HOOKDIRECTSOUND)) return;
 	// IDIrectSound::SetCooperativeLevel
 	SetHook((void *)(**(DWORD **)lpds + 12), extCreateSoundBuffer, (void **)&pCreateSoundBuffer, "CreateSoundBuffer");
 	SetHook((void *)(**(DWORD **)lpds + 24), extDSSetCooperativeLevel, (void **)&pDSSetCooperativeLevel, "SetCooperativeLevel(DSound)");

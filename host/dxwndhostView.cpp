@@ -36,6 +36,7 @@ extern int KillProcByName(char *, BOOL);
 extern BOOL gTransientMode;
 extern BOOL gAutoHideMode;
 extern BOOL gbDebug;
+extern BOOL gMustDie;
 extern int iProgIndex;
 
 PRIVATEMAP *pTitles; // global ptr: get rid of it!!
@@ -276,6 +277,13 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags2 |= SHOWHWCURSOR; break;
 	}	
 
+	switch(dlg->m_MouseClipper){
+		case 0: break;
+		case 1: t->flags |= DISABLECLIPPING; break;
+		case 2: t->flags |= CLIPCURSOR; break;
+		case 3: t->flags |= CLIPCURSOR; t->flags8 |= CLIPLOCKED; break;
+	}	
+
 	switch(dlg->m_OffendingMessages){
 		case 0: break;
 		case 1: t->flags3 |= FILTERMESSAGES; break;
@@ -379,6 +387,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressIME) t->flags2 |= SUPPRESSIME;
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_Enum16bitModes) t->flags7 |= ENUM16BITMODES;
+	if(dlg->m_TrimTextureFormats) t->flags8 |= TRIMTEXTUREFORMATS;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
@@ -392,6 +401,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DisableDisableAltTab) t->flags7 |= DISABLEDISABLEALTTAB;
 	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
+	if(dlg->m_NoHALDevice) t->flags8 |= NOHALDEVICE;
 	if(dlg->m_MinimalCaps) t->flags3 |= MINIMALCAPS;
 	if(dlg->m_SetZBufferBitDepths) t->flags6 |= SETZBUFFERBITDEPTHS;
 	if(dlg->m_ForcesSwapEffect) t->flags6 |= FORCESWAPEFFECT;
@@ -425,8 +435,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_IndependentRefresh) t->flags2 |= INDEPENDENTREFRESH;
 	if(dlg->m_TextureFormat) t->flags5 |= TEXTUREFORMAT;
 	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
-	if(dlg->m_EnableClipping) t->flags |= ENABLECLIPPING;
-	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
+	//if(dlg->m_EnableClipping) t->flags |= DISABLECLIPPING;
+	//if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
 	if(dlg->m_FixTextOut) t->flags |= FIXTEXTOUT;
 	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
@@ -601,6 +611,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & HIDEHWCURSOR) dlg->m_MouseVisibility = 1;
 	if(t->flags2 & SHOWHWCURSOR) dlg->m_MouseVisibility = 2;
 
+	dlg->m_MouseClipper = 0;
+	if(t->flags & DISABLECLIPPING) dlg->m_MouseClipper = 1;
+	if(t->flags & CLIPCURSOR) dlg->m_MouseClipper = 2;
+	if(t->flags8 & CLIPLOCKED) dlg->m_MouseClipper = 3;
+
 	dlg->m_OffendingMessages = 0;
 	if(t->flags3 & FILTERMESSAGES) dlg->m_OffendingMessages = 1;
 	if(t->flags3 & DEFAULTMESSAGES) dlg->m_OffendingMessages = 2;
@@ -673,6 +688,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_Enum16bitModes = t->flags7 & ENUM16BITMODES ? 1 : 0;
+	dlg->m_TrimTextureFormats = t->flags8 & TRIMTEXTUREFORMATS ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
@@ -686,6 +702,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DisableDisableAltTab = t->flags7 & DISABLEDISABLEALTTAB ? 1 : 0;
 	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
+	dlg->m_NoHALDevice = t->flags8 & NOHALDEVICE ? 1 : 0;
 	dlg->m_MinimalCaps = t->flags3 & MINIMALCAPS ? 1 : 0;
 	dlg->m_SetZBufferBitDepths = t->flags6 & SETZBUFFERBITDEPTHS ? 1 : 0;
 	dlg->m_ForcesSwapEffect = t->flags6 & FORCESWAPEFFECT ? 1 : 0;
@@ -738,8 +755,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_IndependentRefresh = t->flags2 & INDEPENDENTREFRESH ? 1 : 0;
 	dlg->m_TextureFormat = t->flags5 & TEXTUREFORMAT ? 1 : 0;
 	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
-	dlg->m_EnableClipping = t->flags & ENABLECLIPPING ? 1 : 0;
-	dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
+	//dlg->m_EnableClipping = t->flags & DISABLECLIPPING ? 1 : 0;
+	//dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
 	dlg->m_VideoToSystemMem = t->flags & SWITCHVIDEOMEMORY ? 1 : 0;
 	dlg->m_FixTextOut = t->flags & FIXTEXTOUT ? 1 : 0;
 	dlg->m_SharedDC = t->flags6 & SHAREDDC ? 1 : 0;
@@ -1375,14 +1392,6 @@ void CDxwndhostView::OnInitialUpdate()
 	pTitles = &PrivateMaps[0];
 	pTargets= &TargetMaps[0];
 
-	// Hot Keys
-	//DWORD dwKey;
-	//extern Key_Type HKeys[];
-	//extern KeyCombo_Type HKeyCombo[];
-	//for(int i=0; HKeys[i].iLabelResourceId; i++){
-	//	dwKey = GetPrivateProfileInt("keymapping", HKeys[i].sIniLabel, 0, gInitPath);
-	//	if(dwKey) if(!RegisterHotKey(this->GetSafeHwnd(), i, MOD_ALT+MOD_SHIFT+MOD_CONTROL, dwKey)) VKeyError(HKeys[i].sIniLabel);
-	//}
 	UpdateHotKeys();
 
 	// Transient mode
@@ -2337,23 +2346,10 @@ void CDxwndhostView::OnClearAllLogs()
 	_unlink(FilePath);
 }
 
-DWORD WINAPI SilentUpdate(CSystemTray *Tray)
+DWORD WINAPI WaitForDeath(LPVOID arg)
 {
-	int DxStatus;
-	int IdleCount;
-	IdleCount=0;
-	while (TRUE) {
-		// once a second ...
-		Sleep(1000);
-		DxStatus=GetHookStatus(NULL);
-		if (DxStatus != DXW_RUNNING){
-			IdleCount++;
-			if(IdleCount >= 2) exit(0);
-		}
-		else {
-			IdleCount=0;
-		}
-	}
+	while(!gMustDie) Sleep(1000);
+	exit(0);
 }
 
 DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
@@ -2370,6 +2366,11 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 	while (TRUE) {
 		// once a second ...
 		Sleep(1000);
+		if(gTransientMode && gMustDie) {
+			Tray->HideIcon();
+			delete(Tray->GetAncestor(GA_ROOTOWNER));
+			exit(0);
+		}
 		DxStatus=GetHookStatus(NULL);
 		switch (DxStatus){
 			case DXW_IDLE: IconId=IDI_DXIDLE; Status="DISABLED"; break;
@@ -2383,11 +2384,6 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 			Tray->SetIcon(IconId);
 			IdleCount++;
 			if(IdleCount == 2) {
-				if(gTransientMode) {
-					Tray->HideIcon();
-					delete(Tray->GetAncestor(GA_ROOTOWNER));
-					exit(0);
-				}
 				if(gAutoHideMode) {
 					Tray->MaximiseFromTray(pParent, FALSE);				}
 			}
@@ -2444,7 +2440,7 @@ void CDxwndhostView::OnGoToTrayIcon()
 			NIIF_INFO, 10)){
 			MessageBoxLang(DXW_STRING_TRAYFAIL, DXW_STRING_ERROR, MB_OK);
 			// error path: if can't create a system tray icon, transient logic must be silently placed here
-			if (gTransientMode) StatusThread= CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SilentUpdate, (LPVOID)NULL, 0, &dwThrdId);
+			if(gTransientMode) StatusThread= CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)WaitForDeath, (LPVOID)NULL, 0, &dwThrdId);
 			return;
 		}
 		IconId=(menu->GetMenuState(ID_HOOK_START, MF_BYCOMMAND)==MF_CHECKED)?IDI_DXWAIT:IDI_DXIDLE;
@@ -2634,6 +2630,56 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 		break;
 	}
 	CListView::OnRButtonDown(nFlags, point);
+}
+
+typedef struct {
+	char *path;
+	char *launch;
+} PROCESSMAP;
+
+static DWORD WINAPI TransientWaitForChildDeath(void *p)
+{
+	PROCESSMAP *ProcessMap = (PROCESSMAP *)p;
+	BOOL bIsSomeoneAlive;
+	int ret;
+	char sPath[MAX_PATH];
+	char sLaunch[MAX_PATH];
+	char sTemp[MAX_PATH];
+	char *lpProcName, *lpNext;
+
+	// strip full pathname and keep executable name only
+	strcpy(sPath, "");
+	if(ProcessMap->path[0]){
+		strncpy(sTemp, ProcessMap->path, MAX_PATH); 
+		lpProcName=sTemp;
+		while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
+		strncpy(sPath, lpProcName, MAX_PATH);
+	}
+	strcpy(sLaunch, "");
+	if(ProcessMap->launch[0]){
+		strncpy(sTemp, ProcessMap->launch, MAX_PATH); 
+		lpProcName=sTemp;
+		while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
+		strncpy(sLaunch, lpProcName, MAX_PATH);
+	}
+
+	Sleep(3000); // Wait for process creation - necessary?
+
+	while(TRUE){
+		Sleep(2000);
+		bIsSomeoneAlive = FALSE;
+		if(sPath[0]) {
+			if (!(ret=KillProcByName(sPath, FALSE))) bIsSomeoneAlive = TRUE;
+		}
+		if(sLaunch[0]) {
+			if (!(ret=KillProcByName(sLaunch, FALSE))) bIsSomeoneAlive = TRUE;
+		}
+		if(!bIsSomeoneAlive) {
+			break;
+		}
+	}
+	gMustDie = TRUE;
+	return 0;
 }
 
 static char *ExceptionCaption(DWORD ec)
@@ -3186,6 +3232,8 @@ static void MakeHiddenFile(char *sTargetPath)
 	CloseHandle(hTempFile); 
 }
 
+PROCESSMAP pm;
+
 void CDxwndhostView::OnRun() 
 {
 	CListCtrl& listctrl = GetListCtrl();
@@ -3284,6 +3332,12 @@ void CDxwndhostView::OnRun()
 			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, folderpath, &sinfo, &pinfo);
 		CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
 		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
+	}
+
+	if(gTransientMode){
+		pm.launch = &(PrivateMaps[i].launchpath[0]);
+		pm.path   = &(TargetMaps[i].path[0]);
+		CreateThread( NULL, 0, TransientWaitForChildDeath, &pm, 0, NULL); 
 	}
 
 	// wait & recover

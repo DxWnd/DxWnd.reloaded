@@ -2121,7 +2121,8 @@ BOOL WINAPI extClipCursor(RECT *lpRectArg)
 			OutTrace("ClipCursor: rect=(NULL)\n");
 	}
 
- 	if (!(dxw.dwFlags1 & ENABLECLIPPING)) return 1;
+ 	if (!(dxw.dwFlags1 & DISABLECLIPPING)) return TRUE;
+	if ((dxw.dwFlags8 & CLIPLOCKED) && (lpRectArg == NULL)) return TRUE;
 
 	if(lpRectArg){
 		Rect=*lpRectArg;
@@ -2150,12 +2151,12 @@ BOOL WINAPI extClipCursor(RECT *lpRectArg)
 
 BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 {
-	// v2.1.93: if ENABLECLIPPING, return the saved clip rect coordinates
+	// v2.1.93: if DISABLECLIPPING, return the saved clip rect coordinates
 
 	BOOL ret;
 
 	// proxy....
-	if (!(dxw.dwFlags1 & ENABLECLIPPING)) {
+	if (!(dxw.dwFlags1 & DISABLECLIPPING)) {
 		ret=(*pGetClipCursor)(lpRect);
 		// v2.03.11: fix for "SubCulture" mouse movement
 		if(lpRect && dxw.Windowize)	*lpRect = dxw.GetScreenRect();
