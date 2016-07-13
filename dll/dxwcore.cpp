@@ -78,6 +78,7 @@ BOOL dxwCore::IsFullScreen()
 
 BOOL dxwCore::IsToRemap(HDC hdc)
 {
+	if(!hdc) return TRUE;
 	return (Windowize && FullScreen && (OBJ_DC == (*pGetObjectType)(hdc)));
 }
 
@@ -483,12 +484,11 @@ void dxwCore::SethWnd(HWND hwnd)
 
 	hWnd=hwnd; 
 	hWndFPS=hwnd;	
-	RealHDC=(*pGDIGetDC)(hwnd);
 
 	if(hwnd){
 		(*pGetWindowRect)(hwnd, &WinRect);
-		OutTraceDW("SethWnd: setting main win=%x hdc=%x pos=(%d,%d)-(%d,%d)\n", 
-			hwnd, RealHDC, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
+		OutTraceDW("SethWnd: setting main win=%x pos=(%d,%d)-(%d,%d)\n", 
+			hwnd, WinRect.left, WinRect.top, WinRect.right, WinRect.bottom);
 	}
 	else{
 		OutTraceDW("SethWnd: clearing main win\n");
@@ -1454,12 +1454,12 @@ void dxwCore::ShowBanner(HWND hwnd)
 	POINT PrevViewPort;
 	int StretchMode;
 
-	hClientDC=(*pGDIGetDC)(hwnd);
-	(*pGetClientRect)(hwnd, &client);
-	(*pGDIBitBlt)(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
-
 	if(JustOnce || (dwFlags2 & NOBANNER)) return;
 	JustOnce=TRUE;
+
+	hClientDC=(*pGDIGetDC)(hwnd); 
+	(*pGetClientRect)(hwnd, &client);
+	(*pGDIBitBlt)(hClientDC, 0, 0,  client.right, client.bottom, NULL, 0, 0, BLACKNESS);
 
     g_hbmBall = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BANNER));
     HDC hdcMem = CreateCompatibleDC(hClientDC);
@@ -1493,6 +1493,7 @@ void dxwCore::ShowBanner(HWND hwnd)
 	(*pSetViewportOrgEx)(hClientDC, PrevViewPort.x, PrevViewPort.y, NULL);
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
+	(*pGDIReleaseDC)(hwnd, hClientDC); 
 	Sleep(200);
 }
 
@@ -1597,7 +1598,8 @@ HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
 	HDC wdc;
 	RECT WinRect;
 
-	if(!(wdc=(*pGDIGetDC)(hwnd))){
+	if(RealHDC) (*pGDIReleaseDC)(WindowFromDC(RealHDC), RealHDC); // fixed DC leakage
+	if(!(wdc=(*pGDIGetDC)(hwnd))){ // potential DC leakage
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 		return NULL;
 	}
@@ -1659,14 +1661,16 @@ BOOL dxwCore::ReleaseEmulatedDC(HWND hwnd)
 		WinRect.left, WinRect.top, WinRect.right, WinRect.bottom,
 		VirtualPicRect.left, VirtualPicRect.top, VirtualPicRect.right, VirtualPicRect.bottom);
 
-	if(!(wdc=(*pGDIGetDC)(hwnd)))
+	if(!(wdc=(*pGDIGetDC)(hwnd))) // potential DC leakage
 		OutTraceE("GetDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-	SetStretchBltMode(wdc, HALFTONE);
+	SetStretchBltMode(VirtualHDC, HALFTONE);
 	if(!(*pGDIStretchBlt)(wdc, 0, 0, WinRect.right, WinRect.bottom, VirtualHDC, 0, 0, VirtualPicRect.right, VirtualPicRect.bottom, SRCCOPY))
 		OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	//(*pInvalidateRect)(hwnd, NULL, 0);
+	(*pGDIReleaseDC)(hwnd, wdc); // fixed DC leakage
 
 	(*pGDIReleaseDC)(hwnd, VirtualHDC);
+	VirtualHDC=NULL; // no longer valid
 	return TRUE;
 }
 

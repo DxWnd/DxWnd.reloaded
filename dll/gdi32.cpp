@@ -798,7 +798,7 @@ UINT WINAPI extGetSystemPaletteEntries(HDC hdc, UINT iStartIndex, UINT nEntries,
 		ret = nEntries;
 		OutTraceDW("GetSystemPaletteEntries: FIXED ret=%d\n", ret);
 	}
-	if(IsDebug) dxw.DumpPalette(nEntries, &lppe[iStartIndex]);
+	if(IsDebug) dxw.DumpPalette(nEntries, lppe);
 	return ret;
 }
 
@@ -819,7 +819,7 @@ UINT WINAPI extGetPaletteEntries(HPALETTE hpal, UINT iStartIndex, UINT nEntries,
 		res = nEntries;
 		OutTraceDW("GDI.GetPaletteEntries: faking missing entries=%d\n", res);
 	}
-	if(IsDebug && res) dxw.DumpPalette(res, &lppe[iStartIndex]);
+	if(IsDebug && res) dxw.DumpPalette(res, lppe);
 	//mySetPalette(0, nEntries, lppe); 
 	return res;
 }
@@ -928,19 +928,15 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 
 	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 	if(hdc==0){
-		hdc=(*pGDIGetDC)(dxw.GethWnd());
+		hdc=(*pGDIGetDC)(dxw.GethWnd()); // potential DC leakage
 		bSwitchedToMainWin = TRUE;
-		if(dxw.dwFlags6 & CREATEDESKTOP){
-			extern HWND hDesktopWindow;
-			hdc=(*pGDIGetDC)(hDesktopWindow);
-		}
 		OutTraceDW("GDI.CreateCompatibleDC: duplicating win HDC hWnd=%x\n", dxw.GethWnd()); 
 	}
 
 	// eliminated error message for errorcode 0.
 	SetLastError(0);
 	RetHdc=(*pGDICreateCompatibleDC)(hdc);
-	if(bSwitchedToMainWin) (*pGDIReleaseDC)(dxw.GethWnd(),hdc);
+	if(bSwitchedToMainWin) (*pGDIReleaseDC)(dxw.GethWnd(),hdc); // fixed DC leakage
 	LastError=GetLastError();
 	if(LastError == 0){
 		OutTraceDW("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
@@ -2644,6 +2640,8 @@ int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
 BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDESCRIPTOR *ppfd)
 {
 	BOOL res;
+	BOOL bRemappedDC = FALSE;
+
 	OutTraceDW("SetPixelFormat: hdc=%x PixelFormat=%d Flags=%x PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
 		hdc, iPixelFormat, 
 		ppfd->dwFlags, ppfd->iPixelType, ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
@@ -2658,10 +2656,12 @@ BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDES
 	//}
 	if(dxw.IsDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
-		hdc=(*pGDIGetDC)(dxw.GethWnd());
+		hdc=(*pGDIGetDC)(dxw.GethWnd()); // potential DC leakage
+		bRemappedDC = TRUE;
 		OutTraceDW("SetPixelFormat: remapped desktop hdc=%x->%x hWnd=%x\n", oldhdc, hdc, dxw.GethWnd());
 	}	
 	res=(*pGDISetPixelFormat)(hdc, iPixelFormat, ppfd);
+	if(bRemappedDC) (*pGDIReleaseDC)(dxw.GethWnd(), hdc); // fixed DC leakage
 	dxw.ActualPixelFormat.dwRGBBitCount = ppfd->cColorBits;
 	if(!res) OutTraceE("SetPixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	return res;
@@ -2670,15 +2670,18 @@ BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDES
 int WINAPI extGDIGetPixelFormat(HDC hdc)
 {
 	int res;
+	BOOL bRemappedDC = FALSE;
 	OutTraceDW("GetPixelFormat: hdc=%x\n", hdc);
 	if(dxw.IsDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
-		hdc=(*pGDIGetDC)(dxw.GethWnd());
+		hdc=(*pGDIGetDC)(dxw.GethWnd()); // potential DC leakage
+		bRemappedDC = TRUE;
 		OutTraceDW("GetPixelFormat: remapped desktop hdc=%x->%x hWnd=%x\n", oldhdc, hdc, dxw.GethWnd());
 	}	
 	res=(*pGDIGetPixelFormat)(hdc);
 	if(!res) OutTraceE("GetPixelFormat: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	else OutTraceDW("GetPixelFormat: res=%d\n", res);
+	if(bRemappedDC)(*pGDIReleaseDC)(dxw.GethWnd(), hdc); // fixed DC leakage
 	return res;
 }
 

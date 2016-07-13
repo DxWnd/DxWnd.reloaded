@@ -1301,11 +1301,6 @@ HWND WINAPI extGetDesktopWindow(void)
 
 	OutTraceDW("GetDesktopWindow: FullScreen=%x\n", dxw.IsFullScreen());
 	if (dxw.IsFullScreen()){ 
-		if(dxw.dwFlags6 & CREATEDESKTOP){
-			extern HWND hDesktopWindow;
-			OutTraceDW("GetDesktopWindow: returning desktop emulated hwnd=%x\n", hDesktopWindow);
-			return hDesktopWindow;
-		}
 		OutTraceDW("GetDesktopWindow: returning main window hwnd=%x\n", dxw.GethWnd());
 		return dxw.GethWnd();
 	}
@@ -1513,14 +1508,6 @@ static HWND WINAPI extCreateWindowCommon(
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		OutTraceDW("%s: handling PREVENTMAXIMIZE mode\n", ApiName);
 		dwStyle &= ~WS_MAXIMIZE;
-	}
-
-	if(dxw.dwFlags6 & CREATEDESKTOP){
-		extern HWND hDesktopWindow;
-		if (dxw.IsRealDesktop(hWndParent)){
-			OutTraceE("%s: new parent win %x->%x\n", ApiName, hWndParent, hDesktopWindow);
-			hWndParent=hDesktopWindow;
-		}
 	}
 
 	// v2.1.92: fixes size & position for auxiliary big window, often used
@@ -1890,12 +1877,18 @@ static int HandleRect(char *ApiName, void *pFun, HDC hdc, const RECT *lprc, HBRU
 		RECT client;
 		HWND hwnd;
 		hwnd=WindowFromDC(hdc);
-		(*pGetClientRect)(hwnd, &client);
-		if(rc.left < 0) rc.left=0;
-		if(rc.top < 0) rc.top=0;
-		if(rc.right > client.right) rc.right=client.right;
-		if(rc.bottom > client.bottom) rc.bottom=client.bottom;
-		OutTraceDW("%s: remapped hdc from hwnd=%x to rect=(%d,%d)-(%d,%d)\n", ApiName, hwnd, rc.left, rc.top, rc.right, rc.bottom);
+		// v2.03.76 fix: sometimes WindowFromDC returns NULL with unpredictable results
+		// if NULL, try to bount within the main window rect
+		if(!hwnd) hwnd=dxw.GethWnd();
+		// if still NULL, avoid doing changes
+		if(hwnd){
+			(*pGetClientRect)(hwnd, &client);
+			if(rc.left < client.left) rc.left=client.left;
+			if(rc.top < client.top) rc.top=client.top;
+			if(rc.right > client.right) rc.right=client.right;
+			if(rc.bottom > client.bottom) rc.bottom=client.bottom;
+			OutTraceDW("%s: remapped hdc from hwnd=%x to rect=(%d,%d)-(%d,%d)\n", ApiName, hwnd, rc.left, rc.top, rc.right, rc.bottom);
+		}
 	}
 
 	res=(*(FillRect_Type)pFun)(hdc, &rc, hbr);
@@ -1909,7 +1902,7 @@ int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 
 int WINAPI extFrameRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
 {
-	return HandleRect("FramelRect", (void *)pFrameRect, hdc, lprc, hbr);
+	return HandleRect("FrameRect", (void *)pFrameRect, hdc, lprc, hbr);
 }
 
 BOOL WINAPI extInvertRect(HDC hdc, const RECT *lprc)
@@ -2331,7 +2324,7 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 {
 	BOOL ret;
 
-	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x lpPaint.rcpaint=(%d,%d)-(%d-%d)\n", 
+	OutTraceDW("GDI.EndPaint: hwnd=%x lpPaint=%x lpPaint.hdc=%x lpPaint.rcpaint=(%d,%d)-(%d,%d)\n", 
 		hwnd, lpPaint, lpPaint->hdc, lpPaint->rcPaint.left, lpPaint->rcPaint.top, lpPaint->rcPaint.right, lpPaint->rcPaint.bottom);
 
 	// if not fullscreen or not desktop win, just proxy the call

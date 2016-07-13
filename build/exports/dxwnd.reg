@@ -1,0 +1,19 @@
+
+[HKEY_LOCAL_MACHINE\Software]
+[HKEY_LOCAL_MACHINE\Software\MicroProse]
+[HKEY_LOCAL_MACHINE\Software\MicroProse\MechWarrior 3 EP1]
+[HKEY_LOCAL_MACHINE\Software\MicroProse\MechWarrior 3 EP1\1.0]
+"Program"="..\\"
+"Version"="1.0"
+"InstallOptions"=dword:00050707
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft]
+[HKEY_LOCAL_MACHINE\Software\Microsoft\DirectPlay]
+[HKEY_LOCAL_MACHINE\Software\Microsoft\DirectPlay\Applications]
+[HKEY_LOCAL_MACHINE\Software\Microsoft\DirectPlay\Applications\MechWarrior 3 EP1]
+"Guid"="{FA96C421-18DD-11D3-95AF-0060089877F0}"
+"File"="Mech3.exe"
+"CommandLine"="
+"Path"=".\\"
+"CurrentDirectory"=".\\"
+

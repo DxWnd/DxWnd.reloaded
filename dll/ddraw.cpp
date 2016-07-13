@@ -2052,6 +2052,16 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 		case 7: ddsd.dwSize=sizeof(LPDDSURFACEDESC2); res=(*pGetDisplayMode7)(lpdd, &ddsd); break;
 	}
 
+	if(res){
+		OutTraceE("SetDisplayMode: GetDisplayMode err=%x(%s)\n", res, ExplainDDError(res));
+		// fix for Win10 platform returning DDERR_INVALIDPARAMS
+		RECT desktop;
+		ddsd.ddpfPixelFormat.dwRGBBitCount = 32;
+		(*pGetClientRect)((*pGetDesktopWindow)(), &desktop);
+		ddsd.dwWidth = desktop.right;
+		ddsd.dwHeight = desktop.bottom;
+	}
+	
 	OutTraceB("SetDisplayMode: detected screen size=(%dx%d)\n", ddsd.dwWidth, ddsd.dwHeight);
 
 	if(dxw.Windowize){
@@ -2074,7 +2084,7 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 		case 4: res=(*pSetDisplayMode4)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
 		case 7: res=(*pSetDisplayMode7)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
 	}
-	if(res) OutTraceE("SetDisplayMode: error=%x\n", res);
+	if(res) OutTraceE("SetDisplayMode: error=%x(%s)\n", res, ExplainDDError(res));
 
 	SetVSyncDelays(dxversion, lpdd);
 	// set a default palette ???

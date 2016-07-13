@@ -121,7 +121,7 @@ static char *Flag6Names[32]={
 	"FIXPITCH", "POWER2WIDTH", "HIDETASKBAR", "ACTIVATEAPP",
 	"NOSYSMEMPRIMARY", "NOSYSMEMBACKBUF", "CONFIRMONCLOSE", "TERMINATEONCLOSE",
 	"FLIPEMULATION", "SETZBUFFERBITDEPTHS", "SHAREDDC", "WOW32REGISTRY",
-	"STRETCHMOVIES", "BYPASSMCI", "FIXPIXELZOOM", "REUSEEMULATEDDC",
+	"STRETCHMOVIES", "BYPASSMCI", "FIXPIXELZOOM", "---REUSEEMULATEDDC---",
 	"CREATEDESKTOP", "NOWINDOWHOOKS", "SYNCPALETTE", "VIRTUALJOYSTICK",
 	"UNACQUIRE", "HOOKGOGLIBS", "BYPASSGOGLIBS", "EMULATERELMOUSE",
 };
@@ -1359,21 +1359,11 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		if(dxw.dwFlags4 & ENABLEHOTKEYS) dxw.MapKeysInit();
 	}
 
-	if(dxw.dwFlags6 & CREATEDESKTOP){
-		RECT TargetPos;
-		TargetPos.left = target->posx;
-		TargetPos.right = target->posx+target->sizx;
-		TargetPos.top = target->posy;
-		TargetPos.bottom = target->posy+target->sizy;
-		if (!hDesktopWindow) hDesktopWindow=CreateVirtualDesktop(&TargetPos);
-	}
-
 	if(IsTraceDW){
 		char sInfo[1024];
 		OSVERSIONINFO osinfo;
 		strcpy(sInfo, "");
-		if(hwnd) sprintf(sInfo, " hWnd=%x(hdc=%x) dxw.hParentWnd=%x(hdc=%x) desktop=%x(hdc=%x)", 
-			hwnd, GetDC(hwnd), dxw.hParentWnd, GetDC(dxw.hParentWnd), GetDesktopWindow(), GetDC(GetDesktopWindow()));
+		if(hwnd) sprintf(sInfo, " hWnd=%x ParentWnd=%x desktop=%x", hwnd, dxw.hParentWnd, GetDesktopWindow());
 		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)%s\n", 
 			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
 			target->posx, target->posy, target->sizx, target->sizy, sInfo);
@@ -1435,14 +1425,6 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 			hwnd = dxw.GethWnd();
 			if(hwnd) OutTraceDW("HookInit: skipped IME window. current hWnd=%x(hdc=%x) dxw.hParentWnd=%x(hdc=%x)\n", 
 				hwnd, GetDC(hwnd), dxw.hParentWnd, GetDC(dxw.hParentWnd));		
-		}
-	}
-
-	if(dxw.dwFlags6 & CREATEDESKTOP){
-		if (hDesktopWindow){
-			OutTraceDW("HookInit: set new parent=%x to main win=%x\n", hDesktopWindow, dxw.hChildWnd);
-			SetParent(dxw.hChildWnd, hDesktopWindow);
-			dxw.hParentWnd = hDesktopWindow;
 		}
 	}
 

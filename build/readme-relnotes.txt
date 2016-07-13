@@ -1159,3 +1159,13 @@ add: GUI drag & drop of game executables
 fix: RegQueryValueEx bad retcode when Data ptr is NULL
 fix: recovered support for Windows XP
 fix: fake registry did not read last registry line! Fixed.
+
+v2.03.76
+fix: DC handle leakage in several places, this also fixed GDI "emulated devie context" mode.
+fix: FillRect wrapper, fixed coordinate remapping with wrong values. Fixes "Imperialism" menu and detailed view.
+fix: suppressed "reuse emulated DC" flag: it was no longer referenced in the code.
+fix: workaround for occasional DDERR_INVALIDPARAMS error in service GetDisplayMode to detect current video mode.
+fix: code cleanup: eliminated CREATEDESKTOP handling, experimental and no longer supported
+fix: vdxcore::IsToRemap now detects the NULL dc handle as remappable DC
+fix: some logging imperfections
+fix: palette log message crashing the program

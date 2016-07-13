@@ -178,9 +178,7 @@ public:
 	BOOL	m_NoDDRAWFlip;
 	BOOL	m_NoGDIBlt;
 	BOOL	m_NoFillRect;
-	BOOL	m_ReuseEmulatedDC;
 	BOOL	m_FixClipperArea;
-	BOOL	m_CreateDesktop;
 	BOOL	m_SyncPalette;
 	BOOL	m_NoWinErrors;
 	BOOL	m_AnalyticMode;

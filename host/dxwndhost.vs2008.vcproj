@@ -723,19 +723,19 @@
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\res\alt-ctrl-shift.png"
-			>
-		</File>
-		<File
 			RelativePath=".\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
-			RelativePath=".\alt.png"
+			RelativePath=".\res\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
 			RelativePath=".\res\alt.png"
+			>
+		</File>
+		<File
+			RelativePath=".\alt.png"
 			>
 		</File>
 		<File

@@ -461,9 +461,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoDDRAWFlip) t->flags3 |= NODDRAWFLIP;
 	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
 	if(dlg->m_NoFillRect) t->flags4 |= NOFILLRECT;
-	if(dlg->m_ReuseEmulatedDC) t->flags6 |= REUSEEMULATEDDC;
 	if(dlg->m_FixClipperArea) t->flags7 |= FIXCLIPPERAREA;
-	if(dlg->m_CreateDesktop) t->flags6 |= CREATEDESKTOP;
 	if(dlg->m_SyncPalette) t->flags6 |= SYNCPALETTE;
 	if(dlg->m_NoWinErrors) t->flags7 |= NOWINERRORS;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
@@ -733,9 +731,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoDDRAWFlip = t->flags3 & NODDRAWFLIP ? 1 : 0;
 	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;
 	dlg->m_NoFillRect = t->flags4 & NOFILLRECT ? 1 : 0;
-	dlg->m_ReuseEmulatedDC = t->flags6 & REUSEEMULATEDDC ? 1 : 0;
 	dlg->m_FixClipperArea = t->flags7 & FIXCLIPPERAREA ? 1 : 0;
-	dlg->m_CreateDesktop = t->flags6 & CREATEDESKTOP ? 1 : 0;
 	dlg->m_SyncPalette = t->flags6 & SYNCPALETTE ? 1 : 0;
 	dlg->m_NoWinErrors = t->flags7 & NOWINERRORS ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
@@ -1309,7 +1305,7 @@ void CDxwndhostView::OnExport()
 	}
 }
 
-void CDxwndhostView::OnImport(CString sFilePath)
+BOOL CDxwndhostView::OnImport(CString sFilePath)
 {
 	LV_ITEM listitem;
 	int i;
@@ -1317,7 +1313,7 @@ void CDxwndhostView::OnImport(CString sFilePath)
 		;
 	if (i==MAXTARGETS) {
 		MessageBoxLang(DXW_STRING_MAXENTRIES, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
-		return;
+		return FALSE;
 	}
 	CListCtrl& listctrl = GetListCtrl();
 	if(LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], 0, (char *)sFilePath.GetString())){
@@ -1328,6 +1324,10 @@ void CDxwndhostView::OnImport(CString sFilePath)
 		listitem.pszText = PrivateMaps[i].title;
 		listctrl.InsertItem(&listitem);
 	}
+	Resize();
+	SetTarget(TargetMaps);	
+	this->isUpdated=TRUE;
+	return TRUE;
 }
 
 void CDxwndhostView::OnImport()
@@ -1382,10 +1382,13 @@ void CDxwndhostView::OnImport()
 			if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)) 
 				WritePrivateProfileString("window", "exportpath", folder, gInitPath);
 			p += lstrlen((LPSTR)p) + 1;
-			while(*p && (i<MAXTARGETS)){
+			while(*p){
 				// "p" - name of each file, NULL to terminate
 				if(!*p) break;
-				if(i==MAXTARGETS) break;
+				if(i==MAXTARGETS) {
+					MessageBoxLang(DXW_STRING_MAXENTRIES, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
+					break;
+				}
 				strcpy(pathname, folder);
 				strcat(pathname, p);
 				if (LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], 0, pathname)){
@@ -1617,7 +1620,7 @@ void CDxwndhostView::OnSort()
 	CListCtrl& listctrl = GetListCtrl();
 
 	// find list entries number and ignore the command when less than 2 
-	for(i=0; ; i++) if(strlen(TargetMaps[i].path)==0) break;
+	for(i=0; i<MAXTARGETS; i++) if(strlen(TargetMaps[i].path)==0) break;
 	itemcount=i;
 	if (itemcount<2) return;
 
@@ -2091,6 +2094,7 @@ void CDxwndhostView::OnDelete()
 		PrivateMaps[i] = PrivateMaps[i + 1]; // V2.1.74 fix
 		TargetMaps[i] = TargetMaps[i + 1];
 	}
+	TargetMaps[i].path[0]=0; // clear last one, in case there were MAXTARGETS entries
 	Resize();
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
@@ -2817,7 +2821,14 @@ void CDxwndhostView::OnDropFiles(HDROP dropInfo)
 		p = (char *)sFile.GetString();
 		p += (strlen(p)-4);
 		if(!_strnicmp(p, ".dxw", 4)){
-			this->OnImport(sFile);
+			for(UINT i=1; i<=nFilesDropped; i++){
+				if(!this->OnImport(sFile)) break;
+				nBuffer = DragQueryFile(dropInfo, i, NULL, 0);
+				DragQueryFile(dropInfo, i, sFile.GetBuffer(nBuffer+1), nBuffer+1);
+				p = (char *)sFile.GetString();
+				p += (strlen(p)-4);
+				if(_strnicmp(p, ".dxw", 4)) break;
+			}
 		}
 		else {
 			this->OnAdd(sFile.GetBuffer());

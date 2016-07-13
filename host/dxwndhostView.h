@@ -68,7 +68,7 @@ protected:
 	afx_msg void OnModify();
 	afx_msg void OnExport();
 	afx_msg void OnImport();
-	afx_msg void OnImport(CString);
+	BOOL OnImport(CString);
 	afx_msg void OnDelete();
 	afx_msg void OnExplore();
 	afx_msg void OnKill();
