@@ -944,6 +944,26 @@ void SetModuleHooks()
 			if(hModule) {
 				SysLibs[i]=hModule;
 				OutTraceDW("InitModuleHooks: lib=%s hmodule=%x\n", SysNames[i], hModule);
+				if(dxw.bHintActive) switch(i){
+					case SYSLIBIDX_DIRECTDRAW:	ShowHint(HINT_DDRAW);	break;
+					case SYSLIBIDX_DIRECT3D8:	ShowHint(HINT_D3D8);	break;
+					case SYSLIBIDX_DIRECT3D9:	ShowHint(HINT_D3D9);	break;
+					// DirectX10 & 11 are loaded by some system module, so better not to tell
+					//case SYSLIBIDX_DIRECT3D10:	
+					//case SYSLIBIDX_DIRECT3D10_1:ShowHint(HINT_D3D10);	break;
+					//case SYSLIBIDX_DIRECT3D11:	ShowHint(HINT_D3D11);	break;
+					case SYSLIBIDX_OPENGL:		ShowHint(HINT_OPENGL);	break;
+					case SYSLIBIDX_DSOUND:		ShowHint(HINT_DSOUND);	break;
+					case SYSLIBIDX_DINPUT:		ShowHint(HINT_DINPUT);	break;
+					case SYSLIBIDX_DINPUT8:		ShowHint(HINT_DINPUT8);	break;
+					case SYSLIBIDX_MSVFW:		
+					case SYSLIBIDX_SMACK:		
+					case SYSLIBIDX_WINMM:		
+					case SYSLIBIDX_AVIFIL32:	ShowHint(HINT_MOVIES);	break;
+					case SYSLIBIDX_DIRECT3D:
+					case SYSLIBIDX_DIRECT3D700:	ShowHint(HINT_D3D);		break;
+					case SYSLIBIDX_IMAGEHLP:	ShowHint(HINT_IHLP);	break;
+				}
 			}
 		}
 	}
@@ -1328,6 +1348,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")] = 0; // terminate the string just before "dxwnd.dll"
 	SetDllDirectory(sSourcePath);
 
+	if(dxw.bHintActive) ShowHint(HINT_HINT);
 	if(dxw.dwFlags5 & HYBRIDMODE) {
 		// special mode settings ....
 		dxw.dwFlags1 |= EMULATESURFACE;
@@ -1413,7 +1434,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		OutTrace("HookInit: DWMComposition %s\n", sRes);
 	}
 
-	if (SKIPIMEWINDOW) {
+	if (hwnd) {
 		char ClassName[8+1];
 		GetClassName(hwnd, ClassName, sizeof(ClassName));
 		if(!strcmp(ClassName, "IME")){
@@ -1448,7 +1469,6 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	// make InitPosition used for both DInput and DDraw
 	if(dxw.Windowize) dxw.InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);
 	
-
 	OutTraceB("HookInit: base hmodule=%x\n", base);
 	HookModule(base, dxw.dwTargetDDVersion);
 	if (dxw.dwFlags3 & HOOKDLLS) HookDlls(base);

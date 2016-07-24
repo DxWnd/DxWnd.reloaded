@@ -72,6 +72,7 @@ public:
 	BOOL	m_Wow64Registry;
 	BOOL	m_Wow32Registry;
 	BOOL	m_FullScreenOnly;
+	BOOL	m_ShowHints;
 	BOOL	m_NeedAdminCaps;
 	BOOL	m_PeekAllMessages;
 	BOOL	m_NoWinPosChanges;

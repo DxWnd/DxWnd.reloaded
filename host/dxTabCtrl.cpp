@@ -24,6 +24,7 @@
 #include "TabProgram.h"
 #include "TabHook.h"
 #include "TabDirectX.h"
+#include "TabDirectX2.h"
 #include "TabDirect3D.h"
 #include "TabInput.h"
 #include "TabTiming.h"
@@ -56,6 +57,7 @@ CDXTabCtrl::CDXTabCtrl()
 	m_tabPages[i++]=new CTabWindow;
 	m_tabPages[i++]=new CTabInput;
 	m_tabPages[i++]=new CTabDirectX;
+	m_tabPages[i++]=new CTabDirectX2;
 	m_tabPages[i++]=new CTabDirect3D;
 	m_tabPages[i++]=new CTabTiming;
 	m_tabPages[i++]=new CTabLogs;
@@ -85,6 +87,7 @@ void CDXTabCtrl::Init()
 	m_tabPages[i++]->Create(IDD_TAB_OUTPUT, this);
 	m_tabPages[i++]->Create(IDD_TAB_INPUT, this);
 	m_tabPages[i++]->Create(IDD_TAB_DIRECTX, this);
+	m_tabPages[i++]->Create(IDD_TAB_DIRECTX2, this);
 	m_tabPages[i++]->Create(IDD_TAB_D3D, this);
 	m_tabPages[i++]->Create(IDD_TAB_TIMING, this);
 	m_tabPages[i++]->Create(IDD_TAB_LOG, this);
@@ -141,9 +144,19 @@ void CDXTabCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 	}
 }
 
+void CDXTabCtrl::SwitchToTab(int pos)
+{
+	m_tabPages[m_tabCurrent]->ShowWindow(SW_HIDE);
+	SetCurSel(pos);
+	m_tabPages[pos]->ShowWindow(SW_SHOW);
+	m_tabPages[pos]->SetFocus();
+	m_tabCurrent=GetCurFocus();
+}
+
 void CDXTabCtrl::OnOK()
 {
 	for(int nCount=0; nCount < m_nNumberOfPages; nCount++){
 		m_tabPages[nCount]->UpdateData(TRUE);
 	}
 }
+

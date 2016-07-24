@@ -146,6 +146,9 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	// made before hooking !!!
 	pGetWindowLong = (dwFlags5 & ANSIWIDE) ? GetWindowLongW : GetWindowLongA;
 	pSetWindowLong = (dwFlags5 & ANSIWIDE) ? SetWindowLongW : SetWindowLongA;
+
+	// hint system
+	bHintActive = (dwFlags7 & SHOWHINTS) ? TRUE : FALSE;
 }
 
 void dxwCore::SetScreenSize(void) 

@@ -1169,3 +1169,10 @@ fix: code cleanup: eliminated CREATEDESKTOP handling, experimental and no longer
 fix: vdxcore::IsToRemap now detects the NULL dc handle as remappable DC
 fix: some logging imperfections
 fix: palette log message crashing the program
+
+v2.03.77
+fix: SetCooperativeLevel with 0 HDC should not alter fullscreen status (fixes Portugal 1111 scrolling problem)
+add: preliminary "Show hints" flag and feature
+GUI: multi-line tab control
+GUI: clicking on notes and registry icons the GUI goes straight to the relative tab pages.
+GUI: The DirectX tab is now splitted in two, so that there no longer are DirectX switches into the Direct3D tab.

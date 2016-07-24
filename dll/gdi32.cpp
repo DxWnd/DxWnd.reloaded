@@ -194,7 +194,7 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "FrameRgn", (FARPROC)NULL, (FARPROC *)&pFrameRgn, (FARPROC)extFrameRgn}, 
 	{HOOK_IAT_CANDIDATE, 0, "InvertRgn", (FARPROC)NULL, (FARPROC *)&pInvertRgn, (FARPROC)extInvertRgn}, 
 	{HOOK_IAT_CANDIDATE, 0, "PaintRgn", (FARPROC)NULL, (FARPROC *)&pPaintRgn, (FARPROC)extPaintRgn}, 
-	//{HOOK_IAT_CANDIDATE, 0, "SetMapMode", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extSetMapMode}, // crashes ???
+	////{HOOK_IAT_CANDIDATE, 0, "SetMapMode", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extSetMapMode}, // crashes ???
 	{HOOK_IAT_CANDIDATE, 0, "SetDIBitsToDevice", (FARPROC)SetDIBitsToDevice, (FARPROC *)&pSetDIBitsToDevice, (FARPROC)extSetDIBitsToDevice}, // does the stretching
 	{HOOK_IAT_CANDIDATE, 0, "Polyline", (FARPROC)Polyline, (FARPROC *)&pPolyline, (FARPROC)extPolyline},
 	{HOOK_IAT_CANDIDATE, 0, "BitBlt", (FARPROC)BitBlt, (FARPROC *)&pGDIBitBlt, (FARPROC)extGDIBitBlt},
@@ -227,7 +227,7 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "MoveToEx", (FARPROC)MoveToEx, (FARPROC *)&pMoveToEx, (FARPROC)extMoveToEx},
 	{HOOK_IAT_CANDIDATE, 0, "GetClipBox", (FARPROC)GetClipBox, (FARPROC *)&pGDIGetClipBox, (FARPROC)extGetClipBox},
 	{HOOK_IAT_CANDIDATE, 0, "IntersectClipRect", (FARPROC)IntersectClipRect, (FARPROC *)&pIntersectClipRect, (FARPROC)extIntersectClipRect}, // Riven !!
-	{HOOK_IAT_CANDIDATE, 0, "DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC}, // for tracing only!
+	//{HOOK_IAT_CANDIDATE, 0, "DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC}, // for tracing only! (commented: crashes Dylan Dog HLP!!)
 	{HOOK_IAT_CANDIDATE, 0, "CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDCA, (FARPROC)extGDICreateDCA}, 
 	{HOOK_IAT_CANDIDATE, 0, "CreateDCW", (FARPROC)CreateDCW, (FARPROC *)&pGDICreateDCW, (FARPROC)extGDICreateDCW}, 
 
@@ -349,6 +349,35 @@ extern HRESULT WINAPI sBlt(int, Blt_Type, char *, LPDIRECTDRAWSURFACE, LPRECT, L
 
 extern GetDC_Type pGetDC;
 extern ReleaseDC_Type pReleaseDC1;
+
+static char *ExplainDIBUsage(UINT u)
+{
+	char *p;
+	switch(u){
+		case DIB_PAL_COLORS: p="DIB_PAL_COLORS"; break;
+		case DIB_RGB_COLORS: p="DIB_RGB_COLORS"; break;
+		default: p="invalid"; break;
+	}
+	return p;
+}
+
+static void TraceBITMAPINFOHEADER(char *fName, BITMAPINFOHEADER *bmi)
+{
+	OutTrace("%s: BitmapInfo {Size=%d dim=(%dx%d) Planes=%d bitcount=%d Compression=%x SizeImage=%d PelsPerMeter=%dx%d colors=U%d:I%d}\n",
+		fName, bmi->biSize, bmi->biWidth, bmi->biHeight, bmi->biPlanes, bmi->biBitCount, bmi->biCompression, 
+		bmi->biSizeImage, bmi->biXPelsPerMeter, bmi->biYPelsPerMeter, bmi->biClrUsed, bmi->biClrImportant);
+	if(bmi->biSize > sizeof(BITMAPINFOHEADER)){
+		BITMAPV4HEADER *bm4 = (BITMAPV4HEADER *)bmi;
+		OutTrace("%s: BitmapInfoV4 {RGBA mask=%x:%x:%x:%x cstype=%x gamma RGB=%x:%x:%x}\n",
+			fName, bm4->bV4RedMask, bm4->bV4GreenMask, bm4->bV4BlueMask, bm4->bV4AlphaMask,
+			bm4->bV4CSType, bm4->bV4GammaRed, bm4->bV4GammaGreen, bm4->bV4GammaBlue);
+	}
+	if(bmi->biSize > sizeof(BITMAPV4HEADER)){
+		BITMAPV5HEADER *bm5 = (BITMAPV5HEADER *)bmi;
+		OutTrace("%s: BitmapInfoV5 {intent=%x profiledata=%x profilesize=%x resvd=%x}\n",
+			fName, bm5->bV5Intent, bm5->bV5ProfileData, bm5->bV5ProfileSize, bm5->bV5Reserved);
+	}
+}
 
 //--------------------------------------------------------------------------------------------
 //
@@ -1737,8 +1766,11 @@ int WINAPI extStretchDIBits(HDC hdc, int XDest, int YDest, int nDestWidth, int n
 				  const VOID *lpBits, const BITMAPINFO *lpBitsInfo, UINT iUsage, DWORD dwRop)
 {
 	int ret;
-	OutTraceDW("StretchDIBits: hdc=%x dest=(%d,%d)-(%d,%d) src=(%d,%d)-(%d,%d) rop=%x(%s)\n", 
-		hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, dwRop, ExplainROP(dwRop));
+	if(IsTraceDW){
+		OutTraceDW("StretchDIBits: hdc=%x dest=(%d,%d)-(%d,%d) src=(%d,%d)-(%d,%d) rop=%x(%s)\n", 
+			hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, dwRop, ExplainROP(dwRop));
+		TraceBITMAPINFOHEADER("StretchDIBits", (BITMAPINFOHEADER *)&(lpBitsInfo->bmiHeader));
+	}
 
 	if(dxw.IsToRemap(hdc)){
 		switch(dxw.GDIEmulationMode){
@@ -1772,11 +1804,10 @@ int WINAPI extStretchDIBits(HDC hdc, int XDest, int YDest, int nDestWidth, int n
 int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines, const VOID *lpvBits, const BITMAPINFO *lpbmi, UINT fuColorUse)
 {
 	int ret;
-	BITMAPINFOHEADER *bmi;
-	OutTraceDW("SetDIBits: hdc=%x hbmp=%x lines=(%d,%d) ColorUse=%x\n", hdc, hbmp, uStartScan, cScanLines, fuColorUse);
-	bmi=(BITMAPINFOHEADER *)&(lpbmi->bmiHeader);
-	OutTraceDW("SetDIBits: BitmapInfo dim=(%dx%d) Planes=%d BPP=%d Compression=%x SizeImage=%x\n",
-		bmi->biWidth, bmi->biHeight, bmi->biPlanes, bmi->biBitCount, bmi->biCompression, bmi->biSizeImage);
+	if(IsTraceDW){
+		OutTrace("SetDIBits: hdc=%x hbmp=%x lines=(%d,%d) ColorUse=%x(%s)\n", hdc, hbmp, uStartScan, cScanLines, fuColorUse, ExplainDIBUsage(fuColorUse));
+		TraceBITMAPINFOHEADER("SetDIBits", (BITMAPINFOHEADER *)&(lpbmi->bmiHeader));
+	}
 
 	if(dxw.IsToRemap(hdc) && !bGDIRecursionFlag){
 		//HDC hTempDc;
@@ -1785,7 +1816,8 @@ int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 			case GDIMODE_SHAREDDC: // this will flicker !!!!
 				sdc.GetPrimaryDC(hdc);
 				ret=(*pSetDIBits)(sdc.GetHdc(), hbmp, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
-				sdc.PutPrimaryDC(hdc, TRUE, 0, 0, bmi->biWidth, bmi->biHeight);
+				if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBits: ERROR err=%d\n", GetLastError()); 
+				sdc.PutPrimaryDC(hdc, TRUE, 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight);
 				return ret;
 				break;
 			case GDIMODE_STRETCHED: 
@@ -1847,15 +1879,12 @@ int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 int WINAPI extGetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines, LPVOID lpvBits, LPBITMAPINFO lpbmi, UINT uUsage)
 {
 	int ret;
-	BITMAPINFOHEADER *bmi;
-	OutTraceDW("GetDIBits: hdc=%x hbmp=%x lines=(%d,%d) ColorUse=%x\n", hdc, hbmp, uStartScan, cScanLines, uUsage);
-	bmi=(BITMAPINFOHEADER *)&(lpbmi->bmiHeader);
-	OutTraceDW("GetDIBits: BitmapInfo dim=(%dx%d) Planes=%d BPP=%d Compression=%x SizeImage=%x\n",
-		bmi->biWidth, bmi->biHeight, bmi->biPlanes, bmi->biBitCount, bmi->biCompression, bmi->biSizeImage);
+	if(IsTraceDW){
+		OutTrace("GetDIBits: hdc=%x hbmp=%x lines=(%d,%d) ColorUse=%x(%s)\n", hdc, hbmp, uStartScan, cScanLines, uUsage, ExplainDIBUsage(uUsage));
+		TraceBITMAPINFOHEADER("GetDIBits", (BITMAPINFOHEADER *)&(lpbmi->bmiHeader));
+	}
 
 	if(dxw.IsToRemap(hdc) && !bGDIRecursionFlag){
-		//HDC hTempDc;
-		//HBITMAP hbmPic;
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_SHAREDDC: // this will flicker !!!!
 				sdc.GetPrimaryDC(hdc);
@@ -1874,103 +1903,15 @@ int WINAPI extGetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 	return ret;
 }
 
-#if 0
 int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DWORD dwHeight, int XSrc, int YSrc, UINT uStartScan, UINT cScanLines, 
 					const VOID *lpvBits, const BITMAPINFO *lpbmi, UINT fuColorUse)
 {
 	int ret;
-	BITMAPINFOHEADER *bmi;
-	OutTraceDW("SetDIBitsToDevice: hdc=%x dest=(%d,%d)-(%dx%d) src=(%d,%d) lines=(%d,%d)\n", 
-		hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines);
-	bmi=(BITMAPINFOHEADER *)&(lpbmi->bmiHeader);
-	OutTraceDW("SetDIBitsToDevice: BitmapInfo dim=(%dx%d) Planes=%d BPP=%d Compression=%x SizeImage=%x\n",
-		bmi->biWidth, bmi->biHeight, bmi->biPlanes, bmi->biBitCount, bmi->biCompression, bmi->biSizeImage);
-
-	bGDIRecursionFlag = TRUE; // beware: it seems that SetDIBitsToDevice calls SetDIBits internally
-	if(dxw.IsFullScreen()){
-		HDC hTempDc;
-		HBITMAP hbmPic;
-		DWORD OrigWidth, OrigHeight;
-		int OrigXDest, OrigYDest;
-		OrigWidth=dwWidth;
-		OrigHeight=dwHeight;
-		OrigXDest=XDest;
-		OrigYDest=YDest;
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_SHAREDDC: 
-				if(dxw.IsToRemap(hdc)){
-					sdc.GetPrimaryDC(hdc);
-					ret=(*pSetDIBitsToDevice)(sdc.GetHdc(), XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
-					sdc.PutPrimaryDC(hdc, TRUE, XDest, YDest, dwWidth, dwHeight);
-				}
-				else{
-					ret=(*pSetDIBitsToDevice)(hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
-				}
-				bGDIRecursionFlag = FALSE;
-				return ret;
-				break;
-			case GDIMODE_STRETCHED: 
-				if(dxw.IsToRemap(hdc)){
-					// blitting to primary surface !!!
-					dxw.MapClient(&XDest, &YDest, (int *)&dwWidth, (int *)&dwHeight);
-					OutTraceDW("SetDIBitsToDevice: fixed dest=(%d,%d)-(%dx%d)\n", XDest, YDest, dwWidth, dwHeight);
-					if(!(hTempDc=CreateCompatibleDC(hdc)))
-						OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-					// tricky part: CreateCompatibleBitmap is needed to set the dc size, but it has to be performed
-					// against hdc to set for color depth, then selected (through SelectObject) against the temporary
-					// dc to assign the needed size and color space to the temporary dc.
-					if(!(hbmPic=CreateCompatibleBitmap(hdc, OrigWidth, OrigHeight)))
-						OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-					if(!SelectObject(hTempDc, hbmPic))
-						OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-					if(!(ret=(*pSetDIBitsToDevice)(hTempDc, 0, 0, OrigWidth, OrigHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse)))
-						OutTraceE("SetDIBitsToDevice: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-					bGDIRecursionFlag = FALSE;
-					// v2.02.94: set HALFTONE stretching. Fixes "Celtic Kings Rage of War"
-					SetStretchBltMode(hdc,HALFTONE);
-					if(!(ret=(*pGDIStretchBlt)(hdc, XDest, YDest, dwWidth, dwHeight, hTempDc, 0, 0, OrigWidth, OrigHeight, SRCCOPY)))
-						OutTraceE("StretchBlt: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-					if(!(DeleteObject(hbmPic))) // v2.02.32 - avoid resource leakage
-						OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-					if(!(DeleteDC(hTempDc)))
-						OutTraceE("DeleteDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-					return ret;
-				}
-				break;
-			case GDIMODE_EMULATED:
-				if (dxw.IsVirtual(hdc)){
-					int X, Y;
-					X=XDest+dxw.VirtualOffsetX;
-					Y=YDest+dxw.VirtualOffsetY;
-					OutTraceDW("SetDIBitsToDevice: virtual pos=(%d,%d)+(%d+%d)=(%d,%d)\n",
-						XDest, YDest, dxw.VirtualOffsetX, dxw.VirtualOffsetY, X, Y);
-					ret=(*pSetDIBitsToDevice)(hdc, X, Y, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
-					bGDIRecursionFlag = FALSE;
-					if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
-					return ret;
-				}
-				break;
-			default:
-				break;
-		}
+	if(IsTraceDW){
+		OutTrace("SetDIBitsToDevice: hdc=%x dest=(%d,%d)-(%dx%d) src=(%d,%d) lines=(%d,%d) bits=%x ColorUse=%x(%s)\n", 
+			hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, fuColorUse, ExplainDIBUsage(fuColorUse));
+		TraceBITMAPINFOHEADER("SetDIBitsToDevice", (BITMAPINFOHEADER *)&(lpbmi->bmiHeader));
 	}
-
-	ret=(*pSetDIBitsToDevice)(hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
-	bGDIRecursionFlag = FALSE;
-	if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
-	return ret;
-}
-#else
-int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DWORD dwHeight, int XSrc, int YSrc, UINT uStartScan, UINT cScanLines, 
-					const VOID *lpvBits, const BITMAPINFO *lpbmi, UINT fuColorUse)
-{
-	int ret;
-	BITMAPINFOHEADER *bmi;
-	OutTraceDW("SetDIBitsToDevice: hdc=%x dest=(%d,%d)-(%dx%d) src=(%d,%d) lines=(%d,%d)\n", 
-		hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines);
-	bmi=(BITMAPINFOHEADER *)&(lpbmi->bmiHeader);
-	OutTraceDW("SetDIBitsToDevice: BitmapInfo dim=(%dx%d) Planes=%d BPP=%d Compression=%x SizeImage=%x\n",
-		bmi->biWidth, bmi->biHeight, bmi->biPlanes, bmi->biBitCount, bmi->biCompression, bmi->biSizeImage);
 
 	bGDIRecursionFlag = TRUE; // beware: it seems that SetDIBitsToDevice calls SetDIBits internally
 	if(dxw.IsToRemap(hdc)){
@@ -2036,7 +1977,6 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 	if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
 }
-#endif
 
 HBITMAP WINAPI extCreateCompatibleBitmap(HDC hdc, int nWidth, int nHeight)
 {
@@ -3007,13 +2947,20 @@ BOOL WINAPI extPolyTextOutW(HDC hdc, const POLYTEXTW *pptxt, int cStrings)
 HBITMAP WINAPI extCreateDIBitmap(HDC hdc, BITMAPINFOHEADER *lpbmih, DWORD fdwInit, const VOID *lpbInit, const BITMAPINFO *lpbmi, UINT fuUsage)
 {
 	HBITMAP ret;
-	OutTraceDW("CreateDIBitmap: hdc=%x\n", hdc);
+	if(IsTraceDW){
+		OutTrace("CreateDIBitmap: hdc=%x init=%x%s data=%x usage=%x(%s)\n", 
+			hdc, fdwInit, fdwInit==CBM_INIT?"(CBM_INIT)":"", lpbInit, 
+			fuUsage, ExplainDIBUsage(fuUsage));
+		if(fdwInit==CBM_INIT) TraceBITMAPINFOHEADER("CreateDIBitmap(lpbmih)", lpbmih);
+		TraceBITMAPINFOHEADER("CreateDIBitmap(lpbmi)", (BITMAPINFOHEADER *)&(lpbmi->bmiHeader));
+	}
 
 	if(dxw.IsToRemap(hdc)) {
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_SHAREDDC: 
 				sdc.GetPrimaryDC(hdc);
 				ret=(*pCreateDIBitmap)(sdc.GetHdc(), lpbmih, fdwInit, lpbInit, lpbmi, fuUsage);
+				if(!ret) OutTraceE("CreateDIBitmap ERROR: err=%d\n", GetLastError());
 				sdc.PutPrimaryDC(hdc, FALSE);
 				return ret;
 				break;			

@@ -34,21 +34,6 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);
 
-	// Ddraw tweaks
-	DDX_Check(pDX, IDC_NOSYSMEMPRIMARY, cTarget->m_NoSysMemPrimary);
-	DDX_Check(pDX, IDC_NOSYSMEMBACKBUF, cTarget->m_NoSysMemBackBuf);
-	DDX_Check(pDX, IDC_FIXPITCH, cTarget->m_FixPitch);
-	DDX_Check(pDX, IDC_POWER2WIDTH, cTarget->m_Power2Width);
-	DDX_Check(pDX, IDC_FIXREFCOUNTER, cTarget->m_FixRefCounter);
-	DDX_Check(pDX, IDC_RETURNNULLREF, cTarget->m_ReturnNullRef);
-	DDX_Check(pDX, IDC_FORCESHEL, cTarget->m_ForcesHEL);
-	DDX_Check(pDX, IDC_MINIMALCAPS, cTarget->m_MinimalCaps);
-	DDX_Check(pDX, IDC_SETZBUFFERBITDEPTHS, cTarget->m_SetZBufferBitDepths);
-	DDX_Check(pDX, IDC_DEINTERLACE, cTarget->m_Deinterlace);
-	DDX_Check(pDX, IDC_LIMITDDRAW, cTarget->m_LimitDdraw);
-	DDX_Check(pDX, IDC_SUPPRESSOVERLAY, cTarget->m_SuppressOverlay);
-	DDX_CBIndex(pDX, IDC_DDWAWLIMITCOMBO, cTarget->m_MaxDdrawInterface);
-
 	// Texture management
 	DDX_Radio(pDX, IDC_TEXTURENONE, cTarget->m_TextureHandling);
 

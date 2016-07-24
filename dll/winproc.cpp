@@ -196,6 +196,29 @@ static void dx_Cornerize(HWND hwnd)
 
 LRESULT LastCursorPos;
 
+void ExplainMsg(char *ApiName, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	char sPos[161];
+	sPos[160]=0;
+	sPos[0]=0;
+	switch(Msg){
+	case WM_WINDOWPOSCHANGING:
+	case WM_WINDOWPOSCHANGED:
+		LPWINDOWPOS wp;
+		wp = (LPWINDOWPOS)lParam;
+		sprintf_s(sPos, 160, " pos=(%d,%d) size=(%dx%d) flags=%x(%s)", wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
+		break;
+	case WM_MOVE:
+		sprintf_s(sPos, 160, " pos=(%d,%d)", HIWORD(lParam), LOWORD(lParam));
+		break;
+	case WM_SIZE:
+		static char *modes[5]={"RESTORED", "MINIMIZED", "MAXIMIZED", "MAXSHOW", "MAXHIDE"};
+		sprintf_s(sPos, 160, " mode=SIZE_%s size=(%dx%d)", modes[wParam % 5], HIWORD(lParam), LOWORD(lParam));
+		break;	
+	}
+	OutTrace("%s[%x]: WinMsg=[0x%x]%s(%x,%x) %s\n", ApiName, hwnd, Msg, ExplainWinMessage(Msg), wParam, lParam, sPos);
+}
+
 LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	POINT prev, curr;
@@ -220,27 +243,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 	// v2.1.93: adjust clipping region
 
-	if(IsTraceW){
-		char sPos[161];
-		sPos[160]=0;
-		sPos[0]=0;
-		switch(message){
-		case WM_WINDOWPOSCHANGING:
-		case WM_WINDOWPOSCHANGED:
-			LPWINDOWPOS wp;
-			wp = (LPWINDOWPOS)lparam;
-			sprintf_s(sPos, 160, " pos=(%d,%d) size=(%dx%d) flags=%x(%s)", wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
-			break;
-		case WM_MOVE:
-			sprintf_s(sPos, 160, " pos=(%d,%d)", HIWORD(lparam), LOWORD(lparam));
-			break;
-		case WM_SIZE:
-			static char *modes[5]={"RESTORED", "MINIMIZED", "MAXIMIZED", "MAXSHOW", "MAXHIDE"};
-			sprintf_s(sPos, 160, " mode=SIZE_%s size=(%dx%d)", modes[wparam % 5], HIWORD(lparam), LOWORD(lparam));
-			break;	
-		}
-		OutTrace("WindowProc[%x]: WinMsg=[0x%x]%s(%x,%x) %s\n", hwnd, message, ExplainWinMessage(message), wparam, lparam, sPos);
-	}
+	if(IsTraceW) ExplainMsg("WindowProc", hwnd, message, wparam, lparam);
 
 	if(dxw.dwFlags3 & FILTERMESSAGES){
 		switch(message){

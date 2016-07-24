@@ -228,6 +228,7 @@
 #define INIT24BPP			0x00000400 // simulate a 24BPP initial desktop setting (in GetDeviceCaps API)
 #define INIT32BPP			0x00000800 // simulate a 24BPP initial desktop setting (in GetDeviceCaps API)
 #define FIXGLOBALUNLOCK		0x00001000 // Fix GlobalUnlock kernel32 API when it keeps returning the 1 retcode. 
+#define SHOWHINTS			0x00002000 // show configuration hints at runtime
 
 // eighth flags DWORD dxw.dwFlags8:
 
@@ -316,6 +317,7 @@ void GetDllVersion(char *);
 int GetHookStatus(DXWNDSTATUS *);
 DXWNDSTATUS *GetHookInfo();
 void HookInit(TARGETMAP *, HWND);
+void ShowHint(int);
 
 char *GetDxWndPath();
 void *SetHook(void *, void *);

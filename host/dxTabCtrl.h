@@ -16,7 +16,7 @@ class CDXTabCtrl : public CTabCtrl
 // Construction
 public:
 	CDXTabCtrl();
-	CDialog *m_tabPages[13]; // this must match the total number of tab elements!
+	CDialog *m_tabPages[14]; // this must match the total number of tab elements!
 	int m_tabCurrent;
 	int m_nNumberOfPages;
 	enum { IDD = IDC_TABPANEL };
@@ -28,6 +28,7 @@ public:
 public:
 	void Init();
 	void SetRectangle();
+	void SwitchToTab(int);
 
 // Overrides
 	// ClassWizard generated virtual function overrides

@@ -778,7 +778,7 @@ BOOL WINAPI extReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRea
 {
 	BOOL ret;
 	static char *IOBuffer=NULL;
-
+	memset(lpBuffer, 0, nNumberOfBytesToRead);
 
 	if(IsTraceDW){
 		OutTrace("ReadFile: hFile=%x Buffer=%x BytesToRead=%d Overlapped=%x", hFile, lpBuffer, nNumberOfBytesToRead, lpOverlapped);
@@ -800,14 +800,65 @@ BOOL WINAPI extReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRea
 	return ret;
 }
 
+static char *ExplainFlagsAndAttributes(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"");
+	if (c & FILE_ATTRIBUTE_ARCHIVE) strcat(eb, "FILE_ATTRIBUTE_ARCHIVE+");
+	if (c & FILE_ATTRIBUTE_ENCRYPTED) strcat(eb, "FILE_ATTRIBUTE_ENCRYPTED+");
+	if (c & FILE_ATTRIBUTE_HIDDEN) strcat(eb, "FILE_ATTRIBUTE_HIDDEN+");
+	if (c & FILE_ATTRIBUTE_NORMAL) strcat(eb, "FILE_ATTRIBUTE_NORMAL+");
+	if (c & FILE_ATTRIBUTE_OFFLINE) strcat(eb, "FILE_ATTRIBUTE_OFFLINE+");
+	if (c & FILE_ATTRIBUTE_READONLY) strcat(eb, "FILE_ATTRIBUTE_READONLY+");
+	if (c & FILE_ATTRIBUTE_SYSTEM) strcat(eb, "FILE_ATTRIBUTE_SYSTEM+");
+	if (c & FILE_ATTRIBUTE_TEMPORARY) strcat(eb, "FILE_ATTRIBUTE_TEMPORARY+");
+	if (c & FILE_FLAG_BACKUP_SEMANTICS) strcat(eb, "FILE_FLAG_BACKUP_SEMANTICS+");
+	if (c & FILE_FLAG_DELETE_ON_CLOSE) strcat(eb, "FILE_FLAG_DELETE_ON_CLOSE+");
+	if (c & FILE_FLAG_NO_BUFFERING) strcat(eb, "FILE_FLAG_NO_BUFFERING+");
+	if (c & FILE_FLAG_OPEN_NO_RECALL) strcat(eb, "FILE_FLAG_OPEN_NO_RECALL+");
+	if (c & FILE_FLAG_OPEN_REPARSE_POINT) strcat(eb, "FILE_FLAG_OPEN_REPARSE_POINT+");
+	if (c & FILE_FLAG_OVERLAPPED) strcat(eb, "FILE_FLAG_OVERLAPPED+");
+	if (c & FILE_FLAG_POSIX_SEMANTICS) strcat(eb, "FILE_FLAG_POSIX_SEMANTICS+");
+	if (c & FILE_FLAG_RANDOM_ACCESS) strcat(eb, "FILE_FLAG_RANDOM_ACCESS+");
+	//if (c & FILE_FLAG_SESSION_AWARE) strcat(eb, "FILE_FLAG_SESSION_AWARE+");
+	if (c & FILE_FLAG_SEQUENTIAL_SCAN) strcat(eb, "FILE_FLAG_SEQUENTIAL_SCAN+");
+	if (c & FILE_FLAG_WRITE_THROUGH) strcat(eb, "FILE_FLAG_WRITE_THROUGH+");
+	if (c & SECURITY_ANONYMOUS) strcat(eb, "SECURITY_ANONYMOUS+");
+	if (c & SECURITY_CONTEXT_TRACKING) strcat(eb, "SECURITY_CONTEXT_TRACKING+");
+	if (c & SECURITY_DELEGATION) strcat(eb, "SECURITY_DELEGATION+");
+	if (c & SECURITY_EFFECTIVE_ONLY) strcat(eb, "SECURITY_EFFECTIVE_ONLY+");
+	if (c & SECURITY_IDENTIFICATION) strcat(eb, "SECURITY_IDENTIFICATION+");
+	if (c & SECURITY_IMPERSONATION) strcat(eb, "SECURITY_IMPERSONATION+");
+	l=strlen(eb);
+	if (l>strlen("")) eb[l-1]=0; // delete last '+' if any
+	return(eb);
+}
+
+static char *ExplainDesiredAccess(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"GENERIC_");
+	if (c & GENERIC_READ) strcat(eb, "READ+");
+	if (c & GENERIC_WRITE) strcat(eb, "WRITE+");
+	if (c & GENERIC_EXECUTE) strcat(eb, "EXECUTE+");
+	if (c & GENERIC_ALL) strcat(eb, "ALL+");
+	l=strlen(eb);
+	if (l>strlen("GENERIC_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
 HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
 							LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
 							DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
 {
 	HANDLE ret;
 	int err=0;
-	OutTraceDW("CreateFile: FileName=%s DesiredAccess=%x SharedMode=%x Disposition=%x Flags=%x\n", 
-		lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes);
+	OutTraceDW("CreateFile: FileName=%s DesiredAccess=%x(%s) SharedMode=%x Disposition=%x Flags=%x(%s)\n", 
+		lpFileName, dwDesiredAccess, ExplainDesiredAccess(dwDesiredAccess), dwShareMode, dwCreationDisposition, 
+		dwFlagsAndAttributes, ExplainFlagsAndAttributes(dwFlagsAndAttributes));
 
 	// just proxy
 	if(!(dxw.dwFlags3 & BUFFEREDIOFIX))

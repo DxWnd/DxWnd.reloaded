@@ -2203,11 +2203,18 @@ HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pS
 			bFixFrame = TRUE;
 		}
 		else{
-			RECT client;
-			(*pGetClientRect)(hwnd, &client);
-			// v2.02.11:
-			// Non fullscreen cooperative mode means windowed, unless the window occupies the whole desktop area
-			dxw.SetFullScreen(client.right==dxw.iSizX && client.bottom==dxw.iSizY);
+			// v2.03.77: the game "Portugal 1111" calls SetCooperativeLevel with hwnd=0. 
+			// in such a case, you can get the window size, so better leave the previous 
+			// FullScreen setting unchanged. This is a wise politic also in case of any 
+			// sort of GetClientRect error code.
+			if(hwnd){
+				RECT client;
+				BOOL ret;
+				ret=(*pGetClientRect)(hwnd, &client);
+				// v2.02.11:
+				// Non fullscreen cooperative mode means windowed, unless the window occupies the whole desktop area
+				if (ret) dxw.SetFullScreen(client.right==dxw.iSizX && client.bottom==dxw.iSizY);
+			}
 		}
 	}
 

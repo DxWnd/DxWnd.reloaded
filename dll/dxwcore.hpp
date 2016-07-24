@@ -179,6 +179,7 @@ public: // simple data variables
 	int GDIEmulationMode;
 	BOOL TimeFreeze;
 	RECT VirtualDesktop;
+	BOOL bHintActive;
 
 // Implementation
 protected:
@@ -326,6 +327,14 @@ typedef enum {
 	SYSLIBIDX_MAX 
 } 
 enum_syslibraries;
+
+typedef enum {
+	HINT_HINT = 0,
+	HINT_DDRAW,		HINT_D3D8,		HINT_D3D9,		HINT_D3D10,
+	HINT_D3D11,		HINT_OPENGL,	HINT_DSOUND,	HINT_DINPUT,
+	HINT_DINPUT8,	HINT_MOVIES,	HINT_D3D,		HINT_IHLP,
+	HINT_LAST
+} HintEnumIds;
 
 #ifdef SYSLIBNAMES_DEFINES
 char *SysNames[]={

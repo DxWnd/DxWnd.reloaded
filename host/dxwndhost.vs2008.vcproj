@@ -436,11 +436,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TabDirect3D.h"
+				RelativePath=".\TabDirectX.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\TabDirectX.cpp"
+				RelativePath=".\TabDirectX2.cpp"
 				>
 			</File>
 			<File
@@ -581,7 +581,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TabDirect3D.h"
+				>
+			</File>
+			<File
 				RelativePath=".\TabDirectX.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TabDirectX2.h"
 				>
 			</File>
 			<File
@@ -723,19 +731,19 @@
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\alt-ctrl-shift.png"
-			>
-		</File>
-		<File
 			RelativePath=".\res\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
-			RelativePath=".\res\alt.png"
+			RelativePath=".\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
 			RelativePath=".\alt.png"
+			>
+		</File>
+		<File
+			RelativePath=".\res\alt.png"
 			>
 		</File>
 		<File

@@ -111,6 +111,9 @@ BOOL WINAPI extDrawMenuBar(HWND);
 typedef BOOL (WINAPI *EnumDisplayDevicesA_Type)(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
 EnumDisplayDevicesA_Type pEnumDisplayDevicesA = NULL;
 BOOL WINAPI extEnumDisplayDevicesA(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
+typedef INT_PTR (WINAPI *DialogBoxIndirectParamA_Type)(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
+DialogBoxIndirectParamA_Type pDialogBoxIndirectParamA = NULL;
+INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
 
 
 #ifdef TRACEPALETTE
@@ -278,6 +281,7 @@ static HookEntryEx_Type WinHooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "DeferWindowPos", (FARPROC)DeferWindowPos, (FARPROC *)&pGDIDeferWindowPos, (FARPROC)extDeferWindowPos},
 	{HOOK_HOT_CANDIDATE, 0, "CallWindowProcA", (FARPROC)CallWindowProcA, (FARPROC *)&pCallWindowProcA, (FARPROC)extCallWindowProcA},
 	{HOOK_HOT_CANDIDATE, 0, "CallWindowProcW", (FARPROC)CallWindowProcW, (FARPROC *)&pCallWindowProcW, (FARPROC)extCallWindowProcW},
+	{HOOK_HOT_CANDIDATE, 0, "DialogBoxIndirectParamA", (FARPROC)DialogBoxIndirectParamA, (FARPROC *)&pDialogBoxIndirectParamA, (FARPROC)extDialogBoxIndirectParamA},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -1768,11 +1772,14 @@ HWND WINAPI extCreateWindowExA(
 	return extCreateWindowCommon("CreateWindowExA", FALSE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
+extern void ExplainMsg(char *, HWND, UINT, WPARAM, LPARAM);
+
 LRESULT WINAPI extCallWindowProcA(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	// v2.02.30: fix (Imperialism II): apply to main window only !!!
 	HRESULT res;
 
+	if(IsTraceW) ExplainMsg("CallWindowProcA", hwnd, Msg, wParam, lParam);
 	res = -1;
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("CallWindowProcA", hwnd, Msg, wParam, &lParam);
 
@@ -1787,6 +1794,7 @@ LRESULT WINAPI extCallWindowProcW(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WP
 	// v2.02.30: fix (Imperialism II): apply to main window only !!!
 	HRESULT res;
 
+	if(IsTraceW) ExplainMsg("CallWindowProcW", hwnd, Msg, wParam, lParam);
 	res = -1;
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("CallWindowProcW", hwnd, Msg, wParam, &lParam);
 
@@ -1802,6 +1810,7 @@ LRESULT WINAPI extDefWindowProcA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPar
 	// v2.03.50: fix - do clip cursor only after the window has got focus
 	HRESULT res;
 	res = (HRESULT)-1;
+	if(IsTraceW) ExplainMsg("DefWindowProcA", hwnd, Msg, wParam, lParam);
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcA", hwnd, Msg, wParam, &lParam);
 	if (res==(HRESULT)-1) res = (*pDefWindowProcA)(hwnd, Msg, wParam, lParam);
 	if((Msg == WM_SETFOCUS) && (dxw.dwFlags1 & CLIPCURSOR)) dxw.SetClipCursor();
@@ -1814,6 +1823,7 @@ LRESULT WINAPI extDefWindowProcW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lPar
 	// v2.03.50: fix - do clip cursor only after the window has got focus
 	HRESULT res;
 	res = (HRESULT)-1;
+	if(IsTraceW) ExplainMsg("DefWindowProcW", hwnd, Msg, wParam, lParam);
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcW", hwnd, Msg, wParam, &lParam);
 	if (res==(HRESULT)-1) res = (*pDefWindowProcW)(hwnd, Msg, wParam, lParam);
 	if((Msg == WM_SETFOCUS) && (dxw.dwFlags1 & CLIPCURSOR)) dxw.SetClipCursor();
@@ -3762,3 +3772,13 @@ BOOL WINAPI extEnumDisplayDevicesA(LPCSTR lpDevice, DWORD iDevNum, PDISPLAY_DEVI
 	}
 	return ret;
 }
+
+INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE hInstance, LPCDLGTEMPLATE hDialogTemplate, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM dwInitParam)
+{
+	//INT_PTR ret;
+	// MessageBox(0, "DialogBoxIndirectParamA", "step", 0);
+	OutTrace("DialogBoxIndirectParamA: hInstance=%x pos=(%d,%d) size=(%dx%d) hWndParent=%x, lpDialogFunc=%x dwInitParam=%x\n",
+		hInstance, hDialogTemplate->x, hDialogTemplate->y, hDialogTemplate->cx, hDialogTemplate->cy, hWndParent, lpDialogFunc, dwInitParam);
+	return (*pDialogBoxIndirectParamA)(hInstance, hDialogTemplate, hWndParent, lpDialogFunc, dwInitParam);
+}
+

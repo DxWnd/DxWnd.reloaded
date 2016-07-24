@@ -46,6 +46,9 @@ protected:
 	CSpecialEdit m_EditPosX;
 	CSpecialEdit m_EditPosY;
 	afx_msg void OnDropFiles(HDROP hDropInfo);
+public:
+	afx_msg void OnStnClickedRegistry();
+	afx_msg void OnStnClickedNotes();
 };
 
 //{{AFX_INSERT_LOCATION}}

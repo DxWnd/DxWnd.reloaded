@@ -51,6 +51,7 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CONFIRMONCLOSE, cTarget->m_ConfirmOnClose);
 	DDX_Check(pDX, IDC_TERMINATEONCLOSE, cTarget->m_TerminateOnClose);
 	DDX_Check(pDX, IDC_FULLSCREENONLY, cTarget->m_FullScreenOnly);
+	DDX_Check(pDX, IDC_SHOWHINTS, cTarget->m_ShowHints);
 	DDX_Check(pDX, IDC_SAVELOAD, cTarget->m_SaveLoad);
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);
@@ -71,6 +72,8 @@ BEGIN_MESSAGE_MAP(CTabProgram, CDialog)
 	ON_BN_CLICKED(IDC_OPENLAUNCH, OnOpenLaunch)
 	ON_WM_DROPFILES()
 	//}}AFX_MSG_MAP
+	ON_STN_CLICKED(IDC_REGISTRY, &CTabProgram::OnStnClickedRegistry)
+	ON_STN_CLICKED(IDC_NOTES, &CTabProgram::OnStnClickedNotes)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -211,3 +214,26 @@ BOOL CTabProgram::OnInitDialog()
 	return TRUE;
 }
 
+
+void CTabProgram::OnStnClickedRegistry()
+{
+	// TODO: Add your control notification handler code here
+	CDXTabCtrl *cTab = (CDXTabCtrl *)this->GetParent();
+	cTab->SwitchToTab(11);
+}
+
+void CTabProgram::OnStnClickedNotes()
+{
+	// TODO: Add your control notification handler code here
+	CDXTabCtrl *cTab = (CDXTabCtrl *)this->GetParent();
+	cTab->SwitchToTab(12);
+}
+
+	//CTabCtrl::OnLButtonDown(nFlags, point);
+
+	//if(m_tabCurrent != GetCurFocus()){
+	//	m_tabPages[m_tabCurrent]->ShowWindow(SW_HIDE);
+	//	m_tabCurrent=GetCurFocus();
+	//	m_tabPages[m_tabCurrent]->ShowWindow(SW_SHOW);
+	//	m_tabPages[m_tabCurrent]->SetFocus();
+	//}
