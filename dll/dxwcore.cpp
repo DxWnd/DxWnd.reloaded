@@ -1523,27 +1523,75 @@ int dxwCore::GetDLLIndex(char *lpFileName)
 	return idx;
 }
 
+DWORD dxwCore::FixWinStyle(DWORD dwStyle)
+{
+	switch(dxw.Coordinates){
+		case DXW_SET_COORDINATES:
+		case DXW_DESKTOP_CENTER:
+			if(dxw.dwFlags2 & MODALSTYLE){
+				dwStyle &= ~(WS_BORDER | WS_CAPTION | WS_DLGFRAME | WS_SYSMENU | WS_THICKFRAME);
+			}
+			else {
+				dwStyle = WS_OVERLAPPEDWINDOW;
+			}
+			break;
+		case DXW_DESKTOP_WORKAREA:
+		case DXW_DESKTOP_FULL:
+			dwStyle = 0;
+			break;
+	}
+	return dwStyle;
+}
+
+DWORD dxwCore::FixWinExStyle(DWORD dwExStyle)
+{
+	switch(dxw.Coordinates){
+		case DXW_SET_COORDINATES:
+		case DXW_DESKTOP_CENTER:
+			if(dxw.dwFlags2 & MODALSTYLE){
+				dwExStyle &= ~(WS_EX_CLIENTEDGE | WS_EX_DLGMODALFRAME | WS_EX_STATICEDGE | WS_EX_WINDOWEDGE);
+			}
+			else {
+				dwExStyle &= ~(WS_EX_CLIENTEDGE | WS_EX_DLGMODALFRAME | WS_EX_STATICEDGE | WS_EX_WINDOWEDGE);
+			}
+			break;
+		case DXW_DESKTOP_WORKAREA:
+		case DXW_DESKTOP_FULL:
+			dwExStyle = 0;
+			break;
+	}
+	return dwExStyle;
+}
+
 void dxwCore::FixWindowFrame(HWND hwnd)
 {
-	LONG nOldStyle;
+	LONG nStyle, nExStyle;
 
-	OutTraceDW("FixWindowFrame: hwnd=%x\n", hwnd);
+	OutTraceDW("FixWindowFrame: hwnd=%x foreground=%x\n", hwnd, GetForegroundWindow());
 
-	nOldStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
-	if (!nOldStyle){
+	nStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
+	if (!nStyle){
 		OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
 		return;
 	}
 
-	OutTraceDW("FixWindowFrame: style=%x(%s)\n",nOldStyle,ExplainStyle(nOldStyle));
+	nExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
+	if (!nExStyle){
+		OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
+		return;
+	}
+
+	OutTraceDW("FixWindowFrame: style=%x(%s) exstyle=%x(%s)\n",
+		nStyle, ExplainStyle(nStyle),
+		nExStyle, ExplainExStyle(nExStyle));
 
 	// fix style
-	if (!(*pSetWindowLongA)(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW)){
+	if (!(*pSetWindowLongA)(hwnd, GWL_STYLE, FixWinStyle(nStyle))){
 		OutTraceE("FixWindowFrame: SetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
 		return;
 	}
 	// fix exstyle
-	if (!(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0)){
+	if (!(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, FixWinExStyle(nExStyle))){
 		OutTraceE("FixWindowFrame: SetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
 		return;
 	}

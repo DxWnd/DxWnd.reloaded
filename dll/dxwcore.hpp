@@ -113,6 +113,8 @@ public: // methods
 	int GetDLLIndex(char *);
 	void FixStyle(char *, HWND, WPARAM, LPARAM);
 	void FixWindowFrame(HWND);
+	DWORD FixWinStyle(DWORD);
+	DWORD FixWinExStyle(DWORD);
 	HDC AcquireEmulatedDC(HWND);
 	BOOL ReleaseEmulatedDC(HWND);
 	HDC AcquireSharedDC(HWND);
@@ -333,6 +335,7 @@ typedef enum {
 	HINT_DDRAW,		HINT_D3D8,		HINT_D3D9,		HINT_D3D10,
 	HINT_D3D11,		HINT_OPENGL,	HINT_DSOUND,	HINT_DINPUT,
 	HINT_DINPUT8,	HINT_MOVIES,	HINT_D3D,		HINT_IHLP,
+	HINT_FAKEOS,	HINT_OBFUSCATED,HINT_SAFEDISC,	HINT_SECUROM,
 	HINT_LAST
 } HintEnumIds;
 

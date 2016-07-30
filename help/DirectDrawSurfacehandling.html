@@ -63,7 +63,7 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Auto primary surface refresh</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">AUTOREFRESH</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">AUTOREFRESH</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some badly programmed games (namely the "Cossaks" series) don't follow the specification to blit changes on screen, they just get the primary surface memory address and keep writing there. The option forces a periodic blitting of the primary surface on screen even if the game doesn't request it. You want a second example? It has not been easy to find, but "Crush! Deluxe" suffers the same problem.</span></p>
 </td>
@@ -71,7 +71,7 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">switch VIDEO to SYSTEM on fail</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">VIDEOTOSYSTEMMEM</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">VIDEOTOSYSTEMMEM</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When this option is set and a CreateSurface fails because of video memory shortage, DxWnd backs this up by creating the surface on memory. &nbsp;Oddly enough, some games expect to notice this by themselves and work correctly only when the option is NOT set.</span></p>
 </td>
@@ -79,7 +79,7 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress DX common errors</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">SUPPRESSDXERRORS</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSDXERRORS</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games running in windowed mode generate sporadic errors that wouldn't prevent the game to work, but terminate the application. This option makes directx methods return OK condition in such common cases.</span></p>
 </td>
@@ -87,7 +87,7 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Make Backbuf attachable</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">BACKBUFATTACH</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">BACKBUFATTACH</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Alters the size specification of the created backbuffer so that it copes with the actual primary surface, so that it may be attachable to a ZBUFFER surface. It makes “Dave Mirra Freestyle BMX” playable.</span></p>
 </td>
@@ -95,7 +95,7 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Blit from Backbuffer</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">BLITFROMBACKBUFFER</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">BLITFROMBACKBUFFER</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games (the Sims, the only one so far....) read graphic data from the primary surface. When the game runs windowed, the approximation introduced in a scaled window brings cumulative error that appear as a progressive "smearing" effect. In this case, it might be better to read the data from the backbuffer surface that is not scaled, even if in such a way you get other troubles when scrolling (see it by yourself...). The only reasonable alternative: write game code in a better way, in my opinion!</span></p>
 </td>
@@ -103,7 +103,7 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress clipper</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">SUPPRESSCLIPPING</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSCLIPPING</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DxWnd sets clipping on the primary surface. If the game does it as way, there might be interferences. As a matter of fact, setting this flag is the only way to make "Pax Imperia Eminent Domain" working correctly.</span></p>
 </td>
@@ -111,15 +111,15 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Force clipper</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FORCECLIPPER</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><br/>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces mouse clipping inside the main window client area. This is very useful if a fullscreen game doesn't provide for cursor clipping and there is horizontal or vertical scrolling.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Palette update don't blit</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">NOPALETTEUPDATE</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOPALETTEUPDATE</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Avoid executing a plit operation in case of palette update. This could be used to fix conflicts between GDI and ddraw palette updates.</span></p>
 </td>
@@ -127,7 +127,7 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Don't fix the Pixel Format</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">NOPIXELFORMAT</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOPIXELFORMAT</span></p>
 </td>
 <td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Do not try to fix the surface pixel format.</span></p>
 </td>
@@ -135,63 +135,62 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default set no ALPHACHANNEL</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">NOALPHACHANNEL</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOALPHACHANNEL</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default, DirectDraw surfaces are created with alpha channel capability. This flag changes the default to create surfaces without alpha channel capability.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Auto Primary Surface Blit</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">AUTOREFRESH</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games ignore DirectDraw specifications, updating the memory address returned by the first DirectDrawSurface::Lock operation, avoiding the need to Unlock and Lock on every frame (the original version of Cossacks does this). On modern systems, these games display a black screen even though the image is refreshed on the virtual surfaces. This flag periodically refreshes the display while processing the Windows message queue, forcing the game to blit each updated frame to the screen.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forced mode</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15"><br/></span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as Auto Primary Surface Blit, but uses a dedicated thread to manage situations where the game doesn't process the message queue (e.g., during intro movies).</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set texture pixel format</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">TEXTUREFORMAT</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Applies the virtual pixel format to texture surfaces that don't have an explicit DDSD_PIXELFORMAT attribute.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress Release on backbuffer</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSRELEASE</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">This flag ensures that the DirectDraw backbuffer surface - a critical resource - will not be released in emulated modes, even if explicitly requested.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Flip emulation</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FLIPEMULATION</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Enabled by default, this flag remaps the DirectDraw Flip method which isn't supported on windowed primary surfaces to a corresponding Blt (blit) operation.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Compensate Flip emulation</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">NOFLIPEMULATION</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOFLIPEMULATION</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default, the Flip operation doesn't take into account the existing background. In several cases (mostly involving mouse cursor movement), this simplified method leaves trails on the screen. This option switches to a slower but more accurate method of Flip emulation that resolves this issue.</span></p>
 </td>
 </tr>
 </table>
 </div>
 <p></p>
-<p class="rvps5"><span class="rvts12">Created with the Personal Edition of HelpNDoc: </span><a class="rvts13" href="http://www.helpndoc.com/create-epub-ebooks">Free EPub producer</a></p>
 </div>
 	
 	<div id="topic_footer">

@@ -297,10 +297,7 @@ void CDxwndhostApp::OnViewHelp()
 {
 	HINSTANCE ret;
 	char sHelpPath[MAX_PATH];
-	char InitPath[MAX_PATH];
-	GetCurrentDirectory(MAX_PATH, InitPath);
-	strcat_s(InitPath, sizeof(InitPath), "\\dxwnd.ini");
-	GetPrivateProfileString("window", "help", ".\\help\\DxWnd.html", sHelpPath, MAX_PATH, InitPath);
+	GetPrivateProfileString("window", "help", ".\\help\\DxWnd.html", sHelpPath, MAX_PATH, gInitPath);
 	ret=ShellExecute(NULL, "open", sHelpPath, NULL, NULL, SW_SHOWNORMAL);
 	if((DWORD)ret<=32){
 		char *m;

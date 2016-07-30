@@ -130,7 +130,7 @@ static char *Flag7Names[32]={
 	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "HOOKDIRECTSOUND",
 	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
 	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
-	"FIXGLOBALUNLOCK", "", "", "",
+	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -275,7 +275,6 @@ void OutTrace(const char *format, ...)
 	dxw.dwTFlags = tFlags; // restore settings
 }
 
-#ifdef CHECKFORCOMPATIBILITYFLAGS
 static BOOL CheckCompatibilityFlags()
 {
 	typedef DWORD (WINAPI *GetFileVersionInfoSizeA_Type)(LPCSTR, LPDWORD);
@@ -311,12 +310,11 @@ static BOOL CheckCompatibilityFlags()
 	vi.dwOSVersionInfoSize=sizeof(vi);
 	GetVersionExA(&vi);
 	if((vi.dwMajorVersion!=dwMajorVersion) || (vi.dwMinorVersion!=dwMinorVersion)) {
-		MessageBox(NULL, "Compatibility settings detected!", "DxWnd", MB_OK);
+		ShowHint(HINT_FAKEOS);
 		return TRUE;
 	}
 	return FALSE;
 }
-#endif
 
 void OutTraceHex(BYTE *bBuf, int iLen)
 {
@@ -472,6 +470,59 @@ void DumpImportTable(HMODULE module)
 	{       
 		OutTraceDW("DumpImportTable: EXCEPTION\n");
 	}
+	return;
+}
+
+// CheckImportTable: a good enough criteria to detect obfuscated executables is to count the entries in the most common
+// and somehow mandatory system dlls such as kernel32.dll, user32.dll and gdi32.dll
+// the routine counsts the kernel32.dll overall entries (they could be split in different sections!) and if lesser than 3
+// a warning message is shown.
+
+void CheckImportTable(HMODULE module)
+{
+	PIMAGE_NT_HEADERS pnth;
+	PIMAGE_IMPORT_DESCRIPTOR pidesc;
+	DWORD base, rva;
+	PSTR impmodule;
+	PIMAGE_THUNK_DATA ptaddr;
+	int Kernel32Count = 0;
+
+	base=(DWORD)module;
+	__try{
+		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
+		if(!pnth) {
+			return;
+		}
+		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+		if(!rva) {
+			return;
+		}
+		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
+
+		while(pidesc->FirstThunk){
+			impmodule = (PSTR)(base + pidesc->Name);
+			if(!_stricmp (impmodule, "kernel32.dll")){
+				ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
+				while(ptaddr->u1.Function){
+					ptaddr ++;
+					Kernel32Count++;
+				}
+			}
+			// warning: do not confuse "dplayerx.dll" (SafeDisk) with "dplayx.dll" (DirectPlay)!
+			if(!_stricmp (impmodule, "dplayerx.dll")) ShowHint(HINT_SAFEDISC);
+			if(!_stricmp (impmodule, "cms_95.dll")) ShowHint(HINT_SECUROM);
+			if(!_stricmp (impmodule, "cms_NT.dll")) ShowHint(HINT_SECUROM);
+			if(!_stricmp (impmodule, "cms16.dll"))  ShowHint(HINT_SECUROM);
+			pidesc ++;
+		}
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{       
+		OutTraceDW("CheckImportTable: EXCEPTION\n");
+	}
+
+	OutTraceDW("CheckImportTable: found %d entries for kernel32.dll\n", Kernel32Count);
+	if(Kernel32Count <= 3) ShowHint(HINT_OBFUSCATED);
 	return;
 }
 
@@ -698,26 +749,18 @@ void HookWindowProc(HWND hwnd)
 void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 {
 	HRESULT res=0;
-	LONG style;
+	LONG style, exstyle;
 
 	OutTraceDW("AdjustWindowFrame hwnd=%x, size=(%d,%d) coord=%d\n", hwnd, width, height, dxw.Coordinates); 
 
 	dxw.SetScreenSize(width, height);
 	if (hwnd==NULL) return;
 
-	switch(dxw.Coordinates){
-		case DXW_SET_COORDINATES:
-		case DXW_DESKTOP_CENTER:
-			style = (dxw.dwFlags2 & MODALSTYLE) ?  0 : WS_OVERLAPPEDWINDOW;
-			break;
-		case DXW_DESKTOP_WORKAREA:
-		case DXW_DESKTOP_FULL:
-			style = 0;
-			break;
-	}
+	style = dxw.FixWinStyle(WS_OVERLAPPEDWINDOW);
+	exstyle = dxw.FixWinExStyle(0);
 
 	(*pSetWindowLongA)(hwnd, GWL_STYLE, style);
-	(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, 0); 
+	(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, exstyle); 
 	(*pShowWindow)(hwnd, SW_SHOWNORMAL);
 	OutTraceDW("AdjustWindowFrame hwnd=%x, set style=%s extstyle=0\n", hwnd, (style == 0) ? "0" : "WS_OVERLAPPEDWINDOW"); 
 	AdjustWindowPos(hwnd, width, height);
@@ -1253,6 +1296,67 @@ static void ReplacePrivilegedOps()
 	FreeLibrary(disasmlib);
 }
 
+#if 0
+// from https://www.winehq.org/pipermail/wine-users/2002-April/007910.html 
+//
+// There is no publicaly available version numbering for SafeDisc. However, it 
+// seems that the version number is stored in the executable as 3 unsigned 32-bit 
+// integers. Using an hexadecimal editor, locate the following byte pattern in 
+// the wrapper (game.exe)
+//
+// > 426f475f 202a3930 2e302621 21202059   BoG_ *90.0&!!  Y
+// > 793e0000                              y>..
+//
+// There should be 3 unsigned integers right after that, which are respectively 
+// the version, subversion an revision number.
+//
+// On some versions of SafeDisc there are 3 null integers following the pattern, 
+// before the version number. You'll then have to look at the 3 unsigned 32-bit 
+// integers right after
+//
+// > 426f475f 202a3930 2e302621 21202059   BoG_ *90.0&!!  Y
+// > 793e0000 00000000 00000000 00000000   y>..............
+
+static void CheckSafeDiscVersion()
+{
+	unsigned char *opcode;
+	DWORD dwSegSize;
+	static BOOL bDoOnce=FALSE;
+	DWORD dwVersion, dwSubversion, dwRevision;
+
+	if(bDoOnce) return;
+	bDoOnce = TRUE;
+
+	if(!GetTextSegment(NULL, &opcode, &dwSegSize)) return;
+
+	unsigned int offset = 0;
+	BOOL cont = TRUE;
+	OutTraceDW("DXWND: CheckSafeDiscVersion starting at addr=%x size=%x\n", opcode, dwSegSize);
+	for(; dwSegSize > 40;) {
+		// fast way to make 20 char comparisons .....
+		if(*(DWORD *)opcode     ==0x5F476F42)
+		if(*(DWORD *)(opcode+4) ==0x30392A20)
+		if(*(DWORD *)(opcode+8) ==0x2126302E)
+		if(*(DWORD *)(opcode+12)==0x59202021)
+		if(*(DWORD *)(opcode+16)==0x00003E79){
+			dwVersion = *(DWORD *)(opcode+20);
+			dwSubversion = *(DWORD *)(opcode+24);
+			dwRevision = *(DWORD *)(opcode+28);
+			if(dwVersion == 0){
+				dwVersion = *(DWORD *)(opcode+32);
+				dwSubversion = *(DWORD *)(opcode+36);
+				dwRevision = *(DWORD *)(opcode+40);	
+			}
+			OutTrace("Safedisk %d.%d.%d detected\n");
+			ShowHint(HINT_SAFEDISC);
+			break;
+		}
+		dwSegSize -= 4;
+		opcode += 4;
+	}
+}
+#endif
+
 HWND hDesktopWindow = NULL;
 
 // Message poller: its only purpose is to keep sending messages to the main window
@@ -1368,6 +1472,11 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		OutTraceDW("Virtual Desktop: monitors=%d area=(%d,%d)-(%d,%d)\n", 
 			GetSystemMetrics(SM_CMONITORS),
 			dxw.VirtualDesktop.left, dxw.VirtualDesktop.top, dxw.VirtualDesktop.right, dxw.VirtualDesktop.bottom);
+
+		if(dxw.bHintActive) {
+			CheckCompatibilityFlags();	// v2.02.83: Check for change of OS release
+			// CheckSafeDiscVersion();		// v2.03.78: Detects SafeDisk references and version - moved to DxWnd.exe 
+		}
 	}
 
 	if(hwnd){ // v2.02.32: skip this when in code injection mode.
@@ -1449,10 +1558,6 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		}
 	}
 
-#ifdef CHECKFORCOMPATIBILITYFLAGS
-	CheckCompatibilityFlags(); // v2.02.83 Check for change of OS release
-#endif
-
 	HookSysLibsInit(); // this just once...
 
 	base=GetModuleHandle(NULL);
@@ -1465,6 +1570,8 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if (dxw.dwFlags4 & INTERCEPTRDTSC) ReplaceRDTSC();
 	if (dxw.dwFlags5 & REPLACEPRIVOPS) ReplacePrivilegedOps();
+
+	if(dxw.bHintActive) CheckImportTable(base);
 
 	// make InitPosition used for both DInput and DDraw
 	if(dxw.Windowize) dxw.InitWindowPos(target->posx, target->posy, target->sizx, target->sizy);

@@ -297,6 +297,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
 	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
+	if(dlg->m_SkipDevTypeHID) t->flags7 |= SKIPDEVTYPEHID;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_VirtualJoystick) t->flags6 |= VIRTUALJOYSTICK;
 	if(dlg->m_Unacquire) t->flags6 |= UNACQUIRE;
@@ -567,6 +568,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
 	dlg->m_EmulateRelMouse = t->flags6 & EMULATERELMOUSE ? 1 : 0;
+	dlg->m_SkipDevTypeHID = t->flags7 & SKIPDEVTYPEHID ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_VirtualJoystick = t->flags6 & VIRTUALJOYSTICK ? 1 : 0;
 	dlg->m_Unacquire = t->flags6 & UNACQUIRE ? 1 : 0;
@@ -2509,8 +2511,17 @@ DWORD WINAPI StartDebug(void *p)
 	if(!CreateProcess(NULL, 
 		(strlen(ThInfo->PM->launchpath)>0) ? ThInfo->PM->launchpath : ThInfo->TM->path, 
 		0, 0, false, DEBUG_PROCESS|DEBUG_ONLY_THIS_PROCESS, NULL, path, &sinfo, &pinfo)){
-		sprintf(DebugMessage, "CREATE PROCESS error=%d", GetLastError());
-		MessageBoxEx(0, DebugMessage, "ERROR", MB_ICONEXCLAMATION|MB_OK, NULL);
+		DWORD dwLastErr = GetLastError();
+		switch (dwLastErr){
+			case 740:
+				sprintf(DebugMessage, "Create process error=%d: DxWnd must run as administrator", dwLastErr);
+				MessageBoxEx(0, DebugMessage, "ERROR", MB_ICONEXCLAMATION|MB_OK, NULL);
+				break;
+			default:
+				sprintf(DebugMessage, "CREATE PROCESS error=%d", dwLastErr);
+				MessageBoxEx(0, DebugMessage, "ERROR", MB_ICONEXCLAMATION|MB_OK, NULL);
+				break;
+		}
 	}
 
 	CString strEventMessage;
@@ -2612,6 +2623,64 @@ DWORD RecoverTargetMaps(LPVOID TargetMaps)
 	return 0;
 }
 
+// from https://www.winehq.org/pipermail/wine-users/2002-April/007910.html 
+//
+// There is no publicaly available version numbering for SafeDisc. However, it 
+// seems that the version number is stored in the executable as 3 unsigned 32-bit 
+// integers. Using an hexadecimal editor, locate the following byte pattern in 
+// the wrapper (game.exe)
+//
+// > 426f475f 202a3930 2e302621 21202059   BoG_ *90.0&!!  Y
+// > 793e0000                              y>..
+//
+// There should be 3 unsigned integers right after that, which are respectively 
+// the version, subversion an revision number.
+//
+// On some versions of SafeDisc there are 3 null integers following the pattern, 
+// before the version number. You'll then have to look at the 3 unsigned 32-bit 
+// integers right after
+//
+// > 426f475f 202a3930 2e302621 21202059   BoG_ *90.0&!!  Y
+// > 793e0000 00000000 00000000 00000000   y>..............
+
+static void CheckSafeDiscVersion(char *path)
+{
+	unsigned char opcode[44+1];
+	char sMessage[81];
+	DWORD dwVersion, dwSubversion, dwRevision;
+	FILE *exe;
+	long seekpos;
+
+	exe=fopen(path, "rb");
+	if(!exe) return;
+
+	while(TRUE) {
+		seekpos=ftell(exe); 
+		if(fread(opcode, 1, 44, exe) != 44) break;
+		//MessageBox(0, "check", "debug", 0);
+		// fast way to make 20 char comparisons .....
+		if(*(DWORD *)opcode     ==0x5F476F42)
+		if(*(DWORD *)(opcode+4) ==0x30392A20)
+		if(*(DWORD *)(opcode+8) ==0x2126302E)
+		if(*(DWORD *)(opcode+12)==0x59202021)
+		if(*(DWORD *)(opcode+16)==0x00003E79){
+			dwVersion = *(DWORD *)(opcode+20);
+			dwSubversion = *(DWORD *)(opcode+24);
+			dwRevision = *(DWORD *)(opcode+28);
+			if(dwVersion == 0){
+				dwVersion = *(DWORD *)(opcode+32);
+				dwSubversion = *(DWORD *)(opcode+36);
+				dwRevision = *(DWORD *)(opcode+40);	
+			}
+			sprintf(sMessage,  "Safedisk version %d.%d.%d detected", dwVersion, dwSubversion, dwRevision);
+			MessageBox(NULL, sMessage, "DxWnd hint", MB_OKCANCEL|MB_ICONWARNING|MB_TOPMOST);
+			break;
+		}
+		if(fseek(exe, seekpos+4, SEEK_SET)) break;
+	}
+	fclose(exe);
+}
+
 void CDxwndhostView::OnRun() 
 {
 	CListCtrl& listctrl = GetListCtrl();
@@ -2658,6 +2727,10 @@ void CDxwndhostView::OnRun()
 		fwrite(Registry, strlen(Registry), 1, regfp);
 		fputs("\n", regfp);
 		fclose(regfp);	
+	}
+
+	if(TargetMaps[i].flags7 & SHOWHINTS){
+		CheckSafeDiscVersion(TargetMaps[i].path);
 	}
 
 	if(TargetMaps[i].flags2 & STARTDEBUG){

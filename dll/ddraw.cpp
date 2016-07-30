@@ -3294,12 +3294,13 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 		// commented out: causes "Arx Fatalis" crash assigning ZBUFFER to the wrong surface?
 		// would that be necessary on some game?
 		//if(dxw.dwFlags6 & SETZBUFFERBITDEPTHS){
-			//if (lpDDZBuffer && (lpddsc->dwCaps & DDSCAPS_ZBUFFER)){ 
-			//	*lplpddas = lpDDZBuffer;
-			//	OutTraceDW("GetAttachedSurface(%d): SIMULATE ZBUFFER attach to %s=%x\n", dxversion, IsPrim?"PRIM":"BACK", lpdds); 
-			//	return DD_OK;
-			//}
+		//	if (lpDDZBuffer && (lpddsc->dwCaps & DDSCAPS_ZBUFFER)){ 
+		//		*lplpddas = lpDDZBuffer;
+		//		OutTraceDW("GetAttachedSurface(%d): SIMULATE ZBUFFER attach to %s=%x\n", dxversion, IsPrim?"PRIM":"BACK", lpdds); 
+		//		return DD_OK;
+		//	}
 		//}
+
 		OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
 	}
 	else {
@@ -5289,6 +5290,12 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 		}
 	}
 	
+	// v2.03.78: fix for "Gothik 2": pretend that 3DDEVICE surface are ALWAYS in video memory
+	if (caps->dwCaps & DDSCAPS_3DDEVICE){  
+		caps->dwCaps |= (DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
+		caps->dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
+	}
+
 	if(IsFixed) OutTraceDW("GetCaps(S%d): lpdds=%x FIXED %s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 	return res;
 }

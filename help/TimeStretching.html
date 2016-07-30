@@ -63,55 +63,54 @@
 <tr valign="top">
 <td width="188" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Time Stretching – initial</span></p>
 </td>
-<td width="134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">TIMESTRETCH</span></p>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">TIMESTRETCH</span></p>
 </td>
-<td width="1215" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">If this option is checked, DxWnd tries to emulate an accelerated (xn) or decelerated (:n) time flow. The value set in the listbox is the initial value, that can be altered by means of the time control slider in the time panel (see </span><span class="rvts14">Time Slider</span><span class="rvts6">). When checked, DxWnd stretches time in the timing API (such as with GetSystemTime()), the query performance APIs, and the Sleep APIs, which are the most common ways to control a program's timing. </span></p>
+<td width="1201" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">If this option is checked, DxWnd tries to emulate an accelerated (xn) or decelerated (:n) time flow. The value set in the listbox is the initial value, that can be altered by means of the time control slider in the time panel (see </span><span class="rvts14">Time Slider</span><span class="rvts6">). When checked, DxWnd stretches time in the timing API (such as with GetSystemTime()), the query performance APIs, and the Sleep APIs, which are the most common ways to control a program's timing. </span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="188" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Show time stretch</span></p>
 </td>
-<td width="134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">SHOWTIMESTRETCH</span></p>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SHOWTIMESTRETCH</span></p>
 </td>
-<td width="1215" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the time stretch ratio is drawn as an overlay in a corner of the screen, sometimes moving to other corners when it is updated.</span></p>
+<td width="1201" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the time stretch ratio is drawn as an overlay in a corner of the screen, sometimes moving to other corners when it is updated.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="188" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fine time adjust</span></p>
 </td>
-<td width="134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FINETIMING</span></p>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FINETIMING</span></p>
 </td>
-<td width="1215" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the time stretch ratio shows ticks in finer increments, switching from a 50% change with each tick to a 10% change with each tick. This limits the range to 0.5x-2.0x but allows for finer timing control.</span></p>
+<td width="1201" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the time stretch ratio shows ticks in finer increments, switching from a 50% change with each tick to a 10% change with each tick. This limits the range to 0.5x-2.0x but allows for finer timing control.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="188" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercept RDTSC opcode</span></p>
 </td>
-<td width="134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">INTERCEPTRDTSC</span></p>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">INTERCEPTRDTSC</span></p>
 </td>
-<td width="1215" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Program timing is usually determined by system calls that can be easily and safely hooked to stretch the flow of time. There is one possible exception, however: when the program embeds in its assembly the RDTSC assembly instruction opcodes that directly access the hardware clock. This timing value can still be intercepted and manipulated, but using a more delicate technique that searches for the assembly code and replaces it with specific calls. This is why I preferred to make this option available with a dedicated flag to be activated when necessary. The flag should be set whenever adjusting the time stretching option does not alter the time flow.</span></p>
+<td width="1201" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Program timing is usually determined by system calls that can be easily and safely hooked to stretch the flow of time. There is one possible exception, however: when the program embeds in its assembly the RDTSC assembly instruction opcodes that directly access the hardware clock. This timing value can still be intercepted and manipulated, but using a more delicate technique that searches for the assembly code and replaces it with specific calls. This is why I preferred to make this option available with a dedicated flag to be activated when necessary. The flag should be set whenever adjusting the time stretching option does not alter the time flow.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="188" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Stretch timers</span></p>
 </td>
-<td width="134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">STRETCHTIMERS</span></p>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">STRETCHTIMERS</span></p>
 </td>
-<td width="1215" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the window timers are stretched, namely the user32.dll timers set by SetTimer and the multimedia timers in winmm.dll set by timeSetEvent().</span></p>
+<td width="1201" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the window timers are stretched, namely the user32.dll timers set by SetTimer and the multimedia timers in winmm.dll set by timeSetEvent().</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="188" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Normalize Performance Counter</span></p>
 </td>
-<td width="134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="148" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NORMALIZEPERFCOUNT</span></p>
 </td>
-<td width="1215" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1201" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Normalizes the system performance counter, simulating a clock speed of 1MHz. Some old games assume that this is the correct clock speed, and produce speed problems without this flag. This flag gives these old games the clock speed they depend on to run properly. Don't use this flag unless you are experiencing speed issues.</span></p>
 </td>
 </tr>
 </table>
 </div>
 <p></p>
-<p class="rvps5"><span class="rvts12">Created with the Personal Edition of HelpNDoc: </span><a class="rvts13" href="http://www.helpndoc.com">Easy EBook and documentation generator</a></p>
 </div>
 	
 	<div id="topic_footer">

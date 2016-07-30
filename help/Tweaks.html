@@ -63,31 +63,31 @@
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Block process priority class</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">BLOCKPRIORITYCLASS</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Blocks a process's attempts to change its own priority class. Old fullscreen games may use this trick to get 100% CPU power dedicated to them, but on modern OSes and windowed environments this could be a bad idea, interfering with other operations and overheating the processor for no reason.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set single core process affinity</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">SINGLEPROCAFFINITY</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SINGLEPROCAFFINITY</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games are not properly synchronized to run on physically separated multiple core CPUs, or simply don't properly handle powerful CPUs. This option sets the program's core affinity so that the program is run by a single core (the first one).</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games are not properly synchronized to run on physically separate multiple core CPUs, or simply don't properly handle powerful CPUs. This option sets the program's core affinity so that the program is run by a single core (the first one).</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set last core affinity</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">USELASTCORE</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">USELASTCORE</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as </span><span class="rvts16">SINGLEPROCAFFINITY</span><span class="rvts6">, but picks the last CPU core.</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as </span><span class="rvts15">SINGLEPROCAFFINITY</span><span class="rvts6">, but picks the last CPU core.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Limit available resources</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">LIMITRESOURCES</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">LIMITRESOURCES</span></p>
 </td>
 <td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Causes the query for available resources (RAM, hard disk space, and so on) to return a limited value: some old games can't handle a very big integer number and see it as a negative value, refusing to start.</span></p>
 </td>
@@ -95,15 +95,15 @@
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disable performance counter</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOPERFCOUNTER</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Since performance metrics hardware is not mandatory on a PC, this flag disables the GetPerfCounter() performance metrics API, simulating an unsupported condition. Usually, in this condition the software should rely on other performance measurement metrics that are more conveniently manipulated by DxWnd timing hooks. It should be set when, despite the time acceleration feature, the program doesn't seem to behave according to the imposed speed ratio.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Bypass font unsupported api</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">FONTBYPASS</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FONTBYPASS</span></p>
 </td>
 <td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games may attempt to manage old font styles that were present by default on legacy platforms and are no longer supported. This flag simulates a success operation to let the program continue. Of course, the font will be wrong, but Windows will approximate the choice with the most similar available font.</span></p>
 </td>
@@ -111,15 +111,15 @@
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Replace privileged opcodes</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">REPLACEPRIVOPS</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Real multitasking OSes (from Windows NT onward) forbid applications from using privileged instructions that directly manipulate the hardware, like the IN opcode. Running a program with such opcodes would result in a program exception on modern systems. This option scans the program code segment at startup and replaces all detected privileged operations with NOP (no operation) instructions. Since these opcodes are often dedicated to interactions with sound hardware, the program will likely work with the possible side effect of some audio issues. Use this flag for games like Ubik.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress IME</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">SUPPRESSIME</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSIME</span></p>
 </td>
 <td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">The flag tries to suppress IME windows. This feature is not yet fully functional.</span></p>
 </td>
@@ -127,7 +127,7 @@
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Handle exceptions</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">HANDLEEXCEPTIONS</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HANDLEEXCEPTIONS</span></p>
 </td>
 <td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Setting this flag causes DxWnd to set its own exception handler that tries (often successfully) to fix several common exceptions, such as the divide by zero exception in old games that were trying to calculate the CPU speed.</span></p>
 </td>
@@ -135,63 +135,70 @@
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Diablo tweak</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">DIABLOTWEAK</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">A flag that seems to improve Blizzard's "Diablo" compatibility. It should not be used for other games and will cease to be supported as soon as a more general tweak is discovered.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercept Imagehlp.dll</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOIMAGEHLP</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercept imagehlp.dll unsupported calls, returning a clean error condition so that the program doesn't crash. One notable game that needs this flag is The Fifth Element.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">EA Sports hack</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EASPORTSHACK</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Intercept and neutralize some of the internal hooks usually set by "EA Sports" games, and possibly other titles as well.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Reserve legacy memory segments</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">LEGACYALLOC</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Old 16-bit programs for Windows 95 and 98 relied on the availability of memory from address 0x4000000 to 0x8FFFFFF, even though they never explicitly allocated it. Recent OSes don't guarantee this memory availability. This flag, combined with DLL injection, reserves memory in this range when the program starts up, before that memory can be used for other purposes.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disable Max Windowed Mode</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">DISABLEMAXWINMODE</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Invoke DirectDraw SetAppCompatData(12,0) to set the DisableMaxWindowedMode.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disable "disable Alt-Tab"</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">DISABLEDISABLEALTTAB</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Disable the compatibility patches that disable the Alt-Tab key combination to avoid window switching, along with other similar key combinations. Usually, programs hooked by DxWnd can afford window switching with no impact, either by default or by setting the UNNOTIFY flag.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Win7 color fix</span></p>
 </td>
-<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts16">???</span></p>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">COLORFIX</span></p>
 </td>
-<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">As described in a DirectDraw hack, this flag fixes a color problem that Windows 7 has with 8BPP palettized modes. It only has an effect when the screen is actually set to an 8BPP color depth, which is now very rare.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix GlobalUnlock</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">FIXGLOBALUNLOCK</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fixes a reported problem of the 16-bit GlobalUnock() API's 32-bit port. In some cases, it never returns the expected value, causing game crashes or endless loops.</span></p>
 </td>
 </tr>
 </table>
 </div>
 <p></p>
-<p class="rvps5"><span class="rvts12">Created with the Personal Edition of HelpNDoc: </span><a class="rvts13" href="http://www.helpndoc.com/feature-tour">Easily create HTML Help documents</a></p>
 </div>
 	
 	<div id="topic_footer">

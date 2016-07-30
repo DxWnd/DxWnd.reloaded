@@ -229,6 +229,7 @@
 #define INIT32BPP			0x00000800 // simulate a 24BPP initial desktop setting (in GetDeviceCaps API)
 #define FIXGLOBALUNLOCK		0x00001000 // Fix GlobalUnlock kernel32 API when it keeps returning the 1 retcode. 
 #define SHOWHINTS			0x00002000 // show configuration hints at runtime
+#define SKIPDEVTYPEHID		0x00004000 // do not enumerate HID device types, some programs are not properly coded!
 
 // eighth flags DWORD dxw.dwFlags8:
 
@@ -247,7 +248,7 @@
 #define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
 #define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
 #define ADDRELATIVETIME		0x08000000 // log timestamp is relative to previous line
-#define NOLOGCLOSE			0x10000000 // avoid closing the log file handle ("Riven, during CD changes ...)
+//#define NOLOGCLOSE			0x10000000 // avoid closing the log file handle ("Riven, during CD changes ...)
 #define ADDTIMESTAMP		0x20000000 // add timestamp (GetTickCount) to log file
 #define OUTDEBUGSTRING		0x40000000 // duplicate logs through OutputDebugString()
 #define ERASELOGFILE		0x80000000 // clears old trace file before writing new logs

@@ -393,7 +393,6 @@ int LastCurPosX, LastCurPosY;
 
 extern GetDC_Type pGetDC;
 extern ReleaseDC_Type pReleaseDC1;
-//extern void FixWindowFrame(HWND);
 extern HRESULT WINAPI sBlt(int, Blt_Type, char *, LPDIRECTDRAWSURFACE, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX, BOOL);
 
 LONG WINAPI MyChangeDisplaySettings(char *fname, BOOL WideChar, void *lpDevMode, DWORD dwflags)
@@ -1635,9 +1634,9 @@ static HWND WINAPI extCreateWindowCommon(
 	if ((!isValidHandle) && dxw.IsFullScreen()){
 		dxw.SethWnd(hwnd);
 		extern void AdjustWindowPos(HWND, DWORD, DWORD);
-		(*pSetWindowLong)(hwnd, GWL_STYLE, (dxw.dwFlags2 & MODALSTYLE) ? 0 : WS_OVERLAPPEDWINDOW);
-		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, 0); 
-		OutTraceDW("%s: hwnd=%x, set style=WS_OVERLAPPEDWINDOW extstyle=0\n", ApiName, hwnd); 
+		(*pSetWindowLong)(hwnd, GWL_STYLE, dxw.FixWinStyle(dwStyle));
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, dxw.FixWinExStyle(dwExStyle)); 
+		OutTraceDW("%s: hwnd=%x, set style\n", ApiName, hwnd); 
 		AdjustWindowPos(hwnd, nWidth, nHeight);
 		(*pShowWindow)(hwnd, SW_SHOWNORMAL);
 	}
@@ -3523,6 +3522,11 @@ INT_PTR WINAPI extDialogBoxParamA(HINSTANCE hInstance, LPCTSTR lpTemplateName, H
 	FullScreen = dxw.IsFullScreen();
 	OutTraceDW("DialogBoxParamA: FullScreen=%x TemplateName=\"%s\" WndParent=%x\n", 
 		FullScreen, sTemplateName(lpTemplateName), hWndParent);
+	// attempt to fix "Colonial Project 2" dialog. Doesn't work, but it could be ok.....
+	//if(FullScreen && dxw.IsRealDesktop(hWndParent)){
+	//	OutTraceDW("DialogBoxParamA: remap WndParent=%x->%x\n", hWndParent, dxw.GethWnd());
+	//	hWndParent = dxw.GethWnd();
+	//}
 	dxw.SetFullScreen(FALSE);
 	ret = (*pDialogBoxParamA)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, dwInitParam);
 	dxw.SetFullScreen(FullScreen);

@@ -35,6 +35,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_HookDI = FALSE;
 	m_HookDI8 = FALSE;
 	m_EmulateRelMouse = FALSE; // ??
+	m_SkipDevTypeHID = FALSE; 
 	m_ModifyMouse = TRUE; // default true !!
 	m_VirtualJoystick = FALSE; 
 	m_Unacquire = FALSE; 

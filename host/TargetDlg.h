@@ -42,6 +42,7 @@ public:
 	BOOL	m_HookDI;
 	BOOL	m_HookDI8;
 	BOOL	m_EmulateRelMouse;
+	BOOL	m_SkipDevTypeHID;
 	BOOL	m_ModifyMouse;
 	BOOL	m_VirtualJoystick;
 	BOOL	m_Unacquire;

@@ -1,0 +1,31 @@
+[target]
+title0=Need 4 Speed IV High Stakes
+path0=D:\Games\Need 4 Speed IV High Stakes\nfshs.exe
+launchpath0=D:\Games\Need 4 Speed IV High Stakes\nfshs.exe -PatchRestart
+module0=
+opengllib0=
+notes0=
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts\Need For Speed High Stakes]\n"Version"="4.00"\n"InstallPath"=".\\"\n"3D Device Description"="Software Renderer"\n"3D Card"="[Direct 3D]"\n"Thrash Driver"="d3d"\n"Group"="D3D"\n"D3D Device"=dword:00000000\n"Triple Buffer"=dword:00000000\n"Hardware Acceleration"=dword:00000001\n"Thrash Resolution"="1600x1200"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts\Need For Speed High Stakes]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts\Need For Speed High Stakes\1.0]\n"Language"=dword:00000001\n"Variant"=dword:00000000\n"Night"=dword:00000000\n"InstLev"=dword:00000002\n"SrcDrive"=".\\"\n
+ver0=0
+coord0=0
+flag0=136314914
+flagg0=1476395008
+flagh0=1044
+flagi0=1212153860
+flagj0=4224
+flagk0=65536
+flagl0=0
+flagm0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2

@@ -1,0 +1,116 @@
+﻿<html>
+	
+<head>
+	<title>Direct3D tweaks</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Direct3Dtweaks");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Direct3D tweaks</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Direct3D.html">Direct3D</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Direct3D.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="SwapEffect.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Texturehandling.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="186" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Textures not power of 2 fix</span></p>
+</td>
+<td width="127" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOPOWER2FIX</span></p>
+</td>
+<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games don't properly check whether the hardware can properly manage textures whose sizes are not a power of 2 (e.g. 16, 32, 64, 128 bits). If textures of a different size are processed by hardware without this capability, you get diagonal effects on the rendered image. The option fixes this problem.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="186" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Clean ZBUFFER @0.0 fix</span></p>
+</td>
+<td width="127" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">ZBUFFER0CLEAN</span></p>
+</td>
+<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games don't properly clear the zeta buffer between frames, producing incorrect surface z-ordering and other issues. This flag fixes this problem.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="186" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Clean ZBUFFER @1.0 fix</span></p>
+</td>
+<td width="127" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">ZBUFFERCLEAN</span></p>
+</td>
+<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games don't properly clear the zeta buffer between frames, producing incorrect surface z-ordering and other issues. This flag fixes this problem. It is similar to </span><span class="rvts15">ZBUFFER0CLEAN</span><span class="rvts6">, but it works in different contexts.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="186" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress D3D8/9 Reset</span></p>
+</td>
+<td width="127" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">NOD3DRESET</span></p>
+</td>
+<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Do not perform the D3D reset operation.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="186" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress d3d9 extensions</span></p>
+</td>
+<td width="127" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SUPPRESSD3DEXT</span></p>
+</td>
+<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">D3d9.dll comes in different versions depending on the platform: on older windows releases it exports the Direct3DCreate API, while in more recent versions there are many further exported calls. This flag suppresses the additional entries.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

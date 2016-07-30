@@ -767,6 +767,11 @@ HRESULT WINAPI extDeviceProxy(LPCDIDEVICEINSTANCE dev, LPVOID arg)
 		dev->dwSize, p, dev->guidInstance.Data1, dev->guidInstance.Data2, dev->guidInstance.Data3, dev->guidInstance.Data4, 
 		dev->dwDevType, dev->tszInstanceName, dev->tszProductName);
 
+	if((dxw.dwFlags7 & SKIPDEVTYPEHID) && (dev->dwDevType & DIDEVTYPE_HID)) {
+		OutTraceDW("EnumDevices(I): skip HID device devtype=%x\n", dev->dwDevType);
+		return TRUE; // skip DIDEVTYPE_HID
+	}
+	
 	res = (*(((CallbackArg *)arg)->cb))(dev, ((CallbackArg *)arg)->arg);
 	OutTraceDW("EnumDevices: CALLBACK ret=%x\n", res);
 	return res;

@@ -16,7 +16,7 @@ Key_Type FKeys[] = {
 	{IDC_KEY_LABEL5,	"Clip toggle",	IDC_KEY_COMBO5,		"cliptoggle", 0},
 	{IDC_KEY_LABEL6,	"Refresh",		IDC_KEY_COMBO6,		"refresh", 0},
 	{IDC_KEY_LABEL7,	"Log toggle",	IDC_KEY_COMBO7,		"logtoggle", 0},
-	{IDC_KEY_LABEL8,	"label4",		IDC_KEY_COMBO8,		"plogtoggle", 0},
+	{IDC_KEY_LABEL8,	"Position t.",	IDC_KEY_COMBO8,		"plogtoggle", 0},
 	{IDC_KEY_LABEL9,	"FPS toggle",	IDC_KEY_COMBO9,		"fpstoggle", 0},
 	{IDC_KEY_LABEL10,	"Print screen",	IDC_KEY_COMBO10,	"printscreen", 0},
 	{IDC_KEY_LABEL11,	"Corner tog.",	IDC_KEY_COMBO11,	"corner", 0},

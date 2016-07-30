@@ -21,6 +21,10 @@ HintEntry_Type HintTable[]={
 	{FALSE, "Movie libraries detected. Check multimedia section"},
 	{FALSE, "D3D libraries detected. Check DirectX version hook (DirectX7 ?)"},
 	{FALSE, "IMAGEHLP dependency detected. In case of error, check NOIMAGEHLP flag"},
+	{FALSE, "Compatibility settings for a dfferent OS detected. You may need to clear them"},
+	{FALSE, "Executable obfuscation detected. Impossible to hook this file"},
+	{FALSE, "SafeDisk dependency detected. Check for compatibility with current OS"},
+	{FALSE, "SecuRom dependency detected. Check for compatibility with current OS"},
 	{FALSE, ""}
 };
 
@@ -34,5 +38,10 @@ void ShowHint(int HintId)
 	HintTable[HintId].bShowed = TRUE;
 
 	// show hint
-	MessageBox(NULL, HintTable[HintId].sHintText, "DxWnd hint", MB_OK);
+	char sMessage[1024];
+	strcpy(sMessage, HintTable[HintId].sHintText);
+	strcat(sMessage, "\n\nShow next hints?");
+	if(MessageBox(NULL, sMessage, "DxWnd hint", 
+		MB_OKCANCEL|MB_ICONWARNING|MB_TOPMOST)==IDCANCEL)
+		dxw.bHintActive = FALSE;
 }

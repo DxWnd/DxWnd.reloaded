@@ -1176,3 +1176,12 @@ add: preliminary "Show hints" flag and feature
 GUI: multi-line tab control
 GUI: clicking on notes and registry icons the GUI goes straight to the relative tab pages.
 GUI: The DirectX tab is now splitted in two, so that there no longer are DirectX switches into the Direct3D tab.
+
+v2.03.78
+fix: DirectDrawSurface::GetCaps now returning VIDEOMEMORY+LOCALVIDMEM type for 3DDEVICES in system memory. Fixes "Gothic 2" controls.
+add: Added SKIPDEVTYPEHID to avoid passing HID input devices to DirectInput::EnumDevices callback. Fixes "Jetboat Superchamps 2" crash.
+add: hint for OS version compatibility flag
+add: hint for obfuscated IAT detection
+add: hint for safedisk and securom game protection
+add: hint to show safedisc version 
+fix: centralized handling of window styles
