@@ -711,6 +711,19 @@ void dxwCore::UnmapClient(int *nXDest, int *nYDest)
 	if(h) *nYDest = ((*nYDest * (int)dwScreenHeight) + (h >> 1)) / h;
 }
 
+void dxwCore::UnmapClient(int *nXDest, int *nYDest, int *nWidth, int *nHeight)
+{
+	RECT client;
+	int w, h;
+	if(!(*pGetClientRect)(hWnd, &client)) return;
+	w = client.right ? client.right : iSizX;
+	h = client.bottom ? client.bottom : iSizY;
+	if(w) *nXDest = ((*nXDest * (int)dwScreenWidth) + (w >> 1)) / w;
+	if(h) *nYDest = ((*nYDest * (int)dwScreenHeight) + (h >> 1)) / h;
+	if(w) *nWidth = ((*nWidth * (int)dwScreenWidth) + (w >> 1)) / w;
+	if(h) *nHeight = ((*nHeight * (int)dwScreenHeight) + (h >> 1)) / h;
+}
+
 void dxwCore::UnmapClient(LPRECT lpRect)
 {
 	RECT client;

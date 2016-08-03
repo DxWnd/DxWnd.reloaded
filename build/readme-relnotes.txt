@@ -1031,3 +1031,7 @@ fix: handling of cursor hide/show for programs that don't go through the message
 add: /R:n command line option to automatically start DxWnd in icon tray, run the n-th program in configuration and terminate.
 add: option to disable the disabling of Alt-Tab key through SetWindowHooks through WH_KEYBOARD_LL event. Make it posssible to use Alt-Tab key on "Dungeon Kepper II".
 fix: palette object reference count decremented from extra references and zeroed by the "Return 0 refcount" flag: make it possible to run "Dark Earth" that makes a check on the palette reerence counter before starting the game.
+
+v2.03.55
+fix: differentiated handling of blitting from memory to DC vs. from DC vs. memory. The second case is less frequent, but altered the correct rendering of "Battlezone 1998 edition", now working both in scaled, emulated DC shared DC and shared ddraw and GDI DC. The fix impacts both BitBlt and ScaledBlt GDI calls.
+fix: prevented InvalidateRect to return giving a scaled rect. Fixes "Deadlock 2"partial screen updates.

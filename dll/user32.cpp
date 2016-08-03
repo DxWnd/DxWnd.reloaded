@@ -639,12 +639,19 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		OutTrace("InvalidateRect: hwnd=%x rect=%s erase=%x\n", hwnd, sRect, bErase);
 	}
 
+	RECT ScaledRect;
 	if(dxw.IsFullScreen()) { 
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_STRETCHED:
 			case GDIMODE_SHAREDDC:
 			case GDIMODE_EMULATED:
-				if(lpRect) dxw.MapClient(lpRect);
+				if(lpRect) {
+					// v2.03.55: the lpRect area must NOT be altered by the call
+					// effect visible in partial updates of Deadlock 2 main menu buttons
+					ScaledRect = *lpRect;
+					dxw.MapClient(&ScaledRect);
+					lpRect = &ScaledRect;
+				}
 				break;
 			default:
 				break;

@@ -61,85 +61,40 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc)
 	extern void *lpD3DActiveDevice;
 
 	OutTraceB("dxwSDC::GetPrimaryDC: hdc=%x\n", hdc);
-#ifdef D3D9TRY
-	if(lpD3DActiveDevice){
-		// search for D3D first
-		//RECT client;
-		//(*pGetClientRect)(dxw.GethWnd(), &client);
-		//if(pDestSurface == NULL){
-		//	//res=((IDirect3DDevice9 *)lpD3DActiveDevice)->CreateOffscreenPlainSurface(ScreenWidth, ScreenHeight, D3DFMT_UNKNOWN, D3DPOOL_DEFAULT, &pDestSurface, NULL);
-		//	//res=((IDirect3DDevice9 *)lpD3DActiveDevice)->CreateOffscreenPlainSurface(dxw.GetScreenWidth(), dxw.GetScreenHeight(), D3DFMT_UNKNOWN, D3DPOOL_DEFAULT, &pDestSurface, NULL);
-		//	res=((IDirect3DDevice9 *)lpD3DActiveDevice)->CreateOffscreenPlainSurface(client.right, client.bottom, D3DFMT_UNKNOWN, D3DPOOL_DEFAULT, &pDestSurface, NULL);
-		//	if(res){
-		//		OutTraceE("dxwSDC::CreateOffscreenPlainSurface: ERROR err=%x(%s) at=%d\n", res, ExplainDDError(res), __LINE__);
-		//		return NULL;
-		//		_Warn("CreateOffscreenPlainSurface ERROR");
-		//	}
-		//}
-		//res=((IDirect3DDevice9 *)lpD3DActiveDevice)->GetFrontBufferData(1, pDestSurface);
-		//if(res){
-		//	OutTraceE("GetFrontBufferData: ERROR err=%x(%s) at=%d\n", res, ExplainDDError(res), __LINE__);
-		//	_Warn("GetFrontBufferData ERROR");
-		//}
-		IDirect3DSurface9 *pRenderSurface;
-		res=((IDirect3DDevice9 *)lpD3DActiveDevice)->GetRenderTarget(0, &pRenderSurface);
-		if(res){
-			OutTraceE("d3d9::GetRenderTarget: ERROR err=%x(%s) at=%d\n", res, ExplainDDError(res), __LINE__);
-			_Warn("d3d9::GetRenderTarget ERROR");
+
+	// look for ddraw first
+	//if(pReleaseDDThreadLock)(*pReleaseDDThreadLock)();
+	lpDDSPrimary = dxwss.GetPrimarySurface();
+	if (lpDDSPrimary) {
+		if(pReleaseDDThreadLock)(*pReleaseDDThreadLock)();
+		res=((*pGetDC)(lpDDSPrimary, &PrimaryDC));
+		while((PrimaryDC == NULL) && lpDDSPrimary) { 
+			OutTraceB("dxwSDC::GetPrimaryDC: found primary surface with no DC, unref lpdds=%x\n", lpDDSPrimary);
+			dxwss.UnrefSurface(lpDDSPrimary);
+			lpDDSPrimary = dxwss.GetPrimarySurface();
+			if (lpDDSPrimary) (*pGetDC)(lpDDSPrimary, &PrimaryDC);
 		}
-		//res=((IDirect3DDevice9 *)lpD3DActiveDevice)->GetRenderTargetData(pRenderSurface, pDestSurface);
-		//if(res){
-		//	OutTraceE("d3d9::GetRenderTargetData: ERROR err=%x(%s) at=%d\n", res, ExplainDDError(res), __LINE__);
-		//	_Warn("d3d9::GetRenderTargetData ERROR");
-		//}
-		//res=pDestSurface->GetDC(&PrimaryDC);
-		res=pRenderSurface->GetDC(&PrimaryDC);
-		if(res){
-			OutTraceE("d3d9::GetDC: ERROR err=%x(%s) at=%d\n", res, ExplainDDError(res), __LINE__);
-			//_Warn("d3d9::GetDC ERROR");
-		VirtualSurfaceType = VIRTUAL_ON_D3D;
+		if (!PrimaryDC) {
+			_Warn("No primary DC");
+			OutTraceB("dxwSDC::GetPrimaryDC: no ddraw primary DC\n");
 			return NULL;
 		}
-		VirtualSurfaceType = VIRTUAL_ON_D3D;
+		// avoid double Getdc on same hdc and lock
+		// if(PrimaryDC == hdc) (*pReleaseDC)(lpDDSPrimary, PrimaryDC);
+		OutTraceB("dxwSDC::GetPrimaryDC: ddraw PrimaryDC=%x\n", PrimaryDC);
+		VirtualSurfaceType = VIRTUAL_ON_DDRAW;
 	}
 	else {
-#else
-	{
-#endif
-		// else look for ddraw
-		//if(pReleaseDDThreadLock)(*pReleaseDDThreadLock)();
-		lpDDSPrimary = dxwss.GetPrimarySurface();
-		if (lpDDSPrimary) {
-			if(pReleaseDDThreadLock)(*pReleaseDDThreadLock)();
-			res=((*pGetDC)(lpDDSPrimary, &PrimaryDC));
-			while((PrimaryDC == NULL) && lpDDSPrimary) { 
-				OutTraceB("dxwSDC::GetPrimaryDC: found primary surface with no DC, unref lpdds=%x\n", lpDDSPrimary);
-				dxwss.UnrefSurface(lpDDSPrimary);
-				lpDDSPrimary = dxwss.GetPrimarySurface();
-				if (lpDDSPrimary) (*pGetDC)(lpDDSPrimary, &PrimaryDC);
-			}
-			if (!PrimaryDC) {
-				_Warn("No primary DC");
-				OutTraceB("dxwSDC::GetPrimaryDC: no ddraw primary DC\n");
-				return NULL;
-			}
-			// avoid double Getdc on same hdc and lock
-			// if(PrimaryDC == hdc) (*pReleaseDC)(lpDDSPrimary, PrimaryDC);
-			OutTraceB("dxwSDC::GetPrimaryDC: ddraw PrimaryDC=%x\n", PrimaryDC);
-			VirtualSurfaceType = VIRTUAL_ON_DDRAW;
+		// finally, search GDI DC
+		PrimaryDC = (*pGDIGetDC)(dxw.GethWnd());
+		if (!PrimaryDC) {
+			_Warn("No window DC");
+			OutTraceB("dxwSDC::GetPrimaryDC: no windows DC\n");
+			return NULL;
 		}
-		else {
-			// finally, search GDI DC
-			PrimaryDC = (*pGDIGetDC)(dxw.GethWnd());
-			if (!PrimaryDC) {
-				_Warn("No window DC");
-				OutTraceB("dxwSDC::GetPrimaryDC: no windows DC\n");
-				return NULL;
-			}
-			OutTraceB("dxwSDC::GetPrimaryDC: gdi PrimaryDC=%x\n", PrimaryDC);
-			VirtualSurfaceType = VIRTUAL_ON_WINDOW;
-		}	
-	}
+		OutTraceB("dxwSDC::GetPrimaryDC: gdi PrimaryDC=%x\n", PrimaryDC);
+		VirtualSurfaceType = VIRTUAL_ON_WINDOW;
+	}	
 
 	// whenever the hdc changes, rebuild the virtual DC
 	if(hdc != LastHDC) do {
@@ -208,11 +163,27 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc)
 	}
 
 	if(PrimaryDC){
-		if(!(*pGDIBitBlt)(VirtualHDC, 0, 0, ScreenWidth, ScreenHeight, PrimaryDC, VirtualOffset.x, VirtualOffset.y, SRCCOPY)){
-			OutTraceE("dxwSDC::GetPrimaryDC: StretchBlt ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-			_Warn("StretchBlt ERROR");
+		switch(VirtualSurfaceType){
+			case VIRTUAL_ON_DDRAW:
+				if(!(*pGDIBitBlt)(VirtualHDC, 0, 0, ScreenWidth, ScreenHeight, PrimaryDC, VirtualOffset.x, VirtualOffset.y, SRCCOPY)){
+					OutTraceE("dxwSDC::GetPrimaryDC: StretchBlt ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+					_Warn("StretchBlt ERROR");
+				}
+				OutTraceB("dxwSDC::GetPrimaryDC: fill=(0,0)-(%dx%d) from=(%d,%d)\n", ScreenWidth, ScreenHeight, VirtualOffset.x, VirtualOffset.y);
+				break;
+			case VIRTUAL_ON_WINDOW:
+				int w, h;
+				dxw.MapClient(&VirtualOffset);
+				w = ScreenWidth;
+				h = ScreenHeight;
+				dxw.MapClient(&w, &h);
+				if(!(*pGDIStretchBlt)(VirtualHDC, 0, 0, ScreenWidth, ScreenHeight, PrimaryDC, VirtualOffset.x, VirtualOffset.y, w, h, SRCCOPY)){
+					OutTraceE("dxwSDC::GetPrimaryDC: StretchBlt ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+					_Warn("StretchBlt ERROR");
+				}
+				OutTraceB("dxwSDC::GetPrimaryDC: fill=(0,0)-(%dx%d) from=(%d,%d)-(%dx%d)\n", ScreenWidth, ScreenHeight, VirtualOffset.x, VirtualOffset.y, w, h);
+				break;
 		}
-		OutTraceB("dxwSDC::GetPrimaryDC: fill=(0,0)-(%d,%d) from=(%d,%d)\n", ScreenWidth, ScreenHeight, VirtualOffset.x, VirtualOffset.y);
 	}
 
 	POINT origin = {};
@@ -274,18 +245,6 @@ BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen, int XDest, int YDest, int 
 
 	if(UpdateScreen){
 		switch(VirtualSurfaceType){
-#ifdef D3D9TRY
-			case VIRTUAL_ON_D3D: 
-				RECT client;
-				SetStretchBltMode(PrimaryDC, HALFTONE);
-				(*pGetClientRect)(dxw.GethWnd(), &client);
-				if(PrimaryDC) ret=(*pGDIStretchBlt)(PrimaryDC, 0, 0, client.right, client.bottom, VirtualHDC, 0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight(), SRCCOPY);
-				ret=(*pGDIReleaseDC)(dxw.GethWnd(), PrimaryDC);
-				//ret=(*pGDIReleaseDC)(dxw.GethWnd(), PrimaryDC);
-				if(!ret) OutTrace("dxwSDC::PutPrimaryDC: ReleaseDC ERROR err=%d\n", GetLastError());
-				//pDestSurface->Release();
-				break;
-#endif
 			case VIRTUAL_ON_DDRAW: 
 				ret=(*pGDIBitBlt)(PrimaryDC, XDest+VirtualOffset.x, YDest+VirtualOffset.y, nDestWidth, nDestHeight, VirtualHDC, XDest, YDest, SRCCOPY);
 				if(!ret || (ret==GDI_ERROR)) {
@@ -409,6 +368,7 @@ static BOOL CALLBACK excludeClipRectsForOverlappingWindows(HWND hwnd, LPARAM lPa
 
 void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
 {
+#if 0
 	OutTrace("dxwSDC::setClippingRegion: compdc=%x origdc=%x origin=(%d,%d)\n", compatDc, origDc, origin.x, origin.y);
 	HRGN clipRgn = CreateRectRgn(0, 0, 0, 0);
 	const bool isEmptyClipRgn = (1 != GetRandomRgn(origDc, clipRgn, SYSRGN));
@@ -444,13 +404,14 @@ void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
 		}
 	}
 	DeleteObject(origClipRgn);
+#endif
 
-	return;
+#if 0
 	// to finish .....
 	// on Win10 this part seems unnecessary and giving troubles .....
 	//dxw.MapClient(&origin);
-	if (!isEmptyClipRgn)
-	{
+	//if (!isEmptyClipRgn)
+	if(1){
 		HWND hwnd = WindowFromDC(origDc);
 		if (hwnd)
 		{
@@ -458,4 +419,5 @@ void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
 			EnumWindows(&excludeClipRectsForOverlappingWindows,(LPARAM)(&excludeClipRectsData));
 		}
 	}
+#endif
 }

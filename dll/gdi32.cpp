@@ -221,7 +221,8 @@ static HookEntry_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, "DeleteDC", (FARPROC)DeleteDC, (FARPROC *)&pGDIDeleteDC, (FARPROC)extGDIDeleteDC}, // for tracing only!
 	{HOOK_IAT_CANDIDATE, "CreateDCA", (FARPROC)CreateDCA, (FARPROC *)&pGDICreateDCA, (FARPROC)extGDICreateDCA}, 
 	{HOOK_IAT_CANDIDATE, "CreateDCW", (FARPROC)CreateDCW, (FARPROC *)&pGDICreateDCW, (FARPROC)extGDICreateDCW}, 
-	// CreateDCW .....	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator 
+	// CreateDCW .....	
+	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator 
 };
 
 static HookEntry_Type ScaledHooks[]={
@@ -994,7 +995,16 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 			case GDIMODE_STRETCHED: 
 				nWDest= nWidth;
 				nHDest= nHeight;
-				if (IsToScreen && !IsFromScreen) dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+				switch(Flux){
+					case 1: // memory to screen
+						dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+						break;
+					case 2: // screen to memory
+						dxw.MapClient(&nXSrc, &nYSrc, &nWidth, &nHeight);
+						break;
+					default:
+						break;
+				}
 				res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWidth, nHeight, dwRop);
 				OutTraceB("GDI.BitBlt: DEBUG DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
 				break;
@@ -1081,7 +1091,16 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 				int nWDest, nHDest;
 				nWDest= nWidth;
 				nHDest= nHeight;
-				dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+				switch(Flux){
+					case 1: // memory to screen
+						dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+						break;
+					case 2: // screen to memory
+						dxw.MapClient(&nXSrc, &nYSrc, &nWidth, &nHeight);
+						break;
+					default:
+						break;
+				}
 				res=(*pGDIStretchBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 				OutTraceB("GDI.StretchBlt: DEBUG DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
 				}
