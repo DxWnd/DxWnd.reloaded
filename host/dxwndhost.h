@@ -41,6 +41,7 @@ typedef struct {
 ThreadInfo_Type;
 
 extern char gInitPath[MAX_PATH];
+extern void OutTrace(const char *, ...);
 
 /////////////////////////////////////////////////////////////////////////////
 // CDxwndhostApp:

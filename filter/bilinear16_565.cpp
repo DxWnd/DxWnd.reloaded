@@ -3,6 +3,7 @@
 #include <math.h>
 
 static int* g_px1a    = NULL;
+static int* g_px1c    = NULL;
 static int  g_px1a_w  = 0;
 static int* g_px1ab   = NULL;
 static int  g_px1ab_w = 0;
@@ -54,19 +55,24 @@ void WINAPI Resize_HQ_2ch565( unsigned char* src, RECT *srcrect, int srcpitch,
 
         // cache x1a, x1b for all the columns:
         // ...and your OS better have garbage collection on process exit :)
+		//gsky916: also cache x1c for better performance
         if (g_px1a_w < w2)
         {
             if (g_px1a) delete [] g_px1a;
+			if (g_px1c) delete [] g_px1c;
             g_px1a = new int[w2*2 * 1];
-            g_px1a_w = w2*2;
+ 			g_px1c = new int[w2*2 * 1];
+			g_px1a_w = w2*2;
         }
         for (int x2=0; x2<w2; x2++)
         {
             // find the x-range of input pixels that will contribute:
             int x1a = (int)(x2*fw);
             x1a = min(x1a, 256*(w1-1) - 1);
-            g_px1a[x2] = x1a;
-        }
+			g_px1c[x2] = x1a >> 8;
+            g_px1a[x2] = x1a & 0xFF;
+		
+		}
 
         // FOR EVERY OUTPUT PIXEL
 		// gsky916: Use OpenMP to speed up nested for loops (Enable OpenMP support in compiler).
@@ -77,6 +83,8 @@ void WINAPI Resize_HQ_2ch565( unsigned char* src, RECT *srcrect, int srcpitch,
             int y1a = (int)(y2*fh);
             y1a = min(y1a, 256*(h1-1) - 1);
             int y1c = y1a >> 8;
+			int y1cp = y1c * p1;
+			y1a = y1a & 0xFF;  		
 
             USHORT *ddest = &((USHORT *)dest)[y2*p2 + 0];
 
@@ -84,33 +92,58 @@ void WINAPI Resize_HQ_2ch565( unsigned char* src, RECT *srcrect, int srcpitch,
             {
                 // find the x-range of input pixels that will contribute:
                 int x1a = g_px1a[x2];//(int)(x2*fw); 
-                int x1c = x1a >> 8;
+                int x1c = g_px1c[x2];
 
                 USHORT *dsrc2 = &dsrc[y1c*p1 + x1c]; // GHO
 
                 // PERFORM BILINEAR INTERPOLATION on 2x2 pixels
                 UINT r=0, g=0, b=0, a=0;
-                UINT weight_x = 256 - (x1a & 0xFF);
-                UINT weight_y = 256 - (y1a & 0xFF);
-                for (int y=0; y<2; y++)
-                {
-                    for (int x=0; x<2; x++)
-                    {
-                        UINT c = (UINT)dsrc2[x + y*p1]; // GHO
-                        UINT r_src = (c    ) & 0x1F;
-                        UINT g_src = (c>> 5) & 0x3F;
-                        UINT b_src = (c>>11) & 0x1F;
-                        UINT w = (weight_x * weight_y) >> weight_shift;
-                        r += r_src * w;
-                        g += g_src * w;
-                        b += b_src * w;
-                        weight_x = 256 - weight_x;
-                    }
-                    weight_y = 256 - weight_y;
-                }
+                UINT weight_x = 256 - x1a;
+                UINT weight_y = 256 - y1a;
 
-				UINT c = ((r>>16) & 0x1F) | ((g>>(16-5)) & 0x7E0) | ((b>>(16-11)) & 0xF800);
-				*ddest++ = (USHORT)c;
+                // gsky916: expand the innermost nested loops for speed improvement,
+				// and reduce calculation operations...
+
+                UINT c = (UINT)dsrc2[0]; // GHO
+                UINT r_src = (c    ) & 0x1F;
+                UINT g_src = (c>> 5) & 0x3F;
+                UINT b_src = (c>>11) & 0x1F;
+                UINT w = (weight_x * weight_y);
+                r += r_src * w;
+                g += g_src * w;
+                b += b_src * w;
+                UINT weight_x1 = x1a;
+
+                c = (UINT)dsrc2[1]; // GHO
+                r_src = (c    ) & 0x1F;
+                g_src = (c>> 5) & 0x3F;
+                b_src = (c>>11) & 0x1F;
+                w = (weight_x1 * weight_y);
+                r += r_src * w;
+                g += g_src * w;
+                b += b_src * w;
+                UINT weight_y1 = y1a;
+
+                c = (UINT)dsrc2[p1]; // GHO
+                r_src = (c    ) & 0x1F;
+                g_src = (c>> 5) & 0x3F;
+                b_src = (c>>11) & 0x1F;
+                w = (weight_x * weight_y1);
+                r += r_src * w;
+                g += g_src * w;
+                b += b_src * w;
+
+                c = (UINT)dsrc2[p1+1]; // GHO
+                r_src = (c    ) & 0x1F;
+                g_src = (c>> 5) & 0x3F;
+                b_src = (c>>11) & 0x1F;
+                w = (weight_x1 * weight_y1);
+                r += r_src * w;
+                g += g_src * w;
+                b += b_src * w;
+
+				UINT cc = ((r>>16) & 0x1F) | ((g>>(16-5)) & 0x7E0) | ((b>>(16-11)) & 0xF800);
+				*ddest++ = (USHORT)cc;
             }
         }
     }

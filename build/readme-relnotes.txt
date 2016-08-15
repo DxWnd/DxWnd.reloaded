@@ -1191,3 +1191,14 @@ fix: proper handling of DirectInputCreateEx function - fixes "Gothik 2" mouse an
 fix: avoids setting the pixel format of a window more than once through GDI SetPixelFormat call. Fixes "Bugdom" OpenGL rendering
 fix: improved bilinear filtering speed through gsky916 loop optimization 
 fix: added delay handling to several gdi32 amnd user32 routines blitting to screen
+
+v2.03.80
+add: "Suppress DI common errors" flag, fixes initial failures of Acquire method.
+fix: in centered window option, trims the window coordinates if they exceeds the screen size and risk getting negative values.
+fix: fixed injection logic to avoid hooking task when the "Hook enabled" flag is off
+fix: avoid calling GDI SetPixelFormat more than one upon a window since this is not supported. Fixes "bugdom" OpenGL problems.
+fix: scales glGetIntegerv(GL_VIEWPORT) returned values. Fixes "bugdom" rendering problems.
+add: added GUI logging when debug mode is on.
+add: added a third injection mode "Inject suspended process". Modified the GUI to select the injection mode through radio buttons. Improves injection compatibility, working mode for "T-ZWei" on WinXP.
+
+ 

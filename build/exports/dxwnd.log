@@ -1,0 +1,3 @@
+Injection START
+create process: base=0x400000 path="D:\Games\AirXonix\program.exe"
+exit process:

@@ -158,7 +158,7 @@ void WINAPI Resize_HQ_4ch( unsigned char* src, RECT *srcrect, int srcpitch,
                 UINT c = dsrc2[0]; // GHO
                 UINT r_src = c & 0xFF;
                 UINT g_src = c & 0xFF00;
-                UINT b_src = c>>16 ;
+                UINT b_src = (c>>16) & 0xFF;
                 UINT w = (weight_x * weight_y);
                 r += r_src * w;
                 g += g_src * w;
@@ -168,7 +168,7 @@ void WINAPI Resize_HQ_4ch( unsigned char* src, RECT *srcrect, int srcpitch,
                 c = dsrc2[1]; // GHO
                 r_src = c & 0xFF;
                 g_src = c & 0xFF00;
-                b_src = c>>16 ;
+                b_src = (c>>16) & 0xFF;
                 w = (weight_x1 * weight_y);
                 r += r_src * w;
                 g += g_src * w;
@@ -178,7 +178,7 @@ void WINAPI Resize_HQ_4ch( unsigned char* src, RECT *srcrect, int srcpitch,
                 c = dsrc2[p1]; // GHO
                 r_src = c & 0xFF;
                 g_src = c & 0xFF00;
-                b_src = c>>16 ;
+                b_src = (c>>16) & 0xFF;
                 w = (weight_x * weight_y1);
                 r += r_src * w;
                 g += g_src * w;
@@ -187,7 +187,7 @@ void WINAPI Resize_HQ_4ch( unsigned char* src, RECT *srcrect, int srcpitch,
                 c = dsrc2[p1 + 1]; // GHO
                 r_src = c & 0xFF;
                 g_src = c & 0xFF00;
-                b_src = c>>16 ;
+                b_src = (c>>16) & 0xFF;
                 w = (weight_x1 * weight_y1);
                 r += r_src * w;
                 g += g_src * w;

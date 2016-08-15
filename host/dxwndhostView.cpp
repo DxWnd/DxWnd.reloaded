@@ -35,6 +35,7 @@ extern BOOL Inject(DWORD, const char *);
 extern int KillProcByName(char *, BOOL);
 extern BOOL gTransientMode;
 extern BOOL gAutoHideMode;
+extern BOOL gbDebug;
 extern int iProgIndex;
 
 PRIVATEMAP *pTitles; // global ptr: get rid of it!!
@@ -213,7 +214,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookEnabled) t->flags3 |= HOOKENABLED;
 	if(dlg->m_NeedAdminCaps) t->flags |= NEEDADMINCAPS;
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
-	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
 	if(dlg->m_HotPatch) t->flags4 |= HOTPATCH;
 	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
 	if(dlg->m_ShowHints) t->flags7 |= SHOWHINTS;
@@ -221,6 +221,12 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
 	if(dlg->m_NoWinPosChanges) t->flags5 |= NOWINPOSCHANGES;
 	if(dlg->m_MessagePump) t->flags5 |= MESSAGEPUMP;
+
+	switch(dlg->m_InjectionMode){
+		case 0: break;
+		case 1: t->flags2 |= STARTDEBUG; break;
+		case 2: t->flags7 |= INJECTSUSPENDED; break;
+	}
 
 	switch(dlg->m_DxEmulationMode){
 		//case 0: t->flags |= AUTOMATIC; break;
@@ -230,7 +236,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 3: t->flags |= EMULATESURFACE; break;
 		case 4: t->flags5 |= HYBRIDMODE; break;
 		case 5: t->flags5 |= GDIMODE; break;
-			break;
 	}
 
 	switch(dlg->m_InitColorDepth){
@@ -298,12 +303,12 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
 	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
 	if(dlg->m_SkipDevTypeHID) t->flags7 |= SKIPDEVTYPEHID;
+	if(dlg->m_SuppressDIErrors) t->flags7 |= SUPPRESSDIERRORS;
 	if(dlg->m_ModifyMouse) t->flags |= MODIFYMOUSE;
 	if(dlg->m_VirtualJoystick) t->flags6 |= VIRTUALJOYSTICK;
 	if(dlg->m_Unacquire) t->flags6 |= UNACQUIRE;
 	if(dlg->m_OutDebug) t->tflags |= OUTDEBUG;
 	if(dlg->m_CursorTrace) t->tflags |= OUTCURSORTRACE;
-	//if(dlg->m_LogEnabled) t->tflags |= OUTTRACE;
 	if(dlg->m_OutDebugString) t->tflags |= OUTDEBUGSTRING;
 	//if(dlg->m_EraseLogFile) t->tflags |= ERASELOGFILE;
 	if(dlg->m_AddTimeStamp) t->tflags |= ADDTIMESTAMP;
@@ -505,7 +510,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookEnabled = t->flags3 & HOOKENABLED ? 1 : 0;
 	dlg->m_NeedAdminCaps = t->flags & NEEDADMINCAPS ? 1 : 0;
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
-	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
 	dlg->m_FullScreenOnly = t->flags3 & FULLSCREENONLY ? 1 : 0;
 	dlg->m_ShowHints = t->flags7 & SHOWHINTS ? 1 : 0;
 	//dlg->m_FilterMessages = t->flags3 & FILTERMESSAGES ? 1 : 0;
@@ -513,8 +517,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoWinPosChanges = t->flags5 & NOWINPOSCHANGES ? 1 : 0;
 	dlg->m_MessagePump = t->flags5 & MESSAGEPUMP ? 1 : 0;
 
+	dlg->m_InjectionMode = 0;
+	if(t->flags2 & STARTDEBUG) dlg->m_InjectionMode = 1;
+	if(t->flags7 & INJECTSUSPENDED) dlg->m_InjectionMode = 2;
+
 	dlg->m_DxEmulationMode = 0; // none
-	//if(t->flags & AUTOMATIC) dlg->m_DxEmulationMode = 0;
 	if(t->flags & EMULATEBUFFER) dlg->m_DxEmulationMode = 1;
 	if(t->flags & LOCKEDSURFACE) dlg->m_DxEmulationMode = 2;
 	if(t->flags & EMULATESURFACE) dlg->m_DxEmulationMode = 3;
@@ -569,14 +576,13 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
 	dlg->m_EmulateRelMouse = t->flags6 & EMULATERELMOUSE ? 1 : 0;
 	dlg->m_SkipDevTypeHID = t->flags7 & SKIPDEVTYPEHID ? 1 : 0;
+	dlg->m_SuppressDIErrors = t->flags7 & SUPPRESSDIERRORS ? 1 : 0;
 	dlg->m_ModifyMouse = t->flags & MODIFYMOUSE ? 1 : 0;
 	dlg->m_VirtualJoystick = t->flags6 & VIRTUALJOYSTICK ? 1 : 0;
 	dlg->m_Unacquire = t->flags6 & UNACQUIRE ? 1 : 0;
 	dlg->m_OutDebug = t->tflags & OUTDEBUG ? 1 : 0;
 	dlg->m_CursorTrace = t->tflags & OUTCURSORTRACE ? 1 : 0;
-//	dlg->m_LogEnabled = t->tflags & OUTTRACE ? 1 : 0;
 	dlg->m_OutDebugString = t->tflags & OUTDEBUGSTRING ? 1 : 0;
-//	dlg->m_EraseLogFile = t->tflags & ERASELOGFILE ? 1 : 0;
 	dlg->m_AddTimeStamp = t->tflags & ADDTIMESTAMP ? 1 : 0;
 	dlg->m_AddRelativeTime = t->tflags & ADDRELATIVETIME ? 1 : 0;
 	dlg->m_OutWinMessages = t->tflags & OUTWINMESSAGES ? 1 : 0;
@@ -691,12 +697,9 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_Force16BPP = t->flags3 & FORCE16BPP ? 1 : 0;
 	dlg->m_HookChildWin = t->flags & HOOKCHILDWIN ? 1 : 0;
 	dlg->m_MessageProc = t->flags & MESSAGEPROC ? 1 : 0;
-	//dlg->m_NoMouseProc = t->flags6 & NOMOUSEPROC ? 1 : 0;
 	dlg->m_FixNCHITTEST = t->flags2 & FIXNCHITTEST ? 1 : 0;
 	dlg->m_RecoverScreenMode = t->flags2 & RECOVERSCREENMODE ? 1 : 0;
 	dlg->m_RefreshOnResize = t->flags2 & REFRESHONRESIZE ? 1 : 0;
-	//dlg->m_Init8BPP = t->flags2 & INIT8BPP ? 1 : 0;
-	//dlg->m_Init16BPP = t->flags2 & INIT16BPP ? 1 : 0;
 	dlg->m_BackBufAttach = t->flags2 & BACKBUFATTACH ? 1 : 0;
 	dlg->m_HandleAltF4 = t->flags & HANDLEALTF4 ? 1 : 0;
 	dlg->m_LimitFPS = t->flags2 & LIMITFPS ? 1 : 0;
@@ -1043,7 +1046,7 @@ static int SetTargetIcon(TARGETMAP tm)
 	target = fopen(tm.path, "r");
 	if (target==NULL) return 3;
 	fclose(target);
-	if (tm.flags3 & HOOKENABLED) return (tm.flags2 & STARTDEBUG) ? 2 : 1;
+	if (tm.flags3 & HOOKENABLED) return ((tm.flags2 & STARTDEBUG)||(tm.flags7 & INJECTSUSPENDED)) ? 2 : 1;
 	return 0;
 }
 
@@ -2473,6 +2476,24 @@ static char *ExceptionCaption(DWORD ec)
 	return c;
 }
 
+static char *sEventCode(DWORD ec)
+{
+	char *c;
+	switch(ec){
+		case EXCEPTION_DEBUG_EVENT:				c="exception"; break;
+		case CREATE_THREAD_DEBUG_EVENT:			c="create thread"; break;
+		case CREATE_PROCESS_DEBUG_EVENT:		c="create process"; break;
+		case EXIT_THREAD_DEBUG_EVENT:			c="exit thread"; break;
+		case EXIT_PROCESS_DEBUG_EVENT:			c="exit process"; break;
+		case LOAD_DLL_DEBUG_EVENT:				c="load dll"; break;
+		case UNLOAD_DLL_DEBUG_EVENT:			c="unload dll"; break;
+		case OUTPUT_DEBUG_STRING_EVENT:			c="out debug"; break;
+		case RIP_EVENT:							c="rip"; break;
+		default:								c="unknown"; break;
+	}
+	return c;
+}
+
 // For thread messaging
 #define DEBUG_EVENT_MESSAGE		WM_APP + 0x100
 
@@ -2482,6 +2503,7 @@ DWORD WINAPI StartDebug(void *p)
 	STARTUPINFO sinfo;
 	PROCESS_INFORMATION pinfo;
 	char path[MAX_PATH];
+	extern char *GetFileNameFromHandle(HANDLE);
 #ifdef DXWDEBUGSTEPPING
 	PROCESS_INFORMATION *pi;
 	CREATE_THREAD_DEBUG_INFO *ti;
@@ -2493,7 +2515,6 @@ DWORD WINAPI StartDebug(void *p)
 	int res;
 	BOOL step=TRUE; // initialize to TRUE to enable
 	BOOL stepdll=FALSE; // initialize to TRUE to enable
-	extern char *GetFileNameFromHandle(HANDLE);
 #endif
 #ifdef LOCKINJECTIONTHREADS
 	DWORD StartingCode;
@@ -2516,14 +2537,17 @@ DWORD WINAPI StartDebug(void *p)
 			case 740:
 				sprintf(DebugMessage, "Create process error=%d: DxWnd must run as administrator", dwLastErr);
 				MessageBoxEx(0, DebugMessage, "ERROR", MB_ICONEXCLAMATION|MB_OK, NULL);
+				if(gbDebug) OutTrace("%s\n", DebugMessage);
 				break;
 			default:
 				sprintf(DebugMessage, "CREATE PROCESS error=%d", dwLastErr);
 				MessageBoxEx(0, DebugMessage, "ERROR", MB_ICONEXCLAMATION|MB_OK, NULL);
+				if(gbDebug) OutTrace("%s\n", DebugMessage);
 				break;
 		}
 	}
 
+	if(gbDebug) OutTrace("create process: path=\"%s\"\n", path);
 	CString strEventMessage;
 	DEBUG_EVENT debug_event ={0};
 	bContinueDebugging = true;
@@ -2531,17 +2555,28 @@ DWORD WINAPI StartDebug(void *p)
 	while(bContinueDebugging)
 	{ 
 		dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
-		if (!WaitForDebugEvent(&debug_event, INFINITE)) break; // must release pinfo handles
+		if (!WaitForDebugEvent(&debug_event, INFINITE)) {
+			sprintf(DebugMessage, "Injection error: WaitForDebugEvent error=%d",  GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if(gbDebug) OutTrace("%s\n", DebugMessage);
+			break; // must release pinfo handles
+		}
+		//OutTrace("Injection: WaitForDebugEvent code=%d(%s)\n", debug_event.dwDebugEventCode, sEventCode(debug_event.dwDebugEventCode));
 		switch(debug_event.dwDebugEventCode){
 		case EXIT_PROCESS_DEBUG_EVENT:
+			if(gbDebug) OutTrace("exit process\n", DebugMessage);
 			bContinueDebugging=false;
 			break;
 		case CREATE_PROCESS_DEBUG_EVENT:
+			if (gbDebug) OutTrace("create process: base=0x%X path=\"%s\"\n", 
+				debug_event.u.CreateProcessInfo.lpBaseOfImage,
+				GetFileNameFromHandle(debug_event.u.CreateProcessInfo.hFile));
 			GetFullPathName("dxwnd.dll", MAX_PATH, path, NULL);
 			if(!Inject(pinfo.dwProcessId, path)){
 				// DXW_STRING_INJECTION
 				sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, path);
 				MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+				if (gbDebug) OutTrace("%s\n", DebugMessage);
 			}
 #ifdef LOCKINJECTIONTHREADS
 			extern LPVOID GetThreadStartAddress(HANDLE);
@@ -2555,27 +2590,37 @@ DWORD WINAPI StartDebug(void *p)
 					if(!ReadProcessMemory(pinfo.hProcess, StartAddress, &StartingCode, 4, &BytesCount)){ 
 						sprintf(DebugMessage,"ReadProcessMemory error=%d", GetLastError());
 						MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+						if (gbDebug) OutTrace("%s\n", DebugMessage);
 					}
 					if(!WriteProcessMemory(pinfo.hProcess, StartAddress, &EndlessLoop, 4, &BytesCount)){
 						sprintf(DebugMessage,"WriteProcessMemory error=%d", GetLastError());
 						MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+						if (gbDebug) OutTrace("%s\n", DebugMessage);
 					}
 				}
 			}
 #endif
-			CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hProcess);
-			CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hThread);
-			CloseHandle(((CREATE_PROCESS_DEBUG_INFO *)&debug_event.u)->hFile);
+			CloseHandle(debug_event.u.CreateProcessInfo.hProcess);
+			CloseHandle(debug_event.u.CreateProcessInfo.hThread);
+			CloseHandle(debug_event.u.CreateProcessInfo.hFile);
 			break;
 		case CREATE_THREAD_DEBUG_EVENT:
-			CloseHandle(((CREATE_THREAD_DEBUG_INFO *)&debug_event.u)->hThread);
+			if (gbDebug) OutTrace("create thread: th=0x%X base=0x%X start=0x%X\n", 
+				debug_event.u.CreateThread.hThread,
+				debug_event.u.CreateThread.lpThreadLocalBase,
+				debug_event.u.CreateThread.lpStartAddress);
+			//SuspendThread(debug_event.u.CreateThread.hThread);
+			CloseHandle(debug_event.u.CreateThread.hThread);
 			break;
 		case EXIT_THREAD_DEBUG_EVENT:
+			if (gbDebug) OutTrace("exit thread: exitcode=0x%X\n", 
+				debug_event.u.ExitThread.dwExitCode);
 #ifdef LOCKINJECTIONTHREADS
 			if(TargetHandle && StartAddress){
 				if(!WriteProcessMemory(pinfo.hProcess, StartAddress, &StartingCode, 4, &BytesCount)){
 					sprintf(DebugMessage,"WriteProcessMemory error=%d", GetLastError());
 					MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+					if (gbDebug) OutTrace("%s\n", DebugMessage);
 				}
 			}
 			if(TargetHandle) CloseHandle((HANDLE)TargetHandle);
@@ -2584,11 +2629,19 @@ DWORD WINAPI StartDebug(void *p)
 			// bContinueDebugging=false;
 			break;
 		case LOAD_DLL_DEBUG_EVENT:
-			CloseHandle(((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->hFile);
+			if (gbDebug) OutTrace("load dll: base=0x%X path=\"%s\"\n", 
+				debug_event.u.LoadDll.lpBaseOfDll,
+				GetFileNameFromHandle(debug_event.u.LoadDll.hFile));
+			CloseHandle(debug_event.u.LoadDll.hFile);
 			break;
 		case UNLOAD_DLL_DEBUG_EVENT:
+			if (gbDebug) OutTrace("unload dll: base=0x%X\n", 
+				debug_event.u.UnloadDll.lpBaseOfDll);
 			break;
 		case OUTPUT_DEBUG_STRING_EVENT: 				
+			if (gbDebug) OutTrace("output debug: len=%d unicode=%x\n", 
+				debug_event.u.DebugString.nDebugStringLength,
+				debug_event.u.DebugString.fUnicode);
 			break;
 		case EXCEPTION_DEBUG_EVENT:
 			//sprintf(DebugMessage, "Exception %x(%s) caught at addr=%x",
@@ -2596,10 +2649,16 @@ DWORD WINAPI StartDebug(void *p)
 			//	ExceptionCaption(debug_event.u.Exception.ExceptionRecord.ExceptionCode),
 			//	debug_event.u.Exception.ExceptionRecord.ExceptionAddress);
 			//MessageBoxEx(0, DebugMessage, "EXCEPTION", MB_ICONEXCLAMATION, NULL);
+			if (gbDebug) OutTrace("exception: code=0x%X(%s) addr=0x%X first=%x\n", 
+				debug_event.u.Exception.ExceptionRecord.ExceptionCode, 
+				ExceptionCaption(debug_event.u.Exception.ExceptionRecord.ExceptionCode),
+				debug_event.u.Exception.ExceptionRecord.ExceptionAddress,
+				debug_event.u.Exception.dwFirstChance);
 			break;
 		default:
 			sprintf(DebugMessage,"Unknown eventcode=%x", debug_event.dwDebugEventCode);
 			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
 			break;
 		}
 		if(bContinueDebugging){
@@ -2614,6 +2673,173 @@ DWORD WINAPI StartDebug(void *p)
 	CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
 	CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
 	return TRUE;
+}
+
+void InjectSuspended(char *exepath, char *dirpath)
+{
+	STARTUPINFO sinfo;
+	PROCESS_INFORMATION pinfo;
+	char StartingCode[4];
+	DWORD EndlessLoop;
+	EndlessLoop=0x9090FEEB; // careful: it's BIG ENDIAN: EB FE 90 90
+	DWORD BytesCount;
+	char DebugMessage[1024];
+	DWORD OldProt;
+	DWORD PEHeader[0x70];
+	char dllpath[MAX_PATH];
+	LPVOID StartAddress;
+	HANDLE TargetHandle;
+	FILE *fExe = NULL;
+	BOOL bKillProcess = FALSE;
+
+	OutTrace("InjectSuspended: exe=%s dir=%s\n",exepath, dirpath);
+	ZeroMemory(&sinfo, sizeof(sinfo));
+	sinfo.cb = sizeof(sinfo);
+	// attempt to load the specified target
+	if (!CreateProcess(NULL, exepath, 0, 0, false, CREATE_SUSPENDED, NULL, dirpath, &sinfo, &pinfo)){
+		sprintf(DebugMessage,"CreateProcess \"%s\" error=%d", exepath, GetLastError());
+		MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+		if (gbDebug) OutTrace("%s\n", DebugMessage);
+	}
+
+	while(TRUE) { // fake loop
+		bKillProcess = TRUE;
+
+		// locate the entry point
+		TargetHandle = OpenProcess(
+			PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE|PROCESS_SUSPEND_RESUME, 
+			FALSE, 
+			pinfo.dwProcessId);
+		if (gbDebug) OutTrace("Target handle=%x\n", TargetHandle);
+
+		FILE *fExe = fopen(exepath, "rb");
+		if(fExe==NULL){
+			sprintf(DebugMessage,"fopen %s error=%d", exepath, GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+		// read DOS header
+		if(fread((void *)PEHeader, sizeof(DWORD), 0x10, fExe)!=0x10){
+			sprintf(DebugMessage,"fread error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+		OutTrace("NT Header offset=%X\n", PEHeader[0xF]);
+		fseek(fExe, PEHeader[0xF], 0);
+		// read File header + Optional header
+		if(fread((void *)PEHeader, sizeof(DWORD), 0x70, fExe)!=0x70){
+			sprintf(DebugMessage,"fread error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+
+		OutTrace("AddressOfEntryPoint=%X ImageBase=%X\n", PEHeader[0xA], PEHeader[0xD]);
+		StartAddress = (LPVOID)(PEHeader[0xA] + PEHeader[0xD]);
+		if (gbDebug) OutTrace("Thread start address=%x\n", StartAddress);
+
+		// patch the entry point with infinite loop
+		if(!VirtualProtectEx(TargetHandle, StartAddress, 4, PAGE_EXECUTE_READWRITE, &OldProt )){
+			sprintf(DebugMessage,"VirtualProtectEx error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+
+		if(!ReadProcessMemory(TargetHandle, StartAddress, &StartingCode, 4, &BytesCount)){ 
+			sprintf(DebugMessage,"ReadProcessMemory error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+
+		if(!WriteProcessMemory(TargetHandle, StartAddress, &EndlessLoop, 4, &BytesCount)){
+			sprintf(DebugMessage,"WriteProcessMemory error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+
+		// resume the main thread
+		if(ResumeThread(pinfo.hThread)==(DWORD)-1){
+			sprintf(DebugMessage,"ResumeThread error=%d at:%d", GetLastError(), __LINE__);
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+
+		// wait until the thread stuck at entry point
+		CONTEXT context;
+		context.Eip = (DWORD)0; // initialize to impossible value
+		for ( unsigned int i = 0; i < 40 && context.Eip != (DWORD)StartAddress; ++i ){
+			// patience.
+			Sleep(50);
+
+			// read the thread context
+			context.ContextFlags = CONTEXT_CONTROL;
+			if(!GetThreadContext(pinfo.hThread, &context)){
+				sprintf(DebugMessage,"GetThreadContext error=%d", GetLastError());
+				MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+				if (gbDebug) OutTrace("%s\n", DebugMessage);
+				break;
+			}
+			OutTrace("wait cycle %d eip=%x\n", i, context.Eip);
+		}
+
+		if (context.Eip != (DWORD)StartAddress){
+			// wait timed out
+			sprintf(DebugMessage,"thread blocked eip=%x addr=%x", context.Eip, StartAddress);
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+		}
+
+		// inject DLL payload into remote process
+		GetFullPathName("dxwnd.dll", MAX_PATH, dllpath, NULL);
+		if(!Inject(pinfo.dwProcessId, dllpath)){
+			// DXW_STRING_INJECTION
+			sprintf(DebugMessage,"Injection error: pid=%x dll=%s", pinfo.dwProcessId, dllpath);
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+		}
+
+		// pause 
+		if(SuspendThread(pinfo.hThread)==(DWORD)-1){
+			sprintf(DebugMessage,"SuspendThread error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+		// restore original entry point
+		if(!WriteProcessMemory(TargetHandle, StartAddress, &StartingCode, 4, &BytesCount)){
+			sprintf(DebugMessage,"WriteProcessMemory error=%d", GetLastError());
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			throw;
+		}
+
+		// you are ready to go
+		// pause and restore original entry point
+		if(ResumeThread(pinfo.hThread)==(DWORD)-1){
+			sprintf(DebugMessage,"ResumeThread error=%d at:%d", GetLastError(), __LINE__);
+			MessageBoxEx(0, DebugMessage, "Injection", MB_ICONEXCLAMATION|MB_OK, NULL);
+			if (gbDebug) OutTrace("%s\n", DebugMessage);
+			break;
+		}
+		bKillProcess = FALSE;
+		break; // exit fake loop
+	}
+
+	// cleanup ....
+	if(fExe) fclose(fExe);
+	if(TargetHandle) CloseHandle(TargetHandle);
+	// terminate the newly spawned process
+	if(bKillProcess){
+		if(!TerminateProcess( pinfo.hProcess, -1 )){
+			if (gbDebug) OutTrace("failed to kill hproc=%x err=%d\n", pinfo.hProcess, GetLastError());
+		}
+	}
 }
 
 DWORD RecoverTargetMaps(LPVOID TargetMaps)
@@ -2708,17 +2934,20 @@ void CDxwndhostView::OnRun()
 	strcpy_s(path, sizeof(path), TargetMaps[i].path);
 	PathRemoveFileSpec(path);
 	SetTarget(RestrictedMaps);	
+	OutTrace("OnRun idx=%d prog=\"%s\"\n", i, TargetMaps[i].path);
 
 	// self-elevation if configured and necessary
 	if(TargetMaps[i].flags & NEEDADMINCAPS){
 		extern BOOL DxSelfElevate(CDxwndhostView *);
 		OSVERSIONINFO osver = { sizeof(osver) };
 		if (GetVersionEx(&osver) && (osver.dwMajorVersion >= 6)){
+			OutTrace("self elevation\n");
 			DxSelfElevate(this);
 		}
 	}
 
 	if((TargetMaps[i].flags3 & EMULATEREGISTRY) || (TargetMaps[i].flags4 & OVERRIDEREGISTRY)){
+		OutTrace("export virtual registry\n");
 		FILE *regfp;
 		char *Registry;
 		Registry = PrivateMaps[i].registry;
@@ -2730,16 +2959,24 @@ void CDxwndhostView::OnRun()
 	}
 
 	if(TargetMaps[i].flags7 & SHOWHINTS){
+		OutTrace("checksafediscversion\n");
 		CheckSafeDiscVersion(TargetMaps[i].path);
 	}
 
 	if(TargetMaps[i].flags2 & STARTDEBUG){
+		OutTrace("debugger mode\n");
 		ThreadInfo_Type ThreadInfo;
 		ThreadInfo.TM=&TargetMaps[i];
 		ThreadInfo.PM=&PrivateMaps[i];
 		CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
 	}
+	else
+	if(TargetMaps[i].flags7 & INJECTSUSPENDED){
+		OutTrace("injectsuspended mode\n");
+		InjectSuspended((strlen(PrivateMaps[i].launchpath)>0) ? PrivateMaps[i].launchpath: TargetMaps[i].path, path); 
+	}
 	else{
+		OutTrace("setwindowshook mode\n");
 		CreateProcess(NULL, 
 			(strlen(PrivateMaps[i].launchpath)>0) ? PrivateMaps[i].launchpath: TargetMaps[i].path, 
 			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
@@ -2748,8 +2985,7 @@ void CDxwndhostView::OnRun()
 	}
 	// wait & recover
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RecoverTargetMaps, (LPVOID)TargetMaps, 0, NULL);
-	if(gAutoHideMode) this->OnGoToTrayIcon(); 
-
+	if(gAutoHideMode) this->OnGoToTrayIcon();
 }
 
 void SwitchToColorDepth(int bpp)

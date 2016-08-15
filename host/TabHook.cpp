@@ -29,7 +29,7 @@ void CTabHook::DoDataExchange(CDataExchange* pDX)
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	DDX_Text(pDX, IDC_MODULE, cTarget->m_Module);
 	DDX_Check(pDX, IDC_HOOKENABLED, cTarget->m_HookEnabled);
-	DDX_Check(pDX, IDC_STARTDEBUG, cTarget->m_StartDebug);
+	DDX_Radio(pDX, IDC_INJECT_WINDOWSHOOK, cTarget->m_InjectionMode);
 	DDX_Check(pDX, IDC_HOTPATCH, cTarget->m_HotPatch);
 	DDX_Check(pDX, IDC_HOOKDLLS, cTarget->m_HookDLLs);
 	DDX_Check(pDX, IDC_ANSIWIDE, cTarget->m_AnsiWide);

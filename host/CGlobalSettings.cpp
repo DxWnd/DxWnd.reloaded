@@ -7,6 +7,7 @@
 #include "CGlobalSettings.h"
 
 extern char gInitPath[];
+extern BOOL gbDebug;
 
 Key_Type FKeys[] = {
 	{IDC_KEY_LABEL1,	"Time toggle",	IDC_KEY_COMBO1,		"timetoggle", 0},
@@ -215,4 +216,5 @@ void CGlobalSettings::OnOK()
 			WritePrivateProfileString("keymapping", HKeys[i].sIniLabel, "", gInitPath);
 	}
 	//(CDxwndhostView *)(this->GetParent())->UpdateHotKeys();
+	gbDebug = m_DebugMode;
 }

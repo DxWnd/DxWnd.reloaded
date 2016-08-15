@@ -2595,6 +2595,7 @@ BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDES
 	BOOL res;
 	BOOL bRemappedDC = FALSE;
 	static int iCounter = 0;
+	static HDC hLastDC = 0;
 
 	OutTraceDW("SetPixelFormat: hdc=%x PixelFormat=%d Flags=%x PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
 		hdc, iPixelFormat, 
@@ -2608,11 +2609,12 @@ BOOL WINAPI extGDISetPixelFormat(HDC hdc, int iPixelFormat, const PIXELFORMATDES
 		bRemappedDC = TRUE;
 		OutTraceDW("SetPixelFormat: remapped desktop hdc=%x->%x hWnd=%x\n", oldhdc, hdc, dxw.GethWnd());
 	}
-	if(iCounter && bRemappedDC)
-		res = TRUE; // avoid calling SetPixelFormat moe than once on same hdc
+	if(iCounter && (hdc == hLastDC))
+		res = TRUE; // avoid calling SetPixelFormat more than once on same hdc
 	else {
 		res=(*pGDISetPixelFormat)(hdc, iPixelFormat, ppfd);
 		iCounter++;
+		hLastDC = hdc;
 	}
 	if(bRemappedDC) (*pGDIReleaseDC)(dxw.GethWnd(), hdc); // fixed DC leakage
 	dxw.ActualPixelFormat.dwRGBBitCount = ppfd->cColorBits;

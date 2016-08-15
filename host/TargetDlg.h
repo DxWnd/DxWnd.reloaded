@@ -43,6 +43,7 @@ public:
 	BOOL	m_HookDI8;
 	BOOL	m_EmulateRelMouse;
 	BOOL	m_SkipDevTypeHID;
+	BOOL	m_SuppressDIErrors;
 	BOOL	m_ModifyMouse;
 	BOOL	m_VirtualJoystick;
 	BOOL	m_Unacquire;
@@ -79,7 +80,8 @@ public:
 	BOOL	m_NoWinPosChanges;
 	BOOL	m_MessagePump;
 	BOOL	m_NoBanner;
-	BOOL	m_StartDebug;
+	//BOOL	m_StartDebug;
+	int		m_InjectionMode;
 	BOOL	m_HookEnabled;
 	BOOL	m_ReplacePrivOps;
 	CString	m_FilePath;

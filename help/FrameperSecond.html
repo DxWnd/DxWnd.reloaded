@@ -1,0 +1,124 @@
+﻿<html>
+	
+<head>
+	<title>Frame per Second</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("FrameperSecond");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Frame per Second</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="Timing.html">Timing</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Timing.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="Timing.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="TimeStretching.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="124" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Limit</span></p>
+</td>
+<td width="119" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">LIMITFPS</span></p>
+</td>
+<td width="1294" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Introduces a configurable delay between &nbsp;screen refresh operations, so that the FPS is limited accordingly.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="124" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Skip</span></p>
+</td>
+<td width="119" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SKIPFPS</span></p>
+</td>
+<td width="1294" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Introduces no delay in the screen operations, but skips several screen updates so that the actual FPS value is &nbsp;limited without the program noticing it.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="124" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">delay (msec)</span></p>
+</td>
+<td width="119" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15"><br/></span></p>
+</td>
+<td width="1294" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Sets the delay time, expressed in milliseconds, for both the "Limit" (</span><span class="rvts15">LIMITFPS</span><span class="rvts6">) and "Skip" (</span><span class="rvts15">SKIPFPS</span><span class="rvts6">) options. To be noted that the FPS is related to the delay by the formula </span><span class="rvts15">FPS = 1000/Delay</span><span class="rvts6"> or, the other way around, </span><span class="rvts15">Delay = 1000/FPS</span><span class="rvts6">. So if, for example, you desire an FPS not greater than 50, the corresponding value to get this effect is </span><span class="rvts15">Delay = 20msec</span><span class="rvts6">. Note that a greater delay means a slower frame rate.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="124" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Updates bigger than 1/4 screen size</span></p>
+</td>
+<td width="119" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">QUARTERBLT</span></p>
+</td>
+<td width="1294" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">DxWnd can display an FPS counter based on the number of screen updates per second. This counter is accurate for applications that update the entire screen, but produces wildly exaggerated figures when a program makes frequent updates to small sections of the screen, such as counters, icons, or other tiny elements. This flag tells DxWnd to ignore screen updates that affect less than one quarter of the screen, producing a more realistic FPS figure.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="124" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Show FPS on title</span></p>
+</td>
+<td width="119" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SHOWFPS</span></p>
+</td>
+<td width="1294" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the FPS counter is appended to the window title.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="124" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Show FPS overlay</span></p>
+</td>
+<td width="119" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">SHOWFPSOVERLAY</span></p>
+</td>
+<td width="1294" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When checked, the FPS counter is drawn as an overlay of the program client area, in a corner of the screen and periodically and randomly moved to other cornes to avoid accidentally overlap an important screen region.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

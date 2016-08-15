@@ -1,0 +1,118 @@
+﻿<html>
+	
+<head>
+	<title>Language</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Language");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Language</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Configurationfile.html">Configuration file</a> &rsaquo;&rsaquo; <a href="Window.html">Window</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="Window.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="Window.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Position1.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<div class="rvps2"><table width="100%" border="1" cellpadding="1" cellspacing="2" style="border-color: #000000; border-style: solid; border-spacing: 2px;">
+<tr valign="top">
+<td width="187" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">lang=&lt;specification&gt;</span></p>
+</td>
+<td width="1356" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Sets the DxWnd GUI language with a selector for the localization DLL. "default" will load the embedded English text. "automatic" will load the language pack corresponding to the system locale. Any "XYZ" string will load the corresponding "Resources_XYZ.dll" language port. Currently unsupported (available translation packages are no longer up to date).</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">For older versions, the following languages are supported:</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<ul style="text-indent: 0px; margin-left: 24px; list-style-position: outside; list-style-type: disc;">
+<li class="rvps2"><span class="rvts6">EN – English (default language)</span></li>
+<li class="rvps2"><span class="rvts6">CN – Chinese</span></li>
+<li class="rvps2"><span class="rvts6">IT – Italian</span></li>
+</ul>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">When you set a </span><span class="rvts15">lang=&lt;</span><span class="rvts18">specification</span><span class="rvts15">&gt;</span><span class="rvts6"> specification, DxWnd looks for and loads the resources in the </span><span class="rvts15">Resources_&lt;</span><span class="rvts18">specification</span><span class="rvts15">&gt;.dll</span><span class="rvts6"> file, so anyone can build and use a custom language pack.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts15">lang=default</span><span class="rvts6"> disables resource loading, and the program will use the default and built-in English pack.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts15">lang=automatic</span><span class="rvts6"> makes DxWnd search for the current UI language and try to map it to the available language packs. If no corresponding pack is available, it switches to the default (English) behavior.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">This setting is always overridden by a </span><span class="rvts15">/lang=&lt;</span><span class="rvts18">specification</span><span class="rvts15">&gt;</span><span class="rvts6"> command line argument.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="187" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">debug=&lt;mode&gt;</span></p>
+</td>
+<td width="1356" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Boolean, defaulting to false. debug=1 activates the configuration debug tab. Warning: debug options, when set, are kept even if debug is cleared and the debug is no longer visible.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="187" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">multiprocesshook=&lt;mode&gt;</span></p>
+</td>
+<td width="1356" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Boolean, defaulting to false. multiprocesshook=1 allows multiple programs to run simultaneously on different windows. Beware that not all programs can work this way and it's likely to cause problems with resources that can't be shared, such as the mouse.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="187" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">checkadmin=&lt;mode&gt;</span></p>
+</td>
+<td width="1356" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Boolean, defaulting to false. checkadmin=1 causes DxWnd to autodetect its own administrator permissions at startup and propose a self-elevation if missing.</span></p>
+</td>
+</tr>
+</table>
+</div>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

@@ -127,7 +127,6 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_NoWinPosChanges = FALSE; 
 	m_MessagePump = FALSE; 
 	m_NoBanner = FALSE;
-	m_StartDebug = FALSE;
 	m_FilePath = _T("");
 	m_Module = _T("");
 	m_SaveLoad = FALSE;
@@ -316,13 +315,16 @@ void CTargetDlg::OnBnClickedTry()
 #else
 	char path[MAX_PATH+1];
 	char fullpath[MAX_PATH+1];
-	char sMsg[81];
 	int iHookStatus;
-	STARTUPINFO sinfo;
-	PROCESS_INFORMATION pinfo;
 	TARGETMAP RestrictedMaps[2];
 	extern void SetTargetFromDlg(TARGETMAP *, CTargetDlg *);
 	extern BOOL CheckStatus(void);
+	STARTUPINFO sinfo;
+	PROCESS_INFORMATION pinfo;
+	char sMsg[81];
+	TARGETMAP TargetMap;
+	PRIVATEMAP PrivateMap;
+	ThreadInfo_Type ThreadInfo;
 
 	static BOOL IsLocked = FALSE;
 	if(IsLocked) return;
@@ -336,28 +338,36 @@ void CTargetDlg::OnBnClickedTry()
 	SetTarget(RestrictedMaps);	
 	iHookStatus=GetHookStatus(NULL);
 	if(iHookStatus == DXW_IDLE) StartHook();
-	if(m_StartDebug){
-		extern DWORD WINAPI StartDebug(void *);
-		TARGETMAP TargetMap;
-		PRIVATEMAP PrivateMap;
-		ThreadInfo_Type ThreadInfo;
-		strcpy(TargetMap.path, m_FilePath);
-		strcpy(PrivateMap.launchpath, m_LaunchPath);
-		ThreadInfo.TM=&TargetMap;
-		ThreadInfo.PM=&PrivateMap;
-		CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
-	}
-	else{
-		ZeroMemory(&sinfo, sizeof(sinfo));
-		sinfo.cb = sizeof(sinfo);
-		strncpy(fullpath, m_LaunchPath.IsEmpty() ? m_FilePath.GetBuffer() : m_LaunchPath.GetBuffer(), MAX_PATH);
-		if(!CreateProcess(NULL, fullpath, 
-			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo)){
-			sprintf(sMsg, "CreateProcess ERROR %d", GetLastError());
-			MessageBox(sMsg, "Error", MB_ICONEXCLAMATION);
-		}
-		CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
-		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
+	switch(m_InjectionMode){
+		case 1:
+			extern DWORD WINAPI StartDebug(void *);
+			strcpy(TargetMap.path, m_FilePath);
+			strcpy(PrivateMap.launchpath, m_LaunchPath);
+			ThreadInfo.TM=&TargetMap;
+			ThreadInfo.PM=&PrivateMap;
+			CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
+			break;
+		case 2:
+			extern void InjectSuspended(char *, char *);
+			strcpy(TargetMap.path, m_FilePath);
+			strcpy(PrivateMap.launchpath, m_LaunchPath);
+			ThreadInfo.TM=&TargetMap;
+			ThreadInfo.PM=&PrivateMap;
+			InjectSuspended((strlen(PrivateMap.launchpath)>0) ? PrivateMap.launchpath: TargetMap.path, path); 
+			break;
+		case 0:
+		default:
+			ZeroMemory(&sinfo, sizeof(sinfo));
+			sinfo.cb = sizeof(sinfo);
+			strncpy(fullpath, m_LaunchPath.IsEmpty() ? m_FilePath.GetBuffer() : m_LaunchPath.GetBuffer(), MAX_PATH);
+			if(!CreateProcess(NULL, fullpath, 
+				0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo)){
+				sprintf(sMsg, "CreateProcess ERROR %d", GetLastError());
+				MessageBox(sMsg, "Error", MB_ICONEXCLAMATION);
+			}
+			CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
+			CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
+			break;
 	}
 	// wait & recover
 	Sleep(5000);

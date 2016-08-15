@@ -19,6 +19,7 @@ BOOL Inject(DWORD pID, const char * DLL_NAME)
 	HMODULE hLib;
 	char buf[50] = {0};
 	LPVOID RemoteString, LoadLibAddy;
+		
 	if(!pID) return false;
 	//hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pID); // not working on Win XP
 	hProc = OpenProcess(PROCESS_CREATE_THREAD|PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, FALSE, pID);
@@ -56,6 +57,10 @@ BOOL Inject(DWORD pID, const char * DLL_NAME)
 		MessageBox(NULL, buf, "Loader", MB_OK);
 		CloseHandle(hProc);
 		return false;
+	}
+	if(!SetThreadPriority(hThread, THREAD_PRIORITY_TIME_CRITICAL)){
+		sprintf(buf, "SetThreadPriority() failed: err=%d", GetLastError());
+		MessageBox(NULL, buf, "Loader", MB_OK);
 	}
 	CloseHandle(hThread);
 	CloseHandle(hProc);

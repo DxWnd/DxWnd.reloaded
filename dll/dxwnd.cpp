@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.79"
+#define VERSION "2.03.80"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS
@@ -49,7 +49,7 @@ int HookStatus=DXW_IDLE;
 static int TaskIndex=-1;
 DXWNDSTATUS DxWndStatus;
 
-void InjectHook();
+void InjectHook(); 
 
 BOOL APIENTRY DllMain( HANDLE hmodule, 
                        DWORD  dwreason, 
@@ -267,13 +267,13 @@ void InjectHook()
 	name[MAX_PATH]=0; // terminator
 	for(i = 0; name[i]; i ++) name[i] = tolower(name[i]);
 	for(i = 0; pMapping[i].path[0]; i ++){
-		if(!strncmp(name, pMapping[i].path, strlen(name))){
-			if (pMapping[i].flags2 & STARTDEBUG){
-					HookInit(&pMapping[i],NULL);
-					// beware: logging is possible only AFTER HookInit execution
-					OutTrace("InjectHook: task[%d]=\"%s\" hooked\n", i, pMapping[i].path);
+		if(pMapping[i].flags3 & HOOKENABLED){
+			if(!strncmp(name, pMapping[i].path, strlen(name))){
+				HookInit(&pMapping[i],NULL);
+				// beware: logging is possible only AFTER HookInit execution
+				OutTrace("InjectHook: task[%d]=\"%s\" hooked\n", i, pMapping[i].path);
+				break;
 			}
-			break;
 		}
 	}
 }

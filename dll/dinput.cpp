@@ -876,6 +876,7 @@ HRESULT WINAPI extAcquire(LPDIRECTINPUTDEVICE lpdid)
 	HRESULT res;
 	res = (*pAcquire)(lpdid);
 	OutTrace("Acquire(I): lpdid=%x(%s) res=%x(%s)\n", lpdid, sDevice(lpdid), res, ExplainDDError(res));
+	if((dxw.dwFlags7 & SUPPRESSDIERRORS) && (res == 0x80070005)) res = DI_OK;
 	return res;
 }
 

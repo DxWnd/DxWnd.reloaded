@@ -1,0 +1,102 @@
+﻿<html>
+	
+<head>
+	<title>DirectX Version Hook</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("DirectXVersionHook");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">DirectX Version Hook</h1>
+				
+				<div id="topic_breadcrumb">
+					<a href="Theconfigurationpanel.html">The configuration panel</a> &rsaquo;&rsaquo; <a href="DirectX.html">DirectX</a> &rsaquo;&rsaquo; </div>
+				</div>
+			<div id="topic_header_nav">
+				<a href="DirectX.html"><img src="img/arrow_up.png" alt="Parent"/></a>
+				
+				<a href="DirectX.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="Emulation.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<p class="rvps2"><span class="rvts6">DirectX Version Hook: Sets the basic intervention strategy. DxWnd should use a different hooking technique depending on the game technology. Automatic mode tries to find the correct technique by itself, but it doesn't always succeed. OpenGL handling requires a dedicated setting (see </span><a class="rvts14" href="Libs.html">Libs</a><span class="rvts6">).</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">Available options:</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<ul style="text-indent: 0px; margin-left: 24px; list-style-position: outside; list-style-type: disc;">
+<li class="rvps2"><span class="rvts6">Automatic</span></li>
+<li class="rvps2"><span class="rvts6">DirectX1~6</span></li>
+<li class="rvps2"><span class="rvts6">DirectX7</span></li>
+<li class="rvps2"><span class="rvts6">DirectX8</span></li>
+<li class="rvps2"><span class="rvts6">DirectX9</span></li>
+<li class="rvps2"><span class="rvts6">DirectX10</span></li>
+<li class="rvps2"><span class="rvts6">DirectX11</span></li>
+<li class="rvps2"><span class="rvts6">None</span></li>
+</ul>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">In "Automatic" (the default mode), DxWnd automatically detects DirectX calls and hooks them to track and modify the calls and their corresponding COM methods. In some cases, though, DxWnd is unable to properly detect these calls and the windowing effect can be recovered by explicitly telling DxWnd what version of DirectX it should hook. Each option corresponds to a different DLL file that is involved in the DirectX implementation. This is directed by the following options:</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<ul style="text-indent: 0px; margin-left: 24px; list-style-position: outside; list-style-type: disc;">
+<li class="rvps2"><span class="rvts6">DirectX1~6 (for ddraw.dll)</span></li>
+<li class="rvps2"><span class="rvts6">DirecX7 (for ddrawex.dll)</span></li>
+<li class="rvps2"><span class="rvts6">DirectX8 (for d3d8.dll)</span></li>
+<li class="rvps2"><span class="rvts6">DirectX9 (for d3d9.dll)</span></li>
+<li class="rvps2"><span class="rvts6">DirectX10 (for ...)</span></li>
+<li class="rvps2"><span class="rvts6">DirectX11 (for ...)</span></li>
+</ul>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">The last two options are generally useless, since the current Direct3D10/11 implementation seems to be based on Direct3D9, so hooking DirectX9 works for them as well (however, the implementation may change in the future).</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">It is also possible to specify the option "none" to avoid hooking DirectX at all. This could be helpful whenever you are interested in DxWnd features that are not related to the graphics (e.g. time stretching, compatibility options) and you want to leave the graphics alone.</span></p>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

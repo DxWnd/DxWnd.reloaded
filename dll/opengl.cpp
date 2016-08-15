@@ -161,7 +161,17 @@ void WINAPI extglScissor(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height)
 void WINAPI extglGetIntegerv(GLenum pname, GLint *params)
 {
 	(*pglGetIntegerv)(pname, params);
-	OutTraceDW("glGetIntegerv: pname=%d\n", pname);
+	OutTraceB("glGetIntegerv: pname=%d\n", pname);
+	if(pname == GL_VIEWPORT){
+		RECT client;
+		OutTraceDW("glGetIntegerv(GL_VIEWPORT): pos=(%i,%i) siz=(%i,%i)\n", params[0], params[1], params[2], params[3]);
+		(*pGetClientRect)(dxw.GethWnd(), &client);
+		params[0] = (params[0] * dxw.GetScreenWidth()) / client.right;
+		params[1] = (params[1] * dxw.GetScreenHeight()) / client.bottom;
+		params[2] = (params[2] * dxw.GetScreenWidth()) / client.right;
+		params[3] = (params[3] * dxw.GetScreenHeight()) / client.bottom;
+		OutTraceDW("glGetIntegerv(GL_VIEWPORT): FIXED pos=(%i,%i) siz=(%i,%i)\n", params[0], params[1], params[2], params[3]);
+	}
 }
 
 void WINAPI extglDrawBuffer(GLenum mode)

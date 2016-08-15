@@ -130,8 +130,8 @@ static char *Flag7Names[32]={
 	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "HOOKDIRECTSOUND",
 	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
 	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
-	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "",
-	"", "", "", "",
+	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "INJECTSUSPENDED",
+	"SSUPPRESSDIERRORS", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -629,6 +629,10 @@ void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 		rect.top = (desktop.bottom - MaxY) / 2;
 		rect.right = rect.left + MaxX;
 		rect.bottom = rect.top + MaxY; //v2.02.09
+		if(rect.left < 0) rect.left = 0;
+		if(rect.top < 0) rect.top = 0;
+		if(rect.bottom > desktop.bottom) rect.bottom = desktop.bottom;
+		if(rect.right > desktop.right) rect.right = desktop.right;
 		break;
 	case DXW_DESKTOP_WORKAREA:
 		(*pSystemParametersInfoA)(SPI_GETWORKAREA, NULL, &workarea, 0);
