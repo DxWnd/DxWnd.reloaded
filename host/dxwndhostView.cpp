@@ -205,6 +205,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_Windowize) t->flags2 |= WINDOWIZE;
 	if(dlg->m_HookDLLs) t->flags3 |= HOOKDLLS;
 	if(dlg->m_AnsiWide) t->flags5 |= ANSIWIDE;
+	if(dlg->m_HookNoRun) t->flags7 |= HOOKNORUN;
 	if(dlg->m_TerminateOnClose) t->flags6 |= TERMINATEONCLOSE;
 	if(dlg->m_ConfirmOnClose) t->flags6 |= CONFIRMONCLOSE;
 	if(dlg->m_EmulateRegistry) t->flags3 |= EMULATEREGISTRY;
@@ -501,6 +502,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HotPatch = t->flags4 & HOTPATCH ? 1 : 0;
 	dlg->m_HookDLLs = t->flags3 & HOOKDLLS ? 1 : 0;
 	dlg->m_AnsiWide = t->flags5 & ANSIWIDE ? 1 : 0;
+	dlg->m_HookNoRun = t->flags7 & HOOKNORUN ? 1 : 0;
 	dlg->m_TerminateOnClose = t->flags6 & TERMINATEONCLOSE ? 1 : 0;
 	dlg->m_ConfirmOnClose = t->flags6 & CONFIRMONCLOSE ? 1 : 0;
 	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
@@ -762,6 +764,8 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	WritePrivateProfileString("target", key, PrivateMap->title, InitPath);
 	sprintf_s(key, sizeof(key), "path%i", i);
 	WritePrivateProfileString("target", key, TargetMap->path, InitPath);
+	sprintf_s(key, sizeof(key), "startfolder%i", i);
+	WritePrivateProfileString("target", key, PrivateMap->startfolder, InitPath);
 	sprintf_s(key, sizeof(key), "launchpath%i", i);
 	WritePrivateProfileString("target", key, PrivateMap->launchpath, InitPath);
 	sprintf_s(key, sizeof(key), "module%i", i);
@@ -860,6 +864,8 @@ static void ClearTarget(int i, char *InitPath)
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "launchpath%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "startfolder%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "ver%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "coord%i", i);
@@ -938,6 +944,9 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	// -------
 	sprintf_s(key, sizeof(key), "launchpath%i", i);
 	GetPrivateProfileString("target", key, "", PrivateMap->launchpath, MAX_PATH, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "startfolder%i", i);
+	GetPrivateProfileString("target", key, "", PrivateMap->startfolder, MAX_PATH, InitPath);
 	// -------
 	sprintf_s(key, sizeof(key), "title%i", i);
 	GetPrivateProfileString("target", key, "", PrivateMap->title, sizeof(PRIVATEMAP)-1, InitPath);
@@ -1046,6 +1055,7 @@ static int SetTargetIcon(TARGETMAP tm)
 	target = fopen(tm.path, "r");
 	if (target==NULL) return 3;
 	fclose(target);
+	if (tm.flags7 & HOOKNORUN) return 5; 
 	if (tm.flags3 & HOOKENABLED) return ((tm.flags2 & STARTDEBUG)||(tm.flags7 & INJECTSUSPENDED)) ? 2 : 1;
 	return 0;
 }
@@ -1172,10 +1182,10 @@ void CDxwndhostView::OnInitialUpdate()
 	}
 
 	// Create 256 color image lists
-	HIMAGELIST hList = ImageList_Create(32,32, ILC_COLOR8 |ILC_MASK , 4, 1);
+	HIMAGELIST hList = ImageList_Create(32,32, ILC_COLOR8 |ILC_MASK , 6, 1);
 	m_cImageListNormal.Attach(hList);
 
-	hList = ImageList_Create(16, 16, ILC_COLOR8 | ILC_MASK, 4, 1);
+	hList = ImageList_Create(16, 16, ILC_COLOR8 | ILC_MASK, 6, 1);
 	m_cImageListSmall.Attach(hList);
 
 	// Load the large icons
@@ -1431,6 +1441,7 @@ void CDxwndhostView::OnModify()
 	dlg.m_Notes = CString(PrivateMaps[i].notes);
 	dlg.m_Registry = CString(PrivateMaps[i].registry);
 	dlg.m_LaunchPath = PrivateMaps[i].launchpath;
+	dlg.m_StartFolder = PrivateMaps[i].startfolder;
 	SetDlgFromTarget(&TargetMaps[i], &dlg);
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE); 
@@ -1439,6 +1450,7 @@ void CDxwndhostView::OnModify()
 		PrivateMaps[i].registry = (char *)realloc(PrivateMaps[i].registry, strlen(dlg.m_Registry.GetString())+1);
 		strcpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString());
 		strnncpy(PrivateMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
+		strnncpy(PrivateMaps[i].startfolder, (char *)dlg.m_StartFolder.GetString(), MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
@@ -1487,12 +1499,17 @@ void CDxwndhostView::OnViewLog()
 	if(!listctrl.GetSelectedCount()) return;
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
-	FilePath = TargetMaps[i].path;
-	len=FilePath.ReverseFind('\\');	
-	if (len==0) return;
-	FilePath.Truncate(len);
-	FilePath.Append("\\dxwnd.log");
-
+	if(PrivateMaps[i].startfolder[0]){
+		FilePath = PrivateMaps[i].startfolder;
+		FilePath.Append("\\dxwnd.log");
+	}
+	else {
+		FilePath = TargetMaps[i].path;
+		len=FilePath.ReverseFind('\\');	
+		if (len==0) return;
+		FilePath.Truncate(len);
+		FilePath.Append("\\dxwnd.log");
+	}
 	ShellExecute(NULL, "open", FilePath, NULL, NULL, SW_SHOW);
 }
 
@@ -1875,6 +1892,7 @@ void CDxwndhostView::OnAdd(char *sInitialPath)
 		PrivateMaps[i].registry = (char *)malloc(strlen(dlg.m_Registry.GetString())+1);
 		strcpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString());
 		strnncpy(PrivateMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
+		strnncpy(PrivateMaps[i].startfolder, (char *)dlg.m_StartFolder.GetString(), MAX_PATH);
 		SetTargetFromDlg(&TargetMaps[i], &dlg);
 		CListCtrl& listctrl = GetListCtrl();
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
@@ -2931,10 +2949,19 @@ void CDxwndhostView::OnRun()
 	// create a virtually single entry in the targetmap array
 	memcpy(&RestrictedMaps[0], &TargetMaps[i], sizeof(TARGETMAP));
 	memset(&RestrictedMaps[1], 0, sizeof(TARGETMAP));
-	strcpy_s(path, sizeof(path), TargetMaps[i].path);
-	PathRemoveFileSpec(path);
+	if(!(PrivateMaps[i].startfolder[0])){
+		strcpy_s(path, sizeof(path), TargetMaps[i].path);
+		PathRemoveFileSpec(path);
+	}else{
+		strcpy_s(path, sizeof(path), PrivateMaps[i].startfolder);
+	}
 	SetTarget(RestrictedMaps);	
 	OutTrace("OnRun idx=%d prog=\"%s\"\n", i, TargetMaps[i].path);
+
+	if(TargetMaps[i].flags7 & HOOKNORUN){
+		MessageBox("Can't run from DxWnd interface", "Warning", MB_ICONERROR|MB_OK);
+		return;
+	}
 
 	// self-elevation if configured and necessary
 	if(TargetMaps[i].flags & NEEDADMINCAPS){

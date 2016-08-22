@@ -88,6 +88,7 @@ HRESULT WINAPI extEnumZBufferFormats7(void *, REFCLSID, LPD3DENUMPIXELFORMATSCAL
 
 // Direct3DDevice-n interfaces
 
+typedef ULONG   (WINAPI *ReleaseD3D_Type)(LPDIRECT3DDEVICE);
 typedef HRESULT (WINAPI *QueryInterfaceD3D_Type)(void *, REFIID, LPVOID *);
 typedef HRESULT (WINAPI *D3DInitialize_Type)(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
 typedef HRESULT (WINAPI *D3DGetCaps_Type)(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
@@ -110,6 +111,7 @@ typedef HRESULT (WINAPI *SwapTextureHandles_Type)(void *, LPDIRECT3DTEXTURE, LPD
 typedef HRESULT (WINAPI *SwapTextureHandles2_Type)(void *, LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
 
 QueryInterfaceD3_Type pQueryInterfaceD3D = NULL;
+ReleaseD3D_Type pReleaseD3D1, pReleaseD3D2, pReleaseD3D3, pReleaseD3D7;
 D3DInitialize_Type pD3DInitialize = NULL;
 D3DGetCaps_Type pD3DGetCaps = NULL;
 D3DGetCaps3_Type pGetCaps3 = NULL;
@@ -164,10 +166,12 @@ typedef HRESULT (WINAPI *GetMaterial_Type)(void *, LPD3DMATERIAL);
 #endif
 
 InitializeVP_Type pInitializeVP = NULL;
-SetViewport_Type pSetViewport = NULL;
-GetViewport_Type pGetViewport = NULL;
+SetViewport_Type pSetViewport1 = NULL;
+GetViewport_Type pGetViewport1 = NULL;
 GetViewport2_Type pGetViewport2 = NULL;
 SetViewport2_Type pSetViewport2 = NULL;
+GetViewport2_3_Type pGetViewport2_2 = NULL;
+SetViewport2_3_Type pSetViewport2_2 = NULL;
 GetViewport2_3_Type pGetViewport2_3 = NULL;
 SetViewport2_3_Type pSetViewport2_3 = NULL;
 GetViewport3_Type pGetViewport3 = NULL;
@@ -203,8 +207,12 @@ HRESULT WINAPI extNextViewport2(void *, LPDIRECT3DVIEWPORT2, LPDIRECT3DVIEWPORT2
 HRESULT WINAPI extViewportClear(void *, DWORD, LPD3DRECT, DWORD);
 
 HRESULT WINAPI extInitializeVP(void *, LPDIRECT3D);
-HRESULT WINAPI extSetViewport(void *, LPD3DVIEWPORT);
-HRESULT WINAPI extGetViewport(void *, LPD3DVIEWPORT);
+HRESULT WINAPI extSetViewport1(void *, LPD3DVIEWPORT);
+HRESULT WINAPI extGetViewport1(void *, LPD3DVIEWPORT);
+HRESULT WINAPI extSetViewport2(void *, LPD3DVIEWPORT);
+HRESULT WINAPI extGetViewport2(void *, LPD3DVIEWPORT);
+HRESULT WINAPI extSetViewport3(void *, LPD3DVIEWPORT);
+HRESULT WINAPI extGetViewport3(void *, LPD3DVIEWPORT);
 #ifdef TRACEMATERIAL
 HRESULT WINAPI extSetMaterial(void *, LPD3DMATERIAL);
 HRESULT WINAPI extGetMaterial(void *, LPD3DMATERIAL);
@@ -215,6 +223,10 @@ HRESULT WINAPI extQueryInterfaceD3D(void *, REFIID, LPVOID *);
 HRESULT WINAPI extD3DInitialize(void *, LPDIRECT3D , LPGUID, LPD3DDEVICEDESC);
 HRESULT WINAPI extD3DGetCaps(void *, LPD3DDEVICEDESC ,LPD3DDEVICEDESC);
 
+ULONG WINAPI extReleaseD3D1(LPDIRECT3DDEVICE);
+ULONG WINAPI extReleaseD3D2(LPDIRECT3DDEVICE);
+ULONG WINAPI extReleaseD3D3(LPDIRECT3DDEVICE);
+ULONG WINAPI extReleaseD3D7(LPDIRECT3DDEVICE);
 HRESULT WINAPI extBeginScene1(void *);
 HRESULT WINAPI extEndScene1(void *);
 HRESULT WINAPI extBeginScene2(void *);
@@ -235,6 +247,8 @@ HRESULT WINAPI extAddViewport2(void *, LPDIRECT3DVIEWPORT2);
 HRESULT WINAPI extAddViewport3(void *, LPDIRECT3DVIEWPORT3);
 HRESULT WINAPI extGetViewport2(void *, LPD3DVIEWPORT);
 HRESULT WINAPI extSetViewport2(void *, LPD3DVIEWPORT);
+HRESULT WINAPI extGetViewport2_2(void *, LPD3DVIEWPORT2);
+HRESULT WINAPI extSetViewport2_2(void *, LPD3DVIEWPORT2);
 HRESULT WINAPI extGetViewport2_3(void *, LPD3DVIEWPORT2);
 HRESULT WINAPI extSetViewport2_3(void *, LPD3DVIEWPORT2);
 HRESULT WINAPI extSetCurrentViewport2(void *, LPDIRECT3DVIEWPORT2);
@@ -270,6 +284,10 @@ HRESULT WINAPI extTexPaletteChanged2(void *, DWORD, DWORD);
 HRESULT WINAPI extTexLoad1(void *, LPDIRECT3DTEXTURE);
 HRESULT WINAPI extTexLoad2(void *, LPDIRECT3DTEXTURE);
 HRESULT WINAPI extTexUnload(void *);
+
+typedef HRESULT (WINAPI *Execute_Type)(void *, LPDIRECT3DEXECUTEBUFFER, LPDIRECT3DVIEWPORT, DWORD);
+HRESULT WINAPI extExecute(void *, LPDIRECT3DEXECUTEBUFFER, LPDIRECT3DVIEWPORT, DWORD);
+Execute_Type pExecute = NULL;
 
 extern char *ExplainDDError(DWORD);
 int GD3DDeviceVersion;
@@ -470,9 +488,12 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 
 	switch(d3dversion){
 	case 1:
-		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D1, (void **)&pReleaseD3D1, "ReleaseD3D(1)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  16), extGetCaps1, (void **)&pGetCaps1, "GetCaps(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  32), extExecute, (void **)&pExecute, "Execute(1)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +  32), extExecute, NULL, "Execute(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extAddViewport1, (void **)&pAddViewport1, "AddViewport(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extDeleteViewport1, (void **)&pDeleteViewport1, "DeleteViewport(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  44), extNextViewport1, (void **)&pNextViewport1, "NextViewport(1)");
@@ -480,7 +501,8 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extEndScene1, (void **)&pEndScene1, "EndScene(1)");
 		break;
 	case 2:
-		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D2, (void **)&pReleaseD3D2, "ReleaseD3D(2)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps2, (void **)&pGetCaps2, "GetCaps(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extAddViewport2, (void **)&pAddViewport2, "AddViewport(2)");
@@ -498,7 +520,8 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		}		
 		break;
 	case 3:
-		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D3, (void **)&pReleaseD3D3, "ReleaseD3D(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  12), extGetCaps3, (void **)&pGetCaps3, "GetCaps(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extAddViewport3, (void **)&pAddViewport3, "AddViewport(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extBeginScene3, (void **)&pBeginScene3, "BeginScene(3)");
@@ -516,6 +539,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		break;
 	case 7:
 		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D7, (void **)&pReleaseD3D7, "ReleaseD3D(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
@@ -588,23 +612,23 @@ void HookViewport(LPDIRECT3DVIEWPORT *lpViewport, int d3dversion)
  	switch(d3dversion){
 	case 1:
 		SetHook((void *)(**(DWORD **)lpViewport +  12), extInitializeVP, (void **)&pInitializeVP, "Initialize(VP1)");
-		SetHook((void *)(**(DWORD **)lpViewport +  16), extGetViewport, (void **)&pGetViewport, "GetViewport(1)");
-		SetHook((void *)(**(DWORD **)lpViewport +  20), extSetViewport, (void **)&pSetViewport, "SetViewport(1)");
+		SetHook((void *)(**(DWORD **)lpViewport +  16), extGetViewport1, (void **)&pGetViewport1, "GetViewport(1)");
+		SetHook((void *)(**(DWORD **)lpViewport +  20), extSetViewport1, (void **)&pSetViewport1, "SetViewport(1)");
 
 		// to do: why Clear method crashes in "Forsaken" in emulation and GDI mode???
 		// SetHook((void *)(**(DWORD **)lpViewport +  48), extViewportClear, (void **)&pViewportClear, "Clear(1)");
 		break;
 	case 2:
 		SetHook((void *)(**(DWORD **)lpViewport +  12), extInitializeVP, (void **)&pInitializeVP, "Initialize(VP2)");
-		SetHook((void *)(**(DWORD **)lpViewport +  16), extGetViewport, (void **)&pGetViewport, "GetViewport(2)");
-		SetHook((void *)(**(DWORD **)lpViewport +  20), extSetViewport, (void **)&pSetViewport, "SetViewport(2)");
-		SetHook((void *)(**(DWORD **)lpViewport +  64), extGetViewport2_3, (void **)&pGetViewport2_3, "GetViewport2(2)");
-		SetHook((void *)(**(DWORD **)lpViewport +  68), extSetViewport2_3, (void **)&pSetViewport2_3, "SetViewport2(2)");
+		SetHook((void *)(**(DWORD **)lpViewport +  16), extGetViewport2, (void **)&pGetViewport2, "GetViewport(2)");
+		SetHook((void *)(**(DWORD **)lpViewport +  20), extSetViewport2, (void **)&pSetViewport2, "SetViewport(2)");
+		SetHook((void *)(**(DWORD **)lpViewport +  64), extGetViewport2_2, (void **)&pGetViewport2_2, "GetViewport2(2)");
+		SetHook((void *)(**(DWORD **)lpViewport +  68), extSetViewport2_2, (void **)&pSetViewport2_2, "SetViewport2(2)");
 		break;
 	case 3:
 		SetHook((void *)(**(DWORD **)lpViewport +  12), extInitializeVP, (void **)&pInitializeVP, "Initialize(VP3)");
-		SetHook((void *)(**(DWORD **)lpViewport +  16), extGetViewport, (void **)&pGetViewport, "GetViewport(3)");
-		SetHook((void *)(**(DWORD **)lpViewport +  20), extSetViewport, (void **)&pSetViewport, "SetViewport(3)");
+		SetHook((void *)(**(DWORD **)lpViewport +  16), extGetViewport3, (void **)&pGetViewport3, "GetViewport(3)");
+		SetHook((void *)(**(DWORD **)lpViewport +  20), extSetViewport3, (void **)&pSetViewport3, "SetViewport(3)");
 		SetHook((void *)(**(DWORD **)lpViewport +  64), extGetViewport2_3, (void **)&pGetViewport2_3, "GetViewport2(3)");
 		SetHook((void *)(**(DWORD **)lpViewport +  68), extSetViewport2_3, (void **)&pSetViewport2_3, "SetViewport2(3)");
 		break;
@@ -650,20 +674,19 @@ void HookTexture(LPVOID *lpTexture, int version)
 	}
 }
 
-HRESULT WINAPI extQueryInterfaceD3(QueryInterfaceD3_Type pQueryInterfaceD3, void *lpd3d, REFIID riid, LPVOID *ppvObj)
+HRESULT WINAPI extQueryInterfaceD3(int d3dversion, QueryInterfaceD3_Type pQueryInterfaceD3, void *lpd3d, REFIID riid, LPVOID *ppvObj)
 {
 	HRESULT res;
-	int d3dversion;
 
-	OutTraceD3D("QueryInterface(D3): d3d=%x REFIID=%x obj=%x\n", lpd3d, riid.Data1, ppvObj);
+	OutTraceD3D("QueryInterfaceD3(%d): d3d=%x REFIID=%x obj=%x\n", d3dversion, lpd3d, riid.Data1, ppvObj);
 	d3dversion=0;
 	res=(*pQueryInterfaceD3)(lpd3d, riid, ppvObj);
-	switch(riid.Data1){
-		case 0x3BBA0080: d3dversion=1; break;
-		case 0x6aae1ec1: d3dversion=2; break;
-		case 0xbb223240: d3dversion=3; break;
-		case 0xf5049e77: d3dversion=7; break;
-	}
+	//switch(riid.Data1){
+	//	case 0x3BBA0080: d3dversion=1; break;
+	//	case 0x6aae1ec1: d3dversion=2; break;
+	//	case 0xbb223240: d3dversion=3; break;
+	//	case 0xf5049e77: d3dversion=7; break;
+	//}
 	if(d3dversion) OutTraceD3D("QueryInterface(D3): hooking version=%d\n", d3dversion);
 	switch(d3dversion){
 	case 1:
@@ -703,15 +726,13 @@ HRESULT WINAPI extQueryInterfaceD3(QueryInterfaceD3_Type pQueryInterfaceD3, void
 }
 
 HRESULT WINAPI extQueryInterfaceD31(void *lpd3d, REFIID riid, LPVOID *ppvObj)
-{ return extQueryInterfaceD3(pQueryInterfaceD31, lpd3d, riid, ppvObj); }
+{ return extQueryInterfaceD3(1, pQueryInterfaceD31, lpd3d, riid, ppvObj); }
 HRESULT WINAPI extQueryInterfaceD32(void *lpd3d, REFIID riid, LPVOID *ppvObj)
-{ return extQueryInterfaceD3(pQueryInterfaceD32, lpd3d, riid, ppvObj); }
+{ return extQueryInterfaceD3(2, pQueryInterfaceD32, lpd3d, riid, ppvObj); }
 HRESULT WINAPI extQueryInterfaceD33(void *lpd3d, REFIID riid, LPVOID *ppvObj)
-{ return extQueryInterfaceD3(pQueryInterfaceD33, lpd3d, riid, ppvObj); }
+{ return extQueryInterfaceD3(3, pQueryInterfaceD33, lpd3d, riid, ppvObj); }
 HRESULT WINAPI extQueryInterfaceD37(void *lpd3d, REFIID riid, LPVOID *ppvObj)
-{ return extQueryInterfaceD3(pQueryInterfaceD37, lpd3d, riid, ppvObj); }
-
-
+{ return extQueryInterfaceD3(7, pQueryInterfaceD37, lpd3d, riid, ppvObj); }
 
 HRESULT WINAPI extQueryInterfaceD3D(void *lpd3ddev, REFIID riid, LPVOID *ppvObj)
 {
@@ -720,6 +741,24 @@ HRESULT WINAPI extQueryInterfaceD3D(void *lpd3ddev, REFIID riid, LPVOID *ppvObj)
 	res=(*pQueryInterfaceD3D)(lpd3ddev, riid, ppvObj);
 	return res;
 }
+
+ULONG WINAPI extReleaseD3D(int d3dversion, ReleaseD3D_Type pReleaseD3D, LPDIRECT3DDEVICE lpd3dd)
+{
+	ULONG ref;
+	OutTraceD3D("Release(D3D%d): d3ddev=%x \n", d3dversion, lpd3dd);
+	ref = (*pReleaseD3D)(lpd3dd);
+	OutTraceD3D("Release(D3D%d): ref=%d\n", ref);
+	return ref;
+}
+
+ULONG WINAPI extReleaseD3D1(LPDIRECT3DDEVICE lpd3d)
+{ return extReleaseD3D(1, pReleaseD3D1, lpd3d); }
+ULONG WINAPI extReleaseD3D2(LPDIRECT3DDEVICE lpd3d)
+{ return extReleaseD3D(2, pReleaseD3D2, lpd3d); }
+ULONG WINAPI extReleaseD3D3(LPDIRECT3DDEVICE lpd3d)
+{ return extReleaseD3D(3, pReleaseD3D3, lpd3d); }
+ULONG WINAPI extReleaseD3D7(LPDIRECT3DDEVICE lpd3d)
+{ return extReleaseD3D(7, pReleaseD3D7, lpd3d); }
 
 HRESULT WINAPI extInitialize(void *lpd3d)
 {
@@ -963,12 +1002,12 @@ HRESULT WINAPI extFindDevice(void *lpd3d, LPD3DFINDDEVICESEARCH p1, LPD3DFINDDEV
 	return res;
 }
 
-HRESULT WINAPI extSetViewport(void *lpvp, LPD3DVIEWPORT vpd)
+HRESULT WINAPI extSetViewport(int dxversion, SetViewport_Type pSetViewport, void *lpvp, LPD3DVIEWPORT vpd)
 {
 	HRESULT res;
 
-	OutTraceD3D("SetViewport: viewport=%x viewportd=%x size=%d pos=(%d,%d) dim=(%dx%d) scale=(%fx%f) maxXYZ=(%f,%f,%f) minZ=%f\n", 
-		lpvp, vpd, vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight, vpd->dvScaleX, vpd->dvScaleY, 
+	OutTraceD3D("SetViewport(%d): viewport=%x viewportd=%x size=%d pos=(%d,%d) dim=(%dx%d) scale=(%fx%f) maxXYZ=(%f,%f,%f) minZ=%f\n", 
+		dxversion, lpvp, vpd, vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight, vpd->dvScaleX, vpd->dvScaleY, 
 		vpd->dvMaxX, vpd->dvMaxY, vpd->dvMaxZ, vpd->dvMinZ);
 
 	// v2.03.48: scaled dvScaleX/Y fields. Fixes "Dark Vengeance" viewport size when using D3D interface.
@@ -982,11 +1021,18 @@ HRESULT WINAPI extSetViewport(void *lpvp, LPD3DVIEWPORT vpd)
 	return res;
 }
 
-HRESULT WINAPI extGetViewport(void *lpvp, LPD3DVIEWPORT vpd)
+HRESULT WINAPI extSetViewport1(void *lpvp, LPD3DVIEWPORT vpd)
+{ return extSetViewport(1, pSetViewport1, lpvp, vpd); }
+HRESULT WINAPI extSetViewport2(void *lpvp, LPD3DVIEWPORT vpd)
+{ return extSetViewport(2, pSetViewport2, lpvp, vpd); }
+HRESULT WINAPI extSetViewport3(void *lpvp, LPD3DVIEWPORT vpd)
+{ return extSetViewport(3, pSetViewport3, lpvp, vpd); }
+
+HRESULT WINAPI extGetViewport(int dxversion, GetViewport_Type pGetViewport, void *lpvp, LPD3DVIEWPORT vpd)
 {
 	HRESULT res;
 
-	OutTraceD3D("GetViewport: viewport=%x viewportd=%x\n", lpvp, vpd);
+	OutTraceD3D("GetViewport(%d): viewport=%x viewportd=%x\n", dxversion, lpvp, vpd);
 	res=(*pGetViewport)(lpvp, vpd);
 	// v2.03.48: should the dvScaleX/Y fields be unscaled? 
 	if(res) OutTraceE("GetViewport ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -995,6 +1041,13 @@ HRESULT WINAPI extGetViewport(void *lpvp, LPD3DVIEWPORT vpd)
 		vpd->dvMaxX, vpd->dvMaxY, vpd->dvMaxZ, vpd->dvMinZ);
 	return res;
 }
+
+HRESULT WINAPI extGetViewport1(void *lpvp, LPD3DVIEWPORT vpd)
+{ return extGetViewport(1, pGetViewport1, lpvp, vpd); }
+HRESULT WINAPI extGetViewport2(void *lpvp, LPD3DVIEWPORT vpd)
+{ return extGetViewport(2, pGetViewport2, lpvp, vpd); }
+HRESULT WINAPI extGetViewport3(void *lpvp, LPD3DVIEWPORT vpd)
+{ return extGetViewport(3, pGetViewport3, lpvp, vpd); }
 
 HRESULT WINAPI extInitializeVP(void *lpvp, LPDIRECT3D lpd3d)
 {
@@ -1273,42 +1326,6 @@ HRESULT WINAPI extSetLightState3(void *d3dd, D3DLIGHTSTATETYPE d3dls, DWORD t)
 	return res;
 }
 
-HRESULT WINAPI extSetViewport2(void *d3dd, LPD3DVIEWPORT lpd3dvp)
-{
-	HRESULT res;
-	OutTraceD3D("SetViewport(2): d3d=%x d3dvp=%x\n", d3dd, lpd3dvp);
-	res=(*pSetViewport2)(d3dd, lpd3dvp);
-	if(res) OutTraceE("SetViewport(2): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	return res;
-}
-
-HRESULT WINAPI extGetViewport2(void *d3dd, LPD3DVIEWPORT lpd3dvp)
-{
-	HRESULT res;
-	OutTraceD3D("GetViewport(2): d3d=%x d3dvp=%x\n", d3dd, lpd3dvp);
-	res=(*pGetViewport2)(d3dd, lpd3dvp);
-	if(res) OutTraceE("GetViewport(2): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	return res;
-}
-
-HRESULT WINAPI extSetViewport3(void *d3dd, LPD3DVIEWPORT lpd3dvp)
-{
-	HRESULT res;
-	OutTraceD3D("SetViewport(3): d3d=%x d3dvp=%x\n", d3dd, lpd3dvp);
-	res=(*pSetViewport3)(d3dd, lpd3dvp);
-	if(res) OutTraceE("SetViewport(3): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	return res;
-}
-
-HRESULT WINAPI extGetViewport3(void *d3dd, LPD3DVIEWPORT lpd3dvp)
-{
-	HRESULT res;
-	OutTraceD3D("GetViewport(3): d3d=%x d3dvp=%x\n", d3dd, lpd3dvp);
-	res=(*pGetViewport3)(d3dd, lpd3dvp);
-	if(res) OutTraceE("GetViewport(3): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-	return res;
-}
-
 HRESULT WINAPI extSetViewport7(void *d3dd, LPD3DVIEWPORT7 lpd3dvp)
 {
 	HRESULT res;
@@ -1330,39 +1347,88 @@ HRESULT WINAPI extGetViewport7(void *d3dd, LPD3DVIEWPORT7 lpd3dvp)
 HRESULT WINAPI extAddViewport1(void *d3dd, LPDIRECT3DVIEWPORT lpd3dvp)
 {
 	HRESULT res;
+	static VOID *LastDevice = 0;
 	OutTraceD3D("AddViewport(1): d3d=%x d3dvp=%x\n", d3dd, lpd3dvp);
 	res=(*pAddViewport1)(d3dd, lpd3dvp);
-	if(res) {
-		OutTraceE("AddViewport(1): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		return res;
+	if((res == DDERR_INVALIDPARAMS) && LastDevice) {
+		// going through here fixes "Die hard trilogy" "DirectX error 15" caused by an AddViewport failure
+		OutTraceE("AddViewport(1) DDERR_INVALIDPARAMS; try to unlink from d3dd=%x\n", LastDevice);
+		res=((LPDIRECT3DDEVICE)LastDevice)->DeleteViewport(lpd3dvp);
+		if(res) OutTrace("DeleteViewport(1): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		res=(*pAddViewport1)(d3dd, lpd3dvp);
 	}
-	HookViewport(&lpd3dvp, 1);
+	if(res){
+		OutTraceE("AddViewport(1): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
+	}
+	else
+		LastDevice = d3dd;
 	return res;
 }
 
 HRESULT WINAPI extAddViewport2(void *d3dd, LPDIRECT3DVIEWPORT2 lpd3dvp)
 {
 	HRESULT res;
+	static VOID *LastDevice = 0;
 	OutTraceD3D("AddViewport(2): d3d=%x d3dvp=%x\n", d3dd, lpd3dvp);
 	res=(*pAddViewport2)(d3dd, lpd3dvp);
+	if((res == DDERR_INVALIDPARAMS) && LastDevice) {
+		OutTraceE("AddViewport(2) DDERR_INVALIDPARAMS; try to unlink from d3dd=%x\n", LastDevice);
+		res=((LPDIRECT3DDEVICE2)LastDevice)->DeleteViewport(lpd3dvp);
+		if(res) OutTrace("DeleteViewport(2): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		res=(*pAddViewport2)(d3dd, lpd3dvp);
+	}
 	if(res) {
 		OutTraceE("AddViewport(2): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		return res;
+		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	}
-	HookViewport((LPDIRECT3DVIEWPORT *)&lpd3dvp, 2);
+	else
+		LastDevice = d3dd;
 	return res;
 }
 
 HRESULT WINAPI extAddViewport3(void *d3dd, LPDIRECT3DVIEWPORT3 lpd3dvp)
 {
 	HRESULT res;
+	static VOID *LastDevice = 0;
 	OutTraceD3D("AddViewport(3): d3d=%x d3dvp=%x\n", d3dd, lpd3dvp);
 	res=(*pAddViewport3)(d3dd, lpd3dvp);
+	if((res == DDERR_INVALIDPARAMS) && LastDevice) {
+		OutTraceE("AddViewport(3) DDERR_INVALIDPARAMS; try to unlink from d3dd=%x\n", LastDevice);
+		res=((LPDIRECT3DDEVICE3)LastDevice)->DeleteViewport(lpd3dvp);
+		if(res) OutTrace("DeleteViewport(3): ERROR res=%x(%s)\n", res, ExplainDDError(res));
+		res=(*pAddViewport3)(d3dd, lpd3dvp);
+	}
 	if(res) {
 		OutTraceE("AddViewport(3): ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		return res;
+		if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	}
-	HookViewport((LPDIRECT3DVIEWPORT *)&lpd3dvp, 3);
+	else
+		LastDevice = d3dd;
+	return res;
+}
+
+HRESULT WINAPI extSetViewport2_2(void *lpvp, LPD3DVIEWPORT2 vpd)
+{
+	HRESULT res;
+
+	OutTraceD3D("SetViewport2(VP3): viewport=%x viewportd=%x size=%d pos=(%d,%d) dim=(%dx%d)\n", 
+		lpvp, vpd, vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight);
+	res=(*pSetViewport2_2)(lpvp, vpd);
+	if(res) OutTraceE("SetViewport2(VP3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	else OutTraceD3D("SetViewport2(VP3): OK\n");
+	return res;
+}
+
+HRESULT WINAPI extGetViewport2_2(void *lpvp, LPD3DVIEWPORT2 vpd)
+{
+	HRESULT res;
+
+	OutTraceD3D("GetViewport2(VP3): viewport=%x viewportd=%x\n", lpvp, vpd);
+	res=(*pGetViewport2_2)(lpvp, vpd);
+	if(res) OutTraceE("GetViewport2(VP3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	else OutTraceD3D("GetViewport2(VP3): OK size=%d pos=(%d,%d) dim=(%dx%d)\n",
+		vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight);
 	return res;
 }
 
@@ -1696,4 +1762,13 @@ HRESULT WINAPI extViewportClear(void *lpd3dvp, DWORD p1, LPD3DRECT lpRect, DWORD
 
 	OutTraceD3D("Viewport::Clear ret=%x\n", ret);
 	return ret;
+}
+
+HRESULT WINAPI extExecute(void *lpd3d, LPDIRECT3DEXECUTEBUFFER eb, LPDIRECT3DVIEWPORT vp, DWORD dw)
+{
+	HRESULT ret;
+	OutTraceD3D("Direct3DDevice::Execute\n");
+	ret=(*pExecute)(lpd3d, eb, vp, dw);
+	if (ret) OutTraceE("Direct3DDevice::Execute res=%x(%s)\n", ret, ExplainDDError(ret));
+	return DD_OK;
 }

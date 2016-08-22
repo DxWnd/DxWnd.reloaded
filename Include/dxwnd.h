@@ -232,6 +232,7 @@
 #define SKIPDEVTYPEHID		0x00004000 // do not enumerate HID device types, some programs are not properly coded!
 #define INJECTSUSPENDED		0x00008000 // Inject the suspended process while running infinite loop ad starting address
 #define SUPPRESSDIERRORS	0x00010000 // Suppress DirectInput common errors
+#define HOOKNORUN			0x00020000 // Hook process but don't start it from DxWnd interface
 
 // eighth flags DWORD dxw.dwFlags8:
 

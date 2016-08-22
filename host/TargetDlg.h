@@ -67,6 +67,7 @@ public:
 	BOOL	m_HotPatch;
 	BOOL	m_HookDLLs;
 	BOOL	m_AnsiWide;
+	BOOL	m_HookNoRun;
 	BOOL	m_TerminateOnClose;
 	BOOL	m_ConfirmOnClose;
 	BOOL	m_EmulateRegistry;
@@ -86,6 +87,7 @@ public:
 	BOOL	m_ReplacePrivOps;
 	CString	m_FilePath;
 	CString	m_LaunchPath;
+	CString	m_StartFolder;
 	CString	m_Module;
 	CString	m_Title;
 	CString	m_OpenGLLib;

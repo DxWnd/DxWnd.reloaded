@@ -1201,4 +1201,13 @@ fix: scales glGetIntegerv(GL_VIEWPORT) returned values. Fixes "bugdom" rendering
 add: added GUI logging when debug mode is on.
 add: added a third injection mode "Inject suspended process". Modified the GUI to select the injection mode through radio buttons. Improves injection compatibility, working mode for "T-ZWei" on WinXP.
 
- 
+v2.03.81
+fix: hook AVIFileRelease to avoid call when avi file is NULL. Fixes a crash in "Die hard trilogy"
+fix: in DirectDrawSurface::QueryInterface added handling of Direct3DDevice objects: Needed for "Die hard trilogy"
+fix: hooking of DirectDrawSurface GetPalette / SetPalette methods
+add: added "Suppress DI common errors" for Acquire / Unacquire methods: Needed for "Die hard trilogy"
+add: some DirectSound methods for logging
+add: some Direct3D error codes for logging
+fix: fixed some Direct3D methods hooking
+fix: Direct3DDevice::AddViewport hooker now delete a viewport that is still linked to a previous device. Needed for "Die hard trilogy"
+fix: fixed CreateProcess hooker for "Extend injection" mode: Needed for "Die hard trilogy"

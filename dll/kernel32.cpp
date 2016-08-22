@@ -935,6 +935,307 @@ static char *ExplainDebugEvent(DWORD ec)
 	return e;
 }
 
+static BOOL CreateProcessDebug(
+	LPCTSTR lpApplicationName, 
+	LPTSTR lpCommandLine, 
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	BOOL bInheritHandles,
+	DWORD dwCreationFlags,
+	LPVOID lpEnvironment,
+	LPCTSTR lpCurrentDirectory,
+	LPSTARTUPINFO lpStartupInfo,
+	LPPROCESS_INFORMATION lpProcessInformation
+)
+{
+	BOOL res;
+	DEBUG_EVENT debug_event ={0};
+	char path[MAX_PATH];
+	DWORD dwContinueStatus = DBG_CONTINUE;
+	extern BOOL Inject(DWORD, const char *);
+	LPVOID LastExceptionPtr = 0;
+
+	dwCreationFlags |= DEBUG_ONLY_THIS_PROCESS;
+
+	res=(*pCreateProcessA)(
+		lpApplicationName, lpCommandLine,
+		lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+		dwCreationFlags, lpEnvironment,
+		lpCurrentDirectory, lpStartupInfo, lpProcessInformation
+	);
+	OutTrace("CreateProcess res=%x\n", res);
+	BOOL bContinueDebugging = TRUE;
+	while(bContinueDebugging)
+	{ 
+		if (!WaitForDebugEvent(&debug_event, INFINITE)) break;
+		OutTraceB("CreateProcess: WaitForDebugEvent pid=%x tid=%x event=%x(%s)\n", 
+			debug_event.dwProcessId, debug_event.dwThreadId, debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode));
+		switch(debug_event.dwDebugEventCode){
+			case EXIT_PROCESS_DEBUG_EVENT:
+				bContinueDebugging=false;
+				break;
+			case CREATE_PROCESS_DEBUG_EVENT:
+				GetModuleFileName(GetModuleHandle("dxwnd"), path, MAX_PATH);
+				OutTrace("CreateProcess: injecting path=%s\n", path);
+				if(!Inject(lpProcessInformation->dwProcessId, path)){
+					OutTrace("CreateProcess: Injection ERROR pid=%x dll=%s\n", lpProcessInformation->dwProcessId, path);
+				}
+#ifdef LOCKINJECTIONTHREADS
+					HANDLE TargetHandle;
+					extern LPVOID GetThreadStartAddress(HANDLE);
+					DWORD EndlessLoop;
+					EndlessLoop=0x9090FEEB; // assembly for JMP to here, NOP, NOP
+					SIZE_T BytesCount;
+					TargetHandle = (DWORD)OpenProcess(
+						PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, 
+						FALSE, 
+						lpProcessInformation->dwProcessId);
+					if(TargetHandle){
+						StartAddress = GetThreadStartAddress(lpProcessInformation->hThread);
+						OutTrace("CreateProcess: StartAddress=%x\n", StartAddress);
+						if(StartAddress){
+							if(!ReadProcessMemory(lpProcessInformation->hProcess, StartAddress, &StartingCode, 4, &BytesCount)){ 
+								OutTrace("CreateProcess: ReadProcessMemory error=%d\n", GetLastError());
+							}
+							OutTrace("CreateProcess: StartCode=%x\n", StartingCode);
+							if(!WriteProcessMemory(lpProcessInformation->hProcess, StartAddress, &EndlessLoop, 4, &BytesCount)){
+								OutTrace("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
+							}
+						}
+					}
+#endif				
+				OutTrace("CreateProcess: injection started\n", res);
+				CloseHandle(debug_event.u.CreateProcessInfo.hFile);
+				break;
+			case EXCEPTION_DEBUG_EVENT:
+				{
+					LPEXCEPTION_DEBUG_INFO ei;
+					ei=(LPEXCEPTION_DEBUG_INFO)&debug_event.u;
+					OutTraceE("CreateProcess: EXCEPTION code=%x flags=%x addr=%x firstchance=%x\n", 
+						ei->ExceptionRecord.ExceptionCode, 
+						ei->ExceptionRecord.ExceptionFlags, 
+						ei->ExceptionRecord.ExceptionAddress,
+						debug_event.u.Exception.dwFirstChance);
+					// exception twice in same address, then do not continue.
+					if(LastExceptionPtr == ei->ExceptionRecord.ExceptionAddress) bContinueDebugging = FALSE;
+					//if(ei->dwFirstChance == 0) bContinueDebugging = FALSE;
+					LastExceptionPtr = ei->ExceptionRecord.ExceptionAddress;
+				}
+				bContinueDebugging=false;
+				break;
+			case LOAD_DLL_DEBUG_EVENT:
+				//OutTrace("CreateProcess: event=%x(%s) dll=%s address=%x\n", 
+				//	debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode),
+				//	((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->lpImageName, ((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->lpBaseOfDll);
+				CloseHandle(debug_event.u.LoadDll.hFile);
+				break;
+			case CREATE_THREAD_DEBUG_EVENT:
+				OutTraceB("CreateProcess: THREAD %x\n", debug_event.u.CreateThread.hThread);
+				break;
+			case EXIT_THREAD_DEBUG_EVENT:
+#ifdef LOCKINJECTIONTHREADS
+				if(TargetHandle && StartAddress){
+					if(dxw.dwFlags5 & FREEZEINJECTEDSON){
+						OutTrace("CreateProcess: FREEZEINJECTEDSON leaving son process in endless loop\n", GetLastError());
+					}
+					else{
+					if(!WriteProcessMemory(lpProcessInformation->hProcess, StartAddress, &StartingCode, 4, &BytesCount)){
+						OutTrace("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
+					}
+					}
+					CloseHandle((HANDLE)TargetHandle);
+					OutTrace("CreateProcess: injection terminated\n", res);
+				}
+#endif
+				OutTraceB("CreateProcess: thread exit code=%x\n", debug_event.u.ExitThread.dwExitCode);
+				bContinueDebugging=false;
+			default:
+				break;
+		}
+		if(bContinueDebugging){
+			ContinueDebugEvent(debug_event.dwProcessId, 
+				debug_event.dwThreadId, 
+				dwContinueStatus);
+		}
+		else{
+			ContinueDebugEvent(debug_event.dwProcessId, debug_event.dwThreadId, DBG_CONTINUE); 
+			if(!DebugSetProcessKillOnExit(FALSE)){
+				OutTraceE("CreateProcess: DebugSetProcessKillOnExit ERROR err=%d\n", GetLastError());
+			}
+			if(!DebugActiveProcessStop(debug_event.dwProcessId)){
+				OutTraceE("CreateProcess: DebugActiveProcessStop ERROR err=%d\n", GetLastError());
+				MessageBox(NULL, "Error in DebugActiveProcessStop", "dxwnd", MB_OK);
+			}
+		}
+	}
+	OutTrace("CreateProcess: detached\n");
+	return res;
+}
+
+static BOOL CreateProcessSuspended(
+	LPCTSTR lpApplicationName, 
+	LPTSTR lpCommandLine, 
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	BOOL bInheritHandles,
+	DWORD dwCreationFlags,
+	LPVOID lpEnvironment,
+	LPCTSTR lpCurrentDirectory,
+	LPSTARTUPINFO lpStartupInfo,
+	LPPROCESS_INFORMATION lpProcessInformation
+)
+{
+	BOOL res;
+	extern BOOL Inject(DWORD, const char *);
+	STARTUPINFO sinfo;
+	PROCESS_INFORMATION pinfo;
+	char StartingCode[4];
+	DWORD EndlessLoop;
+	EndlessLoop=0x9090FEEB; // careful: it's BIG ENDIAN: EB FE 90 90
+	DWORD BytesCount;
+	DWORD OldProt;
+	DWORD PEHeader[0x70];
+	char dllpath[MAX_PATH];
+	LPVOID StartAddress;
+	HANDLE TargetHandle;
+	FILE *fExe = NULL;
+	BOOL bKillProcess = FALSE;
+
+	OutTrace("CreateProcessSuspended: appname=\"%s\" commandline=\"%s\" dir=\"%s\"\n", 
+		lpApplicationName, lpCommandLine, lpCurrentDirectory);
+	ZeroMemory(&sinfo, sizeof(sinfo));
+	sinfo.cb = sizeof(sinfo);
+	// attempt to load the specified target
+	res=(*pCreateProcessA)(
+		lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, false, 
+		dwCreationFlags|CREATE_SUSPENDED, NULL, lpCurrentDirectory, &sinfo, &pinfo);
+	if (!res){
+		OutTraceE("CreateProcess(CREATE_SUSPENDED) ERROR: err=%d\n", GetLastError());
+		res=(*pCreateProcessA)(NULL, lpCommandLine, 0, 0, false, dwCreationFlags, NULL, lpCurrentDirectory, &sinfo, &pinfo);
+		if(!res){ 
+			OutTraceE("CreateProcess ERROR: err=%d\n", GetLastError());
+		}
+		return res;
+	}
+
+	while(TRUE){ // fake loop
+		bKillProcess = TRUE;
+
+		// locate the entry point
+		TargetHandle = OpenProcess(
+			PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE|PROCESS_SUSPEND_RESUME, 
+			FALSE, 
+			pinfo.dwProcessId);
+
+		FILE *fExe = fopen(lpCommandLine ? lpCommandLine : lpApplicationName, "rb");
+		if(fExe==NULL){
+			OutTraceE("CreateProcess: fopen %s error=%d\n", lpCommandLine, GetLastError());
+			break;
+		}
+		// read DOS header
+		if(fread((void *)PEHeader, sizeof(DWORD), 0x10, fExe)!=0x10){
+			OutTraceE("CreateProcess: fread DOSHDR error=%d\n", GetLastError());
+			break;
+		}
+		OutTraceB("CreateProcess: NT Header offset=%X\n", PEHeader[0xF]);
+		fseek(fExe, PEHeader[0xF], 0);
+		// read File header + Optional header
+		if(fread((void *)PEHeader, sizeof(DWORD), 0x70, fExe)!=0x70){
+			OutTraceE("CreateProcess: fread NTHDR error=%d\n", GetLastError());
+			break;
+		}
+
+		StartAddress = (LPVOID)(PEHeader[0xA] + PEHeader[0xD]);
+		OutTraceB("CreateProcess: AddressOfEntryPoint=%X ImageBase=%X startaddr=%X\n", PEHeader[0xA], PEHeader[0xD], StartAddress);
+
+		// patch the entry point with infinite loop
+		if(!VirtualProtectEx(TargetHandle, StartAddress, 4, PAGE_EXECUTE_READWRITE, &OldProt )){
+			OutTraceE("CreateProcess: VirtualProtectEx error=%d\n", GetLastError());
+			break;
+		}
+
+		if(!ReadProcessMemory(TargetHandle, StartAddress, &StartingCode, 4, &BytesCount)){ 
+			OutTraceE("CreateProcess: ReadProcessMemory error=%d\n", GetLastError());
+			break;
+		}
+
+		if(!WriteProcessMemory(TargetHandle, StartAddress, &EndlessLoop, 4, &BytesCount)){
+			OutTraceE("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
+			break;
+		}
+
+		// resume the main thread
+		if(ResumeThread(pinfo.hThread)==(DWORD)-1){
+			OutTraceE("CreateProcess: ResumeThread error=%d at:%d\n", GetLastError(), __LINE__);
+			break;
+		}
+
+		// wait until the thread stuck at entry point
+		CONTEXT context;
+		context.Eip = (DWORD)0; // initialize to impossible value
+		for ( unsigned int i = 0; i < 40 && context.Eip != (DWORD)StartAddress; ++i ){
+			// patience.
+			Sleep(50);
+
+			// read the thread context
+			context.ContextFlags = CONTEXT_CONTROL;
+			if(!GetThreadContext(pinfo.hThread, &context)){
+				OutTraceE("CreateProcess: GetThreadContext error=%d\n", GetLastError());
+				break;
+			}
+			OutTraceB("wait cycle %d eip=%x\n", i, context.Eip);
+		}
+
+		if (context.Eip != (DWORD)StartAddress){
+			// wait timed out
+			OutTraceE("CreateProcess: thread blocked eip=%x addr=%x", context.Eip, StartAddress);
+			break;
+		}
+
+		// inject DLL payload into remote process
+		GetFullPathName("dxwnd.dll", MAX_PATH, dllpath, NULL);
+		if(!Inject(pinfo.dwProcessId, dllpath)){
+			// DXW_STRING_INJECTION
+			OutTraceE("CreateProcess: Injection error: pid=%x dll=%s\n", pinfo.dwProcessId, dllpath);
+			break;
+		}
+
+		// pause 
+		if(SuspendThread(pinfo.hThread)==(DWORD)-1){
+			OutTraceE("CreateProcess: SuspendThread error=%d\n", GetLastError());
+			break;
+		}
+
+		// restore original entry point
+		if(!WriteProcessMemory(TargetHandle, StartAddress, &StartingCode, 4, &BytesCount)){
+			OutTraceE("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
+			break;
+		}
+
+		// you are ready to go
+		// pause and restore original entry point
+		if(ResumeThread(pinfo.hThread)==(DWORD)-1){
+			OutTraceE("CreateProcess: ResumeThread error=%d at:%d\n", GetLastError(), __LINE__);
+			break;
+		}
+
+		bKillProcess = FALSE;
+		break; // exit fake loop
+	}
+
+	// cleanup ....
+	if(fExe) fclose(fExe);
+	if(TargetHandle) CloseHandle(TargetHandle);
+	// terminate the newly spawned process
+	if(bKillProcess){
+		if(!TerminateProcess( pinfo.hProcess, -1 )){
+			OutTraceE("CreateProcess: failed to kill hproc=%x err=%d\n", pinfo.hProcess, GetLastError());
+		}
+	}
+	OutTraceB("CreateProcess: resumed\n");
+	return res;
+}
+
 BOOL WINAPI extCreateProcessA(
 	LPCTSTR lpApplicationName, 
 	LPTSTR lpCommandLine, 
@@ -954,7 +1255,8 @@ BOOL WINAPI extCreateProcessA(
 	LPVOID StartAddress = 0;
 	extern LPVOID GetThreadStartAddress(HANDLE);
 #endif
-	OutTraceDW("CreateProcess: ApplicationName=\"%s\" CommandLine=\"%s\"\n", lpApplicationName, lpCommandLine);
+	OutTraceDW("CreateProcess: ApplicationName=\"%s\" CommandLine=\"%s\" CreationFlags=%x CurrentDir=\"%s\"\n", 
+		lpApplicationName, lpCommandLine, dwCreationFlags, lpCurrentDirectory);
 	if(dxw.dwFlags4 & SUPPRESSCHILD) {
 		OutTraceDW("CreateProcess: SUPPRESS\n");
 		return TRUE;
@@ -966,126 +1268,33 @@ BOOL WINAPI extCreateProcessA(
 	}
 
 	if(dxw.dwFlags5 & INJECTSON) {
-		DEBUG_EVENT debug_event ={0};
-		char path[MAX_PATH];
-		DWORD dwContinueStatus = DBG_CONTINUE;
-		extern BOOL Inject(DWORD, const char *);
-		LPVOID LastExceptionPtr = 0;
-
-		dwCreationFlags |= DEBUG_ONLY_THIS_PROCESS;
-
-		res=(*pCreateProcessA)(
-			lpApplicationName, lpCommandLine,
-			lpProcessAttributes, lpThreadAttributes, bInheritHandles,
-			dwCreationFlags, lpEnvironment,
-			lpCurrentDirectory, lpStartupInfo, lpProcessInformation
+		res=CreateProcessDebug(
+			lpApplicationName, 
+			lpCommandLine, 
+			lpProcessAttributes,
+			lpThreadAttributes,
+			bInheritHandles,
+			dwCreationFlags,
+			lpEnvironment,
+			lpCurrentDirectory,
+			lpStartupInfo,
+			lpProcessInformation
 		);
-		OutTrace("CreateProcess res=%x\n", res);
-		BOOL bContinueDebugging = TRUE;
-		while(bContinueDebugging)
-		{ 
-			if (!WaitForDebugEvent(&debug_event, INFINITE)) break;
-			OutTraceB("CreateProcess: WaitForDebugEvent pid=%x tid=%x event=%x(%s)\n", 
-				debug_event.dwProcessId, debug_event.dwThreadId, debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode));
-			switch(debug_event.dwDebugEventCode){
-				case EXIT_PROCESS_DEBUG_EVENT:
-					bContinueDebugging=false;
-					break;
-				case CREATE_PROCESS_DEBUG_EVENT:
-					GetModuleFileName(GetModuleHandle("dxwnd"), path, MAX_PATH);
-					OutTrace("CreateProcess: injecting path=%s\n", path);
-					if(!Inject(lpProcessInformation->dwProcessId, path)){
-						OutTrace("CreateProcess: Injection ERROR pid=%x dll=%s\n", lpProcessInformation->dwProcessId, path);
-					}
-#ifdef LOCKINJECTIONTHREADS
-						HANDLE TargetHandle;
-						extern LPVOID GetThreadStartAddress(HANDLE);
-						DWORD EndlessLoop;
-						EndlessLoop=0x9090FEEB; // assembly for JMP to here, NOP, NOP
-						SIZE_T BytesCount;
-						TargetHandle = (DWORD)OpenProcess(
-							PROCESS_QUERY_INFORMATION|PROCESS_VM_OPERATION|PROCESS_VM_READ|PROCESS_VM_WRITE, 
-							FALSE, 
-							lpProcessInformation->dwProcessId);
-						if(TargetHandle){
-							StartAddress = GetThreadStartAddress(lpProcessInformation->hThread);
-							OutTrace("CreateProcess: StartAddress=%x\n", StartAddress);
-							if(StartAddress){
-								if(!ReadProcessMemory(lpProcessInformation->hProcess, StartAddress, &StartingCode, 4, &BytesCount)){ 
-									OutTrace("CreateProcess: ReadProcessMemory error=%d\n", GetLastError());
-								}
-								OutTrace("CreateProcess: StartCode=%x\n", StartingCode);
-								if(!WriteProcessMemory(lpProcessInformation->hProcess, StartAddress, &EndlessLoop, 4, &BytesCount)){
-									OutTrace("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
-								}
-							}
-						}
-#endif				
-					OutTrace("CreateProcess: injection started\n", res);
-					CloseHandle(debug_event.u.CreateProcessInfo.hFile);
-					break;
-				case EXCEPTION_DEBUG_EVENT:
-					{
-						LPEXCEPTION_DEBUG_INFO ei;
-						ei=(LPEXCEPTION_DEBUG_INFO)&debug_event.u;
-						OutTraceE("CreateProcess: EXCEPTION code=%x flags=%x addr=%x firstchance=%x\n", 
-							ei->ExceptionRecord.ExceptionCode, 
-							ei->ExceptionRecord.ExceptionFlags, 
-							ei->ExceptionRecord.ExceptionAddress,
-							debug_event.u.Exception.dwFirstChance);
-						// exception twice in same address, then do not continue.
-						if(LastExceptionPtr == ei->ExceptionRecord.ExceptionAddress) bContinueDebugging = FALSE;
-						//if(ei->dwFirstChance == 0) bContinueDebugging = FALSE;
-						LastExceptionPtr = ei->ExceptionRecord.ExceptionAddress;
-					}
-					bContinueDebugging=false;
-					break;
-				case LOAD_DLL_DEBUG_EVENT:
-					//OutTrace("CreateProcess: event=%x(%s) dll=%s address=%x\n", 
-					//	debug_event.dwDebugEventCode, ExplainDebugEvent(debug_event.dwDebugEventCode),
-					//	((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->lpImageName, ((LOAD_DLL_DEBUG_INFO *)&debug_event.u)->lpBaseOfDll);
-					CloseHandle(debug_event.u.LoadDll.hFile);
-					break;
-				case CREATE_THREAD_DEBUG_EVENT:
-					OutTraceB("CreateProcess: THREAD %x\n", debug_event.u.CreateThread.hThread);
-					break;
-				case EXIT_THREAD_DEBUG_EVENT:
-#ifdef LOCKINJECTIONTHREADS
-					if(TargetHandle && StartAddress){
-						if(dxw.dwFlags5 & FREEZEINJECTEDSON){
-							OutTrace("CreateProcess: FREEZEINJECTEDSON leaving son process in endless loop\n", GetLastError());
-						}
-						else{
-						if(!WriteProcessMemory(lpProcessInformation->hProcess, StartAddress, &StartingCode, 4, &BytesCount)){
-							OutTrace("CreateProcess: WriteProcessMemory error=%d\n", GetLastError());
-						}
-						}
-						CloseHandle((HANDLE)TargetHandle);
-						OutTrace("CreateProcess: injection terminated\n", res);
-					}
-#endif
-					OutTraceB("CreateProcess: thread exit code=%x\n", debug_event.u.ExitThread.dwExitCode);
-					bContinueDebugging=false;
-				default:
-					break;
-			}
-			if(bContinueDebugging){
-				ContinueDebugEvent(debug_event.dwProcessId, 
-					debug_event.dwThreadId, 
-					dwContinueStatus);
-			}
-			else{
-				ContinueDebugEvent(debug_event.dwProcessId, debug_event.dwThreadId, DBG_CONTINUE); 
-				if(!DebugSetProcessKillOnExit(FALSE)){
-					OutTraceE("CreateProcess: DebugSetProcessKillOnExit ERROR err=%d\n", GetLastError());
-				}
-				if(!DebugActiveProcessStop(debug_event.dwProcessId)){
-					OutTraceE("CreateProcess: DebugActiveProcessStop ERROR err=%d\n", GetLastError());
-					MessageBox(NULL, "Error in DebugActiveProcessStop", "dxwnd", MB_OK);
-				}
-			}
-		}
-		OutTrace("CreateProcess: detached\n");
+	}
+	else
+	if(dxw.dwFlags7 & INJECTSUSPENDED) {
+		res=CreateProcessSuspended(
+			lpApplicationName, 
+			lpCommandLine, 
+			lpProcessAttributes,
+			lpThreadAttributes,
+			bInheritHandles,
+			dwCreationFlags,
+			lpEnvironment,
+			lpCurrentDirectory,
+			lpStartupInfo,
+			lpProcessInformation
+		);
 	}
 	else{
 		res=(*pCreateProcessA)(

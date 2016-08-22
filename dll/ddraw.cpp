@@ -1762,17 +1762,20 @@ HRESULT WINAPI extInitialize4(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 HRESULT WINAPI extInitialize7(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 { return extInitialize(pInitialize7, lpdd, lpguid); }
 
-static HRESULT WINAPI extQueryInterfaceD(QueryInterface_Type pQueryInterfaceD, void *lpdd, REFIID riid, LPVOID *obp)
+static HRESULT WINAPI extQueryInterfaceD(int dxversion, QueryInterface_Type pQueryInterfaceD, void *lpdd, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 	unsigned int dwLocalDDVersion;
 	unsigned int dwLocalD3DVersion;
 
 	res = (*pQueryInterfaceD)(lpdd, riid, obp);
-	OutTraceDDRAW("QueryInterface(D): lpdd=%x REFIID=%x(%s) obp=%x ret=%x at %d\n",
-		lpdd, riid.Data1, ExplainGUID((GUID *)&riid), *obp, res, __LINE__);	
+	OutTraceDDRAW("QueryInterface(D%d): lpdd=%x REFIID=%x(%s) obp=%x ret=%x at %d\n",
+		dxversion, lpdd, riid.Data1, ExplainGUID((GUID *)&riid), *obp, res, __LINE__);	
 	
-	if(res) return res;
+	if(res) {
+		OutTraceE("QueryInterface(D) ERROR: res=%x(%s)\n", res, ExplainDDError(res));
+		return res;
+	}
 
 	dwLocalDDVersion=0;
 	dwLocalD3DVersion=0;
@@ -1844,18 +1847,18 @@ static HRESULT WINAPI extQueryInterfaceD(QueryInterface_Type pQueryInterfaceD, v
 }
 
 HRESULT WINAPI extQueryInterfaceD1(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(pQueryInterfaceD1, lpdd, riid, obp); }
+{ return extQueryInterfaceD(1, pQueryInterfaceD1, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD2(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(pQueryInterfaceD2, lpdd, riid, obp); }
+{ return extQueryInterfaceD(2, pQueryInterfaceD2, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD4(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(pQueryInterfaceD4, lpdd, riid, obp); }
+{ return extQueryInterfaceD(4, pQueryInterfaceD4, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD7(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(pQueryInterfaceD7, lpdd, riid, obp); }
+{ return extQueryInterfaceD(7, pQueryInterfaceD7, lpdd, riid, obp); }
 
 // some unhandled interfaces in emulation mode:
 // REFIID={84e63de0-46aa-11cf-816f-0000c020156e}: IID_IDirect3DHALDevice
 
-static HRESULT WINAPI extQueryInterfaceS(QueryInterface_Type pQueryInterfaceS, void *lpdds, REFIID riid, LPVOID *obp)
+static HRESULT WINAPI extQueryInterfaceS(int dxversion, QueryInterface_Type pQueryInterfaceS, void *lpdds, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -1863,16 +1866,18 @@ static HRESULT WINAPI extQueryInterfaceS(QueryInterface_Type pQueryInterfaceS, v
 	BOOL IsGammaRamp;
 	unsigned int dwLocalDDVersion;
 	unsigned int dwLocalTexVersion;
+	unsigned int dwLocalD3DDeviceVersion;
 
 	IsPrim=dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds);
 	IsBack=dxwss.IsABackBufferSurface((LPDIRECTDRAWSURFACE)lpdds);
-	OutTraceDDRAW("QueryInterface(S): lpdds=%x%s REFIID=%x(%s)\n",
-		lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds), riid.Data1, ExplainGUID((GUID *)&riid));	
+	OutTraceDDRAW("QueryInterface(S%d): lpdds=%x%s REFIID=%x(%s)\n",
+		dxversion, lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds), riid.Data1, ExplainGUID((GUID *)&riid));	
 
 	IsGammaRamp=FALSE;
 
 	dwLocalDDVersion=0;
 	dwLocalTexVersion=0;
+	dwLocalD3DDeviceVersion=0;
 	switch(riid.Data1){
 	case 0x6C14DB81:
 		dwLocalDDVersion = 1;
@@ -1889,17 +1894,50 @@ static HRESULT WINAPI extQueryInterfaceS(QueryInterface_Type pQueryInterfaceS, v
 	case 0x06675a80:
 		dwLocalDDVersion = 7;
 		break;
+	// Direct3DDevice
 	case 0x84e63de0:
 		OutTraceDW("QueryInterface: IID_IDirect3DHALDevice\n");
+		dwLocalD3DDeviceVersion = 1;
 		break;
 	case 0xA4665C60: //  IID_IDirect3DRGBDevice
 		OutTraceDW("QueryInterface: IID_IDirect3DRGBDevice\n");
+		dwLocalD3DDeviceVersion = 1;
 		break;
 	case 0xF2086B20: //  IID_IDirect3DRampDevice
 		OutTraceDW("QueryInterface: IID_IDirect3DRampDevice\n");
+		dwLocalD3DDeviceVersion = 1;
 		break;
 	case 0x881949a1: //  IID_IDirect3DMMXDevice
 		OutTraceDW("QueryInterface: IID_IDirect3DMMXDevice\n");
+		dwLocalD3DDeviceVersion = 1;
+		break;
+	case 0x50936643: //  IID_IDirect3DRefDevice    
+		OutTraceDW("QueryInterface: IID_IDirect3DRefDevice\n");
+		dwLocalD3DDeviceVersion = 2;
+		break;
+	case 0x8767df22: //  IID_IDirect3DNullDevice
+		OutTraceDW("QueryInterface: IID_IDirect3DNullDevice\n");
+		dwLocalD3DDeviceVersion = 2;
+		break;
+	case 0xf5049e78: //  IID_IDirect3DTnLHalDevice, 
+		OutTraceDW("QueryInterface: IID_IDirect3DTnLHalDevice\n");
+		dwLocalD3DDeviceVersion = 3;
+		break;
+	case 0x64108800: //  IID_IDirect3DDevice       
+		OutTraceDW("QueryInterface: IID_IDirect3DDevice\n");
+		dwLocalD3DDeviceVersion = 1;
+		break;
+	case 0x93281501: //  IID_IDirect3DDevice2
+		OutTraceDW("QueryInterface: IID_IDirect3DDevice2\n");
+		dwLocalD3DDeviceVersion = 2;
+		break;
+	case 0xb0ab3b60: //  IID_IDirect3DDevice3 
+		OutTraceDW("QueryInterface: IID_IDirect3DDevice3\n");
+		dwLocalD3DDeviceVersion = 3;
+		break;
+	case 0xf5049e79: //  IID_IDirect3DDevice7  
+		OutTraceDW("QueryInterface: IID_IDirect3DDevice7\n");
+		dwLocalD3DDeviceVersion = 7;
 		break;
 	case 0x4B9F0EE0:
 		OutTraceDW("QueryInterface: IID_IDirectDrawColorControl\n");
@@ -1948,8 +1986,8 @@ static HRESULT WINAPI extQueryInterfaceS(QueryInterface_Type pQueryInterfaceS, v
 	}
 
 	// added trace
-	OutTraceDW("QueryInterface(S): lpdds=%x%s REFIID=%x obp=%x DDVersion=%d TexVersion=%d GammaRamp=%d ret=0\n",
-		lpdds, IsPrim?"(PRIM)":"", riid.Data1, *obp, dwLocalDDVersion, dwLocalTexVersion, IsGammaRamp);
+	OutTraceDW("QueryInterface(S): lpdds=%x%s REFIID=%x obp=%x DDVersion=%d TexVersion=%d GammaRamp=%d D3DDevice=%d ret=0\n",
+		lpdds, IsPrim?"(PRIM)":"", riid.Data1, *obp, dwLocalDDVersion, dwLocalTexVersion, IsGammaRamp, dwLocalD3DDeviceVersion);
 
 	if (dwLocalDDVersion) {
 		switch (dwLocalDDVersion){
@@ -1982,19 +2020,23 @@ static HRESULT WINAPI extQueryInterfaceS(QueryInterface_Type pQueryInterfaceS, v
 
 	if(IsGammaRamp)	HookGammaControl(obp);
 
+	if(dwLocalD3DDeviceVersion) {
+		extern void HookDirect3DDevice(void **, int);
+		HookDirect3DDevice(obp, dwLocalD3DDeviceVersion);
+	}
 	return 0;
 }
 
 HRESULT WINAPI extQueryInterfaceS1(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(pQueryInterfaceS1, lpdds, riid, obp); }
+{ return extQueryInterfaceS(1, pQueryInterfaceS1, lpdds, riid, obp); }
 HRESULT WINAPI extQueryInterfaceS2(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(pQueryInterfaceS2, lpdds, riid, obp); }
+{ return extQueryInterfaceS(2, pQueryInterfaceS2, lpdds, riid, obp); }
 HRESULT WINAPI extQueryInterfaceS3(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(pQueryInterfaceS3, lpdds, riid, obp); }
+{ return extQueryInterfaceS(3, pQueryInterfaceS3, lpdds, riid, obp); }
 HRESULT WINAPI extQueryInterfaceS4(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(pQueryInterfaceS4, lpdds, riid, obp); }
+{ return extQueryInterfaceS(4, pQueryInterfaceS4, lpdds, riid, obp); }
 HRESULT WINAPI extQueryInterfaceS7(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(pQueryInterfaceS7, lpdds, riid, obp); }
+{ return extQueryInterfaceS(7, pQueryInterfaceS7, lpdds, riid, obp); }
 
 
 HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
@@ -3047,6 +3089,8 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 	OutTraceDDRAW("CreateSurface: Version=%d lpdd=%x %s\n", 
 		dxversion, lpdd, LogSurfaceAttributes((LPDDSURFACEDESC)lpddsd, "[CreateSurface]", __LINE__));
 	
+	lpddsd->ddpfPixelFormat.dwFourCC = 0;
+
 	SurfaceMode = (dxw.dwFlags1 & EMULATESURFACE) ? ((dxw.dwFlags6 & FLIPEMULATION) ? PRIMARY_EMULATED : PRIMARY_FLIPPABLE) : PRIMARY_DIRECT;
 
 	switch(SurfaceMode)	{
@@ -4025,14 +4069,14 @@ HRESULT WINAPI extCreatePalette4(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTR
 HRESULT WINAPI extCreatePalette7(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa, LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
 { return extCreatePalette(7, (CreatePalette_Type)pCreatePalette7, lpdd, dwflags, lpddpa, lplpddp, pu); }
 
-HRESULT WINAPI extGetPalette(GetPalette_Type pGetPalette, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
+HRESULT WINAPI extGetPalette(int dxversion, GetPalette_Type pGetPalette, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
 {
 	HRESULT res;
 	BOOL isPrim, isBack;
 
 	isPrim=dxwss.IsAPrimarySurface(lpdds);
 	isBack=dxwss.IsABackBufferSurface(lpdds);
-	OutTraceDDRAW("GetPalette: lpdds=%x%s%s\n", lpdds, isPrim?"(PRIM)":"", isBack?"(BACK)":"");
+	OutTraceDDRAW("GetPalette(%d): lpdds=%x%s%s\n", dxversion, lpdds, isPrim?"(PRIM)":"", isBack?"(BACK)":"");
 
 	res=(*pGetPalette)(lpdds, lplpddp);
 
@@ -4052,24 +4096,24 @@ HRESULT WINAPI extGetPalette(GetPalette_Type pGetPalette, LPDIRECTDRAWSURFACE lp
 }
 
 HRESULT WINAPI extGetPalette1(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
-{ return extGetPalette(pGetPalette1, lpdds, lplpddp); }
+{ return extGetPalette(1, pGetPalette1, lpdds, lplpddp); }
 HRESULT WINAPI extGetPalette2(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
-{ return extGetPalette(pGetPalette2, lpdds, lplpddp); }
+{ return extGetPalette(2, pGetPalette2, lpdds, lplpddp); }
 HRESULT WINAPI extGetPalette3(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
-{ return extGetPalette(pGetPalette3, lpdds, lplpddp); }
+{ return extGetPalette(3, pGetPalette3, lpdds, lplpddp); }
 HRESULT WINAPI extGetPalette4(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
-{ return extGetPalette(pGetPalette4, lpdds, lplpddp); }
+{ return extGetPalette(4, pGetPalette4, lpdds, lplpddp); }
 HRESULT WINAPI extGetPalette7(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE *lplpddp)
-{ return extGetPalette(pGetPalette7, lpdds, lplpddp); }
+{ return extGetPalette(7, pGetPalette7, lpdds, lplpddp); }
 
-HRESULT WINAPI extSetPalette(SetPalette_Type pSetPalette, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
+HRESULT WINAPI extSetPalette(int dxversion, SetPalette_Type pSetPalette, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
 {
 	PALETTEENTRY *lpentries;
 	BOOL isPrim;
 	HRESULT res;
 	
 	isPrim=dxwss.IsAPrimarySurface(lpdds);
-	OutTraceDDRAW("SetPalette: lpdds=%x%s lpddp=%x\n", lpdds, isPrim?"(PRIM)":"", lpddp);
+	OutTraceDDRAW("SetPalette(%d): lpdds=%x%s lpddp=%x\n", dxversion, lpdds, isPrim?"(PRIM)":"", lpddp);
 
 	res=(*pSetPalette)(lpdds, lpddp);
 	if(res)OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -4103,15 +4147,15 @@ HRESULT WINAPI extSetPalette(SetPalette_Type pSetPalette, LPDIRECTDRAWSURFACE lp
 }
 
 HRESULT WINAPI extSetPalette1(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette1, lpdds, lpddp); }
+{ return extSetPalette(1, pSetPalette1, lpdds, lpddp); }
 HRESULT WINAPI extSetPalette2(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette2, lpdds, lpddp); }
+{ return extSetPalette(2, pSetPalette2, lpdds, lpddp); }
 HRESULT WINAPI extSetPalette3(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette3, lpdds, lpddp); }
+{ return extSetPalette(3, pSetPalette3, lpdds, lpddp); }
 HRESULT WINAPI extSetPalette4(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette4, lpdds, lpddp); }
+{ return extSetPalette(4, pSetPalette4, lpdds, lpddp); }
 HRESULT WINAPI extSetPalette7(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWPALETTE lpddp)
-{ return extSetPalette(pSetPalette7, lpdds, lpddp); }
+{ return extSetPalette(7, pSetPalette7, lpdds, lpddp); }
 
 HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dwstart, DWORD dwcount, LPPALETTEENTRY lpentries)
 {
@@ -5317,8 +5361,11 @@ static ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECT
 	LONG VirtualRef;
 
 	OutTraceDDRAW("Release(D%d): lpdd=%x\n", dxversion, lpdd);
-	if((ReleaseD_Type)extReleaseD == pReleaseD) return 0;
-	
+	if((ReleaseD_Type)extReleaseD == pReleaseD) {
+		OutTraceE("Release(D) ERROR: bad hooker pReleaseD=%x\n", pReleaseD);
+		return 0;
+	}
+
 	ActualRef=(*pReleaseD)(lpdd);
 	VirtualRef=(LONG)ActualRef;
 	OutTraceDW("Release(D): lpdd=%x service_lpdd=%x ref=%d\n", lpdd, lpPrimaryDD, ActualRef);

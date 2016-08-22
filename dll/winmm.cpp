@@ -32,12 +32,16 @@ MMRESULT WINAPI extjoyGetDevCapsA(DWORD, LPJOYCAPS, UINT);
 typedef MMRESULT (WINAPI *joyGetPosEx_Type)(DWORD, LPJOYINFOEX);
 joyGetPosEx_Type pjoyGetPosEx = NULL;
 MMRESULT WINAPI extjoyGetPosEx(DWORD, LPJOYINFOEX);
+typedef MMRESULT (WINAPI *auxGetNumDevs_Type)(void);
+auxGetNumDevs_Type pauxGetNumDevs = NULL;
+MMRESULT WINAPI extauxGetNumDevs(void);
 
 static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
 	{HOOK_IAT_CANDIDATE, 0, "mciSendCommandW", NULL, (FARPROC *)&pmciSendCommandW, (FARPROC)extmciSendCommandW},
 	{HOOK_HOT_CANDIDATE, 0, "mciGetDeviceIDA", NULL, (FARPROC *)&pmciGetDeviceIDA, (FARPROC)extmciGetDeviceIDA},
 	{HOOK_HOT_CANDIDATE, 0, "mciGetDeviceIDW", NULL, (FARPROC *)&pmciGetDeviceIDW, (FARPROC)extmciGetDeviceIDW},
+	{HOOK_IAT_CANDIDATE, 0, "auxGetNumDevs", NULL, (FARPROC *)&pauxGetNumDevs, (FARPROC)extauxGetNumDevs},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -466,4 +470,10 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 	(*pSetViewportOrgEx)(hClientDC, PrevViewPort.x, PrevViewPort.y, NULL);
     SelectObject(hdcMem, hbmOld);
     DeleteDC(hdcMem);
+}
+
+MMRESULT WINAPI extauxGetNumDevs(void)
+{
+	OutTraceDW("auxGetNumDevs: returning fake 1\n");
+	return 1;
 }

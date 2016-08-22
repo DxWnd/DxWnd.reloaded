@@ -18,6 +18,9 @@ typedef HRESULT	(WINAPI *SetCooperativeLevel_Type)  (void *, HWND, DWORD);
 typedef HRESULT (WINAPI *CreateSoundBuffer_Type) (void *, LPCDSBUFFERDESC, LPDIRECTSOUNDBUFFER *, LPUNKNOWN);
 typedef HRESULT (WINAPI *DirectSoundEnumerateA_Type)(LPDSENUMCALLBACKA, LPVOID);
 typedef HRESULT (WINAPI *DirectSoundEnumerateW_Type)(LPDSENUMCALLBACKW, LPVOID);
+typedef HRESULT (WINAPI *GetSpeakerConfig_Type)(void *, LPDWORD);
+typedef HRESULT (WINAPI *SetSpeakerConfig_Type)(void *, DWORD);
+typedef HRESULT (WINAPI *DSInitialize_Type)(void *, LPCGUID);
 
 DirectSoundCreate_Type pDirectSoundCreate = NULL;
 DirectSoundCreate8_Type pDirectSoundCreate8 = NULL;
@@ -25,6 +28,9 @@ SetCooperativeLevel_Type pDSSetCooperativeLevel = NULL;
 CreateSoundBuffer_Type pCreateSoundBuffer = NULL;
 DirectSoundEnumerateA_Type pDirectSoundEnumerateA = NULL;
 DirectSoundEnumerateW_Type pDirectSoundEnumerateW = NULL;
+GetSpeakerConfig_Type pGetSpeakerConfig = NULL;
+SetSpeakerConfig_Type pSetSpeakerConfig = NULL;
+DSInitialize_Type pDSInitialize = NULL;
 
 HRESULT WINAPI extDirectSoundCreate(LPGUID, LPDIRECTSOUND *, LPUNKNOWN);
 HRESULT WINAPI extDirectSoundCreate8(LPCGUID, LPDIRECTSOUND8 *, LPUNKNOWN);
@@ -32,6 +38,9 @@ HRESULT WINAPI extDSSetCooperativeLevel(void *, HWND, DWORD);
 HRESULT WINAPI extCreateSoundBuffer(void *, LPCDSBUFFERDESC, LPDIRECTSOUNDBUFFER *, LPUNKNOWN);
 HRESULT WINAPI extDirectSoundEnumerateA(LPDSENUMCALLBACKA, LPVOID);
 HRESULT WINAPI extDirectSoundEnumerateW(LPDSENUMCALLBACKW, LPVOID);
+HRESULT WINAPI extGetSpeakerConfig(void *, LPDWORD);
+HRESULT WINAPI extSetSpeakerConfig(void *, DWORD);
+HRESULT WINAPI extDSInitialize(void *, LPCGUID);
 
 static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0x0001, "DirectSoundCreate", (FARPROC)NULL, (FARPROC *)&pDirectSoundCreate, (FARPROC)extDirectSoundCreate},
@@ -67,6 +76,9 @@ void HookDirectSoundObj(LPDIRECTSOUND *lpds)
 	// IDIrectSound::SetCooperativeLevel
 	SetHook((void *)(**(DWORD **)lpds + 12), extCreateSoundBuffer, (void **)&pCreateSoundBuffer, "CreateSoundBuffer");
 	SetHook((void *)(**(DWORD **)lpds + 24), extDSSetCooperativeLevel, (void **)&pDSSetCooperativeLevel, "SetCooperativeLevel(DSound)");
+	SetHook((void *)(**(DWORD **)lpds + 32), extGetSpeakerConfig, (void **)&pGetSpeakerConfig, "GetSpeakerConfig(DSound)");
+	SetHook((void *)(**(DWORD **)lpds + 36), extSetSpeakerConfig, (void **)&pSetSpeakerConfig, "SetSpeakerConfig(DSound)");
+	SetHook((void *)(**(DWORD **)lpds + 40), extDSInitialize, (void **)&pDSInitialize, "Initialize(DSound)");
 }
 
 HRESULT WINAPI extDirectSoundCreate(LPGUID guid, LPDIRECTSOUND *lpds, LPUNKNOWN unk)
@@ -180,6 +192,7 @@ HRESULT WINAPI extDirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOI
 	HRESULT res;
 	OutTraceDW("DirectSoundEnumerateA\n");
 	res = (*pDirectSoundEnumerateA)(pDSEnumCallback, pContext);
+	if(res) OutTraceE("DirectSoundEnumerateA ERROR: res=%x(s)\n", res, ExplainDDError(res));
 	return res;
 }
 
@@ -188,5 +201,33 @@ HRESULT WINAPI extDirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOI
 	HRESULT res;
 	OutTraceDW("DirectSoundEnumerateW\n");
 	res = (*pDirectSoundEnumerateW)(pDSEnumCallback, pContext);
+	if(res) OutTraceE("DirectSoundEnumerateW ERROR: res=%x(s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extGetSpeakerConfig(void *lpds, LPDWORD pdwSpeakerConfig)
+{
+	HRESULT res;
+	OutTraceDW("DirectSound::GetSpeakerConfig\n");
+	res = (*pGetSpeakerConfig)(lpds, pdwSpeakerConfig);
+	if(res) OutTraceE("GetSpeakerConfig ERROR: res=%x(s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extSetSpeakerConfig(void *lpds, DWORD pdwSpeakerConfig)
+{
+	HRESULT res;
+	OutTraceDW("DirectSound::SetSpeakerConfig\n");
+	res = (*pSetSpeakerConfig)(lpds, pdwSpeakerConfig);
+	if(res) OutTraceE("SetSpeakerConfig ERROR: res=%x(s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extDSInitialize(void *lpds, LPCGUID pcGuidDevice)
+{
+	HRESULT res;
+	OutTraceDW("DirectSound::Initialize\n");
+	res = (*pDSInitialize)(lpds, pcGuidDevice);
+	if(res) OutTraceE("Initialize ERROR: res=%x(s)\n", res, ExplainDDError(res));
 	return res;
 }
