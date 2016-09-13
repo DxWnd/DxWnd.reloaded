@@ -142,14 +142,22 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 		IDDevice, uMsg, ExplainMCICommands(uMsg), fdwCommand, ExplainMCIFlags(uMsg, fdwCommand));
 
 	if(dxw.dwFlags6 & BYPASSMCI){
-		if((uMsg == MCI_STATUS) && (fdwCommand == MCI_STATUS_ITEM)){
+		if((uMsg == MCI_STATUS) && (fdwCommand & MCI_STATUS_ITEM)){
 			// fix for Tie Fighter 95: when bypassing, let the caller know you have no CD tracks
 			// otherwise you risk an almost endless loop going through the unassigned returned 
 			// number of ghost tracks
+			// fix for "Emperor of the Fading Suns": the MCI_STATUS_ITEM is set in .or. with
+			// MCI_TRACK
 			MCI_STATUS_PARMS *p = (MCI_STATUS_PARMS *)dwParam;
-			p->dwItem = 0;
-			p->dwTrack = 0; 
-			p->dwReturn = 0;
+			OutTraceDW("mciSendCommand: MCI_STATUS item=%d track=%d ret=%d\n", p->dwItem, p->dwReturn, p->dwTrack);
+			if(fdwCommand & MCI_TRACK){
+				p->dwReturn = 1;
+			}
+			else{
+			        p->dwItem = 0;
+			        p->dwTrack = 0; 
+			        p->dwReturn = 0;
+			}
 			OutTraceDW("mciSendCommand: BYPASS fixing MCI_STATUS\n");
 		}
 		else{

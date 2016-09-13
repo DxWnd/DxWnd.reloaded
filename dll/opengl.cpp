@@ -41,6 +41,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "glPixelZoom", NULL, (FARPROC *)&pglPixelZoom, (FARPROC)extglPixelZoom},
 	//{HOOK_IAT_CANDIDATE, 0, "glBegin", NULL, (FARPROC *)&pglBegin, (FARPROC)extglBegin},
 	{HOOK_IAT_CANDIDATE, 0, "glBindTexture", NULL, (FARPROC *)&pglBindTexture, (FARPROC)extglBindTexture},
+	//{HOOK_IAT_CANDIDATE, 0, "glPixelStorei", NULL, (FARPROC *)&pglPixelStorei, (FARPROC)extglPixelStorei},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -533,6 +534,7 @@ void WINAPI extglPixelZoom(GLfloat xfactor, GLfloat yfactor)
 	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }
+
 void WINAPI extglBegin(GLenum mode)
 {
 	GLenum glerr;
@@ -556,6 +558,16 @@ void WINAPI extglBindTexture(GLenum target, GLuint texture)
 	}
 
 	(*pglBindTexture)(target, texture);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	return;
+}
+
+void WINAPI extglPixelStorei(GLenum pname,  GLint param)
+{
+	GLenum glerr;
+	OutTraceDW("glPixelStorei: pname=%x param=%x\n", pname, param);
+
+	(*pglPixelStorei)(pname, param);
 	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }

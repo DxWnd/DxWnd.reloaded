@@ -1235,3 +1235,10 @@ add: GUI flag "Name by Folder" to default the program name field with the progra
 add: new flag "Set keyboard shared coop. level" (SHAREDKEYBOARD) to change directinput keyboard cooperative level mode
 add: new flag Direct3D / "Enumerate 16bit modes" (ENUM16BITMODES) to force enumeration of 16 bit video modes on Win10 desktop when not listed
 fix: GUI randomic value for Injection mode selector when adding new entry
+
+v2.03.85
+add: added control to avoid hide of tray window. Useful for "Planet of the Apes"
+fix: fixed BIG window coordinates. Fixes "Deer Hunter" window positioning problems.
+fix: mciSendCommand wrapper for BYPASSMCI flag
+
+

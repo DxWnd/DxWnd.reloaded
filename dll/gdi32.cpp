@@ -2704,9 +2704,10 @@ int WINAPI extDescribePixelFormat(HDC hdc, int iPixelFormat, UINT nBytes, LPPIXE
 		return res;
 	}
 	if (ppfd && nBytes==sizeof(PIXELFORMATDESCRIPTOR)){
-		OutTraceDW("DescribePixelFormat: res=%d Flags=%x PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
+		OutTraceDW("DescribePixelFormat: res=%d Flags=%x(%s) PixelType=%x(%s) ColorBits=%d RGBdepth=(%d,%d,%d) RGBshift=(%d,%d,%d)\n", 
 			res, 
-			ppfd->dwFlags, ppfd->iPixelType, ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
+			ppfd->dwFlags, ExplainPFFlags(ppfd->dwFlags), ppfd->iPixelType, 
+			ppfd->iPixelType?"PFD_TYPE_COLORINDEX":"PFD_TYPE_RGBA", ppfd->cColorBits,
 			ppfd->cRedBits, ppfd->cGreenBits, ppfd->cBlueBits,
 			ppfd->cRedShift, ppfd->cGreenShift, ppfd->cBlueShift);
 		if((hdc==0) && dxw.IsFullScreen() && (ppfd->iPixelType==PFD_TYPE_RGBA)){ 

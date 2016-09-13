@@ -698,8 +698,16 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 {
 	BOOL res;
+	extern HWND hTrayWnd;
 
 	OutTraceDW("ShowWindow: hwnd=%x, CmdShow=%x(%s)\n", hwnd, nCmdShow, ExplainShowCmd(nCmdShow));
+
+	if(dxw.Windowize && (hwnd == hTrayWnd) && (nCmdShow == SW_HIDE)){
+		// v2.03.85: suppress attempts to hide the tray window
+		OutTraceDW("ShowWindow: suppress tray window hide\n");
+		return TRUE;
+	}
+
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		if(nCmdShow==SW_MAXIMIZE){
 			OutTraceDW("ShowWindow: suppress SW_MAXIMIZE maximize\n");
@@ -1359,7 +1367,7 @@ int WINAPI extGetSystemMetrics(int nindex)
 ATOM WINAPI extRegisterClassExA(WNDCLASSEXA *lpwcx)
 {
 	ATOM ret;
-	OutTraceDW("RegisterClassExA: PROXED ClassName=%s style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
+	OutTraceDW("RegisterClassExA: PROXED ClassName=\"%s\" style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
 		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
 	ret = (*pRegisterClassExA)(lpwcx);
 	OutTraceDW("RegisterClassExA: atom=%x\n", ret);
@@ -1370,7 +1378,7 @@ ATOM WINAPI extRegisterClassA(WNDCLASSA *lpwcx)
 {
 	ATOM ret;
 	// referenced by Syberia, together with RegisterClassExA
-	OutTraceDW("RegisterClassA: PROXED ClassName=%s style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
+	OutTraceDW("RegisterClassA: PROXED ClassName=\"%s\" style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
 		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
 	ret = (*pRegisterClassA)(lpwcx);
 	OutTraceDW("RegisterClassA: atom=%x\n", ret);
@@ -1380,7 +1388,7 @@ ATOM WINAPI extRegisterClassA(WNDCLASSA *lpwcx)
 ATOM WINAPI extRegisterClassExW(WNDCLASSEXW *lpwcx)
 {
 	ATOM ret;
-	OutTraceDW("RegisterClassExW: PROXED ClassName=%ls style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
+	OutTraceDW("RegisterClassExW: PROXED ClassName=\"%ls\" style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
 		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
 	ret = (*pRegisterClassExW)(lpwcx);
 	OutTraceDW("RegisterClassExW: atom=%x\n", ret);
@@ -1390,7 +1398,7 @@ ATOM WINAPI extRegisterClassExW(WNDCLASSEXW *lpwcx)
 ATOM WINAPI extRegisterClassW(WNDCLASSW *lpwcx)
 {
 	ATOM ret;
-	OutTraceDW("RegisterClassW: PROXED ClassName=%ls style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
+	OutTraceDW("RegisterClassW: PROXED ClassName=\"%ls\" style=%x(%s) WndProc=%x cbClsExtra=%d cbWndExtra=%d hInstance=%x\n", 
 		lpwcx->lpszClassName, lpwcx->style, ExplainStyle(lpwcx->style), lpwcx->lpfnWndProc, lpwcx->cbClsExtra, lpwcx->cbWndExtra, lpwcx->hInstance);
 	ret = (*pRegisterClassW)(lpwcx);
 	OutTraceDW("RegisterClassW: atom=%x\n", ret);
@@ -1490,6 +1498,7 @@ static HWND WINAPI extCreateWindowCommon(
 {
 	HWND hwnd;
 	BOOL isValidHandle=TRUE;
+	BOOL isNewDesktop;
 	int iOrigW, iOrigH;
 
 	iOrigW=nWidth;
@@ -1523,7 +1532,7 @@ static HWND WINAPI extCreateWindowCommon(
 	// v2.02.30: fix (Fable - lost chapters) Fable creates a bigger win with negative x,y coordinates. 
 	// v2.03.53: revised code, logic moved to IsFullscreenWindow
 
-	if(IsFullscreenWindow(lpClassName, dwStyle, dwExStyle, hWndParent, x, y, nWidth, nHeight)){
+	if(isNewDesktop=IsFullscreenWindow(lpClassName, dwStyle, dwExStyle, hWndParent, x, y, nWidth, nHeight)){
 		RECT screen;
 		POINT upleft = {0,0};
 
@@ -1597,22 +1606,24 @@ static HWND WINAPI extCreateWindowCommon(
 
 	// from here on, fullscreen is garanteed
 
-	if (dwStyle & WS_CHILD){
-		// tested on Gangsters: coordinates must be window-relative!!!
-		// Age of Empires....
-		dxw.MapClient(&x, &y, &nWidth, &nHeight);
-		OutTraceDW("%s: fixed WS_CHILD pos=(%d,%d) size=(%d,%d)\n",
-		ApiName, x, y, nWidth, nHeight);
-	}
-	else {
-		if ((dwExStyle & WS_EX_CONTROLPARENT) || (dwStyle & WS_POPUP)){
-			// needed for "Diablo", that creates a new WS_EX_CONTROLPARENT window that must be
-			// overlapped to the directdraw surface.
-			// needed for "Riven", that creates a new WS_POPUP window with the menu bar that must be
-			// overlapped to the directdraw surface.
-			dxw.MapWindow(&x, &y, &nWidth, &nHeight);
-			OutTraceDW("%s: fixed pos=(%d,%d) size=(%d,%d)\n",
+	if(!isNewDesktop){
+		if (dwStyle & WS_CHILD){
+			// tested on Gangsters: coordinates must be window-relative!!!
+			// Age of Empires....
+			dxw.MapClient(&x, &y, &nWidth, &nHeight);
+			OutTraceDW("%s: fixed WS_CHILD pos=(%d,%d) size=(%d,%d)\n",
 			ApiName, x, y, nWidth, nHeight);
+		}
+		else {
+			if ((dwExStyle & WS_EX_CONTROLPARENT) || (dwStyle & WS_POPUP)){
+				// needed for "Diablo", that creates a new WS_EX_CONTROLPARENT window that must be
+				// overlapped to the directdraw surface.
+				// needed for "Riven", that creates a new WS_POPUP window with the menu bar that must be
+				// overlapped to the directdraw surface.
+				dxw.MapWindow(&x, &y, &nWidth, &nHeight);
+				OutTraceDW("%s: fixed pos=(%d,%d) size=(%d,%d)\n",
+				ApiName, x, y, nWidth, nHeight);
+			}
 		}
 	}
 

@@ -33,6 +33,7 @@ dxwCapsDB dxwcdb;
 dxwSDC sdc;
 GetWindowLong_Type pGetWindowLong;
 SetWindowLong_Type pSetWindowLong;
+HWND hTrayWnd;
 
 extern LRESULT CALLBACK MessageHook(int, WPARAM, LPARAM);
 extern DWORD WINAPI CpuLimit(LPVOID); 
@@ -1478,6 +1479,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 			CheckCompatibilityFlags();	// v2.02.83: Check for change of OS release
 			// CheckSafeDiscVersion();		// v2.03.78: Detects SafeDisk references and version - moved to DxWnd.exe 
 		}
+		hTrayWnd = FindWindow("Shell_TrayWnd", NULL);
 	}
 
 	if(hwnd){ // v2.02.32: skip this when in code injection mode.
