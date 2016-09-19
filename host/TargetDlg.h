@@ -39,6 +39,7 @@ public:
 	int		m_MaxDdrawInterface;
 	int		m_SlowRatio;
 	int		m_LogMode;
+	int		m_MonitorId;
 	BOOL	m_HookDI;
 	BOOL	m_HookDI8;
 	BOOL	m_EmulateRelMouse;
@@ -140,7 +141,7 @@ public:
 	BOOL	m_KeepAspectRatio;
 	BOOL	m_ForceWinResize;
 	BOOL	m_HideMultiMonitor;
-	BOOL	m_WallpaperMode;
+	//BOOL	m_WallpaperMode;
 	BOOL	m_FixD3DFrame;
 	BOOL	m_NoWindowMove;
 	BOOL	m_HookChildWin;

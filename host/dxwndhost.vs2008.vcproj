@@ -666,6 +666,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\res\bmp00001.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\res\dxw1.ico"
 				>
 			</File>
@@ -733,21 +737,25 @@
 				RelativePath=".\res\smallicons.bmp"
 				>
 			</File>
+			<File
+				RelativePath=".\res\viewfinder.bmp"
+				>
+			</File>
 		</Filter>
-		<File
-			RelativePath=".\alt-ctrl-shift.png"
-			>
-		</File>
 		<File
 			RelativePath=".\res\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
-			RelativePath=".\res\alt.png"
+			RelativePath=".\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
 			RelativePath=".\alt.png"
+			>
+		</File>
+		<File
+			RelativePath=".\res\alt.png"
 			>
 		</File>
 		<File

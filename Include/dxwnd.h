@@ -63,7 +63,7 @@
 #define HIDEMULTIMONITOR	0x00008000 // hide multimonitor configurations: GetAdapterCount returns 1.
 #define TIMESTRETCH			0x00010000 // make system time stretchable 
 #define HOOKOPENGL			0x00020000 // Hook OpenGL calls
-#define WALLPAPERMODE		0x00040000 // mouse events are discarded (good for screensaver-like)
+//#define WALLPAPERMODE		0x00040000 // mouse events are discarded (good for screensaver-like)
 #define SHOWHWCURSOR		0x00080000 // enable hardware cursor
 #define GDISTRETCHED		0x00100000 // Stretch GDI/user32 coordinates to adapt to window size
 #define SHOWFPSOVERLAY		0x00200000 // shows FPS value to status win / log / screen overlay
@@ -283,6 +283,7 @@ typedef struct TARGETMAP
 	int flags8;
 	int tflags; // trace flags (cleared when exported/imported)
 	int dflags; // debug flags (cleared when exported/imported)
+	int monitorid;
 	short posx;
 	short posy;
 	short sizx;
@@ -382,7 +383,8 @@ typedef enum {
 	DXW_LIMIT_640x480,
 	DXW_LIMIT_800x600,
 	DXW_LIMIT_1024x768,
-	DXW_LIMIT_1280x960
+	DXW_LIMIT_1280x960,
+	DXW_LIMIT_1280x1024
 } ResolutionLimits_Types;
 
 typedef enum {

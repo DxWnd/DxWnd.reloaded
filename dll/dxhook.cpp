@@ -78,7 +78,7 @@ static char *Flag2Names[32]={
 	"KEEPASPECTRATIO", "INIT8BPP", "FORCEWINRESIZE", "INIT16BPP",
 	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "INDEPENDENTREFRESH", "FIXNCHITTEST",
 	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
-	"TIMESTRETCH", "HOOKOPENGL", "WALLPAPERMODE", "SHOWHWCURSOR",
+	"TIMESTRETCH", "HOOKOPENGL", "-------", "SHOWHWCURSOR",
 	"GDISTRETCHED", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
 	"NOPALETTEUPDATE", "SUPPRESSIME", "NOBANNER", "WINDOWIZE",
 	"LIMITRESOURCES", "STARTDEBUG", "SETCOMPATIBILITY", "WIREFRAME",
@@ -621,112 +621,11 @@ void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, voi
 	return IATPatch(module, 0, dll, apiproc, apiname, hookproc);
 }
 
-// v.2.1.80: unified positioning logic into CalculateWindowPos routine
-// now taking in account for window menus (see "Alien Cabal")
-
-void CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
-{
-	RECT rect, desktop, workarea;
-	DWORD dwStyle, dwExStyle;
-	int MaxX, MaxY;
-	HMENU hMenu;
-
-	switch(dxw.Coordinates){
-	case DXW_DESKTOP_CENTER:
-		MaxX = dxw.iSizX;
-		MaxY = dxw.iSizY;
-		if (!MaxX) {
-			MaxX = width;
-			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxX <<= 1; // double
-		}
-		if (!MaxY) {
-			MaxY = height;
-			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
-		}
-		//GetClientRect(0, &desktop);
-		(*pGetClientRect)((*pGetDesktopWindow)(), &desktop);
-		rect.left =  (desktop.right - MaxX) / 2;
-		rect.top = (desktop.bottom - MaxY) / 2;
-		rect.right = rect.left + MaxX;
-		rect.bottom = rect.top + MaxY; //v2.02.09
-		if(rect.left < 0) rect.left = 0;
-		if(rect.top < 0) rect.top = 0;
-		if(rect.bottom > desktop.bottom) rect.bottom = desktop.bottom;
-		if(rect.right > desktop.right) rect.right = desktop.right;
-		break;
-	case DXW_DESKTOP_WORKAREA:
-		(*pSystemParametersInfoA)(SPI_GETWORKAREA, NULL, &workarea, 0);
-		rect = workarea;
-		break;
-	case DXW_DESKTOP_FULL:
-		(*pGetClientRect)((*pGetDesktopWindow)(), &workarea);
-		rect = workarea;
-		break;
-	case DXW_SET_COORDINATES:
-	default:
-		rect.left =  dxw.iPosX;
-		rect.top = dxw.iPosY; //v2.02.09
-		MaxX = dxw.iSizX;
-		MaxY = dxw.iSizY;
-		if (!MaxX) MaxX = width;
-		if (!MaxY) MaxY = height;
-		rect.right = dxw.iPosX + MaxX;
-		rect.bottom = dxw.iPosY + MaxY; //v2.02.09
-		break;
-	}
-
-	RECT UnmappedRect;
-	UnmappedRect=rect;
-	dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
-	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
-	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
-	hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
-	AdjustWindowRectEx(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
-	if (hMenu) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
-	switch(dxw.Coordinates){
-	case DXW_DESKTOP_WORKAREA:
-	case DXW_DESKTOP_FULL:
-		// if there's a menu, reduce height to fit area
-		if(rect.top != UnmappedRect.top){
-			rect.bottom = rect.bottom - UnmappedRect.top + rect.top;
-		}
-		break;
-	default:
-		break;
-	}
-
-	// shift down-right so that the border is visible
-	if(rect.left < dxw.VirtualDesktop.left){
-		rect.right = dxw.VirtualDesktop.left - rect.left + rect.right;
-		rect.left = dxw.VirtualDesktop.left;
-	}
-	if(rect.top < dxw.VirtualDesktop.top){
-		rect.bottom = dxw.VirtualDesktop.top - rect.top + rect.bottom;
-		rect.top = dxw.VirtualDesktop.top;
-	}
-
-	// shift up-left so that the windows doesn't exceed on the other side
-	if(rect.right > dxw.VirtualDesktop.right){
-		rect.left = dxw.VirtualDesktop.right - rect.right + rect.left;
-		rect.right = dxw.VirtualDesktop.right;
-	}
-	if(rect.bottom > dxw.VirtualDesktop.bottom){
-		rect.top = dxw.VirtualDesktop.bottom - rect.bottom + rect.top;
-		rect.bottom = dxw.VirtualDesktop.bottom;
-	}
-
-	// update the arguments for the window creation
-	wp->x=rect.left;
-	wp->y=rect.top;
-	wp->cx=rect.right-rect.left;
-	wp->cy=rect.bottom-rect.top;
-}
-
 void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 {
 	WINDOWPOS wp;
 	OutTraceDW("AdjustWindowPos: hwnd=%x, size=(%d,%d)\n", hwnd, width, height);
-	CalculateWindowPos(hwnd, width, height, &wp);
+	dxw.CalculateWindowPos(hwnd, width, height, &wp);
 	OutTraceDW("AdjustWindowPos: fixed pos=(%d,%d) size=(%d,%d)\n", wp.x, wp.y, wp.cx, wp.cy);
 	//if(!pSetWindowPos) pSetWindowPos=SetWindowPos;
 	//OutTraceDW("pSetWindowPos=%x\n", pSetWindowPos);
@@ -736,8 +635,9 @@ void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 	}
 
 	if(dxw.dwFlags2 & SUPPRESSIME) SuppressIMEWindow();
+	if(dxw.dwFlags4 & HIDEDESKTOP) dxw.HideDesktop(hwnd);
 	dxw.ShowBanner(hwnd);
-	if(dxw.dwFlags4 & HIDEDESKTOP) dxw.HideDesktop(dxw.GethWnd());
+
 	return;
 }
 
@@ -1435,7 +1335,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		"DirectX7", "DirectX8", "DirectX9", "DirectX10", "DirectX11", "None", ""
 	};
 	static char *Resolutions[]={
-		"unlimited", "320x200", "400x300", "640x480", "800x600", "1024x768", "1280x960", "" // terminator
+		"unlimited", "320x200", "400x300", "640x480", "800x600", "1024x768", "1280x960", "1280x1024", "" // terminator
 	};
 
 	dxw.InitTarget(target);
@@ -1497,9 +1397,9 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		OSVERSIONINFO osinfo;
 		strcpy(sInfo, "");
 		if(hwnd) sprintf(sInfo, " hWnd=%x ParentWnd=%x desktop=%x", hwnd, dxw.hParentWnd, GetDesktopWindow());
-		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d)%s\n", 
+		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d) monitor=%d%s\n", 
 			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
-			target->posx, target->posy, target->sizx, target->sizy, sInfo);
+			target->posx, target->posy, target->sizx, target->sizy, target->monitorid, sInfo);
 		osinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 		if(GetVersionEx(&osinfo)){
 			OutTrace("OS=(%d.%d) build=%d platform=%d service pack=%s\n", 

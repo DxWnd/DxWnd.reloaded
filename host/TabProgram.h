@@ -49,6 +49,7 @@ protected:
 public:
 	afx_msg void OnStnClickedRegistry();
 	afx_msg void OnStnClickedNotes();
+	afx_msg void OnStnClickedXYPick();
 };
 
 //{{AFX_INSERT_LOCATION}}

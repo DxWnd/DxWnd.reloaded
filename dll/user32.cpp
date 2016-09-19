@@ -481,7 +481,6 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	static int BorderX=-1;
 	static int BorderY=-1;
 	int cx, cy;
-	extern void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
 
 	OutTraceDW("%s: GOT hwnd=%x pos=(%d,%d) dim=(%d,%d) Flags=%x(%s)\n", 
 		ApiName, hwnd, wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
@@ -489,7 +488,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag = 0;
 		WINDOWPOS MaxPos;
-		CalculateWindowPos(hwnd, MaxX, MaxY, &MaxPos);
+		dxw.CalculateWindowPos(hwnd, MaxX, MaxY, &MaxPos);
 
 		if(wp->cx>MaxPos.cx) { wp->cx=MaxPos.cx; UpdFlag=1; }
 		if(wp->cy>MaxPos.cy) { wp->cy=MaxPos.cy; UpdFlag=1; }
@@ -500,7 +499,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	if ((wp->flags & (SWP_NOMOVE|SWP_NOSIZE))==(SWP_NOMOVE|SWP_NOSIZE)) return; //v2.02.13
 
 	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
-		CalculateWindowPos(hwnd, MaxX, MaxY, wp);
+		dxw.CalculateWindowPos(hwnd, MaxX, MaxY, wp);
 		OutTraceDW("%s: LOCK pos=(%d,%d) dim=(%d,%d)\n", ApiName, wp->x, wp->y, wp->cx, wp->cy);
 	}
 
@@ -1500,6 +1499,7 @@ static HWND WINAPI extCreateWindowCommon(
 	BOOL isValidHandle=TRUE;
 	BOOL isNewDesktop;
 	int iOrigW, iOrigH;
+	extern void GetMonitorWorkarea(int, LPRECT, BOOL);
 
 	iOrigW=nWidth;
 	iOrigH=nHeight;
@@ -1565,34 +1565,7 @@ static HWND WINAPI extCreateWindowCommon(
 			nHeight=screen.bottom;
 			OutTraceDW("%s: fixed BIG win pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
 		}
-		else {
-			x=dxw.iPosX;
-			y=dxw.iPosY;
-			nWidth=dxw.iSizX;
-			nHeight=dxw.iSizY;
-			OutTraceDW("%s: renewed BIG win pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
-		}
 		dxw.SetFullScreen(TRUE);
-		if(dxw.Coordinates==DXW_DESKTOP_WORKAREA){
-			RECT workarea;
-			(*pSystemParametersInfoA)(SPI_GETWORKAREA, NULL, &workarea, 0);
-			x=0;
-			y=0;
-			nWidth=workarea.right;
-			nHeight=workarea.bottom;
-			dwStyle=0;
-			OutTraceDW("%s: WORKAREA win pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
-		}
-		else if(dxw.Coordinates==DXW_DESKTOP_FULL){
-			RECT workarea;
-			(*pGetClientRect)((*pGetDesktopWindow)(), &workarea);
-			x=0;
-			y=0;
-			nWidth=workarea.right;
-			nHeight=workarea.bottom;
-			dwStyle=0;
-			OutTraceDW("%s: FULLDESKTOP win pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
-		}
 	}
 
 	if(!dxw.IsFullScreen()){ // v2.1.63: needed for "Monster Truck Madness"
@@ -1652,7 +1625,6 @@ static HWND WINAPI extCreateWindowCommon(
 		(*pShowWindow)(hwnd, SW_SHOWNORMAL);
 	}
 
-	//if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwStyle & WS_CHILD))
 	if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwStyle & WS_CHILD) && dxw.IsDesktop(hwnd))
 		dxw.FixWindowFrame(hwnd);
 
@@ -1671,6 +1643,7 @@ static HWND WINAPI extCreateWindowCommon(
 	}
 
 	if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
+	if(dxw.dwFlags4 & HIDEDESKTOP) dxw.HideDesktop(hwnd);
 
 	OutTraceDW("%s: ret=%x\n", ApiName, hwnd);
 	return hwnd;

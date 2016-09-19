@@ -55,8 +55,10 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SAVELOAD, cTarget->m_SaveLoad);
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);
+	DDX_Check(pDX, IDC_HIDEDESKTOP, cTarget->m_HideDesktop);
 	//DDX_Text(pDX, IDC_POSX, cTarget->m_PosX);
 	//DDX_Text(pDX, IDC_POSY, cTarget->m_PosY);
+	DDX_CBIndex(pDX, IDC_MONITOR_ID, cTarget->m_MonitorId);
 	DDX_Text(pDX, IDC_POSX, sPosX);
 	DDX_Text(pDX, IDC_POSY, sPosY);
 	DDX_Text(pDX, IDC_SIZX, cTarget->m_SizX);
@@ -74,6 +76,7 @@ BEGIN_MESSAGE_MAP(CTabProgram, CDialog)
 	//}}AFX_MSG_MAP
 	ON_STN_CLICKED(IDC_REGISTRY, &CTabProgram::OnStnClickedRegistry)
 	ON_STN_CLICKED(IDC_NOTES, &CTabProgram::OnStnClickedNotes)
+	ON_STN_CLICKED(IDC_XYPICK, &CTabProgram::OnStnClickedXYPick)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -207,6 +210,17 @@ BOOL CTabProgram::OnInitDialog()
 	IconBox=(CStatic *)this->GetDlgItem(IDC_REGISTRY);
 	if(cTarget->m_Registry.IsEmpty()) IconBox->SetBitmap(NULL);
 
+	CComboBox *cScreens = (CComboBox *)this->GetDlgItem(IDC_MONITOR_ID);
+	cScreens->ResetContent();
+	int iMonitorCount = ::GetSystemMetrics(SM_CMONITORS);
+	cScreens->AddString("def.");
+	for (int i=1; i<=iMonitorCount; i++){
+		char sMonitorId[16];
+		sprintf(sMonitorId, "%d", i);
+		cScreens->AddString(sMonitorId);
+	}
+	cScreens->SetCurSel(cTarget->m_MonitorId);
+
 	m_EditPosX.SubclassDlgItem(IDC_POSX, this);
 	m_EditPosY.SubclassDlgItem(IDC_POSY, this);
 	m_EditPosX.SetFormatter(m_pRelIntegerFormat);
@@ -229,11 +243,52 @@ void CTabProgram::OnStnClickedNotes()
 	cTab->SwitchToTab(12);
 }
 
-	//CTabCtrl::OnLButtonDown(nFlags, point);
+void CTabProgram::OnStnClickedXYPick()
+{
+	//return;
+	HCURSOR hPrevCursor;
+	HCURSOR hViewFinder;
+	BOOL Looping = TRUE;
+	BOOL Picked = FALSE;
+	BOOL bMoved = FALSE;
+	HWND TargethWnd;
+	RECT TargetRect = {0, 0, 0, 0};
+	POINT UpLeft = {0, 0};
+	char sMessage[81];
+	hViewFinder=LoadCursor(NULL, IDC_CROSS);
+	//hViewFinder=LoadCursor(NULL, IDC_SIZE);
+	hPrevCursor=SetCursor(hViewFinder);
+	ShowCursor(TRUE);
+	this->SetCapture();
+	//MessageBox("Pick window coordinates", "DxWnd", 0);
+	while(TRUE){
+		POINT pt;
+		MSG Msg;
+		GetMessage(&Msg, NULL, 0, 0);
+		//if(GetAsyncKeyState(VK_LBUTTON) & 0x8000){
+		if(Msg.message == WM_LBUTTONUP){
+			if(bMoved){
+				GetCursorPos(&pt);
+				TargethWnd=::WindowFromPoint(pt);
+				::GetClientRect(TargethWnd, &TargetRect);
+				::ClientToScreen(TargethWnd, &UpLeft);
+				OffsetRect(&TargetRect, UpLeft.x, UpLeft.y);
+				Picked = TRUE;
+			}
+			ReleaseCapture();
+			break;
+		}
+		if(Msg.message == WM_LBUTTONDOWN) break;
+		if(Msg.message == WM_MOUSEMOVE) bMoved = TRUE;
+	}
 
-	//if(m_tabCurrent != GetCurFocus()){
-	//	m_tabPages[m_tabCurrent]->ShowWindow(SW_HIDE);
-	//	m_tabCurrent=GetCurFocus();
-	//	m_tabPages[m_tabCurrent]->ShowWindow(SW_SHOW);
-	//	m_tabPages[m_tabCurrent]->SetFocus();
-	//}
+	if(!Picked) return;
+	sprintf(sMessage, "Pick rect=(%d,%d)-(%d,%d) ?", 
+		TargetRect.left, TargetRect.top, TargetRect.right, TargetRect.bottom);
+	if(MessageBox(sMessage, "DxWnd", MB_OKCANCEL)){
+		this->SetDlgItemInt(IDC_POSX, TargetRect.left, TRUE);
+		this->SetDlgItemInt(IDC_POSY, TargetRect.top, TRUE);
+		this->SetDlgItemInt(IDC_SIZX, TargetRect.right - TargetRect.left, TRUE);
+		this->SetDlgItemInt(IDC_SIZY, TargetRect.bottom - TargetRect.top, TRUE);
+	}
+}

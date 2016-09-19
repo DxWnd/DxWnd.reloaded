@@ -684,7 +684,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 		else { // relative position
 			if(dxw.dwFlags6 & EMULATERELMOUSE){
 				int iMaxX, iMaxY, iMinX, iMinY;
-				RECT WinRect = dxw.GetMainWindow();
+				RECT WinRect = dxw.GetUnmappedScreenRect();
 				iMinX = WinRect.left;
 				iMaxX = WinRect.right;
 				iMinY = WinRect.top;

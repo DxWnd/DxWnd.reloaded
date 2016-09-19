@@ -22,6 +22,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 {
 	//{{AFX_DATA_INIT(CTargetDlg)
 	m_DXVersion = 0;
+	m_MonitorId = 0; // default: the first one, of course ....
 	m_MaxDdrawInterface = 6;
 	m_SlowRatio = 2;
 	m_Coordinates = 0;
@@ -177,7 +178,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_KeepAspectRatio = FALSE;
 	m_ForceWinResize = FALSE;
 	m_HideMultiMonitor = FALSE;
-	m_WallpaperMode = FALSE;
+	//m_WallpaperMode = FALSE;
 	m_FixD3DFrame = FALSE;
 	m_NoWindowMove = FALSE;
 	m_Force16BPP = FALSE;

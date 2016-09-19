@@ -188,6 +188,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	strcpy_s(t->OpenGLLib, sizeof(t->OpenGLLib), dlg->m_OpenGLLib);
 	if(dlg->m_DXVersion > 1) dlg->m_DXVersion += 5;
 	t->dxversion = dlg->m_DXVersion;
+	t->monitorid = (dlg->m_MonitorId == -1) ? -1 : dlg->m_MonitorId - 1;
 	t->MaxDdrawInterface = dlg->m_MaxDdrawInterface+1;
 	t->SlowRatio = dlg->m_SlowRatio;
 	t->coordinates = dlg->m_Coordinates;
@@ -422,7 +423,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_KeepAspectRatio) t->flags2 |= KEEPASPECTRATIO;
 	if(dlg->m_ForceWinResize) t->flags2 |= FORCEWINRESIZE;
 	if(dlg->m_HideMultiMonitor) t->flags2 |= HIDEMULTIMONITOR;
-	if(dlg->m_WallpaperMode) t->flags2 |= WALLPAPERMODE;
+//	if(dlg->m_WallpaperMode) t->flags2 |= WALLPAPERMODE;
 	if(dlg->m_FixD3DFrame) t->flags3 |= FIXD3DFRAME;
 	if(dlg->m_NoWindowMove) t->flags3 |= NOWINDOWMOVE;
 	if(dlg->m_Force16BPP) t->flags3 |= FORCE16BPP;
@@ -494,6 +495,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 {
 	dlg->m_DXVersion = t->dxversion;
+	dlg->m_MonitorId = t->monitorid + 1;
 	dlg->m_MaxDdrawInterface = t->MaxDdrawInterface-1;
 	dlg->m_SlowRatio = t->SlowRatio;
 	if(dlg->m_DXVersion > 6) dlg->m_DXVersion -= 5;
@@ -700,7 +702,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_KeepAspectRatio = t->flags2 & KEEPASPECTRATIO ? 1 : 0;
 	dlg->m_ForceWinResize = t->flags2 & FORCEWINRESIZE ? 1 : 0;
 	dlg->m_HideMultiMonitor = t->flags2 & HIDEMULTIMONITOR ? 1 : 0;
-	dlg->m_WallpaperMode = t->flags2 & WALLPAPERMODE ? 1 : 0;
+	//dlg->m_WallpaperMode = t->flags2 & WALLPAPERMODE ? 1 : 0;
 	dlg->m_FixD3DFrame = t->flags3 & FIXD3DFRAME ? 1 : 0;
 	dlg->m_NoWindowMove = t->flags3 & NOWINDOWMOVE ? 1 : 0;
 	dlg->m_Force16BPP = t->flags3 & FORCE16BPP ? 1 : 0;
@@ -770,93 +772,128 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	char *EscBuf = NULL;
 	sprintf_s(key, sizeof(key), "title%i", i);
 	WritePrivateProfileString("target", key, PrivateMap->title, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "path%i", i);
 	WritePrivateProfileString("target", key, TargetMap->path, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "startfolder%i", i);
 	WritePrivateProfileString("target", key, PrivateMap->startfolder, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "launchpath%i", i);
 	WritePrivateProfileString("target", key, PrivateMap->launchpath, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "module%i", i);
 	WritePrivateProfileString("target", key, TargetMap->module, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "opengllib%i", i);
 	WritePrivateProfileString("target", key, TargetMap->OpenGLLib, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "notes%i", i);
 	WritePrivateProfileString("target", key, Escape(PrivateMap->notes, &EscBuf), InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "registry%i", i);
 	WritePrivateProfileString("target", key, Escape(PrivateMap->registry, &EscBuf), InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "ver%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->dxversion);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "monitorid%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->monitorid);
+	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "coord%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->coordinates);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagg%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags2);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagh%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags3);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagi%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags4);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagj%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags5);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagk%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags6);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagl%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags7);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagm%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags8);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagl%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags7);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "flagm%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags8);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "dflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->dflags);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "posx%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->posx);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "posy%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->posy);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "sizx%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->sizx);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "sizy%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->sizy);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "maxfps%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->MaxFPS);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "initts%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->InitTS);
 	WritePrivateProfileString("target", key, val, InitPath);
-
+	// -------
 	sprintf_s(key, sizeof(key), "winver%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->FakeVersionId);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "maxres%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->MaxScreenRes);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "swapeffect%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->SwapEffect);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "maxddinterface%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->MaxDdrawInterface);
 	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "slowratio%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->SlowRatio);
 	WritePrivateProfileString("target", key, val, InitPath);
@@ -979,6 +1016,9 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	// -------
 	sprintf_s(key, sizeof(key), "ver%i", i);
 	TargetMap->dxversion = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "monitorid%i", i);
+	TargetMap->monitorid = GetPrivateProfileInt("target", key, 0, InitPath);
 	// -------
 	sprintf_s(key, sizeof(key), "coord%i", i);
 	TargetMap->coordinates = GetPrivateProfileInt("target", key, 0, InitPath);

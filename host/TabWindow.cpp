@@ -38,12 +38,11 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_MODALSTYLE, cTarget->m_ModalStyle);
 	DDX_Check(pDX, IDC_FORCEWINRESIZE, cTarget->m_ForceWinResize);
 	DDX_Check(pDX, IDC_HIDEMULTIMONITOR, cTarget->m_HideMultiMonitor);
-	DDX_Check(pDX, IDC_WALLPAPERMODE, cTarget->m_WallpaperMode);
+	//DDX_Check(pDX, IDC_WALLPAPERMODE, cTarget->m_WallpaperMode);
 	DDX_Check(pDX, IDC_RECOVERSCREENMODE, cTarget->m_RecoverScreenMode);
 	DDX_Check(pDX, IDC_REFRESHONRESIZE, cTarget->m_RefreshOnResize);
 	DDX_Check(pDX, IDC_FIXD3DFRAME, cTarget->m_FixD3DFrame);
 	DDX_Check(pDX, IDC_NOWINDOWMOVE, cTarget->m_NoWindowMove);
-	DDX_Check(pDX, IDC_HIDEDESKTOP, cTarget->m_HideDesktop);
 	DDX_Check(pDX, IDC_HIDETASKBAR, cTarget->m_HideTaskbar);
 	DDX_Check(pDX, IDC_UNLOCKZORDER, cTarget->m_UnlockZOrder);
 	DDX_Check(pDX, IDC_NODESTROYWINDOW, cTarget->m_NoDestroyWindow);
@@ -72,6 +71,7 @@ static char *Resolutions[]={
 	"800x600",
 	"1024x768",
 	"1280x960",
+	"1280x1024",
 	"" // terminator
 };
 

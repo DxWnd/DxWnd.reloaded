@@ -1241,4 +1241,11 @@ add: added control to avoid hide of tray window. Useful for "Planet of the Apes"
 fix: fixed BIG window coordinates. Fixes "Deer Hunter" window positioning problems.
 fix: mciSendCommand wrapper for BYPASSMCI flag
 
+v2.03.86
+fix: completely revised the "Keep aspect ratio" flag, now should work with multi-windowed games too.
+add: multi-monitor handling with dynamic detection and monitor selection
+fix: basic class reorganization - now it is a little more neat and simple
+add: added 1280x1024 resolution limit
+add: mult hooks option now available in global settings panel
+add: viewfinder to grab coordinates from a window on screen 
 

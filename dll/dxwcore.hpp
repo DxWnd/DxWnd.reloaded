@@ -85,7 +85,6 @@ public: // methods
 	void MapWindow(int *, int *, int *, int *);
 	void UnmapWindow(LPRECT);
 	void UnmapWindow(LPPOINT);
-	RECT GetMainWindow(void);
 	void FixWorkarea(LPRECT);
 	RECT GetScreenRect(void);
 	RECT GetUnmappedScreenRect();
@@ -141,8 +140,11 @@ public: // methods
 	void VSyncWait();
 	void DumpDesktopStatus();
 	void ToggleFreezedTime();
+	void GetMonitorWorkarea(LPRECT, BOOL);
+	void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
 
 public: // simple data variables
+	int MonitorId;
 	BOOL Windowize;
 	DDPIXELFORMAT ActualPixelFormat;
 	DDPIXELFORMAT VirtualPixelFormat;
@@ -190,8 +192,8 @@ public: // simple data variables
 
 // Implementation
 protected:
-	DWORD dwScreenWidth;
-	DWORD dwScreenHeight;
+	LONG dwScreenWidth;
+	LONG dwScreenHeight;
 	BOOL FullScreen;
 	HWND hWnd, hWndFPS;
 	HBITMAP VirtualPic;
