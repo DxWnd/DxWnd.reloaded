@@ -41,7 +41,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "mciSendCommandW", NULL, (FARPROC *)&pmciSendCommandW, (FARPROC)extmciSendCommandW},
 	{HOOK_HOT_CANDIDATE, 0, "mciGetDeviceIDA", NULL, (FARPROC *)&pmciGetDeviceIDA, (FARPROC)extmciGetDeviceIDA},
 	{HOOK_HOT_CANDIDATE, 0, "mciGetDeviceIDW", NULL, (FARPROC *)&pmciGetDeviceIDW, (FARPROC)extmciGetDeviceIDW},
-	{HOOK_IAT_CANDIDATE, 0, "auxGetNumDevs", NULL, (FARPROC *)&pauxGetNumDevs, (FARPROC)extauxGetNumDevs},
+	//{HOOK_IAT_CANDIDATE, 0, "auxGetNumDevs", NULL, (FARPROC *)&pauxGetNumDevs, (FARPROC)extauxGetNumDevs},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -480,6 +480,7 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
     DeleteDC(hdcMem);
 }
 
+// dangerous thing to do: it interferes with "Imperialism II" !!!
 MMRESULT WINAPI extauxGetNumDevs(void)
 {
 	OutTraceDW("auxGetNumDevs: returning fake 1\n");

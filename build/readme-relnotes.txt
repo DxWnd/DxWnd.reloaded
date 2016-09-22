@@ -1249,3 +1249,16 @@ add: added 1280x1024 resolution limit
 add: mult hooks option now available in global settings panel
 add: viewfinder to grab coordinates from a window on screen 
 
+v2.03.87
+fix: possibility to use @ token instead of "" in fake registry
+fix: independent hooking of DirectDraw3 objects, needed for "Theocracy"
+fix: eliminated shared hooking of "Compact" ddraw methods
+add: improved caps masking in debug mode, now can change any flags
+fix: added missing hook for DirectDraw3 in QueryInterface
+fix: fixed wrong hook for GetGDISurface in DirectDraw3 interface
+fix: eliminated dialog box when hooking ddrawex
+fix: eliminated experimental hook to auxGetNumDevs returning 1 available device always. Fixes problems with "Imperialism II"
+
+
+
+

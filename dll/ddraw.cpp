@@ -48,10 +48,12 @@ HRESULT WINAPI extDirectDrawCreateClipper(DWORD, LPDIRECTDRAWCLIPPER *, IUnknown
 // DirectDraw
 HRESULT WINAPI extQueryInterfaceD1(void *, REFIID, LPVOID *);
 HRESULT WINAPI extQueryInterfaceD2(void *, REFIID, LPVOID *);
+HRESULT WINAPI extQueryInterfaceD3(void *, REFIID, LPVOID *);
 HRESULT WINAPI extQueryInterfaceD4(void *, REFIID, LPVOID *);
 HRESULT WINAPI extQueryInterfaceD7(void *, REFIID, LPVOID *);
 ULONG WINAPI extReleaseD1(LPDIRECTDRAW);
 ULONG WINAPI extReleaseD2(LPDIRECTDRAW);
+ULONG WINAPI extReleaseD3(LPDIRECTDRAW);
 ULONG WINAPI extReleaseD4(LPDIRECTDRAW);
 ULONG WINAPI extReleaseD7(LPDIRECTDRAW);
 
@@ -59,50 +61,62 @@ ULONG WINAPI extReleaseD7(LPDIRECTDRAW);
 HRESULT WINAPI extCompact(LPDIRECTDRAW); // unimplemented method ???
 HRESULT WINAPI extCreateClipper1(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
 HRESULT WINAPI extCreateClipper2(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
+HRESULT WINAPI extCreateClipper3(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
 HRESULT WINAPI extCreateClipper4(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
 HRESULT WINAPI extCreateClipper7(LPDIRECTDRAW, DWORD, LPDIRECTDRAWCLIPPER FAR* , IUnknown FAR*);
 HRESULT WINAPI extCreatePalette1(LPDIRECTDRAW, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *);
 HRESULT WINAPI extCreatePalette2(LPDIRECTDRAW, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *);
+HRESULT WINAPI extCreatePalette3(LPDIRECTDRAW, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *);
 HRESULT WINAPI extCreatePalette4(LPDIRECTDRAW, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *);
 HRESULT WINAPI extCreatePalette7(LPDIRECTDRAW, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *);
 HRESULT WINAPI extCreateSurface1(LPDIRECTDRAW, DDSURFACEDESC *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extCreateSurface2(LPDIRECTDRAW, DDSURFACEDESC *, LPDIRECTDRAWSURFACE *, void *);
+HRESULT WINAPI extCreateSurface3(LPDIRECTDRAW, DDSURFACEDESC *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extCreateSurface4(LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extCreateSurface7(LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extFlipToGDISurface1(LPDIRECTDRAW);
 HRESULT WINAPI extFlipToGDISurface2(LPDIRECTDRAW);
+HRESULT WINAPI extFlipToGDISurface3(LPDIRECTDRAW);
 HRESULT WINAPI extFlipToGDISurface4(LPDIRECTDRAW);
 HRESULT WINAPI extFlipToGDISurface7(LPDIRECTDRAW);
 HRESULT WINAPI extGetDisplayMode1(LPDIRECTDRAW, LPDDSURFACEDESC);
 HRESULT WINAPI extGetDisplayMode2(LPDIRECTDRAW, LPDDSURFACEDESC);
+HRESULT WINAPI extGetDisplayMode3(LPDIRECTDRAW, LPDDSURFACEDESC);
 HRESULT WINAPI extGetDisplayMode4(LPDIRECTDRAW, LPDDSURFACEDESC2);
 HRESULT WINAPI extGetDisplayMode7(LPDIRECTDRAW, LPDDSURFACEDESC2);
 HRESULT WINAPI extGetGDISurface1(LPDIRECTDRAW, LPDIRECTDRAWSURFACE *);
 HRESULT WINAPI extGetGDISurface2(LPDIRECTDRAW, LPDIRECTDRAWSURFACE *);
+HRESULT WINAPI extGetGDISurface3(LPDIRECTDRAW, LPDIRECTDRAWSURFACE *);
 HRESULT WINAPI extGetGDISurface4(LPDIRECTDRAW, LPDIRECTDRAWSURFACE *);
 HRESULT WINAPI extGetGDISurface7(LPDIRECTDRAW, LPDIRECTDRAWSURFACE *);
 HRESULT WINAPI extEnumDisplayModes1(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
 HRESULT WINAPI extEnumDisplayModes2(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
+HRESULT WINAPI extEnumDisplayModes3(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
 HRESULT WINAPI extEnumDisplayModes4(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
 HRESULT WINAPI extEnumDisplayModes7(LPDIRECTDRAW, DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
 HRESULT WINAPI extInitialize1(LPDIRECTDRAW, FAR GUID *);
 HRESULT WINAPI extInitialize2(LPDIRECTDRAW, FAR GUID *);
+HRESULT WINAPI extInitialize3(LPDIRECTDRAW, FAR GUID *);
 HRESULT WINAPI extInitialize4(LPDIRECTDRAW, FAR GUID *);
 HRESULT WINAPI extInitialize7(LPDIRECTDRAW, FAR GUID *);
 HRESULT WINAPI extSetCooperativeLevel1(LPDIRECTDRAW, HWND, DWORD);
 HRESULT WINAPI extSetCooperativeLevel2(LPDIRECTDRAW, HWND, DWORD);
+HRESULT WINAPI extSetCooperativeLevel3(LPDIRECTDRAW, HWND, DWORD);
 HRESULT WINAPI extSetCooperativeLevel4(LPDIRECTDRAW, HWND, DWORD);
 HRESULT WINAPI extSetCooperativeLevel7(LPDIRECTDRAW, HWND, DWORD);
 HRESULT WINAPI extSetDisplayMode1(LPDIRECTDRAW, DWORD, DWORD, DWORD);
 HRESULT WINAPI extSetDisplayMode2(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);
+HRESULT WINAPI extSetDisplayMode3(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);
 HRESULT WINAPI extSetDisplayMode4(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);
 HRESULT WINAPI extSetDisplayMode7(LPDIRECTDRAW, DWORD, DWORD, DWORD, DWORD, DWORD);
 HRESULT WINAPI extWaitForVerticalBlank1(LPDIRECTDRAW, DWORD, HANDLE);
 HRESULT WINAPI extWaitForVerticalBlank2(LPDIRECTDRAW, DWORD, HANDLE);
+HRESULT WINAPI extWaitForVerticalBlank3(LPDIRECTDRAW, DWORD, HANDLE);
 HRESULT WINAPI extWaitForVerticalBlank4(LPDIRECTDRAW, DWORD, HANDLE);
 HRESULT WINAPI extWaitForVerticalBlank7(LPDIRECTDRAW, DWORD, HANDLE);
     /*** Added in the V2 Interface ***/
 HRESULT WINAPI extGetAvailableVidMem2(LPDIRECTDRAW, LPDDSCAPS, LPDWORD, LPDWORD);
+HRESULT WINAPI extGetAvailableVidMem3(LPDIRECTDRAW, LPDDSCAPS, LPDWORD, LPDWORD);
 HRESULT WINAPI extGetAvailableVidMem4(LPDIRECTDRAW, LPDDSCAPS2, LPDWORD, LPDWORD);
 HRESULT WINAPI extGetAvailableVidMem7(LPDIRECTDRAW, LPDDSCAPS2, LPDWORD, LPDWORD);
     /*** Added in the V4 Interface ***/
@@ -112,6 +126,7 @@ HRESULT WINAPI extTestCooperativeLevel7(LPDIRECTDRAW);
 //    STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD * ) PURE;
 HRESULT WINAPI extGetCaps1D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
 HRESULT WINAPI extGetCaps2D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
+HRESULT WINAPI extGetCaps3D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
 HRESULT WINAPI extGetCaps4D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
 HRESULT WINAPI extGetCaps7D(LPDIRECTDRAW, LPDDCAPS, LPDDCAPS);
 
@@ -280,34 +295,34 @@ HandleDDThreadLock_Type pAcquireDDThreadLock = NULL;
 HandleDDThreadLock_Type pReleaseDDThreadLock = NULL;
 
 /* DirectDraw hook pointers */
-QueryInterface_Type pQueryInterfaceD1, pQueryInterfaceD2, pQueryInterfaceD4, pQueryInterfaceD7;
+QueryInterface_Type pQueryInterfaceD1, pQueryInterfaceD2, pQueryInterfaceD3, pQueryInterfaceD4, pQueryInterfaceD7;
 AddRefD_Type pAddRefD;
-ReleaseD_Type pReleaseD1, pReleaseD2, pReleaseD4, pReleaseD7;
+ReleaseD_Type pReleaseD1, pReleaseD2, pReleaseD3, pReleaseD4, pReleaseD7;
 Compact_Type pCompact;
-CreateClipper_Type pCreateClipper1, pCreateClipper2, pCreateClipper4, pCreateClipper7;
-CreatePalette_Type pCreatePalette1, pCreatePalette2, pCreatePalette4, pCreatePalette7;
+CreateClipper_Type pCreateClipper1, pCreateClipper2, pCreateClipper3, pCreateClipper4, pCreateClipper7;
+CreatePalette_Type pCreatePalette1, pCreatePalette2, pCreatePalette3, pCreatePalette4, pCreatePalette7;
 CreateSurface1_Type pCreateSurface1, pCreateSurface2, pCreateSurface3, pCreateSurface4, pCreateSurface7;
-EnumDisplayModes1_Type pEnumDisplayModes1, pEnumDisplayModes2;
+EnumDisplayModes1_Type pEnumDisplayModes1, pEnumDisplayModes2, pEnumDisplayModes3;
 EnumDisplayModes4_Type pEnumDisplayModes4, pEnumDisplayModes7;
 EnumSurfaces1_Type pEnumSurfaces1;
 EnumSurfaces4_Type pEnumSurfaces4;
-FlipToGDISurface_Type pFlipToGDISurface1, pFlipToGDISurface2, pFlipToGDISurface4, pFlipToGDISurface7;
-GetCapsD_Type pGetCaps1D, pGetCaps2D, pGetCaps4D, pGetCaps7D;
-GetDisplayMode_Type pGetDisplayMode1, pGetDisplayMode2;
+FlipToGDISurface_Type pFlipToGDISurface1, pFlipToGDISurface2, pFlipToGDISurface3, pFlipToGDISurface4, pFlipToGDISurface7;
+GetCapsD_Type pGetCaps1D, pGetCaps2D, pGetCaps3D, pGetCaps4D, pGetCaps7D;
+GetDisplayMode_Type pGetDisplayMode1, pGetDisplayMode2, pGetDisplayMode3;
 GetDisplayMode4_Type pGetDisplayMode4, pGetDisplayMode7;
 GetFourCCCodes_Type pGetFourCCCodes;
-GetGDISurface_Type pGetGDISurface1, pGetGDISurface2, pGetGDISurface4, pGetGDISurface7;
+GetGDISurface_Type pGetGDISurface1, pGetGDISurface2, pGetGDISurface3, pGetGDISurface4, pGetGDISurface7;
 GetMonitorFrequency_Type pGetMonitorFrequency;
 GetScanLine_Type pGetScanLine;
 GetVerticalBlankStatus_Type pGetVerticalBlankStatus;
-Initialize_Type pInitialize1, pInitialize2, pInitialize4, pInitialize7;
+Initialize_Type pInitialize1, pInitialize2, pInitialize3, pInitialize4, pInitialize7;
 RestoreDisplayMode_Type pRestoreDisplayMode;
-SetCooperativeLevel_Type pSetCooperativeLevel1, pSetCooperativeLevel2, pSetCooperativeLevel4, pSetCooperativeLevel7;
+SetCooperativeLevel_Type pSetCooperativeLevel1, pSetCooperativeLevel2, pSetCooperativeLevel3, pSetCooperativeLevel4, pSetCooperativeLevel7;
 SetDisplayMode1_Type pSetDisplayMode1;
-SetDisplayMode2_Type pSetDisplayMode2, pSetDisplayMode4, pSetDisplayMode7;
-WaitForVerticalBlank_Type pWaitForVerticalBlank1, pWaitForVerticalBlank2, pWaitForVerticalBlank4, pWaitForVerticalBlank7;
+SetDisplayMode2_Type pSetDisplayMode2, pSetDisplayMode3, pSetDisplayMode4, pSetDisplayMode7;
+WaitForVerticalBlank_Type pWaitForVerticalBlank1, pWaitForVerticalBlank2, pWaitForVerticalBlank3, pWaitForVerticalBlank4, pWaitForVerticalBlank7;
 GetSurfaceFromDC_Type pGetSurfaceFromDC;
-GetAvailableVidMem_Type pGetAvailableVidMem2; 
+GetAvailableVidMem_Type pGetAvailableVidMem2, pGetAvailableVidMem3; 
 GetAvailableVidMem4_Type pGetAvailableVidMem4, pGetAvailableVidMem7;
 RestoreAllSurfaces_Type pRestoreAllSurfaces;
 TestCooperativeLevel_Type pTestCooperativeLevel4, pTestCooperativeLevel7;
@@ -446,6 +461,7 @@ static HRESULT myGetDisplayMode(int dxversion, LPDIRECTDRAW lpdd, LPDDSURFACEDES
 		default:
 		case 1: res=(*pGetDisplayMode1)(lpdd, lpdds); break;
 		case 2: res=(*pGetDisplayMode2)(lpdd, lpdds); break;
+		case 3: res=(*pGetDisplayMode3)(lpdd, lpdds); break;
 		case 4: res=(*pGetDisplayMode4)(lpdd, (LPDDSURFACEDESC2)lpdds); break;
 		case 7: res=(*pGetDisplayMode7)(lpdd, (LPDDSURFACEDESC2)lpdds); break;
 	}
@@ -854,6 +870,7 @@ CreatePalette_Type pCreatePaletteMethod(int dxversion)
 	switch(dxversion){
 		case 1: pCreatePalette = pCreatePalette1; break;
 		case 2: pCreatePalette = pCreatePalette2; break;
+		case 3: pCreatePalette = pCreatePalette3; break;
 		case 4: pCreatePalette = pCreatePalette4; break;
 		case 7: pCreatePalette = pCreatePalette7; break;
 	}
@@ -867,6 +884,7 @@ SetPalette_Type pSetPaletteMethod(int dxversion)
 	switch(dxversion){
 		case 1: pSetPalette=pSetPalette1; break;
 		case 2: pSetPalette=pSetPalette2; break;
+		case 3: pSetPalette=pSetPalette3; break;
 		case 4: pSetPalette=pSetPalette4; break;
 		case 7: pSetPalette=pSetPalette7; break;
 	}
@@ -1008,6 +1026,7 @@ GetGDISurface_Type pGetGDISurfaceMethod(int dxversion)
 		default: 
 		case 1: pGetGDISurface = pGetGDISurface1; break;
 		case 2: pGetGDISurface = pGetGDISurface2; break;
+		case 3: pGetGDISurface = pGetGDISurface3; break;
 		case 4: pGetGDISurface = pGetGDISurface4; break;
 		case 7: pGetGDISurface = pGetGDISurface7; break;
 	}
@@ -1082,7 +1101,6 @@ static void SetPixFmt(LPDDSURFACEDESC2 lpdd)
 		break;
 	}
 
-
 	// remember current virtual settings
 	dxw.VirtualPixelFormat=lpdd->ddpfPixelFormat;
 	OutTraceDW("SetPixFmt: %s\n", DumpPixelFormat(lpdd));
@@ -1118,12 +1136,13 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	OutTraceDW("Hooking directdraw session dd=%x dxversion=%d thread_id=%x\n", 
 		*lplpdd, dxversion, GetCurrentThreadId());
 
-	SetHook((void *)(**(DWORD **)lplpdd + 12), extCompact, (void **)&pCompact, "Compact");
+	// unimplemented, but better not hook it with a single wrapper
+	//SetHook((void *)(**(DWORD **)lplpdd + 12), extCompact, (void **)&pCompact, "Compact");
 	switch(dxversion) {
 	case 1:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD1, (void **)&pQueryInterfaceD1, "QueryInterface(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper1, (void **)&pCreateClipper1, "CreateClipper(D1)");
-		SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD1, (void **)&pReleaseD1, "Release(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD1, (void **)&pReleaseD1, "Release(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette1, (void **)&pCreatePalette1, "CreatePalette(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface1, (void **)&pCreateSurface1, "CreateSurface(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes1, (void **)&pEnumDisplayModes1, "EnumDisplayModes(D1)");
@@ -1139,10 +1158,10 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	case 2:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD2, (void **)&pQueryInterfaceD2, "QueryInterface(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper2, (void **)&pCreateClipper2, "CreateClipper(D2)");
-		SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD2, (void **)&pReleaseD2, "Release(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD2, (void **)&pReleaseD2, "Release(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette2, (void **)&pCreatePalette2, "CreatePalette(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface2, (void **)&pCreateSurface2, "CreateSurface(D2)");
-		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes2, (void **)&pEnumDisplayModes2, "EnumDisplayModes(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes2, (void **)&pEnumDisplayModes2, "EnumDisplayModes(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface2, (void **)&pFlipToGDISurface2, "FlipToGDISurface(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps2D, (void **)&pGetCaps2D, "GetCaps(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode2, (void **)&pGetDisplayMode2, "GetDisplayMode(D2)");
@@ -1154,10 +1173,28 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		// added in v2 interface
 		SetHook((void *)(**(DWORD **)lplpdd + 92), extGetAvailableVidMem2, (void **)&pGetAvailableVidMem2, "GetAvailableVidMem(D2)");
 		break;
+	case 3:
+		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper3, (void **)&pCreateClipper3, "CreateClipper(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD3, (void **)&pReleaseD3, "Release(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette3, (void **)&pCreatePalette3, "CreatePalette(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface3, (void **)&pCreateSurface3, "CreateSurface(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes3, (void **)&pEnumDisplayModes3, "EnumDisplayModes(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface3, (void **)&pFlipToGDISurface3, "FlipToGDISurface(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps3D, (void **)&pGetCaps3D, "GetCaps(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode3, (void **)&pGetDisplayMode3, "GetDisplayMode(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 56), extGetGDISurface3, (void **)&pGetGDISurface3, "GetGDISurface(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 72), extInitialize3, (void **)&pInitialize3, "Initialize(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel3, (void **)&pSetCooperativeLevel3, "SetCooperativeLevel(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode3, (void **)&pSetDisplayMode3, "SetDisplayMode(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 88), extWaitForVerticalBlank3, (void **)&pWaitForVerticalBlank3, "WaitForVerticalBlank(D3)");
+		// added in v2 interface
+		SetHook((void *)(**(DWORD **)lplpdd + 92), extGetAvailableVidMem3, (void **)&pGetAvailableVidMem3, "GetAvailableVidMem(D3)");
+		break;
 	case 4:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD4, (void **)&pQueryInterfaceD4, "QueryInterface(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper4, (void **)&pCreateClipper4, "CreateClipper(D4)");
-		SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD4, (void **)&pReleaseD4, "Release(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD4, (void **)&pReleaseD4, "Release(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette4, (void **)&pCreatePalette4, "CreatePalette(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface4, (void **)&pCreateSurface4, "CreateSurface(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes4, (void **)&pEnumDisplayModes4, "EnumDisplayModes(D4)");
@@ -1177,7 +1214,7 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	case 7:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD7, (void **)&pQueryInterfaceD7, "QueryInterface(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper7, (void **)&pCreateClipper7, "CreateClipper(D7)");
-		SetHook((void *)(**(DWORD **)lplpdd + 8), extReleaseD7, (void **)&pReleaseD7, "Release(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD7, (void **)&pReleaseD7, "Release(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette7, (void **)&pCreatePalette7, "CreatePalette(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface7, (void **)&pCreateSurface7, "CreateSurface(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes7, (void **)&pEnumDisplayModes7, "EnumDisplayModes(D4)");
@@ -1412,9 +1449,7 @@ static void MaskCapsD(LPDDCAPS c1, LPDDCAPS c2)
 {
 	FILE *capfile;
 	//char sBuf[80+1];
-	char token[20+1];
 	DWORD val;
-	OutTraceDW("MaskCaps\n");
 	if(IsDebug){
 		char CapsBuf[3*sizeof(DDCAPS_DX7)+20];
 		int i;
@@ -1430,17 +1465,32 @@ static void MaskCapsD(LPDDCAPS c1, LPDDCAPS c2)
 			OutTrace("CapsDump(c2:SW)=%s\n", CapsBuf);
 		}
 	}
-	capfile=fopen("dxwnd.cap", "r");
+	capfile=fopen("dxwnd.caps.txt", "r");
 	if(!capfile) return;
-	if(c1) {
-		while(TRUE){
-			if(fscanf(capfile, "%s=%x", token, &val)!=2) break;
-			if(!strcmp(token, "dwCaps")) c1->dwCaps &= val;
-			if(!strcmp(token, "dwCaps2")) c1->dwCaps2 &= val;
-			if(!strcmp(token, "dwCKeyCaps")) c1->dwCKeyCaps &= val;
-			if(!strcmp(token, "dwFXCaps")) c1->dwFXCaps &= val;
+
+	int HwSwCap;
+	int WordOffset;
+	char Operator;
+	LPDDCAPS Caps;
+	LPDWORD lpDWord;
+	while(TRUE){
+		if(fscanf(capfile, "C%d.%x[%c]=%x\n", &HwSwCap, &WordOffset, &Operator, &val)!=4) break;
+		OutTrace("MaskCaps: C%d.%x[%c].x%08.8X\n", HwSwCap, WordOffset, Operator, val);
+		Caps = (HwSwCap == 1) ? c1 : c2;
+		if(!Caps) continue;
+		lpDWord = &(Caps->dwSize) + WordOffset;
+		switch(Operator){
+			case '&': *lpDWord &= val; break;
+			case '|': *lpDWord |= val; break;
+			case '-': *lpDWord &= (~val); break;
+			case '=':
+			default:  *lpDWord = val; break;
 		}
-		OutTraceDW("MaskCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+	}
+	fclose(capfile);
+
+	if(c1) {
+		OutTrace("MaskCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
 			c1->dwCaps, ExplainDDDCaps(c1->dwCaps),
 			c1->dwCaps2, ExplainDDDCaps2(c1->dwCaps2),
 			c1->dwFXCaps, ExplainDDFXCaps(c1->dwFXCaps),
@@ -1448,21 +1498,13 @@ static void MaskCapsD(LPDDCAPS c1, LPDDCAPS c2)
 			c1->dwCKeyCaps, ExplainDDCKeyCaps(c1->dwCKeyCaps));
 	}
 	if(c2) {
-		while(TRUE){
-			if(fscanf(capfile, "%s=%x", token, &val)!=2) break;
-			if(!strcmp(token, "dwCaps")) c2->dwCaps &= val;
-			if(!strcmp(token, "dwCaps2")) c2->dwCaps2 &= val;
-			if(!strcmp(token, "dwCKeyCaps")) c2->dwCKeyCaps &= val;
-			if(!strcmp(token, "dwFXCaps")) c2->dwFXCaps &= val;
-		}
-		OutTraceDW("MaskCaps(D-HW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
+		OutTrace("MaskCaps(D-SW): caps=%x(%s) caps2=%x(%s) fxcaps=%x(%s) fxalphacaps=%x(%s) keycaps=%x(%s)\n", 
 			c2->dwCaps, ExplainDDDCaps(c2->dwCaps),
 			c2->dwCaps2, ExplainDDDCaps2(c2->dwCaps2),
 			c2->dwFXCaps, ExplainDDFXCaps(c2->dwFXCaps),
 			c2->dwFXAlphaCaps, ExplainDDFXALPHACaps(c2->dwFXAlphaCaps),
 			c2->dwCKeyCaps, ExplainDDCKeyCaps(c2->dwCKeyCaps));
 	}	
-	fclose(capfile);
 }
 
 /* ------------------------------------------------------------------------------ */
@@ -1579,6 +1621,8 @@ HRESULT WINAPI extGetCaps1D(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 { return extGetCapsD(1, pGetCaps1D, lpdd, c1, c2); }
 HRESULT WINAPI extGetCaps2D(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 { return extGetCapsD(2, pGetCaps2D, lpdd, c1, c2); }
+HRESULT WINAPI extGetCaps3D(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
+{ return extGetCapsD(3, pGetCaps3D, lpdd, c1, c2); }
 HRESULT WINAPI extGetCaps4D(LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 { return extGetCapsD(4, pGetCaps4D, lpdd, c1, c2); }
 HRESULT WINAPI extGetCaps7D(LPDIRECTDRAW lpdd, LPDDCAPS_DX7 c1, LPDDCAPS_DX7 c2)
@@ -1770,6 +1814,8 @@ HRESULT WINAPI extInitialize1(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 { return extInitialize(pInitialize1, lpdd, lpguid); }
 HRESULT WINAPI extInitialize2(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 { return extInitialize(pInitialize2, lpdd, lpguid); }
+HRESULT WINAPI extInitialize3(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
+{ return extInitialize(pInitialize3, lpdd, lpguid); }
 HRESULT WINAPI extInitialize4(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 { return extInitialize(pInitialize4, lpdd, lpguid); }
 HRESULT WINAPI extInitialize7(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
@@ -1798,6 +1844,9 @@ static HRESULT WINAPI extQueryInterfaceD(int dxversion, QueryInterface_Type pQue
 		break;
 	case 0xB3A6F3E0:		//DirectDraw2
 		dwLocalDDVersion = 2;
+		break;
+	case 0x618f8ad4: 		//DirectDraw3
+		dwLocalDDVersion = 3;
 		break;
 	case 0x9c59509a:		//DirectDraw4 
 		dwLocalDDVersion = 4;
@@ -1835,6 +1884,7 @@ static HRESULT WINAPI extQueryInterfaceD(int dxversion, QueryInterface_Type pQue
 	switch (dwLocalDDVersion){
 	case 1: // you never know ....
 	case 2:
+	case 3:
 	case 4:
 		// it's not supposed to be written for DDVersion==7, but it works ....
 	case 7:
@@ -1863,6 +1913,8 @@ HRESULT WINAPI extQueryInterfaceD1(void *lpdd, REFIID riid, LPVOID *obp)
 { return extQueryInterfaceD(1, pQueryInterfaceD1, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD2(void *lpdd, REFIID riid, LPVOID *obp)
 { return extQueryInterfaceD(2, pQueryInterfaceD2, lpdd, riid, obp); }
+HRESULT WINAPI extQueryInterfaceD3(void *lpdd, REFIID riid, LPVOID *obp)
+{ return extQueryInterfaceD(3, pQueryInterfaceD3, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD4(void *lpdd, REFIID riid, LPVOID *obp)
 { return extQueryInterfaceD(4, pQueryInterfaceD4, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD7(void *lpdd, REFIID riid, LPVOID *obp)
@@ -2103,6 +2155,7 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 		default:
 		case 1: ddsd.dwSize=sizeof(LPDDSURFACEDESC); res=(*pGetDisplayMode1)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
 		case 2: ddsd.dwSize=sizeof(LPDDSURFACEDESC); res=(*pGetDisplayMode2)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
+		case 3: ddsd.dwSize=sizeof(LPDDSURFACEDESC); res=(*pGetDisplayMode3)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
 		case 4: ddsd.dwSize=sizeof(LPDDSURFACEDESC2); res=(*pGetDisplayMode4)(lpdd, &ddsd); break;
 		case 7: ddsd.dwSize=sizeof(LPDDSURFACEDESC2); res=(*pGetDisplayMode7)(lpdd, &ddsd); break;
 	}
@@ -2136,6 +2189,7 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 		default:
 		case 1: res=(*pSetDisplayMode1)(lpdd, dwwidth, dwheight, dwbpp); break;
 		case 2: res=(*pSetDisplayMode2)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
+		case 3: res=(*pSetDisplayMode3)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
 		case 4: res=(*pSetDisplayMode4)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
 		case 7: res=(*pSetDisplayMode7)(lpdd, dwwidth, dwheight, dwbpp, ddsd.dwRefreshRate, 0); break;
 	}
@@ -2153,6 +2207,8 @@ HRESULT WINAPI extSetDisplayMode1(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheig
 { return extSetDisplayMode(1, lpdd, dwwidth, dwheight, dwbpp, 0, 0); }
 HRESULT WINAPI extSetDisplayMode2(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
 { return extSetDisplayMode(2, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags); }
+HRESULT WINAPI extSetDisplayMode3(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
+{ return extSetDisplayMode(3, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags); }
 HRESULT WINAPI extSetDisplayMode4(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
 { return extSetDisplayMode(4, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags); }
 HRESULT WINAPI extSetDisplayMode7(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
@@ -2199,6 +2255,8 @@ HRESULT WINAPI extGetDisplayMode1(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 { return extGetDisplayMode(pGetDisplayMode1, lpdd, lpddsd); }
 HRESULT WINAPI extGetDisplayMode2(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 { return extGetDisplayMode(pGetDisplayMode2, lpdd, lpddsd); }
+HRESULT WINAPI extGetDisplayMode3(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+{ return extGetDisplayMode(pGetDisplayMode3, lpdd, lpddsd); }
 HRESULT WINAPI extGetDisplayMode4(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
 { return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode4, lpdd, (LPDDSURFACEDESC)lpddsd); }
 HRESULT WINAPI extGetDisplayMode7(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
@@ -2217,6 +2275,7 @@ HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pS
 		default:
 		case 1: ddsd.dwSize=sizeof(DDSURFACEDESC); res=(*pGetDisplayMode1)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
 		case 2: ddsd.dwSize=sizeof(DDSURFACEDESC); res=(*pGetDisplayMode2)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
+		case 3: ddsd.dwSize=sizeof(DDSURFACEDESC); res=(*pGetDisplayMode3)(lpdd, (LPDDSURFACEDESC)&ddsd); break;
 		case 4: ddsd.dwSize=sizeof(DDSURFACEDESC2); res=(*pGetDisplayMode4)(lpdd, &ddsd); break;
 		case 7: ddsd.dwSize=sizeof(DDSURFACEDESC2); res=(*pGetDisplayMode7)(lpdd, &ddsd); break;
 	}
@@ -2311,6 +2370,8 @@ HRESULT WINAPI extSetCooperativeLevel1(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwfla
 { return extSetCooperativeLevel(1, pSetCooperativeLevel1, lpdd, hwnd, dwflags); }
 HRESULT WINAPI extSetCooperativeLevel2(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
 { return extSetCooperativeLevel(2, pSetCooperativeLevel2, lpdd, hwnd, dwflags); }
+HRESULT WINAPI extSetCooperativeLevel3(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
+{ return extSetCooperativeLevel(3, pSetCooperativeLevel3, lpdd, hwnd, dwflags); }
 HRESULT WINAPI extSetCooperativeLevel4(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
 { return extSetCooperativeLevel(4, pSetCooperativeLevel4, lpdd, hwnd, dwflags); }
 HRESULT WINAPI extSetCooperativeLevel7(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
@@ -2674,6 +2735,7 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 				default: 
 				case 1: pGetGDISurface = pGetGDISurface1; break;
 				case 2: pGetGDISurface = pGetGDISurface2; break;
+				case 3: pGetGDISurface = pGetGDISurface3; break;
 				case 4: pGetGDISurface = pGetGDISurface4; break;
 				case 7: pGetGDISurface = pGetGDISurface7; break;
 			}
@@ -2902,6 +2964,7 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 			default: 
 			case 1: pGetGDISurface = pGetGDISurface1; break;
 			case 2: pGetGDISurface = pGetGDISurface2; break;
+			case 3: pGetGDISurface = pGetGDISurface3; break;
 			case 4: pGetGDISurface = pGetGDISurface4; break;
 			case 7: pGetGDISurface = pGetGDISurface7; break;
 		}
@@ -3274,6 +3337,8 @@ HRESULT WINAPI extCreateSurface1(LPDIRECTDRAW lpdd, DDSURFACEDESC *lpddsd, LPDIR
 { return extCreateSurface(1, (CreateSurface_Type)pCreateSurface1, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
 HRESULT WINAPI extCreateSurface2(LPDIRECTDRAW lpdd, DDSURFACEDESC *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
 { return extCreateSurface(2, (CreateSurface_Type)pCreateSurface2, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
+HRESULT WINAPI extCreateSurface3(LPDIRECTDRAW lpdd, DDSURFACEDESC *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
+{ return extCreateSurface(3, (CreateSurface_Type)pCreateSurface3, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
 HRESULT WINAPI extCreateSurface4(LPDIRECTDRAW lpdd, DDSURFACEDESC2 *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
 { return extCreateSurface(4, (CreateSurface_Type)pCreateSurface4, lpdd, (DDSURFACEDESC2 *)lpddsd, lplpdds, pu); }
 HRESULT WINAPI extCreateSurface7(LPDIRECTDRAW lpdd, DDSURFACEDESC2 *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
@@ -4050,6 +4115,8 @@ HRESULT WINAPI extWaitForVerticalBlank1(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE
 { return extWaitForVerticalBlank(pWaitForVerticalBlank1, lpdd, dwflags, hevent); }
 HRESULT WINAPI extWaitForVerticalBlank2(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE hevent)
 { return extWaitForVerticalBlank(pWaitForVerticalBlank2, lpdd, dwflags, hevent); }
+HRESULT WINAPI extWaitForVerticalBlank3(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE hevent)
+{ return extWaitForVerticalBlank(pWaitForVerticalBlank3, lpdd, dwflags, hevent); }
 HRESULT WINAPI extWaitForVerticalBlank4(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE hevent)
 { return extWaitForVerticalBlank(pWaitForVerticalBlank4, lpdd, dwflags, hevent); }
 HRESULT WINAPI extWaitForVerticalBlank7(LPDIRECTDRAW lpdd, DWORD dwflags, HANDLE hevent)
@@ -4081,6 +4148,8 @@ HRESULT WINAPI extCreatePalette1(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTR
 { return extCreatePalette(1, (CreatePalette_Type)pCreatePalette1, lpdd, dwflags, lpddpa, lplpddp, pu); }
 HRESULT WINAPI extCreatePalette2(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa, LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
 { return extCreatePalette(2, (CreatePalette_Type)pCreatePalette2, lpdd, dwflags, lpddpa, lplpddp, pu); }
+HRESULT WINAPI extCreatePalette3(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa, LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
+{ return extCreatePalette(3, (CreatePalette_Type)pCreatePalette3, lpdd, dwflags, lpddpa, lplpddp, pu); }
 HRESULT WINAPI extCreatePalette4(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa, LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
 { return extCreatePalette(4, (CreatePalette_Type)pCreatePalette4, lpdd, dwflags, lpddpa, lplpddp, pu); }
 HRESULT WINAPI extCreatePalette7(LPDIRECTDRAW lpdd, DWORD dwflags, LPPALETTEENTRY lpddpa, LPDIRECTDRAWPALETTE *lplpddp, IUnknown *pu)
@@ -4347,6 +4416,7 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 	switch(dxversion){
 		case 1: pBlt=pBlt1; pGetGDISurface=pGetGDISurface1; break;
 		case 2: pBlt=pBlt2; pGetGDISurface=pGetGDISurface2; break;
+		case 3: pBlt=pBlt3; pGetGDISurface=pGetGDISurface3; break;
 		case 4: pBlt=pBlt4; pGetGDISurface=pGetGDISurface4; break;
 		case 7: pBlt=pBlt7; pGetGDISurface=pGetGDISurface7; break;
 	}
@@ -4582,7 +4652,7 @@ static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECT
 		default:
 		case 1: pGetGDISurface = pGetGDISurface1; pBlt = pBlt1; break;
 		case 2: pGetGDISurface = pGetGDISurface2; pBlt = pBlt2; break;
-		case 3: pGetGDISurface = pGetGDISurface2; pBlt = pBlt3; break;
+		case 3: pGetGDISurface = pGetGDISurface3; pBlt = pBlt3; break;
 		case 4: pGetGDISurface = pGetGDISurface4; pBlt = pBlt4; break;
 		case 7: pGetGDISurface = pGetGDISurface7; pBlt = pBlt7; break;
 	}
@@ -4699,7 +4769,7 @@ HRESULT WINAPI extReleaseDC(int dxversion, ReleaseDC_Type pReleaseDC, LPDIRECTDR
 			default:
 			case 1: pGetGDISurface = pGetGDISurface1; pBlt = pBlt1; break;
 			case 2: pGetGDISurface = pGetGDISurface2; pBlt = pBlt2; break;
-			case 3: pGetGDISurface = pGetGDISurface2; pBlt = pBlt3; break;
+			case 3: pGetGDISurface = pGetGDISurface3; pBlt = pBlt3; break;
 			case 4: pGetGDISurface = pGetGDISurface4; pBlt = pBlt4; break;
 			case 7: pGetGDISurface = pGetGDISurface7; pBlt = pBlt7; break;
 		}
@@ -4741,6 +4811,8 @@ HRESULT WINAPI extFlipToGDISurface1(LPDIRECTDRAW lpdd)
 { return extFlipToGDISurface(pFlipToGDISurface1, lpdd); }
 HRESULT WINAPI extFlipToGDISurface2(LPDIRECTDRAW lpdd)
 { return extFlipToGDISurface(pFlipToGDISurface2, lpdd); }
+HRESULT WINAPI extFlipToGDISurface3(LPDIRECTDRAW lpdd)
+{ return extFlipToGDISurface(pFlipToGDISurface3, lpdd); }
 HRESULT WINAPI extFlipToGDISurface4(LPDIRECTDRAW lpdd)
 { return extFlipToGDISurface(pFlipToGDISurface4, lpdd); }
 HRESULT WINAPI extFlipToGDISurface7(LPDIRECTDRAW lpdd)
@@ -4771,13 +4843,12 @@ HRESULT WINAPI extGetGDISurface(GetGDISurface_Type pGetGDISurface, LPDIRECTDRAW 
 
 HRESULT WINAPI extGetGDISurface1(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
 { return extGetGDISurface(pGetGDISurface1, lpdd, w); }
-
 HRESULT WINAPI extGetGDISurface2(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
 { return extGetGDISurface(pGetGDISurface2, lpdd, w); }
-
+HRESULT WINAPI extGetGDISurface3(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
+{ return extGetGDISurface(pGetGDISurface3, lpdd, w); }
 HRESULT WINAPI extGetGDISurface4(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
 { return extGetGDISurface(pGetGDISurface4, lpdd, w); }
-
 HRESULT WINAPI extGetGDISurface7(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE *w)
 { return extGetGDISurface(pGetGDISurface7, lpdd, w); }
 
@@ -4974,6 +5045,8 @@ HRESULT WINAPI extEnumDisplayModes1(LPDIRECTDRAW lpdd, DWORD dwflags, LPDDSURFAC
 { return extEnumDisplayModes(1, pEnumDisplayModes1, lpdd, dwflags, lpddsd, lpContext, cb); }
 HRESULT WINAPI extEnumDisplayModes2(LPDIRECTDRAW lpdd, DWORD dwflags, LPDDSURFACEDESC lpddsd, LPVOID lpContext, LPDDENUMMODESCALLBACK cb)
 { return extEnumDisplayModes(2, pEnumDisplayModes2, lpdd, dwflags, lpddsd, lpContext, cb); }
+HRESULT WINAPI extEnumDisplayModes3(LPDIRECTDRAW lpdd, DWORD dwflags, LPDDSURFACEDESC lpddsd, LPVOID lpContext, LPDDENUMMODESCALLBACK cb)
+{ return extEnumDisplayModes(3, pEnumDisplayModes3, lpdd, dwflags, lpddsd, lpContext, cb); }
 HRESULT WINAPI extEnumDisplayModes4(LPDIRECTDRAW lpdd, DWORD dwflags, LPDDSURFACEDESC2 lpddsd, LPVOID lpContext, LPDDENUMMODESCALLBACK2 cb)
 { return extEnumDisplayModes(4, (EnumDisplayModes1_Type)pEnumDisplayModes4, lpdd, dwflags, (LPDDSURFACEDESC)lpddsd, lpContext, (LPDDENUMMODESCALLBACK)cb); }
 HRESULT WINAPI extEnumDisplayModes7(LPDIRECTDRAW lpdd, DWORD dwflags, LPDDSURFACEDESC2 lpddsd, LPVOID lpContext, LPDDENUMMODESCALLBACK2 cb)
@@ -5417,9 +5490,9 @@ static ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECT
 	//extern void SwitchTo16BPP();
 	//if((ActualRef==0) && (dxw.dwFlags3 & FORCE16BPP)) SwitchTo16BPP();
 
-	OutTraceDDRAW("Release(D): lpdd=%x ref=%x\n", lpdd, VirtualRef);
+	if(dxw.dwFlags4 & RETURNNULLREF) VirtualRef = 0;
 
-	if(dxw.dwFlags4 & RETURNNULLREF) return 0;
+	OutTraceDDRAW("Release(D): lpdd=%x ref=%x\n", lpdd, VirtualRef);
 	return (ULONG)VirtualRef;
 }
 
@@ -5427,6 +5500,8 @@ ULONG WINAPI extReleaseD1(LPDIRECTDRAW lpdd)
 { return extReleaseD(1, pReleaseD1, lpdd); }
 ULONG WINAPI extReleaseD2(LPDIRECTDRAW lpdd)
 { return extReleaseD(2, pReleaseD2, lpdd); }
+ULONG WINAPI extReleaseD3(LPDIRECTDRAW lpdd)
+{ return extReleaseD(3, pReleaseD3, lpdd); }
 ULONG WINAPI extReleaseD4(LPDIRECTDRAW lpdd)
 { return extReleaseD(4, pReleaseD4, lpdd); }
 ULONG WINAPI extReleaseD7(LPDIRECTDRAW lpdd)
@@ -5450,6 +5525,8 @@ HRESULT WINAPI extCreateClipper1(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWC
 { return extCreateClipper(pCreateClipper1, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
 HRESULT WINAPI extCreateClipper2(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
 { return extCreateClipper(pCreateClipper2, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
+HRESULT WINAPI extCreateClipper3(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
+{ return extCreateClipper(pCreateClipper3, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
 HRESULT WINAPI extCreateClipper4(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
 { return extCreateClipper(pCreateClipper4, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
 HRESULT WINAPI extCreateClipper7(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
@@ -5878,6 +5955,8 @@ static HRESULT WINAPI extGetAvailableVidMem(int dxversion, GetAvailableVidMem4_T
 
 HRESULT WINAPI extGetAvailableVidMem2(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 { return extGetAvailableVidMem(2, (GetAvailableVidMem4_Type)pGetAvailableVidMem2, lpdd, (LPDDSCAPS2)lpDDSCaps, lpdwTotal, lpdwFree); }
+HRESULT WINAPI extGetAvailableVidMem3(LPDIRECTDRAW lpdd, LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
+{ return extGetAvailableVidMem(3, (GetAvailableVidMem4_Type)pGetAvailableVidMem3, lpdd, (LPDDSCAPS2)lpDDSCaps, lpdwTotal, lpdwFree); }
 HRESULT WINAPI extGetAvailableVidMem4(LPDIRECTDRAW lpdd, LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 { return extGetAvailableVidMem(4, pGetAvailableVidMem4, lpdd, lpDDSCaps, lpdwTotal, lpdwFree); }
 HRESULT WINAPI extGetAvailableVidMem7(LPDIRECTDRAW lpdd, LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)

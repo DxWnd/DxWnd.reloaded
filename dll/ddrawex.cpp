@@ -127,6 +127,18 @@ created by DirectDraw. Applications should blit only between similar surfaces.
 © 1997 Microsoft Corporation. All rights reserved. Terms of Use. 
 */
 
+// from ddrawex.h
+//DECLARE_INTERFACE_(IDirectDrawFactory, IUnknown)
+//{
+//    /*** IUnknown methods ***/
+//    STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) PURE;
+//    STDMETHOD_(ULONG,AddRef) (THIS)  PURE;
+//    STDMETHOD_(ULONG,Release) (THIS) PURE;
+//    /*** IDirectDrawFactory methods ***/
+//    STDMETHOD(CreateDirectDraw) (THIS_ GUID * pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown *pUnkOuter, IDirectDraw **ppDirectDraw) PURE;
+//    STDMETHOD(DirectDrawEnumerate) (THIS_ LPDDENUMCALLBACK lpCallback, LPVOID lpContext) PURE;
+//};
+
 // DirectDrawEx API (undocumented)
 HRESULT WINAPI extDllCanUnloadNow(void);
 HRESULT WINAPI extDllGetClassObject(REFCLSID, REFIID, void **);
@@ -185,8 +197,10 @@ void HookDirectDrawFactoryLib(HMODULE module)
 
 void HookDirectDrawFactory(void *obj)
 {
-	MessageBox(0,"Hooking IID_DirectDrawFactory object", "DxWnd", MB_OK);
+	//MessageBox(0,"Hooking IID_DirectDrawFactory object", "DxWnd", MB_OK);
 	OutTrace("Hooking IID_DirectDrawFactory object\n");
+	//SetHook((void *)(**(DWORD **)obj      ), extQueryInterfaceD1, (void **)&pQueryInterfaceD1, "QueryInterface(D1)");
+	//SetHook((void *)(**(DWORD **)obj +   8), extReleaseD1, (void **)&pReleaseD1, "Release(D1)");
 	SetHook((void *)(**(DWORD **)obj +  12), extCreateDirectDrawEX, (void **)&pCreateDirectDrawEX, "CreateDirectDraw(ex)");
 	SetHook((void *)(**(DWORD **)obj +  16), extDirectDrawEnumerateEX, (void **)&pDirectDrawEnumerateEX, "DirectDrawEnumerate(ex)");
 }
@@ -238,6 +252,7 @@ HRESULT WINAPI extCreateDirectDrawEX(void *ddf, GUID *pGUID, HWND hWnd, DWORD dw
 		OutTrace("CreateDirectDraw(EX): factory=%x guid=%s hwnd=%x coopflags=%x(%s)\n", 
 			ddf, sGUID(pGUID), hWnd, dwCoopLevelFlags, ExplainCoopFlags(dwCoopLevelFlags));
 	}
+
 	res = (*pCreateDirectDrawEX)(ddf, pGUID, hWnd, dwCoopLevelFlags, dwReserved, pUnkOuter, ppDirectDraw);
 	if(res){
 		OutTraceE("CreateDirectDraw(EX) ERROR: res=%x\n");
@@ -248,7 +263,7 @@ HRESULT WINAPI extCreateDirectDrawEX(void *ddf, GUID *pGUID, HWND hWnd, DWORD dw
 
 	return res;
 }
- 
+
 HRESULT WINAPI extDirectDrawEnumerateEX(void *ddf, LPDDENUMCALLBACK lpCallback, LPVOID lpContext)
 {
 	HRESULT res;

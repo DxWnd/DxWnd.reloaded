@@ -210,6 +210,10 @@ static LONG SeekValueName(FILE *regf, LPCTSTR lpValueName)
 			fseek(regf, KeySeekPtr, SEEK_SET);
 			return ERROR_SUCCESS;
 		}
+		if(!lpValueName && (RegBuf[0]=='@')){
+			fseek(regf, KeySeekPtr, SEEK_SET);
+			return ERROR_SUCCESS;
+		}
 		if(RegBuf[0]=='[') return res;
 		KeySeekPtr = ftell(regf);
 		fgets(RegBuf, 256, regf);
@@ -259,7 +263,10 @@ static DWORD GetKeyValue(
 
 	//OutTrace("GetKeyValue: ValueName=%s\n", lpValueName);
 	fgets(RegBuf, 256, regf);
-	pData=&RegBuf[strlen(lpValueName)+3];
+	if(RegBuf[0]=='@')
+		pData=&RegBuf[2];
+	else
+		pData=&RegBuf[strlen(lpValueName)+3];
 	lpb = lpData;
 	if(lpcbData) {
 		cbData = *lpcbData;

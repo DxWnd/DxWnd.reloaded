@@ -972,6 +972,7 @@ char *ExplainGUID(GUID FAR *lpguid)
 		case 0x00000000: sguid="IID_IUnknown"; break;
 		case 0x6C14DB80: sguid="IID_IDirectDraw"; break;
 		case 0xB3A6F3E0: sguid="IID_IDirectDraw2"; break;
+		case 0x618f8ad4: sguid="IID_IDirectDraw3"; break;
 		case 0x9c59509a: sguid="IID_IDirectDraw4"; break;
 		case 0x15e65ec0: sguid="IID_IDirectDraw7"; break;
 		case 0x6C14DB81: sguid="IID_IDirectDrawSurface"; break;
