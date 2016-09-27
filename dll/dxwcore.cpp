@@ -133,6 +133,11 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	// Aspect Ratio from window size, or traditional 4:3 by default
 	iRatioX = iSizX ? iSizX : 800;
 	iRatioY = iSizY ? iSizY : 600;
+	// AutoScale: when iSizX == iSizY == 0, size is set to current screen resolution
+	bAutoScale = !(iSizX && iSizY);
+	// guessed initial screen resolution
+	dwScreenWidth = 800;
+	dwScreenHeight = 600;
 
 	SlowRatio = target->SlowRatio;
 

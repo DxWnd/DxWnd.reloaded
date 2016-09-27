@@ -2200,6 +2200,8 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 	if(dxw.VirtualPixelFormat.dwRGBBitCount == 8) 
 		mySetPalette(0, 256, DefaultSystemPalette);
 
+	if(dxw.bAutoScale) dxw.AutoScale();
+
 	return DD_OK;
 }
 

@@ -65,7 +65,7 @@
 <tr valign="top">
 <td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">None</span></p>
 </td>
-<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">(default)</span></p>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts20">(default)</span></p>
 </td>
 <td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">The primary surface and backbuffers are simply scaled to the desired size, but no other characteristic is altered. In particular, the pixel color depth and mode are not altered.</span></p>
 </td>
@@ -73,7 +73,7 @@
 <tr valign="top">
 <td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Primary Buffer</span></p>
 </td>
-<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATEBUFFER</span></p>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">EMULATEBUFFER</span></p>
 </td>
 <td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as "None," but blit operations are made against a memory surface and then transferred to the real primary surface – this handles the so-called "pitch-bug" problem.</span></p>
 </td>
@@ -81,15 +81,15 @@
 <tr valign="top">
 <td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Locked Surface</span></p>
 </td>
-<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">LOCKEDSURFACE</span></p>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">LOCKEDSURFACE</span></p>
 </td>
-<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as "Primary Buffer" (</span><span class="rvts15">EMULATEBUFFER</span><span class="rvts6">) but the buffer is the surface of an </span><span class="rvts15">OFFSCREENPLAIN</span><span class="rvts6"> DirectDraw surface, so it is handled similarly to a DirectX surfacebuffer.</span></p>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Same as "Primary Buffer" (</span><span class="rvts17">EMULATEBUFFER</span><span class="rvts6">) but the buffer is the surface of an </span><span class="rvts17">OFFSCREENPLAIN</span><span class="rvts6"> DirectDraw surface, so it is handled similarly to a DirectX surfacebuffer.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Primary Surface</span></p>
 </td>
-<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">EMULATESURFACE</span></p>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">EMULATESURFACE</span></p>
 </td>
 <td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">The virtual primary surface has a different color depth from the real primary surface, and DxWnd takes care of the color transformation internally: it might be a little slower but it involves no screen mode changes. Furthermore, this option allows you to set the "Set AERO compatible mode" that avoids making a temporary color conversion and stretching it to the primary surface (which would break the AERO desktop composition mode).</span></p>
 </td>
@@ -97,17 +97,17 @@
 <tr valign="top">
 <td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Hybrid mode</span></p>
 </td>
-<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">HYBRIDMODE</span></p>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">HYBRIDMODE</span></p>
 </td>
-<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Similar to "Primary Surface" mode (</span><span class="rvts15">EMULATESURFACE</span><span class="rvts6">), but DxWnd forwards the palette and color conversion to GDI calls instead of managing them internally. It is usually less compatible than primary surface, but in some rare cases it may better at managing unusual color conversions. Try this option if the game works but the colors are wrong or the screen is black.</span></p>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Similar to "Primary Surface" mode (</span><span class="rvts17">EMULATESURFACE</span><span class="rvts6">), but DxWnd forwards the palette and color conversion to GDI calls instead of managing them internally. It is usually less compatible than primary surface, but in some rare cases it may better at managing unusual color conversions. Try this option if the game works but the colors are wrong or the screen is black.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="142" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">GDI mode</span></p>
 </td>
-<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts15">GDIMODE</span></p>
+<td width="136" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">GDIMODE</span></p>
 </td>
-<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Similar to "Primary Surface" mode (</span><span class="rvts15">EMULATESURFACE</span><span class="rvts6">), but DxWnd forwards all the conversion between the virtual primary interface and the window surface instead of managing it internally. Because of recent optimizations to GDI that can now take advantage of hardware-accelerated functions, this mode is becoming particularly interesting, and the lack of extra service surfaces brings it closer to the original game schema. It is also quite respectful of AERO desktop modes.</span></p>
+<td width="1259" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Similar to "Primary Surface" mode (</span><span class="rvts17">EMULATESURFACE</span><span class="rvts6">), but DxWnd forwards all the conversion between the virtual primary interface and the window surface instead of managing it internally. Because of recent optimizations to GDI that can now take advantage of hardware-accelerated functions, this mode is becoming particularly interesting, and the lack of extra service surfaces brings it closer to the original game schema. It is also quite respectful of AERO desktop modes.</span></p>
 </td>
 </tr>
 </table>

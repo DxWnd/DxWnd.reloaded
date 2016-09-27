@@ -1,0 +1,90 @@
+﻿<html>
+	
+<head>
+	<title>Getting started</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="generator" content="HelpNDoc Personal Edition 4.6.2.573">
+	<meta name="keywords" content="">
+	
+	<link type="text/css" rel="stylesheet" media="all" href="css/reset.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/base.css" />
+	<link type="text/css" rel="stylesheet" media="all" href="css/hnd.css" />
+	<!--[if lte IE 8]>
+		<link type="text/css" rel="stylesheet" media="all" href="css/ielte8.css" />
+	<![endif]-->
+	<style type="text/css">
+		#topic_header
+		{
+			background-color: #EFEFEF;
+		}
+	</style>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/hnd.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()
+		{
+			if (top.frames.length == 0)
+			{
+				var sTopicUrl = top.location.href.substring(top.location.href.lastIndexOf("/") + 1, top.location.href.length);
+				top.location.href = "DxWnd.html?" + sTopicUrl;
+			}
+			else if (top && top.FrameTOC && top.FrameTOC.SelectTocItem)
+			{
+				top.FrameTOC.SelectTocItem("Gettingstarted");
+			}
+		});
+	</script>
+	
+	</head>
+
+<body>
+
+<div id="topic_header">
+			<div id="topic_header_content">
+				<h1 id="topic_header_text">Getting started</h1>
+				
+				</div>
+			<div id="topic_header_nav">
+				<a href="Introduction.html"><img src="img/arrow_left.png" alt="Previous"/></a>
+				
+				<a href="TheInterface.html"><img src="img/arrow_right.png" alt="Next"/></a>
+				
+				</div>
+			<div class="clear"></div>
+		</div>
+	<div id="topic_content">
+		
+<p></p>
+<h2 class="rvps6"><span class="rvts0"><span class="rvts14">Installing DxWnd</span></span></h2>
+<p class="rvps2"><span class="rvts6">To install DxWnd, just unpack the compressed winrar archive.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">DxWnd is portable, meaning that it does not write to the registry and can be placed in any folder you like. Since DxWnd sometimes writes to its folder, use a location that you can write to, like the hard drive or a USB flash drive, rather than a CD.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">You can have as many copies of DxWnd as you like, but only one instance of DxWnd can run at a time.</span></p>
+<h2 class="rvps6"><span class="rvts0"><span class="rvts14">Using DxWnd</span></span></h2>
+<p class="rvps2"><span class="rvts6">Just double-click on DxWnd.exe to run the graphical interface (a tiny white empty window), then locate the executable for the program you'd like to hook and drag &amp; drop this file into the DxWnd window. A complex dialog will appear, but in many cases the built-in defaults are sufficient.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">Alternatively, you can add a program via the menu by choosing </span><span class="rvts15">File &gt; Add</span><span class="rvts6"> menu command and filling in the program definition form. The only required parameter is the program path (the </span><span class="rvts15">Path</span><span class="rvts6"> field).</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">For every configured program, the DxWnd interface will show a new entry in the list. You can run a configured program by starting it from its normal shortcut or by double-clicking the program entry.</span></p>
+<h2 class="rvps6"><span class="rvts0"><span class="rvts14">Troubleshooting</span></span></h2>
+<p class="rvps2"><span class="rvts6">Many games require additional configuration before they run correctly. For this reason, the program comes with an export folder that contains predefined, tested configurations for all tested games. If you're having trouble running a game, check this set of files to see if you can import a built-in configuration file (with </span><span class="rvts15">File &gt; Import</span><span class="rvts6">). Remember to update the </span><span class="rvts15">Path</span><span class="rvts6"> field to match the hooked program's location on your computer.</span></p>
+<p class="rvps2"><span class="rvts6"><br/></span></p>
+<p class="rvps2"><span class="rvts6">If you still can't get it to work, there are a few more options to try:</span></p>
+<ul style="text-indent: 0px; margin-left: 24px; list-style-position: outside; list-style-type: disc;">
+<li class="rvps2"><span class="rvts6">Run the game with the "show hints" flag. DxWnd will try to analyze the program at runtime and provide some hints about possible configuration improvements by showing messages in dialog boxes. Remember to turn this flag off once everything is working, or you will continue to receive these messages.</span></li>
+<li class="rvps2"><span class="rvts6">Check the common problems list (coming soon) for solutions to known issues.</span></li>
+<li class="rvps2"><span class="rvts6">Collect some logs by setting the log flags (see </span><a class="rvts16" href="Logs.html">Logs</a><span class="rvts6">) and sending the logs to the developer via a new thread on the </span><a class="rvts16" href="https://sourceforge.net/p/dxwnd/discussion/general/" target="_blank">SourceForge discussion board</a><span class="rvts6">. Remember to specify your platform and the version of the game, and include a description of the problem.</span></li>
+</ul>
+<p></p>
+</div>
+	
+	<div id="topic_footer">
+
+			<div id="topic_footer_content">
+				Copyright &copy; 2016 by GHO. All Rights Reserved.</div>
+		</div>
+	</body>
+	
+</html>
+

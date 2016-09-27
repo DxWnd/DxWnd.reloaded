@@ -1259,6 +1259,13 @@ fix: fixed wrong hook for GetGDISurface in DirectDraw3 interface
 fix: eliminated dialog box when hooking ddrawex
 fix: eliminated experimental hook to auxGetNumDevs returning 1 available device always. Fixes problems with "Imperialism II"
 
+v2.03.88
+fix: revised (simpler) window handling, hopefully more reliable (Diablo no longer crashes on fake-fullscreen modes?)
+fix: eliminated hook of smackw32.dll to reach GDI32/user32 calls beneath
+fix: added ddraw hooking in ddrawex/CreateDirectDraw() call: now "Theocracy" works with default "Automatic" ddraw hooking
+fix: added hook for EnumDisplayDevicesW used by "Battleground Europe"
+fix: added "Hide multi monitors" logic to EnumDisplayDevicesA/W 
+
 
 
 

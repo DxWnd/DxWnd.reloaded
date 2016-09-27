@@ -653,9 +653,6 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_MSVFW:
 			if (remap=Remap_vfw_ProcAddress(proc, hModule)) return remap;
 			break;
-		case SYSLIBIDX_SMACK:
-			if (remap=Remap_smack_ProcAddress(proc, hModule)) return remap;
-			break;
 		case SYSLIBIDX_WINTRUST:
 			if (remap=Remap_trust_ProcAddress(proc, hModule)) return remap;
 			break;

@@ -359,6 +359,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 				if(dxw.IsDesktop(hwnd)) {
 					POINT fo = dxw.GetFrameOffset();
 					(*pMoveWindow)(hControlParentWnd, wp->x+fo.x, wp->y+fo.y, wp->cx, wp->cy, TRUE);
+					dxw.UpdateDesktopCoordinates();
 				}
 			}
 			// v2.03.30: in window mode, it seems that the WM_ACTIVATEAPP message is not sent to the main win.
@@ -394,6 +395,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			thdc=(*pGDIGetDC)(w);
 			if(thdc) (*pGDIBitBlt)(thdc, client.left, client.top, client.right, client.bottom, 0, 0, 0, BLACKNESS);
 		}
+		dxw.UpdateDesktopCoordinates();
 		break;
 	case WM_ACTIVATE:
 		// turn DirectInput bActive flag on & off .....

@@ -13,12 +13,65 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+// return TRUE if the path is a valid existing directory, FALSE otherwise
 static BOOL dirExists(char *path)
 {
 	DWORD ftyp = GetFileAttributesA(path);
 	if (ftyp == INVALID_FILE_ATTRIBUTES) return FALSE;  //something is wrong with your path!
 	if (ftyp & FILE_ATTRIBUTE_DIRECTORY) return TRUE;   // this is a directory!
 	return false;    // this is not a directory!
+}
+
+// Restores the window highlighted by HighlightFoundWindow
+static long RefreshWindow(HWND hwndWindowToBeRefreshed)
+{
+	long lRet = 0;
+	InvalidateRect (hwndWindowToBeRefreshed, NULL, TRUE);
+	UpdateWindow (hwndWindowToBeRefreshed);
+	RedrawWindow (hwndWindowToBeRefreshed, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+	return lRet;
+}
+
+// Performs a highlighting of a found window.
+static long HighlightFoundWindow (HWND hwndFoundWindow)
+{
+	HDC		hWindowDC = NULL;	// The DC of the found window.
+	HGDIOBJ	hPrevPen = NULL;	// Handle of the existing pen in the DC of the found window.
+	HGDIOBJ	hPrevBrush = NULL;	// Handle of the existing brush in the DC of the found window.
+	RECT rect;					// Rectangle area of the found window.
+	long lRet = 0;
+	static HPEN	g_hRectanglePen = NULL;
+
+	// Get the screen coordinates of the rectangle of the found window.
+	GetWindowRect (hwndFoundWindow, &rect);
+
+	// Get the window DC of the found window.
+	hWindowDC = GetWindowDC (hwndFoundWindow);
+
+	if (g_hRectanglePen == NULL){
+		g_hRectanglePen = CreatePen(PS_SOLID, 5, RGB(255,0,0));
+	}
+
+	if (hWindowDC){
+		// Select our created pen into the DC and backup the previous pen.
+		hPrevPen = SelectObject (hWindowDC, g_hRectanglePen);
+
+		// Select a transparent brush into the DC and backup the previous brush.
+		hPrevBrush = SelectObject (hWindowDC, GetStockObject(HOLLOW_BRUSH));
+		//hPrevBrush = SelectObject (hWindowDC, GetStockObject(LTGRAY_BRUSH));
+
+		// Draw a rectangle in the DC covering the entire window area of the found window.
+		Rectangle (hWindowDC, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
+
+		// Reinsert the previous pen and brush into the found window's DC.
+		SelectObject (hWindowDC, hPrevPen);
+		SelectObject (hWindowDC, hPrevBrush);
+
+		// Finally release the DC.
+		ReleaseDC (hwndFoundWindow, hWindowDC);
+	}
+
+	return lRet;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -252,6 +305,7 @@ void CTabProgram::OnStnClickedXYPick()
 	BOOL Picked = FALSE;
 	BOOL bMoved = FALSE;
 	HWND TargethWnd;
+	HWND LastHighlightedhWnd = (HWND)-1;
 	RECT TargetRect = {0, 0, 0, 0};
 	POINT UpLeft = {0, 0};
 	char sMessage[81];
@@ -268,24 +322,32 @@ void CTabProgram::OnStnClickedXYPick()
 		//if(GetAsyncKeyState(VK_LBUTTON) & 0x8000){
 		if(Msg.message == WM_LBUTTONUP){
 			if(bMoved){
-				GetCursorPos(&pt);
-				TargethWnd=::WindowFromPoint(pt);
 				::GetClientRect(TargethWnd, &TargetRect);
 				::ClientToScreen(TargethWnd, &UpLeft);
 				OffsetRect(&TargetRect, UpLeft.x, UpLeft.y);
 				Picked = TRUE;
 			}
 			ReleaseCapture();
+			if(LastHighlightedhWnd != (HWND)-1) RefreshWindow(LastHighlightedhWnd);
 			break;
 		}
 		if(Msg.message == WM_LBUTTONDOWN) break;
-		if(Msg.message == WM_MOUSEMOVE) bMoved = TRUE;
+		if(Msg.message == WM_MOUSEMOVE) {
+			bMoved = TRUE;
+			pt = Msg.pt;
+			TargethWnd=::WindowFromPoint(pt);
+			if(LastHighlightedhWnd != TargethWnd){
+				HighlightFoundWindow (TargethWnd);
+				if(LastHighlightedhWnd != (HWND)-1) RefreshWindow(LastHighlightedhWnd);
+				LastHighlightedhWnd = TargethWnd;
+			}
+		}
 	}
 
 	if(!Picked) return;
 	sprintf(sMessage, "Pick rect=(%d,%d)-(%d,%d) ?", 
 		TargetRect.left, TargetRect.top, TargetRect.right, TargetRect.bottom);
-	if(MessageBox(sMessage, "DxWnd", MB_OKCANCEL)){
+	if(MessageBox(sMessage, "DxWnd", MB_OKCANCEL)!=IDCANCEL ){
 		this->SetDlgItemInt(IDC_POSX, TargetRect.left, TRUE);
 		this->SetDlgItemInt(IDC_POSY, TargetRect.top, TRUE);
 		this->SetDlgItemInt(IDC_SIZX, TargetRect.right - TargetRect.left, TRUE);

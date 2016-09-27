@@ -872,16 +872,24 @@ HDC WINAPI extGDICreateDCA(LPSTR lpszDriver, LPSTR lpszDevice, LPSTR lpszOutput,
 		lpszDriver?lpszDriver:"(NULL)", lpszDevice?lpszDevice:"(NULL)", lpszOutput?lpszOutput:"(NULL)", lpdvmInit);
 
 	if (!lpszDriver || !strncmp(lpszDriver,"DISPLAY",7)) {
-		if(dxw.GDIEmulationMode == GDIMODE_EMULATED){
-			RetHDC=dxw.AcquireEmulatedDC(dxw.GethWnd());
+		switch(dxw.GDIEmulationMode){
+			case GDIMODE_EMULATED:
+				OutTraceDW("GDI.CreateDCA: returning emulated DC\n");
+				RetHDC=dxw.AcquireEmulatedDC(dxw.GethWnd());
+				break;
+			case GDIMODE_SHAREDDC:
+				OutTraceDW("GDI.CreateDCA: returning shared DC\n");
+				WinHDC=(*pGDIGetDC)(dxw.GethWnd());
+				sdc.GetPrimaryDC(WinHDC);
+				RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
+				sdc.PutPrimaryDC(WinHDC, FALSE);
+			default:
+				OutTraceDW("GDI.CreateDCA: returning window surface DC\n");
+				WinHDC=(*pGDIGetDC)(dxw.GethWnd());
+				RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
+				(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
+				break;
 		}
-		else {
-			OutTraceDW("GDI.CreateDCA: returning window surface DC\n");
-			WinHDC=(*pGDIGetDC)(dxw.GethWnd());
-			RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
-			(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
-		}
-
 	}
 	else{
 		RetHDC=(*pGDICreateDCA)(lpszDriver, lpszDevice, lpszOutput, lpdvmInit);

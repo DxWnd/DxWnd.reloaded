@@ -13,7 +13,7 @@ void *IATPatch(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const ch
 	PIMAGE_IMPORT_BY_NAME piname;
 	DWORD oldprotect;
 	void *org;
-	OutTraceH("IATPatch: module=%x ordinal=%x dll=%s\n", module, ordinal, dll);
+	OutTraceH("IATPatch: module=%x ordinal=%x name=%s dll=%s\n", module, ordinal, apiname, dll);
 
 	base = (DWORD)module;
 	org = 0; // by default, ret = 0 => API not found
@@ -54,6 +54,7 @@ void *IATPatch(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const ch
 							if(!lstrcmpi(apiname, (char *)piname->Name)) break;
 						}
 						else{
+							// OutTraceH("IATPatch: BYORD target=%x ord=%x\n", ordinal, IMAGE_ORDINAL32(ptname->u1.Ordinal));
 							if(ordinal && (IMAGE_ORDINAL32(ptname->u1.Ordinal) == ordinal)) { // skip unknow ordinal 0
 							OutTraceH("IATPatch: BYORD ordinal=%x addr=%x\n", ptname->u1.Ordinal, ptaddr->u1.Function);
 							//OutTraceH("IATPatch: BYORD GetProcAddress=%x\n", GetProcAddress(GetModuleHandle(dll), MAKEINTRESOURCE(IMAGE_ORDINAL32(ptname->u1.Ordinal))));	

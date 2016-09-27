@@ -1625,10 +1625,10 @@ void WINAPI extRSSetViewports11(ID3D11DeviceContext *This, UINT NumViewports, D3
 	OutTraceD3D("RSSetViewports: NumViewports=%d\n", NumViewports);
 
 	if(dxw.Windowize && (NumViewports==1)){
-		pViewports->TopLeftX=dxw.iPosX;
-		pViewports->TopLeftY=dxw.iPosY;
-		pViewports->Width=dxw.iSizX;
-		pViewports->Height=dxw.iSizY;
+		pViewports->TopLeftX=(FLOAT)dxw.iPosX;
+		pViewports->TopLeftY=(FLOAT)dxw.iPosY;
+		pViewports->Width=(FLOAT)dxw.iSizX;
+		pViewports->Height=(FLOAT)dxw.iSizY;
 	}
 
 	(*pRSSetViewports11)(This, NumViewports, pViewports);

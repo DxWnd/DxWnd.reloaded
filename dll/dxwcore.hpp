@@ -86,6 +86,7 @@ public: // methods
 	void UnmapWindow(LPRECT);
 	void UnmapWindow(LPPOINT);
 	void FixWorkarea(LPRECT);
+	void UpdateDesktopCoordinates();
 	RECT GetScreenRect(void);
 	RECT GetUnmappedScreenRect();
 	RECT GetWindowRect(RECT);
@@ -95,6 +96,7 @@ public: // methods
 	RECT AddCoordinates(RECT, POINT);
 	POINT SubCoordinates(POINT, POINT);
 	POINT ClientOffset(HWND);
+	void AutoScale();
 	void ScreenRefresh(void);
 	BOOL HandleFPS(void);
 	BOOL ishWndFPS(HWND);
@@ -169,10 +171,10 @@ public: // simple data variables
 	DWORD SwapEffect;
 	char *gsModules;
 	int TimeShift;
-	short iPosX;
-	short iPosY;
-	short iSizX;
-	short iSizY;
+	long iPosX;
+	long iPosY;
+	long iSizX;
+	long iSizY;
 	int iRatioX;
 	int iRatioY;
 	char *CustomOpenGLLib;
@@ -189,6 +191,7 @@ public: // simple data variables
 	BOOL TimeFreeze;
 	RECT VirtualDesktop;
 	BOOL bHintActive;
+	BOOL bAutoScale;
 
 // Implementation
 protected:

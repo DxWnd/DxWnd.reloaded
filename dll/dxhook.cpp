@@ -130,7 +130,7 @@ static char *Flag6Names[32]={
 
 static char *Flag7Names[32]={
 	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "HOOKDIRECTSOUND",
-	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
+	"--------", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
 	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
 	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "INJECTSUSPENDED",
 	"SSUPPRESSDIERRORS", "HOOKNORUN", "FIXBINDTEXTURE", "ENUM16BITMODES",
@@ -634,6 +634,7 @@ void AdjustWindowPos(HWND hwnd, DWORD width, DWORD height)
 		OutTraceE("AdjustWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 
+	dxw.UpdateDesktopCoordinates();
 	if(dxw.dwFlags2 & SUPPRESSIME) SuppressIMEWindow();
 	if(dxw.dwFlags4 & HIDEDESKTOP) dxw.HideDesktop(hwnd);
 	dxw.ShowBanner(hwnd);
@@ -924,7 +925,6 @@ void SetModuleHooks()
 					case SYSLIBIDX_DINPUT:		ShowHint(HINT_DINPUT);	break;
 					case SYSLIBIDX_DINPUT8:		ShowHint(HINT_DINPUT8);	break;
 					case SYSLIBIDX_MSVFW:		
-					case SYSLIBIDX_SMACK:		
 					case SYSLIBIDX_WINMM:		
 					case SYSLIBIDX_AVIFIL32:	ShowHint(HINT_MOVIES);	break;
 					case SYSLIBIDX_DIRECT3D:
@@ -949,7 +949,6 @@ void HookModule(HMODULE base, int dxversion)
 	HookDirectDraw(base, dxversion);		// SYSLIBIDX_DIRECTDRAW, SYSLIBIDX_DIRECT3D8, SYSLIBIDX_DIRECT3D9, SYSLIBIDX_DIRECT3D10, SYSLIBIDX_DIRECT3D10_1, SYSLIBIDX_DIRECT3D11,
 	HookOpenGL(base, dxw.CustomOpenGLLib);	// SYSLIBIDX_OPENGL,
 	HookMSV4WLibs(base);					// SYSLIBIDX_MSVFW -- used by Aliens & Amazons demo: what for?
-	HookSmackW32(base);						// SYSLIBIDX_SMACK
 	HookDirectSound(base);					// SYSLIBIDX_DSOUND
 	HookWinMM(base, "winmm.dll");			// SYSLIBIDX_WINMM
 	if(dxw.dwFlags6 & HOOKGOGLIBS) HookWinMM(base, "win32.dll"); // SYSLIBIDX_WINMM
@@ -1522,11 +1521,11 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	// 4) configuration ask for a overlapped bordered window (dxw.dwFlags1 & FIXWINFRAME) then
 	// update window styles: just this window or, when FIXPARENTWIN is set, the father one as well. 
 
-	if (hwnd && dxw.Windowize && dxw.IsFullScreen() && (dxw.dwFlags1 & FIXWINFRAME)) {
-		dxw.FixWindowFrame(dxw.hChildWnd);
+	if (hwnd && dxw.Windowize && dxw.IsFullScreen()) {
+		if(dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(dxw.hChildWnd);
 		AdjustWindowPos(dxw.hChildWnd, target->sizx, target->sizy);
 		if(dxw.dwFlags1 & FIXPARENTWIN) {
-			dxw.FixWindowFrame(dxw.hParentWnd);
+			if(dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(dxw.hParentWnd);
 			AdjustWindowPos(dxw.hParentWnd, target->sizx, target->sizy);
 		}
 	}

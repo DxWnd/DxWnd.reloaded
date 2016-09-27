@@ -269,7 +269,7 @@ void dxwCore::HideDesktop(HWND hwnd)
 	}
 
 	if(!(*pGetWindowRect)(hwnd, &wRect)) {
-		OutTrace("GetWindowRect ERROR hwnd=%x err=%d\n", hWnd, GetLastError());
+		OutTrace("GetWindowRect ERROR hwnd=%x err=%d\n", hwnd, GetLastError());
 		return;
 	}
 
@@ -287,6 +287,10 @@ void dxwCore::HideDesktop(HWND hwnd)
 	HWND hParent = (*pGetDesktopWindow)();
 	if(!wHider) {
 		wHider=(*pCreateWindowExA)(0, "dxwnd:hider", "hider", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
+		if(!wHider) {
+			OutTrace("HideDesktop: CreateWindowEx ERROR hwnd=%x err=%d\n", hwnd, GetLastError());
+			return;
+		}
 		(*pSetWindowLongA)(wHider, GWL_STYLE, 0);
 	}
 

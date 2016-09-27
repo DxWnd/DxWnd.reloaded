@@ -156,7 +156,7 @@ DllRegisterServer_Type pDllRegisterServer;
 DllUnregisterServer_Type pDllUnregisterServer;
 
 // DirectDrawEx class objects
-HRESULT WINAPI extCreateDirectDrawEX(void *, GUID *, HWND, DWORD, DWORD, IUnknown *, IDirectDraw **);
+HRESULT WINAPI extCreateDirectDraw(void *, GUID *, HWND, DWORD, DWORD, IUnknown *, IDirectDraw **);
 HRESULT WINAPI extDirectDrawEnumerateEX(void *, LPDDENUMCALLBACK, LPVOID);
 
 typedef HRESULT (WINAPI *CreateDirectDrawEX_Type)(void *, GUID *, HWND, DWORD, DWORD, IUnknown *, IDirectDraw **);
@@ -201,7 +201,7 @@ void HookDirectDrawFactory(void *obj)
 	OutTrace("Hooking IID_DirectDrawFactory object\n");
 	//SetHook((void *)(**(DWORD **)obj      ), extQueryInterfaceD1, (void **)&pQueryInterfaceD1, "QueryInterface(D1)");
 	//SetHook((void *)(**(DWORD **)obj +   8), extReleaseD1, (void **)&pReleaseD1, "Release(D1)");
-	SetHook((void *)(**(DWORD **)obj +  12), extCreateDirectDrawEX, (void **)&pCreateDirectDrawEX, "CreateDirectDraw(ex)");
+	SetHook((void *)(**(DWORD **)obj +  12), extCreateDirectDraw, (void **)&pCreateDirectDrawEX, "CreateDirectDraw(ex)");
 	SetHook((void *)(**(DWORD **)obj +  16), extDirectDrawEnumerateEX, (void **)&pDirectDrawEnumerateEX, "DirectDrawEnumerate(ex)");
 }
 
@@ -245,7 +245,7 @@ HRESULT WINAPI extDllUnregisterServer(void)
 
 // COM bject wrappers
 
-HRESULT WINAPI extCreateDirectDrawEX(void *ddf, GUID *pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown *pUnkOuter, IDirectDraw **ppDirectDraw)
+HRESULT WINAPI extCreateDirectDraw(void *ddf, GUID *pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown *pUnkOuter, IDirectDraw **ppDirectDraw)
 {
 	HRESULT res;
 	if(IsTraceDW){
@@ -258,6 +258,14 @@ HRESULT WINAPI extCreateDirectDrawEX(void *ddf, GUID *pGUID, HWND hWnd, DWORD dw
 		OutTraceE("CreateDirectDraw(EX) ERROR: res=%x\n");
 	}
 	else {
+		// CreateDirectDraw can load an unreferences ddraw.dll module, so it's time now to hook it.
+		extern DirectDrawCreate_Type pDirectDrawCreate;
+		if(pDirectDrawCreate == NULL){
+			HINSTANCE hinst;
+			hinst=(*pLoadLibraryA)("ddraw.dll");
+			HookDirectDraw(hinst, 1);
+			FreeLibrary(hinst);
+		}
 		OutTraceDW("CreateDirectDraw(EX): guid=%s pDirectDraw=%x\n", sGUID(pGUID), *ppDirectDraw);
 	}
 

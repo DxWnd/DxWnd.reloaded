@@ -111,6 +111,9 @@ BOOL WINAPI extDrawMenuBar(HWND);
 typedef BOOL (WINAPI *EnumDisplayDevicesA_Type)(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
 EnumDisplayDevicesA_Type pEnumDisplayDevicesA = NULL;
 BOOL WINAPI extEnumDisplayDevicesA(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
+typedef BOOL (WINAPI *EnumDisplayDevicesW_Type)(LPCWSTR, DWORD, PDISPLAY_DEVICEW, DWORD);
+EnumDisplayDevicesW_Type pEnumDisplayDevicesW = NULL;
+BOOL WINAPI extEnumDisplayDevicesW(LPCWSTR, DWORD, PDISPLAY_DEVICEW, DWORD);
 typedef INT_PTR (WINAPI *DialogBoxIndirectParamA_Type)(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
 DialogBoxIndirectParamA_Type pDialogBoxIndirectParamA = NULL;
 INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
@@ -206,7 +209,9 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "ShowScrollBar", (FARPROC)ShowScrollBar, (FARPROC *)&pShowScrollBar, (FARPROC)extShowScrollBar},
 	{HOOK_HOT_CANDIDATE, 0, "DrawMenuBar", (FARPROC)DrawMenuBar, (FARPROC *)&pDrawMenuBar, (FARPROC)extDrawMenuBar},
 
-	//{HOOK_HOT_CANDIDATE, 0, "EnumDisplayDevicesA", (FARPROC)EnumDisplayDevicesA, (FARPROC *)&pEnumDisplayDevicesA, (FARPROC)extEnumDisplayDevicesA},
+	// EnumDisplayDevicesW used by "Battleground Europe" ...
+	{HOOK_HOT_CANDIDATE, 0, "EnumDisplayDevicesA", (FARPROC)EnumDisplayDevicesA, (FARPROC *)&pEnumDisplayDevicesA, (FARPROC)extEnumDisplayDevicesA},
+	{HOOK_HOT_CANDIDATE, 0, "EnumDisplayDevicesW", (FARPROC)EnumDisplayDevicesW, (FARPROC *)&pEnumDisplayDevicesW, (FARPROC)extEnumDisplayDevicesW},
 	
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -309,7 +314,8 @@ void HookUser32(HMODULE hModule)
 	if (dxw.dwFlags2 & GDISTRETCHED)	HookLibraryEx(hModule, ScaledHooks, libname);
 
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibraryEx(hModule, RemapHooks, libname);
-	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)) HookLibraryEx(hModule, WinHooks, libname);
+	//if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)) HookLibraryEx(hModule, WinHooks, libname);
+	HookLibraryEx(hModule, WinHooks, libname);
 	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibraryEx(hModule, MouseHooks, libname);
 	if (dxw.dwFlags3 & PEEKALLMESSAGES) HookLibraryEx(hModule, PeekAllHooks, libname);
 	if (dxw.dwFlags2 & TIMESTRETCH) HookLibraryEx(hModule, TimeHooks, libname);
@@ -466,6 +472,8 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, BOOL WideChar, void *lpDevMode,
 		else
 			return (*pChangeDisplaySettingsExA)(NULL, (LPDEVMODEA)lpDevMode, NULL, dwflags, NULL);
 	}
+
+	if(dxw.bAutoScale) dxw.AutoScale();
 }
 
 void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
@@ -928,6 +936,7 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 
 	res=(*pSetWindowPos)(hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 	if(!res)OutTraceE("SetWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	if(dxw.bAutoScale) dxw.AutoScale();
 	return res;
 }
 
@@ -946,6 +955,7 @@ HDWP WINAPI extDeferWindowPos(HDWP hWinPosInfo, HWND hwnd, HWND hWndInsertAfter,
 
 	res=(*pGDIDeferWindowPos)(hWinPosInfo, hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 	if(!res)OutTraceE("DeferWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	if(dxw.bAutoScale) dxw.AutoScale();
 	return res;
 }
 
@@ -1479,7 +1489,7 @@ static BOOL IsFullscreenWindow(
 static HWND hLastFullScrWin = 0;
 static DDPIXELFORMAT ddpLastPixelFormat;
 
-static HWND WINAPI extCreateWindowCommon(
+static HWND WINAPI CreateWindowCommon(
   LPCTSTR ApiName,
   BOOL WideChar,
   DWORD dwExStyle,
@@ -1557,6 +1567,9 @@ static HWND WINAPI extCreateWindowCommon(
 			isValidHandle = TRUE;
 		} while(FALSE);
 		if (isValidHandle){ // use parent's coordinates
+			// child windows of the current virtual desktop have relative coordinates
+			// but non child windows or child of the real desktop must be shifted....
+			//if (!(dwStyle & WS_CHILD) || (dxw.IsDesktop(hWndParent))){ 
 			if (!(dwStyle & WS_CHILD)){ 
 				x=upleft.x;
 				y=upleft.y;
@@ -1709,7 +1722,7 @@ HWND WINAPI extCreateWindowExW(
 		nHeight = MainWin.bottom;
 	}
 
-	return extCreateWindowCommon("CreateWindowExW", TRUE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+	return CreateWindowCommon("CreateWindowExW", TRUE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
 // GHO: pro Diablo
@@ -1752,7 +1765,7 @@ HWND WINAPI extCreateWindowExA(
 		nHeight = MainWin.bottom;
 	}
 
-	return extCreateWindowCommon("CreateWindowExA", FALSE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+	return CreateWindowCommon("CreateWindowExA", FALSE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
 extern void ExplainMsg(char *, HWND, UINT, WPARAM, LPARAM);
@@ -2483,6 +2496,7 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 
 	ret=(*pMoveWindow)(hwnd, X, Y, nWidth, nHeight, bRepaint);
 	if(!ret) OutTraceE("MoveWindow: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	if(dxw.bAutoScale) dxw.AutoScale();
 	return ret;
 } 
 
@@ -3747,17 +3761,43 @@ BOOL WINAPI extTranslateMessage(MSG *pMsg)
 BOOL WINAPI extEnumDisplayDevicesA(LPCSTR lpDevice, DWORD iDevNum, PDISPLAY_DEVICE lpDisplayDevice, DWORD dwFlags)
 {
 	BOOL ret;
-	MessageBox(0, "EnumDisplayDevicesA", "dxwnd", 0);
-	OutTrace("EnumDisplayDevices: device=%s devnum=%i flags=%x\n", lpDevice, iDevNum, dwFlags);
+	OutTraceDW("EnumDisplayDevicesA: device=%s devnum=%i flags=%x\n", lpDevice, iDevNum, dwFlags);
+
+	if((dxw.dwFlags2 & HIDEMULTIMONITOR) && (iDevNum > 0)) {
+		OutTraceDW("EnumDisplayDevicesA: HIDEMULTIMONITOR devnum=%i\n", iDevNum);
+		return 0;
+	}
 
 	ret = (*pEnumDisplayDevicesA)(lpDevice, iDevNum, lpDisplayDevice, dwFlags);
 
 	if(ret){
-		OutTrace("EnumDisplayDevices: cb=%x devname=%s devstring=%s stateflags=%x\n", 
+		OutTrace("EnumDisplayDevicesA: cb=%x devname=%s devstring=%s stateflags=%x\n", 
 			lpDisplayDevice->cb, lpDisplayDevice->DeviceName, lpDisplayDevice->DeviceString, lpDisplayDevice->StateFlags);
 	}
 	else{
-		OutTraceE("EnumDisplayDevices ERROR: err=%d\n", GetLastError());
+		OutTraceE("EnumDisplayDevicesA ERROR: err=%d\n", GetLastError());
+	}
+	return ret;
+}
+
+BOOL WINAPI extEnumDisplayDevicesW(LPCWSTR lpDevice, DWORD iDevNum, PDISPLAY_DEVICEW lpDisplayDevice, DWORD dwFlags)
+{
+	BOOL ret;
+	OutTraceDW("EnumDisplayDevicesW: device=%ls devnum=%i flags=%x\n", lpDevice, iDevNum, dwFlags);
+
+	if((dxw.dwFlags2 & HIDEMULTIMONITOR) && (iDevNum > 0)) {
+		OutTraceDW("EnumDisplayDevicesW: HIDEMULTIMONITOR devnum=%i\n", iDevNum);
+		return 0;
+	}
+
+	ret = (*pEnumDisplayDevicesW)(lpDevice, iDevNum, lpDisplayDevice, dwFlags);
+
+	if(ret){
+		OutTraceDW("EnumDisplayDevicesW: cb=%x devname=%ls devstring=%ls stateflags=%x\n", 
+			lpDisplayDevice->cb, lpDisplayDevice->DeviceName, lpDisplayDevice->DeviceString, lpDisplayDevice->StateFlags);
+	}
+	else{
+		OutTraceE("EnumDisplayDevicesW ERROR: err=%d\n", GetLastError());
 	}
 	return ret;
 }

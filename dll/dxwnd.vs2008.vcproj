@@ -502,10 +502,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\smack.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\supmodes.cpp"
 				>
 			</File>

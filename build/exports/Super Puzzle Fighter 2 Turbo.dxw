@@ -1,0 +1,33 @@
+[target]
+title0=Super Puzzle Fighter 2 Turbo
+path0=D:\Games\Super Puzzle Fighter 2 Turbo (1997)\W_Spf2x.exe
+startfolder0=
+launchpath0=
+module0=
+opengllib0=
+notes0=
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE\Capcom]\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Capcom\w_spf2x]\n"SAVEDIR"=".\\"\n"SC_MODE"="SCREEN_MODE_640*480_8BIT_DIRECTX"\n"CD_ROM"=".\\"\n"SETUPCEHCK"="SETUP_ALL_OK"\n"NET_USER"=""\n\n
+ver0=0
+monitorid0=-1
+coord0=0
+flag0=136314914
+flagg0=1207959552
+flagh0=1044
+flagi0=1212153860
+flagj0=5248
+flagk0=67584
+flagl0=32768
+flagm0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2

@@ -75,27 +75,37 @@ a.rvts13, span.rvts13 /* Font Style */
  color: #6666ff;
  text-decoration: underline;
 }
-a.rvts14, span.rvts14
+span.rvts14
+{
+ font-size: 14pt;
+ font-style: italic;
+ font-weight: bold;
+}
+span.rvts15
+{
+ font-weight: bold;
+}
+a.rvts16, span.rvts16
 {
  color: #0000ff;
  text-decoration: underline;
 }
-span.rvts15
+span.rvts17
 {
  font-family: 'Courier New', 'Courier', monospace;
 }
-span.rvts16
+span.rvts18
 {
  font-weight: bold;
 }
-span.rvts17
-{
-}
-span.rvts18
+span.rvts19
 {
  font-style: italic;
 }
-span.rvts19
+span.rvts20
+{
+}
+span.rvts21
 {
  font-family: 'Courier New', 'Courier', monospace;
  font-style: italic;
@@ -139,6 +149,14 @@ p,ul,ol /* Paragraph Style */
  margin: 7px 0px 7px 0px;
 }
 .rvps6
+{
+ text-align: left;
+ text-indent: 0px;
+ page-break-after: avoid;
+ padding: 0px 0px 0px 0px;
+ margin: 16px 0px 4px 0px;
+}
+.rvps7
 {
  margin: 0px 0px 0px 24px;
 }

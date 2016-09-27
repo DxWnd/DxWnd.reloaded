@@ -6,6 +6,37 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 
+#if 0
+BOOL dxwCore::IsValidMainWindow()
+{
+	RECT Client;
+	POINT UpLeft = {0, 0};
+
+	if(!(*pGetClientRect)(hWnd, &Client)) return FALSE;
+	if((Client.right == 0) || (Client.bottom == 0)) return FALSE;
+	if(!(*pClientToScreen)(hWnd, &UpLeft)) return FALSE;
+	return TRUE;
+}
+#endif
+
+void dxwCore::UpdateDesktopCoordinates()
+{
+	RECT Client;
+	POINT UpLeft = {0, 0};
+
+	OutTraceB("dxwCore::UpdateDesktopCoordinates: OLD pos=(%d,%d) size=(%dx%d)\n", iPosX, iPosY, iSizX, iSizY);
+	if(!(*pGetClientRect)(hWnd, &Client)) return;
+	if((Client.right == 0) || (Client.bottom == 0)) return;
+	if(!(*pClientToScreen)(hWnd, &UpLeft)) return;
+	// update coordinates ....
+	iPosX = UpLeft.x;
+	iPosY = UpLeft.y;
+	iSizX = Client.right - Client.left;
+	iSizY = Client.bottom - Client.top;
+	OutTraceB("dxwCore::UpdateDesktopCoordinates: NEW pos=(%d,%d) size=(%dx%d)\n", iPosX, iPosY, iSizX, iSizY);
+}
+
+
 // GetScreenRect: returns a RECT sized as the virtual desktop
 
 RECT dxwCore::GetScreenRect()
@@ -24,18 +55,15 @@ RECT dxwCore::GetScreenRect()
 RECT dxwCore::GetUnmappedScreenRect()
 {
 	RECT Screen;
-	POINT upleft = {0, 0};
-	memset(&Screen, 0, sizeof(RECT));
-	(*pGetClientRect)(hWnd, &Screen);
-	(*pClientToScreen)(hWnd, &upleft);
-	Screen.top += upleft.x;
-	Screen.bottom += upleft.x;
-	Screen.left += upleft.y;
-	Screen.right += upleft.y;
+	Screen.top = iPosY;
+	Screen.bottom = iPosY + iSizX;
+	Screen.left = iPosX;
+	Screen.right = iPosX + iSizX;
 	return Screen;
 }
 
 // GetFrameOffset: return the POINT coordinates of the upper-left corner of the main window frame
+// taking in account of the window frame and title bar, then it needs to query hWnd
 
 POINT dxwCore::GetFrameOffset()
 {
@@ -53,21 +81,12 @@ POINT dxwCore::GetFrameOffset()
 
 POINT dxwCore::ClientOffset(HWND hwnd)
 {
-	RECT desktop;
-	POINT upleft, win0, desk0, ret;
-	ret.x = ret.y = 0;
-
-	(*pGetClientRect)(hWnd,&desktop);
-	if(!desktop.right || !desktop.bottom) return ret;
+	POINT upleft, ret;
 
 	upleft.x = upleft.y = 0;
 	(*pClientToScreen)(hwnd, &upleft);
-	win0 = upleft;
-	upleft.x = upleft.y = 0;
-	(*pClientToScreen)(hWnd, &upleft);
-	desk0 = upleft;
-	if (desktop.right) ret.x = (((win0.x - desk0.x) * dwScreenWidth) + (desktop.right >> 1)) / desktop.right;
-	if (desktop.bottom) ret.y = (((win0.y - desk0.y) * dwScreenHeight) + (desktop.bottom >> 1)) / desktop.bottom;
+	ret.x = (((upleft.x - iPosX) * dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	ret.y = (((upleft.y - iPosY) * dwScreenHeight) + (iSizY >> 1)) / iSizY;
 	if(ret.x < 0) ret.x = 0;
 	if(ret.y < 0) ret.y = 0;
 	OutTraceB("ClientOffset: hwnd=%x offset=(%d,%d)\n", hwnd, ret.x, ret.y);
@@ -78,19 +97,10 @@ POINT dxwCore::ClientOffset(HWND hwnd)
 
 RECT dxwCore::GetWindowRect(RECT win)
 {
-	RECT desktop;
-	POINT desk0;
-	desk0.x = desk0.y = 0;
-
-	(*pGetClientRect)(hWnd, &desktop);
-	(*pClientToScreen)(hWnd,&desk0);
-
-	if(!desktop.right || !desktop.bottom) return win;
-
-	win.left = (((win.left - desk0.x) * (LONG)dwScreenWidth) + (desktop.right >> 1)) / desktop.right;
-	win.top = (((win.top - desk0.y) * (LONG)dwScreenHeight) + (desktop.bottom >> 1)) / desktop.bottom;
-	win.right = (((win.right - desk0.x) * (LONG)dwScreenWidth) + (desktop.right >> 1)) / desktop.right;
-	win.bottom = (((win.bottom - desk0.y) * (LONG)dwScreenHeight) + (desktop.bottom >> 1)) / desktop.bottom;
+	win.left = (((win.left - iPosX) * (LONG)dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	win.top = (((win.top - iPosY) * (LONG)dwScreenHeight) + (iSizY >> 1)) / iSizY;
+	win.right = (((win.right - iPosX) * (LONG)dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	win.bottom = (((win.bottom - iPosY) * (LONG)dwScreenHeight) + (iSizY >> 1)) / iSizY;
 
 	return win;
 }
@@ -99,15 +109,10 @@ RECT dxwCore::GetWindowRect(RECT win)
 
 RECT dxwCore::GetClientRect(RECT win)
 {
-	RECT desktop;
-	(*pGetClientRect)(hWnd, &desktop);
-
-	if(!desktop.right || !desktop.bottom) return win;
-
-	win.left = ((win.left * dwScreenWidth) + (desktop.right >> 1)) / desktop.right;
-	win.top = ((win.top * dwScreenHeight) + (desktop.bottom >> 1)) / desktop.bottom;
-	win.right = ((win.right * dwScreenWidth) + (desktop.right >> 1)) / desktop.right;
-	win.bottom = ((win.bottom * dwScreenHeight) + (desktop.bottom >> 1)) / desktop.bottom;
+	win.left = ((win.left * dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	win.top = ((win.top * dwScreenHeight) + (iSizY >> 1)) / iSizY;
+	win.right = ((win.right * dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	win.bottom = ((win.bottom * dwScreenHeight) + (iSizY >> 1)) / iSizY;
 
 	return win;
 }
@@ -144,16 +149,7 @@ POINT dxwCore::SubCoordinates(POINT p1, POINT p2)
 
 RECT dxwCore::MapWindowRect(LPRECT lpRect)
 {
-	POINT UpLeft={0,0};
 	RECT RetRect;
-	RECT ClientRect;
-
-	if (!(*pGetClientRect)(hWnd, &ClientRect)){
-		OutTraceE("GetClientRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
-		// v2.02.71: return a void area to prevent blitting to wrong area
-		ClientRect.top=ClientRect.left=ClientRect.right=ClientRect.bottom=0;
-		return ClientRect;
-	}
 
 	if(!Windowize){
 		if(lpRect) 
@@ -166,264 +162,135 @@ RECT dxwCore::MapWindowRect(LPRECT lpRect)
 		return RetRect;
 	}
 	
-	RetRect=ClientRect;
-
 	if(lpRect){ 
-		LONG Width, Height;
-		Width = ClientRect.right;
-		Height = ClientRect.bottom;
-		RetRect.left = (lpRect->left * Width / dwScreenWidth);
-		RetRect.right = (lpRect->right * Width / dwScreenWidth);
-		RetRect.top = (lpRect->top * Height / dwScreenHeight);
-		RetRect.bottom = (lpRect->bottom * Height / dwScreenHeight);
+		RetRect.left = iPosX + (lpRect->left * iSizX / dwScreenWidth);
+		RetRect.right = iPosX + (lpRect->right * iSizX / dwScreenWidth);
+		RetRect.top = iPosY + (lpRect->top * iSizY / dwScreenHeight);
+		RetRect.bottom = iPosY + (lpRect->bottom * iSizY / dwScreenHeight);
 	}
 	else{
-		RetRect.left = ClientRect.left;
-		RetRect.right = ClientRect.right;
-		RetRect.top = ClientRect.top;
-		RetRect.bottom = ClientRect.bottom;
-	}
-
-	if(!(*pClientToScreen)(hWnd, &UpLeft)){
-		OutTraceE("ClientToScreen ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
-	}
-	if(!OffsetRect(&RetRect ,UpLeft.x, UpLeft.y)){
-		OutTraceE("OffsetRect ERROR: err=%d hwnd=%x at %d\n", GetLastError(), hWnd, __LINE__);
+		RetRect.left = iPosX;
+		RetRect.right = iPosX + iSizX;
+		RetRect.top = iPosY;
+		RetRect.bottom = iPosY + iSizY;
 	}
 	return RetRect;
 }
 
 void dxwCore::MapWindow(LPRECT rect)
 {
-	RECT client;
-	POINT upleft = {0,0};
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	(*pClientToScreen)(hWnd, &upleft);
-	rect->left= upleft.x + (((rect->left * client.right) + (dwScreenWidth >> 1)) / (int)dwScreenWidth);
-	rect->top= upleft.y + (((rect->top * client.bottom) + (dwScreenHeight >> 1)) / (int)dwScreenHeight);
-	rect->right= upleft.x + (((rect->right * client.right) + (dwScreenWidth >> 1)) / (int)dwScreenWidth);
-	rect->bottom= upleft.y + (((rect->bottom * client.bottom) + (dwScreenHeight >> 1)) / (int)dwScreenHeight);
+	rect->left= iPosX + (((rect->left * iSizX) + (dwScreenWidth >> 1)) / (int)dwScreenWidth);
+	rect->top= iPosY + (((rect->top * iSizY) + (dwScreenHeight >> 1)) / (int)dwScreenHeight);
+	rect->right= iPosX + (((rect->right * iSizX) + (dwScreenWidth >> 1)) / (int)dwScreenWidth);
+	rect->bottom= iPosY + (((rect->bottom * iSizY) + (dwScreenHeight >> 1)) / (int)dwScreenHeight);
 }
 
 void dxwCore::MapWindow(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 {
-	RECT client;
-	POINT upleft = {0,0};
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	if(!(*pClientToScreen)(hWnd, &upleft)) {
-		OutTraceE("dxwCore::MapClient ERROR: ClientToScreen hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	*nXDest= upleft.x + (((*nXDest * client.right) + (dwScreenWidth >> 1)) / (int)dwScreenWidth);
-	*nYDest= upleft.y + (((*nYDest * client.bottom) + (dwScreenHeight >> 1)) / (int)dwScreenHeight);
-	*nWDest= ((*nWDest * client.right) + (dwScreenWidth >> 1)) / (int)dwScreenWidth;
-	*nHDest= ((*nHDest * client.bottom) + (dwScreenHeight >> 1)) / (int)dwScreenHeight;
+	*nXDest= iPosX + (((*nXDest * iSizX) + (dwScreenWidth >> 1)) / (int)dwScreenWidth);
+	*nYDest= iPosY + (((*nYDest * iSizY) + (dwScreenHeight >> 1)) / (int)dwScreenHeight);
+	*nWDest= ((*nWDest * iSizX) + (dwScreenWidth >> 1)) / (int)dwScreenWidth;
+	*nHDest= ((*nHDest * iSizY) + (dwScreenHeight >> 1)) / (int)dwScreenHeight;
 }
 
 void dxwCore::MapWindow(LPPOINT lppoint) 
 {
-	RECT client;
-	POINT upleft = {0,0};
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	(*pClientToScreen)(hWnd, &upleft);
-	lppoint->x = upleft.x + (((lppoint->x * client.right) + (dwScreenWidth >> 1)) / dwScreenWidth);
-	lppoint->y = upleft.y + (((lppoint->y * client.bottom) + (dwScreenHeight >> 1)) / dwScreenHeight);
+	lppoint->x = iPosX + (((lppoint->x * iSizX) + (dwScreenWidth >> 1)) / dwScreenWidth);
+	lppoint->y = iPosY + (((lppoint->y * iSizY) + (dwScreenHeight >> 1)) / dwScreenHeight);
 }
 
 // MapClient, MapClientRect: transforms the client virtual coordinates of the virtual desktop into real ones
 
 RECT dxwCore::MapClientRect(LPRECT lpRect)
 {
-	// same as MapClient, but taking in proper account aspect ratio & virtual desktop position
 	RECT RetRect;
-	RECT ClientRect;
-	RECT NullRect={0, 0, 0, 0};
-
-	if (!(*pGetClientRect)(hWnd, &ClientRect)) return NullRect;
-	
-	RetRect=ClientRect;
-
 	if(lpRect){ 
-		LONG Width, Height;
-		Width = ClientRect.right;
-		Height = ClientRect.bottom;
-		RetRect.left = (lpRect->left * Width / dwScreenWidth);
-		RetRect.right = (lpRect->right * Width / dwScreenWidth);
-		RetRect.top = (lpRect->top * Height / dwScreenHeight);
-		RetRect.bottom = (lpRect->bottom * Height / dwScreenHeight);
+		RetRect.left = (lpRect->left * iSizX / dwScreenWidth);
+		RetRect.right = (lpRect->right * iSizX / dwScreenWidth);
+		RetRect.top = (lpRect->top * iSizY / dwScreenHeight);
+		RetRect.bottom = (lpRect->bottom * iSizY / dwScreenHeight);
 	}
 	else{
-		RetRect.left = ClientRect.left;
-		RetRect.right = ClientRect.right;
-		RetRect.top = ClientRect.top;
-		RetRect.bottom = ClientRect.bottom;
+		RetRect.left = 0;
+		RetRect.right = iSizX;
+		RetRect.top = 0;
+		RetRect.bottom = iSizY;
 	}
-
 	return RetRect;
 }
 
 void dxwCore::MapClient(LPRECT rect)
 {
-	RECT client;
-	int w, h;
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	w = client.right ? client.right : iSizX;
-	h = client.bottom ? client.bottom : iSizY;
-	rect->left= ((rect->left * w)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
-	rect->top= ((rect->top * h)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
-	rect->right= ((rect->right * w)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
-	rect->bottom= ((rect->bottom * h)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
+	rect->left= ((rect->left * iSizX)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
+	rect->top= ((rect->top * iSizY)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
+	rect->right= ((rect->right * iSizX)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
+	rect->bottom= ((rect->bottom * iSizY)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
 }
 
 void dxwCore::MapClient(int *nXDest, int *nYDest, int *nWDest, int *nHDest)
 {
-	RECT client;
-	int w, h;
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	w = client.right ? client.right : iSizX;
-	h = client.bottom ? client.bottom : iSizY;
-	*nXDest= ((*nXDest * w)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
-	*nYDest= ((*nYDest * h)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
-	*nWDest= ((*nWDest * w)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
-	*nHDest= ((*nHDest * h)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
+	*nXDest= ((*nXDest * iSizX)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
+	*nYDest= ((*nYDest * iSizY)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
+	*nWDest= ((*nWDest * iSizX)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
+	*nHDest= ((*nHDest * iSizY)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
 }
 
 void dxwCore::MapClient(LPPOINT lppoint)
 {
-	RECT client;
-	int w, h;
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	w = client.right ? client.right : iSizX;
-	h = client.bottom ? client.bottom : iSizY;
-	lppoint->x= ((lppoint->x * w)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
-	lppoint->y= ((lppoint->y * h)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
+	lppoint->x= ((lppoint->x * iSizX)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
+	lppoint->y= ((lppoint->y * iSizY)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
 }
 
 void dxwCore::MapClient(int *nXDest, int *nYDest)
 {
-	RECT client;
-	int w, h;
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	w = client.right ? client.right : iSizX;
-	h = client.bottom ? client.bottom : iSizY;
-	*nXDest= ((*nXDest * w)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
-	*nYDest= ((*nYDest * h)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
+	*nXDest= ((*nXDest * iSizX)+(dwScreenWidth >> 1)) / (int)dwScreenWidth;
+	*nYDest= ((*nYDest * iSizY)+(dwScreenHeight >> 1)) / (int)dwScreenHeight;
 }
 
 // UnmapWindow: transforms the window real coordinates of the real desktop into virtual ones
 
 void dxwCore::UnmapWindow(LPRECT rect)
 {
-	RECT client;
-	POINT upleft = {0,0};
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	(*pClientToScreen)(hWnd, &upleft);
-	if((client.right == 0) || (client.bottom == 0)) return;
-	rect->left= ((rect->left  - upleft.x) * (int)dwScreenWidth) / client.right;
-	rect->top= ((rect->top  - upleft.y) * (int)dwScreenHeight) / client.bottom;
-	rect->right= ((rect->right  - upleft.x) * (int)dwScreenWidth) / client.right;
-	rect->bottom= ((rect->bottom  - upleft.y) * (int)dwScreenHeight) / client.bottom;
+	rect->left= ((rect->left  - iPosX) * (int)dwScreenWidth) / iSizX;
+	rect->top= ((rect->top  - iPosY) * (int)dwScreenHeight) / iSizY;
+	rect->right= ((rect->right  - iPosX) * (int)dwScreenWidth) / iSizX;
+	rect->bottom= ((rect->bottom  - iPosY) * (int)dwScreenHeight) / iSizY;
 }
 
 void dxwCore::UnmapWindow(LPPOINT point)
 {
-	RECT client;
-	POINT upleft = {0,0};
-	if(!(*pGetClientRect)(hWnd, &client)) return;
-	(*pClientToScreen)(hWnd, &upleft);
-	if((client.right == 0) || (client.bottom == 0)) return;
-	point->x= ((point->x  - upleft.x) * (int)dwScreenWidth) / client.right;
-	point->y= ((point->y  - upleft.y) * (int)dwScreenHeight) / client.bottom;
+	point->x= ((point->x  - iPosX) * (int)dwScreenWidth) / iSizX;
+	point->y= ((point->y  - iPosY) * (int)dwScreenHeight) / iSizY;
 }
 
 // UnmapClient: transforms the client real coordinates of the real desktop into virtual ones
 
 void dxwCore::UnmapClient(LPPOINT lppoint)
 {
-	RECT client;
-	int w, h;
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	w = client.right ? client.right : iSizX;
-	h = client.bottom ? client.bottom : iSizY;
-	if(w) lppoint->x = ((lppoint->x * (int)dwScreenWidth) + (w >> 1)) / w;
-	if(h) lppoint->y = ((lppoint->y * (int)dwScreenHeight) + (h >> 1)) / h;
+	lppoint->x = ((lppoint->x * (int)dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	lppoint->y = ((lppoint->y * (int)dwScreenHeight) + (iSizY >> 1)) / iSizY;
 }
 
 void dxwCore::UnmapClient(int *nXDest, int *nYDest)
 {
-	RECT client;
-	int w, h;
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	w = client.right ? client.right : iSizX;
-	h = client.bottom ? client.bottom : iSizY;
-	if(w) *nXDest = ((*nXDest * (int)dwScreenWidth) + (w >> 1)) / w;
-	if(h) *nYDest = ((*nYDest * (int)dwScreenHeight) + (h >> 1)) / h;
+	*nXDest = ((*nXDest * (int)dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	*nYDest = ((*nYDest * (int)dwScreenHeight) + (iSizY >> 1)) / iSizY;
 }
 
 void dxwCore::UnmapClient(int *nXDest, int *nYDest, int *nWidth, int *nHeight)
 {
-	RECT client;
-	int w, h;
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	w = client.right ? client.right : iSizX;
-	h = client.bottom ? client.bottom : iSizY;
-	if(w) *nXDest = ((*nXDest * (int)dwScreenWidth) + (w >> 1)) / w;
-	if(h) *nYDest = ((*nYDest * (int)dwScreenHeight) + (h >> 1)) / h;
-	if(w) *nWidth = ((*nWidth * (int)dwScreenWidth) + (w >> 1)) / w;
-	if(h) *nHeight = ((*nHeight * (int)dwScreenHeight) + (h >> 1)) / h;
+	*nXDest = ((*nXDest * (int)dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	*nYDest = ((*nYDest * (int)dwScreenHeight) + (iSizY >> 1)) / iSizY;
+	*nWidth = ((*nWidth * (int)dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	*nHeight = ((*nHeight * (int)dwScreenHeight) + (iSizY >> 1)) / iSizY;
 }
 
 void dxwCore::UnmapClient(LPRECT lpRect)
 {
-	RECT client;
-	int w, h;
-	if(!(*pGetClientRect)(hWnd, &client)) {
-		OutTraceE("dxwCore::MapClient ERROR: GetClientRect hwnd=%x err=%d\n", hWnd, GetLastError());
-		return;
-	}
-	w = client.right ? client.right : iSizX;
-	h = client.bottom ? client.bottom : iSizY;
-	if(w) {
-		lpRect->left = ((lpRect->left * (int)dwScreenWidth) + (w >> 1)) / w;
-		lpRect->right = ((lpRect->right * (int)dwScreenWidth) + (w >> 1)) / w;
-	}
-	if(h) {
-		lpRect->top = ((lpRect->top * (int)dwScreenHeight) + (h >> 1)) / h;
-		lpRect->bottom = ((lpRect->bottom * (int)dwScreenHeight) + (h >> 1)) / h;
-	}
+	lpRect->left = ((lpRect->left * (int)dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	lpRect->right = ((lpRect->right * (int)dwScreenWidth) + (iSizX >> 1)) / iSizX;
+	lpRect->top = ((lpRect->top * (int)dwScreenHeight) + (iSizY >> 1)) / iSizY;
+	lpRect->bottom = ((lpRect->bottom * (int)dwScreenHeight) + (iSizY >> 1)) / iSizY;
 }
 
 // GetMonitorWorkarea: retrieves the desktop coordinates of the whole desktop (id == -1) or of a given monitor (id >= 0)
@@ -484,6 +351,7 @@ void dxwCore::GetMonitorWorkarea(LPRECT lpRect, BOOL WorkArea)
 
 // v.2.1.80: unified positioning logic into CalculateWindowPos routine
 // now taking in account for window menus (see "Alien Cabal")
+// sets the correct values in wp LPWINDOWPOS structure, but doesn't do any window update
 
 void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWPOS wp)
 {
@@ -494,8 +362,16 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 
 	switch(dxw.Coordinates){
 	case DXW_DESKTOP_CENTER:
-		MaxX = dxw.iSizX;
-		MaxY = dxw.iSizY;
+		if(bAutoScale){
+			MaxX = GetScreenWidth();
+			MaxY = GetScreenHeight();
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxX <<= 1; // double
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
+		}
+		else{
+			MaxX = iSizX;
+			MaxY = iSizY;
+		}
 		if (!MaxX) {
 			MaxX = width;
 			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxX <<= 1; // double
@@ -525,14 +401,28 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 		break;
 	case DXW_SET_COORDINATES:
 	default:
-		rect.left = dxw.iPosX;
-		rect.top = dxw.iPosY; //v2.02.09
-		MaxX = dxw.iSizX;
-		MaxY = dxw.iSizY;
-		if (!MaxX) MaxX = width;
-		if (!MaxY) MaxY = height;
-		rect.right = dxw.iPosX + MaxX;
-		rect.bottom = dxw.iPosY + MaxY; //v2.02.09
+		if(bAutoScale){
+			MaxX = GetScreenWidth();
+			MaxY = GetScreenHeight();
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxX <<= 1; // double
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
+		}
+		else{
+			MaxX = iSizX;
+			MaxY = iSizY;
+		}
+		if (!MaxX) {
+			MaxX = width;
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxX <<= 1; // double
+		}
+		if (!MaxY) {
+			MaxY = height;
+			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
+		}
+		rect.left = iPosX;
+		rect.top = iPosY; //v2.02.09
+		rect.right = iPosX + MaxX;
+		rect.bottom = iPosY + MaxY; //v2.02.09
 		break;
 	}
 
@@ -583,4 +473,17 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 	wp->y=rect.top;
 	wp->cx=rect.right-rect.left;
 	wp->cy=rect.bottom-rect.top;
+}
+
+void dxwCore::AutoScale()
+{
+	WINDOWPOS wp;
+	CalculateWindowPos(hWnd, dwScreenWidth, dwScreenHeight, &wp);
+	OutTrace("AutoScale: new pos=(%d,%d) size=(%dx%d)\n", wp.x, wp.y, wp.cx, wp.cy);
+	if(!(*pSetWindowPos)(hWnd, 0, wp.x, wp.y, wp.cx, wp.cy, 0)){
+		OutTraceE("AutoScale: SetWindowPos ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	}
+	// need to ShowWindow(SW_SHOW) to make new coordinates active
+	(*pShowWindow)(hWnd, SW_SHOW);
+	UpdateDesktopCoordinates();
 }
