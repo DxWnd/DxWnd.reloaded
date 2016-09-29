@@ -1558,3 +1558,16 @@ void dxwCore::ToggleFreezedTime()
 	dwLastTime = (*pGetTickCount)();
 	OutTraceDW("DxWnd: time is %s\n", dxw.TimeFreeze ? "freezed" : "unfreezed");
 }
+
+void dxwCore::MessagePump()
+{
+	MSG msg;
+	while(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)){
+		OutTraceW("MESSAGEPUMP: msg=%x l-wParam=(%x,%x)\n", msg.message, msg.lParam, msg.wParam);
+		if((msg.message >= WM_KEYFIRST) && (msg.message <= WM_KEYLAST)) break; // do not consume keyboard inputs
+		if((msg.message >= WM_MOUSEFIRST) && (msg.message <= WM_MOUSELAST)) break; // do not consume mouse inputs
+		PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+}

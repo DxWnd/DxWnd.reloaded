@@ -563,6 +563,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\logall.h"
+				>
+			</File>
+			<File
 				RelativePath=".\msvfwhook.h"
 				>
 			</File>

@@ -68,6 +68,7 @@ public: // methods
 	void FixNCHITCursorPos(LPPOINT);
 	void SetClipCursor(void);
 	void EraseClipCursor(void);
+	BOOL IsValidMainWindow();
 	RECT MapWindowRect(LPRECT);
 	RECT MapWindowRect(void);
 	RECT MapClientRect(LPRECT);
@@ -105,7 +106,7 @@ public: // methods
 	void GetSystemTimeAsFileTime(LPFILETIME);
 	DWORD StretchTime(DWORD);
 	DWORD StretchCounter(DWORD);
-	LARGE_INTEGER dxwCore::StretchCounter(LARGE_INTEGER);
+	LARGE_INTEGER StretchCounter(LARGE_INTEGER);
 	void ShowOverlay();
 	void ShowOverlay(HDC);
 	void ShowOverlay(HDC, int, int);
@@ -144,6 +145,7 @@ public: // methods
 	void ToggleFreezedTime();
 	void GetMonitorWorkarea(LPRECT, BOOL);
 	void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
+	void MessagePump(void);
 
 public: // simple data variables
 	int MonitorId;

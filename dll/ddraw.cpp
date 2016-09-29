@@ -748,7 +748,7 @@ static void ddSetCompatibility()
 	HRESULT res;
 	HINSTANCE hinst;
 
-	hinst=LoadLibrary("ddraw.dll");
+	hinst=(*pLoadLibraryA)("ddraw.dll");
 	pSetAppCompatData=(SetAppCompatData_Type)(*pGetProcAddress)(hinst, "SetAppCompatData");
 	if(pSetAppCompatData) {
 		if (dxw.dwFlags2 & SETCOMPATIBILITY){
@@ -776,7 +776,7 @@ static void BypassGOGDDrawRedirector()
 
 	GetSystemDirectory(sSysLibraryPath, MAX_PATH);
 	strcat(sSysLibraryPath, "\\ddraw.dll");
-	hinst = LoadLibrary(sSysLibraryPath);
+	hinst = (*pLoadLibraryA)(sSysLibraryPath);
 	pDirectDrawEnumerateA = (DirectDrawEnumerateA_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
 	pDirectDrawEnumerateExA = (DirectDrawEnumerateExA_Type)GetProcAddress(hinst, "DirectDrawEnumerateExA");
 	pDirectDrawEnumerateW = (DirectDrawEnumerateW_Type)GetProcAddress(hinst, "DirectDrawEnumerateW");
@@ -825,7 +825,7 @@ int HookDirectDraw(HMODULE module, int version)
 	case 6:
 		HookLibraryEx(module, ddHooks, "ddraw.dll");
 		if(!pDirectDrawCreate){ // required for IAT patching 
-			hinst = LoadLibrary("ddraw.dll");
+			hinst = (*pLoadLibraryA)("ddraw.dll");
 			pDirectDrawCreate = (DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
 			pDirectDrawEnumerateA = (DirectDrawEnumerateA_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");		
 		}
@@ -844,7 +844,7 @@ int HookDirectDraw(HMODULE module, int version)
 		//hinst = LoadLibrary("ddraw.dll");
 		HookLibraryEx(module, ddHooks, "ddraw.dll");
 		if(!pDirectDrawCreate){ // required for IAT patching in "Crimson skies"
-			hinst = LoadLibrary("ddraw.dll");
+			hinst = (*pLoadLibraryA)("ddraw.dll");
 			pDirectDrawEnumerateA = (DirectDrawEnumerateA_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
 			pDirectDrawEnumerateExA = (DirectDrawEnumerateExA_Type)GetProcAddress(hinst, "DirectDrawEnumerateExA");
 			pDirectDrawCreate = (DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
@@ -1637,7 +1637,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 
 	if(!pDirectDrawCreate){ // not hooked yet....
 		HINSTANCE hinst;
-		hinst = LoadLibrary("ddraw.dll");
+		hinst = (*pLoadLibraryA)("ddraw.dll");
 		if(!hinst){
 			OutTraceE("LoadLibrary ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		}
@@ -1674,6 +1674,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 			switch (*(DWORD *)lpguid){
 				case 0x6C14DB80: dxw.dwDDVersion=1; mode="IID_IDirectDraw"; break;
 				case 0xB3A6F3E0: dxw.dwDDVersion=2; mode="IID_IDirectDraw2"; break;
+				case 0x618f8ad4: dxw.dwDDVersion=3; mode="IID_IDirectDraw3"; break;			
 				case 0x9c59509a: dxw.dwDDVersion=4; mode="IID_IDirectDraw4"; break;
 				case 0x15e65ec0: dxw.dwDDVersion=7; mode="IID_IDirectDraw7"; break;
 				default: mode="unknown"; break;
@@ -1730,7 +1731,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	// v2.1.70: auto-hooking (just in case...)
 	if(!pDirectDrawCreateEx){ // not hooked yet....
 		HINSTANCE hinst;
-		hinst = LoadLibrary("ddraw.dll");
+		hinst = (*pLoadLibraryA)("ddraw.dll");
 		if(!hinst){
 			OutTraceE("LoadLibrary ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		}
@@ -1767,6 +1768,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 			switch (*(DWORD *)lpguid){
 				case 0x6C14DB80: dxw.dwDDVersion=1; mode="IID_IDirectDraw"; break;
 				case 0xB3A6F3E0: dxw.dwDDVersion=2; mode="IID_IDirectDraw2"; break;
+				case 0x618f8ad4: dxw.dwDDVersion=3; mode="IID_IDirectDraw3"; break;
 				case 0x9c59509a: dxw.dwDDVersion=4; mode="IID_IDirectDraw4"; break;
 				case 0x15e65ec0: dxw.dwDDVersion=7; mode="IID_IDirectDraw7"; break;
 				default: mode="unknown"; break;
@@ -4006,7 +4008,7 @@ HRESULT WINAPI extBlt4(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRA
 HRESULT WINAPI extBlt7(LPDIRECTDRAWSURFACE lpdds, LPRECT lpdestrect, LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwflags, LPDDBLTFX lpddbltfx)
 { return extBlt(7, pBlt7, lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx); }
 
-HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, BltFast_Type pBltFast, 
+static HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, BltFast_Type pBltFast, 
 	LPDIRECTDRAWSURFACE lpdds, DWORD dwx, DWORD dwy, 
 	LPDIRECTDRAWSURFACE lpddssrc, LPRECT lpsrcrect, DWORD dwtrans)
 {
@@ -4036,6 +4038,7 @@ HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, BltFast_Type pBltFast,
 	// try the actual method first, it may work in some corcumstances....
 	// when ret is DDERR_UNSUPPORTED try the emulated path.
 	if(!(ToPrim || FromPrim)) {
+		if(dxw.dwFlags5 & MESSAGEPUMP) dxw.MessagePump();
 		ret = pBltFast(lpdds, dwx, dwy, lpddssrc, lpsrcrect, dwtrans);
 		if(ret != DDERR_UNSUPPORTED) {
 			if(ret) OutTraceE("BltFast ERROR: res=%x(%s)\n", ret, ExplainDDError(ret));
@@ -4056,7 +4059,14 @@ HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, BltFast_Type pBltFast,
 	if(dwtrans & DDBLTFAST_SRCCOLORKEY) flags |= DDBLT_KEYSRC;
 
 	if ((dxw.dwFlags2 & FULLRECTBLT) && ToPrim){
-		 return sBlt(dxversion, pBlt, "BltFast", lpdds, NULL, lpddssrc, lpsrcrect, flags, NULL, FALSE);
+		ret = sBlt(dxversion, pBlt, "BltFast", lpdds, NULL, lpddssrc, lpsrcrect, flags, NULL, FALSE);
+		if(ret) {
+			OutTraceE("BltFast FULLRECBLT res=%x\n", ret);
+		}
+		else {
+			OutTraceDDRAW("BltFast FULLRECBLT res=DD_OK\n");
+		}
+		return ret;
 	}
 
 	destrect.left = dwx;
@@ -4078,7 +4088,7 @@ HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, BltFast_Type pBltFast,
 			ret=lpddssrc->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
 			if (ret){
 				OutTraceE("BltFast: GetSurfaceDesc ERROR %x at %d\n", ret, __LINE__);
-				return 0;
+				return DD_OK;
 			}
 			destrect.right = destrect.left + ddsd.dwWidth;
 			destrect.bottom = destrect.top + ddsd.dwHeight;
@@ -4086,10 +4096,17 @@ HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, BltFast_Type pBltFast,
 		}
 		else{
 			//ret=sBlt("BltFast", lpdds, NULL, lpddssrc, NULL, flags, NULL, FALSE);
+			OutTraceDW("BltFast FAKE res=DD_OK at %d\n", __LINE__);
 			ret=DD_OK;
 		}
 	}
 
+	if(ret) {
+		OutTraceE("BltFast ERROR: res=%x(%s)\n", ret, ExplainDDError(ret));
+	}
+	else {
+		OutTraceDDRAW("BltFast: res=DD_OK\n");
+	}
 	return ret;
 }
 

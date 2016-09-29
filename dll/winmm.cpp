@@ -15,6 +15,8 @@
 #define EMULATEJOY TRUE
 #define INVERTJOYAXIS TRUE
 
+// #include "logall.h" // comment when not debugging
+
 BOOL IsWithinMCICall = FALSE;
 
 typedef MCIDEVICEID (WINAPI *mciGetDeviceIDA_Type)(LPCTSTR);
@@ -32,6 +34,9 @@ MMRESULT WINAPI extjoyGetDevCapsA(DWORD, LPJOYCAPS, UINT);
 typedef MMRESULT (WINAPI *joyGetPosEx_Type)(DWORD, LPJOYINFOEX);
 joyGetPosEx_Type pjoyGetPosEx = NULL;
 MMRESULT WINAPI extjoyGetPosEx(DWORD, LPJOYINFOEX);
+typedef MMRESULT (WINAPI *joyGetPos_Type)(DWORD, LPJOYINFO);
+joyGetPos_Type pjoyGetPos = NULL;
+MMRESULT WINAPI extjoyGetPos(DWORD, LPJOYINFO);
 typedef MMRESULT (WINAPI *auxGetNumDevs_Type)(void);
 auxGetNumDevs_Type pauxGetNumDevs = NULL;
 MMRESULT WINAPI extauxGetNumDevs(void);
@@ -62,6 +67,7 @@ static HookEntryEx_Type JoyHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "joyGetNumDevs", NULL, (FARPROC *)&pjoyGetNumDevs, (FARPROC)extjoyGetNumDevs},
 	{HOOK_IAT_CANDIDATE, 0, "joyGetDevCapsA", NULL, (FARPROC *)&pjoyGetDevCapsA, (FARPROC)extjoyGetDevCapsA},
 	{HOOK_IAT_CANDIDATE, 0, "joyGetPosEx", NULL, (FARPROC *)&pjoyGetPosEx, (FARPROC)extjoyGetPosEx},
+	{HOOK_IAT_CANDIDATE, 0, "joyGetPos", NULL, (FARPROC *)&pjoyGetPos, (FARPROC)extjoyGetPos},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -211,7 +217,7 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 		switch(uMsg){
 		case MCI_STATUS:
 			MCI_STATUS_PARMS *p = (MCI_STATUS_PARMS *)dwParam;
-			OutTrace("mciSendCommand: Item=%d Track=%d return=%x\n", p->dwItem, p->dwTrack, p->dwReturn);
+			OutTraceDW("mciSendCommand: Item=%d Track=%d return=%x\n", p->dwItem, p->dwTrack, p->dwReturn);
 			break;
 		}
 	}
@@ -326,9 +332,9 @@ MMRESULT WINAPI extjoyGetDevCapsA(DWORD uJoyID, LPJOYCAPS pjc, UINT cbjc)
 	// set Joystick capability structure
 	memset(pjc, 0, sizeof(JOYCAPS));
 	strncpy(pjc->szPname, "DxWnd Joystick Emulator", MAXPNAMELEN);
-	pjc->wXmin = 0;
+	pjc->wXmin = -XSPAN;
 	pjc->wXmax = XSPAN;
-	pjc->wYmin = 0;
+	pjc->wYmin = -YSPAN;
 	pjc->wYmax = YSPAN;
 	pjc->wNumButtons = 2;
 	pjc->wMaxButtons = 2;
@@ -341,11 +347,11 @@ MMRESULT WINAPI extjoyGetDevCapsA(DWORD uJoyID, LPJOYCAPS pjc, UINT cbjc)
 	return JOYERR_NOERROR;
 }
 
-MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
+static MMRESULT GetJoy(char *apiname, DWORD uJoyID, LPJOYINFO lpj)
 {
-	OutTraceC("joyGetPosEx: joyid=%d\n", uJoyID);
+	OutTraceC("%s: joyid=%d\n", apiname, uJoyID);
 	if(uJoyID != 0) return JOYERR_PARMS;
-	LONG x, y;
+	LONG x, y, CenterX, CenterY;
 	HWND hwnd;
 	DWORD dwButtons;
 	static BOOL bJoyLock = FALSE;
@@ -355,7 +361,7 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 	if (GetKeyState(VK_LBUTTON) < 0) dwButtons |= JOY_BUTTON1;
 	if (GetKeyState(VK_RBUTTON) < 0) dwButtons |= JOY_BUTTON2;
 	if (GetKeyState(VK_MBUTTON) < 0) dwButtons |= JOY_BUTTON3;
-	OutTraceB("joyGetPosEx: Virtual Joystick buttons=%x\n", dwButtons);
+	OutTraceB("%s: Virtual Joystick buttons=%x\n", apiname, dwButtons);
 
 	if(dwButtons == JOY_BUTTON3){
 		if(((*pGetTickCount)() - dwLastClick) > 200){
@@ -365,8 +371,10 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 		}
 	}
 
-	x=(XSPAN>>1);
-	y=(YSPAN>>1);
+	// default: centered position
+	x=0;
+	y=0;
+	// get cursor position and map it to virtual joystick x,y axis
 	if(hwnd=dxw.GethWnd()){
 		POINT pt;
 		RECT client;
@@ -379,43 +387,60 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 		if(bJoyLock || !dxw.bActive){
 			// when the joystick is "locked" (bJoyLock) or when the window lost focus
 			// (dxw.bActive == FALSE) place the joystick in the central position
-			OutTraceB("joyGetPosEx: CENTERED lock=%x active=%x\n", bJoyLock, dxw.bActive);
-			x=(XSPAN>>1);
-			y=(YSPAN>>1);
+			OutTraceB("%s: CENTERED lock=%x active=%x\n", apiname, bJoyLock, dxw.bActive);
+			x=0;
+			y=0;
 			pt.x = client.right >> 1;
 			pt.y = client.bottom >> 1;
 			dwButtons = JOY_BUTTON3;
 		}
 		else{
-			OutTraceB("joyGetPosEx: ACTIVE mouse=(%d,%d)\n", pt.x, pt.y);
+			OutTraceB("%s: ACTIVE mouse=(%d,%d)\n", apiname, pt.x, pt.y);
 			if(pt.x < client.left) pt.x = client.left;
 			if(pt.x > client.right) pt.x = client.right;
 			if(pt.y < client.top) pt.y = client.top;
 			if(pt.y > client.bottom) pt.y = client.bottom;
-			x = (pt.x * XSPAN) / client.right;
+			CenterX = (client.right - client.left) >> 1;
+			CenterY = (client.bottom - client.top) >> 1;
+			x = ((pt.x - CenterX) * XSPAN) / client.right;
 			if(INVERTJOYAXIS)
-				y = ((client.bottom - pt.y) * YSPAN) / client.bottom; // inverted y axis
+				y = ((CenterY - pt.y) * YSPAN) / client.bottom; // inverted y axis
 			else
-				y = (pt.y * YSPAN) / client.bottom;
+				y = ((pt.y - CenterY) * YSPAN) / client.bottom;
 		}
 		ShowJoystick(pt.x, pt.y, dwButtons);
 	}
-	else {
-		x=(XSPAN>>1);
-		y=(YSPAN>>1);
-	}
+	lpj->wXpos = x;
+	lpj->wYpos = y;
+	lpj->wZpos = 0;
+	lpj->wButtons = dwButtons;
+	OutTraceC("%s: joyid=%d pos=(%d,%d)\n", apiname, uJoyID, lpj->wXpos, lpj->wYpos);
+	return JOYERR_NOERROR;
+}
 
-	// set Joystick info structure
+MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
+{
+	MMRESULT res;
+	JOYINFO jinfo;
+	res=GetJoy("joyGetPosEx", uJoyID, &jinfo);
+
+	// set Joystick JOYINFOEX info structure
 	memset(pji, 0, sizeof(JOYINFOEX));
 	pji->dwSize = sizeof(JOYINFOEX);
 	pji->dwFlags = 0;
-	pji->dwXpos = x;
-	pji->dwYpos = y;
-	pji->dwButtons = dwButtons;
+	pji->dwXpos = jinfo.wXpos;
+	pji->dwYpos = jinfo.wYpos;
+	pji->dwButtons = jinfo.wButtons;
 	pji->dwFlags = JOY_RETURNX|JOY_RETURNY|JOY_RETURNBUTTONS;
 
-	OutTraceC("joyGetPosEx: joyid=%d pos=(%d,%d)\n", uJoyID, pji->dwXpos, pji->dwYpos);
-	return JOYERR_NOERROR;
+	return res;
+}
+
+MMRESULT WINAPI extjoyGetPos(DWORD uJoyID, LPJOYINFO pji)
+{
+	MMRESULT res;
+	res=GetJoy("joyGetPosEx", uJoyID, pji);
+	return res;
 }
 
 static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)

@@ -493,6 +493,9 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 	OutTraceDW("%s: GOT hwnd=%x pos=(%d,%d) dim=(%d,%d) Flags=%x(%s)\n", 
 		ApiName, hwnd, wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
 
+	// if nothing to be moved, do nothing
+	if ((wp->flags & (SWP_NOMOVE|SWP_NOSIZE))==(SWP_NOMOVE|SWP_NOSIZE)) return; //v2.02.13
+
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag = 0;
 		WINDOWPOS MaxPos;
@@ -503,8 +506,6 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 		if (UpdFlag) 
 			OutTraceDW("%s: SET max dim=(%d,%d)\n", ApiName, wp->cx, wp->cy);
 	}
-
-	if ((wp->flags & (SWP_NOMOVE|SWP_NOSIZE))==(SWP_NOMOVE|SWP_NOSIZE)) return; //v2.02.13
 
 	if ((dxw.dwFlags1 & LOCKWINPOS) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
 		dxw.CalculateWindowPos(hwnd, MaxX, MaxY, wp);
@@ -1543,9 +1544,6 @@ static HWND WINAPI CreateWindowCommon(
 	// v2.03.53: revised code, logic moved to IsFullscreenWindow
 
 	if(isNewDesktop=IsFullscreenWindow(lpClassName, dwStyle, dwExStyle, hWndParent, x, y, nWidth, nHeight)){
-		RECT screen;
-		POINT upleft = {0,0};
-
 		// if already in fullscreen mode, save previous settings
 		if(dxw.IsFullScreen() && dxw.GethWnd()){
 			hLastFullScrWin = dxw.GethWnd();
@@ -1559,25 +1557,14 @@ static HWND WINAPI CreateWindowCommon(
 		// inserted some checks here, since the main window could be destroyed
 		// or minimized (see "Jedi Outcast") so that you may get a dangerous 
 		// zero size. In this case, better renew the hWnd assignement and its coordinates.
-		do { // fake loop
-			isValidHandle = FALSE;
-			if (!(*pGetClientRect)(dxw.GethWnd(),&screen)) break;
-			if (!(*pClientToScreen)(dxw.GethWnd(),&upleft)) break;
-			if (screen.right==0 || screen.bottom==0) break;
-			isValidHandle = TRUE;
-		} while(FALSE);
-		if (isValidHandle){ // use parent's coordinates
-			// child windows of the current virtual desktop have relative coordinates
-			// but non child windows or child of the real desktop must be shifted....
-			//if (!(dwStyle & WS_CHILD) || (dxw.IsDesktop(hWndParent))){ 
-			if (!(dwStyle & WS_CHILD)){ 
-				x=upleft.x;
-				y=upleft.y;
-			}
-			nWidth=screen.right;
-			nHeight=screen.bottom;
-			OutTraceDW("%s: fixed BIG win pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
+		isValidHandle = dxw.IsValidMainWindow();
+		if (!(dwStyle & WS_CHILD) || (dxw.IsRealDesktop(hWndParent))){ 
+			x=dxw.iPosX;
+			y=dxw.iPosY;
 		}
+		nWidth=dxw.GetScreenWidth();
+		nHeight=dxw.GetScreenHeight();
+		OutTraceDW("%s: fixed client pos=(%d,%d) size=(%d,%d)\n", ApiName, x, y, nWidth, nHeight);
 		dxw.SetFullScreen(TRUE);
 	}
 
@@ -1593,7 +1580,7 @@ static HWND WINAPI CreateWindowCommon(
 	// from here on, fullscreen is garanteed
 
 	if(!isNewDesktop){
-		if (dwStyle & WS_CHILD){
+		if ((dwStyle & WS_CHILD) && !dxw.IsRealDesktop(hWndParent)){
 			// tested on Gangsters: coordinates must be window-relative!!!
 			// Age of Empires....
 			dxw.MapClient(&x, &y, &nWidth, &nHeight);
@@ -1601,15 +1588,13 @@ static HWND WINAPI CreateWindowCommon(
 			ApiName, x, y, nWidth, nHeight);
 		}
 		else {
-			if ((dwExStyle & WS_EX_CONTROLPARENT) || (dwStyle & WS_POPUP)){
-				// needed for "Diablo", that creates a new WS_EX_CONTROLPARENT window that must be
-				// overlapped to the directdraw surface.
-				// needed for "Riven", that creates a new WS_POPUP window with the menu bar that must be
-				// overlapped to the directdraw surface.
-				dxw.MapWindow(&x, &y, &nWidth, &nHeight);
-				OutTraceDW("%s: fixed pos=(%d,%d) size=(%d,%d)\n",
-				ApiName, x, y, nWidth, nHeight);
-			}
+			// needed for "Diablo", that creates a new WS_EX_CONTROLPARENT window that must be
+			// overlapped to the directdraw surface.
+			// needed for "Riven", that creates a new WS_POPUP window with the menu bar that must be
+			// overlapped to the directdraw surface.
+			dxw.MapWindow(&x, &y, &nWidth, &nHeight);
+			OutTraceDW("%s: fixed ABSOLUTE pos=(%d,%d) size=(%d,%d)\n",
+			ApiName, x, y, nWidth, nHeight);
 		}
 	}
 
@@ -1628,6 +1613,7 @@ static HWND WINAPI CreateWindowCommon(
 
 	if (dwExStyle & WS_EX_CONTROLPARENT) hControlParentWnd=hwnd;
 
+	// replace the invalid main win with the new one
 	if ((!isValidHandle) && dxw.IsFullScreen()){
 		dxw.SethWnd(hwnd);
 		extern void AdjustWindowPos(HWND, DWORD, DWORD);

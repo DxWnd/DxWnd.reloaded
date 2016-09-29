@@ -1266,6 +1266,10 @@ fix: added ddraw hooking in ddrawex/CreateDirectDraw() call: now "Theocracy" wor
 fix: added hook for EnumDisplayDevicesW used by "Battleground Europe"
 fix: added "Hide multi monitors" logic to EnumDisplayDevicesA/W 
 
-
-
+v2.03.89
+fix: replaced hooked LoadLibrary with original call (*pLoadLibraryA), this seems to avoid the hook address replacements and the need for the "No hook update" flag. To be tested.
+fix: added some missing IID_DirectDraw3 case in DirectDraw hooking
+fix: fixed the logic for centering the main window for desktop with non-zero offset
+fix: improved logic for window placement in CreateWindowEx call
+fix: added wrapper for winmm/GetJoyPos() virtual joystick referenced in "Jane's FA18"
 

@@ -6,18 +6,20 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 
-#if 0
+// IsValidMainWindow: returns TRUE if the main window can be queried for coordinates, 
+// FALSE otherwise (e.g. when minimized)
+
 BOOL dxwCore::IsValidMainWindow()
 {
 	RECT Client;
 	POINT UpLeft = {0, 0};
-
 	if(!(*pGetClientRect)(hWnd, &Client)) return FALSE;
 	if((Client.right == 0) || (Client.bottom == 0)) return FALSE;
 	if(!(*pClientToScreen)(hWnd, &UpLeft)) return FALSE;
 	return TRUE;
 }
-#endif
+
+// if the main window coordinates are still valid updates the window placement values
 
 void dxwCore::UpdateDesktopCoordinates()
 {
@@ -35,7 +37,6 @@ void dxwCore::UpdateDesktopCoordinates()
 	iSizY = Client.bottom - Client.top;
 	OutTraceB("dxwCore::UpdateDesktopCoordinates: NEW pos=(%d,%d) size=(%dx%d)\n", iPosX, iPosY, iSizX, iSizY);
 }
-
 
 // GetScreenRect: returns a RECT sized as the virtual desktop
 
@@ -346,7 +347,8 @@ void dxwCore::GetMonitorWorkarea(LPRECT lpRect, BOOL WorkArea)
 		MonitorId = -1;
 		GetMonitorWorkarea(lpRect, WorkArea);
 	}
-
+	OutTraceB("dxwCore::GetMonitorWorkarea: id=%d workarea=%x rect=(%d,%d)-(%d,%d)\n",
+		MonitorId, WorkArea, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 }
 
 // v.2.1.80: unified positioning logic into CalculateWindowPos routine
@@ -360,7 +362,7 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 	int MaxX, MaxY;
 	HMENU hMenu;
 
-	switch(dxw.Coordinates){
+	switch(Coordinates){
 	case DXW_DESKTOP_CENTER:
 		if(bAutoScale){
 			MaxX = GetScreenWidth();
@@ -381,8 +383,8 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
 		}
 		dxw.GetMonitorWorkarea(&desktop, TRUE);
-		rect.left =  (desktop.right - desktop.left - MaxX) / 2;
-		rect.top = (desktop.bottom - desktop.top - MaxY) / 2;
+		rect.left =  (desktop.right + desktop.left - MaxX) / 2; // v2.03.89 - fixed
+		rect.top = (desktop.bottom + desktop.top - MaxY) / 2;	// v2.03.89 - fixed
 		rect.right = rect.left + MaxX;
 		rect.bottom = rect.top + MaxY; //v2.02.09
 		// fixed ....
@@ -425,6 +427,8 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 		rect.bottom = iPosY + MaxY; //v2.02.09
 		break;
 	}
+	OutTraceB("dxwCore::CalculateWindowPos: coord=%d client rect=(%d,%d)-(%d,%d)\n",
+		Coordinates, rect.left, rect.top, rect.right, rect.bottom);
 
 	if(hwnd){
 		RECT UnmappedRect;
@@ -467,6 +471,9 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 			rect.bottom = dxw.VirtualDesktop.bottom;
 		}
 	}
+
+	OutTraceB("dxwCore::CalculateWindowPos: coord=%d window rect=(%d,%d)-(%d,%d)\n",
+	Coordinates, rect.left, rect.top, rect.right, rect.bottom);
 
 	// update the arguments for the window creation
 	wp->x=rect.left;
