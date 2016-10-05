@@ -173,6 +173,7 @@ public: // simple data variables
 	short FakeVersionId;
 	short Coordinates;
 	short MaxScreenRes;
+	short SlowRatio;
 	HDC RealHDC;
 	HDC VirtualHDC;
 	int GDIEmulationMode;

@@ -184,6 +184,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DXVersion > 1) dlg->m_DXVersion += 5;
 	t->dxversion = dlg->m_DXVersion;
 	t->MaxDdrawInterface = dlg->m_MaxDdrawInterface+1;
+	t->SlowRatio = dlg->m_SlowRatio;
 	t->coordinates = dlg->m_Coordinates;
 	t->flags = 0;
 	t->flags2 = 0;
@@ -348,6 +349,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	//if(dlg->m_ForceRGBtoYUV) t->flags3 |= RGB2YUV;
 	if(dlg->m_LimitScreenRes) t->flags4 |= LIMITSCREENRES;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
+	if(dlg->m_UseLastCore) t->flags5 |= USELASTCORE;
 	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
 	if(dlg->m_SlowDown) t->flags |= SLOWDOWN;
 	if(dlg->m_BlitFromBackBuffer) t->flags |= BLITFROMBACKBUFFER;
@@ -413,6 +415,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_TimeStretch) t->flags2 |= TIMESTRETCH;
 	if(dlg->m_StretchTimers) t->flags4 |= STRETCHTIMERS;
 	if(dlg->m_NormalizePerfCount) t->flags5 |= NORMALIZEPERFCOUNT;
+	if(dlg->m_CPUSlowDown) t->flags7 |= CPUSLOWDOWN;
+	if(dlg->m_CPUMaxUsage) t->flags7 |= CPUMAXUSAGE;
 	if(dlg->m_QuarterBlt) t->flags5 |= QUARTERBLT;
 	if(dlg->m_FineTiming) t->flags4 |= FINETIMING;
 	if(dlg->m_ReleaseMouse) t->flags4 |= RELEASEMOUSE;
@@ -461,6 +465,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 {
 	dlg->m_DXVersion = t->dxversion;
 	dlg->m_MaxDdrawInterface = t->MaxDdrawInterface-1;
+	dlg->m_SlowRatio = t->SlowRatio;
 	if(dlg->m_DXVersion > 6) dlg->m_DXVersion -= 5;
 	dlg->m_Coordinates = t->coordinates;
 	dlg->m_FilePath = t->path;
@@ -584,6 +589,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	//dlg->m_ForceYUVtoRGB = t->flags3 & YUV2RGB ? 1 : 0;
 	dlg->m_LimitScreenRes = t->flags4 & LIMITSCREENRES ? 1 : 0;
 	dlg->m_SingleProcAffinity = t->flags3 & SINGLEPROCAFFINITY ? 1 : 0;
+	dlg->m_UseLastCore = t->flags5 & USELASTCORE ? 1 : 0;
 	dlg->m_LimitResources = t->flags2 & LIMITRESOURCES ? 1 : 0;
 	dlg->m_CDROMDriveType = t->flags3 & CDROMDRIVETYPE ? 1 : 0;
 	dlg->m_HideCDROMEmpty = t->flags4 & HIDECDROMEMPTY ? 1 : 0;
@@ -669,6 +675,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_TimeStretch = t->flags2 & TIMESTRETCH ? 1 : 0;
 	dlg->m_StretchTimers = t->flags4 & STRETCHTIMERS ? 1 : 0;
 	dlg->m_NormalizePerfCount = t->flags5 & NORMALIZEPERFCOUNT ? 1 : 0;
+	dlg->m_CPUSlowDown = t->flags7 & CPUSLOWDOWN ? 1 : 0;
+	dlg->m_CPUMaxUsage = t->flags7 & CPUMAXUSAGE ? 1 : 0;
 	dlg->m_QuarterBlt = t->flags5 & QUARTERBLT ? 1 : 0;
 	dlg->m_FineTiming = t->flags4 & FINETIMING ? 1 : 0;
 	dlg->m_ReleaseMouse = t->flags4 & RELEASEMOUSE ? 1 : 0;
@@ -802,6 +810,9 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(key, sizeof(key), "maxddinterface%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->MaxDdrawInterface);
 	WritePrivateProfileString("target", key, val, InitPath);
+	sprintf_s(key, sizeof(key), "slowratio%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->SlowRatio);
+	WritePrivateProfileString("target", key, val, InitPath);
 
 	free(EscBuf);
 	EscBuf = NULL;
@@ -872,6 +883,8 @@ static void ClearTarget(int i, char *InitPath)
 	sprintf_s(key, sizeof(key), "registry%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "maxddinterface%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "slowratio%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 }
 
@@ -977,6 +990,9 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	// -------
 	sprintf_s(key, sizeof(key), "maxddinterface%i", i);
 	TargetMap->MaxDdrawInterface = GetPrivateProfileInt("target", key, 7, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "slowratio%i", i);
+	TargetMap->SlowRatio = GetPrivateProfileInt("target", key, 1, InitPath);
 	
 	if (!gbDebug){
 		// clear debug flags

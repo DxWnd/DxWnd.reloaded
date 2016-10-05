@@ -37,10 +37,13 @@ void CTabTiming::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_INTERCEPTRDTSC, cTarget->m_InterceptRDTSC);
 	DDX_Check(pDX, IDC_STRETCHTIMERS, cTarget->m_StretchTimers);
 	DDX_Check(pDX, IDC_NORMALIZEPERFCOUNT, cTarget->m_NormalizePerfCount);
+	DDX_Check(pDX, IDC_CPUSLOWDOWN, cTarget->m_CPUSlowDown);
+	DDX_Check(pDX, IDC_CPUMAXUSAGE, cTarget->m_CPUMaxUsage);
 	DDX_Check(pDX, IDC_QUARTERBLT, cTarget->m_QuarterBlt);
 	DDX_Check(pDX, IDC_FINETIMING, cTarget->m_FineTiming);
 	DDX_Check(pDX, IDC_TIMEFREEZE, cTarget->m_EnableTimeFreeze);
 	DDX_Text(pDX, IDC_MAXFPS, cTarget->m_MaxFPS);
+	DDX_Text(pDX, IDC_SLOWRATIO, cTarget->m_SlowRatio);
 	DDX_LBIndex(pDX, IDC_LISTTS, cTarget->m_InitTS);
 	//{{AFX_DATA_MAP(CTabTiming)
 		// NOTE: the ClassWizard will add DDX and DDV calls here

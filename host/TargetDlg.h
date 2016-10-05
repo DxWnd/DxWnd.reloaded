@@ -35,6 +35,7 @@ public:
 	int		m_TextureHandling;
 	int		m_SonProcessMode;
 	int		m_MaxDdrawInterface;
+	int		m_SlowRatio;
 	BOOL	m_HookDI;
 	BOOL	m_HookDI8;
 	BOOL	m_EmulateRelMouse;
@@ -151,6 +152,8 @@ public:
 	BOOL	m_TimeStretch;
 	BOOL	m_StretchTimers;
 	BOOL	m_NormalizePerfCount;
+	BOOL	m_CPUSlowDown;
+	BOOL	m_CPUMaxUsage;
 	BOOL	m_QuarterBlt;
 	BOOL	m_FineTiming;
 	BOOL	m_EnableTimeFreeze;
@@ -227,6 +230,7 @@ public:
 	BOOL	m_LockSysColors;
 	BOOL	m_LockReservedPalette;
 	BOOL	m_SingleProcAffinity;
+	BOOL	m_UseLastCore;
 	BOOL	m_WireFrame;
 	BOOL	m_NoTextures;
 	BOOL	m_BlackWhite;

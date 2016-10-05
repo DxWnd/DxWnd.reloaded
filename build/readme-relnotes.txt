@@ -1107,3 +1107,7 @@ v2.03.67
 fix: D3D7 hooks to make NBA2002 working
 fix: better virtual color depth settings to allow "Moto Racer 2" believe it is running on a fake 16bpp desktop
 fix: GUI placement coordinates are not saved when terminating in minimized or maximized state
+
+v2.03.68
+add: options to limit the cpu usage of program threads, either inconditionally ("CPU slow down") or only for CPU consuming threads ("CPU max usage").
+fix: some logging details 

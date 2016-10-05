@@ -152,7 +152,7 @@
 #define NOWINPOSCHANGES		0x00000004 // suppress WM_WINDOWPOSCHANGING/CHANGED messages (RollerCoaster Tycoon...)
 #define ANSIWIDE			0x00000008 // by default uses Widechar version of API intead od ANSI
 #define NOBLT				0x00000010 // suppress blit to primary surface
-//#define NOSYSTEMEMULATED	0x00000020 // forces suppression of DDSCAPS_SYSTEMMEMORY capability on emulated front & backbuffer surfaces
+#define USELASTCORE			0x00000020 // Same as single core process affinity, but using the last availabe core instead of first one
 #define DOFASTBLT			0x00000040 // use FastBlt to primary surface
 #define AEROBOOST			0x00000080 // Optimize for AERO environment: does all stretching in sysmemory surfaces
 #define QUARTERBLT			0x00000100 // Consider a screen update (to count or limit FPS) only  blt operations bigger than a quarter of the whole primary surface
@@ -221,6 +221,8 @@
 #define HOOKDIRECTSOUND		0x00000008
 #define HOOKSMACKW32		0x00000010
 #define BLOCKPRIORITYCLASS  0x00000020 // blocks attempts to change the process priority class
+#define CPUSLOWDOWN			0x00000040 // reduces CPU time dedicated to non time critical threads
+#define CPUMAXUSAGE			0x00000080 // reduces CPU time to non time critical threads that consume more than the given ratio
 
 // eighth flags DWORD dxw.dwFlags8:
 
@@ -277,6 +279,7 @@ typedef struct TARGETMAP
 	short MaxScreenRes;
 	short SwapEffect;
 	short MaxDdrawInterface;
+	short SlowRatio;
 }TARGETMAP;
 
 typedef struct

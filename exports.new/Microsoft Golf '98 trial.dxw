@@ -1,0 +1,29 @@
+[target]
+title0=Microsoft Golf '98 trial (win)
+path0=D:\Games\MSGolf98\MSGOLF98\GAME.EXE
+launchpath0=
+module0=
+opengllib0=
+notes0=
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games\Golf '98]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games\Golf '98\Version 1.0 Demo]\n"AppPath"="D:\\Games\\MSGolf98\\MSGOLF98"\n"InstallType"="1"\n"InstallPath"="D:\\Games\\MSGolf98\\MSGOLF98\\"\n"CDPath"="D:\\Games\\MSGolf98\\MSGOLF98"\n"Launched"="1"\n"PID"=""\n"Path"="D:\\Games\\MSGolf98\\MSGOLF98"\n"VersionType"="TrialVersion"\n"InstalledGroup"="1"\n"LangID"=dword:00000009\n
+ver0=0
+coord0=0
+flag0=136314914
+flagg0=-671088640
+flagh0=1302
+flagi0=1212547076
+flagj0=4224
+flagk0=67436544
+flagl0=4
+flagm0=0
+tflag0=0
+posx0=50
+posy0=50
+sizx0=0
+sizy0=0
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7

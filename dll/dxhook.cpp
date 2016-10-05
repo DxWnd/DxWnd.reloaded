@@ -33,6 +33,8 @@ GetWindowLong_Type pGetWindowLong;
 SetWindowLong_Type pSetWindowLong;
 
 extern LRESULT CALLBACK MessageHook(int, WPARAM, LPARAM);
+extern DWORD WINAPI CpuLimit(LPVOID); 
+extern DWORD WINAPI CpuSlow(LPVOID); 
 
 typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
 typedef int (*Preparedisasm_Type)(void);
@@ -102,7 +104,7 @@ static char *Flag4Names[32]={
 
 static char *Flag5Names[32]={
 	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "ANSIWIDE",
-	"NOBLT", "**", "DOFASTBLT", "AEROBOOST",
+	"NOBLT", "USELASTCORE", "DOFASTBLT", "AEROBOOST",
 	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
 	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
 	"TEXTURETRANSP", "NORMALIZEPERFCOUNT", "HYBRIDMODE", "GDICOLORCONV",
@@ -124,7 +126,7 @@ static char *Flag6Names[32]={
 
 static char *Flag7Names[32]={
 	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "HOOKDIRECTSOUND",
-	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "", "",
+	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -192,8 +194,8 @@ static void OutTraceHeader(FILE *fp)
 	for(i=0, dword=dxw.dwFlags4; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag4Names[i]);
 	for(i=0, dword=dxw.dwFlags5; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag5Names[i]);
 	for(i=0, dword=dxw.dwFlags6; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag6Names[i]);
-	for(i=0, dword=dxw.dwFlags7; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag6Names[i]);
-	for(i=0, dword=dxw.dwFlags8; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag6Names[i]);
+	for(i=0, dword=dxw.dwFlags7; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag7Names[i]);
+	for(i=0, dword=dxw.dwFlags8; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag8Names[i]);
 	for(i=0, dword=dxw.dwTFlags; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", TFlagNames[i]);
 	fprintf(fp, "***\n");
 }
@@ -964,21 +966,34 @@ void DisableIME()
 #endif
 }
 
-void SetSingleProcessAffinity(void)
+void SetSingleProcessAffinity(BOOL first)
 {
 	int i;
 	DWORD ProcessAffinityMask, SystemAffinityMask;
 	if(!GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
 		OutTraceE("GetProcessAffinityMask: ERROR err=%d\n", GetLastError());
 	OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
-	for (i=0; i<(8 * sizeof(DWORD)); i++){
-		if (ProcessAffinityMask & 0x1) break;
-		ProcessAffinityMask >>= 1;
+	if(first){
+		for (i=0; i<(8 * sizeof(DWORD)); i++){
+			if (ProcessAffinityMask & 0x1) break;
+			ProcessAffinityMask >>= 1;
+		}
+		OutTraceDW("First process affinity bit=%d\n", i);
+		ProcessAffinityMask = 0x1;
+		for (; i; i--) ProcessAffinityMask <<= 1;
+		OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
 	}
-	OutTraceDW("First process affinity bit=%d\n", i);
-	ProcessAffinityMask &= 0x1;
-	for (; i; i--) ProcessAffinityMask <<= 1;
-	OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
+	else {
+		for (i=0; i<(8 * sizeof(DWORD)); i++){
+			if (ProcessAffinityMask & 0x80000000) break;
+			ProcessAffinityMask <<= 1;
+		}
+		i = 31 - i;
+		OutTraceDW("Last process affinity bit=%d\n", i);
+		ProcessAffinityMask = 0x1;
+		for (; i; i--) ProcessAffinityMask <<= 1;
+		OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
+	}
 	if (!SetProcessAffinityMask(GetCurrentProcess(), ProcessAffinityMask))
 		OutTraceE("SetProcessAffinityMask: ERROR err=%d\n", GetLastError());
 }
@@ -1293,6 +1308,8 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		}
 		if (dxw.dwFlags4 & LIMITSCREENRES) OutTrace("HookInit: max resolution=%s\n", (dxw.MaxScreenRes<6)?Resolutions[dxw.MaxScreenRes]:"unknown");
 		if (dxw.dwFlags7 & LIMITDDRAW) OutTrace("HookInit: max supported IDidrectDrawInterface=%d\n", dxw.MaxDdrawInterface);
+		if (dxw.dwFlags7 & CPUSLOWDOWN) OutTrace("HookInit: CPU slowdown ratio 1:%d\n", dxw.SlowRatio);
+		if (dxw.dwFlags7 & CPUMAXUSAGE) OutTrace("HookInit: CPU maxusage ratio 1:%d\n", dxw.SlowRatio);
 	}
 
 	{
@@ -1368,7 +1385,8 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	HookSysLibsInit(); // this just once...
 
 	base=GetModuleHandle(NULL);
-	if (dxw.dwFlags3 & SINGLEPROCAFFINITY) SetSingleProcessAffinity();
+	if (dxw.dwFlags3 & SINGLEPROCAFFINITY) SetSingleProcessAffinity(TRUE);
+	if (dxw.dwFlags5 & USELASTCORE) SetSingleProcessAffinity(FALSE);
 	if (dxw.dwFlags4 & INTERCEPTRDTSC) AddVectoredExceptionHandler(1, Int3Handler); // 1 = first call, 0 = call last
 	if (dxw.dwFlags1 & HANDLEEXCEPTIONS) HookExceptionHandler();
 	if (dxw.dwTFlags & OUTIMPORTTABLE) DumpImportTable(base);
@@ -1438,6 +1456,13 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 
 	if (dxw.dwFlags4 & ENABLETIMEFREEZE)
 		CreateThread(NULL, 0, TimeFreezePoller, NULL, 0, NULL);
+
+	if(dxw.dwFlags7 & CPUSLOWDOWN)
+		CreateThread(NULL, 0, CpuSlow, NULL, 0, NULL);
+	else
+	if(dxw.dwFlags7 & CPUMAXUSAGE)
+		CreateThread(NULL, 0, CpuLimit, NULL, 0, NULL);
+
 }
 
 LPCSTR ProcToString(LPCSTR proc)

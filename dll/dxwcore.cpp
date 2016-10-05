@@ -133,6 +133,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	iRatioX = iSizX ? iSizX : 800;
 	iRatioY = iSizY ? iSizY : 600;
 
+	SlowRatio = target->SlowRatio;
+
 	GDIEmulationMode = GDIMODE_NONE; // default
 	if (dwFlags2 & GDISTRETCHED)	GDIEmulationMode = GDIMODE_STRETCHED;  
 	if (dwFlags3 & GDIEMULATEDC)	GDIEmulationMode = GDIMODE_EMULATED; 

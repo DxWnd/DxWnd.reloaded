@@ -242,6 +242,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\cpulimit.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\d3dtexture.cpp"
 				>
 			</File>
