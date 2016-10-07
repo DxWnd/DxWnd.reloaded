@@ -8,6 +8,7 @@
 //
 #include "dxTabCtrl.h"
 #include "SpecialEdit.h"
+#include "CDragEdit.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CTargetDlg Dialog
@@ -23,8 +24,8 @@ public:
 	//{{AFX_DATA(CTargetDlg)
 	enum { IDD = IDD_TARGET };
 	CDXTabCtrl	m_tabdxTabCtrl;
-	CEdit	m_File;
-	CEdit	m_Launch;
+	CDragEdit	m_File;
+	CDragEdit	m_Launch;
 	int		m_DXVersion;
 	int		m_Coordinates;
 	int		m_InitColorDepth;

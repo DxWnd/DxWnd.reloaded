@@ -108,6 +108,9 @@ BOOL WINAPI extDrawMenuBar(HWND);
 //typedef BOOL (WINAPI *TranslateMessage_Type)(MSG *);
 //TranslateMessage_Type pTranslateMessage = NULL;
 //BOOL WINAPI extTranslateMessage(MSG *);
+typedef BOOL (WINAPI *EnumDisplayDevicesA_Type)(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
+EnumDisplayDevicesA_Type pEnumDisplayDevicesA = NULL;
+BOOL WINAPI extEnumDisplayDevicesA(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
 
 
 #ifdef TRACEPALETTE
@@ -200,6 +203,8 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "ShowScrollBar", (FARPROC)ShowScrollBar, (FARPROC *)&pShowScrollBar, (FARPROC)extShowScrollBar},
 	{HOOK_HOT_CANDIDATE, 0, "DrawMenuBar", (FARPROC)DrawMenuBar, (FARPROC *)&pDrawMenuBar, (FARPROC)extDrawMenuBar},
 
+	//{HOOK_HOT_CANDIDATE, 0, "EnumDisplayDevicesA", (FARPROC)EnumDisplayDevicesA, (FARPROC *)&pEnumDisplayDevicesA, (FARPROC)extEnumDisplayDevicesA},
+	
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -1466,6 +1471,9 @@ static BOOL IsFullscreenWindow(
 	return FALSE;
 }
 
+static HWND hLastFullScrWin = 0;
+static DDPIXELFORMAT ddpLastPixelFormat;
+
 static HWND WINAPI extCreateWindowCommon(
   LPCTSTR ApiName,
   BOOL WideChar,
@@ -1528,6 +1536,12 @@ static HWND WINAPI extCreateWindowCommon(
 	if(IsFullscreenWindow(lpClassName, dwStyle, dwExStyle, hWndParent, x, y, nWidth, nHeight)){
 		RECT screen;
 		POINT upleft = {0,0};
+
+		// if already in fullscreen mode, save previous settings
+		if(dxw.IsFullScreen() && dxw.GethWnd()){
+			hLastFullScrWin = dxw.GethWnd();
+			ddpLastPixelFormat = dxw.VirtualPixelFormat;
+		}
 
 		// update virtual screen size if it has grown 
 		// v2.03.58 fix: do't consider CW_USEDEFAULT ad a big unsigned integer!! Fixes "Imperialism".
@@ -2648,12 +2662,25 @@ BOOL WINAPI extDestroyWindow(HWND hWnd)
 
 	OutTraceB("DestroyWindow: hwnd=%x\n", hWnd);
 	if (hWnd == dxw.GethWnd()) {
+		OutTraceDW("DestroyWindow: destroy main hwnd=%x\n", hWnd);
+		if(hLastFullScrWin){
+			OutTraceDW("DestroyWindow: revert to main hwnd=%x bpp=%d\n", 
+				hWnd, ddpLastPixelFormat.dwRGBBitCount);
+			dxw.SethWnd(hLastFullScrWin);
+			hLastFullScrWin = NULL;
+			dxw.VirtualPixelFormat = ddpLastPixelFormat;
+			extern int iBakBufferVersion;
+			SetBltTransformations(iBakBufferVersion);
+		}
+		else {
+			OutTraceDW("DestroyWindow: destroy main hwnd=%x\n", hWnd);
+			dxw.SethWnd(NULL);
+		}
+
 		if(dxw.dwFlags6 & NODESTROYWINDOW) {
 			OutTraceDW("DestroyWindow: do NOT destroy main hwnd=%x\n", hWnd);
 			return TRUE;
 		}
-		OutTraceDW("DestroyWindow: destroy main hwnd=%x\n", hWnd);
-		dxw.SethWnd(NULL);
 	}
 	if (hControlParentWnd && (hWnd == hControlParentWnd)) {
 		OutTraceDW("DestroyWindow: destroy control parent hwnd=%x\n", hWnd);
@@ -3049,6 +3076,7 @@ BOOL WINAPI extSystemParametersInfoA(UINT uiAction, UINT uiParam, PVOID pvParam,
 	switch(uiAction){
 		case SPI_SETKEYBOARDDELAY:
 		case SPI_SETKEYBOARDSPEED:
+		case SPI_SETSCREENSAVERRUNNING: // v2.03.75 used by Dethkarz, but not really necessary
 			OutTraceDW("SystemParametersInfoA: bypass action=%x\n", uiAction);
 			return TRUE;
 			break;
@@ -3723,3 +3751,21 @@ BOOL WINAPI extTranslateMessage(MSG *pMsg)
 	return ret;
 }
 #endif
+
+BOOL WINAPI extEnumDisplayDevicesA(LPCSTR lpDevice, DWORD iDevNum, PDISPLAY_DEVICE lpDisplayDevice, DWORD dwFlags)
+{
+	BOOL ret;
+	MessageBox(0, "EnumDisplayDevicesA", "dxwnd", 0);
+	OutTrace("EnumDisplayDevices: device=%s devnum=%i flags=%x\n", lpDevice, iDevNum, dwFlags);
+
+	ret = (*pEnumDisplayDevicesA)(lpDevice, iDevNum, lpDisplayDevice, dwFlags);
+
+	if(ret){
+		OutTrace("EnumDisplayDevices: cb=%x devname=%s devstring=%s stateflags=%x\n", 
+			lpDisplayDevice->cb, lpDisplayDevice->DeviceName, lpDisplayDevice->DeviceString, lpDisplayDevice->StateFlags);
+	}
+	else{
+		OutTraceE("EnumDisplayDevices ERROR: err=%d\n", GetLastError());
+	}
+	return ret;
+}

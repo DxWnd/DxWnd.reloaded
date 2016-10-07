@@ -1147,3 +1147,12 @@ v2.03.74
 fix: logging of dwFOURCC field text value
 fix: Injection routine: avoid closing a few handles that should not be closed, simplified logic.
 add: GUI global configuration panel
+
+v2.03.75
+fix: handling of restore previous screen mode when a primary fullscreen window is terminated. Fixes "Dethkarz" initialization error after 8BPP intro movie termination.
+fix: SystemParameterInfo for SPI_SETSCREENSAVERRUNNING does not return an error
+fix: added default pixel format specification to backbuffer: improves the possibility of ZBUFFER attach
+fix: recovery of DDERR_SURFACELOST error on primary surface in PrimaryStretchBlt routine. 
+fix: possible palette handle leakage 
+fix: DC leakage caused by CreateCompatibleDC. Fix "Mechwarrior 3" repeated play sessions.
+add: GUI drag & drop of game executables

@@ -19,6 +19,7 @@ protected: // Create from serialization only features.
 	DECLARE_DYNCREATE(CDxwndhostView)
 	BOOL isUpdated;
 	void SaveConfigFile();
+	BOOL OnInitDialog();
 
 private:
 	void Resize(void);
@@ -62,10 +63,12 @@ protected:
 	//{{AFX_MSG(CDxwndhostView)
 	afx_msg void OnDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnAdd();
+	afx_msg void OnAdd(char *);
 	afx_msg void OnDuplicate();
 	afx_msg void OnModify();
 	afx_msg void OnExport();
 	afx_msg void OnImport();
+	afx_msg void OnImport(CString);
 	afx_msg void OnDelete();
 	afx_msg void OnExplore();
 	afx_msg void OnKill();
@@ -109,6 +112,7 @@ protected:
 	afx_msg void OnMoveUp();
 	afx_msg void OnMoveDown();
 	afx_msg void OnMoveBottom();
+	afx_msg void OnDropFiles(HDROP hDropInfo);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

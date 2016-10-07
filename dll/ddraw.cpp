@@ -2659,6 +2659,10 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.dwFlags &= ~(DDSD_BACKBUFFERCOUNT|DDSD_REFRESHRATE);
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT);
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_BACKBUFFER|DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+
+	// v2.03.75: if a surface desc is NOT specified, build one. This will allow ZBUF attach.
+	if(!(lpddsd->dwFlags & DDSD_PIXELFORMAT)) SetPixFmt((LPDDSURFACEDESC2)&ddsd);
+
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
 	if(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // necessary: Martian Gotic crashes otherwise
@@ -3426,14 +3430,27 @@ HRESULT WINAPI PrimaryStretchBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFA
 		OutTraceE("PrimaryStretchBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	}
 	else {
-		// fast-blit to primary
-		if(dxw.dwFlags3 & FORCECLIPPER){
-			res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
-			if(res) OutTraceE("PrimaryStretchBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		}
-		else{
-			res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
-			if(res) OutTraceE("PrimaryStretchBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		while(TRUE) {
+			// fast-blit to primary
+			if(dxw.dwFlags3 & FORCECLIPPER){
+				res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
+				if(res) OutTraceE("PrimaryStretchBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			}
+			else{
+				res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
+				if(res) OutTraceE("PrimaryStretchBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			}
+			if(res == DDERR_SURFACELOST){
+				res = lpdds->Restore();
+				if(res) {
+					OutTraceE("PrimaryStretchBlt: Restore ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				}
+				else {
+					OutTraceDW("PrimaryStretchBlt: surface sucessfully recovered, retry\n"); 
+					continue;
+				}
+			}
+			break;
 		}
 	}
 	(*pReleaseSMethod(dxversion))(lpddsTmp);
@@ -5522,8 +5539,16 @@ HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 	OutTraceDDRAW("Release(P): lpddPalette=%x ref=%x\n", lpddPalette, ref);
 
 	if (lpddPalette == lpDDP) {
-		OutTraceDW("Release(P): lpDDP extrarefcount=%d\n", iDDPExtraRefCounter);
-		ref -= iDDPExtraRefCounter;
+		if(dxw.dwFlags4 & FIXREFCOUNTER) {
+			OutTraceDW("Release(P): lpDDP extrarefcount=%d\n", iDDPExtraRefCounter);
+			if((ULONG)iDDPExtraRefCounter >= ref){
+				while(ref) ref = (*pReleaseP)(lpddPalette);
+				lpDDP=NULL;
+				iDDPExtraRefCounter = 0;
+				return 0;
+			}
+			ref -= iDDPExtraRefCounter;
+		}
 		if (ref <= 0) {
 			ref = 0;
 			OutTraceDW("Release(P): clearing lpDDP=%x->NULL\n", lpDDP);

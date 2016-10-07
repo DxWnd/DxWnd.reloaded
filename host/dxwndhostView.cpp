@@ -153,6 +153,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_MOVE_BOTTOM, OnMoveBottom)
 	ON_WM_RBUTTONDOWN()
 	ON_WM_HOTKEY()
+	ON_WM_DROPFILES()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -1154,6 +1155,11 @@ void CDxwndhostView::OnInitialUpdate()
 	LV_ITEM listitem;
 	int i;
 
+	DragAcceptFiles();
+	ChangeWindowMessageFilter(WM_DROPFILES, MSGFLT_ADD);
+	ChangeWindowMessageFilter(WM_COPYDATA, MSGFLT_ADD);
+	ChangeWindowMessageFilter(0x0049, MSGFLT_ADD);
+
 	// Create 256 color image lists
 	HIMAGELIST hList = ImageList_Create(32,32, ILC_COLOR8 |ILC_MASK , 4, 1);
 	m_cImageListNormal.Attach(hList);
@@ -1292,6 +1298,27 @@ void CDxwndhostView::OnExport()
 			GetFolderFromPath(path);
 			WritePrivateProfileString("window", "exportpath", path, gInitPath);
 		}
+	}
+}
+
+void CDxwndhostView::OnImport(CString sFilePath)
+{
+	LV_ITEM listitem;
+	int i;
+	for (i=0; strlen(TargetMaps[i].path) && i<MAXTARGETS; i++)
+		;
+	if (i==MAXTARGETS) {
+		MessageBoxLang(DXW_STRING_MAXENTRIES, DXW_STRING_WARNING, MB_OK | MB_ICONEXCLAMATION);
+		return;
+	}
+	CListCtrl& listctrl = GetListCtrl();
+	if(LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], 0, (char *)sFilePath.GetString())){
+		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
+		listitem.iItem = i;
+		listitem.iSubItem = 0;
+		listitem.iImage = SetTargetIcon(TargetMaps[i]);
+		listitem.pszText = PrivateMaps[i].title;
+		listctrl.InsertItem(&listitem);
 	}
 }
 
@@ -1802,7 +1829,12 @@ void CDxwndhostView::OnProcessKill()
 	RevertScreenChanges(&this->InitDevMode);
 }
 
-void CDxwndhostView::OnAdd() 
+void CDxwndhostView::OnAdd()
+{
+	OnAdd(NULL);
+}
+
+void CDxwndhostView::OnAdd(char *sInitialPath) 
 {
 	// TODO: Please add a command handler code here.
 	int i;
@@ -1815,6 +1847,8 @@ void CDxwndhostView::OnAdd()
 		return;
 	}
 	memset(&TargetMaps[i],0,sizeof(TARGETMAP)); // clean up, just in case....
+	if(sInitialPath) dlg.m_FilePath = CString(sInitialPath);
+
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE);
 		PrivateMaps[i].notes = (char *)malloc(strlen(dlg.m_Notes.GetString())+1);
@@ -2759,3 +2793,27 @@ void CDxwndhostView::OnClearCompatibilityFlags()
 		RegCloseKey(hk);
 	}
 }
+
+void CDxwndhostView::OnDropFiles(HDROP dropInfo)
+{
+	CString sFile;
+	DWORD nBuffer = 0;
+	char *p;
+	// Get number of files
+	UINT nFilesDropped = DragQueryFile(dropInfo, 0xFFFFFFFF, NULL, 0);
+	if(nFilesDropped > 0){
+		nBuffer = DragQueryFile(dropInfo, 0, NULL, 0);
+		DragQueryFile(dropInfo, 0, sFile.GetBuffer(nBuffer+1), nBuffer+1);
+		p = (char *)sFile.GetString();
+		p += (strlen(p)-4);
+		if(!_strnicmp(p, ".dxw", 4)){
+			this->OnImport(sFile);
+		}
+		else {
+			this->OnAdd(sFile.GetBuffer());
+		}
+		sFile.ReleaseBuffer();
+	}
+	DragFinish(dropInfo);
+}
+

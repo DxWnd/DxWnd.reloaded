@@ -66,9 +66,10 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CTabProgram, CDialog)
 	//{{AFX_MSG_MAP(CTabProgram)
-		// NOTE: the ClassWizard will add message map macros here
+	// NOTE: the ClassWizard will add message map macros here
 	ON_BN_CLICKED(IDC_OPEN, OnOpen)
 	ON_BN_CLICKED(IDC_OPENLAUNCH, OnOpenLaunch)
+	ON_WM_DROPFILES()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -150,6 +151,25 @@ void CTabProgram::OnOpenLaunch()
 	}
 }
 
+void CTabProgram::OnDropFiles(HDROP dropInfo)
+{
+	CString sFile;
+	DWORD nBuffer = 0;
+	// Get number of files
+	UINT nFilesDropped = DragQueryFile(dropInfo, 0xFFFFFFFF, NULL, 0);
+	if(nFilesDropped > 0){
+		nBuffer = DragQueryFile(dropInfo, 0, NULL, 0);
+		DragQueryFile(dropInfo, 0, sFile.GetBuffer(nBuffer+1), nBuffer+1);
+		//CTargetDlg *pDlg = (CTargetDlg *)this->GetParent()->GetParent();
+		//pDlg->m_FilePath = sFile;
+		CDragEdit *pEditFile = (CDragEdit *)this->GetDlgItem(IDC_FILE);
+		pEditFile->SetWindowTextA(sFile.GetBuffer());
+		//MessageBox(sFile.GetBuffer(), "debug", 0);
+		sFile.ReleaseBuffer();
+	}
+	DragFinish(dropInfo);
+}
+
 BOOL CTabProgram::OnInitDialog()
 {
 	HINSTANCE Hinst;
@@ -157,6 +177,17 @@ BOOL CTabProgram::OnInitDialog()
 	CStatic *IconBox;
 	IFormat *m_pRelIntegerFormat = new(RelIntegerFormat);
 
+	//ChangeWindowMessageFilter(WM_DROPFILES, MSGFLT_ADD);
+	//ChangeWindowMessageFilter(WM_COPYDATA, MSGFLT_ADD);
+	//ChangeWindowMessageFilter(0x0049, MSGFLT_ADD);
+	DragAcceptFiles();
+	CDragEdit *pEditFile;
+	pEditFile = (CDragEdit *)this->GetDlgItem(IDC_FILE);
+	pEditFile->DragAcceptFiles();
+	pEditFile = (CDragEdit *)this->GetDlgItem(IDC_LAUNCH);
+	pEditFile->DragAcceptFiles();
+	//m_File.DragAcceptFiles();
+	//m_Launch.DragAcceptFiles();
 	CDialog::OnInitDialog();
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 	Hinst = ::LoadLibrary(cTarget->m_FilePath);

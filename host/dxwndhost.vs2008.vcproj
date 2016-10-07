@@ -222,6 +222,10 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\CDragEdit.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CGlobalSettings.cpp"
 				>
 			</File>
@@ -509,6 +513,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CDragEdit.h"
+				>
+			</File>
+			<File
 				RelativePath=".\CGlobalSettings.h"
 				>
 			</File>
@@ -715,19 +723,19 @@
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\alt-ctrl-shift.png"
-			>
-		</File>
-		<File
 			RelativePath=".\res\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
-			RelativePath=".\res\alt.png"
+			RelativePath=".\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
 			RelativePath=".\alt.png"
+			>
+		</File>
+		<File
+			RelativePath=".\res\alt.png"
 			>
 		</File>
 		<File

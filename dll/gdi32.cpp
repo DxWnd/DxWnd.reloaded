@@ -921,12 +921,15 @@ HDC WINAPI extCreateICA(LPCTSTR lpszDriver, LPCTSTR lpszDevice, LPCTSTR lpszOutp
 
 HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 {
+	// v2.03.75: fixed dc leakage that crashed "Mechwarrior 3"
 	HDC RetHdc;
 	DWORD LastError;
+	BOOL bSwitchedToMainWin = FALSE;
 
 	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
 	if(hdc==0){
 		hdc=(*pGDIGetDC)(dxw.GethWnd());
+		bSwitchedToMainWin = TRUE;
 		if(dxw.dwFlags6 & CREATEDESKTOP){
 			extern HWND hDesktopWindow;
 			hdc=(*pGDIGetDC)(hDesktopWindow);
@@ -937,6 +940,7 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	// eliminated error message for errorcode 0.
 	SetLastError(0);
 	RetHdc=(*pGDICreateCompatibleDC)(hdc);
+	if(bSwitchedToMainWin) (*pGDIReleaseDC)(dxw.GethWnd(),hdc);
 	LastError=GetLastError();
 	if(LastError == 0){
 		OutTraceDW("GDI.CreateCompatibleDC: returning HDC=%x\n", RetHdc);
