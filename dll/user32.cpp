@@ -190,6 +190,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
 	{HOOK_HOT_CANDIDATE, 0, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
 	{HOOK_IAT_CANDIDATE, 0, "IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
+	{HOOK_IAT_CANDIDATE, 0, "GetTopWindow", (FARPROC)GetTopWindow, (FARPROC *)&pGetTopWindow, (FARPROC)extGetTopWindow},
 	// hot by MinHook since v2.03.07
 	{HOOK_HOT_CANDIDATE, 0, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
 	{HOOK_HOT_CANDIDATE, 0, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
@@ -203,7 +204,6 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "IsWindow", (FARPROC)IsWindow, (FARPROC *)&pIsWindow, (FARPROC)extIsWindow},
 	{HOOK_HOT_CANDIDATE, 0, "GetWindow", (FARPROC)GetWindow, (FARPROC *)&pGetWindow, (FARPROC)extGetWindow},
 	{HOOK_HOT_CANDIDATE, 0, "GetWindowThreadProcessId", (FARPROC)GetWindowThreadProcessId, (FARPROC *)&pGetWindowThreadProcessId, (FARPROC)extGetWindowThreadProcessId},
-	{HOOK_HOT_CANDIDATE, 0, "GetTopWindow", (FARPROC)GetTopWindow, (FARPROC *)&pGetTopWindow, (FARPROC)extGetTopWindow},
 	{HOOK_HOT_CANDIDATE, 0, "GetFocus", (FARPROC)GetFocus, (FARPROC *)&pGetFocus, (FARPROC)extGetFocus},
 #endif
 
@@ -1133,8 +1133,7 @@ HCURSOR WINAPI extSetCursor(HCURSOR hCursor)
 	HCURSOR ret;
 
 	ret=(*pSetCursor)(hCursor);
-	OutTraceDW("GDI.SetCursor: Cursor=%x, ret=%x\n", hCursor, ret);
-	//MessageBox(0, "SelectPalette", "GDI32.dll", MB_OK | MB_ICONEXCLAMATION);
+	OutTraceB("GDI.SetCursor: Cursor=%x, ret=%x\n", hCursor, ret);
 	return ret;
 }
 
@@ -2121,7 +2120,8 @@ BOOL WINAPI extClipCursor(RECT *lpRectArg)
 			OutTrace("ClipCursor: rect=(NULL)\n");
 	}
 
- 	if (!(dxw.dwFlags1 & ENABLECLIPPING)) return 1;
+ 	if (!(dxw.dwFlags1 & DISABLECLIPPING)) return TRUE;
+	if ((dxw.dwFlags8 & CLIPLOCKED) && (lpRectArg == NULL)) return TRUE;
 
 	if(lpRectArg){
 		Rect=*lpRectArg;
@@ -2150,12 +2150,12 @@ BOOL WINAPI extClipCursor(RECT *lpRectArg)
 
 BOOL WINAPI extGetClipCursor(LPRECT lpRect)
 {
-	// v2.1.93: if ENABLECLIPPING, return the saved clip rect coordinates
+	// v2.1.93: if DISABLECLIPPING, return the saved clip rect coordinates
 
 	BOOL ret;
 
 	// proxy....
-	if (!(dxw.dwFlags1 & ENABLECLIPPING)) {
+	if (!(dxw.dwFlags1 & DISABLECLIPPING)) {
 		ret=(*pGetClipCursor)(lpRect);
 		// v2.03.11: fix for "SubCulture" mouse movement
 		if(lpRect && dxw.Windowize)	*lpRect = dxw.GetScreenRect();
@@ -2737,7 +2737,7 @@ HWND WINAPI extGetTopWindow(HWND hwnd)
 	HWND ret;
 	OutTraceDW("GetTopWindow: hwnd=%x fullscreen=%x\n", hwnd, dxw.IsFullScreen()); 
 	// a fullscreen program is supposed to be always top Z-order on the desktop!
-	ret = (dxw.IsFullScreen() && dxw.IsDesktop(hwnd)) ? dxw.GethWnd() : (*pGetTopWindow)(hwnd);
+	ret = (dxw.IsFullScreen() && dxw.IsDesktop(hwnd) && (dxw.dwFlags8 & PRETENDVISIBLE)) ? dxw.GethWnd() : (*pGetTopWindow)(hwnd);
 	OutTraceDW("GetTopWindow: ret=%x\n", ret); 
 	return ret;
 }
@@ -3278,7 +3278,7 @@ BOOL WINAPI extIsWindowVisible(HWND hwnd)
 	BOOL ret;
 	ret=(*pIsWindowVisible)(hwnd);
 	OutTraceB("IsWindowVisible: hwnd=%x ret=%x\n", hwnd, ret);
-	if(dxw.IsDesktop(hwnd) && !ret){
+	if(dxw.IsDesktop(hwnd) && (dxw.dwFlags8 & PRETENDVISIBLE) && !ret){
 		OutTraceDW("IsWindowVisible: FORCING ret=TRUE\n");
 		ret=TRUE;
 	}

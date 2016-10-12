@@ -1372,9 +1372,15 @@ fix: recovered DEFAULTMESSAGES option
 fix: normalized output for ddraw GetScanLine() method
 fix: fixed the policy for redrecting the WindowProc routine. Fixes "Ultimate Spiderman" clipping problems, and possibly much more
 
-v2.03.99
+v2.03.99/fx1-3
 fix: unwanted hook to directsound when passing by CoCreateInstance()
 fix: transient mode, now checks for both the target and the launcher to be dead before terminating
-add: Direct3D TRIMTEXTUREFORMAT flag, to mimic MS "DirectXTrimTextureFormat" shim. Fixes problems in ....
+add: Direct3D TRIMTEXTUREFORMAT flag, to mimic MS "DirectXTrimTextureFormat" shim. Fixes problems in "Heavy Gear 2" and "Star Wars: Rogue Squardon 3D".
 add: D3DDevice GetCaps hooking and full dump of D3DDevice capabilities
-
+add: "No HAL Device" flag, making it unavailable the IID_Direct3DHALDevice device. Fixes "Grand Prix World" when the 3D car models are invisible.
+add: reorganization of mouse clipper fields, with the addition of LOCK mode (useful for Tribal Rage)
+fix: handling of Lock/Unlock methods differentiated in ddraw 4 vs. 7. Fixes "Hoyle Casino Empire"
+fix: texture hack now search for hacked textures in the texture.in folder, as stated in the documentation
+fix: D3D7 EnumDevices hexdump fixed
+add: flag "Pretend Win visible on top" (PRETENDVISIBLE) to let the program believe that the main window is always visible and on z-order top as a fullscreen window should be
+fix: fixed some divide by 0 conditions when window is minimized

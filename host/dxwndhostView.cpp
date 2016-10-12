@@ -277,6 +277,13 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags2 |= SHOWHWCURSOR; break;
 	}	
 
+	switch(dlg->m_MouseClipper){
+		case 0: break;
+		case 1: t->flags |= DISABLECLIPPING; break;
+		case 2: t->flags |= CLIPCURSOR; break;
+		case 3: t->flags |= CLIPCURSOR; t->flags8 |= CLIPLOCKED; break;
+	}	
+
 	switch(dlg->m_OffendingMessages){
 		case 0: break;
 		case 1: t->flags3 |= FILTERMESSAGES; break;
@@ -394,6 +401,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DisableDisableAltTab) t->flags7 |= DISABLEDISABLEALTTAB;
 	if(dlg->m_NoImagehlp) t->flags5 |= NOIMAGEHLP;
 	if(dlg->m_ForcesHEL) t->flags3 |= FORCESHEL;
+	if(dlg->m_NoHALDevice) t->flags8 |= NOHALDEVICE;
 	if(dlg->m_MinimalCaps) t->flags3 |= MINIMALCAPS;
 	if(dlg->m_SetZBufferBitDepths) t->flags6 |= SETZBUFFERBITDEPTHS;
 	if(dlg->m_ForcesSwapEffect) t->flags6 |= FORCESWAPEFFECT;
@@ -427,8 +435,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_IndependentRefresh) t->flags2 |= INDEPENDENTREFRESH;
 	if(dlg->m_TextureFormat) t->flags5 |= TEXTUREFORMAT;
 	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
-	if(dlg->m_EnableClipping) t->flags |= ENABLECLIPPING;
-	if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
+	//if(dlg->m_EnableClipping) t->flags |= DISABLECLIPPING;
+	//if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
 	if(dlg->m_FixTextOut) t->flags |= FIXTEXTOUT;
 	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
@@ -514,6 +522,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FixClipperArea) t->flags7 |= FIXCLIPPERAREA;
 	if(dlg->m_SyncPalette) t->flags6 |= SYNCPALETTE;
 	if(dlg->m_NoWinErrors) t->flags7 |= NOWINERRORS;
+	if(dlg->m_PretendVisible) t->flags8 |= PRETENDVISIBLE;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	if(dlg->m_InitialRes) t->flags7 |= INITIALRES;
@@ -603,6 +612,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & HIDEHWCURSOR) dlg->m_MouseVisibility = 1;
 	if(t->flags2 & SHOWHWCURSOR) dlg->m_MouseVisibility = 2;
 
+	dlg->m_MouseClipper = 0;
+	if(t->flags & DISABLECLIPPING) dlg->m_MouseClipper = 1;
+	if(t->flags & CLIPCURSOR) dlg->m_MouseClipper = 2;
+	if(t->flags8 & CLIPLOCKED) dlg->m_MouseClipper = 3;
+
 	dlg->m_OffendingMessages = 0;
 	if(t->flags3 & FILTERMESSAGES) dlg->m_OffendingMessages = 1;
 	if(t->flags3 & DEFAULTMESSAGES) dlg->m_OffendingMessages = 2;
@@ -689,6 +703,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DisableDisableAltTab = t->flags7 & DISABLEDISABLEALTTAB ? 1 : 0;
 	dlg->m_NoImagehlp = t->flags5 & NOIMAGEHLP ? 1 : 0;
 	dlg->m_ForcesHEL = t->flags3 & FORCESHEL ? 1 : 0;
+	dlg->m_NoHALDevice = t->flags8 & NOHALDEVICE ? 1 : 0;
 	dlg->m_MinimalCaps = t->flags3 & MINIMALCAPS ? 1 : 0;
 	dlg->m_SetZBufferBitDepths = t->flags6 & SETZBUFFERBITDEPTHS ? 1 : 0;
 	dlg->m_ForcesSwapEffect = t->flags6 & FORCESWAPEFFECT ? 1 : 0;
@@ -741,8 +756,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_IndependentRefresh = t->flags2 & INDEPENDENTREFRESH ? 1 : 0;
 	dlg->m_TextureFormat = t->flags5 & TEXTUREFORMAT ? 1 : 0;
 	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
-	dlg->m_EnableClipping = t->flags & ENABLECLIPPING ? 1 : 0;
-	dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
+	//dlg->m_EnableClipping = t->flags & DISABLECLIPPING ? 1 : 0;
+	//dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
 	dlg->m_VideoToSystemMem = t->flags & SWITCHVIDEOMEMORY ? 1 : 0;
 	dlg->m_FixTextOut = t->flags & FIXTEXTOUT ? 1 : 0;
 	dlg->m_SharedDC = t->flags6 & SHAREDDC ? 1 : 0;
@@ -826,6 +841,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FixClipperArea = t->flags7 & FIXCLIPPERAREA ? 1 : 0;
 	dlg->m_SyncPalette = t->flags6 & SYNCPALETTE ? 1 : 0;
 	dlg->m_NoWinErrors = t->flags7 & NOWINERRORS ? 1 : 0;
+	dlg->m_PretendVisible = t->flags8 & PRETENDVISIBLE ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_InitialRes = t->flags7 & INITIALRES ? 1 : 0;

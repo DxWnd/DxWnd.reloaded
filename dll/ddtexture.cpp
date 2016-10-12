@@ -347,7 +347,7 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 		if(!hash) break; // almost certainly, an empty black surface!
 
 		// Look for the .BMP file. 
-		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.bmp", 
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.in\\texture.%03d.%03d.%s.%08X.bmp", 
 			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), hash);
 		hf = fopen(pszFile, "rb");
 		if(!hf) break; // no updated texture to load
