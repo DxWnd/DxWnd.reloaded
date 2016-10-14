@@ -124,8 +124,6 @@ public: // methods
 	DWORD FixWinExStyle(DWORD);
 	HDC AcquireEmulatedDC(HWND);
 	BOOL ReleaseEmulatedDC(HWND);
-	HDC AcquireSharedDC(HWND);
-	BOOL ReleaseSharedDC(HWND, HDC);
 	BOOL IsVirtual(HDC);
 	void ResetEmulatedDC();
 	int VirtualOffsetX, VirtualOffsetY, VirtualExtentX, VirtualExtentY;

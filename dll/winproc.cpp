@@ -344,12 +344,12 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_WINDOWPOSCHANGING:
 	case WM_WINDOWPOSCHANGED:
 		if(dxw.Windowize && dxw.IsFullScreen()){
+			LPWINDOWPOS wp = (LPWINDOWPOS)lparam;
+			extern HWND hControlParentWnd;
 			if(dxw.dwFlags5 & NOWINPOSCHANGES){
 				OutTraceDW("WindowProc: %s - suppressed\n", message==WM_WINDOWPOSCHANGED ? "WM_WINDOWPOSCHANGED" : "WM_WINDOWPOSCHANGING");
 				return 0;
 			}
-			extern HWND hControlParentWnd;
-			LPWINDOWPOS wp;
 			wp = (LPWINDOWPOS)lparam;
 			dxwFixWindowPos("WindowProc", hwnd, lparam);
 			OutTraceDW("WindowProc: %s fixed size=(%d,%d)\n", 
@@ -365,6 +365,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 				if (dxw.dwFlags6 & ACTIVATEAPP){
 					PostMessage(hwnd, WM_ACTIVATEAPP, 1, 0);
 				}
+				// v2.03.91.fx4: keep position coordinates updated!
+				if(!(wp->flags & (SWP_NOMOVE|SWP_NOSIZE))) dxw.UpdateDesktopCoordinates();
 			}
 		}
 		break;

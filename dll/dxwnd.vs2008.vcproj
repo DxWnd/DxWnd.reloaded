@@ -398,6 +398,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\emulateddc.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\gdi32.cpp"
 				>
 			</File>

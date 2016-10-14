@@ -1293,6 +1293,9 @@ fix: manages the possibility or ValidateRect receiving a NULL RECT pointer - fix
 add: auto-blit mode in SmakW32 frame loop - shows "Galapagos" company logo intro movie
 fix: force stop blitting on window minimize event - fixes "Galapagos" and many others ....
 
-v2.03.91.fx1,2:
+v2.03.91.fx1-4:
 fix: eliminated LOC causing bad window sizing
 fix: better desktop hider management
+fix: DC emulation object leakage - fixes "Yu No" leakage
+fix: USER32 EndPaint DC leakage - fixes "Yu No" leakage
+fix: window position problems

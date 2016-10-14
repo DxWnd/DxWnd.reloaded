@@ -139,6 +139,9 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	RECT destrect, emurect;
 	extern PrimaryBlt_Type pPrimaryBlt;
 
+	// check coordinates
+	dxw.UpdateDesktopCoordinates();
+
 	// debug suppressions
 	if(isFlipping){
 		if(dxw.dwFlags3 & NODDRAWFLIP) return DD_OK;

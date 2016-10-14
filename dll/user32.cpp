@@ -2345,6 +2345,8 @@ HDC WINAPI extBeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint)
 		case GDIMODE_EMULATED:
 			HDC EmuHDC; 
 			EmuHDC = dxw.AcquireEmulatedDC(hwnd); 
+			if(!DeleteObject(lpPaint->hdc)) 
+				OutTraceE("BeginPaint: DeleteObject ERROR hdc=%x err=%d at %d\n", lpPaint->hdc, GetLastError(), __LINE__);
 			lpPaint->hdc=EmuHDC;
 			hdc = EmuHDC;
 			break;

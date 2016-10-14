@@ -1374,7 +1374,7 @@ int WINAPI extIntersectClipRect(HDC hdc, int nLeftRect, int nTopRect, int nRight
 	}
 
 	ret=(*pIntersectClipRect)(hdc, nLeftRect, nTopRect, nRightRect, nBottomRect);
-	OutTraceE("IntersectClipRect: ret=%x(%s)\n", ret, ExplainRegionType(ret)); 
+	OutTraceDW("IntersectClipRect: ret=%x(%s)\n", ret, ExplainRegionType(ret)); 
 	return ret;
 }
 
