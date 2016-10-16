@@ -37,6 +37,7 @@ UINT m_InitialState = DXW_ACTIVE;
 BOOL gbDebug = FALSE;
 BOOL gTransientMode = FALSE;
 BOOL gAutoHideMode = FALSE;
+BOOL gQuietMode = FALSE;
 int iProgIndex;
 extern char m_ConfigFileName[20+1] = "dxwnd.ini";
 
@@ -110,6 +111,10 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 			char *p = (char *)sParam.GetString();
 			iProgIndex = atoi(&p[2]);
 			return;
+		}
+		if (sParam.MakeLower() == "q"){
+			// (Q)uiet mode: no message dialogs on screen
+			gQuietMode = TRUE;
 		}
 	}
 

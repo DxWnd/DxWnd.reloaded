@@ -2,10 +2,14 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+extern BOOL gQuietMode;
+
 int MessageBoxLang(UINT iText, UINT iCaption, UINT uType)
 {
 	WCHAR sBuffer[1024+1];
 	WCHAR sCaption[48+1];
+
+	if (gQuietMode) return MB_OK;
 	LoadStringW(AfxGetResourceHandle(), iText, (LPWSTR)&sBuffer, sizeof(sBuffer));
 	LoadStringW(AfxGetResourceHandle(), iCaption, (LPWSTR)&sCaption, sizeof(sCaption));
 
@@ -19,6 +23,7 @@ int MessageBoxLangArg(UINT iText, UINT iCaption, UINT uType, ...)
 	WCHAR sFormat[1024+1];
 	WCHAR sCaption[48+1];
 
+	if (gQuietMode) return MB_OK;
 	LoadStringW(AfxGetResourceHandle(), iText, (LPWSTR)&sFormat, sizeof(sFormat));
 	LoadStringW(AfxGetResourceHandle(), iCaption, (LPWSTR)&sCaption, sizeof(sCaption));
 

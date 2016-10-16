@@ -848,6 +848,13 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug flag
 		WNDPROC lres;
 		WNDPROC OldProc;
+
+		// fix ....
+		extern LRESULT CALLBACK dw_Hider_Message_Handler(HWND, UINT, WPARAM, LPARAM);
+		if(dwNewLong==(LONG)dw_Hider_Message_Handler) {
+			return (*pSetWindowLong)(hwnd, nIndex, (LONG)dw_Hider_Message_Handler);
+		}
+
 		// GPL fix
 		if(dxw.IsRealDesktop(hwnd) && dxw.Windowize) {
 			hwnd=dxw.GethWnd();
@@ -1459,6 +1466,10 @@ static void HookChildWndProc(HWND hwnd, DWORD dwStyle, LPCTSTR ApiName)
 	if(dxw.dwFlags6 & NOWINDOWHOOKS) return;
 
 	pWindowProc = (WNDPROC)(*pGetWindowLong)(hwnd, GWL_WNDPROC);
+
+	extern LRESULT CALLBACK dw_Hider_Message_Handler(HWND, UINT, WPARAM, LPARAM);
+	if(pWindowProc==dw_Hider_Message_Handler) return;
+
 	if((pWindowProc == extWindowProc) || 
 		(pWindowProc == extChildWindowProc) ||
 		(pWindowProc == extDialogWindowProc)){ // avoid recursions 

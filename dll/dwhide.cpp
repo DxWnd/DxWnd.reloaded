@@ -6,6 +6,8 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 
+//#define FOUR_WINDOWS_STRIPED_HIDER
+
 /****************************************************************************
  *	Function Name	: gShowHideTaskBar()									*
  *	Parameters		: BOOL bHide (flag to toggle Show/Hide of Taskbar)		*
@@ -53,9 +55,10 @@ void gShowHideTaskBar(BOOL bHide /*=FALSE*/)
 
 static bool quit = false;
 static HWND wHider=0;
+static RECT wDesktop;
 
 #ifdef FOUR_WINDOWS_STRIPED_HIDER
-static LRESULT CALLBACK Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
+LRESULT CALLBACK dw_Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
 {
     switch(umsg)
     {
@@ -70,8 +73,12 @@ static LRESULT CALLBACK Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wpara
 	return (*pDefWindowProcA)(hwnd, umsg, wparam, lparam);
 }
 #else
-static LRESULT CALLBACK Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
+LRESULT CALLBACK dw_Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
 {
+
+	extern void ExplainMsg(char *, HWND, UINT, WPARAM, LPARAM);
+	// ExplainMsg("HIDER", hwnd, umsg, wparam, lparam);
+
 	//LRESULT ret;
     switch(umsg)
     {
@@ -86,6 +93,7 @@ static LRESULT CALLBACK Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wpara
 	// OutTrace("HIDER: msg=%x(%s) w/lparam= %x-%x\n", umsg, ExplainWinMessage(umsg), wparam, lparam);
 
 	if(hwnd == wHider){
+		WINDOWPOS *wp;
 		switch(umsg){
 			case WM_NOTIFY:
 			case WM_SETFOCUS:
@@ -102,6 +110,14 @@ static LRESULT CALLBACK Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wpara
 				(*pSetWindowPos)(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOOWNERZORDER|SWP_NOSENDCHANGING);
 				(*pSetWindowPos)(dxw.GethWnd(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOOWNERZORDER|SWP_NOSENDCHANGING);
 				return 0;
+				break;
+			case WM_WINDOWPOSCHANGING:
+			case WM_WINDOWPOSCHANGED:
+				wp = (WINDOWPOS *)lparam;
+				wp->x = wDesktop.left;
+				wp->y = wDesktop.top;
+				wp->cx = wDesktop.right - wDesktop.left;
+				wp->cy = wDesktop.bottom - wDesktop.top;
 				break;
 			default:
 				break;
@@ -142,7 +158,7 @@ static HINSTANCE RegisterHiderWindow()
 
 	WndClsEx.cbSize        = sizeof(WNDCLASSEX);
 	WndClsEx.style         = 0;
-	WndClsEx.lpfnWndProc   = Hider_Message_Handler; //DefWindowProc;
+	WndClsEx.lpfnWndProc   = dw_Hider_Message_Handler; //DefWindowProc;
 	WndClsEx.cbClsExtra    = 0;
 	WndClsEx.cbWndExtra    = 0;
 	WndClsEx.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
@@ -274,7 +290,7 @@ void dxwCore::HideDesktop(HWND hwnd)
 {
 	static BOOL DoOnce=TRUE;
 	static ATOM aClass;
-	RECT wRect, wDesktop;
+	RECT wRect;
 	static HINSTANCE hinst=NULL;
 
 	if(DoOnce){
@@ -302,7 +318,7 @@ void dxwCore::HideDesktop(HWND hwnd)
 	if(!wHider) {
 		wHider=(*pCreateWindowExA)(0, "dxwnd:hider", "hider", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
 		if(!wHider) {
-			OutTrace("HideDesktop: CreateWindowEx ERROR hwnd=%x err=%d\n", hwnd, GetLastError());
+			OutTrace("HideDesktop: CreateWindowEx ERROR hwnd=%x parent=%x err=%d\n", hwnd, hParent, GetLastError());
 			return;
 		}
 		(*pSetWindowLongA)(wHider, GWL_STYLE, 0);

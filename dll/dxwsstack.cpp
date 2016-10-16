@@ -91,8 +91,20 @@ void dxwSStack::ClearSurfaceList()
 		SurfaceDB[i].uRole = 0;
 		SurfaceDB[i].uVersion = 0;
 	}
-	lpDDSPrimary = NULL;
-	lpDDSBackBuffer = NULL;
+	// v2.03.91.fx5: emptying the list entirely is no good for "Warhammer 40K Rites of War"
+	// better leave the last used primary and backbuffer surfaces.
+	if(lpDDSPrimary){
+		SurfaceDB[0].lpdds = lpDDSPrimary;
+		SurfaceDB[0].uRef = TRUE;
+		SurfaceDB[0].uRole = SURFACE_ROLE_PRIMARY;
+		SurfaceDB[0].uVersion = 0;
+	}
+	if(lpDDSBackBuffer){
+		SurfaceDB[1].lpdds = lpDDSBackBuffer;
+		SurfaceDB[1].uRef = TRUE;
+		SurfaceDB[1].uRole = SURFACE_ROLE_BACKBUFFER;
+		SurfaceDB[1].uVersion = 0;
+	}
 }
 
 void dxwSStack::UnrefSurface(LPDIRECTDRAWSURFACE ps)

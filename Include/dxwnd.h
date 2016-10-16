@@ -347,6 +347,7 @@ char *hexdump(unsigned char *, int);
 LRESULT CALLBACK extWindowProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK extChildWindowProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK extDialogWindowProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK dw_Hider_Message_Handler(HWND, UINT, WPARAM, LPARAM);
 
 // defines below to condition debug message handling
 

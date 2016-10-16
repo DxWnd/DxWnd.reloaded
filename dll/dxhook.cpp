@@ -652,7 +652,8 @@ void HookWindowProc(HWND hwnd)
 	// don't hook twice ....	
 	if ((pWindowProc == extWindowProc) ||
 		(pWindowProc == extChildWindowProc) ||
-		(pWindowProc == extDialogWindowProc)){
+		(pWindowProc == extDialogWindowProc) ||
+		(pWindowProc == dw_Hider_Message_Handler)){
 		// hooked already !!!
 		OutTraceDW("GetWindowLong: hwnd=%x WindowProc HOOK already in place\n", hwnd);
 		return;
