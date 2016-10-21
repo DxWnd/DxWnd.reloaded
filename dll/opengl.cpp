@@ -20,6 +20,8 @@
 #define COMPRESSED_RGBA_S3TC_DXT5_EXT                  0x83F3
 #endif
 
+//#include "logall.h"
+
 typedef void (WINAPI *glutFullScreen_Type)(void);
 glutFullScreen_Type pglutFullScreen;
 void WINAPI extglutFullScreen(void);
@@ -32,6 +34,15 @@ void extglutInitWindowPosition(int, int);
 typedef void (WINAPI *glutSetWindow_Type)(HWND);
 glutSetWindow_Type pglutSetWindow;
 void WINAPI extglutSetWindow(HWND);
+typedef const GLubyte* (WINAPI *glGetString_Type)(GLenum);
+glGetString_Type pglGetString;
+const GLubyte* WINAPI extglGetString(GLenum);
+typedef char* (WINAPI *wglGetExtensionsStringEXT_Type)(void);
+wglGetExtensionsStringEXT_Type pwglGetExtensionsStringEXT;
+char* WINAPI extwglGetExtensionsStringEXT(void);
+typedef const GLubyte* (WINAPI *gluGetString_Type)(GLenum);
+gluGetString_Type pgluGetString;
+const GLubyte* WINAPI extgluGetString(GLenum);
 
 //void WINAPI extglDrawPixels(GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
 //typedef void (WINAPI *glDrawPixels_Type)(GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
@@ -46,9 +57,6 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
 	{HOOK_IAT_CANDIDATE, 0, "glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
 	{HOOK_IAT_CANDIDATE, 0, "glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
-	{HOOK_IAT_CANDIDATE, 0, "wglCreateContext", NULL, (FARPROC *)&pwglCreateContext, (FARPROC)extwglCreateContext},
-	{HOOK_IAT_CANDIDATE, 0, "wglMakeCurrent", NULL, (FARPROC *)&pwglMakeCurrent, (FARPROC)extwglMakeCurrent},
-	{HOOK_IAT_CANDIDATE, 0, "wglGetProcAddress", NULL, (FARPROC *)&pwglGetProcAddress, (FARPROC)extwglGetProcAddress},
 	{HOOK_IAT_CANDIDATE, 0, "glTexImage2D", NULL, (FARPROC *)&pglTexImage2D, (FARPROC)extglTexImage2D},
 	//{HOOK_IAT_CANDIDATE, 0, "glDrawPixels", NULL, (FARPROC *)&pglDrawPixels, (FARPROC)extglDrawPixels},
 	{HOOK_IAT_CANDIDATE, 0, "glPixelZoom", NULL, (FARPROC *)&pglPixelZoom, (FARPROC)extglPixelZoom},
@@ -56,6 +64,11 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "glBindTexture", NULL, (FARPROC *)&pglBindTexture, (FARPROC)extglBindTexture},
 	//{HOOK_IAT_CANDIDATE, 0, "glCopyTexImage2D", NULL, (FARPROC *)&pglCopyTexImage2D, (FARPROC)extglCopyTexImage2D},
 	//{HOOK_IAT_CANDIDATE, 0, "glPixelStorei", NULL, (FARPROC *)&pglPixelStorei, (FARPROC)extglPixelStorei},
+	{HOOK_IAT_CANDIDATE, 0, "glGetString", NULL, (FARPROC *)&pglGetString, (FARPROC)extglGetString},
+	{HOOK_IAT_CANDIDATE, 0, "wglCreateContext", NULL, (FARPROC *)&pwglCreateContext, (FARPROC)extwglCreateContext},
+	{HOOK_IAT_CANDIDATE, 0, "wglMakeCurrent", NULL, (FARPROC *)&pwglMakeCurrent, (FARPROC)extwglMakeCurrent},
+	{HOOK_IAT_CANDIDATE, 0, "wglGetProcAddress", NULL, (FARPROC *)&pwglGetProcAddress, (FARPROC)extwglGetProcAddress},
+	{HOOK_IAT_CANDIDATE, 0, "wglGetExtensionsStringEXT", NULL, (FARPROC *)&pwglGetExtensionsStringEXT, (FARPROC)extwglGetExtensionsStringEXT},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -70,6 +83,7 @@ static HookEntryEx_Type GlutHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "glutInitWindowSize", NULL, (FARPROC *)&pglutInitWindowSize, (FARPROC)extglutInitWindowSize},
 	{HOOK_IAT_CANDIDATE, 0, "glutInitWindowPosition", NULL, (FARPROC *)&pglutInitWindowPosition, (FARPROC)extglutInitWindowPosition},
 	{HOOK_IAT_CANDIDATE, 0, "glutSetWindow", NULL, (FARPROC *)&pglutSetWindow, (FARPROC)extglutSetWindow},
+	{HOOK_IAT_CANDIDATE, 0, "gluGetString", NULL, (FARPROC *)&pgluGetString, (FARPROC)extgluGetString},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -608,11 +622,11 @@ char *ExplainDrawPixelsFormat(DWORD c)
 void WINAPI extglDrawPixels(GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data)
 {
 	GLenum glerr;
-	OutTrace("glDrawPixels: size=(%dx%d) format=%x(%s) type=%d data=%x\n", 
+	OutTraceDW("glDrawPixels: size=(%dx%d) format=%x(%s) type=%d data=%x\n", 
 		width, height, format, ExplainDrawPixelsFormat(format), type, data);
 
 	(*pglDrawPixels)(width, height, format, type, data);
-	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTraceE("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }
 #endif
@@ -630,7 +644,7 @@ void WINAPI extglPixelZoom(GLfloat xfactor, GLfloat yfactor)
 		OutTraceDW("glPixelZoom: FIXED x,y factor=(%f,%f)\n", xfactor, yfactor);
 	}
 	(*pglPixelZoom)(xfactor, yfactor);
-	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTraceE("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }
 
@@ -674,7 +688,7 @@ void WINAPI extglPixelStorei(GLenum pname,  GLint param)
 void WINAPI extglutFullScreen(void)
 {
 	if(!dxw.Windowize) return (*pglutFullScreen)();
-	OutTrace("glutFullScreen BYPASS\n");
+	OutTraceDW("glutFullScreen BYPASS\n");
 	dxw.SetFullScreen(TRUE);
 }
 
@@ -684,9 +698,9 @@ void extglutInitWindowSize(int width, int height)
 	if(dxw.Windowize){
 		dummy1=0;
 		dummy2=0;
-		OutTrace("glutInitWindowSize: width=%d height=%d\n", width, height);
+		OutTraceDW("glutInitWindowSize: width=%d height=%d\n", width, height);
 		dxw.MapWindow(&dummy1, &dummy2, &width, &height);	
-		OutTrace("glutInitWindowSize: FIXED width=%d height=%d\n", width, height);
+		OutTraceDW("glutInitWindowSize: FIXED width=%d height=%d\n", width, height);
 	}
 	(*pglutInitWindowSize)(width, height);
 }
@@ -697,17 +711,91 @@ void extglutInitWindowPosition(int x, int y)
 	if(dxw.Windowize){
 		dummy1=0;
 		dummy2=0;
-		OutTrace("glutInitWindowPosition: x=%d y=%d\n", x, y);
+		OutTraceDW("glutInitWindowPosition: x=%d y=%d\n", x, y);
 		dxw.MapWindow(&x, &y, &dummy1, &dummy2);
-		OutTrace("glutInitWindowPosition: FIXED x=%d y=%d\n", x, y);
+		OutTraceDW("glutInitWindowPosition: FIXED x=%d y=%d\n", x, y);
 	}
 	(*pglutInitWindowPosition)(x, y);
 }
 
 void WINAPI extglutSetWindow(HWND win)
 {
-	OutTrace("glutSetWindow: win=%x\n", win);
+	OutTraceDW("glutSetWindow: win=%x\n", win);
 	if(dxw.Windowize && dxw.IsRealDesktop(win)) win=dxw.GethWnd();
 	(*pglutSetWindow)(win);
 }
 
+static char *glStringName(GLenum name)
+{
+	char *ret;
+	switch(name){
+		case GL_VENDOR: ret="GL_VENDOR"; break;
+		case GL_RENDERER: ret="GL_RENDERER"; break;
+		case GL_VERSION: ret="GL_VERSION"; break;
+		case GL_SHADING_LANGUAGE_VERSION: ret="GL_SHADING_LANGUAGE_VERSION"; break;
+		case GL_EXTENSIONS: ret="GL_EXTENSIONS"; break;
+		default: ret="unknown"; break;
+	}
+	return ret;
+}
+
+const  GLubyte* WINAPI extglGetString(GLenum name)
+{
+	const GLubyte* ret;
+	ret = (*pglGetString)(name);
+	if(IsTraceDW){
+		if(strlen((const char *)ret)<80)
+			OutTrace("glGetString: name=%x(%s) ret=\"%.80s\"\n", name, glStringName(name), ret);
+		else{
+			const GLubyte *p = ret;
+			OutTrace("glGetString: name=%x(%s) ret=(%d)\n", name, glStringName(name), strlen((const char *)ret));
+			while(strlen((const char *)p)>80){
+				OutTrace("glGetString: \"%.80s\" +\n", p);
+				p += 80;
+			}
+			OutTrace("glGetString: \"%.80s\"\n", p);
+		}
+	}
+	return ret;
+}
+
+char* WINAPI extwglGetExtensionsStringEXT(void)
+{
+	char *ret;
+	ret = (*pwglGetExtensionsStringEXT)();
+	if(IsTraceDW){
+		if(strlen((const char *)ret)<80)
+			OutTrace("wglGetExtensionsStringEXT: ret=\"%.80s\"\n", ret);
+		else{
+			const char *p = ret;
+			OutTrace("wglGetExtensionsStringEXT: ret=(%d)\n", strlen((const char *)ret));
+			while(strlen((const char *)p)>80){
+				OutTrace("wglGetExtensionsStringEXT: \"%.80s\" +\n", p);
+				p += 80;
+			}
+			OutTrace("wglGetExtensionsStringEXT: \"%.80s\"\n", p);
+		}
+	}
+	return ret;
+}
+
+const GLubyte* WINAPI extgluGetString(GLenum name)
+{
+	const GLubyte* ret;
+	ret = (*pgluGetString)(name);
+	if(IsTraceDW){
+		if(strlen((const char *)ret)<80)
+			OutTrace("gluGetString: name=%x(%s) ret=\"%.80s\"\n", name, glStringName(name), ret);
+		else{
+			const GLubyte *p = ret;
+			OutTrace("gluGetString: name=%x(%s) ret=(%d)\n", name, glStringName(name), strlen((const char *)ret));
+			while(strlen((const char *)p)>80){
+				OutTrace("gluGetString: \"%.80s\" +\n", p);
+				p += 80;
+			}
+			OutTrace("gluGetString: \"%.80s\"\n", p);
+		}
+	}
+	return ret;
+}
+                    

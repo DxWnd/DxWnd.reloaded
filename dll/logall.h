@@ -14,3 +14,19 @@
 #undef OutTraceE
 #define OutTraceE OutTrace
 #endif
+#ifdef IsTraceB
+#undef IsTraceB
+#define IsTraceB TRUE
+#endif
+#ifdef IsTraceDW
+#undef IsTraceDW
+#define IsTraceDW TRUE
+#endif
+#ifdef IsTraceC
+#undef IsTraceC
+#define IsTraceC TRUE
+#endif
+#ifdef IsTraceE
+#undef IsTraceE
+#define IsTraceE TRUE
+#endif

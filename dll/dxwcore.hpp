@@ -118,6 +118,7 @@ public: // methods
 	void HideDesktop(HWND);
 	POINT ScreenToClient(POINT);
 	int GetDLLIndex(char *);
+	void PushDLL(char *, int);
 	void FixStyle(char *, HWND, WPARAM, LPARAM);
 	void FixWindowFrame(HWND);
 	DWORD FixWinStyle(DWORD);
@@ -353,19 +354,15 @@ typedef enum {
 	SYSLIBIDX_COMDLG32,
 	SYSLIBIDX_COMCTL32,
 	SYSLIBIDX_AVIFIL32,
+	SYSLIBIDX_GLIDE,
+	SYSLIBIDX_GLIDE2,
+	SYSLIBIDX_GLIDE3,
+	SYSLIBIDX_SMACKW32,
+	FREE5,
+	FREE6,
 	SYSLIBIDX_MAX 
 } 
 enum_syslibraries;
-
-typedef enum {
-	HINT_HINT = 0,
-	HINT_DDRAW,		HINT_D3D8,		HINT_D3D9,		HINT_D3D10,
-	HINT_D3D11,		HINT_OPENGL,	HINT_DSOUND,	HINT_DINPUT,
-	HINT_DINPUT8,	HINT_MOVIES,	HINT_D3D,		HINT_IHLP,
-	HINT_FAKEOS,	HINT_OBFUSCATED,HINT_SAFEDISC,	HINT_SECUROM,
-	HINT_LIMITMEM,	HINT_HOOKUPDATE,
-	HINT_LAST
-} HintEnumIds;
 
 #ifdef SYSLIBNAMES_DEFINES
 char *SysNames[]={
@@ -395,11 +392,22 @@ char *SysNames[]={
 	"comdlg32",
 	"comctl32",
 	"AVIFIL32",
+	"_", "_", "_", "_", "_", "_", // 6 free slots 
 	NULL
 };	
 #else
 extern char *SysNames[];
 #endif 
+
+typedef enum {
+	HINT_HINT = 0,
+	HINT_DDRAW,		HINT_D3D8,		HINT_D3D9,		HINT_D3D10,
+	HINT_D3D11,		HINT_OPENGL,	HINT_DSOUND,	HINT_DINPUT,
+	HINT_DINPUT8,	HINT_MOVIES,	HINT_D3D,		HINT_IHLP,
+	HINT_FAKEOS,	HINT_OBFUSCATED,HINT_SAFEDISC,	HINT_SECUROM,
+	HINT_LIMITMEM,	HINT_HOOKUPDATE,
+	HINT_LAST
+} HintEnumIds;
 
 typedef enum {
 	DXVK_NONE=0,

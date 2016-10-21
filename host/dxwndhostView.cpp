@@ -366,6 +366,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ForcesSwapEffect) t->flags6 |= FORCESWAPEFFECT;
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
 	if(dlg->m_FixGlobalUnlock) t->flags7 |= FIXGLOBALUNLOCK;
+	if(dlg->m_FixFreeLibrary) t->flags7 |= FIXFREELIBRARY;
 	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
 	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
 	if(dlg->m_FixRefCounter) t->flags4 |= FIXREFCOUNTER;
@@ -632,6 +633,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ForcesSwapEffect = t->flags6 & FORCESWAPEFFECT ? 1 : 0;
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
 	dlg->m_FixGlobalUnlock = t->flags7 & FIXGLOBALUNLOCK ? 1 : 0;
+	dlg->m_FixFreeLibrary = t->flags7 & FIXFREELIBRARY ? 1 : 0;
 	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
 	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
 	dlg->m_FixRefCounter = t->flags4 & FIXREFCOUNTER ? 1 : 0;

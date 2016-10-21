@@ -135,7 +135,7 @@ static char *Flag7Names[32]={
 	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "INJECTSUSPENDED",
 	"SSUPPRESSDIERRORS", "HOOKNORUN", "FIXBINDTEXTURE", "ENUM16BITMODES",
 	"SHAREDKEYBOARD", "HOOKNOUPDATE", "HOOKGLUT32", "INITIALRES",
-	"MAXIMUMRES", "LOCKCOLORDEPTH", "FIXSMACKLOOP", "",
+	"MAXIMUMRES", "LOCKCOLORDEPTH", "FIXSMACKLOOP", "FIXFREELIBRARY",
 	"", "", "", "",
 };
 
@@ -1464,6 +1464,15 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	}
 
 	HookSysLibsInit(); // this just once...
+
+	if(dxw.dwFlags4 & HOOKGLIDE) {
+		dxw.PushDLL("glide",	SYSLIBIDX_GLIDE);
+		dxw.PushDLL("glide2x",	SYSLIBIDX_GLIDE2);
+		dxw.PushDLL("glide3x",	SYSLIBIDX_GLIDE3);
+	}
+	if(dxw.dwFlags7 & HOOKSMACKW32) {
+		dxw.PushDLL("smackw32",	SYSLIBIDX_SMACKW32);	// SMACKW32.DLL	
+	}
 
 	base=GetModuleHandle(NULL);
 	if (dxw.dwFlags3 & SINGLEPROCAFFINITY) SetSingleProcessAffinity(TRUE);

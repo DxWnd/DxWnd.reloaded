@@ -233,6 +233,7 @@ public:
 	BOOL	m_ForcesSwapEffect;
 	BOOL	m_ColorFix;
 	BOOL	m_FixGlobalUnlock;
+	BOOL	m_FixFreeLibrary;
 	BOOL	m_NoPixelFormat;
 	BOOL	m_NoAlphaChannel;
 	BOOL	m_FixRefCounter;

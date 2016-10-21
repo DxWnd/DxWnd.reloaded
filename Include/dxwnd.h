@@ -242,6 +242,7 @@
 #define MAXIMUMRES			0x01000000 // Set maximum screen resolution accorting to sizw x sizh fields
 #define LOCKCOLORDEPTH		0x02000000 // lock ddraw color depth to current desktop value (used in SetDisplayMode)
 #define FIXSMACKLOOP		0x04000000 // fix Smack loop by insert processmessage and blit between frames
+#define FIXFREELIBRARY		0x08000000 // fix FreeLibrary simulating retcode 0(error) when attempting free of unallocated module
 
 // eighth flags DWORD dxw.dwFlags8:
 

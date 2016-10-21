@@ -34,15 +34,27 @@ WinExec_Type pWinExec = NULL;
 SetPriorityClass_Type pSetPriorityClass = NULL;
 GlobalUnlock_Type pGlobalUnlock = NULL;
 
-#ifdef NOFREELIBRARY
 typedef BOOL (WINAPI *FreeLibrary_Type)(HMODULE);
 FreeLibrary_Type pFreeLibrary = NULL;
 BOOL WINAPI extFreeLibrary(HMODULE hModule)
 { 
-	OutTrace("FreeLibrary: hModule=%x SUPPRESS\n", hModule);
-	return TRUE; 
+	BOOL ret;
+	static HMODULE hLastModule;
+	OutTraceB("FreeLibrary: hModule=%x\n", hModule);
+	ret = (*pFreeLibrary)(hModule);
+	if(ret){
+		OutTrace("FreeLibrary: ret=%x\n", ret);
+		if((hModule == hLastModule) && (dxw.dwFlags7 & FIXFREELIBRARY)) {
+			OutTraceDW("FreeLibrary: FIXFREELIBRARY hack ret=0\n");
+			ret = 0;
+		}
+		hLastModule = hModule;
+	}
+	else {
+		OutTraceE("FreeLibrary ERROR: err=%d\n", GetLastError());
+	}
+	return ret; 
 }
-#endif
 
 // v2.02.96: the GetSystemInfo API is NOT hot patchable on Win7. This can cause problems because it can't be hooked by simply
 // enabling hot patch. A solution is making all LoadLibrary* calls hot patchable, so that when loading the module, the call
@@ -63,9 +75,7 @@ static HookEntryEx_Type Hooks[]={
 	//{HOOK_IAT_CANDIDATE, 0, "WinExec", (FARPROC)NULL, (FARPROC *)&pWinExec, (FARPROC)extWinExec},
 	{HOOK_HOT_CANDIDATE, 0, "SetPriorityClass", (FARPROC)SetPriorityClass, (FARPROC *)&pSetPriorityClass, (FARPROC)extSetPriorityClass},
 	{HOOK_HOT_CANDIDATE, 0, "GlobalUnlock", (FARPROC)GlobalUnlock, (FARPROC *)&pGlobalUnlock, (FARPROC)extGlobalUnlock},
-#ifdef NOFREELIBRARY
 	{HOOK_HOT_CANDIDATE, 0, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
-#endif
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 

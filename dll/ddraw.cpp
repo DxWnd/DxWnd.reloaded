@@ -99,6 +99,11 @@ HRESULT WINAPI extInitialize2(LPDIRECTDRAW, FAR GUID *);
 HRESULT WINAPI extInitialize3(LPDIRECTDRAW, FAR GUID *);
 HRESULT WINAPI extInitialize4(LPDIRECTDRAW, FAR GUID *);
 HRESULT WINAPI extInitialize7(LPDIRECTDRAW, FAR GUID *);
+HRESULT WINAPI extRestoreDisplayMode1(LPDIRECTDRAW);
+HRESULT WINAPI extRestoreDisplayMode2(LPDIRECTDRAW);
+HRESULT WINAPI extRestoreDisplayMode3(LPDIRECTDRAW);
+HRESULT WINAPI extRestoreDisplayMode4(LPDIRECTDRAW);
+HRESULT WINAPI extRestoreDisplayMode7(LPDIRECTDRAW);
 HRESULT WINAPI extSetCooperativeLevel1(LPDIRECTDRAW, HWND, DWORD);
 HRESULT WINAPI extSetCooperativeLevel2(LPDIRECTDRAW, HWND, DWORD);
 HRESULT WINAPI extSetCooperativeLevel3(LPDIRECTDRAW, HWND, DWORD);
@@ -327,6 +332,7 @@ GetAvailableVidMem4_Type pGetAvailableVidMem4, pGetAvailableVidMem7;
 RestoreAllSurfaces_Type pRestoreAllSurfaces;
 TestCooperativeLevel_Type pTestCooperativeLevel4, pTestCooperativeLevel7;
 GetDeviceIdentifier_Type pGetDeviceIdentifier;
+RestoreDisplayMode_Type pRestoreDisplayMode1, pRestoreDisplayMode2, pRestoreDisplayMode3, pRestoreDisplayMode4, pRestoreDisplayMode7;
 
 /* DirectDrawSurface hook pointers */
 QueryInterface_Type pQueryInterfaceS1, pQueryInterfaceS2, pQueryInterfaceS3, pQueryInterfaceS4, pQueryInterfaceS7;
@@ -1151,6 +1157,7 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode1, (void **)&pGetDisplayMode1, "GetDisplayMode(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 56), extGetGDISurface1, (void **)&pGetGDISurface1, "GetGDISurface(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 72), extInitialize1, (void **)&pInitialize1, "Initialize(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 76), extRestoreDisplayMode1, (void **)&pRestoreDisplayMode1, "RestoreDisplayMode(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel1, (void **)&pSetCooperativeLevel1, "SetCooperativeLevel(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode1, (void **)&pSetDisplayMode1, "SetDisplayMode(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 88), extWaitForVerticalBlank1, (void **)&pWaitForVerticalBlank1, "WaitForVerticalBlank(D1)");
@@ -1167,6 +1174,7 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode2, (void **)&pGetDisplayMode2, "GetDisplayMode(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 56), extGetGDISurface2, (void **)&pGetGDISurface2, "GetGDISurface(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 72), extInitialize2, (void **)&pInitialize2, "Initialize(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 76), extRestoreDisplayMode2, (void **)&pRestoreDisplayMode2, "RestoreDisplayMode(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel2, (void **)&pSetCooperativeLevel2, "SetCooperativeLevel(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode2, (void **)&pSetDisplayMode2, "SetDisplayMode(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 88), extWaitForVerticalBlank2, (void **)&pWaitForVerticalBlank2, "WaitForVerticalBlank(D2)");
@@ -1185,6 +1193,7 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode3, (void **)&pGetDisplayMode3, "GetDisplayMode(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 56), extGetGDISurface3, (void **)&pGetGDISurface3, "GetGDISurface(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 72), extInitialize3, (void **)&pInitialize3, "Initialize(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 76), extRestoreDisplayMode3, (void **)&pRestoreDisplayMode3, "RestoreDisplayMode(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel3, (void **)&pSetCooperativeLevel3, "SetCooperativeLevel(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode3, (void **)&pSetDisplayMode3, "SetDisplayMode(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 88), extWaitForVerticalBlank3, (void **)&pWaitForVerticalBlank3, "WaitForVerticalBlank(D3)");
@@ -1203,6 +1212,7 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode4, (void **)&pGetDisplayMode4, "GetDisplayMode(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 56), extGetGDISurface4, (void **)&pGetGDISurface4, "GetGDISurface(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 72), extInitialize4, (void **)&pInitialize4, "Initialize(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 76), extRestoreDisplayMode4, (void **)&pRestoreDisplayMode4, "RestoreDisplayMode(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel4, (void **)&pSetCooperativeLevel4, "SetCooperativeLevel(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode4, (void **)&pSetDisplayMode4, "SetDisplayMode(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 88), extWaitForVerticalBlank4, (void **)&pWaitForVerticalBlank4, "WaitForVerticalBlank(D4)");
@@ -1223,6 +1233,7 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		SetHook((void *)(**(DWORD **)lplpdd + 48), extGetDisplayMode7, (void **)&pGetDisplayMode7, "GetDisplayMode(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 56), extGetGDISurface7, (void **)&pGetGDISurface7, "GetGDISurface(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 72), extInitialize7, (void **)&pInitialize7, "Initialize(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 76), extRestoreDisplayMode7, (void **)&pRestoreDisplayMode7, "RestoreDisplayMode(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 80), extSetCooperativeLevel7, (void **)&pSetCooperativeLevel7, "SetCooperativeLevel(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 84), extSetDisplayMode7, (void **)&pSetDisplayMode7, "SetDisplayMode(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 88), extWaitForVerticalBlank7, (void **)&pWaitForVerticalBlank7, "WaitForVerticalBlank(D7)");
@@ -1823,6 +1834,27 @@ HRESULT WINAPI extInitialize4(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 HRESULT WINAPI extInitialize7(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 { return extInitialize(pInitialize7, lpdd, lpguid); }
 
+static HRESULT WINAPI extRestoreDisplayMode(int dxversion, RestoreDisplayMode_Type pRestoreDisplayMode, LPDIRECTDRAW lpdd)
+{
+	OutTraceDW("RestoreDisplayMode(%d): lpdd=%x\n", dxversion, lpdd);
+	if((dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER))){ 
+		OutTraceDW("RestoreDisplayMode: BYPASS\n");
+		return DD_OK;
+	}
+	return (*pRestoreDisplayMode)(lpdd);
+}
+
+HRESULT WINAPI extRestoreDisplayMode1(LPDIRECTDRAW lpdd)
+{ return extRestoreDisplayMode(1, pRestoreDisplayMode1, lpdd); }
+HRESULT WINAPI extRestoreDisplayMode2(LPDIRECTDRAW lpdd)
+{ return extRestoreDisplayMode(2, pRestoreDisplayMode2, lpdd); }
+HRESULT WINAPI extRestoreDisplayMode3(LPDIRECTDRAW lpdd)
+{ return extRestoreDisplayMode(3, pRestoreDisplayMode3, lpdd); }
+HRESULT WINAPI extRestoreDisplayMode4(LPDIRECTDRAW lpdd)
+{ return extRestoreDisplayMode(4, pRestoreDisplayMode4, lpdd); }
+HRESULT WINAPI extRestoreDisplayMode7(LPDIRECTDRAW lpdd)
+{ return extRestoreDisplayMode(7, pRestoreDisplayMode7, lpdd); }
+
 static HRESULT WINAPI extQueryInterfaceD(int dxversion, QueryInterface_Type pQueryInterfaceD, void *lpdd, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
@@ -2081,7 +2113,7 @@ static HRESULT WINAPI extQueryInterfaceS(int dxversion, QueryInterface_Type pQue
 
 	if(dwLocalTexVersion) {
 		// Texture Handling on QueryInterface
-		if(dxw.dwFlags5 & TEXTUREMASK) TextureHandling((LPDIRECTDRAWSURFACE)lpdds, dwLocalTexVersion);
+		if(dxw.dwFlags5 & TEXTUREMASK) TextureHandling((LPDIRECTDRAWSURFACE)lpdds, dxversion);
 		HookTexture(obp, dwLocalTexVersion);
 	}
 
@@ -4227,7 +4259,13 @@ HRESULT WINAPI extSetPalette(int dxversion, SetPalette_Type pSetPalette, LPDIREC
 	OutTraceDDRAW("SetPalette(%d): lpdds=%x%s lpddp=%x\n", dxversion, lpdds, isPrim?"(PRIM)":"", lpddp);
 
 	res=(*pSetPalette)(lpdds, lpddp);
-	if(res)OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	if(res){
+		OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		// from MSDN, about lpddp:
+		// A pointer to the IDirectDrawPalette interface for the palette object to be used with this surface. 
+		// If NULL, the current palette is detached.
+		if(lpddp) lpddp->AddRef(); // to allow final Release() without crash - fixes "Heavy Gear" crash at end of mission
+	}
 	else OutTraceDDRAW("SetPalette: OK\n");
 	res=DD_OK;
 
@@ -4250,7 +4288,7 @@ HRESULT WINAPI extSetPalette(int dxversion, SetPalette_Type pSetPalette, LPDIREC
 				if(res) OutTraceE("SetPalette: ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			}
 		// add a reference to simulate what would happen in reality....
-		lpdds->AddRef();
+		if(lpddp) lpdds->AddRef();
 		res=DD_OK;
 	}
 

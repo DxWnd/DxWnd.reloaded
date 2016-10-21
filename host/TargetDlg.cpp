@@ -77,6 +77,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_ForcesSwapEffect = FALSE;
 	m_ColorFix = FALSE;
 	m_FixGlobalUnlock = FALSE;
+	m_FixFreeLibrary = FALSE;
 	m_NoPixelFormat = FALSE;
 	m_NoAlphaChannel = FALSE;
 	m_FixRefCounter = TRUE; // default true !!

@@ -318,8 +318,11 @@ void dxwCore::HideDesktop(HWND hwnd)
 	if(!wHider) {
 		wHider=(*pCreateWindowExA)(0, "dxwnd:hider", "hider", 0, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
 		if(!wHider) {
-			OutTrace("HideDesktop: CreateWindowEx ERROR hwnd=%x parent=%x err=%d\n", hwnd, hParent, GetLastError());
+			OutTraceE("HideDesktop: CreateWindowEx ERROR hwnd=%x parent=%x err=%d\n", hwnd, hParent, GetLastError());
 			return;
+		}
+		else{
+			OutTraceDW("HideDesktop: Created Window wHider=%x\n", wHider);
 		}
 		(*pSetWindowLongA)(wHider, GWL_STYLE, 0);
 	}

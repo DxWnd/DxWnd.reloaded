@@ -150,6 +150,12 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 		if(dxw.dwFlags3 & NODDRAWBLT) return DD_OK;
 	}
 
+	// v2.03.48: on WinXP it may happen (reported by Cloudstr) that alt tabbing produces
+	// bad blit attempts where the client coordinates get the (-32000,-32000) - (-32000,-32000)
+	// value. In such cases, it's adviseable to simulate an OK return code without attempting
+	// any blit operation!
+	if(lpdestrect && (lpdestrect->left == -32000)) return DD_OK; // no blit on invisible window
+
 #ifdef ONEPIXELFIX
 	if (lpdestrect){
 		if ((lpdestrect->top == 0) && (lpdestrect->bottom == dxw.GetScreenHeight() -1)) lpdestrect->bottom = dxw.GetScreenHeight();
@@ -162,11 +168,15 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 #endif
 
 #if FIXBIGGERRECT
+	// seems necessary to "cure" the "FIFA 2000" soccer game in hw accelerated graphics, when the Unlock() method
+	// receives RECT coordinates with big negative numbers!
 	if(lpdestrect){
-		if((DWORD)lpdestrect->top < 0) lpdestrect->top = 0;
-		if((DWORD)lpdestrect->left < 0) lpdestrect->left = 0;
-		if((DWORD)lpdestrect->bottom > dxw.GetScreenHeight()) lpdestrect->bottom = dxw.GetScreenHeight();
-		if((DWORD)lpdestrect->right > dxw.GetScreenWidth()) lpdestrect->right = dxw.GetScreenWidth();
+		if(lpdestrect->top < 0) lpdestrect->top = 0;
+		if(lpdestrect->left < 0) lpdestrect->left = 0;
+		if(lpdestrect->bottom > (LONG)dxw.GetScreenHeight()) lpdestrect->bottom = dxw.GetScreenHeight();
+		if(lpdestrect->right > (LONG)dxw.GetScreenWidth()) lpdestrect->right = dxw.GetScreenWidth();
+		if(lpdestrect->bottom < lpdestrect->top) lpdestrect->bottom = (LONG)dxw.GetScreenHeight();
+		if(lpdestrect->right < lpdestrect->left) lpdestrect->right = (LONG)dxw.GetScreenWidth();
 	}
 #endif
 
@@ -186,12 +196,6 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	OutTraceB("DESTRECT=(%d,%d)-(%d,%d) Screen=(%dx%d)\n", 
 		destrect.left, destrect.top, destrect.right, destrect.bottom,
 		dxw.GetScreenWidth(), dxw.GetScreenHeight());
-
-	// v2.03.48: on WinXP it may happen (reported by Cloudstr) that alt tabbing produces
-	// bad blit attempts where the client coordinates get the (-32000,-32000) - (-32000,-32000)
-	// value. In such cases, it's adviseable to simulate an OK return code without attempting
-	// any blit operation!
-	if(destrect.left == -32000) return DD_OK; // no blit on invisible window
 
 	//if(!(lpddssrc || (dwflags & DDBLT_COLORFILL))) {
 	if((lpddssrc==0) && !(dwflags & DDBLT_COLORFILL)){

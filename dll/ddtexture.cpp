@@ -108,16 +108,20 @@ void TextureHighlight(LPDIRECTDRAWSURFACE s, int dxversion)
 	DDSURFACEDESC2 ddsd;
 	int x, y, w, h;
 	HRESULT res;
+
+	OutTraceB("TextureHigh(%d): lpdds=%x\n", dxversion, s);
+
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
 	ddsd.dwSize = Set_dwSize_From_Surface();
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+//	if(res=(*pLockMethod(lpddsHookedVersion()))(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 	if(res=(*pLockMethod(dxversion))(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
-		OutTraceE("TextureHigh: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		OutTraceE("TextureHigh(%d): Lock ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
 		return;
 	}
 	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxwss.IsABackBufferSurface(s)) {
-		OutTrace("TextureHigh: lpdds=%x BitCount=%d size=(%dx%d)\n", 
-			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
+		OutTrace("TextureHigh(%d): lpdds=%x BitCount=%d size=(%dx%d)\n", 
+			dxversion, s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
 		h = ddsd.dwHeight;
 		switch (ddsd.ddpfPixelFormat.dwRGBBitCount){
@@ -184,6 +188,8 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 	static BOOL DoOnce = TRUE;
 	char pszFile[MAX_PATH];
 
+	OutTraceB("TextureDump(%d): lpdds=%x\n", dxversion, s);
+
 	if(DoOnce){
 		char sProfilePath[MAX_PATH];
 		sprintf(sProfilePath, "%s\\dxwnd.ini", GetDxWndPath());
@@ -206,8 +212,8 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 	}
 
 	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxwss.IsABackBufferSurface(s)) while (TRUE) {
-		OutTrace("TextureDump: lpdds=%x BitCount=%d size=(%dx%d)\n", 
-			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
+		OutTrace("TextureDump(%d): lpdds=%x BitCount=%d size=(%dx%d)\n", 
+			dxversion, s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
 		h = ddsd.dwHeight;
 		if((MinTexX && (w<MinTexX)) || (MinTexY && (h<MinTexY))) {
@@ -304,6 +310,8 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 	int w, h, iSurfaceSize, iScanLineSize;
 	HRESULT res;
 
+	OutTraceB("TextureHack(%d): lpdds=%x\n", dxversion, s);
+
 	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
 	ddsd.dwSize = Set_dwSize_From_Surface();
 	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
@@ -312,8 +320,8 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 		return;
 	}
 	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxwss.IsABackBufferSurface(s)) while (TRUE) { // fake loop to ensure final Unlock
-		OutTrace("TextureHack: lpdds=%x BitCount=%d size=(%dx%d)\n", 
-			s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
+		OutTrace("TextureHack(%d): lpdds=%x BitCount=%d size=(%dx%d)\n", 
+			dxversion, s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
 		w = ddsd.dwWidth;
 		h = ddsd.dwHeight;
 		iSurfaceSize = ddsd.dwHeight * ddsd.lPitch;

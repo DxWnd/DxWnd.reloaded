@@ -1054,6 +1054,11 @@ void dxwCore::ShowBanner(HWND hwnd)
 	Sleep(200);
 }
 
+void dxwCore::PushDLL(char *lpName, int idx)
+{
+	SysNames[idx] = lpName; // add entry
+}
+
 int dxwCore::GetDLLIndex(char *lpFileName)
 {
 	int idx;

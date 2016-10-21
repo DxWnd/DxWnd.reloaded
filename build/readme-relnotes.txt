@@ -1302,3 +1302,11 @@ fix: window position problems
 fix: GUI auto hide mode enabled and disabled without need of GUI restart
 fix: ddraw surface stack policy. Recovers "Warhammer 40K Rites of War" after v2.03.83 fix.
 add: /q quiet mode, no message dialogs on screen
+
+v2.03.92.fx1-2:
+add: option "Fix FreeLibrary" to emulate the Win9X behaviour returning errorcode upon attempts to free a deallocated module. Fixes "Heavy Gear" patch 1.2 endless loop problem.
+fix: added reference to Palette object to allow final Release() without crash - fixes "Heavy Gear" crash at end of mission
+fix: fix RECT structure passed to ddraw::Unlock method in case it points to bad coordinates. Fixes FIFA2000 in D3D mode
+fix: wrapped all OpenGL GetString methods and inserted proper logging. For diagnostic purposes.
+fix: fix ddraw::SetPalette wrapper in case lppd is NULL. Fixes Adrenix sw mode crash.
+fix: better way to manage extra modules to be hooked (Glide ddls, SmackW32)
