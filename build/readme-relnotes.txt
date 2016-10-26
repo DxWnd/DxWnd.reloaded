@@ -1310,3 +1310,13 @@ fix: fix RECT structure passed to ddraw::Unlock method in case it points to bad 
 fix: wrapped all OpenGL GetString methods and inserted proper logging. For diagnostic purposes.
 fix: fix ddraw::SetPalette wrapper in case lppd is NULL. Fixes Adrenix sw mode crash.
 fix: better way to manage extra modules to be hooked (Glide ddls, SmackW32)
+
+v2.03.93:
+add: GUI game icon extracted also form separated *.ico icon file
+add: GUI definition of default values for window position
+fix: ddrawsurface::Unlock lprect usage: doesn't use the input value but refers to rect passed in Lock operation. Fixes "fifa 2000" crash.
+fix: avoid issuing a GetPalette method against a deallocated object
+fix: automatic creation of Clipper object if needed for emulated ddraw blit to primary surface - fixes the well known black blitting problem
+fix: proper handling of dinput DirectInputDevice::GetDeviceData() DI_BUFFEROVERFLOW error condition
+fix: user32 GetCursorPos() wrapper
+fix: user32 mouse_event() wrapper

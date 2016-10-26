@@ -415,6 +415,7 @@ LPDIRECTDRAWSURFACE lpDDZBuffer=NULL;
 // the service objects (emulated backbuffer, emulater primary, ....) are attached.
 LPDIRECTDRAW lpPrimaryDD=NULL;
 int iBakBufferVersion;
+int iDirectDrawVersion;
 LPDIRECTDRAWPALETTE lpDDP=NULL;
 LPDIRECTDRAWCLIPPER lpddC=NULL;
 int iDDPExtraRefCounter=0;
@@ -532,6 +533,7 @@ static CHAR *LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 	if (lpddsd->dwFlags & DDSD_LPSURFACE) sprintf(sInfo, "%s Surface=%x", sInfo, lpddsd->lpSurface);
 	if (lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH) sprintf(sInfo, "%s ZBufferBitDepth=%d", sInfo, lpddsd->dwZBufferBitDepth);
 	if (lpddsd->dwFlags & DDSD_ALPHABITDEPTH) sprintf(sInfo, "%s AlphaBitDepth=%d", sInfo, lpddsd->dwAlphaBitDepth);
+	if (lpddsd->dwReserved) sprintf(sInfo, "%s Reserved=%d", sInfo, lpddsd->dwReserved);
 	if (lpddsd->dwFlags & DDSD_REFRESHRATE) sprintf(sInfo, "%s RefreshRate=%d", sInfo, lpddsd->dwRefreshRate);
 	if (lpddsd->dwFlags & DDSD_LINEARSIZE) sprintf(sInfo, "%s LinearSize=%d", sInfo, lpddsd->dwLinearSize);
 	if (lpddsd->dwSize == sizeof(DDSURFACEDESC2)){
@@ -1142,6 +1144,8 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	OutTraceDW("Hooking directdraw session dd=%x dxversion=%d thread_id=%x\n", 
 		*lplpdd, dxversion, GetCurrentThreadId());
 
+	iDirectDrawVersion = dxversion; // save for ddraw session operations
+
 	// unimplemented, but better not hook it with a single wrapper
 	//SetHook((void *)(**(DWORD **)lplpdd + 12), extCompact, (void **)&pCompact, "Compact");
 	switch(dxversion) {
@@ -1575,7 +1579,7 @@ static void HandleCapsD(char *sLabel, LPDDCAPS c)
 static HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRECTDRAW lpdd, LPDDCAPS c1, LPDDCAPS c2)
 {
 	HRESULT res;
-	OutTraceDDRAW("GetCaps(D): lpdd=%x %s %s\n", lpdd, c1?"c1":"NULL", c2?"c2":"NULL");
+	OutTraceDDRAW("GetCaps(D%d): lpdd=%x %s %s\n", dxversion, lpdd, c1?"c1":"NULL", c2?"c2":"NULL");
 	res=(*pGetCapsD)(lpdd, c1, c2);
 	if(res) 
 		OutTraceE("GetCaps(D): ERROR res=%x(%s)\n", res, ExplainDDError(res));
@@ -2256,9 +2260,9 @@ HRESULT WINAPI extSetDisplayMode4(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheig
 HRESULT WINAPI extSetDisplayMode7(LPDIRECTDRAW lpdd, DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)
 { return extSetDisplayMode(7, lpdd, dwwidth, dwheight, dwbpp, dwrefreshrate, dwflags);}
 
-HRESULT WINAPI extGetDisplayMode(GetDisplayMode_Type pGetDisplayMode, LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
+HRESULT WINAPI extGetDisplayMode(int dxversion, GetDisplayMode_Type pGetDisplayMode, LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
 {
-	OutTraceDDRAW("GetDisplayMode(D1): lpdd=%x lpddsd=%x\n", lpdd, lpddsd);
+	OutTraceDDRAW("GetDisplayMode(D%d): lpdd=%x lpddsd=%x\n", dxversion, lpdd, lpddsd);
 
 	(*pGetDisplayMode)(lpdd, lpddsd);
 	if(dxw.dwFlags1 & EMULATESURFACE) {
@@ -2294,15 +2298,15 @@ HRESULT WINAPI extGetDisplayMode(GetDisplayMode_Type pGetDisplayMode, LPDIRECTDR
 }
 
 HRESULT WINAPI extGetDisplayMode1(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
-{ return extGetDisplayMode(pGetDisplayMode1, lpdd, lpddsd); }
+{ return extGetDisplayMode(1, pGetDisplayMode1, lpdd, lpddsd); }
 HRESULT WINAPI extGetDisplayMode2(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
-{ return extGetDisplayMode(pGetDisplayMode2, lpdd, lpddsd); }
+{ return extGetDisplayMode(2, pGetDisplayMode2, lpdd, lpddsd); }
 HRESULT WINAPI extGetDisplayMode3(LPDIRECTDRAW lpdd, LPDDSURFACEDESC lpddsd)
-{ return extGetDisplayMode(pGetDisplayMode3, lpdd, lpddsd); }
+{ return extGetDisplayMode(3, pGetDisplayMode3, lpdd, lpddsd); }
 HRESULT WINAPI extGetDisplayMode4(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
-{ return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode4, lpdd, (LPDDSURFACEDESC)lpddsd); }
+{ return extGetDisplayMode(4, (GetDisplayMode_Type)pGetDisplayMode4, lpdd, (LPDDSURFACEDESC)lpddsd); }
 HRESULT WINAPI extGetDisplayMode7(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
-{ return extGetDisplayMode((GetDisplayMode_Type)pGetDisplayMode7, lpdd, (LPDDSURFACEDESC)lpddsd); }
+{ return extGetDisplayMode(7, (GetDisplayMode_Type)pGetDisplayMode7, lpdd, (LPDDSURFACEDESC)lpddsd); }
 
 HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pSetCooperativeLevel, LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
 {
@@ -3570,8 +3574,11 @@ HRESULT WINAPI PrimaryStretchBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFA
 	LPDIRECTDRAWSURFACE lpddsBak;
 	DDSCAPS caps;
 	CreateSurface1_Type pCreateSurface;
+	CreateClipper_Type pCreateClipper;
+	SetClipper_Type pSetClipper;
 	BltFast_Type pBltFast;
 	int dwSize;
+	static BOOL bUseFastBlt = !(dxw.dwFlags3 & FORCECLIPPER);
 
 	switch(iBakBufferVersion){
 		default:
@@ -3617,15 +3624,42 @@ HRESULT WINAPI PrimaryStretchBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFA
 	}
 	else {
 		while(TRUE) {
-			// fast-blit to primary
-			if(dxw.dwFlags3 & FORCECLIPPER){
-				res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
-				if(res) OutTraceE("PrimaryStretchBlt: Blt ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			if(bUseFastBlt){
+				res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
 			}
 			else{
-				res= (*pBltFast)(lpdds, lpdestrect->left, lpdestrect->top, lpddsTmp, &TmpRect, DDBLTFAST_WAIT);
-				if(res) OutTraceE("PrimaryStretchBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
 			}
+			if(res == DDERR_INVALIDRECT){
+				OutTraceDW("PrimaryStretchBlt: adding clipper ddversion=%x at %d\n", iDirectDrawVersion, __LINE__);
+				bUseFastBlt = FALSE;
+				switch(iDirectDrawVersion){
+					case 1: pCreateClipper = pCreateClipper1; break;
+					case 2: pCreateClipper = pCreateClipper2; break;
+					case 3: pCreateClipper = pCreateClipper3; break;
+					case 4: pCreateClipper = pCreateClipper4; break;
+					case 7: pCreateClipper = pCreateClipper7; break;
+				}
+				switch(iBakBufferVersion){
+					case 1: pSetClipper = pSetClipper1; break;
+					case 2: pSetClipper = pSetClipper2; break;
+					case 3: pSetClipper = pSetClipper3; break;
+					case 4: pSetClipper = pSetClipper4; break;
+					case 7: pSetClipper = pSetClipper7; break;
+				}
+				if(!lpddC){
+					res=(*pCreateClipper)(lpPrimaryDD, 0, &lpddC, NULL);
+					if(res) OutTraceE("CreateClipper ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				}
+				//res=(*pSetHWnd)(lpddC, 0, dxw.GethWnd()); // no good, cliper object could be unhooked yet! "Settlers III" would crash!
+				res=lpddC->SetHWnd(0, dxw.GethWnd());
+				if(res) OutTraceE("SetHWnd ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				res=(*pSetClipper)(lpdds, lpddC);
+				if(res) OutTraceE("SetClipper ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				OutTraceDW("PrimaryStretchBlt: added clipper lpddc=%x at %d\n", lpddC, __LINE__);
+				res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
+			}
+			if(res) OutTraceE("PrimaryStretchBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 			if(res == DDERR_SURFACELOST){
 				res = lpdds->Restore();
 				if(res) {
@@ -4221,7 +4255,9 @@ HRESULT WINAPI extGetPalette(int dxversion, GetPalette_Type pGetPalette, LPDIREC
 	isBack=dxwss.IsABackBufferSurface(lpdds);
 	OutTraceDDRAW("GetPalette(%d): lpdds=%x%s%s\n", dxversion, lpdds, isPrim?"(PRIM)":"", isBack?"(BACK)":"");
 
-	res=(*pGetPalette)(lpdds, lplpddp);
+	res = DD_OK;
+	lpdds->AddRef();
+	if(lpdds->Release()) res=(*pGetPalette)(lpdds, lplpddp);
 
 	// v2.03.07: in "Die Hard Trilogy" the backbuffer surface is queryed for the palette
     // v2.03.08: in "Viper Racing" lpDDP is still NULL (how could it be?)
@@ -4396,6 +4432,8 @@ HRESULT WINAPI extSetClipper7(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpd
 
 DDSURFACEDESC SaveSurfaceDesc;
 LPDIRECTDRAWSURFACE SaveSurface = NULL;
+LPRECT SaveLockedlpRect = NULL;
+RECT SaveLockedRect;
 
 static HRESULT WINAPI extLock(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 {
@@ -4411,6 +4449,9 @@ static HRESULT WINAPI extLock(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFAC
 		OutTrace("Lock(%d): lpdds=%x%s flags=%x(%s) lpDDSurfaceDesc=%x rect=%s\n", 
 			dxversion, lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc, sRect);
 	}
+
+	SaveLockedlpRect = lprect;
+	if(SaveLockedlpRect) SaveLockedRect = *lprect;
 
 	res=(*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 	if(res==DDERR_SURFACEBUSY){ // v70: fix for "Ancient Evil"
@@ -4475,6 +4516,9 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 		OutTrace("Lock(%d): lpdds=%x%s flags=%x(%s) lpDDSurfaceDesc=%x rect=%s\n", 
 			dxversion, lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc, sRect);
 	}
+
+	SaveLockedlpRect = lprect;
+	if(SaveLockedlpRect) SaveLockedRect = *lprect;
 
 	switch(dxversion){
 		case 1: pBlt=pBlt1; pGetGDISurface=pGetGDISurface1; break;
@@ -4567,7 +4611,6 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 	HRESULT res;
 	BOOL IsPrim;
 	BOOL IsBack;
-	RECT rect;
 	Blt_Type pBlt;
 
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
@@ -4599,15 +4642,12 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 	}
 
 	if(dxversion >= 4){
-		// make lprect point elsewhere, so that the original values are not altered
-		if(lprect){
-			CleanRect(&lprect,__LINE__);
-			rect = *lprect;
-			lprect = &rect;
-			// v2.03.20: apparently, it seems that in ddraw 7 you can set an empty rectangle to mean the whole area ....
-			// this fixes the black screen otherwise present in "Arcanum".
-			if(IsPrim && ((lprect->right - lprect->left) == 0) && ((lprect->bottom - lprect->top) == 0)) lprect = NULL;
-		}
+		// v2.03.20: apparently, it seems that in ddraw 7 you can set an empty rectangle to mean the whole area ....
+		// this fixes the black screen otherwise present in "Arcanum".
+		// v2.02.92: found in Fifa 2000: lpRect is completely ignored, receiving bogus values like (-1, -1, -1, -1}
+		// or {0, 0, 0, 0}, or {-109119151, -109119151, -109119151, -109119151}.
+		// better use the Lock-ed rect
+		if(IsPrim) lprect = SaveLockedlpRect;
 	}
 
 	if((dxw.dwFlags6 & FIXPITCH) && !(IsPrim||IsBack) && (lpdds == SaveSurface)){
@@ -4693,7 +4733,14 @@ static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECT
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	IsBack=dxwss.IsABackBufferSurface(lpdds);
 
-	if ((dxversion >= 4) && lprect) CleanRect(&lprect,__LINE__);
+	if(dxversion >= 4){
+		// v2.03.20: apparently, it seems that in ddraw 7 you can set an empty rectangle to mean the whole area ....
+		// this fixes the black screen otherwise present in "Arcanum".
+		// v2.02.92: found in Fifa 2000: lpRect is completely ignored, receiving bogus values like (-1, -1, -1, -1}
+		// or {0, 0, 0, 0}, or {-109119151, -109119151, -109119151, -109119151}.
+		// better use the Lock-ed rect
+		if(IsPrim) lprect = SaveLockedlpRect;
+	}
 
 	if(IsTraceDDRAW){
 		char sRect[81];
@@ -5695,6 +5742,7 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 
 #define FIXSURFACEDESCSIZE TRUE
 	if(FIXSURFACEDESCSIZE){
+		int prevsize = lpddsd->dwSize;
 		switch(dxversion){
 			case 1:
 			case 2:
@@ -5706,21 +5754,18 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 				lpddsd->dwSize = sizeof(DDSURFACEDESC2);
 				break;
 		}
+		if(prevsize != lpddsd->dwSize) OutTraceDW("GetSurfaceDesc(%d): FIXED dwSize=%d->%d\n", dxversion, prevsize, lpddsd->dwSize);
 	}
 
 	res=(*pGetSurfaceDesc)(lpdds, lpddsd);
-	OutTraceDDRAW("GetSurfaceDesc: %slpdds=%x%s res=%x(%s)\n", 
-		res?"ERROR ":"", lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), res, ExplainDDError(res));
 	if(res) {
-		OutTraceE("GetSurfaceDesc: ERROR err=%x(%s) dxversion=%d s->len=%d at %d\n", res, ExplainDDError(res), dxversion, lpddsd->dwSize, __LINE__);
+		OutTraceE("GetSurfaceDesc(%d): ERROR err=%x(%s)\n", dxversion, res, ExplainDDError(res));
 		return res;
 	}
 
-	OutTraceDDRAW("GetSurfaceDesc: lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "GetSurfaceDesc", __LINE__));
+	OutTraceDDRAW("GetSurfaceDesc(%d): lpdds=%x%s %s\n", dxversion, lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), LogSurfaceAttributes(lpddsd, "GetSurfaceDesc", __LINE__));
 
 	if (IsPrim) {
-		OutTraceDW("GetSurfaceDesc: fixing PRIMARY surface\n");
-		IsFixed=TRUE;
 		if (dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
 		lpddsd->ddsCaps.dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
 		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE); // primary surfaces must be this way
@@ -5729,21 +5774,21 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 		lpddsd->dwBackBufferCount=DDSD_Prim.dwBackBufferCount;
 		lpddsd->dwHeight=dxw.GetScreenHeight();
 		lpddsd->dwWidth=dxw.GetScreenWidth();
+		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "PRIMARY", __LINE__));
 	}
 
 	if (IsBack) {
-		OutTraceDW("GetSurfaceDesc: fixing BACKBUFFER surface\n");
-		IsFixed=TRUE;
 		// flags that backbuffer surfaces must have set
 		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_3DDEVICE|DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
 		// flags that backbuffer surfaces can't have set
 		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN|DDSCAPS_COMPLEX|DDSCAPS_FLIP); 
+		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "BACKBUFFER", __LINE__));
 	}
 
 	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
 	if(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
 		lpddsd->ddsCaps.dwCaps = dxwcdb.GetCaps(lpdds);
-		OutTraceDW("GetSurfaceDesc: lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "GetSurfaceDesc [FIXED]", __LINE__));
+		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "ZBUFFER", __LINE__));
 	}
 
 	return DD_OK;

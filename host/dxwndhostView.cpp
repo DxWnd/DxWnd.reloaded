@@ -1962,6 +1962,12 @@ void CDxwndhostView::OnAdd(char *sInitialPath)
 	}
 	memset(&TargetMaps[i],0,sizeof(TARGETMAP)); // clean up, just in case....
 	if(sInitialPath) dlg.m_FilePath = CString(sInitialPath);
+	
+	dlg.m_Coordinates = GetPrivateProfileInt("window", "defaultcoord", 0, gInitPath);
+	dlg.m_PosX = GetPrivateProfileInt("window", "defaultposx", 50, gInitPath);
+	dlg.m_PosY = GetPrivateProfileInt("window", "defaultposy", 50, gInitPath);
+	dlg.m_SizX = GetPrivateProfileInt("window", "defaultsizx", 800, gInitPath);
+	dlg.m_SizY = GetPrivateProfileInt("window", "defaultsizy", 600, gInitPath);
 
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE);

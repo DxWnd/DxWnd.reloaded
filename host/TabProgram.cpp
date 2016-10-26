@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include "shlwapi.h"
 #include "TargetDlg.h"
 #include "TabProgram.h"
 #include "dxwndhost.h"
@@ -229,6 +230,38 @@ void CTabProgram::OnDropFiles(HDROP dropInfo)
 	DragFinish(dropInfo);
 }
 
+#include <windows.h>
+#include <tchar.h>
+#include <stdio.h>
+
+void _tmain(int argc, TCHAR *argv[])
+{
+   WIN32_FIND_DATA FindFileData;
+   HANDLE hFind;
+
+   if( argc != 2 )
+   {
+      _tprintf(TEXT("Usage: %s [target_file]\n"), argv[0]);
+      return;
+   }
+
+   _tprintf (TEXT("Target file is %s\n"), argv[1]);
+   hFind = FindFirstFile(argv[1], &FindFileData);
+   if (hFind == INVALID_HANDLE_VALUE) 
+   {
+      printf ("FindFirstFile failed (%d)\n", GetLastError());
+      return;
+   } 
+   else 
+   {
+      _tprintf (TEXT("The first file found is %s\n"), 
+                FindFileData.cFileName);
+      FindClose(hFind);
+   }
+}
+
+
+
 BOOL CTabProgram::OnInitDialog()
 {
 	HINSTANCE Hinst;
@@ -246,14 +279,38 @@ BOOL CTabProgram::OnInitDialog()
 	//m_Launch.DragAcceptFiles();
 	CDialog::OnInitDialog();
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
+	IconBox=(CStatic *)this->GetDlgItem(IDC_STATIC_ICON);
 	Hinst = ::LoadLibrary(cTarget->m_FilePath);
 	if(Hinst){
 		Icon = ::ExtractIcon(Hinst, cTarget->m_FilePath, 0);
-		IconBox=(CStatic *)this->GetDlgItem(IDC_STATIC_ICON);
-		PrevIcon = IconBox->SetIcon(Icon);
-		if (IconBox->GetIcon() == NULL)
-			IconBox->SetIcon(::LoadIcon(NULL, IDI_ERROR));  
-		::FreeLibrary(Hinst);
+		if(Icon){
+			PrevIcon = IconBox->SetIcon(Icon);
+			if (IconBox->GetIcon() == NULL)
+				IconBox->SetIcon(::LoadIcon(NULL, IDI_ERROR));  
+		}
+		else{
+			WIN32_FIND_DATA FindFileData;
+			HANDLE hFind;
+			char SearchPath[MAX_PATH];
+			strcpy(SearchPath, cTarget->m_FilePath); 
+			PathRemoveFileSpec(SearchPath);
+			strcat(SearchPath, "\\*.ico");
+			//MessageBox(SearchPath, "debug", 0);
+			hFind = FindFirstFile(SearchPath, &FindFileData);
+			if ((hFind != INVALID_HANDLE_VALUE) && (hFind != (HANDLE)ERROR_FILE_NOT_FOUND)){
+				strcpy(SearchPath, cTarget->m_FilePath); 
+				PathRemoveFileSpec(SearchPath);
+				strcat(SearchPath, "\\");
+				strcat(SearchPath, FindFileData.cFileName);
+				//MessageBox(SearchPath, "debug", 0);
+				Icon = ::ExtractIcon(NULL, SearchPath, 0);
+				PrevIcon = IconBox->SetIcon(Icon);
+				if (IconBox->GetIcon() == NULL)
+					IconBox->SetIcon(::LoadIcon(NULL, IDI_ERROR)); 				
+				FindClose(hFind);
+			}
+			::FreeLibrary(Hinst);
+		}
 		if(PrevIcon) ::DestroyIcon(PrevIcon);
 	}
 

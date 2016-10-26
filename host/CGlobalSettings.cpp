@@ -79,6 +79,23 @@ IMPLEMENT_DYNAMIC(CGlobalSettings, CDialog)
 CGlobalSettings::CGlobalSettings(CWnd* pParent /*=NULL*/)
 	: CDialog(CGlobalSettings::IDD, pParent)
 {
+	m_DebugMode = GetPrivateProfileInt("window", "debug", 0, gInitPath);
+	m_AutoHideMode = GetPrivateProfileInt("window", "autohide", 0, gInitPath); 
+	m_CheckAdminRights = GetPrivateProfileInt("window", "checkadmin", 0, gInitPath);
+	m_NameFromFolder = GetPrivateProfileInt("window", "namefromfolder", 0, gInitPath);
+	m_MultiHooks = GetPrivateProfileInt("window", "multiprocesshook", 0, gInitPath);
+	m_UpdatePaths = GetPrivateProfileInt("window", "updatepaths", 1, gInitPath);
+	// texture limits
+	m_TexMinX = GetPrivateProfileInt("texture", "MinTexX", 0, gInitPath);
+	m_TexMinY = GetPrivateProfileInt("texture", "MinTexY", 0, gInitPath);
+	m_TexMaxX = GetPrivateProfileInt("texture", "MaxTexX", 0, gInitPath);
+	m_TexMaxY = GetPrivateProfileInt("texture", "MaxTexY", 0, gInitPath);
+	// defaults
+	m_DefaultCoordinates = GetPrivateProfileInt("window", "defaultcoord", 0, gInitPath);
+	m_DefaultPosX = GetPrivateProfileInt("window", "defaultposx", 50, gInitPath);
+	m_DefaultPosY = GetPrivateProfileInt("window", "defaultposy", 50, gInitPath);
+	m_DefaultSizX = GetPrivateProfileInt("window", "defaultsizx", 800, gInitPath);
+	m_DefaultSizY = GetPrivateProfileInt("window", "defaultsizy", 600, gInitPath);
 }
 
 CGlobalSettings::~CGlobalSettings()
@@ -87,7 +104,12 @@ CGlobalSettings::~CGlobalSettings()
 
 void CGlobalSettings::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	//char msg[80];
+	//sprintf(msg, "DoDataExchange(1) defposx = %d", m_DefaultPosX);
+	//MessageBox(msg, "debug", 0);
+	CString sDefaultPosX, sDefaultPosY;
+	sDefaultPosX.Format("%d", m_DefaultPosX);
+	sDefaultPosY.Format("%d", m_DefaultPosY);
 	DDX_Check(pDX, IDC_CONFIG_DEBUGMODE, m_DebugMode);
 	DDX_Check(pDX, IDC_CONFIG_AUTOHIDE, m_AutoHideMode);
 	DDX_Check(pDX, IDC_CONFIG_CHECKADMIN, m_CheckAdminRights);
@@ -98,34 +120,29 @@ void CGlobalSettings::DoDataExchange(CDataExchange* pDX)
 	DDX_Text (pDX, IDC_TEX_MINY, m_TexMinY);
 	DDX_Text (pDX, IDC_TEX_MAXX, m_TexMaxX);
 	DDX_Text (pDX, IDC_TEX_MAXY, m_TexMaxY);
+	DDX_Radio(pDX, IDC_DEFAULTCOORDINATES, m_DefaultCoordinates);
+	DDX_Text(pDX, IDC_DEFAULTPOSX, sDefaultPosX);
+	DDX_Text(pDX, IDC_DEFAULTPOSY, sDefaultPosY);
+	DDX_Text(pDX, IDC_DEFAULTSIZX, m_DefaultSizX);
+	DDX_Text(pDX, IDC_DEFAULTSIZY, m_DefaultSizY);
+	m_DefaultPosX = atoi(sDefaultPosX);
+	m_DefaultPosY = atoi(sDefaultPosY);
+	CDialog::DoDataExchange(pDX);
+	//sprintf(msg, "DoDataExchange(2) defposx = %d", m_DefaultPosX);
+	//MessageBox(msg, "debug", 0);
 }
 
 BEGIN_MESSAGE_MAP(CGlobalSettings, CDialog)
 END_MESSAGE_MAP()
 
-#define IDPaletteTIMER 2
-
-// CPaletteDialog message handlers
-
-//static void SetKeys(HWND hDlg, Key_Type *FKeys, KeyCombo_Type *FKeyCombo)
-//{
-//	for(int i=0; FKeys[i].iLabelResourceId; i++){
-//		int iCursor = 0;
-//		DWORD dwKey;
-//		dwKey = GetPrivateProfileInt("keymapping", FKeys[i].sIniLabel, -1, gInitPath);
-//		SetDlgItemText(hDlg,FKeys[i].iLabelResourceId,FKeys[i].sLabel);
-//		CComboBox *pCombo=(CComboBox *)GetDlgItem(FKeys[i].iComboResourceId);
-//		pCombo->Clear();
-//		for(int j=0; FKeyCombo[j].dwVKeyCode; j++) {
-//			pCombo->AddString(FKeyCombo[j].sVKeyLabel);
-//			if(dwKey == FKeyCombo[j].dwVKeyCode) iCursor=j;
-//		}
-//		pCombo->SetCurSel(iCursor);
-//	}
-//}
-
 BOOL CGlobalSettings::OnInitDialog()
 {
+	IFormat *m_pRelIntegerFormat = new(RelIntegerFormat);
+	m_EditPosX.SubclassDlgItem(IDC_DEFAULTPOSX, this);
+	m_EditPosY.SubclassDlgItem(IDC_DEFAULTPOSY, this);
+	m_EditPosX.SetFormatter(m_pRelIntegerFormat);
+	m_EditPosY.SetFormatter(m_pRelIntegerFormat);
+	CDialog::OnInitDialog();
 	for(int i=0; FKeys[i].iLabelResourceId; i++){
 		int iCursor = 0;
 		DWORD dwKey;
@@ -152,22 +169,7 @@ BOOL CGlobalSettings::OnInitDialog()
 		}
 		pCombo->SetCurSel(iCursor);
 	}
-	//SetKeys(this, FKeys, FKeyCombo);
-	//SetKeys(this, HKeys, HKeyCombo);
-
-	m_DebugMode = GetPrivateProfileInt("window", "debug", 0, gInitPath);
-	m_AutoHideMode = GetPrivateProfileInt("window", "autohide", 0, gInitPath); 
-	m_CheckAdminRights = GetPrivateProfileInt("window", "checkadmin", 0, gInitPath);
-	m_NameFromFolder = GetPrivateProfileInt("window", "namefromfolder", 0, gInitPath);
-	m_MultiHooks = GetPrivateProfileInt("window", "multiprocesshook", 0, gInitPath);
-	m_UpdatePaths = GetPrivateProfileInt("window", "updatepaths", 1, gInitPath);
-	m_TexMinX = GetPrivateProfileInt("texture", "MinTexX", 0, gInitPath);
-	m_TexMinY = GetPrivateProfileInt("texture", "MinTexY", 0, gInitPath);
-	m_TexMaxX = GetPrivateProfileInt("texture", "MaxTexX", 0, gInitPath);
-	m_TexMaxY = GetPrivateProfileInt("texture", "MaxTexY", 0, gInitPath);
-	CDialog::OnInitDialog();
 	return TRUE;  // return TRUE unless you set the focus to a control
-	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
 void CGlobalSettings::OnOK()
@@ -196,6 +198,18 @@ void CGlobalSettings::OnOK()
 	WritePrivateProfileString("texture", "MaxTexX", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", m_TexMaxY);
 	WritePrivateProfileString("texture", "MaxTexY", val, gInitPath);
+	// defaults
+	sprintf_s(val, sizeof(val), "%i", m_DefaultCoordinates);
+	WritePrivateProfileString("window", "defaultcoord", val, gInitPath);
+	sprintf_s(val, sizeof(val), "%i", m_DefaultPosX);
+	WritePrivateProfileString("window", "defaultposx", val, gInitPath);
+	sprintf_s(val, sizeof(val), "%i", m_DefaultPosY);
+	WritePrivateProfileString("window", "defaultposy", val, gInitPath);
+	sprintf_s(val, sizeof(val), "%i", m_DefaultSizX);
+	WritePrivateProfileString("window", "defaultsizx", val, gInitPath);
+	sprintf_s(val, sizeof(val), "%i", m_DefaultSizY);
+	WritePrivateProfileString("window", "defaultsizy", val, gInitPath);
+
 	// fkeys
 	for(int i=0; FKeys[i].iLabelResourceId; i++){
 		int iCursor = 0;

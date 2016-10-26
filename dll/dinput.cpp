@@ -551,6 +551,40 @@ dwFlags
 		Normally, data is removed from the buffer after it is read.
 */
 
+/* Mind the following scenarios!
+Your application can query for the number of elements in the device buffer by setting the rgdod parameter to NULL, setting pdwInOut to INFINITE 
+and setting dwFlags to DIGDD_PEEK. The following code example illustrates how this can be done.
+
+dwItems = INFINITE; 
+hres = idirectinputdevice9_GetDeviceData( 
+            pdid, 
+            sizeof(DIDEVICEOBJECTDATA), 
+            NULL, 
+            &dwItems, 
+            DIGDD_PEEK); 
+if (SUCCEEDED(hres)) { 
+    // dwItems = Number of elements in buffer. 
+    if (hres == DI_BUFFEROVERFLOW) { 
+        // Buffer overflow occurred; not all data 
+        //   was successfully captured. 
+    } 
+} 
+
+To query about whether a buffer overflow has occurred, set the rgdod parameter to NULL and the pdwInOut parameter to 0. 
+The following code example illustrates how this can be done.
+
+dwItems = 0; 
+hres = idirectinputdevice9_GetDeviceData( 
+            pdid, 
+            sizeof(DIDEVICEOBJECTDATA), 
+            NULL, 
+            &dwItems, 
+            0); 
+if (hres == DI_BUFFEROVERFLOW) { 
+    // Buffer overflow occurred. 
+} 
+*/
+
 HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID rgdod, LPDWORD pdwinout, DWORD dwflags)
 {
 	HRESULT res;
@@ -577,6 +611,7 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 
 	switch(res){
 		case DI_OK:
+		case DI_BUFFEROVERFLOW:
 			break;
 		case DIERR_NOTACQUIRED: 
 		case DIERR_INPUTLOST: 
@@ -611,9 +646,11 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 		}
 
 		tmp = (BYTE *)rgdod;
+		if(!tmp) return res;
+
 		if(dxw.bDInputAbs){
 			GetMousePosition((int *)&p.x, (int *)&p.y);
-			for(i = 0; i < *pdwinout; i ++){
+			for(i = 0; (i < *pdwinout) && ((LPDIDEVICEOBJECTDATA)tmp)->dwOfs; i ++){
 				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_X)((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.x;
 				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_Y)((LPDIDEVICEOBJECTDATA)tmp)->dwData = p.y;
 				tmp += cbdata;
@@ -621,14 +658,14 @@ HRESULT WINAPI extGetDeviceData(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPVOID 
 			OutTraceB("GetDeviceData(I): ABS mousedata=(%d,%d)\n", p.x, p.y);
 		}
 		else{
-			for(i = 0; i < *pdwinout; i ++){
+			for(i = 0; (i < *pdwinout) && ((LPDIDEVICEOBJECTDATA)tmp)->dwOfs; i ++){
 				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_X) OutTraceB("GetDeviceData(I): REL mousedata X=%d\n", ((LPDIDEVICEOBJECTDATA)tmp)->dwData);
 				if(((LPDIDEVICEOBJECTDATA)tmp)->dwOfs == DIMOFS_Y) OutTraceB("GetDeviceData(I): REL mousedata Y=%d\n", ((LPDIDEVICEOBJECTDATA)tmp)->dwData);
 	 			tmp += cbdata;
 			}
 		}
 	}
-	return DI_OK;
+	return res;
 }
 
 HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMOUSESTATE lpvdata)

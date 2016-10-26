@@ -307,7 +307,7 @@ static HookEntryEx_Type MouseHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "SetCursor", (FARPROC)SetCursor, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor},
 	{HOOK_IAT_CANDIDATE, 0, "SendMessageA", (FARPROC)SendMessageA, (FARPROC *)&pSendMessageA, (FARPROC)extSendMessageA}, 
 	{HOOK_IAT_CANDIDATE, 0, "SendMessageW", (FARPROC)SendMessageW, (FARPROC *)&pSendMessageW, (FARPROC)extSendMessageW}, 
-	//{HOOK_IAT_CANDIDATE, 0, "mouse_event", (FARPROC)NULL, (FARPROC *)&pmouse_event, (FARPROC)extmouse_event}, 
+	{HOOK_IAT_CANDIDATE, 0, "mouse_event", (FARPROC)mouse_event, (FARPROC *)&pmouse_event, (FARPROC)extmouse_event}, 
 	//{HOOK_IAT_CANDIDATE, 0, "SetPhysicalCursorPos", NULL, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor}, // ???
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -1131,6 +1131,7 @@ static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HW
 {
 	BOOL res;
 
+	if(dxw.dwFlags3 & PEEKALLMESSAGES){
 	if((wMsgFilterMin==0) && (wMsgFilterMax == 0)){
 		// no filtering, everything is good
 		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
@@ -1152,6 +1153,14 @@ static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HW
 	else
 		OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) res=%x\n", 
 			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg), res);
+	}
+	else {
+		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
+		OutTrace("PeekMessage: lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
+			lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
+			lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
+	}
 
 
 	return res;
@@ -3805,9 +3814,44 @@ BOOL WINAPI extPaintDesktop(HDC hdc)
 	if(!ret) OutTraceE("PaintDesktop ERROR: err=%d\n", GetLastError());
 	return ret;
 }
+
+
+char *ExplainMouseMoveFlags(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"MOUSEEVENTF_");
+	if (c & MOUSEEVENTF_MOVE) strcat(eb, "MOVE+");
+	if (c & MOUSEEVENTF_LEFTDOWN) strcat(eb, "LEFTDOWN+");
+	if (c & MOUSEEVENTF_LEFTUP) strcat(eb, "LEFTUP+");
+	if (c & MOUSEEVENTF_RIGHTDOWN) strcat(eb, "RIGHTDOWN+");
+	if (c & MOUSEEVENTF_RIGHTUP) strcat(eb, "RIGHTUP+");
+	if (c & MOUSEEVENTF_MIDDLEDOWN) strcat(eb, "MIDDLEDOWN+");
+	if (c & MOUSEEVENTF_MIDDLEUP) strcat(eb, "MIDDLEUP+");
+	if (c & MOUSEEVENTF_XDOWN) strcat(eb, "XDOWN+");
+	if (c & MOUSEEVENTF_XUP) strcat(eb, "XUP+");
+	if (c & MOUSEEVENTF_WHEEL) strcat(eb, "WHEEL+");
+	if (c & MOUSEEVENTF_HWHEEL) strcat(eb, "HWHEEL+");
+	if (c & MOUSEEVENTF_ABSOLUTE) strcat(eb, "ABSOLUTE+");
+	l=strlen(eb);
+	if (l>strlen("MOUSEEVENTF_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
 VOID WINAPI extmouse_event(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData, ULONG_PTR dwExtraInfo)
 {
-	OutTrace("mouse_event: flags=%x xy=(%d,%d) data=%x, extrainfo=%lx\n", dwFlags, dx, dy, dwData, dwExtraInfo);
+	OutTrace("mouse_event: flags=%x(%s) xy=(%d,%d) data=%x, extrainfo=%lx\n", 
+		dwFlags, ExplainMouseMoveFlags(dwFlags), dx, dy, dwData, dwExtraInfo);
+	
+	if((dwFlags & MOUSEEVENTF_MOVE) && (dxw.dwFlags2 & KEEPCURSORFIXED)) {
+		OutTraceDW("mouse_event: SUPPRESS mouse move\n");
+		return;
+	}
+
+	if(dxw.Windowize){
+		dxw.MapClient((int *)&dx, (int *)&dy);
+	}
 	return (*pmouse_event)(dwFlags, dx, dy, dwData, dwExtraInfo);
 }
 

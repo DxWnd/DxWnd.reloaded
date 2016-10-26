@@ -169,10 +169,12 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 
 #if FIXBIGGERRECT
 	// seems necessary to "cure" the "FIFA 2000" soccer game in hw accelerated graphics, when the Unlock() method
-	// receives RECT coordinates with big negative numbers!
+	// receives RECT coordinates with big positive or negative numbers!
 	if(lpdestrect){
 		if(lpdestrect->top < 0) lpdestrect->top = 0;
+		if(lpdestrect->top > (LONG)dxw.GetScreenWidth()) lpdestrect->top = 0;
 		if(lpdestrect->left < 0) lpdestrect->left = 0;
+		if(lpdestrect->left > (LONG)dxw.GetScreenHeight()) lpdestrect->left = 0;
 		if(lpdestrect->bottom > (LONG)dxw.GetScreenHeight()) lpdestrect->bottom = dxw.GetScreenHeight();
 		if(lpdestrect->right > (LONG)dxw.GetScreenWidth()) lpdestrect->right = dxw.GetScreenWidth();
 		if(lpdestrect->bottom < lpdestrect->top) lpdestrect->bottom = (LONG)dxw.GetScreenHeight();

@@ -1,3 +1,5 @@
+#include "specialedit.h"
+
 #pragma once
 
 typedef struct {
@@ -39,11 +41,18 @@ protected:
 	int m_TexMinY;
 	int m_TexMaxX;
 	int m_TexMaxY;
+	int m_DefaultCoordinates;
+	int m_DefaultPosX;
+	int m_DefaultPosY;
+	int m_DefaultSizX;
+	int m_DefaultSizY;
 
 	DECLARE_MESSAGE_MAP()
 public:
 public:
 	virtual BOOL OnInitDialog();
 protected:
+	CSpecialEdit m_EditPosX;
+	CSpecialEdit m_EditPosY;
 	virtual void OnOK();
 };
