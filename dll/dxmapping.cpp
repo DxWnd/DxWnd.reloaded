@@ -485,6 +485,7 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 void dxwCore::AutoScale()
 {
 	WINDOWPOS wp;
+	if(!dxw.Windowize) return;
 	CalculateWindowPos(hWnd, dwScreenWidth, dwScreenHeight, &wp);
 	OutTrace("AutoScale: new pos=(%d,%d) size=(%dx%d)\n", wp.x, wp.y, wp.cx, wp.cy);
 	if(!(*pSetWindowPos)(hWnd, 0, wp.x, wp.y, wp.cx, wp.cy, 0)){

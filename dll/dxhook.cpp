@@ -689,7 +689,7 @@ void AdjustWindowFrame(HWND hwnd, DWORD width, DWORD height)
 	(*pSetWindowLongA)(hwnd, GWL_EXSTYLE, exstyle); 
 	(*pShowWindow)(hwnd, SW_SHOWNORMAL);
 	OutTraceDW("AdjustWindowFrame hwnd=%x, set style=%s extstyle=0\n", hwnd, (style == 0) ? "0" : "WS_OVERLAPPEDWINDOW"); 
-	AdjustWindowPos(hwnd, width, height);
+	if (dxw.Windowize) AdjustWindowPos(hwnd, width, height);
 
 	// fixing windows message handling procedure
 	HookWindowProc(hwnd);

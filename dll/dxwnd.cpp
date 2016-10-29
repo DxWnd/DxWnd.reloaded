@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.03.93"
+#define VERSION "2.03.94.fx2"
 
 #define DDTHREADLOCK 1
 //#define LOCKTHREADS
@@ -265,13 +265,15 @@ void InjectHook()
 	int i;
 	GetModuleFileName(0, name, MAX_PATH);
 	name[MAX_PATH]=0; // terminator
-	for(i = 0; name[i]; i ++) name[i] = tolower(name[i]);
+	for(char *c = name; *c; c++) *c = tolower(*c);
 	for(i = 0; pMapping[i].path[0]; i ++){
-		if(pMapping[i].flags3 & HOOKENABLED){
-			if(!strncmp(name, pMapping[i].path, strlen(name))){
-				HookInit(&pMapping[i],NULL);
-				// beware: logging is possible only AFTER HookInit execution
-				OutTrace("InjectHook: task[%d]=\"%s\" hooked\n", i, pMapping[i].path);
+			if(pMapping[i].flags3 & HOOKENABLED){
+				if(!strncmp(name, pMapping[i].path, strlen(name))){
+				if ((pMapping[i].flags2 & STARTDEBUG) || (pMapping[i].flags7 & INJECTSUSPENDED)) {
+					HookInit(&pMapping[i],NULL);
+					// beware: logging is possible only AFTER HookInit execution
+					OutTrace("InjectHook: task[%d]=\"%s\" hooked\n", i, pMapping[i].path);
+				}
 				break;
 			}
 		}

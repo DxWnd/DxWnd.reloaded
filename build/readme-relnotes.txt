@@ -1320,3 +1320,12 @@ fix: automatic creation of Clipper object if needed for emulated ddraw blit to p
 fix: proper handling of dinput DirectInputDevice::GetDeviceData() DI_BUFFEROVERFLOW error condition
 fix: user32 GetCursorPos() wrapper
 fix: user32 mouse_event() wrapper
+
+v2.03.94.fx1-2:
+fix: aligned Lock cheats in Direct/Indirect mode ......
+fix: no window interventions in non windowed mode. Fix "Gunbound" in fullscreen mode
+fix: avoid multiple injection for early-hooked programs. Fix "Gunbound" regression.
+fix: Restore of all lost surfaces upon D3D BeginScene DDERR_LOSTSURFACE error. Fix "Gunbound" lost textures in fullscreen mode.
+add: more logging in mciSendCommand - possibly some regression problem...
+fix: corrected clipping bug introduced in v2.03.93.
+fix: SetWindowLog hooker preventing to set DxWnd windowproc when not in fullscreen mode. Fixes "Nascar Racing 3" recursion and crash.

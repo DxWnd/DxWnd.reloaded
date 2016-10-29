@@ -12,6 +12,8 @@
 //#undef OutTraceD3D
 //#define OutTraceD3D OutTrace
 
+extern LPDIRECTDRAW lpPrimaryDD;
+
 // exported API
 
 typedef HRESULT (WINAPI *Direct3DCreateDevice_Type)(GUID FAR *, LPDIRECT3D, LPDIRECTDRAWSURFACE, LPDIRECT3D *, LPUNKNOWN);
@@ -542,8 +544,8 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 	case 7:
 		//SetHook((void *)(**(DWORD **)lpd3ddev +   0), extQueryInterfaceD3D, (void **)&pQueryInterfaceD3D, "QueryInterface(D3D)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +   8), extReleaseD3D7, (void **)&pReleaseD3D7, "ReleaseD3D(7)");
-		//SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
-		//SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
+		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  60), extGetViewport7, (void **)&pGetViewport7, "GetViewport(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extSetRenderState7, (void **)&pSetRenderState7, "SetRenderState(7)");
@@ -1188,13 +1190,46 @@ HRESULT WINAPI extSetRenderState7(void *d3dd, D3DRENDERSTATETYPE State, DWORD Va
 	return extSetRenderState(pSetRenderState7, 7, d3dd, State, Value);
 }
 
+static HRESULT WINAPI dxwRestoreCallback(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
+{
+	HRESULT res;
+	OutTrace("dxwRestoreCallback: ANALYZING lpdds=%x\n", lpDDSurface);
+	if(lpDDSurface->IsLost()){
+		if(res=lpDDSurface->Restore()){
+			OutTrace("dxwRestoreCallback: RESTORE FAILED lpdds=%x err=%x(%s)\n", lpDDSurface, res, ExplainDDError(res));
+			return DDENUMRET_CANCEL;
+		}
+		OutTrace("dxwRestoreCallback: RESTORED lpdds=%x\n", lpDDSurface);
+	}
+	return DDENUMRET_OK;
+}
+
 HRESULT WINAPI extBeginScene1(void *d3dd)
 {
 	HRESULT res;
 	OutTraceD3D("BeginScene(1): d3dd=%x\n", d3dd);
 	res=(*pBeginScene1)(d3dd);
+	if(res == DDERR_SURFACELOST){
+		OutTraceDW("BeginScene: recovering from DDERR_SURFACELOST\n");
+		lpPrimaryDD->EnumSurfaces(DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, (LPDDENUMSURFACESCALLBACK)dxwRestoreCallback);
+		res=(*pBeginScene1)(d3dd);
+	}
 	if(res) OutTraceE("BeginScene(1): res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
+}
+
+static HRESULT WINAPI dxwRestoreCallback2(LPDIRECTDRAWSURFACE4 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
+{
+	HRESULT res;
+	OutTrace("dxwRestoreCallback2: ANALYZING lpdds=%x\n", lpDDSurface);
+	if(lpDDSurface->IsLost()){
+		if(res=lpDDSurface->Restore()){
+			OutTrace("dxwRestoreCallback2: RESTORE FAILED lpdds=%x err=%x(%s)\n", lpDDSurface, res, ExplainDDError(res));
+			return DDENUMRET_CANCEL;
+		}
+		OutTrace("dxwRestoreCallback2: RESTORED lpdds=%x\n", lpDDSurface);
+	}
+	return DDENUMRET_OK;
 }
 
 HRESULT WINAPI extBeginScene2(void *d3dd)
@@ -1220,6 +1255,11 @@ HRESULT WINAPI extBeginScene2(void *d3dd)
 		}
 	}
 	res=(*pBeginScene2)(d3dd);
+	if(res == DDERR_SURFACELOST){
+		OutTraceDW("BeginScene: recovering from DDERR_SURFACELOST\n");
+		lpPrimaryDD->EnumSurfaces(DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, (LPDDENUMSURFACESCALLBACK)dxwRestoreCallback2);
+		res=(*pBeginScene2)(d3dd);
+	}
 	if(res) OutTraceE("BeginScene(2): res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
@@ -1248,8 +1288,27 @@ HRESULT WINAPI extBeginScene3(void *d3dd)
 		}
 	}
 	res=(*pBeginScene3)(d3dd);
+	if(res == DDERR_SURFACELOST){
+		OutTraceDW("BeginScene: recovering from DDERR_SURFACELOST\n");
+		lpPrimaryDD->EnumSurfaces(DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, (LPDDENUMSURFACESCALLBACK)dxwRestoreCallback2);
+		res=(*pBeginScene3)(d3dd);
+	}
 	if(res) OutTraceE("BeginScene(3): res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
+}
+
+static HRESULT WINAPI dxwRestoreCallback7(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
+{
+	HRESULT res;
+	OutTrace("dxwRestoreCallback7: ANALYZING lpdds=%x\n", lpDDSurface);
+	if(lpDDSurface->IsLost()){
+		if(res=lpDDSurface->Restore()){
+			OutTrace("dxwRestoreCallback7: RESTORE FAILED lpdds=%x err=%x(%s)\n", lpDDSurface, res, ExplainDDError(res));
+			return DDENUMRET_CANCEL;
+		}
+		OutTrace("dxwRestoreCallback7: RESTORED lpdds=%x\n", lpDDSurface);
+	}
+	return DDENUMRET_OK;
 }
 
 HRESULT WINAPI extBeginScene7(void *d3dd)
@@ -1260,6 +1319,11 @@ HRESULT WINAPI extBeginScene7(void *d3dd)
 	// there is no Clear method for Viewport object in D3D7 !!!
 
 	res=(*pBeginScene7)(d3dd);
+	if(res == DDERR_SURFACELOST){
+		OutTraceDW("BeginScene: recovering from DDERR_SURFACELOST\n");
+		lpPrimaryDD->EnumSurfaces(DDENUMSURFACES_DOESEXIST|DDENUMSURFACES_ALL, NULL, NULL, (LPDDENUMSURFACESCALLBACK)dxwRestoreCallback7);
+		res=(*pBeginScene7)(d3dd);
+	}
 	if(res) OutTraceE("BeginScene(7): res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }

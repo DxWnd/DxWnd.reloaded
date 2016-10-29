@@ -8,8 +8,6 @@
 #include "hddraw.h"
 #include "dxhelper.h"
 
-#define FIXBIGGERRECT 1
-
 extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
 extern LPDIRECTDRAW lpPrimaryDD;
 extern Blt_Type pBlt;
@@ -167,20 +165,20 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	}
 #endif
 
-#if FIXBIGGERRECT
 	// seems necessary to "cure" the "FIFA 2000" soccer game in hw accelerated graphics, when the Unlock() method
 	// receives RECT coordinates with big positive or negative numbers!
+	// v2.03.94fx1: "FIFA2002" is ok with Unlock rect set to Lock previous value, but other games ("Aztec Wars", ...)
+	// require some software clipping when moving the cursor outside the window or similar cases
 	if(lpdestrect){
 		if(lpdestrect->top < 0) lpdestrect->top = 0;
-		if(lpdestrect->top > (LONG)dxw.GetScreenWidth()) lpdestrect->top = 0;
+		if(lpdestrect->top > (LONG)dxw.GetScreenHeight()) lpdestrect->top = dxw.GetScreenHeight();
 		if(lpdestrect->left < 0) lpdestrect->left = 0;
-		if(lpdestrect->left > (LONG)dxw.GetScreenHeight()) lpdestrect->left = 0;
+		if(lpdestrect->left > (LONG)dxw.GetScreenWidth()) lpdestrect->left = (LONG)dxw.GetScreenWidth();
 		if(lpdestrect->bottom > (LONG)dxw.GetScreenHeight()) lpdestrect->bottom = dxw.GetScreenHeight();
 		if(lpdestrect->right > (LONG)dxw.GetScreenWidth()) lpdestrect->right = dxw.GetScreenWidth();
-		if(lpdestrect->bottom < lpdestrect->top) lpdestrect->bottom = (LONG)dxw.GetScreenHeight();
-		if(lpdestrect->right < lpdestrect->left) lpdestrect->right = (LONG)dxw.GetScreenWidth();
+		if(lpdestrect->bottom < lpdestrect->top) lpdestrect->bottom = lpdestrect->top;
+		if(lpdestrect->right < lpdestrect->left) lpdestrect->right = lpdestrect->left;
 	}
-#endif
 
 	if(dxw.dwFlags5 & QUARTERBLT){
 		BOOL QuarterUpdate;

@@ -843,8 +843,11 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		}
 	}
 
+	// v2.03.94.fx2: removed dxw.IsFullScreen() check here ... WinProc routine must be verified in all conditions
+	// fixes "Nascar Racing 3" that was setting the WinProc while still in non fullscreen mode!
 	if (((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)) && 
-		dxw.IsFullScreen() &&			// v2.02.51 - see A10 Cuba....
+		dxw.Windowize &&					// v2.03.95 - replaced dxw.IsFullScreen() check
+		// dxw.IsFullScreen() &&			// v2.02.51 - see A10 Cuba....
 		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug flag
 		WNDPROC lres;
 		WNDPROC OldProc;
@@ -856,7 +859,8 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		}
 
 		// GPL fix
-		if(dxw.IsRealDesktop(hwnd) && dxw.Windowize) {
+		// v2.03.94.fx2: moved dxw.IsFullScreen() check here ...
+		if(dxw.IsRealDesktop(hwnd) && dxw.Windowize && dxw.IsFullScreen()) {
 			hwnd=dxw.GethWnd();
 			OutTraceDW("SetWindowLong: DESKTOP hwnd, FIXING hwnd=%x\n",hwnd);
 		}

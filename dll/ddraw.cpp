@@ -4434,6 +4434,24 @@ DDSURFACEDESC SaveSurfaceDesc;
 LPDIRECTDRAWSURFACE SaveSurface = NULL;
 LPRECT SaveLockedlpRect = NULL;
 RECT SaveLockedRect;
+LPDIRECTDRAWSURFACE SaveLockedSurface = NULL;
+
+static void PushLockedRect(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
+{
+	SaveLockedSurface = lpdds;
+	SaveLockedlpRect = lprect;
+	if(SaveLockedlpRect) SaveLockedRect = *lprect;
+}
+
+static LPRECT PopLockedRect(LPDIRECTDRAWSURFACE lpdds, LPRECT lprect)
+{
+	if(lpdds == SaveLockedSurface){
+		SaveLockedSurface = NULL;
+		return SaveLockedlpRect;
+	}
+	else 
+		return lprect;
+}
 
 static HRESULT WINAPI extLock(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFACE lpdds, LPRECT lprect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD flags, HANDLE hEvent)
 {
@@ -4450,19 +4468,18 @@ static HRESULT WINAPI extLock(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFAC
 			dxversion, lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc, sRect);
 	}
 
-	SaveLockedlpRect = lprect;
-	if(SaveLockedlpRect) SaveLockedRect = *lprect;
+	PushLockedRect(lpdds, lprect);
 
 	res=(*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
 	if(res==DDERR_SURFACEBUSY){ // v70: fix for "Ancient Evil"
 		(*pUnlockMethod(dxversion))(lpdds, NULL);
 		res = (*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
-		OutTraceDW("Lock RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
+		OutTraceDW("Lock SURFACEBUSY RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
 	}
 	if(res==DDERR_SURFACELOST){ 
 		lpdds->Restore();
 		res = (*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
-		OutTraceDW("Lock RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
+		OutTraceDW("Lock SURFACELOST RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
 	}
 	if(res) OutTraceE("Lock ERROR: ret=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	OutTraceB("Lock: lPitch=%d lpSurface=%x ZBufferBitDepth=%d %s\n", 
@@ -4517,8 +4534,7 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 			dxversion, lpdds, (IsPrim ? "(PRIM)":""), flags, ExplainLockFlags(flags), lpDDSurfaceDesc, sRect);
 	}
 
-	SaveLockedlpRect = lprect;
-	if(SaveLockedlpRect) SaveLockedRect = *lprect;
+	PushLockedRect(lpdds, lprect);
 
 	switch(dxversion){
 		case 1: pBlt=pBlt1; pGetGDISurface=pGetGDISurface1; break;
@@ -4578,6 +4594,16 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 	}
 
 	res=(*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
+	if(res==DDERR_SURFACEBUSY){ // v70: fix for "Ancient Evil"
+		(*pUnlockMethod(dxversion))(lpdds, NULL);
+		res = (*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
+		OutTraceDW("Lock SURFACEBUSY RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
+	}
+	if(res==DDERR_SURFACELOST){ 
+		lpdds->Restore();
+		res = (*pLock)(lpdds, lprect, lpDDSurfaceDesc, flags, hEvent);
+		OutTraceDW("Lock SURFACELOST RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
+	}
 
 	if(res) OutTraceE("Lock ERROR: ret=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	OutTraceB("Lock: lPitch=%d lpSurface=%x ZBufferBitDepth=%d %s\n", 
@@ -4588,6 +4614,11 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 		lpDDSurfaceDesc->dwZBufferBitDepth = dxw.VirtualPixelFormat.dwRGBBitCount;
 	
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
+
+	if((dxw.dwFlags6 & FIXPITCH) || (dxw.dwFlags3 & MARKLOCK)){
+		SaveSurfaceDesc = *lpDDSurfaceDesc;
+		SaveSurface = lpdds;
+	}
 
 	return res;
 }
@@ -4647,7 +4678,7 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 		// v2.02.92: found in Fifa 2000: lpRect is completely ignored, receiving bogus values like (-1, -1, -1, -1}
 		// or {0, 0, 0, 0}, or {-109119151, -109119151, -109119151, -109119151}.
 		// better use the Lock-ed rect
-		if(IsPrim) lprect = SaveLockedlpRect;
+		lprect = PopLockedRect(lpdds, lprect);
 	}
 
 	if((dxw.dwFlags6 & FIXPITCH) && !(IsPrim||IsBack) && (lpdds == SaveSurface)){
@@ -4739,7 +4770,7 @@ static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECT
 		// v2.02.92: found in Fifa 2000: lpRect is completely ignored, receiving bogus values like (-1, -1, -1, -1}
 		// or {0, 0, 0, 0}, or {-109119151, -109119151, -109119151, -109119151}.
 		// better use the Lock-ed rect
-		if(IsPrim) lprect = SaveLockedlpRect;
+		lprect = PopLockedRect(lpdds, lprect);
 	}
 
 	if(IsTraceDDRAW){

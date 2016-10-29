@@ -15,7 +15,7 @@
 #define EMULATEJOY TRUE
 #define INVERTJOYAXIS TRUE
 
-// #include "logall.h" // comment when not debugging
+#include "logall.h" // comment when not debugging
 
 BOOL IsWithinMCICall = FALSE;
 
@@ -137,81 +137,222 @@ MMRESULT WINAPI exttimeKillEvent(UINT uTimerID)
 	You can use the MCI_GETDEVCAPS_CAN_STRETCH flag with the MCI_GETDEVCAPS command to determine if a device scales the image. A device returns FALSE if it cannot scale the image.
 */
 
-MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
+static char *sStatusItem(DWORD dwItem)
+{
+	char *s;
+	switch(dwItem){
+		case MCI_STATUS_LENGTH:				s = "LENGTH"; break;
+		case MCI_STATUS_POSITION:			s = "POSITION"; break;
+		case MCI_STATUS_NUMBER_OF_TRACKS:	s = "NUMBER_OF_TRACKS"; break;
+		case MCI_STATUS_MODE:				s = "MODE"; break;
+		case MCI_STATUS_MEDIA_PRESENT:		s = "MEDIA_PRESENT"; break;
+		case MCI_STATUS_TIME_FORMAT:		s = "TIME_FORMAT"; break;
+		case MCI_STATUS_READY:				s = "READY"; break;
+		case MCI_STATUS_CURRENT_TRACK:		s = "CURRENT_TRACK"; break;
+		default:							s = "???"; break;
+	}
+	return s;
+}
+
+static char *sDeviceType(DWORD dt)
+{
+	char *s;
+	switch(dt){
+		case MCI_ALL_DEVICE_ID: s="ALL_DEVICE_ID"; break;
+		case MCI_DEVTYPE_VCR: s="VCR"; break;
+		case MCI_DEVTYPE_VIDEODISC: s="VIDEODISC"; break;
+		case MCI_DEVTYPE_OVERLAY: s="OVERLAY"; break;
+		case MCI_DEVTYPE_CD_AUDIO: s="CD_AUDIO"; break;
+		case MCI_DEVTYPE_DAT: s="DAT"; break;
+		case MCI_DEVTYPE_SCANNER: s="SCANNER"; break;
+		case MCI_DEVTYPE_ANIMATION: s="ANIMATION"; break;
+		case MCI_DEVTYPE_DIGITAL_VIDEO: s="DIGITAL_VIDEO"; break;
+		case MCI_DEVTYPE_OTHER: s="OTHER"; break;
+		case MCI_DEVTYPE_WAVEFORM_AUDIO: s="WAVEFORM_AUDIO"; break;
+		case MCI_DEVTYPE_SEQUENCER: s="SEQUENCER"; break;
+		default: s="unknown"; break;
+	}
+	return s;
+}
+
+static void DumpMciMessage(char *label, BOOL isAnsi, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
+{
+	switch(uMsg){
+		case MCI_BREAK: 
+			{
+				LPMCI_BREAK_PARMS lpBreak = (LPMCI_BREAK_PARMS)dwParam;
+				OutTrace("mciSendCommand%s: MCI_BREAK cb=%x virtkey=%d hwndbreak=%x\n",
+					label, lpBreak->dwCallback, lpBreak->nVirtKey, lpBreak->hwndBreak);
+			}
+			break;
+		case MCI_INFO: 
+			{
+				LPMCI_INFO_PARMS lpInfo = (LPMCI_INFO_PARMS)dwParam;
+				OutTrace("mciSendCommand%s: MCI_INFO cb=%x retsize=%x\n",
+					label, lpInfo->dwCallback, lpInfo->dwRetSize);
+			}
+			break;
+		case MCI_PLAY: 
+			{
+				LPMCI_PLAY_PARMS lpPlay = (LPMCI_PLAY_PARMS)dwParam;
+				OutTrace("mciSendCommand%s: MCI_PLAY cb=%x from=%x to=%x\n",
+					label, lpPlay->dwCallback, lpPlay->dwFrom, lpPlay->dwTo);
+			}
+			break;
+		case MCI_GETDEVCAPS:
+			{
+				LPMCI_GETDEVCAPS_PARMS lpDevCaps = (LPMCI_GETDEVCAPS_PARMS)dwParam;
+				OutTrace("mciSendCommand%s: MCI_GETDEVCAPS cb=%x ret=%x item=%x\n",
+					label, lpDevCaps->dwCallback, lpDevCaps->dwReturn, lpDevCaps->dwItem);
+			}
+			break;
+		case MCI_OPEN: 
+			{
+				DWORD dwFlags = (DWORD)fdwCommand;
+				// how to dump LPMCI_OPEN_PARMS strings without crash?
+				if(isAnsi){
+					LPMCI_OPEN_PARMSA lpOpen = (LPMCI_OPEN_PARMSA)dwParam;
+					OutTrace("mciSendCommand%s: MCI_OPEN %scb=%x devid=%x devtype=%s elementname=%s alias=%s\n",
+						label, 
+						(dwFlags & MCI_OPEN_SHAREABLE) ? "OPEN_SHAREABLE " : "",
+						lpOpen->dwCallback, lpOpen->wDeviceID,
+						"", //(dwFlags & MCI_OPEN_TYPE) ? lpOpen->lpstrDeviceType : "",
+						(dwFlags & MCI_OPEN_ELEMENT) ? lpOpen->lpstrElementName : "",
+						(dwFlags & MCI_OPEN_ALIAS) ? lpOpen->lpstrAlias : "");
+				}
+				else{
+					LPMCI_OPEN_PARMSW lpOpen = (LPMCI_OPEN_PARMSW)dwParam;
+					OutTrace("mciSendCommand%s: MCI_OPEN cb=%x devid=%x devtype=%ls elementname=%ls alias=%ls\n",
+						label, 
+						(dwFlags & MCI_OPEN_SHAREABLE) ? "OPEN_SHAREABLE " : "",
+						lpOpen->dwCallback, lpOpen->wDeviceID,
+						L"", //(dwFlags & MCI_OPEN_TYPE) ? lpOpen->lpstrDeviceType : L"",
+						(dwFlags & MCI_OPEN_ELEMENT) ? lpOpen->lpstrElementName : L"",
+						(dwFlags & MCI_OPEN_ALIAS) ? lpOpen->lpstrAlias : L"");
+				}
+			}
+			break;
+		case MCI_STATUS:
+			{
+				LPMCI_STATUS_PARMS lpStatus = (LPMCI_STATUS_PARMS)dwParam;
+				OutTrace("mciSendCommand%s: MCI_STATUS cb=%x ret=%x item=%x(%s) track=%x\n",
+					label, lpStatus->dwCallback, lpStatus->dwReturn, lpStatus->dwItem, sStatusItem(lpStatus->dwItem), lpStatus->dwTrack);
+			}
+			break;
+		case MCI_SYSINFO:
+			{
+				LPMCI_SYSINFO_PARMS lpSysInfo = (LPMCI_SYSINFO_PARMS)dwParam;
+				OutTrace("mciSendCommand%s: MCI_SYSINFO cb=%x retsize=%x number=%x devtype=%x(%s)\n",
+					label, lpSysInfo->dwCallback, lpSysInfo->dwRetSize, lpSysInfo->dwNumber, lpSysInfo->wDeviceType, sDeviceType(lpSysInfo->wDeviceType));
+			}
+			break;
+		default:
+			{
+				LPMCI_GENERIC_PARMS lpGeneric = (LPMCI_GENERIC_PARMS)dwParam;
+				OutTrace("mciSendCommand%s: %s cb=%x\n",
+					label, ExplainMCICommands(uMsg), lpGeneric->dwCallback);
+			}
+			break;
+	}
+}
+
+MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendCommand, MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
 {
 	RECT saverect;
 	MCIERROR ret;
 	MCI_ANIM_RECT_PARMS *pr;
 	MCI_OVLY_WINDOW_PARMSW *pw;
 
-	OutTraceDW("mciSendCommand: IDDevice=%x msg=%x(%s) Command=%x(%s)\n",
-		IDDevice, uMsg, ExplainMCICommands(uMsg), fdwCommand, ExplainMCIFlags(uMsg, fdwCommand));
+	OutTraceDW("mciSendCommand%c: IDDevice=%x msg=%x(%s) Command=%x(%s)\n",
+		isAnsi ? 'A' : 'W', 
+		IDDevice, 
+		uMsg, ExplainMCICommands(uMsg), 
+		fdwCommand, ExplainMCIFlags(uMsg, fdwCommand));
+
+	if(IsDebug) DumpMciMessage(">>", isAnsi, uMsg, fdwCommand, dwParam);
 
 	if(dxw.dwFlags6 & BYPASSMCI){
-		if((uMsg == MCI_STATUS) && (fdwCommand & MCI_STATUS_ITEM)){
-			// fix for Tie Fighter 95: when bypassing, let the caller know you have no CD tracks
-			// otherwise you risk an almost endless loop going through the unassigned returned 
-			// number of ghost tracks
-			// fix for "Emperor of the Fading Suns": the MCI_STATUS_ITEM is set in .or. with
-			// MCI_TRACK
-			MCI_STATUS_PARMS *p = (MCI_STATUS_PARMS *)dwParam;
-			OutTraceDW("mciSendCommand: MCI_STATUS item=%d track=%d ret=%d\n", p->dwItem, p->dwReturn, p->dwTrack);
-			if(fdwCommand & MCI_TRACK){
-				p->dwReturn = 1;
-			}
-			else{
-			        p->dwItem = 0;
-			        p->dwTrack = 0; 
-			        p->dwReturn = 0;
-			}
-			OutTraceDW("mciSendCommand: BYPASS fixing MCI_STATUS\n");
+		//MCI_OPEN_PARMS *op;
+		MCI_STATUS_PARMS *sp;
+		switch(uMsg){
+			case MCI_STATUS:
+				if(fdwCommand & MCI_STATUS_ITEM){
+					// fix for Tie Fighter 95: when bypassing, let the caller know you have no CD tracks
+					// otherwise you risk an almost endless loop going through the unassigned returned 
+					// number of ghost tracks
+					// fix for "Emperor of the Fading Suns": the MCI_STATUS_ITEM is set in .or. with
+					// MCI_TRACK
+					sp = (MCI_STATUS_PARMS *)dwParam;
+					switch(fdwCommand){
+						case MCI_TRACK:
+							sp->dwReturn = 1;
+							break;
+						default:
+							sp->dwTrack = 0;
+							if(sp->dwItem == MCI_STATUS_CURRENT_TRACK) sp->dwTrack = 1;
+							if(sp->dwItem == MCI_STATUS_NUMBER_OF_TRACKS) sp->dwTrack = 1;
+							if(sp->dwItem == MCI_STATUS_LENGTH) sp->dwTrack = 200;
+							sp->dwReturn = 0;
+							break;
+					}
+				}
+				ret = 0;
+				break;
+			default:
+				ret = 0;
+				break;
 		}
-		else{
-			OutTraceDW("mciSendCommand: BYPASS\n");
-		}
-		return 0;
+		if(IsDebug) DumpMciMessage("<<", isAnsi, uMsg, fdwCommand, dwParam);
+		return ret;
 	}
 
 	if(dxw.IsFullScreen()){
 		switch(uMsg){
-		case MCI_WINDOW:
-			pw = (MCI_OVLY_WINDOW_PARMSW *)dwParam;
-			OutTraceB("mciSendCommand: hwnd=%x CmdShow=%x\n",
-				pw->hWnd, pw->nCmdShow);
-			//fdwCommand |= MCI_ANIM_WINDOW_ENABLE_STRETCH;
-			//fdwCommand &= ~MCI_ANIM_WINDOW_DISABLE_STRETCH;
-			//fdwCommand &= ~MCI_ANIM_WINDOW_HWND;
-			if(dxw.IsRealDesktop(pw->hWnd)) {
-				pw->hWnd = dxw.GethWnd();
-				OutTraceB("mciSendCommand: REDIRECT hwnd=%x\n", pw->hWnd);
-			}
-			break;
-		case MCI_PUT:
-			RECT client;
-			pr = (MCI_ANIM_RECT_PARMS *)dwParam;
-			OutTraceB("mciSendCommand: rect=(%d,%d),(%d,%d)\n",
-				pr->rc.left, pr->rc.top, pr->rc.right, pr->rc.bottom);
-			(*pGetClientRect)(dxw.GethWnd(), &client);
-			//fdwCommand |= MCI_ANIM_PUT_DESTINATION;
-			fdwCommand |= MCI_ANIM_RECT;
-			saverect=pr->rc;
-			pr->rc.top = (pr->rc.top * client.bottom) / dxw.GetScreenHeight();
-			pr->rc.bottom = (pr->rc.bottom * client.bottom) / dxw.GetScreenHeight();
-			pr->rc.left = (pr->rc.left * client.right) / dxw.GetScreenWidth();
-			pr->rc.right = (pr->rc.right * client.right) / dxw.GetScreenWidth();
-			OutTraceB("mciSendCommand: fixed rect=(%d,%d),(%d,%d)\n",
-				pr->rc.left, pr->rc.top, pr->rc.right, pr->rc.bottom);
-			break;
-		case MCI_PLAY:
-			if(dxw.dwFlags6 & NOMOVIES) return 0; // ???
-			break;
-		case MCI_OPEN:
-			if(dxw.dwFlags6 & NOMOVIES) return 275; // quite brutal, but working ....
-			break;
+			case MCI_WINDOW:
+				pw = (MCI_OVLY_WINDOW_PARMSW *)dwParam;
+				OutTraceB("mciSendCommand: hwnd=%x CmdShow=%x\n",
+					pw->hWnd, pw->nCmdShow);
+				if(dxw.IsRealDesktop(pw->hWnd)) {
+					pw->hWnd = dxw.GethWnd();
+					OutTraceB("mciSendCommand: REDIRECT hwnd=%x\n", pw->hWnd);
+				}
+				break;
+			case MCI_PUT:
+				RECT client;
+				pr = (MCI_ANIM_RECT_PARMS *)dwParam;
+				OutTraceB("mciSendCommand: rect=(%d,%d),(%d,%d)\n",
+					pr->rc.left, pr->rc.top, pr->rc.right, pr->rc.bottom);
+				(*pGetClientRect)(dxw.GethWnd(), &client);
+				//fdwCommand |= MCI_ANIM_PUT_DESTINATION;
+				fdwCommand |= MCI_ANIM_RECT;
+				saverect=pr->rc;
+				pr->rc.top = (pr->rc.top * client.bottom) / dxw.GetScreenHeight();
+				pr->rc.bottom = (pr->rc.bottom * client.bottom) / dxw.GetScreenHeight();
+				pr->rc.left = (pr->rc.left * client.right) / dxw.GetScreenWidth();
+				pr->rc.right = (pr->rc.right * client.right) / dxw.GetScreenWidth();
+				OutTraceB("mciSendCommand: fixed rect=(%d,%d),(%d,%d)\n",
+					pr->rc.left, pr->rc.top, pr->rc.right, pr->rc.bottom);
+				break;
+			case MCI_PLAY:
+				if(dxw.dwFlags6 & NOMOVIES) return 0; // ???
+				break;
+			case MCI_OPEN:
+				if(dxw.dwFlags6 & NOMOVIES) return 275; // quite brutal, but working ....
+				break;
+			case MCI_STOP:
+				if(dxw.dwFlags6 & NOMOVIES) return 0; // ???
+				break;
 		}
 	}
 
+	LPMCI_GENERIC_PARMS lpGeneric = (LPMCI_GENERIC_PARMS)dwParam;
+	if(HIWORD(lpGeneric->dwCallback) == NULL) {
+		lpGeneric->dwCallback = MAKELONG(dxw.GethWnd(),0);
+		OutTraceB("mciSendCommand: REDIRECT dwCallback=%x\n", dxw.GethWnd());
+	}
+
 	ret=(*pmciSendCommand)(IDDevice, uMsg, fdwCommand, dwParam);
+	if(IsDebug) DumpMciMessage("<<", isAnsi, uMsg, fdwCommand, dwParam);
 
 	if(ret == 0){
 		switch(uMsg){
@@ -229,12 +370,12 @@ MCIERROR WINAPI extmciSendCommand(mciSendCommand_Type pmciSendCommand, MCIDEVICE
 
 MCIERROR WINAPI extmciSendCommandA(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
 {
-	return extmciSendCommand(pmciSendCommandA, IDDevice, uMsg, fdwCommand, dwParam);
+	return extmciSendCommand(TRUE, pmciSendCommandA, IDDevice, uMsg, fdwCommand, dwParam);
 }
 
 MCIERROR WINAPI extmciSendCommandW(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
 {
-	return extmciSendCommand(pmciSendCommandW, IDDevice, uMsg, fdwCommand, dwParam);
+	return extmciSendCommand(FALSE, pmciSendCommandW, IDDevice, uMsg, fdwCommand, dwParam);
 }
 
 MCIERROR WINAPI extmciSendStringA(LPCTSTR lpszCommand, LPTSTR lpszReturnString, UINT cchReturn, HANDLE hwndCallback)

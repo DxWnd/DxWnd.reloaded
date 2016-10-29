@@ -30,3 +30,7 @@
 #undef IsTraceE
 #define IsTraceE TRUE
 #endif
+#ifdef IsDebug
+#undef IsDebug
+#define IsDebug TRUE
+#endif
