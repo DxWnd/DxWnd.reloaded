@@ -1154,11 +1154,19 @@ void CDxwndhostView::OnInitialUpdate()
 	LV_COLUMN listcol;
 	LV_ITEM listitem;
 	int i;
+	typedef BOOL (WINAPI *ChangeWindowMessageFilter_Type)(UINT, DWORD);
+	ChangeWindowMessageFilter_Type pChangeWindowMessageFilter;
 
 	DragAcceptFiles();
-	ChangeWindowMessageFilter(WM_DROPFILES, MSGFLT_ADD);
-	ChangeWindowMessageFilter(WM_COPYDATA, MSGFLT_ADD);
-	ChangeWindowMessageFilter(0x0049, MSGFLT_ADD);
+	// the ChangeWindowMessageFilter is not available, nor necessary, on XP
+	HMODULE hUser32;
+	hUser32 = GetModuleHandle("user32.dll");
+	pChangeWindowMessageFilter = (ChangeWindowMessageFilter_Type)GetProcAddress(hUser32, "ChangeWindowMessageFilter");
+	if(pChangeWindowMessageFilter){
+		(*pChangeWindowMessageFilter)(WM_DROPFILES, MSGFLT_ADD);
+		(*pChangeWindowMessageFilter)(WM_COPYDATA, MSGFLT_ADD);
+		(*pChangeWindowMessageFilter)(0x0049, MSGFLT_ADD);
+	}
 
 	// Create 256 color image lists
 	HIMAGELIST hList = ImageList_Create(32,32, ILC_COLOR8 |ILC_MASK , 4, 1);
@@ -1595,6 +1603,7 @@ void CDxwndhostView::OnSetRegistry()
 	}
 
 	fwrite(Registry, strlen(Registry), 1, regfp);
+	fputs("\n", regfp);
 	fclose(regfp);
 }
 
@@ -2641,6 +2650,7 @@ void CDxwndhostView::OnRun()
 		regfp=fopen("dxwnd.reg", "w");
 		if(regfp==NULL)MessageBox("Error writing virtual registry file", "Error", MB_ICONERROR|MB_OK);
 		fwrite(Registry, strlen(Registry), 1, regfp);
+		fputs("\n", regfp);
 		fclose(regfp);	
 	}
 

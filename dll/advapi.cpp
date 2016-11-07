@@ -160,6 +160,7 @@ static FILE *OpenFakeRegistry()
 				strcpy(p, "dxwnd.reg");
 				freg = fopen(sSourcePath,"w");
 				fwrite(FileBuf, 1, strlen(FileBuf), freg);
+				fputs("\n", freg);
 				fclose(freg);
 				free(FileBuf);
 			}
@@ -256,7 +257,7 @@ static DWORD GetKeyValue(
 	char RegBuf[MAX_PATH+1];
 	DWORD cbData=0;
 
-	OutTrace("GetKeyValue: ValueName=%s", lpValueName);
+	//OutTrace("GetKeyValue: ValueName=%s\n", lpValueName);
 	fgets(RegBuf, 256, regf);
 	pData=&RegBuf[strlen(lpValueName)+3];
 	lpb = lpData;
@@ -294,6 +295,8 @@ static DWORD GetKeyValue(
 				else
 					res=ERROR_MORE_DATA;
 			}
+			else 
+				res=ERROR_SUCCESS; // data not needed
 			if (lpcbData) *lpcbData=sizeof(DWORD);
 			OutTraceR("%s: type=REG_DWORD cbData=%x Data=0x%x\n", 
 				ApiName, lpcbData ? *lpcbData : 0, val);
@@ -448,11 +451,20 @@ LONG WINAPI extRegQueryValueEx(
 	}
 
 	regf=OpenFakeRegistry();
-	if(regf==NULL) return ERROR_FILE_NOT_FOUND;
+	if(regf==NULL) {
+		OutTraceR("RegQueryValueEx: error in OpenFakeRegistry err=%s\n", GetLastError());	
+		return ERROR_FILE_NOT_FOUND;
+	}
 	res = SeekFakeKey(regf, hKey);
-	if(res != ERROR_SUCCESS) return res;
+	if(res != ERROR_SUCCESS) {
+		OutTraceR("RegQueryValueEx: error in SeekFakeKey res=%x hKey=%x\n", res, hKey);	
+		return res;
+	}
 	res = SeekValueName(regf, lpValueName);
-	if(res != ERROR_SUCCESS) return res;
+	if(res != ERROR_SUCCESS) {
+		OutTraceR("RegQueryValueEx: error in SeekValueName res=%x ValueName=%s\n", res, lpValueName);	
+		return res;
+	}
 	res = GetKeyValue(regf, "RegQueryValueEx", lpValueName, lpType, lpData, lpcbData);
 	if(IsTraceR) LogKeyValue("RegQueryValueEx", res, lpType, lpData, lpcbData);
 	fclose(regf);

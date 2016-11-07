@@ -177,9 +177,6 @@ BOOL CTabProgram::OnInitDialog()
 	CStatic *IconBox;
 	IFormat *m_pRelIntegerFormat = new(RelIntegerFormat);
 
-	//ChangeWindowMessageFilter(WM_DROPFILES, MSGFLT_ADD);
-	//ChangeWindowMessageFilter(WM_COPYDATA, MSGFLT_ADD);
-	//ChangeWindowMessageFilter(0x0049, MSGFLT_ADD);
 	DragAcceptFiles();
 	CDragEdit *pEditFile;
 	pEditFile = (CDragEdit *)this->GetDlgItem(IDC_FILE);
