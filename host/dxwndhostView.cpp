@@ -444,6 +444,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	//if(dlg->m_Init8BPP) t->flags2 |= INIT8BPP;
 	//if(dlg->m_Init16BPP) t->flags2 |= INIT16BPP;
 	if(dlg->m_BackBufAttach) t->flags2 |= BACKBUFATTACH;
+	if(dlg->m_ClearTextureFourCC) t->flags7 |= CLEARTEXTUREFOURCC;
+	if(dlg->m_NoDDExclusiveMode) t->flags7 |= NODDEXCLUSIVEMODE;
 	if(dlg->m_HandleAltF4) t->flags |= HANDLEALTF4;
 	if(dlg->m_LimitFPS) t->flags2 |= LIMITFPS;
 	if(dlg->m_SkipFPS) t->flags2 |= SKIPFPS;
@@ -731,6 +733,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_RecoverScreenMode = t->flags2 & RECOVERSCREENMODE ? 1 : 0;
 	dlg->m_RefreshOnResize = t->flags2 & REFRESHONRESIZE ? 1 : 0;
 	dlg->m_BackBufAttach = t->flags2 & BACKBUFATTACH ? 1 : 0;
+	dlg->m_ClearTextureFourCC = t->flags7 & CLEARTEXTUREFOURCC ? 1 : 0;
+	dlg->m_NoDDExclusiveMode = t->flags7 & NODDEXCLUSIVEMODE ? 1 : 0;
 	dlg->m_HandleAltF4 = t->flags & HANDLEALTF4 ? 1 : 0;
 	dlg->m_LimitFPS = t->flags2 & LIMITFPS ? 1 : 0;
 	dlg->m_SkipFPS = t->flags2 & SKIPFPS ? 1 : 0;
@@ -2638,6 +2642,7 @@ DWORD WINAPI StartDebug(void *p)
 	PROCESS_INFORMATION pinfo;
 	char path[MAX_PATH];
 	extern char *GetFileNameFromHandle(HANDLE);
+	char *sRunTargetPath;
 #ifdef DXWDEBUGSTEPPING
 	PROCESS_INFORMATION *pi;
 	CREATE_THREAD_DEBUG_INFO *ti;
@@ -2661,10 +2666,11 @@ DWORD WINAPI StartDebug(void *p)
 	ThInfo = (ThreadInfo_Type *)p;
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo);
-	strcpy_s(path, sizeof(path), ThInfo->TM->path);
+	sRunTargetPath = (strlen(ThInfo->PM->launchpath)>0) ? ThInfo->PM->launchpath : ThInfo->TM->path;
+	strcpy_s(path, sizeof(path), sRunTargetPath);
 	PathRemoveFileSpec(path);
 	if(!CreateProcess(NULL, 
-		(strlen(ThInfo->PM->launchpath)>0) ? ThInfo->PM->launchpath : ThInfo->TM->path, 
+		sRunTargetPath, 
 		0, 0, false, DEBUG_PROCESS|DEBUG_ONLY_THIS_PROCESS, NULL, path, &sinfo, &pinfo)){
 		DWORD dwLastErr = GetLastError();
 		switch (dwLastErr){
@@ -3064,6 +3070,7 @@ void CDxwndhostView::OnRun()
 	PROCESS_INFORMATION pinfo;
 	char path[MAX_PATH];
 	TARGETMAP RestrictedMaps[2];
+	char *sRunTargetPath;
 
 	if(gTransientMode){
 		i=iProgIndex-1;
@@ -3074,13 +3081,14 @@ void CDxwndhostView::OnRun()
 		pos = listctrl.GetFirstSelectedItemPosition();
 		i = listctrl.GetNextSelectedItem(pos);
 	}
+	sRunTargetPath = (strlen(PrivateMaps[i].launchpath)>0) ? PrivateMaps[i].launchpath : TargetMaps[i].path;
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo);
 	// create a virtually single entry in the targetmap array
 	memcpy(&RestrictedMaps[0], &TargetMaps[i], sizeof(TARGETMAP));
 	memset(&RestrictedMaps[1], 0, sizeof(TARGETMAP));
 	if(!(PrivateMaps[i].startfolder[0])){
-		strcpy_s(path, sizeof(path), TargetMaps[i].path);
+		strcpy_s(path, sizeof(path), sRunTargetPath);
 		PathRemoveFileSpec(path);
 	}else{
 		strcpy_s(path, sizeof(path), PrivateMaps[i].startfolder);
@@ -3130,12 +3138,12 @@ void CDxwndhostView::OnRun()
 	else
 	if(TargetMaps[i].flags7 & INJECTSUSPENDED){
 		OutTrace("injectsuspended mode\n");
-		InjectSuspended((strlen(PrivateMaps[i].launchpath)>0) ? PrivateMaps[i].launchpath: TargetMaps[i].path, path); 
+		InjectSuspended(sRunTargetPath, path); 
 	}
 	else{
 		OutTrace("setwindowshook mode\n");
 		CreateProcess(NULL, 
-			(strlen(PrivateMaps[i].launchpath)>0) ? PrivateMaps[i].launchpath: TargetMaps[i].path, 
+			sRunTargetPath, 
 			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
 		CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
 		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage

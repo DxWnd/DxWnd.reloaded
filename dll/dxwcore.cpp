@@ -94,6 +94,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags8 = target->flags8;
 	dwTFlags = target->tflags;
 	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
+	IsVisible = TRUE;
 	if(dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
 	gsModules = target->module;
 	MaxFPS = target->MaxFPS;

@@ -788,6 +788,7 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 	// v2.03.95: force zero size when minimize and drefresh window coordinates
 	if(hwnd == dxw.GethWnd()){
 		if(nCmdShow==SW_MINIMIZE) {
+			dxw.IsVisible = FALSE;
 			iLastSizX = dxw.iSizX;
 			iLastSizY = dxw.iSizY;
 			//iLastPosX = dxw.iPosX;
@@ -795,6 +796,7 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 			dxw.iSizX = dxw.iSizY = 0;
 		}
 		else {
+			dxw.IsVisible = TRUE;
 			if((dxw.iSizX == 0) && (dxw.iSizY == 0)){
 				dxw.iSizX = iLastSizX;
 				dxw.iSizY = iLastSizY;
@@ -991,8 +993,9 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		int UpdFlag =0;
 		int MaxX, MaxY;
-		MaxX = dxw.iSizX;
-		MaxY = dxw.iSizY;
+		// v2.03.96: in PREVENTMAXIMIZE mode don't exceed the initial size
+		MaxX = dxw.iSiz0X;
+		MaxY = dxw.iSiz0Y;
 		if (!MaxX) MaxX = dxw.GetScreenWidth();
 		if (!MaxY) MaxY = dxw.GetScreenHeight();
 		if(cx>MaxX) { cx=MaxX; UpdFlag=1; }
@@ -1735,6 +1738,7 @@ static HWND WINAPI CreateWindowCommon(
 	//if (dxw.IsFullScreen() && (dxw.dwFlags1 & PREVENTMAXIMIZE)){
 	if ((hwnd == dxw.GethWnd()) && dxw.IsFullScreen() && (dxw.dwFlags1 & PREVENTMAXIMIZE)){
 		OutTraceDW("%s: entering maximized state\n", ApiName); 
+		dxw.IsVisible = TRUE;
 		(*pShowWindow)(hwnd, SW_MAXIMIZE);
 	}
 
@@ -4013,3 +4017,6 @@ INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE hInstance, LPCDLGTEMPLATE hD
 	return (*pDialogBoxIndirectParamA)(hInstance, hDialogTemplate, hWndParent, lpDialogFunc, dwInitParam);
 }
 
+// To do:
+// GrayStringA
+// GrayStringW

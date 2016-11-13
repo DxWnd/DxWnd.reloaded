@@ -1,0 +1,35 @@
+[target]
+title0=Warhammer Dark Omen
+path0=D:\Dark Omen\PRG_ENG\EngRel.exe
+startfolder0=
+launchpath0=
+module0=
+opengllib0=
+notes0=Courtesy of Riitaoja:\n\nDark Omen needs a d3drm.dll file to run:\n- This file can be located in the CD's \DIRECTX -folder.\n- Copy the file into the "Dark Omen\PRG_ENG" directory.\n\nSound issues:\nDark Omen can sometimes produce a burst of white noise from the speakers.\nUsing the Timing option "CPU slow down" may fix this issue.
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE\Electronic Arts\Dark Omen\1.0\Options\Options]\n"Selected"="4"\n"HardwareSelected"="252"\n"SoftwareSelected"="228"\n"MMXSelected"="256"\n"ToolTips"="1"\n"MusicVolume"="408"\n"SFXVolume"="816"\n"SoftwareSoundQuality"="2"\n"SoftwareParticleQuality"="2"\n"MMXSoundQuality"="2"\n"MMXParticaleQuality"="1"\n"HardwareSoundQuality"="2"\n"HardwareParticleQuality"="2"\n"InformationNum"="11"\n
+ver0=0
+monitorid0=-1
+coord0=0
+flag0=136314920
+flagg0=1207959552
+flagh0=1044
+flagi0=1212153860
+flagj0=4224
+flagk0=65536
+flagl0=0
+flagm0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2
+initresw0=800
+initresh0=600

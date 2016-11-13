@@ -2273,15 +2273,16 @@ HRESULT WINAPI extGetDisplayMode(int dxversion, GetDisplayMode_Type pGetDisplayM
 	if(dxw.Windowize){
 		lpddsd->dwWidth = dxw.GetScreenWidth();
 		lpddsd->dwHeight = dxw.GetScreenHeight();
+	}
 
-		// v2.1.96: fake screen color depth
-		if((dxw.dwFlags2 & (INIT8BPP|INIT16BPP)) || (dxw.dwFlags7 & (INIT24BPP|INIT32BPP))){ // v2.02.32 fix
-			if(dxw.dwFlags2 & INIT8BPP) FixPixelFormat(8, &lpddsd->ddpfPixelFormat);
-			if(dxw.dwFlags2 & INIT16BPP) FixPixelFormat(16, &lpddsd->ddpfPixelFormat);
-			if(dxw.dwFlags7 & INIT24BPP) FixPixelFormat(24, &lpddsd->ddpfPixelFormat);
-			if(dxw.dwFlags7 & INIT32BPP) FixPixelFormat(32, &lpddsd->ddpfPixelFormat);
-			OutTraceDW("GetDisplayMode: fix RGBBitCount=%d\n", lpddsd->ddpfPixelFormat.dwRGBBitCount);
-		}
+	// v2.1.96: fake screen color depth
+	// v2.03.96: moved out from dxw.Windowize condition
+	if((dxw.dwFlags2 & (INIT8BPP|INIT16BPP)) || (dxw.dwFlags7 & (INIT24BPP|INIT32BPP))){ // v2.02.32 fix
+		if(dxw.dwFlags2 & INIT8BPP) FixPixelFormat(8, &lpddsd->ddpfPixelFormat);
+		if(dxw.dwFlags2 & INIT16BPP) FixPixelFormat(16, &lpddsd->ddpfPixelFormat);
+		if(dxw.dwFlags7 & INIT24BPP) FixPixelFormat(24, &lpddsd->ddpfPixelFormat);
+		if(dxw.dwFlags7 & INIT32BPP) FixPixelFormat(32, &lpddsd->ddpfPixelFormat);
+		OutTraceDW("GetDisplayMode: fix RGBBitCount=%d\n", lpddsd->ddpfPixelFormat.dwRGBBitCount);
 	}
 
 	//OutTraceDW("GetDisplayMode: returning WxH=(%dx%d) PixelFormat Flags=%x(%s) RGBBitCount=%d RGBAmask=(%x,%x,%x,%x) Caps=%x(%s)\n",
@@ -2335,7 +2336,7 @@ HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pS
 	if(dxw.VirtualPixelFormat.dwRGBBitCount==0) dxw.VirtualPixelFormat=ddsd.ddpfPixelFormat;
 	SetBltTransformations(dxversion);
 
-	if(dxw.Windowize){
+	if(dxw.Windowize || (dxw.dwFlags7 & NODDEXCLUSIVEMODE)){
 		if (dwflags & DDSCL_FULLSCREEN){
 			// v2.01.82 fix:
 			// WARN: Tomb Raider 4 demo is setting cooperative level against hwnd 0 (desktop)
@@ -2449,6 +2450,13 @@ static void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			// TEXTURE: enforce PIXELFORMAT on MEMORY
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
 			GetPixFmt(lpddsd); 
+		}
+		if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && 
+			(lpddsd->ddpfPixelFormat.dwFlags & DDPF_FOURCC) &&
+			(dxw.dwFlags7 & CLEARTEXTUREFOURCC)){
+			lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
+			lpddsd->ddpfPixelFormat.dwFourCC = 0;
+			lpddsd->ddpfPixelFormat.dwFlags &= ~DDPF_FOURCC;
 		}
 		return;
 	}
@@ -3211,7 +3219,9 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 	OutTraceDDRAW("CreateSurface: Version=%d lpdd=%x %s\n", 
 		dxversion, lpdd, LogSurfaceAttributes((LPDDSURFACEDESC)lpddsd, "[CreateSurface]", __LINE__));
 	
-	lpddsd->ddpfPixelFormat.dwFourCC = 0;
+	// v2.03.95.fx1 - deleted: some texture handling REQUIRES a proper FourCC codec. 
+	// maybe it could be suppressed by a dedicated config. flag and on primary surfaces only?
+	//lpddsd->ddpfPixelFormat.dwFourCC = 0;
 
 	SurfaceMode = (dxw.dwFlags1 & EMULATESURFACE) ? ((dxw.dwFlags6 & FLIPEMULATION) ? PRIMARY_EMULATED : PRIMARY_FLIPPABLE) : PRIMARY_DIRECT;
 
@@ -3342,7 +3352,8 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		// v2.3.59: same extra reference is needed by "Wahammer Chaos Gate" that uses ddraw interface release 2
 		// v2.3.72: fixed previous fix: condition is <=2, not >=2 ! 
 		// Be aware that it may perhaps become <=3, if we get the same problem elsewhere
-		if((dxw.dwDDVersion<=2) && dxw.Windowize) lpdd->AddRef();
+		// if((dxw.dwDDVersion<=2) && dxw.Windowize) lpdd->AddRef();
+		if(dxw.dwDDVersion<=2) lpdd->AddRef();
 
 		return DD_OK;
 	}
@@ -3660,12 +3671,21 @@ HRESULT WINAPI PrimaryStretchBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFA
 				res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
 			}
 			if(res) OutTraceE("PrimaryStretchBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			//if(res && !dxw.Windowize) RestoreDDrawSurfaces();
 			if(res == DDERR_SURFACELOST){
-				res = lpdds->Restore();
-				if(res) {
-					OutTraceE("PrimaryStretchBlt: Restore ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+				if(lpdds->IsLost()) {
+					res = lpdds->Restore();
+					if(res) {
+						OutTraceE("PrimaryStretchBlt: Restore ERROR lpdds=%x err=%x(%s) at %d\n", lpdds, res, ExplainDDError(res), __LINE__);
+					}
 				}
-				else {
+				if(lpddsTmp->IsLost()) {
+					res = lpddsTmp->Restore();
+					if(res) {
+						OutTraceE("PrimaryStretchBlt: Restore ERROR lpdds=%x err=%x(%s) at %d\n", lpddsTmp, res, ExplainDDError(res), __LINE__);
+					}
+				}
+				if(!res) {
 					OutTraceDW("PrimaryStretchBlt: surface sucessfully recovered, retry\n"); 
 					continue;
 				}

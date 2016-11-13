@@ -1,0 +1,35 @@
+[target]
+title0=Return Fire 2 (OpenGL)
+path0=F:\Games\Return Fire 2\RFireII.exe
+startfolder0=
+launchpath0=
+module0=
+opengllib0=
+notes0=
+registry0=HKEY_CURRENT_USER\Software\Prolific]\n\n[HKEY_CURRENT_USER\Software\Prolific\RFireII]\n\n[HKEY_CURRENT_USER\Software\Prolific\RFireII\1.0]\n;"GfxDLL"="SC_3dfx"\n"GfxDLL"="SC_OGL"\n;"GfxDLL"="36D_S3D"\n"ID"="{E6E7C9E0-41B2-11D2-9C0B-006097B4D5BF}"\n"NAME1"="JOHN"\n"name2"=""\n"name3"=""\n"name4"=""\n"LASTRFIREIIGAME"="JOHN.UI"\n\n[HKEY_LOCAL_MACHINE\Software\Prolific Publishing, Inc.]\n\n[HKEY_LOCAL_MACHINE\Software\Prolific Publishing, Inc.\Return Fire II]\n"Path"=".\\"\n\n[HKEY_LOCAL_MACHINE\Software\Prolific Publishing, Inc.\Return Fire II\1.00.000]\n\n
+ver0=0
+monitorid0=-1
+coord0=0
+flag0=681574434
+flagg0=1208090624
+flagh0=3093
+flagi0=1212153860
+flagj0=4224
+flagk0=327680
+flagl0=0
+flagm0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2
+initresw0=800
+initresh0=600

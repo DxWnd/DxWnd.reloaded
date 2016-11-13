@@ -1339,3 +1339,13 @@ add: window position selector & "locked size" + "anchored" modes
 fix: transient mode when system tray is not available
 fix: recursion problem in kernel32 LoadLibrary* wrappers. Allows "Hot patch" on WinXP.
 fix: initial position problem.
+
+v2.03.96:
+preliminary handling of hidden window
+fix: handling of non-windowed mode. Fixes "Warhammer 40.000 Rites of War" in non-windowed mode
+add: NODDEXCLUSIVEMODE flag. Forces non exclusive ddraw coop level in non-windowed mode. Fixes "Warhammer 40.000 Rites of War" in non-windowed mode
+add: CLEARTEXTUREFOURCC flag. Suppresses FOURCC capability and handling. Should help to process compressed textures.
+fix: CreateDIBSection wrapper log messages
+fix: PREVENTMAXIMIZE window size checks: should avoid size bigger than initial size, bugged coding inhibited any growth.
+fix: GUI setting of execution folder when running "Launcher" task.
+

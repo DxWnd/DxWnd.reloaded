@@ -361,6 +361,15 @@ static char *ExplainDIBUsage(UINT u)
 	return p;
 }
 
+static char *sBMIDump(BITMAPINFO *pbmi)
+{
+	static char s[256];
+	sprintf(s, "colors RGBX=(%x,%x,%x,%x) header bitc=%d size=(%dx%d) compr=%x", 
+		pbmi->bmiColors->rgbRed, pbmi->bmiColors->rgbGreen, pbmi->bmiColors->rgbBlue, pbmi->bmiColors->rgbReserved,
+		pbmi->bmiHeader.biBitCount, pbmi->bmiHeader.biWidth, pbmi->bmiHeader.biHeight, pbmi->bmiHeader.biCompression);
+	return s;
+}
+
 static void TraceBITMAPINFOHEADER(char *fName, BITMAPINFOHEADER *bmi)
 {
 	OutTrace("%s: BitmapInfo {Size=%d dim=(%dx%d) Planes=%d bitcount=%d Compression=%x SizeImage=%d PelsPerMeter=%dx%d colors=U%d:I%d}\n",
@@ -2994,7 +3003,7 @@ HBITMAP WINAPI extCreateDIBitmap(HDC hdc, BITMAPINFOHEADER *lpbmih, DWORD fdwIni
 HBITMAP WINAPI extCreateDIBSection(HDC hdc, const BITMAPINFO *pbmi, UINT iUsage, VOID **ppvBits, HANDLE hSection, DWORD dwOffset)
 {
 	HBITMAP ret;
-	OutTraceDW("CreateDIBitmap: hdc=%x\n", hdc);
+	OutTraceDW("CreateDIBSection: hdc=%x bmi=%s usage=%s hsect=%x offset=%x\n", hdc, sBMIDump((BITMAPINFO *)pbmi), ExplainDIBUsage(iUsage), hSection, dwOffset);
 
 	if(dxw.IsToRemap(hdc)) {
 		switch(dxw.GDIEmulationMode){
@@ -3010,7 +3019,12 @@ HBITMAP WINAPI extCreateDIBSection(HDC hdc, const BITMAPINFO *pbmi, UINT iUsage,
 	}
 		
 	ret=(*pCreateDIBSection)(hdc, pbmi, iUsage, ppvBits, hSection, dwOffset);
-	if(!ret) OutTraceE("CreateDIBitmap ERROR: err=%d\n", GetLastError());
+	if(!ret) {
+		OutTraceE("CreateDIBSection ERROR: err=%d\n", GetLastError());
+	}
+	else {
+		OutTraceDW("CreateDIBSection: ret=%x\n", ret);
+	}
 	return ret;
 }
 

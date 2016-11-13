@@ -502,13 +502,18 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			static int iLastX, iLastY, iLastW, iLastH;
 			switch(wparam & 0xFFF0){
 				case SC_MINIMIZE:
+					dxw.IsVisible = FALSE;
 					iLastX = dxw.iPosX; iLastY = dxw.iPosY;
 					iLastW = dxw.iSizX; iLastH = dxw.iSizY;
 					dxw.iPosX = dxw.iPosY = dxw.iSizX = dxw.iSizY = 0;
 					break;
 				case SC_RESTORE:
+					dxw.IsVisible = TRUE;
 					dxw.iPosX = iLastX; dxw.iPosY = iLastY;
 					dxw.iSizX = iLastW; dxw.iSizY = iLastH;
+					break;
+				case SC_MAXIMIZE:
+					dxw.IsVisible = TRUE;
 					break;
 			}
 		}

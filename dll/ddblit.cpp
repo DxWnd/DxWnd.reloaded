@@ -137,6 +137,9 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	RECT destrect, emurect;
 	extern PrimaryBlt_Type pPrimaryBlt;
 
+	// handle minimized states
+	if(!dxw.IsVisible) return DD_OK;
+
 	// check coordinates
 	dxw.UpdateDesktopCoordinates();
 

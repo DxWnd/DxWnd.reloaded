@@ -44,6 +44,8 @@ void CTabDirectX2::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_USERGB565, cTarget->m_UseRGB565);
 	DDX_CBIndex(pDX, IDC_DDWAWLIMITCOMBO, cTarget->m_MaxDdrawInterface);
 	DDX_Check(pDX, IDC_BACKBUFATTACH, cTarget->m_BackBufAttach);
+	DDX_Check(pDX, IDC_CLEARTEXTUREFOURCC, cTarget->m_ClearTextureFourCC);
+	DDX_Check(pDX, IDC_NODDEXCLUSIVEMODE, cTarget->m_NoDDExclusiveMode);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirectX2, CDialog)

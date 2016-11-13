@@ -149,6 +149,7 @@ public: // methods
 public: // simple data variables
 	int MonitorId;
 	BOOL Windowize;
+	BOOL IsVisible;
 	DDPIXELFORMAT ActualPixelFormat;
 	DDPIXELFORMAT VirtualPixelFormat;
 	DWORD dwDDVersion;
@@ -401,7 +402,7 @@ char *SysNames[]={
 extern char *SysNames[];
 #endif 
 
-typedef enum {
+enum {
 	HINT_HINT = 0,
 	HINT_DDRAW,		HINT_D3D8,		HINT_D3D9,		HINT_D3D10,
 	HINT_D3D11,		HINT_OPENGL,	HINT_DSOUND,	HINT_DINPUT,
@@ -409,9 +410,9 @@ typedef enum {
 	HINT_FAKEOS,	HINT_OBFUSCATED,HINT_SAFEDISC,	HINT_SECUROM,
 	HINT_LIMITMEM,	HINT_HOOKUPDATE,
 	HINT_LAST
-} HintEnumIds;
+};
 
-typedef enum {
+enum {
 	DXVK_NONE=0,
 	DXVK_CLIPTOGGLE,
 	DXVK_REFRESH,
@@ -431,7 +432,7 @@ typedef enum {
 	DXVK_SIZE
 };
 
-typedef enum {
+enum {
 	GDIMODE_NONE = 0,
 	GDIMODE_STRETCHED,
 	GDIMODE_EMULATED,

@@ -153,6 +153,8 @@ public:
 	BOOL	m_Init8BPP;
 	BOOL	m_Init16BPP;
 	BOOL	m_BackBufAttach;
+	BOOL	m_ClearTextureFourCC;
+	BOOL	m_NoDDExclusiveMode;
 	BOOL	m_HandleAltF4;
 	BOOL	m_HandleExceptions;
 	BOOL	m_SkipFPS;
