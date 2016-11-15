@@ -73,7 +73,7 @@
 </td>
 <td width="129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">STARTDEBUG</span></p>
 </td>
-<td width="1251" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">This basic hook technique intercepts the first window creation event. By this point, the program may have taken unwanted actions already, such as changing the video mode, detecting bad conditions, or crashing. Checking this flag injects DxWnd's logic right at the beginning of task execution, allowing DxWnd to intercept all events. The drawback is that this only works when the task is activated from the DxWnd interface (see the yellow icon). Another drawback is that the injection process closely resembles the activation of a debugger, which some games will detect and intercept, shutting down the program.</span></p>
+<td width="1251" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">This basic hook technique intercepts the first window creation event. By this point, the program may have taken unwanted actions already, such as changing the video mode, detecting bad conditions, or crashing. Checking this flag injects DxWnd's logic right at the beginning of task execution, allowing DxWnd to intercept all events. The drawback is that this only works when the task is activated from the DxWnd interface (indicated by a yellow icon; see </span><a class="rvts16" href="TheInterface.html">The Interface</a><span class="rvts6">). Another drawback is that the injection process closely resembles the activation of a debugger, which some games will detect and intercept, shutting down the program.</span></p>
 </td>
 </tr>
 <tr valign="top">

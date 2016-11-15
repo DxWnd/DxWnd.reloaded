@@ -1349,3 +1349,6 @@ fix: CreateDIBSection wrapper log messages
 fix: PREVENTMAXIMIZE window size checks: should avoid size bigger than initial size, bugged coding inhibited any growth.
 fix: GUI setting of execution folder when running "Launcher" task.
 
+v2.03.97.rc1:
+fix: emulation of proper ddraw surface capabilities in GetSurfaceDesc() and GetCaps() methods. Seems to cope with needs of most (all?) games.
+fix: recovered handling of WM_ERASEBKGND message. Fixes missing backgrounds in "Adrenix" and "Adrenix 3D" games.

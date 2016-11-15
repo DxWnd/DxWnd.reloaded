@@ -85,11 +85,11 @@
 </td>
 </tr>
 <tr valign="top">
-<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Make Backbuf attachable</span></p>
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Lock color depth</span></p>
 </td>
-<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">BACKBUFATTACH</span></p>
+<td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">LOCKCOLORDEPTH</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Alters the size specification of the created backbuffer so that it copes with the actual primary surface, so that it may be attachable to a ZBUFFER surface. It makes “Dave Mirra Freestyle BMX” playable.</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Locks the DirectDraw color depth to the current desktop value (used in SetDisplayMode). If a game's color depth can't be corrected in any other way, use this flag. This option is used for the game "Ahlgrens Bilspelet."</span></p>
 </td>
 </tr>
 <tr valign="top">
@@ -185,7 +185,7 @@
 </td>
 <td width="152" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">NOFLIPEMULATION</span></p>
 </td>
-<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default, the Flip operation doesn't take into account the existing background. In several cases (mostly involving mouse cursor movement), this simplified method leaves trails on the screen. This option switches to a slower but more accurate method of Flip emulation that resolves this issue.</span></p>
+<td width="1134" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default, the Flip operation doesn't take into account the existing background. In several cases (mostly involving mouse cursor movement), this simplified method leaves trails on the screen. This option switches to a slower but more accurate method of Flip emulation that resolves this issue. For an example, see </span><a class="rvts16" href="RobinHoodTheLegendofSherwood.html">Examples &gt; Robin Hood - The Legend of Sherwood</a><span class="rvts6">.</span></p>
 </td>
 </tr>
 </table>

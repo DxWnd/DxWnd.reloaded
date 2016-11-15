@@ -59,3 +59,4 @@ BOOL WINAPI extUnmapDebugInformation(PIMAGE_DEBUG_INFORMATION DebugInfo)
 	OutTrace("UnmapDebugInformation: DebugInfo=%x\n", DebugInfo);
 	return TRUE;
 }
+

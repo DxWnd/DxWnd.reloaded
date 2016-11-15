@@ -3352,7 +3352,7 @@ static HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreate
 		// v2.3.59: same extra reference is needed by "Wahammer Chaos Gate" that uses ddraw interface release 2
 		// v2.3.72: fixed previous fix: condition is <=2, not >=2 ! 
 		// Be aware that it may perhaps become <=3, if we get the same problem elsewhere
-		// if((dxw.dwDDVersion<=2) && dxw.Windowize) lpdd->AddRef();
+		// v2.3.96: deleted the if(Windowized) condition: AddRef is needed also in fullscreen mode.
 		if(dxw.dwDDVersion<=2) lpdd->AddRef();
 
 		return DD_OK;
@@ -3671,7 +3671,6 @@ HRESULT WINAPI PrimaryStretchBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFA
 				res= (*pBlt)(lpdds, lpdestrect, lpddsTmp, &TmpRect, DDBLT_WAIT, 0);
 			}
 			if(res) OutTraceE("PrimaryStretchBlt: BltFast ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-			//if(res && !dxw.Windowize) RestoreDDrawSurfaces();
 			if(res == DDERR_SURFACELOST){
 				if(lpdds->IsLost()) {
 					res = lpdds->Restore();
@@ -5542,25 +5541,38 @@ HRESULT WINAPI cbDump(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
 	return 1;
 }
 
+// BEWARE!!!
+// in order to meet Direct3D expectations, it seems that we require this policy:
+// when a ZBUFFER surface is created, its dwCaps value must be saved and restored identically on GetSurfaceDesc and GetCaps
+// A surface is known to be virtually a primary or backbuffer only by looking at the surfaces stack dxwss
+// On the contrary, a surface is known to be a ZBUFFER only after retrieving its capabilities with pGetCaps or pGetSurfaceDesc
+// hence the IsZBuf flag is set after the query and can't be reflected in the first log line!
+// The same comment / logic is valid also for extGetSurfaceDesc wrapper
+
 static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS caps)
 {
 	HRESULT res;
-	BOOL IsPrim, IsBack, IsFixed;
+	BOOL IsPrim, IsBack, IsZBuf, IsFixed;
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	IsBack=dxwss.IsABackBufferSurface(lpdds);
 	IsFixed=FALSE;
 	char *sLabel;
 
-	sLabel = IsPrim?"(PRIM)":(IsBack ? "(BACK)" : "");
+	sLabel = "";
+	if(IsPrim) sLabel="(PRIM)";
+	if(IsBack) sLabel="(BACK)";
+
 	res=(*pGetCapsS)(lpdds, caps);
 	if(res) 
 		OutTraceE("GetCaps(S%d): ERROR lpdds=%x%s err=%x(%s)\n", dxInterface, lpdds, sLabel, res, ExplainDDError(res));
 	else
 		OutTraceDDRAW("GetCaps(S%d): lpdds=%x%s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 
+	IsZBuf=(caps->dwCaps & DDSCAPS_ZBUFFER);
+	if(IsZBuf) sLabel="(ZBUFFER)";
+
 	if (IsPrim) {
 		IsFixed=TRUE;
-		sLabel="PRIMARYSURFACE";
 		caps->dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
 		caps->dwCaps |= DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE; // primary surfaces must be this way
 		caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
@@ -5569,7 +5581,6 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 
 	if (IsBack) {
 		IsFixed=TRUE;
-		sLabel="BACKBUFFER";
 		// v2.03.11: added DDSCAPS_FLIP capability to backbuffer surface: "Ignition" checks for it before Flip-ping to primary
 		caps->dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM); // you never know....
 		caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
@@ -5578,22 +5589,23 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 
 	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
 	// v2.03.90: "Galapagos" fix - if there's a DDSCAPS_SYSTEMMEMORY or DDSCAPS_VIDEOMEMORY spec, let it be.
-	if ((caps->dwCaps & DDSCAPS_ZBUFFER) && !(caps->dwCaps & (DDSCAPS_SYSTEMMEMORY|DDSCAPS_VIDEOMEMORY))) {
+	// v2.03.97: "Galapagos" fix erased.
+	if (IsZBuf) {
 		DWORD dwCaps;
+		IsFixed=TRUE;
 		dwCaps = dxwcdb.GetCaps(lpdds);
 		// beware! the ZBUFFER surface could have never been registered!
 		// in this case better keep the original capabilities (or adapt to the primary/backbuffer ones?)
 		if(dwCaps) {
+			sLabel="(REG.ZBUFFER)";
 			caps->dwCaps = dwCaps; 
-			OutTraceDW("GetCaps: FIXED ZBUFFER caps=%x(%s)\n", caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
-		}
-		else {
-			OutTraceDW("GetCaps: UNREGISTERED ZBUFFER caps=%x(%s)\n", caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 		}
 	}
 
 	// v2.03.78: fix for "Gothik 2": pretend that 3DDEVICE surface are ALWAYS in video memory
 	if (caps->dwCaps & DDSCAPS_3DDEVICE){  
+		IsFixed=TRUE;
+		sLabel="(3DDEVICE)";
 		caps->dwCaps |= (DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
 		caps->dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
 	}
@@ -5773,10 +5785,11 @@ HRESULT WINAPI extSetHWnd(LPDIRECTDRAWCLIPPER lpddClip, DWORD w, HWND hwnd)
 static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
 {
 	HRESULT res;
-	BOOL IsPrim, IsBack, IsFixed;
+	BOOL IsPrim, IsBack, IsZBuf, IsFixed;
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	IsBack=dxwss.IsABackBufferSurface(lpdds);
 	IsFixed=FALSE;
+	char *sLabel;
 
 	if (!pGetSurfaceDesc) {
 		OutTraceE("GetSurfaceDesc: ERROR no hooked function\n");
@@ -5805,10 +5818,16 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 		OutTraceE("GetSurfaceDesc(%d): ERROR err=%x(%s)\n", dxversion, res, ExplainDDError(res));
 		return res;
 	}
+	IsZBuf=(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER);
+	sLabel="";
+	if(IsPrim) sLabel="(PRIM)";
+	if(IsBack) sLabel="(BACK)";
+	if(IsZBuf) sLabel="(ZBUFFER)";
 
-	OutTraceDDRAW("GetSurfaceDesc(%d): lpdds=%x%s %s\n", dxversion, lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), LogSurfaceAttributes(lpddsd, "GetSurfaceDesc", __LINE__));
+	OutTraceDDRAW("GetSurfaceDesc(%d): lpdds=%x%s %s\n", dxversion, lpdds, sLabel, LogSurfaceAttributes(lpddsd, "GetSurfaceDesc", __LINE__));
 
 	if (IsPrim) {
+		IsFixed=TRUE;
 		if (dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
 		lpddsd->ddsCaps.dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
 		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE); // primary surfaces must be this way
@@ -5817,21 +5836,29 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 		lpddsd->dwBackBufferCount=DDSD_Prim.dwBackBufferCount;
 		lpddsd->dwHeight=dxw.GetScreenHeight();
 		lpddsd->dwWidth=dxw.GetScreenWidth();
-		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "PRIMARY", __LINE__));
 	}
 
 	if (IsBack) {
+		IsFixed=TRUE;
 		// flags that backbuffer surfaces must have set
 		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_3DDEVICE|DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
 		// flags that backbuffer surfaces can't have set
 		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN|DDSCAPS_COMPLEX|DDSCAPS_FLIP); 
-		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "BACKBUFFER", __LINE__));
 	}
 
 	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
-	if(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
-		lpddsd->ddsCaps.dwCaps = dxwcdb.GetCaps(lpdds);
-		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, "ZBUFFER", __LINE__));
+	if(IsZBuf) {
+		DWORD dwCaps;
+		IsFixed=TRUE;
+		dwCaps = dxwcdb.GetCaps(lpdds);
+		if(dwCaps) {
+			sLabel="(REG.ZBUFFER)";
+			lpddsd->ddsCaps.dwCaps = dwCaps;
+		}
+	}
+	
+	if(IsFixed){
+		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, sLabel, __LINE__));
 	}
 
 	return DD_OK;
@@ -5872,7 +5899,7 @@ HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 		if (ref <= 0) {
 			ref = 0;
 			OutTraceDW("Release(P): clearing lpDDP=%x->NULL\n", lpDDP);
-			lpDDP=NULL;
+			lpDDP=NULL; 
 		}
 		if(dxw.dwFlags4 & RETURNNULLREF) ref = 0;
 	}

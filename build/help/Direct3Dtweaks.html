@@ -73,7 +73,7 @@
 </td>
 <td width="127" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">ZBUFFER0CLEAN</span></p>
 </td>
-<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games don't properly clear the zeta buffer between frames, producing incorrect surface z-ordering and other issues. This flag fixes this problem.</span></p>
+<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Some games don't properly clear the zeta buffer between frames, producing incorrect surface z-ordering and other issues. This flag fixes this problem. For an example, see </span><a class="rvts16" href="SnowBoardRacer.html">Examples &gt; SnowBoard: Racer</a><span class="rvts6">.</span></p>
 </td>
 </tr>
 <tr valign="top">
@@ -105,7 +105,7 @@
 </td>
 <td width="127" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">ENUM16BITMODES</span></p>
 </td>
-<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">On Windows 10, the list of available video modes (see DirectDraw8/9::EnumAdapterModes) may not include those with color depths lower than 32bpp while no fullscreen programs are running (known as "desktop composition mode"). This may impact games that need 8- or 16-bit color depth. This flag forces the inclusion of modes with 16-bit color depth.</span></p>
+<td width="1224" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">On Windows 10, the list of available video modes (see DirectDraw8/9::EnumAdapterModes) may not include those with color depths lower than 32bpp while no fullscreen programs are running (known as "desktop composition mode"). This may impact games that need 8- or 16-bit color depth. This flag forces the inclusion of modes with 16-bit color depth. This option may help when a Direct3D8/9 program running on Windows 10 lacks the proper video mode and terminates.</span></p>
 </td>
 </tr>
 </table>

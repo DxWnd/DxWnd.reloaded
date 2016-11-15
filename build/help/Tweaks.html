@@ -196,6 +196,14 @@
 <td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fixes a reported problem of the 16-bit GlobalUnock() API's 32-bit port. In some cases, it never returns the expected value, causing game crashes or endless loops.</span></p>
 </td>
 </tr>
+<tr valign="top">
+<td width="190" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix FreeLibrary</span></p>
+</td>
+<td width="173" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">FIXFREELIBRARY</span></p>
+</td>
+<td width="1170" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Fix FreeLibrary, simulating a return code of 0 (error) when attempting to free an unallocated module as Windows 95 and 98 would. Use this flag to fix the endless loop problem in "Heavy Gear" version 1.2.</span></p>
+</td>
+</tr>
 </table>
 </div>
 <p></p>

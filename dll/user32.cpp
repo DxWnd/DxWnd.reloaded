@@ -136,6 +136,9 @@ BOOL WINAPI extIsWindow(HWND);
 typedef HWND (WINAPI *SetFocus_Type)(HWND);
 SetFocus_Type pSetFocus;
 HWND WINAPI extSetFocus(HWND);
+typedef HBITMAP (WINAPI *LoadBitmapA_Type)(HINSTANCE, LPCSTR);
+LoadBitmapA_Type pLoadBitmapA;
+HBITMAP WINAPI extLoadBitmapA(HINSTANCE, LPCSTR);
 
 
 
@@ -244,6 +247,8 @@ static HookEntryEx_Type Hooks[]={
 	// EnumDisplayDevicesW used by "Battleground Europe" ...
 	{HOOK_HOT_CANDIDATE, 0, "EnumDisplayDevicesA", (FARPROC)EnumDisplayDevicesA, (FARPROC *)&pEnumDisplayDevicesA, (FARPROC)extEnumDisplayDevicesA},
 	{HOOK_HOT_CANDIDATE, 0, "EnumDisplayDevicesW", (FARPROC)EnumDisplayDevicesW, (FARPROC *)&pEnumDisplayDevicesW, (FARPROC)extEnumDisplayDevicesW},
+	
+	//{HOOK_IAT_CANDIDATE, 0, "LoadBitmapA", (FARPROC)NULL, (FARPROC *)&pLoadBitmapA, (FARPROC)extLoadBitmapA},
 	
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -4015,6 +4020,20 @@ INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE hInstance, LPCDLGTEMPLATE hD
 	OutTrace("DialogBoxIndirectParamA: hInstance=%x pos=(%d,%d) size=(%dx%d) hWndParent=%x, lpDialogFunc=%x dwInitParam=%x\n",
 		hInstance, hDialogTemplate->x, hDialogTemplate->y, hDialogTemplate->cx, hDialogTemplate->cy, hWndParent, lpDialogFunc, dwInitParam);
 	return (*pDialogBoxIndirectParamA)(hInstance, hDialogTemplate, hWndParent, lpDialogFunc, dwInitParam);
+}
+
+HBITMAP WINAPI extLoadBitmapA(HINSTANCE hInstance, LPCSTR lpBitmapName)
+{
+	HBITMAP ret;
+	OutTrace("LoadBitmapA: hinst=%x name=%s\n", hInstance, lpBitmapName);
+	ret = (*pLoadBitmapA)(hInstance, lpBitmapName);
+	if(ret){
+		OutTrace("LoadBitmapA: hbitmap=%x\n", ret);
+	}
+	else{
+		OutTrace("LoadBitmapA: ERROR err=%d\n", GetLastError());
+	}
+	return ret;
 }
 
 // To do:

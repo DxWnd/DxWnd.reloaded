@@ -325,7 +325,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		}
 		break;
 	case WM_ERASEBKGND:
-		if(dxw.Windowize && dxw.IsDesktop(hwnd)){ 
+		// v2.03.97: fix for Adrenix lost backgrounds, thanks to Riitaoja hunt!
+		if(dxw.Windowize && dxw.IsRealDesktop(hwnd)){ 
 			OutTraceDW("WindowProc: WM_ERASEBKGND(%x,%x) - suppressed\n", wparam, lparam);
 			return 1; // 1 == OK, erased
 		}

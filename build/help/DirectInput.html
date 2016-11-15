@@ -95,17 +95,17 @@
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Skip HID device type</span></p>
 </td>
-<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">???</span></p>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">SKIPDEVTYPEHID</span></p>
 </td>
-<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Newer versions of Windows may have access to new types of HID (human interface device) that can interfere with old games that can only recognize the three traditional devices (mouse, keyboard, and joystick). This flag masks the presence of such devices. It fixes a crash in the game "Jetboat Superchamps 2," the only known game that requires this setting.</span></p>
 </td>
 </tr>
 <tr valign="top">
 <td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Suppress DI common errors</span></p>
 </td>
-<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">???</span></p>
+<td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">SUPPRESSDIERRORS</span></p>
 </td>
-<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">???</span></p>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">This flag forces some DirectInput operations to return a successful completion rather than an error even in the event of a failure. Some programs work more reliably with this flag turned on.</span></p>
 </td>
 </tr>
 <tr valign="top">
@@ -113,7 +113,7 @@
 </td>
 <td width="244" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">SHAREDKEYBOARD</span></p>
 </td>
-<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces DirectInput cooperative level to </span><span class="rvts17">NONEXCLUSIVE</span><span class="rvts6"> mode for the keyboard.</span></p>
+<td width="1042" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces DirectInput cooperative level to </span><span class="rvts17">NONEXCLUSIVE</span><span class="rvts6"> mode for the keyboard. Use this flag when the program shows DirectInput errors related to keyboard access. The game "Planet of the Apes" can't process the PrintScreen key without this flag.</span></p>
 </td>
 </tr>
 </table>
