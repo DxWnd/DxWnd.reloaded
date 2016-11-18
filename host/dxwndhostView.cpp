@@ -1191,7 +1191,7 @@ void CDxwndhostView::OnExit()
 {
 	// check for running apps ....
 	if (GetHookStatus(NULL)==DXW_RUNNING){
-		if (MessageBoxLang(DXW_STRING_EXIT, DXW_STRING_WARNING, MB_OKCANCEL | MB_ICONQUESTION)==IDCANCEL) 
+		if (MessageBoxLang(DXW_STRING_EXIT_BUSY, DXW_STRING_WARNING, MB_OKCANCEL | MB_ICONQUESTION)==IDCANCEL) 
 			return;
 	}
 	delete(this->GetParent());
@@ -1715,7 +1715,7 @@ void CDxwndhostView::OnSetRegistry()
 
 	regfp=fopen("dxwnd.reg", "w");
 	if(regfp==NULL){
-		MessageBox("Error writing virtual registry file", "Error", MB_ICONERROR|MB_OK);
+		MessageBoxLang(DXW_STRING_VREG_ERROR, DXW_STRING_ERROR, MB_ICONERROR|MB_OK);
 		return;
 	}
 
@@ -3097,7 +3097,7 @@ void CDxwndhostView::OnRun()
 	OutTrace("OnRun idx=%d prog=\"%s\"\n", i, TargetMaps[i].path);
 
 	if(TargetMaps[i].flags7 & HOOKNORUN){
-		MessageBox("Can't run from DxWnd interface", "Warning", MB_ICONERROR|MB_OK);
+		MessageBoxLang(DXW_STRING_CANT_RUN, DXW_STRING_WARNING, MB_ICONERROR|MB_OK);
 		return;
 	}
 
@@ -3112,12 +3112,16 @@ void CDxwndhostView::OnRun()
 	}
 
 	if((TargetMaps[i].flags3 & EMULATEREGISTRY) || (TargetMaps[i].flags4 & OVERRIDEREGISTRY)){
+		if(this->isUpdated){
+			if(MessageBoxLang(DXW_STRING_VREG_UPDATE,DXW_STRING_WARNING, MB_OKCANCEL|MB_ICONINFORMATION)==IDOK)
+				this->SaveConfigFile();
+		}
 		OutTrace("export virtual registry\n");
 		FILE *regfp;
 		char *Registry;
 		Registry = PrivateMaps[i].registry;
 		regfp=fopen("dxwnd.reg", "w");
-		if(regfp==NULL)MessageBox("Error writing virtual registry file", "Error", MB_ICONERROR|MB_OK);
+		if(regfp==NULL)MessageBoxLang(DXW_STRING_VREG_ERROR, DXW_STRING_ERROR, MB_ICONERROR|MB_OK);
 		fwrite(Registry, strlen(Registry), 1, regfp);
 		fputs("\n", regfp);
 		fclose(regfp);	
@@ -3223,8 +3227,9 @@ void CDxwndhostView::OnClearCompatibilityFlags()
 	pos = listctrl.GetFirstSelectedItemPosition();
 	i = listctrl.GetNextSelectedItem(pos);
 
-	sprintf(sMessage, "Clear all compatibility flags for \"%s\"?", PrivateMaps[i].title);
-	res=MessageBox(sMessage, "DxWnd", MB_YESNO | MB_ICONQUESTION);
+	//sprintf(sMessage, "Clear all compatibility flags for \"%s\"?", PrivateMaps[i].title);
+	//res=MessageBox(sMessage, "DxWnd", MB_YESNO | MB_ICONQUESTION);
+	res=MessageBoxLangArg(DXW_STRING_CLEAR_COMP, DXW_STRING_DXWND, MB_YESNO | MB_ICONQUESTION, PrivateMaps[i].title);
 	if(res!=IDYES) return;
 
 	FilePath=TargetMaps[i].path;

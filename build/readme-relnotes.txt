@@ -1349,6 +1349,11 @@ fix: CreateDIBSection wrapper log messages
 fix: PREVENTMAXIMIZE window size checks: should avoid size bigger than initial size, bugged coding inhibited any growth.
 fix: GUI setting of execution folder when running "Launcher" task.
 
-v2.03.97.rc1:
+v2.03.97.rc1/fx1-4:
 fix: emulation of proper ddraw surface capabilities in GetSurfaceDesc() and GetCaps() methods. Seems to cope with needs of most (all?) games.
 fix: recovered handling of WM_ERASEBKGND message. Fixes missing backgrounds in "Adrenix" and "Adrenix 3D" games.
+fix: cleaned up and unified capability handling in DirectDrawSurface GetCaps and GetSurfaceDesc methods
+add: warning message and update when running a program with non updated virtual registry settings.
+fix: LoadLibrary wrappers failed to clear the recursion flag, stopping the hook of new modules after a recursion case.
+add: warning messages when closing DxWnd and possibility to cancel the operation
+add: "Warn on exit" global flag to always force the warning message on exit

@@ -37,6 +37,7 @@ protected:
 	BOOL m_CheckAdminRights;
 	BOOL m_NameFromFolder;
 	BOOL m_MultiHooks;
+	BOOL m_WarnOnExit;
 	int m_TexMinX;
 	int m_TexMinY;
 	int m_TexMaxX;

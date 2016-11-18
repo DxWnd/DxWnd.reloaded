@@ -35,6 +35,7 @@ END_MESSAGE_MAP()
 UINT m_StartToTray = FALSE;
 UINT m_InitialState = DXW_ACTIVE;
 BOOL gbDebug = FALSE;
+BOOL gWarnOnExit = FALSE;
 BOOL gTransientMode = FALSE;
 BOOL gAutoHideMode = FALSE;
 BOOL gQuietMode = FALSE;
@@ -170,6 +171,7 @@ BOOL CDxwndhostApp::InitInstance()
 
 	if(!gbDebug) gbDebug = GetPrivateProfileInt("window", "debug", 0, InitPath); // debug flag set from config file
 	if(!gAutoHideMode) gAutoHideMode = GetPrivateProfileInt("window", "autohide", 0, InitPath); // debug flag set from config file
+	gWarnOnExit = GetPrivateProfileInt("window", "warnonexit", 0, InitPath); // WarnOnExit flag set from config file
 
 	if(!LangSelected){
 		LANGID LangId;

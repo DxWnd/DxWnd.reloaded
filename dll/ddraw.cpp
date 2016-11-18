@@ -5591,23 +5591,14 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 	// v2.03.90: "Galapagos" fix - if there's a DDSCAPS_SYSTEMMEMORY or DDSCAPS_VIDEOMEMORY spec, let it be.
 	// v2.03.97: "Galapagos" fix erased.
 	if (IsZBuf) {
-		DWORD dwCaps;
-		IsFixed=TRUE;
-		dwCaps = dxwcdb.GetCaps(lpdds);
+		DWORD dwCaps = dxwcdb.GetCaps(lpdds);
 		// beware! the ZBUFFER surface could have never been registered!
 		// in this case better keep the original capabilities (or adapt to the primary/backbuffer ones?)
 		if(dwCaps) {
+			IsFixed=TRUE;
 			sLabel="(REG.ZBUFFER)";
 			caps->dwCaps = dwCaps; 
 		}
-	}
-
-	// v2.03.78: fix for "Gothik 2": pretend that 3DDEVICE surface are ALWAYS in video memory
-	if (caps->dwCaps & DDSCAPS_3DDEVICE){  
-		IsFixed=TRUE;
-		sLabel="(3DDEVICE)";
-		caps->dwCaps |= (DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
-		caps->dwCaps &= ~DDSCAPS_SYSTEMMEMORY; 
 	}
 
 	if(IsFixed) OutTraceDW("GetCaps(S%d): lpdds=%x FIXED %s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
@@ -5624,6 +5615,98 @@ HRESULT WINAPI extGetCaps4S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 caps)
 { return extGetCapsS(4, (GetCapsS_Type)pGetCaps4S, lpdds, (LPDDSCAPS)caps); }
 HRESULT WINAPI extGetCaps7S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 caps)
 { return extGetCapsS(7, (GetCapsS_Type)pGetCaps7S, lpdds, (LPDDSCAPS)caps); }
+
+static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
+{
+	HRESULT res;
+	BOOL IsPrim, IsBack, IsZBuf, IsFixed;
+	IsPrim=dxwss.IsAPrimarySurface(lpdds);
+	IsBack=dxwss.IsABackBufferSurface(lpdds);
+	IsFixed=FALSE;
+	char *sLabel;
+
+	if (!pGetSurfaceDesc) {
+		OutTraceE("GetSurfaceDesc: ERROR no hooked function\n");
+		return DDERR_INVALIDPARAMS;
+	}
+
+	int prevsize = lpddsd->dwSize;
+	switch(dxversion){
+		case 1:
+		case 2:
+		case 3: 
+			lpddsd->dwSize = sizeof(DDSURFACEDESC);
+			break;
+		case 4:
+		case 7:
+			lpddsd->dwSize = sizeof(DDSURFACEDESC2);
+			break;
+	}
+	if(prevsize != lpddsd->dwSize) OutTraceDW("GetSurfaceDesc(%d): FIXED dwSize=%d->%d\n", dxversion, prevsize, lpddsd->dwSize);
+
+	res=(*pGetSurfaceDesc)(lpdds, lpddsd);
+	if(res) {
+		OutTraceE("GetSurfaceDesc(%d): ERROR err=%x(%s)\n", dxversion, res, ExplainDDError(res));
+		return res;
+	}
+	IsZBuf=(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER);
+	sLabel="";
+	if(IsPrim) sLabel="(PRIM)";
+	if(IsBack) sLabel="(BACK)";
+	if(IsZBuf) sLabel="(ZBUFFER)";
+
+	OutTraceDDRAW("GetSurfaceDesc(%d): lpdds=%x%s %s\n", dxversion, lpdds, sLabel, LogSurfaceAttributes(lpddsd, "GetSurfaceDesc", __LINE__));
+
+	if (IsPrim) {
+		IsFixed=TRUE;
+		if (dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
+		lpddsd->ddsCaps.dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
+		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE); // primary surfaces must be this way
+		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
+		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
+		lpddsd->dwBackBufferCount=DDSD_Prim.dwBackBufferCount;
+		lpddsd->dwHeight=dxw.GetScreenHeight();
+		lpddsd->dwWidth=dxw.GetScreenWidth();
+	}
+
+	if (IsBack) {
+		IsFixed=TRUE;
+		// flags that backbuffer surfaces must have set
+		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM);; 
+		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
+		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
+	}
+
+	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
+	if(IsZBuf) {
+		DWORD dwCaps = dxwcdb.GetCaps(lpdds);
+		if(dwCaps) {
+			IsFixed=TRUE;
+			sLabel="(REG.ZBUFFER)";
+			lpddsd->ddsCaps.dwCaps = dwCaps;
+		}
+	}
+	
+	if(IsFixed){
+		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, sLabel, __LINE__));
+	}
+
+	return DD_OK;
+}
+
+// Beware: despite the surface version, some game (The Sims!!!) intentionally uses a different dwSize, so that
+// you shouldn't reset the value
+
+HRESULT WINAPI extGetSurfaceDesc1(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
+{ return extGetSurfaceDesc(1, pGetSurfaceDesc1, lpdds, lpddsd); }
+HRESULT WINAPI extGetSurfaceDesc2(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
+{ return extGetSurfaceDesc(2, pGetSurfaceDesc2, lpdds, lpddsd); }
+HRESULT WINAPI extGetSurfaceDesc3(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
+{ return extGetSurfaceDesc(3, pGetSurfaceDesc3, lpdds, lpddsd); }
+HRESULT WINAPI extGetSurfaceDesc4(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd)
+{ return extGetSurfaceDesc(4, (GetSurfaceDesc_Type)pGetSurfaceDesc4, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd); }
+HRESULT WINAPI extGetSurfaceDesc7(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd)
+{ return extGetSurfaceDesc(7, (GetSurfaceDesc_Type)pGetSurfaceDesc7, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd); }
 
 static ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECTDRAW lpdd)
 {
@@ -5781,102 +5864,6 @@ HRESULT WINAPI extSetHWnd(LPDIRECTDRAWCLIPPER lpddClip, DWORD w, HWND hwnd)
 	if(res) OutTraceP("SetHWnd(C): ERROR err=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
-
-static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
-{
-	HRESULT res;
-	BOOL IsPrim, IsBack, IsZBuf, IsFixed;
-	IsPrim=dxwss.IsAPrimarySurface(lpdds);
-	IsBack=dxwss.IsABackBufferSurface(lpdds);
-	IsFixed=FALSE;
-	char *sLabel;
-
-	if (!pGetSurfaceDesc) {
-		OutTraceE("GetSurfaceDesc: ERROR no hooked function\n");
-		return DDERR_INVALIDPARAMS;
-	}
-
-#define FIXSURFACEDESCSIZE TRUE
-	if(FIXSURFACEDESCSIZE){
-		int prevsize = lpddsd->dwSize;
-		switch(dxversion){
-			case 1:
-			case 2:
-			case 3: 
-				lpddsd->dwSize = sizeof(DDSURFACEDESC);
-				break;
-			case 4:
-			case 7:
-				lpddsd->dwSize = sizeof(DDSURFACEDESC2);
-				break;
-		}
-		if(prevsize != lpddsd->dwSize) OutTraceDW("GetSurfaceDesc(%d): FIXED dwSize=%d->%d\n", dxversion, prevsize, lpddsd->dwSize);
-	}
-
-	res=(*pGetSurfaceDesc)(lpdds, lpddsd);
-	if(res) {
-		OutTraceE("GetSurfaceDesc(%d): ERROR err=%x(%s)\n", dxversion, res, ExplainDDError(res));
-		return res;
-	}
-	IsZBuf=(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER);
-	sLabel="";
-	if(IsPrim) sLabel="(PRIM)";
-	if(IsBack) sLabel="(BACK)";
-	if(IsZBuf) sLabel="(ZBUFFER)";
-
-	OutTraceDDRAW("GetSurfaceDesc(%d): lpdds=%x%s %s\n", dxversion, lpdds, sLabel, LogSurfaceAttributes(lpddsd, "GetSurfaceDesc", __LINE__));
-
-	if (IsPrim) {
-		IsFixed=TRUE;
-		if (dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
-		lpddsd->ddsCaps.dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
-		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE); // primary surfaces must be this way
-		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
-		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
-		lpddsd->dwBackBufferCount=DDSD_Prim.dwBackBufferCount;
-		lpddsd->dwHeight=dxw.GetScreenHeight();
-		lpddsd->dwWidth=dxw.GetScreenWidth();
-	}
-
-	if (IsBack) {
-		IsFixed=TRUE;
-		// flags that backbuffer surfaces must have set
-		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_3DDEVICE|DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); 
-		// flags that backbuffer surfaces can't have set
-		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN|DDSCAPS_COMPLEX|DDSCAPS_FLIP); 
-	}
-
-	// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
-	if(IsZBuf) {
-		DWORD dwCaps;
-		IsFixed=TRUE;
-		dwCaps = dxwcdb.GetCaps(lpdds);
-		if(dwCaps) {
-			sLabel="(REG.ZBUFFER)";
-			lpddsd->ddsCaps.dwCaps = dwCaps;
-		}
-	}
-	
-	if(IsFixed){
-		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, sLabel, __LINE__));
-	}
-
-	return DD_OK;
-}
-
-// Beware: despite the surface version, some game (The Sims!!!) intentionally uses a different dwSize, so that
-// you shouldn't reset the value
-
-HRESULT WINAPI extGetSurfaceDesc1(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
-{ return extGetSurfaceDesc(1, pGetSurfaceDesc1, lpdds, lpddsd); }
-HRESULT WINAPI extGetSurfaceDesc2(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
-{ return extGetSurfaceDesc(2, pGetSurfaceDesc2, lpdds, lpddsd); }
-HRESULT WINAPI extGetSurfaceDesc3(LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
-{ return extGetSurfaceDesc(3, pGetSurfaceDesc3, lpdds, lpddsd); }
-HRESULT WINAPI extGetSurfaceDesc4(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd)
-{ return extGetSurfaceDesc(4, (GetSurfaceDesc_Type)pGetSurfaceDesc4, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd); }
-HRESULT WINAPI extGetSurfaceDesc7(LPDIRECTDRAWSURFACE2 lpdds, LPDDSURFACEDESC2 lpddsd)
-{ return extGetSurfaceDesc(7, (GetSurfaceDesc_Type)pGetSurfaceDesc7, (LPDIRECTDRAWSURFACE)lpdds, (LPDDSURFACEDESC)lpddsd); }
 
 HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 {

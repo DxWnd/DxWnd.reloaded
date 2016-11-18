@@ -43,6 +43,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_CREATE()
 	ON_WM_MOVE()
 	ON_WM_SIZE()
+	ON_WM_CLOSE()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -161,6 +162,27 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 	if(wndpl.showCmd != SW_SHOWNORMAL) return;
 	this->cx=cx;
 	this->cy=cy;
+}
+	
+void CMainFrame::OnClose()
+{
+	extern BOOL gTransientMode;
+	extern BOOL gQuietMode;
+	extern BOOL gWarnOnExit;
+	if(gTransientMode || gQuietMode) CFrameWnd::OnClose();
+
+	// check for running apps ....
+	if (GetHookStatus(NULL)==DXW_RUNNING){
+		if (MessageBoxLang(DXW_STRING_EXIT_BUSY, DXW_STRING_WARNING, MB_OKCANCEL | MB_ICONQUESTION)!=IDOK) return;
+		CFrameWnd::OnClose();
+	}
+
+	if(gWarnOnExit){
+		if(MessageBoxLang(DXW_STRING_EXIT_OK, DXW_STRING_WARNING, MB_OKCANCEL)==IDOK) 
+			CFrameWnd::OnClose();
+	}
+	else
+		CFrameWnd::OnClose();
 }
 
 /////////////////////////////////////////////////////////////////////////////

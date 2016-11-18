@@ -158,6 +158,48 @@
 <td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Forces Hardware Emulation Layer.</span></p>
 </td>
 </tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Simulate BW monitor</span></p>
+</td>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">BLACKWHITE</span></p>
+</td>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Activate a tweak in the palette handling that causes all colors to be replaced with the corresponding grayscale color. It works only on 8BPP palettized games or while emulating 16BPP on a 32BPP desktop.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Set 16BPP RGB565 encoding</span></p>
+</td>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">USERGB565</span></p>
+</td>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">By default, DxWnd emulates 16BPP color with RGB555 encoding. The option forces RGB565. This option only impacts the video in emulation mode and with 16BPP color depth.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Make Backbuf attachable</span></p>
+</td>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">BACKBUFATTACH</span></p>
+</td>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Alters the size specification of the created backbuffer so that it copes with the actual primary surface, so that it may be attachable to a ZBUFFER surface. It makes “Dave Mirra Freestyle BMX” playable.</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Clear texture FourCC</span></p>
+</td>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">CLEARTEXTUREFOURCC</span></p>
+</td>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">Experimental flag for tweaking games. DxWnd lets you dump, edit, and replace all uncompressed game textures. Textures compressed with a FourCC codec can't be processed this way. </span></p>
+<p class="rvps2"><span class="rvts6">This flag forces FourCC capabilities OFF in the capability query and in texture surface creation. This forces the game to use plain, uncompressed bitmap textures that can be easily tweaked.</span></p>
+<p class="rvps2"><span class="rvts6">To avoid texture errors, you may need to adjust texture flags. This flag was introduced to allow uncompressed textures for the game "The Sting!".</span></p>
+</td>
+</tr>
+<tr valign="top">
+<td width="247" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">No EXCLUSIVE coop level</span></p>
+</td>
+<td width="157" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts17">NODDEXCLUSIVEMODE</span></p>
+</td>
+<td width="1129" style="border-color: #000000; border-style: solid; padding: 1px;"><p class="rvps2"><span class="rvts6">When running a program in windowed mode, DxWnd suppresses the DirectDraw </span><span class="rvts17">DDSCL_EXCLUSIVE</span><span class="rvts6"> mode in the </span><span class="rvts17">SetCooperativeLevel</span><span class="rvts6"> wrapper, since this mode is not allowed in windowed mode. However, if windowed mode is not requested, DxWnd leaves the cooperative level flags as they are, allowing </span><span class="rvts17">DDSCL_EXCLUSIVE</span><span class="rvts6"> cooperative mode if requested. This flag also suppresses the </span><span class="rvts17">DDSCL_EXCLUSIVE</span><span class="rvts6"> mode in fullscreen mode (that is, when </span><span class="rvts17">DDSCL_FULLSCREEN</span><span class="rvts6"> is set). This flag is required when running "Warhammer 40,000: Rites of War" in non-windowed fullscreen mode.</span></p>
+</td>
+</tr>
 </table>
 </div>
 <p></p>

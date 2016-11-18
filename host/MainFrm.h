@@ -43,6 +43,7 @@ protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnMove(int, int);
 	afx_msg void OnSize(UINT, int, int);
+	afx_msg void OnClose(void);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

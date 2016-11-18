@@ -538,7 +538,11 @@ HMODULE WINAPI LoadLibraryExWrapper(LPVOID lpFileName, BOOL IsWidechar, HANDLE h
 		libhandle=(*pLoadLibraryExA)((LPCTSTR)lpFileName, hFile, dwFlags);
 	}
 
-	if(Recursed) return libhandle;
+	if(Recursed) {
+		// v2.03.97.fx2: clear Recursed flag when exiting!
+		Recursed = FALSE;
+		return libhandle;
+	}
 	Recursed = TRUE;
 
 	// found in "The Rage" (1996): loading a module with relative path after a SetCurrentDirectory may fail, though

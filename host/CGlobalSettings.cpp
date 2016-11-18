@@ -9,6 +9,7 @@
 extern char gInitPath[];
 extern BOOL gbDebug;
 extern BOOL gAutoHideMode;
+extern BOOL gWarnOnExit;
 
 Key_Type FKeys[] = {
 	{IDC_KEY_LABEL1,	"Time toggle",	IDC_KEY_COMBO1,		"timetoggle", 0},
@@ -84,6 +85,7 @@ CGlobalSettings::CGlobalSettings(CWnd* pParent /*=NULL*/)
 	m_CheckAdminRights = GetPrivateProfileInt("window", "checkadmin", 0, gInitPath);
 	m_NameFromFolder = GetPrivateProfileInt("window", "namefromfolder", 0, gInitPath);
 	m_MultiHooks = GetPrivateProfileInt("window", "multiprocesshook", 0, gInitPath);
+	m_WarnOnExit = GetPrivateProfileInt("window", "warnonexit", 0, gInitPath);
 	m_UpdatePaths = GetPrivateProfileInt("window", "updatepaths", 1, gInitPath);
 	// texture limits
 	m_TexMinX = GetPrivateProfileInt("texture", "MinTexX", 0, gInitPath);
@@ -115,6 +117,7 @@ void CGlobalSettings::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CONFIG_CHECKADMIN, m_CheckAdminRights);
 	DDX_Check(pDX, IDC_CONFIG_NAMEFROMFOLDER, m_NameFromFolder);
 	DDX_Check(pDX, IDC_CONFIG_MULTIHOOKS, m_MultiHooks);
+	DDX_Check(pDX, IDC_CONFIG_WARNONEXIT, m_WarnOnExit);
 	DDX_Check(pDX, IDC_CONFIG_SAVEPATHS, m_UpdatePaths);
 	DDX_Text (pDX, IDC_TEX_MINX, m_TexMinX);
 	DDX_Text (pDX, IDC_TEX_MINY, m_TexMinY);
@@ -187,6 +190,8 @@ void CGlobalSettings::OnOK()
 	WritePrivateProfileString("window", "namefromfolder", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", m_MultiHooks);
 	WritePrivateProfileString("window", "multiprocesshook", val, gInitPath);
+	sprintf_s(val, sizeof(val), "%i", m_WarnOnExit);
+	WritePrivateProfileString("window", "warnonexit", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", m_UpdatePaths);
 	WritePrivateProfileString("window", "updatepaths", val, gInitPath);
 	// texture limits
@@ -241,4 +246,5 @@ void CGlobalSettings::OnOK()
 	//(CDxwndhostView *)(this->GetParent())->UpdateHotKeys();
 	gbDebug = m_DebugMode;
 	gAutoHideMode = m_AutoHideMode;
+	gWarnOnExit = m_WarnOnExit;
 }
