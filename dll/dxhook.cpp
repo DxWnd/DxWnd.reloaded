@@ -136,12 +136,12 @@ static char *Flag7Names[32]={
 	"SSUPPRESSDIERRORS", "HOOKNORUN", "FIXBINDTEXTURE", "ENUM16BITMODES",
 	"SHAREDKEYBOARD", "HOOKNOUPDATE", "HOOKGLUT32", "INITIALRES",
 	"MAXIMUMRES", "LOCKCOLORDEPTH", "FIXSMACKLOOP", "FIXFREELIBRARY",
-	"ANCHORED", "", "", "",
+	"ANCHORED", "CLEARTEXTUREFOURCC", "NODDEXCLUSIVEMODE", "COPYNOSHIMS",
 };
 
 static char *Flag8Names[32]={
-	"", "", "", "",
-	"", "", "", "",
+	"FORCEWAIT", "FORCENOWAIT", "FORCEVSYNC", "FORCENOVSYNC",
+	"VSYNCSCANLINES", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1398,9 +1398,9 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		OSVERSIONINFO osinfo;
 		strcpy(sInfo, "");
 		if(hwnd) sprintf(sInfo, " hWnd=%x ParentWnd=%x desktop=%x", hwnd, dxw.hParentWnd, GetDesktopWindow());
-		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d) monitor=%d%s\n", 
+		OutTrace("HookInit: path=\"%s\" module=\"%s\" dxversion=%s pos=(%d,%d) size=(%d,%d) init-max=(%d,%d) monitor=%d%s\n", 
 			target->path, target->module, dxversions[dxw.dwTargetDDVersion], 
-			target->posx, target->posy, target->sizx, target->sizy, target->monitorid, sInfo);
+			target->posx, target->posy, target->sizx, target->sizy, target->resw, target->resh, target->monitorid, sInfo);
 		osinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 		if(GetVersionEx(&osinfo)){
 			OutTrace("OS=(%d.%d) build=%d platform=%d service pack=%s\n", 
@@ -1411,6 +1411,7 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 		if (dxw.dwFlags7 & LIMITDDRAW) OutTrace("HookInit: max supported IDidrectDrawInterface=%d\n", dxw.MaxDdrawInterface);
 		if (dxw.dwFlags7 & CPUSLOWDOWN) OutTrace("HookInit: CPU slowdown ratio 1:%d\n", dxw.SlowRatio);
 		if (dxw.dwFlags7 & CPUMAXUSAGE) OutTrace("HookInit: CPU maxusage ratio 1:%d\n", dxw.SlowRatio);
+		if (dxw.dwFlags8 & VSYNCSCANLINE) OutTrace("HookInit: VSync Scanline=%d\n", dxw.ScanLine);
 	}
 
 	if (hwnd && IsDebug){

@@ -495,8 +495,14 @@ static void ShowJoystick(LONG, LONG, DWORD);
 MMRESULT WINAPI extjoyGetDevCapsA(DWORD uJoyID, LPJOYCAPS pjc, UINT cbjc)
 {
 	OutTraceDW("joyGetDevCaps: joyid=%d size=%d\n", uJoyID, cbjc);
-	if((uJoyID != -1) && (uJoyID != 0)) return MMSYSERR_NODRIVER;
-	if(cbjc != sizeof(JOYCAPS)) return MMSYSERR_INVALPARAM;
+	if((uJoyID != -1) && (uJoyID != 0)) {
+		OutTraceDW("joyGetDevCaps: ERROR joyid=%d ret=MMSYSERR_NODRIVER\n", uJoyID, cbjc);
+		return MMSYSERR_NODRIVER;
+	}
+	if(cbjc != sizeof(JOYCAPS)) {
+		OutTraceDW("joyGetDevCaps: ERROR joyid=%d size=%d ret=MMSYSERR_INVALPARAM\n", uJoyID, cbjc);
+		return MMSYSERR_INVALPARAM;
+	}
 	uJoyID = 0; // always first (unique) one ...
 
 	// set Joystick capability structure

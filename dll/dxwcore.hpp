@@ -140,6 +140,7 @@ public: // methods
 	void MapKeysInit();
 	void SetVSyncDelays(UINT);
 	void VSyncWait();
+	void VSyncWaitLine(DWORD);
 	void DumpDesktopStatus();
 	void ToggleFreezedTime();
 	void GetMonitorWorkarea(LPRECT, BOOL);
@@ -150,6 +151,7 @@ public: // simple data variables
 	int MonitorId;
 	BOOL Windowize;
 	BOOL IsVisible;
+	BOOL IsEmulated;
 	DDPIXELFORMAT ActualPixelFormat;
 	DDPIXELFORMAT VirtualPixelFormat;
 	DWORD dwDDVersion;
@@ -191,6 +193,7 @@ public: // simple data variables
 	short Coordinates;
 	short MaxScreenRes;
 	short SlowRatio;
+	short ScanLine;
 	HDC RealHDC;
 	HDC VirtualHDC;
 	int GDIEmulationMode;
@@ -198,6 +201,8 @@ public: // simple data variables
 	RECT VirtualDesktop;
 	BOOL bHintActive;
 	BOOL bAutoScale;
+	DWORD dwRealScreenWidth;
+	DWORD dwRealScreenHeight;
 
 // Implementation
 protected:

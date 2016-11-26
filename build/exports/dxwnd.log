@@ -1,6 +1,12 @@
-OnRun idx=7 prog="F:\Games\Warhammer 40K Rites Of War\RoW.exe"
+OnRun idx=23 prog="D:\Games\Crimson_Skies\crimson.exe"
 setwindowshook mode
-OnRun idx=7 prog="F:\Games\Warhammer 40K Rites Of War\RoW.exe"
+OnRun idx=23 prog="D:\Games\Crimson_Skies\crimson.exe"
 setwindowshook mode
-OnRun idx=7 prog="F:\Games\Warhammer 40K Rites Of War\RoW.exe"
-setwindowshook mode
+OnRun idx=23 prog="D:\Games\Crimson_Skies\crimson.exe"
+injectsuspended mode
+InjectSuspended: exe=D:\Games\Crimson_Skies\crimson.exe dir=D:\Games\Crimson_Skies
+Target handle=844
+NT Header offset=F8
+AddressOfEntryPoint=1F7056 ImageBase=400000
+Thread start address=5f7056
+wait cycle 0 eip=5f7056

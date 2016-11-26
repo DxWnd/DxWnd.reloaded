@@ -2101,6 +2101,12 @@ HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceT
 				pCaps->MaxPixelShader30InstructionSlots);
 		}
 	}
+
+	if(dxw.dwFlags7 & SUPPRESSOVERLAY){
+		if(pCaps->Caps & D3DCAPS_OVERLAY) OutTraceDW("GetDeviceCaps(%d): SUPPRESS OVERLAY CAP\n");
+		pCaps->Caps &= ~D3DCAPS_OVERLAY;
+	}
+	
 	return res;
 }
 

@@ -38,6 +38,7 @@ typedef struct PRIVATEMAP
 typedef struct {
 	TARGETMAP *TM;
 	PRIVATEMAP *PM;
+	char *ExePath;
 } ThreadInfo_Type;
 ThreadInfo_Type;
 

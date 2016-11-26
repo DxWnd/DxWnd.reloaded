@@ -238,7 +238,6 @@ static HookEntryEx_Type Hooks[]={
 	//{HOOK_IAT_CANDIDATE, 0, "IsZoomed", (FARPROC)NULL, (FARPROC *)&pIsZoomed, (FARPROC)extIsZoomed},
 	//{HOOK_HOT_CANDIDATE, 0, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
 	{HOOK_HOT_CANDIDATE, 0, "ScrollDC", (FARPROC)NULL, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
-	//{HOOK_IAT_CANDIDATE, 0, "mouse_event", (FARPROC)NULL, (FARPROC *)&pmouse_event, (FARPROC)extmouse_event}, 
 
 	// both added to fix the Galapagos menu bar, but with no success !!!!
 	{HOOK_HOT_CANDIDATE, 0, "ShowScrollBar", (FARPROC)ShowScrollBar, (FARPROC *)&pShowScrollBar, (FARPROC)extShowScrollBar},
@@ -874,8 +873,10 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 			}
 			// v2.02.32: disable topmost for main window only
 			if(dxw.IsDesktop(hwnd) && (nIndex==GWL_EXSTYLE)){
-				OutTraceDW("SetWindowLong: GWL_EXSTYLE %x suppress TOPMOST\n", dwNewLong);
-				dwNewLong = dwNewLong & ~(WS_EX_TOPMOST); 
+				if(dxw.dwFlags5 & UNLOCKZORDER) {
+					OutTraceDW("SetWindowLong: GWL_EXSTYLE %x suppress TOPMOST\n", dwNewLong);
+					dwNewLong = dwNewLong & ~(WS_EX_TOPMOST); 
+				}
 			}
 		}
 
@@ -891,12 +892,11 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 
 	// v2.03.94.fx2: removed dxw.IsFullScreen() check here ... WinProc routine must be verified in all conditions
 	// fixes "Nascar Racing 3" that was setting the WinProc while still in non fullscreen mode!
-	if (((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)) && 
-		dxw.Windowize &&					// v2.03.95 - replaced dxw.IsFullScreen() check
-		// dxw.IsFullScreen() &&			// v2.02.51 - see A10 Cuba....
-		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug flag
+	if ((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)) { 
 		WNDPROC lres;
 		WNDPROC OldProc;
+		DWORD WinStyle;
+		BOOL bHooked = FALSE;
 
 		// fix ....
 		extern LRESULT CALLBACK dw_Hider_Message_Handler(HWND, UINT, WPARAM, LPARAM);
@@ -913,18 +913,47 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		// end of GPL fix
 
 		OldProc = (WNDPROC)(*pGetWindowLong)(hwnd, nIndex);
-		// v2.02.70 fix
-		if((OldProc==extWindowProc) || 
-			(OldProc==extChildWindowProc)||
-			(OldProc==extDialogWindowProc)) 
-			OldProc=dxwws.GetProc(hwnd);
-		dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
-		res=(LONG)OldProc;
-		SetLastError(0);
-		lres=(WNDPROC)(*pSetWindowLong)(hwnd, nIndex, (LONG)extWindowProc);
+		WinStyle = (*pGetWindowLong)(hwnd, GWL_STYLE);
+
+		// hook extWindowProc to main win ....
+		if(dxw.IsDesktop(hwnd) && !(dxw.dwFlags6 & NOWINDOWHOOKS)){
+			if(OldProc==extWindowProc) OldProc=dxwws.GetProc(hwnd);
+			dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
+			res=(LONG)OldProc;
+			SetLastError(0);
+			lres=(WNDPROC)(*pSetWindowLong)(hwnd, nIndex, (LONG)extWindowProc);
+			OutTraceDW("SetWindowLong: DESKTOP hooked %x->%x\n", dwNewLong, extWindowProc);
+			bHooked = TRUE;
+		}
+
+		// hook extChildWindowProc to child win ....
+		if((WinStyle & WS_CHILD) && (dxw.dwFlags1 & HOOKCHILDWIN) && !(dxw.dwFlags6 & NOWINDOWHOOKS)){
+			if(OldProc==extChildWindowProc) OldProc=dxwws.GetProc(hwnd);
+			dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
+			res=(LONG)OldProc;
+			SetLastError(0);
+			lres=(WNDPROC)(*pSetWindowLong)(hwnd, nIndex, (LONG)extChildWindowProc);
+			OutTraceDW("SetWindowLong: CHILD hooked %x->%x\n", dwNewLong, extChildWindowProc);
+			bHooked = TRUE;
+		}
+
+		// hook extDlgWindowProc to dialog win ....
+		if((WinStyle & DWL_DLGPROC) && (dxw.dwFlags1 & HOOKCHILDWIN) && !(dxw.dwFlags6 & NOWINDOWHOOKS)){
+			if(OldProc==extDialogWindowProc) OldProc=dxwws.GetProc(hwnd);
+			dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
+			res=(LONG)OldProc;
+			SetLastError(0);
+			lres=(WNDPROC)(*pSetWindowLong)(hwnd, nIndex, (LONG)extDialogWindowProc);
+			OutTraceDW("SetWindowLong: DIALOG hooked %x->%x\n", dwNewLong, extDialogWindowProc);
+			bHooked = TRUE;
+		}
+
+		// hook dwNewLong if not done otherwise
+		if(!bHooked) res=(*pSetWindowLong)(hwnd, nIndex, dwNewLong);
 		if(!lres && GetLastError())OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
-	else {
+	else{
+		// through here for any message different from GWL_WNDPROC or DWL_DLGPROC
 		res=(*pSetWindowLong)(hwnd, nIndex, dwNewLong);
 	}
 
@@ -1125,13 +1154,19 @@ BOOL WINAPI extGetCursorPos(LPPOINT lppoint)
 		res=1;
 	}
 
-	prev=*lppoint;
-	*lppoint=dxw.ScreenToClient(*lppoint);
-	*lppoint=dxw.FixCursorPos(*lppoint);
-
+	if(dxw.dwFlags1 & MODIFYMOUSE){
+		dxw.UpdateDesktopCoordinates();
+		prev=*lppoint;
+		*lppoint=dxw.ScreenToClient(*lppoint);
+		//OutTraceC("GetCursorPos: REMAPPED pos=(%d,%d)->(%d,%d)\n", prev.x, prev.y, lppoint->x, lppoint->y);
+		*lppoint=dxw.FixCursorPos(*lppoint);
+		OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", prev.x, prev.y, lppoint->x, lppoint->y);
+	}
+	else {
+		OutTraceC("GetCursorPos: pos=(%d,%d)\n", lppoint->x, lppoint->y);
+	}
 	GetHookInfo()->CursorX=(short)lppoint->x;
 	GetHookInfo()->CursorY=(short)lppoint->y;
-	OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", prev.x, prev.y, lppoint->x, lppoint->y);
 
 	if((dxw.dwFlags1 & HIDEHWCURSOR) && dxw.IsFullScreen()) while((*pShowCursor)(0) >= 0);
 	if(dxw.dwFlags2 & SHOWHWCURSOR) while((*pShowCursor)(1) < 0);
@@ -1164,6 +1199,7 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 	if(dxw.dwFlags1 & MODIFYMOUSE){
 		// v2.03.41
 		POINT cur;
+		dxw.UpdateDesktopCoordinates();
 		cur.x = x;
 		cur.y = y;
 		dxw.MapWindow(&cur);
@@ -1672,6 +1708,8 @@ static HWND WINAPI CreateWindowCommon(
 			ApiName, x, y, nWidth, nHeight, isValidHandle);
 		dxw.SetFullScreen(TRUE);
 	}
+
+	if(dxw.dwFlags5 & UNLOCKZORDER) dwExStyle &= ~WS_EX_TOPMOST ;
 
 	if(!dxw.IsFullScreen()){ // v2.1.63: needed for "Monster Truck Madness"
 		if(WideChar)
@@ -2498,9 +2536,10 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 		lpTemplate->style, lpTemplate->dwExtendedStyle, lpTemplate->cdit, lpTemplate->x, lpTemplate->y, lpTemplate->cx, lpTemplate->cy,
 		hWndParent, lpDialogFunc, lParamInit);
 	if(dxw.IsFullScreen() && hWndParent==NULL) hWndParent=dxw.GethWnd();
-	dxw.SetFullScreen(FALSE);
+	// v2.03.98: commented out the temporary return to windowed mode to make Red Alert 2 dialog work again!
+	//dxw.SetFullScreen(FALSE);
 	RetHWND=(*pCreateDialogIndirectParam)(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit);
-	dxw.SetFullScreen(FullScreen);
+	//dxw.SetFullScreen(FullScreen);
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL
 	if(	lpDialogFunc &&
@@ -2522,9 +2561,9 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	OutTraceDW("CreateDialogParam: hInstance=%x lpTemplateName=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, sTemplateName(lpTemplateName), hWndParent, lpDialogFunc, lParamInit);
 	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
-	dxw.SetFullScreen(FALSE);
+	//dxw.SetFullScreen(FALSE);
 	RetHWND=(*pCreateDialogParam)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, lParamInit);
-	dxw.SetFullScreen(FullScreen);
+	//dxw.SetFullScreen(FullScreen);
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL: fix for "LEGO Stunt Rally"
 	if(	lpDialogFunc &&
@@ -3922,9 +3961,17 @@ VOID WINAPI extmouse_event(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData, ULON
 		return;
 	}
 
-	if(dxw.Windowize){
-		dxw.MapClient((int *)&dx, (int *)&dy);
+	if((dwFlags & MOUSEEVENTF_ABSOLUTE) && dxw.Windowize && (dxw.dwFlags1 & MODIFYMOUSE)){
+		// ???? untested ......
+		//dxw.MapClient((int *)&dx, (int *)&dy);
+		POINT cursor;
+		cursor.x = dx;
+		cursor.y = dy;
+		cursor = dxw.FixCursorPos(cursor);
+		dx = cursor.x;
+		dy = cursor.y;
 	}
+
 	return (*pmouse_event)(dwFlags, dx, dy, dwData, dwExtraInfo);
 }
 

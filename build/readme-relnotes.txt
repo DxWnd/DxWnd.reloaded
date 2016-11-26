@@ -1349,11 +1349,24 @@ fix: CreateDIBSection wrapper log messages
 fix: PREVENTMAXIMIZE window size checks: should avoid size bigger than initial size, bugged coding inhibited any growth.
 fix: GUI setting of execution folder when running "Launcher" task.
 
-v2.03.97.rc1/fx1-4:
+v2.03.97.rc1/fx1-3:
 fix: emulation of proper ddraw surface capabilities in GetSurfaceDesc() and GetCaps() methods. Seems to cope with needs of most (all?) games.
 fix: recovered handling of WM_ERASEBKGND message. Fixes missing backgrounds in "Adrenix" and "Adrenix 3D" games.
 fix: cleaned up and unified capability handling in DirectDrawSurface GetCaps and GetSurfaceDesc methods
-add: warning message and update when running a program with non updated virtual registry settings.
-fix: LoadLibrary wrappers failed to clear the recursion flag, stopping the hook of new modules after a recursion case.
+add: warning message and update when running a program with non updated virtual registry settings.fix: LoadLibrary wrappers failed to clear the recursion flag, stopping the hook of new modules after a recursion case.
 add: warning messages when closing DxWnd and possibility to cancel the operation
-add: "Warn on exit" global flag to always force the warning message on exit
+
+v2.03.98
+add: fine tuning for vsync options: three modes (default: game native, force on, force off) three algorythms (ddraw WaitForVerticalBlank, loop controlled by GetScanLine, loop controlled by time delay)
+add: fine tuning for WAIT options in ddraw Flip() and Blt() methods: three modes (default: game native, force on, force off)
+fix: better support for non windowed + no emulation mode, surfaces and blit operations are left (almost) in original state, surface capabilities are left inaltered
+fix: added missing recovery on surface lost
+fix: some missing or wrong logs
+fix: suppression of WS_EX_TOPMOST flag in all conditions for UNLOCKZORDER mode
+fix: SUPPRESSOVERLAY flag applied also to D3D capabilities from D3D GetDeviceCaps() method
+add: added more API hookers in IMAGEHLP.DLL bypass
+fix: fixed logic to hook WindowProc routines for main window, childs and dialogs.
+fix: more frequent updates of window coordinates to avoid scaling errors
+fix: fixed CreateDialogIndirectParam and CreateDialogParam wrappers to make inner windows properly scaled (fixes red Alert 2)
+fix: recovered DEFAULTMESSAGES option
+fix: normalized output for ddraw GetScanLine() method

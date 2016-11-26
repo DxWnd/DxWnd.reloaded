@@ -71,6 +71,7 @@ public:
 	BOOL	m_HookDLLs;
 	BOOL	m_AnsiWide;
 	BOOL	m_HookNoRun;
+	BOOL	m_CopyNoShims;
 	BOOL	m_HookNoUpdate;
 	BOOL	m_TerminateOnClose;
 	BOOL	m_ConfirmOnClose;
@@ -97,13 +98,13 @@ public:
 	CString	m_OpenGLLib;
 	CString	m_Notes;
 	CString	m_Registry;
-	BOOL	m_SaveLoad;
+	//BOOL	m_SaveLoad;
 	BOOL	m_SlowDown;
 	BOOL	m_BlitFromBackBuffer;
 	BOOL	m_NoFlipEmulation;
 	BOOL	m_LockColorDepth;
-	BOOL	m_SuppressClipping;
-	BOOL	m_ForceClipper;
+	//BOOL	m_SuppressClipping;
+	//BOOL	m_ForceClipper;
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;
 	BOOL	m_IndependentRefresh;
@@ -155,6 +156,10 @@ public:
 	BOOL	m_BackBufAttach;
 	BOOL	m_ClearTextureFourCC;
 	BOOL	m_NoDDExclusiveMode;
+	//BOOL	m_ForceVSync;
+	//BOOL	m_ForceNoVSync;
+	//BOOL	m_ForceWait;
+	//BOOL	m_ForceNoWait;
 	BOOL	m_HandleAltF4;
 	BOOL	m_HandleExceptions;
 	BOOL	m_SkipFPS;
@@ -258,6 +263,9 @@ public:
 	BOOL	m_LimitScreenRes;
 	BOOL	m_InitialRes;
 	BOOL	m_MaximumRes;
+	int		m_VSyncMode;
+	int		m_VSyncImpl;
+	int		m_WaitMode;
 	int		m_PosX;
 	int		m_PosY;
 	int		m_SizX;
@@ -270,6 +278,8 @@ public:
 	int		m_MaxScreenRes;
 	int		m_ResTypes;
 	int		m_SwapEffect;
+	int		m_ClipperMode;
+	int		m_ScanLine;
 	//}}AFX_DATA
 
 

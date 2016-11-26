@@ -207,6 +207,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookDLLs) t->flags3 |= HOOKDLLS;
 	if(dlg->m_AnsiWide) t->flags5 |= ANSIWIDE;
 	if(dlg->m_HookNoRun) t->flags7 |= HOOKNORUN;
+	if(dlg->m_CopyNoShims) t->flags7 |= COPYNOSHIMS;
 	if(dlg->m_HookNoUpdate) t->flags7 |= HOOKNOUPDATE;
 	if(dlg->m_TerminateOnClose) t->flags6 |= TERMINATEONCLOSE;
 	if(dlg->m_ConfirmOnClose) t->flags6 |= CONFIRMONCLOSE;
@@ -309,6 +310,29 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 3: t->flags |= LOCKWINPOS; t->flags7 |= ANCHORED; break;
 	}
 
+	switch(dlg->m_VSyncMode){
+		case 0: break;
+		case 1: t->flags8 |= FORCEVSYNC; break;
+		case 2: t->flags8 |= FORCENOVSYNC; break;
+	}
+
+	switch(dlg->m_VSyncImpl){
+		case 0: break;
+		case 1: t->flags8 |= VSYNCSCANLINE; break;
+		case 2: t->flags |= SAVELOAD; break;
+	}
+	switch(dlg->m_WaitMode){
+		case 0: break;
+		case 1: t->flags8 |= FORCEWAIT; break;
+		case 2: t->flags8 |= FORCENOWAIT; break;
+	}
+
+	switch(dlg->m_ClipperMode){
+		case 0: break;
+		case 1: t->flags3 |= FORCECLIPPER; break;
+		case 2: t->flags |= SUPPRESSCLIPPING; break;
+	}
+
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
 	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
@@ -389,13 +413,13 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_LimitScreenRes) t->flags4 |= LIMITSCREENRES;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_UseLastCore) t->flags5 |= USELASTCORE;
-	if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
+	//if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
 	if(dlg->m_SlowDown) t->flags |= SLOWDOWN;
 	if(dlg->m_BlitFromBackBuffer) t->flags |= BLITFROMBACKBUFFER;
 	if(dlg->m_NoFlipEmulation) t->flags4 |= NOFLIPEMULATION;
 	if(dlg->m_LockColorDepth) t->flags7 |= LOCKCOLORDEPTH;
-	if(dlg->m_SuppressClipping) t->flags |= SUPPRESSCLIPPING;
-	if(dlg->m_ForceClipper) t->flags3 |= FORCECLIPPER;
+	//if(dlg->m_SuppressClipping) t->flags |= SUPPRESSCLIPPING;
+	//if(dlg->m_ForceClipper) t->flags3 |= FORCECLIPPER;
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
 	if(dlg->m_IndependentRefresh) t->flags2 |= INDEPENDENTREFRESH;
@@ -492,10 +516,15 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	if(dlg->m_InitialRes) t->flags7 |= INITIALRES;
 	if(dlg->m_MaximumRes) t->flags7 |= MAXIMUMRES;
+	//if(dlg->m_ForceVSync) t->flags8 |= FORCEVSYNC;
+	//if(dlg->m_ForceNoVSync) t->flags8 |= FORCENOVSYNC;
+	//if(dlg->m_ForceWait) t->flags8 |= FORCEWAIT;
+	//if(dlg->m_ForceNoWait) t->flags8 |= FORCENOWAIT;
 	t->posx = dlg->m_PosX;
 	t->posy = dlg->m_PosY;
 	t->sizx = dlg->m_SizX;
 	t->sizy = dlg->m_SizY;
+	t->ScanLine = dlg->m_ScanLine;
 	t->MaxFPS = dlg->m_MaxFPS;
 	t->InitTS = dlg->m_InitTS-8;
 	t->FakeVersionId = dlg->m_FakeVersionId;
@@ -524,6 +553,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookDLLs = t->flags3 & HOOKDLLS ? 1 : 0;
 	dlg->m_AnsiWide = t->flags5 & ANSIWIDE ? 1 : 0;
 	dlg->m_HookNoRun = t->flags7 & HOOKNORUN ? 1 : 0;
+	dlg->m_CopyNoShims = t->flags7 & COPYNOSHIMS ? 1 : 0;
 	dlg->m_HookNoUpdate = t->flags7 & HOOKNOUPDATE ? 1 : 0;
 	dlg->m_TerminateOnClose = t->flags6 & TERMINATEONCLOSE ? 1 : 0;
 	dlg->m_ConfirmOnClose = t->flags6 & CONFIRMONCLOSE ? 1 : 0;
@@ -600,6 +630,22 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags & LOCKWINPOS)		dlg->m_WinMovementType = 1;
 	if(t->flags2 & LOCKEDSIZE)		dlg->m_WinMovementType = 2;
 	if(t->flags7 & ANCHORED)		dlg->m_WinMovementType = 3;
+
+	dlg->m_VSyncMode = 0;
+	if(t->flags8 & FORCEVSYNC) dlg->m_VSyncMode = 1;
+	if(t->flags8 & FORCENOVSYNC) dlg->m_VSyncMode = 2;
+
+	dlg->m_VSyncImpl = 0;
+	if(t->flags8 & VSYNCSCANLINE) dlg->m_VSyncImpl = 1;
+	if(t->flags & SAVELOAD) dlg->m_VSyncImpl = 2;
+
+	dlg->m_WaitMode = 0;
+	if(t->flags8 & FORCEWAIT) dlg->m_WaitMode = 1;
+	if(t->flags8 & FORCENOWAIT) dlg->m_WaitMode = 2;
+
+	dlg->m_ClipperMode = 0;
+	if (t->flags3 & FORCECLIPPER) dlg->m_ClipperMode = 1;
+	if (t->flags & SUPPRESSCLIPPING) dlg->m_ClipperMode = 2;
 
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
@@ -680,13 +726,13 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ClearTarget = t->flags5 & CLEARTARGET ? 1 : 0;
 	dlg->m_FixPitch = t->flags6 & FIXPITCH ? 1 : 0;
 	dlg->m_Power2Width = t->flags6 & POWER2WIDTH ? 1 : 0;
-	dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
+	//dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
 	dlg->m_NoFlipEmulation = t->flags4 & NOFLIPEMULATION ? 1 : 0;
 	dlg->m_LockColorDepth = t->flags7 & LOCKCOLORDEPTH ? 1 : 0;
-	dlg->m_SuppressClipping = t->flags & SUPPRESSCLIPPING ? 1 : 0;
-	dlg->m_ForceClipper = t->flags3 & FORCECLIPPER ? 1 : 0;
+//	dlg->m_SuppressClipping = t->flags & SUPPRESSCLIPPING ? 1 : 0;
+//	dlg->m_ForceClipper = t->flags3 & FORCECLIPPER ? 1 : 0;
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
 	dlg->m_IndependentRefresh = t->flags2 & INDEPENDENTREFRESH ? 1 : 0;
@@ -781,10 +827,15 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_InitialRes = t->flags7 & INITIALRES ? 1 : 0;
 	dlg->m_MaximumRes = t->flags7 & MAXIMUMRES ? 1 : 0;
+	//dlg->m_ForceVSync = t->flags8 & FORCEVSYNC ? 1 : 0;
+	//dlg->m_ForceNoVSync = t->flags8 & FORCENOVSYNC ? 1 : 0;
+	//dlg->m_ForceWait = t->flags8 & FORCEWAIT ? 1 : 0;
+	//dlg->m_ForceNoWait = t->flags8 & FORCENOWAIT ? 1 : 0;
 	dlg->m_PosX = t->posx;
 	dlg->m_PosY = t->posy;
 	dlg->m_SizX = t->sizx;
 	dlg->m_SizY = t->sizy;
+	dlg->m_ScanLine = t->ScanLine;
 	dlg->m_MaxFPS = t->MaxFPS;
 	dlg->m_InitTS = t->InitTS+8;
 	dlg->m_FakeVersionId = t->FakeVersionId;
@@ -866,14 +917,6 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags8);
 	WritePrivateProfileString("target", key, val, InitPath);
 	// -------
-	sprintf_s(key, sizeof(key), "flagl%i", i);
-	sprintf_s(val, sizeof(val), "%i", TargetMap->flags7);
-	WritePrivateProfileString("target", key, val, InitPath);
-	// -------
-	sprintf_s(key, sizeof(key), "flagm%i", i);
-	sprintf_s(val, sizeof(val), "%i", TargetMap->flags8);
-	WritePrivateProfileString("target", key, val, InitPath);
-	// -------
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
 	WritePrivateProfileString("target", key, val, InitPath);
@@ -924,6 +967,10 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	// -------
 	sprintf_s(key, sizeof(key), "slowratio%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->SlowRatio);
+	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "scanline%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->ScanLine);
 	WritePrivateProfileString("target", key, val, InitPath);
 	// -------
 	sprintf_s(key, sizeof(key), "initresw%i", i);
@@ -1121,6 +1168,9 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	// -------
 	sprintf_s(key, sizeof(key), "slowratio%i", i);
 	TargetMap->SlowRatio = GetPrivateProfileInt("target", key, 1, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "scanline%i", i);
+	TargetMap->ScanLine = GetPrivateProfileInt("target", key, 1, InitPath);
 	// -------
 	sprintf_s(key, sizeof(key), "initresw%i", i);
 	TargetMap->resw = GetPrivateProfileInt("target", key, 0, InitPath);
@@ -1940,6 +1990,10 @@ void CDxwndhostView::OnProcessKill()
 	lpProcName=FilePath;
 	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
 
+	if(TargetMaps[i].flags7 & COPYNOSHIMS){
+		strcat(lpProcName, ".noshim");
+	}
+
 	if(!KillProcByName(lpProcName, FALSE)){
 		wchar_t *wcstring = new wchar_t[48+1];
 		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[i].title, _TRUNCATE);
@@ -2666,7 +2720,7 @@ DWORD WINAPI StartDebug(void *p)
 	ThInfo = (ThreadInfo_Type *)p;
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo);
-	sRunTargetPath = (strlen(ThInfo->PM->launchpath)>0) ? ThInfo->PM->launchpath : ThInfo->TM->path;
+	sRunTargetPath = ThInfo->ExePath;
 	strcpy_s(path, sizeof(path), sRunTargetPath);
 	PathRemoveFileSpec(path);
 	if(!CreateProcess(NULL, 
@@ -3061,6 +3115,77 @@ static void CheckSafeDiscVersion(char *path)
 	fclose(exe);
 }
 
+#define FILECOPYBUFSIZE 1024
+
+static void MakeHiddenFile(char *sTargetPath)
+{
+	HANDLE hFile     = INVALID_HANDLE_VALUE;
+    HANDLE hTempFile = INVALID_HANDLE_VALUE; 
+    BOOL fSuccess  = FALSE;
+    DWORD dwRetVal = 0;
+    UINT uRetVal   = 0;
+    DWORD dwBytesRead    = 0;
+    DWORD dwBytesWritten = 0; 
+    char  chBuffer[FILECOPYBUFSIZE]; 
+
+	hFile = CreateFile(sTargetPath,           // file name 
+		GENERIC_READ,          // open for reading 
+		0,                     // do not share 
+		NULL,                  // default security 
+		OPEN_EXISTING,         // existing file only 
+		FILE_ATTRIBUTE_NORMAL, // normal file 
+		NULL);                 // no template 
+    if (hFile == INVALID_HANDLE_VALUE) { 
+        //PrintError(TEXT("First CreateFile failed"));
+        return;
+    }
+
+	strcat(sTargetPath, ".noshim");
+	
+    //  Deletes last copy of the file, just in case it was updated (patched?)
+	// DeleteFile(sTargetPath);
+
+    //  Creates the new file to write to for the upper-case version.
+    hTempFile = CreateFile((LPTSTR) sTargetPath,	// file name 
+		GENERIC_WRITE,			// open for write 
+		0,						// do not share 
+		NULL,					// default security 
+		CREATE_ALWAYS,			// overwrite existing
+		//FILE_ATTRIBUTE_HIDDEN,	// hidden file 
+		FILE_ATTRIBUTE_NORMAL, // normal file 
+		NULL);					// no template 
+    if (hTempFile == INVALID_HANDLE_VALUE) {
+		char msg[120];
+		sprintf(msg, "Creation of hidden copy of target file with no SHIMs failed\nError=%d", GetLastError());
+		MessageBox(0, msg, "Warning", 0); 
+        //PrintError(TEXT("Second CreateFile failed"));
+        if (!CloseHandle(hFile)){
+			sprintf(msg, "CloseHandle failed\nError=%d", GetLastError());
+            MessageBox(0, msg, "Error", 0);
+        }
+        return;
+    } 
+    //  Reads BUFSIZE blocks to the buffer and copy to the temporary 
+    //  file. 
+    do {
+        if (ReadFile(hFile, chBuffer, FILECOPYBUFSIZE, &dwBytesRead, NULL)) {
+            fSuccess = WriteFile(hTempFile, chBuffer, dwBytesRead, &dwBytesWritten, NULL); 
+            if (!fSuccess) {
+                //PrintError(TEXT("WriteFile failed"));
+                break;
+            }
+        } 
+        else {
+            //PrintError(TEXT("ReadFile failed"));
+            break;
+        }
+    //  Continues until the whole file is processed.
+    } while (dwBytesRead == FILECOPYBUFSIZE); 
+
+	CloseHandle(hFile); 
+	CloseHandle(hTempFile); 
+}
+
 void CDxwndhostView::OnRun() 
 {
 	CListCtrl& listctrl = GetListCtrl();
@@ -3068,7 +3193,8 @@ void CDxwndhostView::OnRun()
 	int i;
 	STARTUPINFO sinfo;
 	PROCESS_INFORMATION pinfo;
-	char path[MAX_PATH];
+	char folderpath[MAX_PATH+20]; // max + space for ".noshim"
+	char exepath[MAX_PATH+20]; // max + space for ".noshim"
 	TARGETMAP RestrictedMaps[2];
 	char *sRunTargetPath;
 
@@ -3088,10 +3214,16 @@ void CDxwndhostView::OnRun()
 	memcpy(&RestrictedMaps[0], &TargetMaps[i], sizeof(TARGETMAP));
 	memset(&RestrictedMaps[1], 0, sizeof(TARGETMAP));
 	if(!(PrivateMaps[i].startfolder[0])){
-		strcpy_s(path, sizeof(path), sRunTargetPath);
-		PathRemoveFileSpec(path);
+		strcpy_s(folderpath, sizeof(folderpath), sRunTargetPath);
+		strcpy_s(exepath, sizeof(exepath), sRunTargetPath);
+		PathRemoveFileSpec(folderpath);
 	}else{
-		strcpy_s(path, sizeof(path), PrivateMaps[i].startfolder);
+		strcpy_s(folderpath, sizeof(folderpath), PrivateMaps[i].startfolder);
+		strcpy_s(exepath, sizeof(exepath), sRunTargetPath);
+	}
+	if(TargetMaps[i].flags7 & COPYNOSHIMS){
+		MakeHiddenFile(exepath);
+		strncpy(RestrictedMaps[0].path, exepath, MAX_PATH);
 	}
 	SetTarget(RestrictedMaps);	
 	OutTrace("OnRun idx=%d prog=\"%s\"\n", i, TargetMaps[i].path);
@@ -3137,24 +3269,31 @@ void CDxwndhostView::OnRun()
 		ThreadInfo_Type ThreadInfo;
 		ThreadInfo.TM=&TargetMaps[i];
 		ThreadInfo.PM=&PrivateMaps[i];
+		ThreadInfo.ExePath=exepath;
 		CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
 	}
 	else
 	if(TargetMaps[i].flags7 & INJECTSUSPENDED){
 		OutTrace("injectsuspended mode\n");
-		InjectSuspended(sRunTargetPath, path); 
+		InjectSuspended(exepath, folderpath); 
 	}
 	else{
 		OutTrace("setwindowshook mode\n");
 		CreateProcess(NULL, 
-			sRunTargetPath, 
-			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, path, &sinfo, &pinfo);
+			exepath, 
+			0, 0, false, CREATE_DEFAULT_ERROR_MODE, NULL, folderpath, &sinfo, &pinfo);
 		CloseHandle(pinfo.hProcess); // no longer needed, avoid handle leakage
 		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
 	}
+
 	// wait & recover
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RecoverTargetMaps, (LPVOID)TargetMaps, 0, NULL);
 	if(gAutoHideMode) this->OnGoToTrayIcon();
+
+	// not working: the file is opened, can't be deleted
+	//if(TargetMaps[i].flags7 & COPYNOSHIMS){
+	//	DeleteFile(exepath);
+	//}
 }
 
 void SwitchToColorDepth(int bpp)

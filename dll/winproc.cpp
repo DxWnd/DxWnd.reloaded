@@ -245,7 +245,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 	if(IsTraceW) ExplainMsg("WindowProc", hwnd, message, wparam, lparam);
 
-	if(dxw.dwFlags3 & FILTERMESSAGES){
+	if(dxw.dwFlags3 & (FILTERMESSAGES|DEFAULTMESSAGES)){
 		switch(message){
 		case WM_NCMOUSEMOVE:
 		case WM_NCLBUTTONDOWN:
@@ -257,8 +257,16 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		case WM_NCMBUTTONDOWN:
 		case WM_NCMBUTTONUP:
 		case WM_NCMBUTTONDBLCLK:
-			OutTraceDW("WindowProc[%x]: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
-			return 0;
+		case WM_MOVE:
+		case WM_MOVING:
+			if(dxw.dwFlags3 & FILTERMESSAGES){
+				OutTraceDW("WindowProc[%x]: SUPPRESS WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
+				return 0;
+			}
+			else {
+				OutTraceDW("WindowProc[%x]: DEFAULT WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
+				return (*pDefWindowProcA)(hwnd, message, wparam, lparam);
+			}
 		}
 	}
 

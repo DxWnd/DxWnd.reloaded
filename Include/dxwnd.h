@@ -41,7 +41,7 @@
 #define CLIENTREMAPPING		0x08000000 // hooks ClientToRect, RectToClient, GetClientRect, GetWinRect
 #define HANDLEALTF4			0x10000000 // forces quitting the program when receiving Alt-F4 key
 #define LOCKWINPOS			0x20000000 // prevent the program to change its own windows properties
-#define HOOKCHILDWIN		0x40000000 // hook CHILD windows to alter placement coordinates (UNUSED)
+#define HOOKCHILDWIN		0x40000000 // hook CHILD windows to alter placement coordinates
 #define MESSAGEPROC			0x80000000 // process peek/get messages
 
 // second flags DWORD dxw.dwFlags2:
@@ -246,8 +246,14 @@
 #define ANCHORED			0x10000000 // Anchored position & size, mo stretching or sliding is allowed
 #define CLEARTEXTUREFOURCC	0x20000000 // Clear DDSCAPS2_FOURCC bit and makes texture load without codec
 #define NODDEXCLUSIVEMODE	0x40000000 // Do not allow ddraw EXCLUSIVE mode also in non windowed mode
+#define COPYNOSHIMS			0x80000000 // Create a hiden and temporary copy of the target exe so that shims are not applied
 
 // eighth flags DWORD dxw.dwFlags8:
+#define FORCEWAIT			0x00000001 // Forces DDBLT/DDFLIP WAIT flags
+#define FORCENOWAIT			0x00000002 // Forces DDBLT/DDFLIP NOWAIT flags
+#define FORCEVSYNC			0x00000004 // Forces hardware VSync 
+#define FORCENOVSYNC		0x00000008 // Forces NO hardware VSync 
+#define VSYNCSCANLINE		0x00000010 // Activates WaitForVerticalBlank algorythm based on reaching a given scan line
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -258,7 +264,7 @@
 //#define DXPROXED			0x00000020 // hook DX proxy methods to log each call in original behaviour
 #define ASSERTDIALOG		0x00000040 // show assert messages in Dialog Box
 #define OUTIMPORTTABLE		0x00000080 // dump import table contents
-#define OUTDEBUG			0x00000100 // detailed debugging indormation
+#define OUTDEBUG			0x00000100 // detailed debugging information
 #define OUTREGISTRY			0x00000200 // log registry operations
 #define TRACEHOOKS			0x00000400 // log hook operations
 #define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
@@ -306,6 +312,7 @@ typedef struct TARGETMAP
 	short SwapEffect;
 	short MaxDdrawInterface;
 	short SlowRatio;
+	short ScanLine;
 }TARGETMAP;
 
 typedef struct

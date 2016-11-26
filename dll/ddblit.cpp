@@ -9,6 +9,7 @@
 #include "dxhelper.h"
 
 extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
+extern BOOL bVSyncDone;
 extern LPDIRECTDRAW lpPrimaryDD;
 extern Blt_Type pBlt;
 extern ReleaseS_Type pReleaseSMethod(int);
@@ -40,8 +41,6 @@ static HRESULT sBltNoPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	RECT srcrect;
 	HRESULT res;
 	BOOL FromScreen;
-	//extern PrimaryBlt_Type pPrimaryBlt;
-	//CkArg arg;
 
 	FromScreen=dxwss.IsAPrimarySurface(lpddssrc); 
 
@@ -194,7 +193,7 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	else
 		if(dxw.HandleFPS()) return DD_OK;
 	if(dxw.dwFlags5 & NOBLT) return DD_OK;
-	
+
 	destrect=dxw.MapWindowRect(lpdestrect);
 	OutTraceB("DESTRECT=(%d,%d)-(%d,%d) Screen=(%dx%d)\n", 
 		destrect.left, destrect.top, destrect.right, destrect.bottom,
@@ -207,20 +206,32 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	}
 
 	// =========================
-	// Blit to primary direct surface 
+	// Blit to primary direct or fullscreen surface 
 	// =========================
 
-	if(!(dxw.dwFlags1 & (EMULATESURFACE|EMULATEBUFFER))){ 
+	if(!dxw.IsEmulated){ 
 		res=DD_OK;
+
+		if((dxw.dwFlags1 & SAVELOAD) || (dxw.dwFlags8 & FORCEVSYNC)) {
+			HRESULT res2;
+			if(!bVSyncDone){
+				if(res2=lpPrimaryDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN , 0))
+					OutTraceE("WaitForVerticalBlank ERROR: res=%x\n", res2);
+			}
+			bVSyncDone = FALSE;
+		}
+		
+		if(dxw.Windowize) lpdestrect = &destrect;
 
 		// blit only when source and dest surface are different. Should make ScreenRefresh faster.
 		if (lpdds != lpddssrc) {
 			dxw.ShowOverlay(lpddssrc);
-			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, &destrect, __LINE__);
-			res=(*pPrimaryBlt)(dxversion, pBlt, lpdds, &destrect, lpddssrc, lpsrcrect);
+			if (IsDebug) BlitTrace("PRIM-NOEMU", lpsrcrect, lpdestrect, __LINE__);
+			res=(*pPrimaryBlt)(dxversion, pBlt, lpdds, lpdestrect, lpddssrc, lpsrcrect, lpddbltfx);
+			//res=(*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 		}
 		if(res){
-			BlitError(res, lpsrcrect, &destrect, __LINE__);
+			BlitError(res, lpsrcrect, lpdestrect, __LINE__);
 			if(IsDebug) {
 				DescribeSurface(lpdds, 0, "[DST]" , __LINE__);
 				if (lpddssrc) DescribeSurface(lpddssrc, 0, "[SRC]" , __LINE__); // lpddssrc could be NULL!!!
@@ -229,9 +240,9 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 			if(res==DDERR_SURFACEBUSY){
 				(*pUnlockMethod(dxversion))(lpdds, NULL);
 				if(lpddssrc) (*pUnlockMethod(dxversion))(lpdds, NULL);
-				if (IsDebug) BlitTrace("BUSY", lpsrcrect, &destrect, __LINE__);
-				res= (*pBlt)(lpdds, &destrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
-				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
+				if (IsDebug) BlitTrace("BUSY", lpsrcrect, lpdestrect, __LINE__);
+				res= (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
+				if (res) BlitError(res, lpsrcrect, lpdestrect, __LINE__);
 			}
 			// Try to handle DDBLT_KEYSRC on primary surface
 			if((res==DDERR_INVALIDPARAMS) && (dwflags & DDBLT_KEYSRC)){
@@ -239,22 +250,22 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 				DDSURFACEDESC2 ddsd;
 				LPDIRECTDRAWSURFACE2 lpddsTmp;
 				extern CreateSurface2_Type pCreateSurfaceMethod(int);
-				if (IsDebug) BlitTrace("KEYSRC", lpsrcrect, &destrect, __LINE__);
+				if (IsDebug) BlitTrace("KEYSRC", lpsrcrect, lpdestrect, __LINE__);
 				memset(&ddsd, 0, sizeof(ddsd));
 				ddsd.dwSize = (dxversion < 4) ? sizeof(DDSURFACEDESC) : sizeof(DDSURFACEDESC2);
 				(*pGetSurfaceDescMethod())((LPDIRECTDRAWSURFACE2)lpddssrc, &ddsd);
 				res=(*pCreateSurfaceMethod(dxversion))(lpPrimaryDD, &ddsd, (LPDIRECTDRAWSURFACE *)&lpddsTmp, NULL);
 				if(res) OutTraceE("CreateSurface: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				// copy background
-				res= (*pBlt)((LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, lpdds, &destrect, DDBLT_WAIT, NULL);
+				res= (*pBlt)((LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, lpdds, lpdestrect, DDBLT_WAIT, NULL);
 				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				// overlay texture
 				res= (*pBlt)((LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, lpddssrc, lpsrcrect, dwflags, lpddbltfx);
 				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				// copy back to destination
-				res= (*pBlt)(lpdds, &destrect, (LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, DDBLT_WAIT, lpddbltfx);
+				res= (*pBlt)(lpdds, lpdestrect, (LPDIRECTDRAWSURFACE)lpddsTmp, lpsrcrect, DDBLT_WAIT, lpddbltfx);
 				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
-				if (res) BlitError(res, lpsrcrect, &destrect, __LINE__);
+				if (res) BlitError(res, lpsrcrect, lpdestrect, __LINE__);
 				(*pReleaseSMethod(dxversion))((LPDIRECTDRAWSURFACE)lpddsTmp);
 			}
 			if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
@@ -271,8 +282,15 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 
 	if(dxw.dwFlags5 & GDIMODE){
 		extern void BlitToWindow(HWND, LPDIRECTDRAWSURFACE);
-		//if (lpdds != lpddssrc) 
+		if((dxw.dwFlags1 & SAVELOAD) || (dxw.dwFlags8 & FORCEVSYNC)){
+			HRESULT res2;
+			if(!bVSyncDone){
+				if(res2=lpPrimaryDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN , 0))
+					OutTraceE("WaitForVerticalBlank ERROR: res=%x\n", res2);
+			}
+			bVSyncDone = FALSE;
 			BlitToWindow(dxw.GethWnd(), lpddssrc);
+		}
 		return DD_OK;
 	}
 
@@ -363,8 +381,18 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 		emurect.right <<= 1;
 		emurect.bottom <<= 1;
 	}
+
+	if((dxw.dwFlags1 & SAVELOAD) || (dxw.dwFlags8 & FORCEVSYNC)) {
+		HRESULT res2;
+		if(!bVSyncDone){
+			if(res2=lpPrimaryDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN , 0))
+				OutTraceE("WaitForVerticalBlank ERROR: res=%x\n", res2);
+		}
+		bVSyncDone = FALSE;
+	}
+
 	if (IsDebug) BlitTrace("BACK2PRIM", &emurect, &destrect, __LINE__);
-	res=(*pPrimaryBlt)(dxversion, pBlt, lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect);
+	res=(*pPrimaryBlt)(dxversion, pBlt, lpDDSEmu_Prim, &destrect, lpDDSSource, &emurect, NULL);
 
 	if (res) BlitError(res, &emurect, &destrect, __LINE__);
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
@@ -426,6 +454,15 @@ HRESULT WINAPI sBlt(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDRAWSURFACE
 		}
 		strcat(sLog,"\n");
 		OutTrace(sLog);
+	}
+
+	if(dxw.dwFlags8 & FORCEWAIT){
+		dwflags |= DDBLT_WAIT;
+		dwflags &= ~(DDBLT_ASYNC|DDBLT_DONOTWAIT);
+	}
+	if(dxw.dwFlags8 & FORCENOWAIT){
+		dwflags &= ~DDBLT_WAIT;
+		dwflags |= (DDBLT_ASYNC|DDBLT_DONOTWAIT);
 	}
 
 	if(ToPrim)

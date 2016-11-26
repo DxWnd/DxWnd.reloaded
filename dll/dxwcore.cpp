@@ -94,6 +94,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags8 = target->flags8;
 	dwTFlags = target->tflags;
 	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
+	IsEmulated = (dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)) ? TRUE : FALSE;
 	IsVisible = TRUE;
 	if(dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
 	gsModules = target->module;
@@ -143,6 +144,7 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwScreenHeight = 600;
 
 	SlowRatio = target->SlowRatio;
+	ScanLine = target->ScanLine;
 
 	GDIEmulationMode = GDIMODE_NONE; // default
 	if (dwFlags2 & GDISTRETCHED)	GDIEmulationMode = GDIMODE_STRETCHED;  
@@ -693,6 +695,27 @@ void dxwCore::VSyncWait()
 	if(step >= iRefreshDelayCount) step=0;
 }
 
+void dxwCore::VSyncWaitLine(DWORD ScanLine)
+{
+	extern LPDIRECTDRAW lpPrimaryDD;
+	static DWORD iLastScanLine = 0;
+	DWORD iCurrentScanLine;
+	if (!lpPrimaryDD) return;
+	while(1){
+		HRESULT res;
+		if(res=lpPrimaryDD->GetScanLine(&iCurrentScanLine)) {
+			OutTraceE("VSyncWaitLine: GetScanLine ERROR res=%x\n", res);
+			iLastScanLine = 0;
+			break; // error
+		}
+		if((iLastScanLine <= ScanLine) && (iCurrentScanLine > ScanLine)) {
+			OutTraceB("VSyncWaitLine: line=%d last=%d\n", iCurrentScanLine, iLastScanLine);
+			break;
+		}
+		iLastScanLine = iCurrentScanLine;
+		(*pSleep)(1);
+	}
+}
 
 static float fMul[17]={2.14F, 1.95F, 1.77F, 1.61F, 1.46F, 1.33F, 1.21F, 1.10F, 1.00F, 0.91F, 0.83F, 0.75F, 0.68F, 0.62F, 0.56F, 0.51F, 0.46F};
 
@@ -1194,12 +1217,12 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
 				lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 		}
-		if ((dxw.dwFlags1 & PREVENTMAXIMIZE) && (hwnd==hWnd)){ // disable maximize settings
+		if ((dxw.dwFlags5 & UNLOCKZORDER) && (hwnd==hWnd)){ // disable maximize settings
 			if (lpSS->styleNew & WS_EX_TOPMOST){
 				OutTraceDW("%s: prevent EXSTYLE topmost style\n", ApiName);
 				lpSS->styleNew &= ~WS_EX_TOPMOST;
 			}
-		}
+		} 
 		break;
 	default:
 		break;

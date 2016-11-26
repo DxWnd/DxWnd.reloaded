@@ -258,6 +258,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ddcreates.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ddraw.cpp"
 				>
 				<FileConfiguration

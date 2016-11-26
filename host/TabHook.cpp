@@ -35,6 +35,7 @@ void CTabHook::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HOOKDLLS, cTarget->m_HookDLLs);
 	DDX_Check(pDX, IDC_ANSIWIDE, cTarget->m_AnsiWide);
 	DDX_Check(pDX, IDC_HOOKNORUN, cTarget->m_HookNoRun);
+	DDX_Check(pDX, IDC_COPYNOSHIMS, cTarget->m_CopyNoShims);
 	DDX_Check(pDX, IDC_HOOKNOUPDATE, cTarget->m_HookNoUpdate);
 	DDX_Check(pDX, IDC_HOOKCHILDWIN, cTarget->m_HookChildWin);
 

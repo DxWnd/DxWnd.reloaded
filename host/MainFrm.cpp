@@ -178,9 +178,9 @@ void CMainFrame::OnClose()
 	}
 
 	if(gWarnOnExit){
-		if(MessageBoxLang(DXW_STRING_EXIT_OK, DXW_STRING_WARNING, MB_OKCANCEL)==IDOK) 
-			CFrameWnd::OnClose();
-	}
+	if(MessageBoxLang(DXW_STRING_EXIT_OK, DXW_STRING_WARNING, MB_OKCANCEL)==IDOK) 
+		CFrameWnd::OnClose();
+}
 	else
 		CFrameWnd::OnClose();
 }
