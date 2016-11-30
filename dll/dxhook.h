@@ -48,6 +48,7 @@ extern FARPROC Remap_DInput_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_DInput8_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_ComCtl32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_ComDlg32_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_DSound_ProcAddress(LPCSTR, HMODULE);
 
 typedef enum {
 	HOOK_IAT_CANDIDATE = 0,

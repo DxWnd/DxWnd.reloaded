@@ -40,7 +40,7 @@ dxwSDC::dxwSDC()
  
 dxwSDC::~dxwSDC()
 {
-	OutTraceB("dxwSDC::~dxwSDC: Destroy\n");
+	//OutTraceB("dxwSDC::~dxwSDC: Destroy\n");
 }
 
 /*---------------------------------------------------------------------------------+
@@ -351,9 +351,9 @@ void dxwSDC::copyDcAttributes(HDC destDC, HDC origDc, POINT origin)
 	SetTextCharacterExtra(destDC, GetTextCharacterExtra(origDc));
 	SetTextColor(destDC, GetTextColor(origDc));
 
-	OutTraceB("copyDcAttributes: orig=(%d,%d)\n", origin.x, origin.y);
+	OutTraceB("dxwSDC::copyDcAttributes: orig=(%d,%d)\n", origin.x, origin.y);
 	if(!(*pSetWindowOrgEx)(destDC, -origin.x, -origin.y, NULL))
-		OutTraceE("copyDcAttributes: SetWindowOrgEx ERROR orig=(%d,%d) err=%d\n", origin.x, origin.y, GetLastError());
+		OutTraceE("dxwSDC::copyDcAttributes: SetWindowOrgEx ERROR orig=(%d,%d) err=%d\n", origin.x, origin.y, GetLastError());
 
 	POINT brushOrg = {};
 	GetBrushOrgEx(origDc, &brushOrg);

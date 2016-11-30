@@ -661,13 +661,20 @@ void HookWindowProc(HWND hwnd)
 
 	// v2.03.22: don't remap WindowProc in case of special address 0xFFFFnnnn. 
 	// This makes "The Hulk demo" work avoiding WindowProc recursion and stack overflow
-	if (((DWORD)pWindowProc & 0xFFFF0000) == 0xFFFF0000){
-		OutTraceDW("GetWindowLong: hwnd=%x WindowProc HOOK %x not updated\n", hwnd, pWindowProc);
-		return;
-	}
+	// v2.03.99.rc1: commented out, issue fixed by addition below!
+	//if (((DWORD)pWindowProc & 0xFFFF0000) == 0xFFFF0000){
+	//	OutTraceDW("GetWindowLong: hwnd=%x WindowProc HOOK %x not updated\n", hwnd, pWindowProc);
+	//	return;
+	//}
 
+	// v2.03.99.rc1: always remap  WindowProc, but push to call stack the previous value 
+	// depending on whether the window was hooked already or not!
 	long lres;
-	dxwws.PutProc(hwnd, pWindowProc);
+	if(lres=(long)dxwws.GetProc(hwnd))
+		dxwws.PutProc(hwnd, (WNDPROC)lres);
+	else 
+		dxwws.PutProc(hwnd, pWindowProc);
+
 	lres=(*pSetWindowLongA)(hwnd, GWL_WNDPROC, (LONG)extWindowProc);
 	OutTraceDW("SetWindowLong: HOOK hwnd=%x WindowProc=%x->%x\n", hwnd, lres, (LONG)extWindowProc);
 }

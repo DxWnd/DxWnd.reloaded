@@ -715,6 +715,9 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 		case SYSLIBIDX_COMDLG32:
 			if (remap=Remap_ComDlg32_ProcAddress(proc, hModule)) return remap;
 			break;
+		case SYSLIBIDX_DSOUND:
+			if (remap=Remap_DSound_ProcAddress(proc, hModule)) return remap;
+			break;
 		default:
 			break;			
 		}

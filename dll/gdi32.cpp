@@ -969,7 +969,7 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	BOOL bSwitchedToMainWin = FALSE;
 
 	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
-	if(hdc==0){
+	if(hdc==0 || (WindowFromDC(hdc)==0)) { // v2.03.99: Star Trek Armada
 		hdc=(*pGDIGetDC)(dxw.GethWnd()); // potential DC leakage
 		bSwitchedToMainWin = TRUE;
 		OutTraceDW("GDI.CreateCompatibleDC: duplicating win HDC hWnd=%x\n", dxw.GethWnd()); 
@@ -1810,7 +1810,7 @@ int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 				OrigXDest=XDest;
 				OrigYDest=YDest;
 				dxw.MapClient(&XDest, &YDest, (int *)&dwWidth, (int *)&dwHeight);
-				OutTraceDW("SetDIBitsToDevice: fixed dest=(%d,%d)-(%dx%d)\n", XDest, YDest, dwWidth, dwHeight);
+				OutTraceDW("SetDIBits: fixed dest=(%d,%d)-(%dx%d)\n", XDest, YDest, dwWidth, dwHeight);
 				if(!(hTempDc=CreateCompatibleDC(hdc)))
 					OutTraceE("CreateCompatibleDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 				// tricky part: CreateCompatibleBitmap is needed to set the dc size, but it has to be performed
@@ -1821,7 +1821,7 @@ int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 				if(!SelectObject(hTempDc, hbmPic))
 					OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 				if(!(*pSetDIBits)(hTempDc, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse))
-					OutTraceE("SetDIBitsToDevice: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+					OutTraceE("SetDIBits: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 				// v2.02.94: set HALFTONE stretching. Fixes "Celtic Kings Rage of War"
 				SetStretchBltMode(hdc,HALFTONE);
 				if(!(ret=(*pGDIStretchBlt)(hdc, XDest, YDest, dwWidth, dwHeight, hTempDc, 0, 0, OrigWidth, OrigHeight, SRCCOPY)))
@@ -1839,10 +1839,10 @@ int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 					int X, Y;
 					X=XDest+dxw.VirtualOffsetX;
 					Y=YDest+dxw.VirtualOffsetY;
-					OutTraceDW("SetDIBitsToDevice: virtual pos=(%d,%d)+(%d+%d)=(%d,%d)\n",
+					OutTraceDW("SetDIBits: virtual pos=(%d,%d)+(%d+%d)=(%d,%d)\n",
 						XDest, YDest, dxw.VirtualOffsetX, dxw.VirtualOffsetY, X, Y);
 					ret=(*pSetDIBits)(sdc.GetHdc(), hbmp, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
-					if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+					if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBits: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 					return ret;
 				}
 #endif

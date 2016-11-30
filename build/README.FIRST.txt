@@ -14,6 +14,11 @@ You can try these two simple steps:
 1) Assign to DxWnd.exe administrator privileges (right-click on DxWnd.exe, Properties->Compatibility->check "run this program as administrator" or whatever is your locale translated interface). I always try to set this flag in the DxWnd distribution, but a simple file copy can clear the privilege.
 
 2) Clear compatibility settings on the target program (again, "Properties"->"Compatibility"->uncheck all compatibility flags). Maybe you'd better use the dedicated DxWnd command ("Tools"->"Clear compatibility flags", apparently this one goes a little deeper and clears some possibly hidden flags). If you clear compatibility flags it is likely that the game will no longer run in fullscreen without DxWnd, so maybe you can perform the operation on a copy of the executable file.
+==============================================================================================
+Window size & position: 
+
+Old DxWnd releases had a different setting for locking the window size and position.
+If the game jumps in some unexpected position of the screen or changes its window size, head to the Video / Window size & position panel and try some option different from "Free".
 
 ==============================================================================================
 Flip emulation: 
