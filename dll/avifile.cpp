@@ -20,23 +20,23 @@ LONG WINAPI extAVIFileRelease(PAVIFILE);
 LONG WINAPI extAVIStreamRelease(PAVISTREAM);
 PGETFRAME WINAPI extAVIStreamGetFrameOpen(PAVISTREAM, LPBITMAPINFOHEADER);
 
-static HookEntry_Type Hooks[]={
-	//{HOOK_IAT_CANDIDATE, "AVIFileClose", NULL, (FARPROC *)&pAVIFileClose, (FARPROC)extAVIFileClose},
-	//{HOOK_IAT_CANDIDATE, "AVIFileRelease", NULL, (FARPROC *)&pAVIFileRelease, (FARPROC)extAVIFileRelease},
-	//{HOOK_IAT_CANDIDATE, "AVIStreamRelease", NULL, (FARPROC *)&pAVIStreamRelease, (FARPROC)extAVIStreamRelease},
-	{HOOK_IAT_CANDIDATE, "AVIStreamGetFrameOpen", NULL, (FARPROC *)&pAVIStreamGetFrameOpen, (FARPROC)extAVIStreamGetFrameOpen},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	//{HOOK_IAT_CANDIDATE, 0, "AVIFileClose", NULL, (FARPROC *)&pAVIFileClose, (FARPROC)extAVIFileClose},
+	//{HOOK_IAT_CANDIDATE, 0, "AVIFileRelease", NULL, (FARPROC *)&pAVIFileRelease, (FARPROC)extAVIFileRelease},
+	//{HOOK_IAT_CANDIDATE, 0, "AVIStreamRelease", NULL, (FARPROC *)&pAVIStreamRelease, (FARPROC)extAVIStreamRelease},
+	{HOOK_IAT_CANDIDATE, 0, "AVIStreamGetFrameOpen", NULL, (FARPROC *)&pAVIStreamGetFrameOpen, (FARPROC)extAVIStreamGetFrameOpen},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 void HookAVIFil32(HMODULE module)
 {
-	HookLibrary(module, Hooks, "AVIFIL32.dll");
+	HookLibraryEx(module, Hooks, "AVIFIL32.dll");
 }
 
 FARPROC Remap_AVIFil32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
 

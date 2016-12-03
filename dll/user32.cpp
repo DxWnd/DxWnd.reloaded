@@ -104,166 +104,166 @@ SetDIBColorTable_Type pSetDIBColorTable = NULL;
 UINT WINAPI extSetDIBColorTable(HDC, UINT, UINT, const RGBQUAD *);
 #endif
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
-	//{HOOK_IAT_CANDIDATE, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
-	//{HOOK_IAT_CANDIDATE, "SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
-	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettingsA, (FARPROC)extChangeDisplaySettingsA},
-	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsExA, (FARPROC *)&pChangeDisplaySettingsExA, (FARPROC)extChangeDisplaySettingsExA},
-	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsW, (FARPROC)extChangeDisplaySettingsW}, // ref. by Knights of Honor
-	{HOOK_HOT_CANDIDATE, "ChangeDisplaySettingsExW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsExW, (FARPROC)extChangeDisplaySettingsExW},
-	{HOOK_HOT_CANDIDATE, "GetMonitorInfoA", (FARPROC)GetMonitorInfoA, (FARPROC *)&pGetMonitorInfoA, (FARPROC)extGetMonitorInfoA},
-	{HOOK_HOT_CANDIDATE, "GetMonitorInfoW", (FARPROC)GetMonitorInfoW, (FARPROC *)&pGetMonitorInfoW, (FARPROC)extGetMonitorInfoW},
-	{HOOK_HOT_CANDIDATE, "ShowCursor", (FARPROC)ShowCursor, (FARPROC *)&pShowCursor, (FARPROC)extShowCursor},
-	{HOOK_IAT_CANDIDATE, "CreateDialogIndirectParamA", (FARPROC)CreateDialogIndirectParamA, (FARPROC *)&pCreateDialogIndirectParam, (FARPROC)extCreateDialogIndirectParam},
-	{HOOK_IAT_CANDIDATE, "CreateDialogParamA", (FARPROC)CreateDialogParamA, (FARPROC *)&pCreateDialogParam, (FARPROC)extCreateDialogParam},
-	{HOOK_IAT_CANDIDATE, "MoveWindow", (FARPROC)MoveWindow, (FARPROC *)&pMoveWindow, (FARPROC)extMoveWindow},
-	{HOOK_HOT_CANDIDATE, "EnumDisplaySettingsA", (FARPROC)EnumDisplaySettingsA, (FARPROC *)&pEnumDisplaySettings, (FARPROC)extEnumDisplaySettings},
-	{HOOK_IAT_CANDIDATE, "GetClipCursor", (FARPROC)GetClipCursor, (FARPROC*)&pGetClipCursor, (FARPROC)extGetClipCursor},
-	{HOOK_IAT_CANDIDATE, "ClipCursor", (FARPROC)ClipCursor, (FARPROC *)&pClipCursor, (FARPROC)extClipCursor},
-	{HOOK_IAT_CANDIDATE, "DefWindowProcA", (FARPROC)DefWindowProcA, (FARPROC *)&pDefWindowProcA, (FARPROC)extDefWindowProcA},
-	{HOOK_IAT_CANDIDATE, "DefWindowProcW", (FARPROC)DefWindowProcW, (FARPROC *)&pDefWindowProcW, (FARPROC)extDefWindowProcW},
-	{HOOK_HOT_CANDIDATE, "CreateWindowExA", (FARPROC)CreateWindowExA, (FARPROC *)&pCreateWindowExA, (FARPROC)extCreateWindowExA},
-	{HOOK_HOT_CANDIDATE, "CreateWindowExW", (FARPROC)CreateWindowExW, (FARPROC *)&pCreateWindowExW, (FARPROC)extCreateWindowExW},
-	{HOOK_IAT_CANDIDATE, "RegisterClassExA", (FARPROC)RegisterClassExA, (FARPROC *)&pRegisterClassExA, (FARPROC)extRegisterClassExA},
-	{HOOK_IAT_CANDIDATE, "RegisterClassA", (FARPROC)RegisterClassA, (FARPROC *)&pRegisterClassA, (FARPROC)extRegisterClassA},
-	{HOOK_IAT_CANDIDATE, "RegisterClassExW", (FARPROC)RegisterClassExW, (FARPROC *)&pRegisterClassExW, (FARPROC)extRegisterClassExW},
-	{HOOK_IAT_CANDIDATE, "RegisterClassW", (FARPROC)RegisterClassW, (FARPROC *)&pRegisterClassW, (FARPROC)extRegisterClassW},
-	{HOOK_HOT_CANDIDATE, "GetSystemMetrics", (FARPROC)GetSystemMetrics, (FARPROC *)&pGetSystemMetrics, (FARPROC)extGetSystemMetrics},
-	{HOOK_HOT_CANDIDATE, "GetDesktopWindow", (FARPROC)GetDesktopWindow, (FARPROC *)&pGetDesktopWindow, (FARPROC)extGetDesktopWindow},
-	{HOOK_IAT_CANDIDATE, "CloseWindow", (FARPROC)NULL, (FARPROC *)&pCloseWindow, (FARPROC)extCloseWindow},
-	{HOOK_IAT_CANDIDATE, "DestroyWindow", (FARPROC)NULL, (FARPROC *)&pDestroyWindow, (FARPROC)extDestroyWindow},
-	{HOOK_IAT_CANDIDATE, "SetSysColors", (FARPROC)NULL, (FARPROC *)&pSetSysColors, (FARPROC)extSetSysColors},
-	{HOOK_IAT_CANDIDATE, "SetCapture", (FARPROC)NULL, (FARPROC *)&pSetCapture, (FARPROC)extSetCapture},
-	{HOOK_HOT_CANDIDATE, "SetWindowLongA", (FARPROC)SetWindowLongA, (FARPROC *)&pSetWindowLongA, (FARPROC)extSetWindowLongA},
-	{HOOK_HOT_CANDIDATE, "GetWindowLongA", (FARPROC)GetWindowLongA, (FARPROC *)&pGetWindowLongA, (FARPROC)extGetWindowLongA}, 
-	{HOOK_HOT_CANDIDATE, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
-	{HOOK_HOT_CANDIDATE, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
-	{HOOK_IAT_CANDIDATE, "IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
+	//{HOOK_IAT_CANDIDATE, 0, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
+	//{HOOK_IAT_CANDIDATE, 0, "SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
+	{HOOK_HOT_CANDIDATE, 0, "ChangeDisplaySettingsA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettingsA, (FARPROC)extChangeDisplaySettingsA},
+	{HOOK_HOT_CANDIDATE, 0, "ChangeDisplaySettingsExA", (FARPROC)ChangeDisplaySettingsExA, (FARPROC *)&pChangeDisplaySettingsExA, (FARPROC)extChangeDisplaySettingsExA},
+	{HOOK_HOT_CANDIDATE, 0, "ChangeDisplaySettingsW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsW, (FARPROC)extChangeDisplaySettingsW}, // ref. by Knights of Honor
+	{HOOK_HOT_CANDIDATE, 0, "ChangeDisplaySettingsExW", (FARPROC)NULL, (FARPROC *)&pChangeDisplaySettingsExW, (FARPROC)extChangeDisplaySettingsExW},
+	{HOOK_HOT_CANDIDATE, 0, "GetMonitorInfoA", (FARPROC)GetMonitorInfoA, (FARPROC *)&pGetMonitorInfoA, (FARPROC)extGetMonitorInfoA},
+	{HOOK_HOT_CANDIDATE, 0, "GetMonitorInfoW", (FARPROC)GetMonitorInfoW, (FARPROC *)&pGetMonitorInfoW, (FARPROC)extGetMonitorInfoW},
+	{HOOK_HOT_CANDIDATE, 0, "ShowCursor", (FARPROC)ShowCursor, (FARPROC *)&pShowCursor, (FARPROC)extShowCursor},
+	{HOOK_IAT_CANDIDATE, 0, "CreateDialogIndirectParamA", (FARPROC)CreateDialogIndirectParamA, (FARPROC *)&pCreateDialogIndirectParam, (FARPROC)extCreateDialogIndirectParam},
+	{HOOK_IAT_CANDIDATE, 0, "CreateDialogParamA", (FARPROC)CreateDialogParamA, (FARPROC *)&pCreateDialogParam, (FARPROC)extCreateDialogParam},
+	{HOOK_IAT_CANDIDATE, 0, "MoveWindow", (FARPROC)MoveWindow, (FARPROC *)&pMoveWindow, (FARPROC)extMoveWindow},
+	{HOOK_HOT_CANDIDATE, 0, "EnumDisplaySettingsA", (FARPROC)EnumDisplaySettingsA, (FARPROC *)&pEnumDisplaySettings, (FARPROC)extEnumDisplaySettings},
+	{HOOK_IAT_CANDIDATE, 0, "GetClipCursor", (FARPROC)GetClipCursor, (FARPROC*)&pGetClipCursor, (FARPROC)extGetClipCursor},
+	{HOOK_IAT_CANDIDATE, 0, "ClipCursor", (FARPROC)ClipCursor, (FARPROC *)&pClipCursor, (FARPROC)extClipCursor},
+	{HOOK_IAT_CANDIDATE, 0, "DefWindowProcA", (FARPROC)DefWindowProcA, (FARPROC *)&pDefWindowProcA, (FARPROC)extDefWindowProcA},
+	{HOOK_IAT_CANDIDATE, 0, "DefWindowProcW", (FARPROC)DefWindowProcW, (FARPROC *)&pDefWindowProcW, (FARPROC)extDefWindowProcW},
+	{HOOK_HOT_CANDIDATE, 0, "CreateWindowExA", (FARPROC)CreateWindowExA, (FARPROC *)&pCreateWindowExA, (FARPROC)extCreateWindowExA},
+	{HOOK_HOT_CANDIDATE, 0, "CreateWindowExW", (FARPROC)CreateWindowExW, (FARPROC *)&pCreateWindowExW, (FARPROC)extCreateWindowExW},
+	{HOOK_IAT_CANDIDATE, 0, "RegisterClassExA", (FARPROC)RegisterClassExA, (FARPROC *)&pRegisterClassExA, (FARPROC)extRegisterClassExA},
+	{HOOK_IAT_CANDIDATE, 0, "RegisterClassA", (FARPROC)RegisterClassA, (FARPROC *)&pRegisterClassA, (FARPROC)extRegisterClassA},
+	{HOOK_IAT_CANDIDATE, 0, "RegisterClassExW", (FARPROC)RegisterClassExW, (FARPROC *)&pRegisterClassExW, (FARPROC)extRegisterClassExW},
+	{HOOK_IAT_CANDIDATE, 0, "RegisterClassW", (FARPROC)RegisterClassW, (FARPROC *)&pRegisterClassW, (FARPROC)extRegisterClassW},
+	{HOOK_HOT_CANDIDATE, 0, "GetSystemMetrics", (FARPROC)GetSystemMetrics, (FARPROC *)&pGetSystemMetrics, (FARPROC)extGetSystemMetrics},
+	{HOOK_HOT_CANDIDATE, 0, "GetDesktopWindow", (FARPROC)GetDesktopWindow, (FARPROC *)&pGetDesktopWindow, (FARPROC)extGetDesktopWindow},
+	{HOOK_IAT_CANDIDATE, 0, "CloseWindow", (FARPROC)NULL, (FARPROC *)&pCloseWindow, (FARPROC)extCloseWindow},
+	{HOOK_IAT_CANDIDATE, 0, "DestroyWindow", (FARPROC)NULL, (FARPROC *)&pDestroyWindow, (FARPROC)extDestroyWindow},
+	{HOOK_IAT_CANDIDATE, 0, "SetSysColors", (FARPROC)NULL, (FARPROC *)&pSetSysColors, (FARPROC)extSetSysColors},
+	{HOOK_IAT_CANDIDATE, 0, "SetCapture", (FARPROC)NULL, (FARPROC *)&pSetCapture, (FARPROC)extSetCapture},
+	{HOOK_HOT_CANDIDATE, 0, "SetWindowLongA", (FARPROC)SetWindowLongA, (FARPROC *)&pSetWindowLongA, (FARPROC)extSetWindowLongA},
+	{HOOK_HOT_CANDIDATE, 0, "GetWindowLongA", (FARPROC)GetWindowLongA, (FARPROC *)&pGetWindowLongA, (FARPROC)extGetWindowLongA}, 
+	{HOOK_HOT_CANDIDATE, 0, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
+	{HOOK_HOT_CANDIDATE, 0, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
+	{HOOK_IAT_CANDIDATE, 0, "IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
 	// hot by MinHook since v2.03.07
-	{HOOK_HOT_CANDIDATE, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
-	{HOOK_HOT_CANDIDATE, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
-	//{HOOK_HOT_CANDIDATE, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
-	//{HOOK_HOT_CANDIDATE, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
-	//{HOOK_IAT_CANDIDATE, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
-	//{HOOK_HOT_CANDIDATE, "EnumDisplayMonitors", (FARPROC)EnumDisplayMonitors, (FARPROC *)&pEnumDisplayMonitors, (FARPROC)extEnumDisplayMonitors},
+	{HOOK_HOT_CANDIDATE, 0, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
+	{HOOK_HOT_CANDIDATE, 0, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
+	//{HOOK_HOT_CANDIDATE, 0, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
+	//{HOOK_HOT_CANDIDATE, 0, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+	//{HOOK_IAT_CANDIDATE, 0, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
+	//{HOOK_HOT_CANDIDATE, 0, "EnumDisplayMonitors", (FARPROC)EnumDisplayMonitors, (FARPROC *)&pEnumDisplayMonitors, (FARPROC)extEnumDisplayMonitors},
 #ifdef TRACEPALETTE
-	{HOOK_HOT_CANDIDATE, "GetDIBColorTable", (FARPROC)GetDIBColorTable, (FARPROC *)&pGetDIBColorTable, (FARPROC)extGetDIBColorTable},
-	{HOOK_HOT_CANDIDATE, "SetDIBColorTable", (FARPROC)SetDIBColorTable, (FARPROC *)&pSetDIBColorTable, (FARPROC)extSetDIBColorTable},
+	{HOOK_HOT_CANDIDATE, 0, "GetDIBColorTable", (FARPROC)GetDIBColorTable, (FARPROC *)&pGetDIBColorTable, (FARPROC)extGetDIBColorTable},
+	{HOOK_HOT_CANDIDATE, 0, "SetDIBColorTable", (FARPROC)SetDIBColorTable, (FARPROC *)&pSetDIBColorTable, (FARPROC)extSetDIBColorTable},
 #endif
 	 
-	{HOOK_HOT_CANDIDATE, "BringWindowToTop", (FARPROC)BringWindowToTop, (FARPROC *)&pBringWindowToTop, (FARPROC)extBringWindowToTop},
-	{HOOK_HOT_CANDIDATE, "SetForegroundWindow", (FARPROC)SetForegroundWindow, (FARPROC *)&pSetForegroundWindow, (FARPROC)extSetForegroundWindow},
-	{HOOK_HOT_CANDIDATE, "ChildWindowFromPoint", (FARPROC)ChildWindowFromPoint, (FARPROC *)&pChildWindowFromPoint, (FARPROC)extChildWindowFromPoint},
-	{HOOK_HOT_CANDIDATE, "ChildWindowFromPointEx", (FARPROC)ChildWindowFromPointEx, (FARPROC *)&pChildWindowFromPointEx, (FARPROC)extChildWindowFromPointEx},
-	{HOOK_HOT_CANDIDATE, "WindowFromPoint", (FARPROC)WindowFromPoint, (FARPROC *)&pWindowFromPoint, (FARPROC)extWindowFromPoint},
-	{HOOK_HOT_REQUIRED , "SetWindowsHookExA", (FARPROC)SetWindowsHookExA, (FARPROC *)&pSetWindowsHookEx, (FARPROC)extSetWindowsHookEx},
+	{HOOK_HOT_CANDIDATE, 0, "BringWindowToTop", (FARPROC)BringWindowToTop, (FARPROC *)&pBringWindowToTop, (FARPROC)extBringWindowToTop},
+	{HOOK_HOT_CANDIDATE, 0, "SetForegroundWindow", (FARPROC)SetForegroundWindow, (FARPROC *)&pSetForegroundWindow, (FARPROC)extSetForegroundWindow},
+	{HOOK_HOT_CANDIDATE, 0, "ChildWindowFromPoint", (FARPROC)ChildWindowFromPoint, (FARPROC *)&pChildWindowFromPoint, (FARPROC)extChildWindowFromPoint},
+	{HOOK_HOT_CANDIDATE, 0, "ChildWindowFromPointEx", (FARPROC)ChildWindowFromPointEx, (FARPROC *)&pChildWindowFromPointEx, (FARPROC)extChildWindowFromPointEx},
+	{HOOK_HOT_CANDIDATE, 0, "WindowFromPoint", (FARPROC)WindowFromPoint, (FARPROC *)&pWindowFromPoint, (FARPROC)extWindowFromPoint},
+	{HOOK_HOT_REQUIRED,  0 ,"SetWindowsHookExA", (FARPROC)SetWindowsHookExA, (FARPROC *)&pSetWindowsHookEx, (FARPROC)extSetWindowsHookEx},
 
-	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutA", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutA, (FARPROC)extMessageBoxTimeoutA},
-	//{HOOK_HOT_CANDIDATE, "MessageBoxTimeoutW", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutW, (FARPROC)extMessageBoxTimeoutW},
+	//{HOOK_HOT_CANDIDATE, 0, "MessageBoxTimeoutA", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutA, (FARPROC)extMessageBoxTimeoutA},
+	//{HOOK_HOT_CANDIDATE, 0, "MessageBoxTimeoutW", (FARPROC)NULL, (FARPROC *)&pMessageBoxTimeoutW, (FARPROC)extMessageBoxTimeoutW},
 
-	{HOOK_IAT_CANDIDATE, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
-	{HOOK_IAT_CANDIDATE, "GetDCEx", (FARPROC)GetDCEx, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
-	{HOOK_IAT_CANDIDATE, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC}, 
-	{HOOK_IAT_CANDIDATE, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
+	{HOOK_IAT_CANDIDATE, 0, "GetDC", (FARPROC)GetDC, (FARPROC *)&pGDIGetDC, (FARPROC)extGDIGetDC},
+	{HOOK_IAT_CANDIDATE, 0, "GetDCEx", (FARPROC)GetDCEx, (FARPROC *)&pGDIGetDCEx, (FARPROC)extGDIGetDCEx},
+	{HOOK_IAT_CANDIDATE, 0, "GetWindowDC", (FARPROC)GetWindowDC, (FARPROC *)&pGDIGetWindowDC, (FARPROC)extGDIGetWindowDC}, 
+	{HOOK_IAT_CANDIDATE, 0, "ReleaseDC", (FARPROC)ReleaseDC, (FARPROC *)&pGDIReleaseDC, (FARPROC)extGDIReleaseDC},
 
-	{HOOK_HOT_CANDIDATE, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
-	{HOOK_HOT_CANDIDATE, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
+	{HOOK_HOT_CANDIDATE, 0, "BeginPaint", (FARPROC)BeginPaint, (FARPROC *)&pBeginPaint, (FARPROC)extBeginPaint},
+	{HOOK_HOT_CANDIDATE, 0, "EndPaint", (FARPROC)EndPaint, (FARPROC *)&pEndPaint, (FARPROC)extEndPaint},
 
-	{HOOK_IAT_CANDIDATE, "DialogBoxParamA", (FARPROC)NULL, (FARPROC *)&pDialogBoxParamA, (FARPROC)extDialogBoxParamA},
+	{HOOK_IAT_CANDIDATE, 0, "DialogBoxParamA", (FARPROC)NULL, (FARPROC *)&pDialogBoxParamA, (FARPROC)extDialogBoxParamA},
 
-	//{HOOK_IAT_CANDIDATE, "IsZoomed", (FARPROC)NULL, (FARPROC *)&pIsZoomed, (FARPROC)extIsZoomed},
-	//{HOOK_HOT_CANDIDATE, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
-	{HOOK_HOT_CANDIDATE, "ScrollDC", (FARPROC)NULL, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
+	//{HOOK_IAT_CANDIDATE, 0, "IsZoomed", (FARPROC)NULL, (FARPROC *)&pIsZoomed, (FARPROC)extIsZoomed},
+	//{HOOK_HOT_CANDIDATE, 0, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
+	{HOOK_HOT_CANDIDATE, 0, "ScrollDC", (FARPROC)NULL, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
 
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type RemapHooks[]={
-	{HOOK_HOT_CANDIDATE, "ScreenToClient", (FARPROC)ScreenToClient, (FARPROC *)&pScreenToClient, (FARPROC)extScreenToClient},
-	{HOOK_HOT_CANDIDATE, "ClientToScreen", (FARPROC)ClientToScreen, (FARPROC *)&pClientToScreen, (FARPROC)extClientToScreen},
-	{HOOK_HOT_CANDIDATE, "GetClientRect", (FARPROC)GetClientRect, (FARPROC *)&pGetClientRect, (FARPROC)extGetClientRect},
-	{HOOK_HOT_CANDIDATE, "GetWindowRect", (FARPROC)GetWindowRect, (FARPROC *)&pGetWindowRect, (FARPROC)extGetWindowRect},
-	{HOOK_HOT_CANDIDATE, "MapWindowPoints", (FARPROC)MapWindowPoints, (FARPROC *)&pMapWindowPoints, (FARPROC)extMapWindowPoints},
-	{HOOK_HOT_CANDIDATE, "GetUpdateRgn", (FARPROC)GetUpdateRgn, (FARPROC *)&pGetUpdateRgn, (FARPROC)extGetUpdateRgn},
-	//{HOOK_IAT_CANDIDATE, "GetUpdateRect", (FARPROC)GetUpdateRect, (FARPROC *)&pGetUpdateRect, (FARPROC)extGetUpdateRect},
-	//{HOOK_IAT_CANDIDATE, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type RemapHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "ScreenToClient", (FARPROC)ScreenToClient, (FARPROC *)&pScreenToClient, (FARPROC)extScreenToClient},
+	{HOOK_HOT_CANDIDATE, 0, "ClientToScreen", (FARPROC)ClientToScreen, (FARPROC *)&pClientToScreen, (FARPROC)extClientToScreen},
+	{HOOK_HOT_CANDIDATE, 0, "GetClientRect", (FARPROC)GetClientRect, (FARPROC *)&pGetClientRect, (FARPROC)extGetClientRect},
+	{HOOK_HOT_CANDIDATE, 0, "GetWindowRect", (FARPROC)GetWindowRect, (FARPROC *)&pGetWindowRect, (FARPROC)extGetWindowRect},
+	{HOOK_HOT_CANDIDATE, 0, "MapWindowPoints", (FARPROC)MapWindowPoints, (FARPROC *)&pMapWindowPoints, (FARPROC)extMapWindowPoints},
+	{HOOK_HOT_CANDIDATE, 0, "GetUpdateRgn", (FARPROC)GetUpdateRgn, (FARPROC *)&pGetUpdateRgn, (FARPROC)extGetUpdateRgn},
+	//{HOOK_IAT_CANDIDATE, 0, "GetUpdateRect", (FARPROC)GetUpdateRect, (FARPROC *)&pGetUpdateRect, (FARPROC)extGetUpdateRect},
+	//{HOOK_IAT_CANDIDATE, 0, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type SyscallHooks[]={
-	{HOOK_IAT_CANDIDATE, "FrameRect", (FARPROC)FrameRect, (FARPROC *)&pFrameRect, (FARPROC)extFrameRect}, 
-	{HOOK_IAT_CANDIDATE, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
-	{HOOK_IAT_CANDIDATE, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
-	{HOOK_HOT_CANDIDATE, "InvalidateRgn", (FARPROC)InvalidateRgn, (FARPROC *)&pInvalidateRgn, (FARPROC)extInvalidateRgn},
-	{HOOK_IAT_CANDIDATE, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
-	{HOOK_IAT_CANDIDATE, "TabbedTextOutW", (FARPROC)TabbedTextOutW, (FARPROC *)&pTabbedTextOutW, (FARPROC)extTabbedTextOutW},
-	{HOOK_IAT_CANDIDATE, "ScrollDC", (FARPROC)ScrollDC, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
-	{HOOK_IAT_CANDIDATE, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
-	{HOOK_IAT_CANDIDATE, "DrawTextA", (FARPROC)DrawTextA, (FARPROC *)&pDrawTextA, (FARPROC)extDrawTextA},
-	{HOOK_IAT_CANDIDATE, "DrawTextExA", (FARPROC)DrawTextExA, (FARPROC *)&pDrawTextExA, (FARPROC)extDrawTextExA},
-	{HOOK_IAT_CANDIDATE, "DrawTextW", (FARPROC)DrawTextW, (FARPROC *)&pDrawTextW, (FARPROC)extDrawTextW},
-	{HOOK_IAT_CANDIDATE, "DrawTextExW", (FARPROC)DrawTextExW, (FARPROC *)&pDrawTextExW, (FARPROC)extDrawTextExW},
-	{HOOK_HOT_CANDIDATE, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
-	{HOOK_HOT_CANDIDATE, "InvertRect", (FARPROC)NULL, (FARPROC *)&pInvertRect, (FARPROC)extInvertRect},
-	{HOOK_HOT_CANDIDATE, "DrawIcon", (FARPROC)NULL, (FARPROC *)&pDrawIcon, (FARPROC)extDrawIcon},
-	{HOOK_HOT_CANDIDATE, "DrawIconEx", (FARPROC)NULL, (FARPROC *)&pDrawIconEx, (FARPROC)extDrawIconEx},
-	{HOOK_HOT_CANDIDATE, "DrawCaption", (FARPROC)NULL, (FARPROC *)&pDrawCaption, (FARPROC)extDrawCaption},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawEdge", (FARPROC)NULL, (FARPROC *)&pDrawEdge, (FARPROC)extDrawEdge},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawFocusRect", (FARPROC)NULL, (FARPROC *)&pDrawFocusRect, (FARPROC)extDrawFocusRect},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawFrameControl", (FARPROC)NULL, (FARPROC *)&pDrawFrameControl, (FARPROC)extDrawFrameControl},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawStateA", (FARPROC)NULL, (FARPROC *)&pDrawStateA, (FARPROC)extDrawStateA},
-	//TODO {HOOK_HOT_CANDIDATE, "DrawStateW", (FARPROC)NULL, (FARPROC *)&pDrawStateW, (FARPROC)extDrawStateW},
-	//TODO {HOOK_HOT_CANDIDATE, "GrayStringA", (FARPROC)NULL, (FARPROC *)&pGrayStringA, (FARPROC)extGrayStringA},
-	//TODO {HOOK_HOT_CANDIDATE, "GrayStringW", (FARPROC)NULL, (FARPROC *)&pGrayStringW, (FARPROC)extGrayStringW},
-	//TODO {HOOK_HOT_CANDIDATE, "PaintDesktop", (FARPROC)NULL, (FARPROC *)&pPaintDesktop, (FARPROC)extPaintDesktop},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type SyscallHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "FrameRect", (FARPROC)FrameRect, (FARPROC *)&pFrameRect, (FARPROC)extFrameRect}, 
+	{HOOK_IAT_CANDIDATE, 0, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
+	{HOOK_IAT_CANDIDATE, 0, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
+	{HOOK_HOT_CANDIDATE, 0, "InvalidateRgn", (FARPROC)InvalidateRgn, (FARPROC *)&pInvalidateRgn, (FARPROC)extInvalidateRgn},
+	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
+	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutW", (FARPROC)TabbedTextOutW, (FARPROC *)&pTabbedTextOutW, (FARPROC)extTabbedTextOutW},
+	{HOOK_IAT_CANDIDATE, 0, "ScrollDC", (FARPROC)ScrollDC, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
+	{HOOK_IAT_CANDIDATE, 0, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
+	{HOOK_IAT_CANDIDATE, 0, "DrawTextA", (FARPROC)DrawTextA, (FARPROC *)&pDrawTextA, (FARPROC)extDrawTextA},
+	{HOOK_IAT_CANDIDATE, 0, "DrawTextExA", (FARPROC)DrawTextExA, (FARPROC *)&pDrawTextExA, (FARPROC)extDrawTextExA},
+	{HOOK_IAT_CANDIDATE, 0, "DrawTextW", (FARPROC)DrawTextW, (FARPROC *)&pDrawTextW, (FARPROC)extDrawTextW},
+	{HOOK_IAT_CANDIDATE, 0, "DrawTextExW", (FARPROC)DrawTextExW, (FARPROC *)&pDrawTextExW, (FARPROC)extDrawTextExW},
+	{HOOK_HOT_CANDIDATE, 0, "FillRect", (FARPROC)NULL, (FARPROC *)&pFillRect, (FARPROC)extFillRect},
+	{HOOK_HOT_CANDIDATE, 0, "InvertRect", (FARPROC)NULL, (FARPROC *)&pInvertRect, (FARPROC)extInvertRect},
+	{HOOK_HOT_CANDIDATE, 0, "DrawIcon", (FARPROC)NULL, (FARPROC *)&pDrawIcon, (FARPROC)extDrawIcon},
+	{HOOK_HOT_CANDIDATE, 0, "DrawIconEx", (FARPROC)NULL, (FARPROC *)&pDrawIconEx, (FARPROC)extDrawIconEx},
+	{HOOK_HOT_CANDIDATE, 0, "DrawCaption", (FARPROC)NULL, (FARPROC *)&pDrawCaption, (FARPROC)extDrawCaption},
+	//TODO {HOOK_HOT_CANDIDATE, 0, "DrawEdge", (FARPROC)NULL, (FARPROC *)&pDrawEdge, (FARPROC)extDrawEdge},
+	//TODO {HOOK_HOT_CANDIDATE, 0, "DrawFocusRect", (FARPROC)NULL, (FARPROC *)&pDrawFocusRect, (FARPROC)extDrawFocusRect},
+	//TODO {HOOK_HOT_CANDIDATE, 0, "DrawFrameControl", (FARPROC)NULL, (FARPROC *)&pDrawFrameControl, (FARPROC)extDrawFrameControl},
+	//TODO {HOOK_HOT_CANDIDATE, 0, "DrawStateA", (FARPROC)NULL, (FARPROC *)&pDrawStateA, (FARPROC)extDrawStateA},
+	//TODO {HOOK_HOT_CANDIDATE, 0, "DrawStateW", (FARPROC)NULL, (FARPROC *)&pDrawStateW, (FARPROC)extDrawStateW},
+	//TODO {HOOK_HOT_CANDIDATE, 0, "GrayStringA", (FARPROC)NULL, (FARPROC *)&pGrayStringA, (FARPROC)extGrayStringA},
+	//TODO {HOOK_HOT_CANDIDATE, 0, "GrayStringW", (FARPROC)NULL, (FARPROC *)&pGrayStringW, (FARPROC)extGrayStringW},
+	//TODO {HOOK_HOT_CANDIDATE, 0, "PaintDesktop", (FARPROC)NULL, (FARPROC *)&pPaintDesktop, (FARPROC)extPaintDesktop},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type ScaledHooks[]={
-	{HOOK_IAT_CANDIDATE, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
-	{HOOK_IAT_CANDIDATE, "ScrollWindow", (FARPROC)ScrollWindow, (FARPROC *)&pScrollWindow, (FARPROC)extScrollWindow},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type ScaledHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
+	{HOOK_IAT_CANDIDATE, 0, "ScrollWindow", (FARPROC)ScrollWindow, (FARPROC *)&pScrollWindow, (FARPROC)extScrollWindow},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type PeekAllHooks[]={
-	{HOOK_IAT_CANDIDATE, "PeekMessageA", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
-	{HOOK_IAT_CANDIDATE, "PeekMessageW", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type PeekAllHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "PeekMessageA", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
+	{HOOK_IAT_CANDIDATE, 0, "PeekMessageW", (FARPROC)NULL, (FARPROC *)&pPeekMessage, (FARPROC)extPeekMessage},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type MouseHooks[]={
-	{HOOK_HOT_CANDIDATE, "GetCursorPos", (FARPROC)GetCursorPos, (FARPROC *)&pGetCursorPos, (FARPROC)extGetCursorPos},
-	{HOOK_HOT_CANDIDATE, "SetCursorPos", (FARPROC)SetCursorPos, (FARPROC *)&pSetCursorPos, (FARPROC)extSetCursorPos},
-	{HOOK_IAT_CANDIDATE, "GetCursorInfo", (FARPROC)GetCursorInfo, (FARPROC *)&pGetCursorInfo, (FARPROC)extGetCursorInfo},
-	{HOOK_IAT_CANDIDATE, "SetCursor", (FARPROC)SetCursor, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor},
-	{HOOK_IAT_CANDIDATE, "SendMessageA", (FARPROC)SendMessageA, (FARPROC *)&pSendMessageA, (FARPROC)extSendMessageA}, 
-	{HOOK_IAT_CANDIDATE, "SendMessageW", (FARPROC)SendMessageW, (FARPROC *)&pSendMessageW, (FARPROC)extSendMessageW}, 
-	//{HOOK_IAT_CANDIDATE, "SetPhysicalCursorPos", NULL, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor}, // ???
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type MouseHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "GetCursorPos", (FARPROC)GetCursorPos, (FARPROC *)&pGetCursorPos, (FARPROC)extGetCursorPos},
+	{HOOK_HOT_CANDIDATE, 0, "SetCursorPos", (FARPROC)SetCursorPos, (FARPROC *)&pSetCursorPos, (FARPROC)extSetCursorPos},
+	{HOOK_IAT_CANDIDATE, 0, "GetCursorInfo", (FARPROC)GetCursorInfo, (FARPROC *)&pGetCursorInfo, (FARPROC)extGetCursorInfo},
+	{HOOK_IAT_CANDIDATE, 0, "SetCursor", (FARPROC)SetCursor, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor},
+	{HOOK_IAT_CANDIDATE, 0, "SendMessageA", (FARPROC)SendMessageA, (FARPROC *)&pSendMessageA, (FARPROC)extSendMessageA}, 
+	{HOOK_IAT_CANDIDATE, 0, "SendMessageW", (FARPROC)SendMessageW, (FARPROC *)&pSendMessageW, (FARPROC)extSendMessageW}, 
+	//{HOOK_IAT_CANDIDATE, 0, "SetPhysicalCursorPos", NULL, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor}, // ???
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type WinHooks[]={
-	{HOOK_HOT_CANDIDATE, "ShowWindow", (FARPROC)ShowWindow, (FARPROC *)&pShowWindow, (FARPROC)extShowWindow},
-	{HOOK_HOT_CANDIDATE, "SetWindowPos", (FARPROC)SetWindowPos, (FARPROC *)&pSetWindowPos, (FARPROC)extSetWindowPos},
-	{HOOK_HOT_CANDIDATE, "DeferWindowPos", (FARPROC)DeferWindowPos, (FARPROC *)&pGDIDeferWindowPos, (FARPROC)extDeferWindowPos},
-	{HOOK_HOT_CANDIDATE, "CallWindowProcA", (FARPROC)CallWindowProcA, (FARPROC *)&pCallWindowProcA, (FARPROC)extCallWindowProcA},
-	{HOOK_HOT_CANDIDATE, "CallWindowProcW", (FARPROC)CallWindowProcW, (FARPROC *)&pCallWindowProcW, (FARPROC)extCallWindowProcW},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type WinHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "ShowWindow", (FARPROC)ShowWindow, (FARPROC *)&pShowWindow, (FARPROC)extShowWindow},
+	{HOOK_HOT_CANDIDATE, 0, "SetWindowPos", (FARPROC)SetWindowPos, (FARPROC *)&pSetWindowPos, (FARPROC)extSetWindowPos},
+	{HOOK_HOT_CANDIDATE, 0, "DeferWindowPos", (FARPROC)DeferWindowPos, (FARPROC *)&pGDIDeferWindowPos, (FARPROC)extDeferWindowPos},
+	{HOOK_HOT_CANDIDATE, 0, "CallWindowProcA", (FARPROC)CallWindowProcA, (FARPROC *)&pCallWindowProcA, (FARPROC)extCallWindowProcA},
+	{HOOK_HOT_CANDIDATE, 0, "CallWindowProcW", (FARPROC)CallWindowProcW, (FARPROC *)&pCallWindowProcW, (FARPROC)extCallWindowProcW},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type TimeHooks[]={
-	{HOOK_IAT_CANDIDATE, "SetTimer", (FARPROC)SetTimer, (FARPROC *)&pSetTimer, (FARPROC)extSetTimer},
-	{HOOK_IAT_CANDIDATE, "KillTimer", (FARPROC)KillTimer, (FARPROC *)&pKillTimer, (FARPROC)extKillTimer},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type TimeHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "SetTimer", (FARPROC)SetTimer, (FARPROC *)&pSetTimer, (FARPROC)extSetTimer},
+	{HOOK_IAT_CANDIDATE, 0, "KillTimer", (FARPROC)KillTimer, (FARPROC *)&pKillTimer, (FARPROC)extKillTimer},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type DesktopHooks[]={ // currently unused, needed for X-Files
-	{HOOK_IAT_CANDIDATE, "CreateDesktopA", (FARPROC)CreateDesktopA, (FARPROC *)&pCreateDesktop, (FARPROC)extCreateDesktop},
-	{HOOK_IAT_CANDIDATE, "SwitchDesktop", (FARPROC)SwitchDesktop, (FARPROC *)&pSwitchDesktop, (FARPROC)extSwitchDesktop},
-	{HOOK_IAT_CANDIDATE, "OpenDesktopA", (FARPROC)OpenDesktopA, (FARPROC *)&pOpenDesktop, (FARPROC)extOpenDesktop},
-	{HOOK_IAT_CANDIDATE, "CloseDesktop", (FARPROC)CloseDesktop, (FARPROC *)&pCloseDesktop, (FARPROC)extCloseDesktop},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type DesktopHooks[]={ // currently unused, needed for X-Files
+	{HOOK_IAT_CANDIDATE, 0, "CreateDesktopA", (FARPROC)CreateDesktopA, (FARPROC *)&pCreateDesktop, (FARPROC)extCreateDesktop},
+	{HOOK_IAT_CANDIDATE, 0, "SwitchDesktop", (FARPROC)SwitchDesktop, (FARPROC *)&pSwitchDesktop, (FARPROC)extSwitchDesktop},
+	{HOOK_IAT_CANDIDATE, 0, "OpenDesktopA", (FARPROC)OpenDesktopA, (FARPROC *)&pOpenDesktop, (FARPROC)extOpenDesktop},
+	{HOOK_IAT_CANDIDATE, 0, "CloseDesktop", (FARPROC)CloseDesktop, (FARPROC *)&pCloseDesktop, (FARPROC)extCloseDesktop},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 static char *libname = "user32.dll";
@@ -271,47 +271,47 @@ static char *libname = "user32.dll";
 void HookUser32(HMODULE hModule)
 {
 
-	HookLibrary(hModule, Hooks, libname);
-	if (dxw.GDIEmulationMode != GDIMODE_NONE) HookLibrary(hModule, SyscallHooks, libname);
-	if (dxw.dwFlags2 & GDISTRETCHED)	HookLibrary(hModule, ScaledHooks, libname);
+	HookLibraryEx(hModule, Hooks, libname);
+	if (dxw.GDIEmulationMode != GDIMODE_NONE) HookLibraryEx(hModule, SyscallHooks, libname);
+	if (dxw.dwFlags2 & GDISTRETCHED)	HookLibraryEx(hModule, ScaledHooks, libname);
 
-	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibrary(hModule, RemapHooks, libname);
-	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)) HookLibrary(hModule, WinHooks, libname);
-	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibrary(hModule, MouseHooks, libname);
-	if (dxw.dwFlags3 & PEEKALLMESSAGES) HookLibrary(hModule, PeekAllHooks, libname);
-	if (dxw.dwFlags2 & TIMESTRETCH) HookLibrary(hModule, TimeHooks, libname);
+	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibraryEx(hModule, RemapHooks, libname);
+	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE)) HookLibraryEx(hModule, WinHooks, libname);
+	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibraryEx(hModule, MouseHooks, libname);
+	if (dxw.dwFlags3 & PEEKALLMESSAGES) HookLibraryEx(hModule, PeekAllHooks, libname);
+	if (dxw.dwFlags2 & TIMESTRETCH) HookLibraryEx(hModule, TimeHooks, libname);
 
-	IsChangeDisplaySettingsHotPatched = IsHotPatched(Hooks, "ChangeDisplaySettingsExA") || IsHotPatched(Hooks, "ChangeDisplaySettingsExW");
+	IsChangeDisplaySettingsHotPatched = IsHotPatchedEx(Hooks, "ChangeDisplaySettingsExA") || IsHotPatchedEx(Hooks, "ChangeDisplaySettingsExW");
 	return;
 }
 
 void HookUser32Init()
 {
-	HookLibInit(Hooks);
-	HookLibInit(SyscallHooks);
-	HookLibInit(ScaledHooks);
-	HookLibInit(RemapHooks);
-	HookLibInit(MouseHooks);
-	HookLibInit(WinHooks);
+	HookLibInitEx(Hooks);
+	HookLibInitEx(SyscallHooks);
+	HookLibInitEx(ScaledHooks);
+	HookLibInitEx(RemapHooks);
+	HookLibInitEx(MouseHooks);
+	HookLibInitEx(WinHooks);
 }
 
 FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
-	if (dxw.dwFlags1 & CLIENTREMAPPING) if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
-	if (dxw.GDIEmulationMode != GDIMODE_NONE) if(addr=RemapLibrary(proc, hModule, SyscallHooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
+	if (dxw.dwFlags1 & CLIENTREMAPPING) if (addr=RemapLibraryEx(proc, hModule, RemapHooks)) return addr;
+	if (dxw.GDIEmulationMode != GDIMODE_NONE) if(addr=RemapLibraryEx(proc, hModule, SyscallHooks)) return addr;
 
 	if (dxw.dwFlags2 & GDISTRETCHED)	
-		if (addr=RemapLibrary(proc, hModule, ScaledHooks)) return addr;  
+		if (addr=RemapLibraryEx(proc, hModule, ScaledHooks)) return addr;  
 	if (dxw.dwFlags1 & (PREVENTMAXIMIZE|FIXWINFRAME|LOCKWINPOS|LOCKWINSTYLE))
-		if (addr=RemapLibrary(proc, hModule, WinHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, WinHooks)) return addr;
 	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED))
-		if (addr=RemapLibrary(proc, hModule, MouseHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, MouseHooks)) return addr;
 	if (dxw.dwFlags3 & PEEKALLMESSAGES)
-		if (addr=RemapLibrary(proc, hModule, PeekAllHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, PeekAllHooks)) return addr;
 	if((dxw.dwFlags2 & TIMESTRETCH) && (dxw.dwFlags4 & STRETCHTIMERS)) 
-		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, TimeHooks)) return addr;
 
 	return NULL;
 }

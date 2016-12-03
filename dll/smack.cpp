@@ -22,15 +22,15 @@ SmackOpen_Type pSmackOpen = NULL;
 
 SmackStruct * WINAPI extSmackOpen(HANDLE, UINT32, INT32);
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "_SmackOpen@12", (FARPROC)NULL, (FARPROC *)&pSmackOpen, (FARPROC)extSmackOpen},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "_SmackOpen@12", (FARPROC)NULL, (FARPROC *)&pSmackOpen, (FARPROC)extSmackOpen},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_smack_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
 }
@@ -39,7 +39,7 @@ static char *libname = "smackw32.dll";
 
 void HookSmackW32(HMODULE hModule)
 {
-	HookLibrary(hModule, Hooks, libname);
+	HookLibraryEx(hModule, Hooks, libname);
 	return;
 }
 

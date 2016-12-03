@@ -65,16 +65,16 @@ Acquire_Type pAcquire = NULL;
 Unacquire_Type pUnacquire = NULL;
 DirectInput8Create_Type pDirectInput8Create = NULL;
 
-static HookEntry_Type diHooks[]={
-	{HOOK_HOT_CANDIDATE, "DirectInputCreateA", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateA, (FARPROC)extDirectInputCreateA},
-	{HOOK_HOT_CANDIDATE, "DirectInputCreateW", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateW, (FARPROC)extDirectInputCreateW},
-	{HOOK_HOT_CANDIDATE, "DirectInputCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateEx, (FARPROC)extDirectInputCreateEx},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type diHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "DirectInputCreateA", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateA, (FARPROC)extDirectInputCreateA},
+	{HOOK_HOT_CANDIDATE, 0, "DirectInputCreateW", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateW, (FARPROC)extDirectInputCreateW},
+	{HOOK_HOT_CANDIDATE, 0, "DirectInputCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectInputCreateEx, (FARPROC)extDirectInputCreateEx},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type di8Hooks[]={
-	{HOOK_HOT_CANDIDATE, "DirectInput8Create", (FARPROC)NULL, (FARPROC *)&pDirectInput8Create, (FARPROC)extDirectInput8Create},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type di8Hooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "DirectInput8Create", (FARPROC)NULL, (FARPROC *)&pDirectInput8Create, (FARPROC)extDirectInput8Create},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 void GetMousePosition(int *, int *);
@@ -114,7 +114,7 @@ void HookDirectInput(HMODULE module)
 	HINSTANCE hinst;
 	LPDIRECTINPUT lpdi;
 
-	HookLibrary(module, diHooks, "dinput.dll");
+	HookLibraryEx(module, diHooks, "dinput.dll");
 	if(!pDirectInputCreateA && !pDirectInputCreateW && !pDirectInputCreateEx){
 		hinst = LoadLibrary("dinput.dll");
 		pDirectInputCreateA = (DirectInputCreate_Type)GetProcAddress(hinst, "DirectInputCreateA");
@@ -134,7 +134,7 @@ void HookDirectInput8(HMODULE module)
 	HINSTANCE hinst;
 	LPDIRECTINPUT lpdi;
 
-	HookLibrary(module, di8Hooks, "dinput8.dll");
+	HookLibraryEx(module, di8Hooks, "dinput8.dll");
 	if(!pDirectInput8Create){
 		hinst = LoadLibrary("dinput8.dll");
 		pDirectInput8Create = (DirectInput8Create_Type)GetProcAddress(hinst, "DirectInput8Create");
@@ -147,14 +147,14 @@ void HookDirectInput8(HMODULE module)
 FARPROC Remap_DInput_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if ((dxw.dwFlags1 & HOOKDI) && (addr=RemapLibrary(proc, hModule, diHooks))) return addr;
+	if ((dxw.dwFlags1 & HOOKDI) && (addr=RemapLibraryEx(proc, hModule, diHooks))) return addr;
 	return NULL;
 }
 
 FARPROC Remap_DInput8_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if ((dxw.dwFlags1 & HOOKDI8) && (addr=RemapLibrary(proc, hModule, di8Hooks))) return addr;
+	if ((dxw.dwFlags1 & HOOKDI8) && (addr=RemapLibraryEx(proc, hModule, di8Hooks))) return addr;
 	return NULL;
 }
 

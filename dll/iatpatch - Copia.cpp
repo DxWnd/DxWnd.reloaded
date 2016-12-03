@@ -89,6 +89,8 @@ void *IATPatch(HMODULE module, char *dll, void *apiproc, const char *apiname, vo
 	}
 	return org;
 }
+#undef OutTraceH
+#define OutTraceH OutTrace
 
 void *IATPatchEx(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const char *apiname, void *hookproc)
 {
@@ -121,7 +123,7 @@ void *IATPatchEx(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const 
 
 		while(pidesc->FirstThunk){
 			impmodule = (PSTR)(base + pidesc->Name);
-			//OutTraceH("IATPatchEx: analyze impmodule=%s\n", impmodule);
+			OutTraceH("IATPatchEx: analyze impmodule=%s\n", impmodule);
 			if(!lstrcmpi(dll, impmodule)) {
 				OutTraceH("IATPatchEx: dll=%s found at %x\n", dll, impmodule);
 
@@ -129,10 +131,10 @@ void *IATPatchEx(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const 
 				ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
 
 				while(ptaddr->u1.Function){
-					OutTraceH("IATPatchEx: address=%x\n", ptaddr->u1.AddressOfData);
+					OutTraceH("IATPatchEx: ordinal=%x address=%x\n", ptaddr->u1.Ordinal, ptaddr->u1.AddressOfData);
 					
-					if (ptname){
-					//{
+					//if (ptname){
+					{
 						// examining by function name
 						if(!IMAGE_SNAP_BY_ORDINAL(ptname->u1.Ordinal)){
 							piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
@@ -140,14 +142,19 @@ void *IATPatchEx(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const 
 							if(!lstrcmpi(apiname, (char *)piname->Name)) break;
 						}
 						else{
-							if(ordinal && (IMAGE_ORDINAL32(ptname->u1.Ordinal) == ordinal)) { // skip unknow ordinal 0
-							OutTraceH("IATPatchEx: BYORD ordinal=%x addr=%x\n", ptname->u1.Ordinal, ptaddr->u1.Function);
-							//OutTraceH("IATPatchEx: BYORD GetProcAddress=%x\n", GetProcAddress(GetModuleHandle(dll), MAKEINTRESOURCE(IMAGE_ORDINAL32(ptname->u1.Ordinal))));	
-								break;
-							}
+							OutTraceH("IATPatchEx: BYORD ordinal=%x address=%x function=%x\n", ptname->u1.Ordinal, ptname->u1.AddressOfData, ptname->u1.Function );
+							if((ptname->u1.Ordinal & 0x7FFFFFFF) == ordinal) break;
 						}
 
 					}
+
+					//if(ptaddr){
+					//	if(!IMAGE_SNAP_BY_ORDINAL(ptaddr->u1.Ordinal)){
+					//		piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
+					//		OutTraceH("IATPatchEx: ordinal=%x address=%x name=%s ord=%x\n", ptaddr->u1.Ordinal, ptaddr->u1.AddressOfData, (char *)piname->Name, piname->Hint);
+					//		if(piname->Hint == ordinal) break;
+					//	}
+					//}
 
 					if (apiproc){
 						// examining by function addr

@@ -30,6 +30,7 @@ public:
 	int		m_DxFilterMode;
 	int		m_DCEmulationMode;
 	int		m_MouseVisibility;
+	int		m_OffendingMessages;
 	int		m_TextureHandling;
 	int		m_SonProcessMode;
 	int		m_MaxDdrawInterface;
@@ -66,7 +67,7 @@ public:
 	BOOL	m_Wow64Registry;
 	BOOL	m_Wow32Registry;
 	BOOL	m_FullScreenOnly;
-	BOOL	m_FilterMessages;
+	BOOL	m_NeedAdminCaps;
 	BOOL	m_PeekAllMessages;
 	BOOL	m_NoWinPosChanges;
 	BOOL	m_MessagePump;
@@ -169,6 +170,7 @@ public:
 	BOOL	m_NoGDIBlt;
 	BOOL	m_NoFillRect;
 	BOOL	m_ReuseEmulatedDC;
+	BOOL	m_FixClipperArea;
 	BOOL	m_CreateDesktop;
 	BOOL	m_SyncPalette;
 	BOOL	m_AnalyticMode;

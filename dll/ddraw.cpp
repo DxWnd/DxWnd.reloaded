@@ -307,24 +307,24 @@ LPVOID rSurface = NULL;
 static void SetPixFmt(LPDDSURFACEDESC2);
 static void GetPixFmt(LPDDSURFACEDESC2);
 
-static HookEntry_Type ddHooks[]={
-	{HOOK_HOT_CANDIDATE, "DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
-	{HOOK_HOT_CANDIDATE, "DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
-	{HOOK_HOT_CANDIDATE, "DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
-	{HOOK_HOT_CANDIDATE, "DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
-	{HOOK_HOT_CANDIDATE, "DirectDrawCreateClipper", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateClipper, (FARPROC)extDirectDrawCreateClipper},
-	{HOOK_HOT_CANDIDATE, "AcquireDDThreadLock", (FARPROC)NULL, (FARPROC *)&pAcquireDDThreadLock, (FARPROC)NULL},
-	{HOOK_HOT_CANDIDATE, "ReleaseDDThreadLock", (FARPROC)NULL, (FARPROC *)&pReleaseDDThreadLock, (FARPROC)NULL},
-	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateW, (FARPROC)extDirectDrawCreate},
-	//{HOOK_IAT_CANDIDATE, "DirectDrawEnumerateExW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateExW, (FARPROC)extDirectDrawCreate},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type ddHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "DirectDrawCreate", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreate, (FARPROC)extDirectDrawCreate},
+	{HOOK_HOT_CANDIDATE, 0, "DirectDrawCreateEx", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateEx, (FARPROC)extDirectDrawCreateEx},
+	{HOOK_HOT_CANDIDATE, 0, "DirectDrawEnumerateA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerate, (FARPROC)extDirectDrawEnumerate},
+	{HOOK_HOT_CANDIDATE, 0, "DirectDrawEnumerateExA", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateEx, (FARPROC)extDirectDrawEnumerateEx},
+	{HOOK_HOT_CANDIDATE, 0, "DirectDrawCreateClipper", (FARPROC)NULL, (FARPROC *)&pDirectDrawCreateClipper, (FARPROC)extDirectDrawCreateClipper},
+	{HOOK_HOT_CANDIDATE, 0, "AcquireDDThreadLock", (FARPROC)NULL, (FARPROC *)&pAcquireDDThreadLock, (FARPROC)NULL},
+	{HOOK_HOT_CANDIDATE, 0, "ReleaseDDThreadLock", (FARPROC)NULL, (FARPROC *)&pReleaseDDThreadLock, (FARPROC)NULL},
+	//{HOOK_IAT_CANDIDATE, 0, "DirectDrawEnumerateW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateW, (FARPROC)extDirectDrawCreate},
+	//{HOOK_IAT_CANDIDATE, 0, "DirectDrawEnumerateExW", (FARPROC)NULL, (FARPROC *)&pDirectDrawEnumerateExW, (FARPROC)extDirectDrawCreate},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_ddraw_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
-	if (addr=RemapLibrary(proc, hModule, ddHooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, ddHooks)) return addr;
 	return NULL;
 }
 
@@ -709,7 +709,7 @@ int HookDirectDraw(HMODULE module, int version)
 
 	if(dxw.dwFlags4 & HOTPATCH) {
 		// hot-patch all APIs and that's all folks!
-		HookLibrary(module, ddHooks, "ddraw.dll");
+		HookLibraryEx(module, ddHooks, "ddraw.dll");
 		return TRUE;
 	}
 
@@ -719,14 +719,14 @@ int HookDirectDraw(HMODULE module, int version)
 	OutTraceB("HookDirectDraw version=%d\n", version); //GHO
 	switch(version){
 	case 0: // automatic
-		HookLibrary(module, ddHooks, "ddraw.dll");
+		HookLibraryEx(module, ddHooks, "ddraw.dll");
 		break;
 	case 1:
 	case 2:
 	case 3:
 	case 5:
 	case 6:
-		HookLibrary(module, ddHooks, "ddraw.dll");
+		HookLibraryEx(module, ddHooks, "ddraw.dll");
 		if(!pDirectDrawCreate){ // required for IAT patching 
 			hinst = LoadLibrary("ddraw.dll");
 			pDirectDrawCreate = (DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
@@ -735,7 +735,7 @@ int HookDirectDraw(HMODULE module, int version)
 		if(pDirectDrawCreate){
 			LPDIRECTDRAW lpdd;
 			BOOL res;
-			HookLibrary(module, ddHooks, "ddraw.dll");
+			HookLibraryEx(module, ddHooks, "ddraw.dll");
 			res=extDirectDrawCreate(0, &lpdd, 0);
 			if (res){
 				OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
@@ -745,7 +745,7 @@ int HookDirectDraw(HMODULE module, int version)
 		break;
 	case 7:
 		//hinst = LoadLibrary("ddraw.dll");
-		HookLibrary(module, ddHooks, "ddraw.dll");
+		HookLibraryEx(module, ddHooks, "ddraw.dll");
 		if(!pDirectDrawCreate){ // required for IAT patching in "Crimson skies"
 			hinst = LoadLibrary("ddraw.dll");
 			pDirectDrawEnumerate = (DirectDrawEnumerate_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
@@ -760,14 +760,6 @@ int HookDirectDraw(HMODULE module, int version)
 			if (res) OutTraceE("DirectDrawCreate: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 			lpdd->Release();
 		}
-		//if(pDirectDrawCreateEx){
-		//	LPDIRECTDRAW lpdd;
-		//	BOOL res;
-		//	HookLibrary(module, ddHooks, "ddraw.dll");
-		//	res=extDirectDrawCreateEx(0, &lpdd, dd7, 0);
-		//	if (res) OutTraceE("DirectDrawCreateEx: ERROR res=%x(%s)\n", res, ExplainDDError(res));
-		//	lpdd->Release();
-		//}
 		break;
 	}
 

@@ -193,11 +193,12 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_Wow64Registry) t->flags6 |= WOW64REGISTRY;
 	if(dlg->m_Wow32Registry) t->flags6 |= WOW32REGISTRY;
 	if(dlg->m_HookEnabled) t->flags3 |= HOOKENABLED;
+	if(dlg->m_NeedAdminCaps) t->flags |= NEEDADMINCAPS;
 	if(dlg->m_NoBanner) t->flags2 |= NOBANNER;
 	if(dlg->m_StartDebug) t->flags2 |= STARTDEBUG;
 	if(dlg->m_HotPatch) t->flags4 |= HOTPATCH;
 	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
-	if(dlg->m_FilterMessages) t->flags3 |= FILTERMESSAGES;
+	//if(dlg->m_FilterMessages) t->flags3 |= FILTERMESSAGES;
 	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
 	if(dlg->m_NoWinPosChanges) t->flags5 |= NOWINPOSCHANGES;
 	if(dlg->m_MessagePump) t->flags5 |= MESSAGEPUMP;
@@ -237,6 +238,12 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 0: break;
 		case 1: t->flags |= HIDEHWCURSOR; break;
 		case 2: t->flags2 |= SHOWHWCURSOR; break;
+	}	
+
+	switch(dlg->m_OffendingMessages){
+		case 0: break;
+		case 1: t->flags3 |= FILTERMESSAGES; break;
+		case 2: t->flags3 |= DEFAULTMESSAGES; break;
 	}	
 
 	switch(dlg->m_TextureHandling){
@@ -415,6 +422,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
 	if(dlg->m_NoFillRect) t->flags4 |= NOFILLRECT;
 	if(dlg->m_ReuseEmulatedDC) t->flags6 |= REUSEEMULATEDDC;
+	if(dlg->m_FixClipperArea) t->flags7 |= FIXCLIPPERAREA;
 	if(dlg->m_CreateDesktop) t->flags6 |= CREATEDESKTOP;
 	if(dlg->m_SyncPalette) t->flags6 |= SYNCPALETTE;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
@@ -452,10 +460,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_Wow64Registry = t->flags6 & WOW64REGISTRY ? 1 : 0;
 	dlg->m_Wow32Registry = t->flags6 & WOW32REGISTRY ? 1 : 0;
 	dlg->m_HookEnabled = t->flags3 & HOOKENABLED ? 1 : 0;
+	dlg->m_NeedAdminCaps = t->flags & NEEDADMINCAPS ? 1 : 0;
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_StartDebug = t->flags2 & STARTDEBUG ? 1 : 0;
 	dlg->m_FullScreenOnly = t->flags3 & FULLSCREENONLY ? 1 : 0;
-	dlg->m_FilterMessages = t->flags3 & FILTERMESSAGES ? 1 : 0;
+	//dlg->m_FilterMessages = t->flags3 & FILTERMESSAGES ? 1 : 0;
 	dlg->m_PeekAllMessages = t->flags3 & PEEKALLMESSAGES ? 1 : 0;
 	dlg->m_NoWinPosChanges = t->flags5 & NOWINPOSCHANGES ? 1 : 0;
 	dlg->m_MessagePump = t->flags5 & MESSAGEPUMP ? 1 : 0;
@@ -486,6 +495,10 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_MouseVisibility = 0;
 	if(t->flags & HIDEHWCURSOR) dlg->m_MouseVisibility = 1;
 	if(t->flags2 & SHOWHWCURSOR) dlg->m_MouseVisibility = 2;
+
+	dlg->m_OffendingMessages = 0;
+	if(t->flags3 & FILTERMESSAGES) dlg->m_OffendingMessages = 1;
+	if(t->flags3 & DEFAULTMESSAGES) dlg->m_OffendingMessages = 2;
 
 	dlg->m_TextureHandling = 0;
 	if(t->flags5 & TEXTUREHIGHLIGHT) dlg->m_TextureHandling = 1;
@@ -661,6 +674,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;
 	dlg->m_NoFillRect = t->flags4 & NOFILLRECT ? 1 : 0;
 	dlg->m_ReuseEmulatedDC = t->flags6 & REUSEEMULATEDDC ? 1 : 0;
+	dlg->m_FixClipperArea = t->flags7 & FIXCLIPPERAREA ? 1 : 0;
 	dlg->m_CreateDesktop = t->flags6 & CREATEDESKTOP ? 1 : 0;
 	dlg->m_SyncPalette = t->flags6 & SYNCPALETTE ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
@@ -2147,11 +2161,15 @@ DWORD WINAPI StartDebug(void *p)
 	return TRUE;
 }
 
+DWORD RecoverTargetMaps(LPVOID TargetMaps)
+{
+	Sleep(5000);
+	SetTarget((TARGETMAP *)TargetMaps);	
+	return 0;
+}
+
 void CDxwndhostView::OnRun() 
 {
-	static BOOL IsLocked = FALSE;
-	if(IsLocked) return;
-	IsLocked = TRUE;
 	CListCtrl& listctrl = GetListCtrl();
 	POSITION pos;
 	int i;
@@ -2159,17 +2177,13 @@ void CDxwndhostView::OnRun()
 	PROCESS_INFORMATION pinfo;
 	char path[MAX_PATH];
 	TARGETMAP RestrictedMaps[2];
-	//extern CString GetFileNameFromHandle(HANDLE);
 
 	if(gTransientMode){
 		i=iProgIndex-1;
 		if(i<0) i=0;
 	}
 	else {
-		if(!listctrl.GetSelectedCount()) {
-			IsLocked = FALSE;
-			return;
-		}
+		if(!listctrl.GetSelectedCount()) return;
 		pos = listctrl.GetFirstSelectedItemPosition();
 		i = listctrl.GetNextSelectedItem(pos);
 	}
@@ -2181,6 +2195,16 @@ void CDxwndhostView::OnRun()
 	strcpy_s(path, sizeof(path), TargetMaps[i].path);
 	PathRemoveFileSpec(path);
 	SetTarget(RestrictedMaps);	
+
+	// self-elevation if configured and necessary
+	if(TargetMaps[i].flags & NEEDADMINCAPS){
+		extern BOOL DxSelfElevate();
+		OSVERSIONINFO osver = { sizeof(osver) };
+		if (GetVersionEx(&osver) && (osver.dwMajorVersion >= 6)){
+			DxSelfElevate();
+		}
+	}
+
 	if(TargetMaps[i].flags2 & STARTDEBUG){
 		ThreadInfo_Type ThreadInfo;
 		ThreadInfo.TM=&TargetMaps[i];
@@ -2195,9 +2219,7 @@ void CDxwndhostView::OnRun()
 		CloseHandle(pinfo.hThread); // no longer needed, avoid handle leakage
 	}
 	// wait & recover
-	Sleep(5000);
-	SetTarget(TargetMaps);	
-	IsLocked = FALSE;
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RecoverTargetMaps, (LPVOID)TargetMaps, 0, NULL);
 }
 
 void SwitchToColorDepth(int bpp)

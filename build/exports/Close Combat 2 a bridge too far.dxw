@@ -22,10 +22,14 @@ maxx0=0
 maxy0=0
 posx0=50
 posy0=50
-sizx0=800
-sizy0=600
+sizx0=0
+sizy0=0
 maxfps0=0
 initts0=0
 winver0=0
 maxres0=-1
 swapeffect0=0
+registry0=[HKEY_LOCAL_MACHINE\SOFTWARE]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games\Close Combat]\n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft Games\Close Combat\2.00]\n"PID"="00000-000-0000000-00000"\n"InstalledTo"="C:\\GAMES\\CC2"\n"ScreenX"="800"\n"ScreenY"="600"\n"Version"="2.0"\n"IType"=hex:01,00,00,00\n"GameSpeed"=hex:01,00,00,00\n"ShowDSAlert"=hex:01,00,00,00\n"ShowQuickHelp"=hex:01,00,00,00\n"PlaySounds"=hex:01,00,00,00\n"PlayMusic"=hex:01,00,00,00\n"PlayVideos"=hex:00,00,00,00\n"FCopy"=hex:00,00,00,00\n"SMethod"=hex:00,00,00,00\n"Save"=hex:00,00,00,00\n"ShowTrees"=hex:01,00,00,00\n"StaticFPS"=hex:0a,00,00,00\n"InstalledFrom"=".\\"\n"Launched"="1"\n"VersionType"="RetailVersion"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE]\n[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft]\n[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft Games]\n[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft Games\Close Combat]\n[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft Games\Close Combat\2.00]\n"PID"="00000-000-0000000-00000"\n"InstalledTo"="C:\\GAMES\\CC2"\n"ScreenX"="800"\n"ScreenY"="600"\n"Version"="2.0"\n"IType"=hex:01,00,00,00\n"GameSpeed"=hex:01,00,00,00\n"ShowDSAlert"=hex:01,00,00,00\n"ShowQuickHelp"=hex:01,00,00,00\n"PlaySounds"=hex:01,00,00,00\n"PlayMusic"=hex:01,00,00,00\n"PlayVideos"=hex:00,00,00,00\n"FCopy"=hex:00,00,00,00\n"SMethod"=hex:00,00,00,00\n"Save"=hex:00,00,00,00\n"ShowTrees"=hex:01,00,00,00\n"StaticFPS"=hex:0a,00,00,00\n"InstalledFrom"=".\\"\n"Launched"="1"\n"VersionType"="RetailVersion"\n\n
+flagl0=0
+flagm0=0
+maxddinterface0=7

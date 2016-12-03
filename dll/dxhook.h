@@ -52,17 +52,17 @@ typedef enum {
 	HOOK_HOT_LINKED
 } HookEntry_Status;
 
-
 typedef struct {
 	HookEntry_Status HookStatus;
+	DWORD ordinal;
 	char *APIName;
 	FARPROC OriginalAddress;
 	FARPROC *StoreAddress;
 	FARPROC HookerAddress;
-} HookEntry_Type;
+} HookEntryEx_Type;
 
-extern FARPROC RemapLibrary(LPCSTR, HMODULE, HookEntry_Type *);
-extern void HookLibrary(HMODULE, HookEntry_Type *, char *);
-extern void PinLibrary(HookEntry_Type *, char *);
-extern void HookLibInit(HookEntry_Type *);
-extern BOOL IsHotPatched(HookEntry_Type *, char *);
+extern FARPROC RemapLibraryEx(LPCSTR, HMODULE, HookEntryEx_Type *);
+extern void HookLibraryEx(HMODULE, HookEntryEx_Type *, char *);
+extern void PinLibraryEx(HookEntryEx_Type *, char *);
+extern void HookLibInitEx(HookEntryEx_Type *);
+extern BOOL IsHotPatchedEx(HookEntryEx_Type *, char *);

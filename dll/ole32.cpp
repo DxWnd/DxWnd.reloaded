@@ -1,4 +1,5 @@
 #include <dxdiag.h>
+#include <dsound.h>
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
@@ -6,15 +7,16 @@
 #include "dxhelper.h"
 
 extern void HookModule(HMODULE, int);
+extern void HookDirectSoundObj(LPDIRECTSOUND *);
 
 static BOOL bRecursedHook = FALSE;
 
-static HookEntry_Type Hooks[]={
-	{HOOK_HOT_CANDIDATE, "CoCreateInstance", NULL, (FARPROC *)&pCoCreateInstance, (FARPROC)extCoCreateInstance},
-	{HOOK_HOT_CANDIDATE, "CoCreateInstanceEx", NULL, (FARPROC *)&pCoCreateInstanceEx, (FARPROC)extCoCreateInstanceEx}, 
-	//{HOOK_HOT_CANDIDATE, "CoInitialize", NULL, (FARPROC *)&pCoInitialize, (FARPROC)extCoInitialize}, 
-	//{HOOK_HOT_CANDIDATE, "CoUninitialize", NULL, (FARPROC *)&pCoUninitialize, (FARPROC)extCoUninitialize}, 
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "CoCreateInstance", NULL, (FARPROC *)&pCoCreateInstance, (FARPROC)extCoCreateInstance},
+	{HOOK_HOT_CANDIDATE, 0, "CoCreateInstanceEx", NULL, (FARPROC *)&pCoCreateInstanceEx, (FARPROC)extCoCreateInstanceEx}, 
+	//{HOOK_HOT_CANDIDATE, 0, "CoInitialize", NULL, (FARPROC *)&pCoInitialize, (FARPROC)extCoInitialize}, 
+	//{HOOK_HOT_CANDIDATE, 0, "CoUninitialize", NULL, (FARPROC *)&pCoUninitialize, (FARPROC)extCoUninitialize}, 
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -22,13 +24,13 @@ extern HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *, LPDIRECTDRAW FAR *, REFI
 
 void HookOle32(HMODULE module)
 {
-	HookLibrary(module, Hooks, "ole32.dll");
+	HookLibraryEx(module, Hooks, "ole32.dll");
 }
 
 FARPROC Remap_ole32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
 
@@ -101,63 +103,62 @@ HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter,
 	
 	OutTraceDW("CoCreateInstance: ppv=%x->%x\n", *ppv, *(DWORD *)*ppv);
 
-	if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DirectDraw){ // v2.03.18: fixed
-		OutTraceDW("CoCreateInstance: CLSID_DirectDraw object\n");
-		HookDDSession((LPDIRECTDRAW *)ppv, 1);
-		switch (*(DWORD *)&riid){
-#if 0
-		case 0x6C14DB80:
-			HookDDSessionInitialize((LPDIRECTDRAW *)ppv, 1, extInitialize1); break;
-		case 0xB3A6F3E0:
-			HookDDSessionInitialize((LPDIRECTDRAW *)ppv, 2, extInitialize2); break;
-		case 0x9C59509A:
-			HookDDSessionInitialize((LPDIRECTDRAW *)ppv, 4, extInitialize4); break;
-		case 0x15E65EC0:
-			HookDDSessionInitialize((LPDIRECTDRAW *)ppv, 7, extInitialize7); break;
-#else
-		LPDIRECTDRAW lpOldDDraw;
-		case 0x6C14DB80:
-			// must go through DirectDrawCreate: needed for "Darius Gaiden"
-			OutTraceDW("CoCreateInstance: IID_DirectDraw RIID\n");
-			res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
-			if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
-			res=lpOldDDraw->QueryInterface(IID_IDirectDraw, (LPVOID *)ppv);
-			if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
-			lpOldDDraw->Release();
+	switch (*(DWORD *)&rclsid) {
+		case 0xD7B70EE0: // CLSID_DirectDraw:
+			// v2.03.18: fixed
+			OutTraceDW("CoCreateInstance: CLSID_DirectDraw object\n");
+			HookDDSession((LPDIRECTDRAW *)ppv, 1);
+			switch (*(DWORD *)&riid){
+				LPDIRECTDRAW lpOldDDraw;
+				case 0x6C14DB80:
+					// must go through DirectDrawCreate: needed for "Darius Gaiden"
+					OutTraceDW("CoCreateInstance: IID_DirectDraw RIID\n");
+					res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
+					if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
+					res=lpOldDDraw->QueryInterface(IID_IDirectDraw, (LPVOID *)ppv);
+					if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
+					lpOldDDraw->Release();
+					break;
+				case 0xB3A6F3E0:
+					OutTraceDW("CoCreateInstance: IID_DirectDraw2 RIID\n");
+					res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
+					if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
+					res=lpOldDDraw->QueryInterface(IID_IDirectDraw2, (LPVOID *)ppv);
+					if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
+					lpOldDDraw->Release();
+					break;
+				case 0x9C59509A:
+					OutTraceDW("CoCreateInstance: IID_DirectDraw4 RIID\n");
+					res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
+					if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
+					res=lpOldDDraw->QueryInterface(IID_IDirectDraw4, (LPVOID *)ppv);
+					if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
+					lpOldDDraw->Release();
+					break;
+				case 0x15E65EC0:
+					OutTraceDW("CoCreateInstance: IID_DirectDraw7 RIID\n");
+					res=extDirectDrawCreateEx(NULL, (LPDIRECTDRAW *)ppv, IID_IDirectDraw7, 0);
+					if(res)OutTraceDW("DirectDrawCreateEx: res=%x(%s)\n", res, ExplainDDError(res));
+					break;
+				case 0xE436EBB3:
+					break;
+			}
 			break;
-		case 0xB3A6F3E0:
-			OutTraceDW("CoCreateInstance: IID_DirectDraw2 RIID\n");
-			res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
-			if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
-			res=lpOldDDraw->QueryInterface(IID_IDirectDraw2, (LPVOID *)ppv);
-			if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
-			lpOldDDraw->Release();
+		case 0xA65B8071: // CLSID_DxDiagProvider
+			OutTraceDW("CoCreateInstance: CLSID_DxDiagProvider object\n");
+			HookDxDiag(riid, ppv);
 			break;
-		case 0x9C59509A:
-			OutTraceDW("CoCreateInstance: IID_DirectDraw4 RIID\n");
-			res=extDirectDrawCreate(NULL, &lpOldDDraw, 0);
-			if(res)OutTraceDW("DirectDrawCreate: res=%x(%s)\n", res, ExplainDDError(res));
-			res=lpOldDDraw->QueryInterface(IID_IDirectDraw4, (LPVOID *)ppv);
-			if(res)OutTraceDW("QueryInterface: res=%x(%s)\n", res, ExplainDDError(res));
-			lpOldDDraw->Release();
+		case 0x47d4d946: // CLSID_DirectSound
+			OutTraceDW("CoCreateInstance: CLSID_DirectSound object\n");
+			HookDirectSoundObj((LPDIRECTSOUND *)ppv);
 			break;
-		case 0x15E65EC0:
-			OutTraceDW("CoCreateInstance: IID_DirectDraw7 RIID\n");
-			res=extDirectDrawCreateEx(NULL, (LPDIRECTDRAW *)ppv, IID_IDirectDraw7, 0);
-			if(res)OutTraceDW("DirectDrawCreateEx: res=%x(%s)\n", res, ExplainDDError(res));
+		default:
 			break;
-		case 0xE436EBB3:
-			break;
-#endif
-		}
-	}
-	else {
-		if (*(DWORD *)&rclsid==*(DWORD *)&CLSID_DxDiagProvider) res=HookDxDiag(riid, ppv);
 	}
 
 	HookAdditionalModules();
 	OutTraceDW("CoCreateInstance: res=%x ppv=%x->%x\n", res, *ppv, *(DWORD *)*ppv);
-	return res;
+	return S_OK;
 }
 
 HRESULT STDAPICALLTYPE extCoCreateInstanceEx(REFCLSID rclsid, IUnknown *punkOuter, DWORD dwClsCtx, COSERVERINFO *pServerInfo, DWORD dwCount, MULTI_QI *pResults)

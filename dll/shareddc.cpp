@@ -368,7 +368,6 @@ static BOOL CALLBACK excludeClipRectsForOverlappingWindows(HWND hwnd, LPARAM lPa
 
 void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
 {
-#if 0
 	OutTrace("dxwSDC::setClippingRegion: compdc=%x origdc=%x origin=(%d,%d)\n", compatDc, origDc, origin.x, origin.y);
 	HRGN clipRgn = CreateRectRgn(0, 0, 0, 0);
 	const bool isEmptyClipRgn = (1 != GetRandomRgn(origDc, clipRgn, SYSRGN));
@@ -404,20 +403,17 @@ void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT& origin)
 		}
 	}
 	DeleteObject(origClipRgn);
-#endif
 
-#if 0
-	// to finish .....
-	// on Win10 this part seems unnecessary and giving troubles .....
-	//dxw.MapClient(&origin);
-	//if (!isEmptyClipRgn)
-	if(1){
-		HWND hwnd = WindowFromDC(origDc);
-		if (hwnd)
-		{
-			ExcludeClipRectsData_Type excludeClipRectsData = { compatDc, origin, GetAncestor(hwnd, GA_ROOT) };
-			EnumWindows(&excludeClipRectsForOverlappingWindows,(LPARAM)(&excludeClipRectsData));
+	if(dxw.dwFlags7 & FIXCLIPPERAREA){
+		// to finish .....
+		// on Win10 this part seems unnecessary and giving troubles .....
+		if (!isEmptyClipRgn){
+			HWND hwnd = WindowFromDC(origDc);
+			if (hwnd)
+			{
+				ExcludeClipRectsData_Type excludeClipRectsData = { compatDc, origin, GetAncestor(hwnd, GA_ROOT) };
+				EnumWindows(&excludeClipRectsForOverlappingWindows,(LPARAM)(&excludeClipRectsData));
+			}
 		}
 	}
-#endif
 }

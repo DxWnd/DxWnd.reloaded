@@ -9,27 +9,27 @@
 #include "syslibs.h"
 #include "dxhelper.h"
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "ImmNotifyIME", NULL, (FARPROC *)&pImmNotifyIME, (FARPROC)extImmNotifyIME},
-	{HOOK_IAT_CANDIDATE, "ImmCreateContext", NULL, (FARPROC *)&pImmCreateContext, (FARPROC)extImmCreateContext},
-	{HOOK_IAT_CANDIDATE, "ImmDestroyContext", NULL, (FARPROC *)&pImmDestroyContext, (FARPROC)extImmDestroyContext},
-	{HOOK_IAT_CANDIDATE, "ImmSetOpenStatus", NULL, (FARPROC *)&pImmSetOpenStatus, (FARPROC)extImmSetOpenStatus},
-	{HOOK_IAT_CANDIDATE, "ImmAssociateContext", NULL, (FARPROC *)&pImmAssociateContext, (FARPROC)extImmAssociateContext},
-	{HOOK_IAT_CANDIDATE, "ImmSetCompositionWindow", NULL, (FARPROC *)&pImmSetCompositionWindow, (FARPROC)extImmSetCompositionWindow},
-	{HOOK_IAT_CANDIDATE, "ImmSetCompositionStringA", NULL, (FARPROC *)&pImmSetCompositionString, (FARPROC)extImmSetCompositionString},
-	{HOOK_IAT_CANDIDATE, "ImmGetOpenStatus", NULL, (FARPROC *)&pImmGetOpenStatus, (FARPROC)extImmGetOpenStatus},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "ImmNotifyIME", NULL, (FARPROC *)&pImmNotifyIME, (FARPROC)extImmNotifyIME},
+	{HOOK_IAT_CANDIDATE, 0, "ImmCreateContext", NULL, (FARPROC *)&pImmCreateContext, (FARPROC)extImmCreateContext},
+	{HOOK_IAT_CANDIDATE, 0, "ImmDestroyContext", NULL, (FARPROC *)&pImmDestroyContext, (FARPROC)extImmDestroyContext},
+	{HOOK_IAT_CANDIDATE, 0, "ImmSetOpenStatus", NULL, (FARPROC *)&pImmSetOpenStatus, (FARPROC)extImmSetOpenStatus},
+	{HOOK_IAT_CANDIDATE, 0, "ImmAssociateContext", NULL, (FARPROC *)&pImmAssociateContext, (FARPROC)extImmAssociateContext},
+	{HOOK_IAT_CANDIDATE, 0, "ImmSetCompositionWindow", NULL, (FARPROC *)&pImmSetCompositionWindow, (FARPROC)extImmSetCompositionWindow},
+	{HOOK_IAT_CANDIDATE, 0, "ImmSetCompositionStringA", NULL, (FARPROC *)&pImmSetCompositionString, (FARPROC)extImmSetCompositionString},
+	{HOOK_IAT_CANDIDATE, 0, "ImmGetOpenStatus", NULL, (FARPROC *)&pImmGetOpenStatus, (FARPROC)extImmGetOpenStatus},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 void HookImeLib(HMODULE module)
 {
-	HookLibrary(module, Hooks, "IMM32.dll");
+	HookLibraryEx(module, Hooks, "IMM32.dll");
 }
 
 FARPROC Remap_ImeLib_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
 

@@ -236,6 +236,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\dxelevate.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dxTabCtrl.cpp"
 				>
 			</File>
@@ -492,6 +496,10 @@
 			</File>
 			<File
 				RelativePath=".\dxTabCtrl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Include\dxwnd.h"
 				>
 			</File>
 			<File

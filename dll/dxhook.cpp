@@ -24,7 +24,7 @@
 #include "MinHook.h" 
 
 #define SKIPIMEWINDOW TRUE
-#define HOOKDIRECTSOUND FALSE
+#define HOOKDIRECTSOUND TRUE
 
 dxwCore dxw;
 dxwSStack dxwss;
@@ -46,6 +46,7 @@ Disasm_Type pDisasm;
 extern void InitScreenParameters();
 extern void *HotPatch(void *, const char *, void *);
 extern void *IATPatch(HMODULE, char *, void *, const char *, void *);
+extern void *IATPatchEx(HMODULE, DWORD, char *, void *, const char *, void *);
 void HookModule(HMODULE, int);
 void RecoverScreenMode();
 static void LockScreenMode(DWORD, DWORD, DWORD);
@@ -55,7 +56,7 @@ extern HANDLE hTraceMutex;
 CRITICAL_SECTION TraceCS; 
 
 static char *FlagNames[32]={
-	"UNNOTIFY", "EMULATESURFACE", "CLIPCURSOR", "**",
+	"UNNOTIFY", "EMULATESURFACE", "CLIPCURSOR", "NEEDADMINCAPS",
 	"HOOKDI", "MODIFYMOUSE", "HANDLEEXCEPTIONS", "SAVELOAD",
 	"EMULATEBUFFER", "HOOKDI8", "BLITFROMBACKBUFFER", "SUPPRESSCLIPPING",
 	"AUTOREFRESH", "FIXWINFRAME", "HIDEHWCURSOR", "SLOWDOWN",
@@ -81,7 +82,7 @@ static char *Flag3Names[32]={
 	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
 	"MARKLOCK", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
 	"NOWINDOWMOVE", "**", "LOCKSYSCOLORS", "GDIEMULATEDC",
-	"FULLSCREENONLY", "FONTBYPASS", "**", "**",
+	"FULLSCREENONLY", "FONTBYPASS", "**", "DEFAULTMESSAGES",
 	"BUFFEREDIOFIX", "FILTERMESSAGES", "PEEKALLMESSAGES", "SURFACEWARN",
 	"ANALYTICMODE", "FORCESHEL", "CAPMASK", "COLORFIX",
 	"NODDRAWBLT", "NODDRAWFLIP", "NOGDIBLT", "NOPIXELFORMAT",
@@ -99,7 +100,7 @@ static char *Flag4Names[32]={
 };
 
 static char *Flag5Names[32]={
-	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "--NOSYSTEMMEMORY--",
+	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "**",
 	"NOBLT", "**", "DOFASTBLT", "AEROBOOST",
 	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
 	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
@@ -121,7 +122,7 @@ static char *Flag6Names[32]={
 };
 
 static char *Flag7Names[32]={
-	"LIMITDDRAW", "", "", "",
+	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -903,7 +904,7 @@ void HookModule(HMODULE base, int dxversion)
 	HookMSV4WLibs(base); // -- used by Aliens & Amazons demo: what for?
 	HookAVIFil32(base);
 	//HookSmackW32(base);
-	//if (HOOKDIRECTSOUND) HookDirectSound(base); 
+	if (HOOKDIRECTSOUND) HookDirectSound(base); 
 	//HookComDlg32(base);
 }
 
@@ -1406,7 +1407,7 @@ LPCSTR ProcToString(LPCSTR proc)
 		return proc;
 }
 
-FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
+FARPROC RemapLibraryEx(LPCSTR proc, HMODULE hModule, HookEntryEx_Type *Hooks)
 {
 	void *remapped_addr;
 	for(; Hooks->APIName; Hooks++){
@@ -1443,28 +1444,13 @@ FARPROC RemapLibrary(LPCSTR proc, HMODULE hModule, HookEntry_Type *Hooks)
 	return NULL;
 }
 
-void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
+void HookLibraryEx(HMODULE hModule, HookEntryEx_Type *Hooks, char *DLLName)
 {
 	HMODULE hDLL = NULL;
 	//OutTrace("HookLibrary: hModule=%x dll=%s\n", hModule, DLLName);
 	for(; Hooks->APIName; Hooks++){
-		//tmp = HookAPI(hModule, DLLName, Hooks->HookStatus, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
-		//if(tmp && Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)tmp;
-
 		void *remapped_addr;
-
 		if(Hooks->HookStatus == HOOK_HOT_LINKED) continue; // skip any hot-linked entry
-
-		//if(dxw.dwTFlags & OUTIMPORTTABLE) OutTrace("HookAPI: module=%x dll=%s apiproc=%x apiname=%s hookproc=%x\n", 
-		//	module, dll, apiproc, apiname, hookproc);
-
-		//if(!*apiname) { // check
-		//	char *sMsg="HookAPI: NULL api name\n";
-		//	OutTraceE(sMsg);
-		//	if (IsAssertEnabled) MessageBox(0, sMsg, "HookAPI", MB_OK | MB_ICONEXCLAMATION);
-		//	continue;
-		//}
-
 		if(((Hooks->HookStatus == HOOK_HOT_REQUIRED) ||
 			((dxw.dwFlags4 & HOTPATCH) && (Hooks->HookStatus == HOOK_HOT_CANDIDATE)) ||  // hot patch candidate still to process - or
 			((dxw.dwFlags4 & HOTPATCHALWAYS) && (Hooks->HookStatus != HOOK_HOT_LINKED))) // force hot patch and not already hooked
@@ -1497,7 +1483,7 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 			}
 		}
 
-		remapped_addr = IATPatch(hModule, DLLName, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
+		remapped_addr = IATPatchEx(hModule, Hooks->ordinal, DLLName, Hooks->OriginalAddress, Hooks->APIName, Hooks->HookerAddress);
 		if(remapped_addr)  {
 			Hooks->HookStatus = HOOK_IAT_LINKED;
 			if (Hooks->StoreAddress) *(Hooks->StoreAddress) = (FARPROC)remapped_addr;
@@ -1505,7 +1491,7 @@ void HookLibrary(HMODULE hModule, HookEntry_Type *Hooks, char *DLLName)
 	}
 }
 
-void PinLibrary(HookEntry_Type *Hooks, char *DLLName)
+void PinLibraryEx(HookEntryEx_Type *Hooks, char *DLLName)
 {
 	HMODULE hModule = NULL;
 	hModule = (*pLoadLibraryA)(DLLName);
@@ -1518,7 +1504,7 @@ void PinLibrary(HookEntry_Type *Hooks, char *DLLName)
 	}
 }
 
-BOOL IsHotPatched(HookEntry_Type *Hooks, char *ApiName)
+BOOL IsHotPatchedEx(HookEntryEx_Type *Hooks, char *ApiName)
 {
 	for(; Hooks->APIName; Hooks++){
 		if(!strcmp(Hooks->APIName, ApiName)) return (Hooks->HookStatus == HOOK_HOT_LINKED);
@@ -1526,7 +1512,7 @@ BOOL IsHotPatched(HookEntry_Type *Hooks, char *ApiName)
 	return FALSE;
 }
 
-void HookLibInit(HookEntry_Type *Hooks)
+void HookLibInitEx(HookEntryEx_Type *Hooks)
 {
 	for(; Hooks->APIName; Hooks++)
 		if (Hooks->StoreAddress) *(Hooks->StoreAddress) = Hooks->OriginalAddress;

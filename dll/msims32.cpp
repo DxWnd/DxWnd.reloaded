@@ -26,31 +26,31 @@ typedef BOOL (WINAPI *TransparentBlt_Type)(HDC, int, int, int, int, HDC, int, in
 TransparentBlt_Type pTransparentBlt = NULL;
 BOOL WINAPI extTransparentBlt(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
 
-static HookEntry_Type Hooks[]={
+static HookEntryEx_Type Hooks[]={
 
-	{HOOK_IAT_CANDIDATE, "AlphaBlend", (FARPROC)NULL, (FARPROC *)&pAlphaBlend, (FARPROC)extAlphaBlend},
-	{HOOK_IAT_CANDIDATE, "GradientFill", (FARPROC)NULL, (FARPROC *)&pGradientFill, (FARPROC)extGradientFill},
-	{HOOK_IAT_CANDIDATE, "TransparentBlt", (FARPROC)NULL, (FARPROC *)&pTransparentBlt, (FARPROC)extTransparentBlt},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, 0, "AlphaBlend", (FARPROC)NULL, (FARPROC *)&pAlphaBlend, (FARPROC)extAlphaBlend},
+	{HOOK_IAT_CANDIDATE, 0, "GradientFill", (FARPROC)NULL, (FARPROC *)&pGradientFill, (FARPROC)extGradientFill},
+	{HOOK_IAT_CANDIDATE, 0, "TransparentBlt", (FARPROC)NULL, (FARPROC *)&pTransparentBlt, (FARPROC)extTransparentBlt},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 }; 
 
 static char *libname = "msimg32.dll";
 
 void HookMSIMG32Init()
 {
-	HookLibInit(Hooks);
+	HookLibInitEx(Hooks);
 }
 
 void HookMSIMG32(HMODULE module)
 {
-	HookLibrary(module, Hooks, libname);
+	HookLibraryEx(module, Hooks, libname);
 }
 
 FARPROC Remap_MSIMG32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 
-	if(addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if(addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
 

@@ -18,23 +18,23 @@ BOOL WINAPI extGetOpenFileNameA(LPOPENFILENAMEA);
 BOOL WINAPI extGetSaveFileNameW(LPOPENFILENAMEW);
 BOOL WINAPI extGetOpenFileNameW(LPOPENFILENAMEW);
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "GetSaveFileNameA", NULL, (FARPROC *)&pGetSaveFileNameA, (FARPROC)extGetSaveFileNameA},
-	{HOOK_IAT_CANDIDATE, "GetOpenFileNameA", NULL, (FARPROC *)&pGetOpenFileNameA, (FARPROC)extGetOpenFileNameA},
-	{HOOK_IAT_CANDIDATE, "GetSaveFileNameW", NULL, (FARPROC *)&pGetSaveFileNameW, (FARPROC)extGetSaveFileNameW},
-	{HOOK_IAT_CANDIDATE, "GetOpenFileNameW", NULL, (FARPROC *)&pGetOpenFileNameW, (FARPROC)extGetOpenFileNameW},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "GetSaveFileNameA", NULL, (FARPROC *)&pGetSaveFileNameA, (FARPROC)extGetSaveFileNameA},
+	{HOOK_IAT_CANDIDATE, 0, "GetOpenFileNameA", NULL, (FARPROC *)&pGetOpenFileNameA, (FARPROC)extGetOpenFileNameA},
+	{HOOK_IAT_CANDIDATE, 0, "GetSaveFileNameW", NULL, (FARPROC *)&pGetSaveFileNameW, (FARPROC)extGetSaveFileNameW},
+	{HOOK_IAT_CANDIDATE, 0, "GetOpenFileNameW", NULL, (FARPROC *)&pGetOpenFileNameW, (FARPROC)extGetOpenFileNameW},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 void HookComDlg32(HMODULE module)
 {
-	HookLibrary(module, Hooks, "comdlg32.dll");
+	HookLibraryEx(module, Hooks, "comdlg32.dll");
 }
 
 FARPROC Remap_ComDlg32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
 

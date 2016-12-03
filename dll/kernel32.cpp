@@ -41,83 +41,83 @@ BOOL WINAPI extFreeLibrary(HMODULE hModule)
 // enabling hot patch. A solution is making all LoadLibrary* calls hot patchable, so that when loading the module, the call
 // can be hooked by the IAT lookup. This fixes a problem after movie playing in Wind Fantasy SP.
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "IsDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extIsDebuggerPresent},
-	{HOOK_IAT_CANDIDATE, "CheckRemoteDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extCheckRemoteDebuggerPresent},
-	{HOOK_IAT_CANDIDATE, "GetProcAddress", (FARPROC)GetProcAddress, (FARPROC *)&pGetProcAddress, (FARPROC)extGetProcAddress},
-	{HOOK_HOT_CANDIDATE, "LoadLibraryA", (FARPROC)LoadLibraryA, (FARPROC *)&pLoadLibraryA, (FARPROC)extLoadLibraryA},
-	{HOOK_HOT_CANDIDATE, "LoadLibraryExA", (FARPROC)LoadLibraryExA, (FARPROC *)&pLoadLibraryExA, (FARPROC)extLoadLibraryExA},
-	{HOOK_HOT_CANDIDATE, "LoadLibraryW", (FARPROC)LoadLibraryW, (FARPROC *)&pLoadLibraryW, (FARPROC)extLoadLibraryW},
-	{HOOK_HOT_CANDIDATE, "LoadLibraryExW", (FARPROC)LoadLibraryExW, (FARPROC *)&pLoadLibraryExW, (FARPROC)extLoadLibraryExW},
-	{HOOK_IAT_CANDIDATE, "GetDriveTypeA", (FARPROC)NULL, (FARPROC *)&pGetDriveType, (FARPROC)extGetDriveType},
-	{HOOK_IAT_CANDIDATE, "GetLogicalDrives", (FARPROC)NULL, (FARPROC *)&pGetLogicalDrives, (FARPROC)extGetLogicalDrives},
-	{HOOK_IAT_CANDIDATE, "GetTempFileNameA", (FARPROC)GetTempFileNameA, (FARPROC *)&pGetTempFileName, (FARPROC)extGetTempFileName},
-	{HOOK_IAT_CANDIDATE, "CreateProcessA", (FARPROC)NULL, (FARPROC *)&pCreateProcessA, (FARPROC)extCreateProcessA},
-	//{HOOK_IAT_CANDIDATE, "WinExec", (FARPROC)NULL, (FARPROC *)&pWinExec, (FARPROC)extWinExec},
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "IsDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extIsDebuggerPresent},
+	{HOOK_IAT_CANDIDATE, 0, "CheckRemoteDebuggerPresent", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)extCheckRemoteDebuggerPresent},
+	{HOOK_IAT_CANDIDATE, 0, "GetProcAddress", (FARPROC)GetProcAddress, (FARPROC *)&pGetProcAddress, (FARPROC)extGetProcAddress},
+	{HOOK_HOT_CANDIDATE, 0, "LoadLibraryA", (FARPROC)LoadLibraryA, (FARPROC *)&pLoadLibraryA, (FARPROC)extLoadLibraryA},
+	{HOOK_HOT_CANDIDATE, 0, "LoadLibraryExA", (FARPROC)LoadLibraryExA, (FARPROC *)&pLoadLibraryExA, (FARPROC)extLoadLibraryExA},
+	{HOOK_HOT_CANDIDATE, 0, "LoadLibraryW", (FARPROC)LoadLibraryW, (FARPROC *)&pLoadLibraryW, (FARPROC)extLoadLibraryW},
+	{HOOK_HOT_CANDIDATE, 0, "LoadLibraryExW", (FARPROC)LoadLibraryExW, (FARPROC *)&pLoadLibraryExW, (FARPROC)extLoadLibraryExW},
+	{HOOK_IAT_CANDIDATE, 0, "GetDriveTypeA", (FARPROC)NULL, (FARPROC *)&pGetDriveType, (FARPROC)extGetDriveType},
+	{HOOK_IAT_CANDIDATE, 0, "GetLogicalDrives", (FARPROC)NULL, (FARPROC *)&pGetLogicalDrives, (FARPROC)extGetLogicalDrives},
+	{HOOK_IAT_CANDIDATE, 0, "GetTempFileNameA", (FARPROC)GetTempFileNameA, (FARPROC *)&pGetTempFileName, (FARPROC)extGetTempFileName},
+	{HOOK_IAT_CANDIDATE, 0, "CreateProcessA", (FARPROC)NULL, (FARPROC *)&pCreateProcessA, (FARPROC)extCreateProcessA},
+	//{HOOK_IAT_CANDIDATE, 0, "WinExec", (FARPROC)NULL, (FARPROC *)&pWinExec, (FARPROC)extWinExec},
 #ifdef NOFREELIBRARY
-	{HOOK_HOT_CANDIDATE, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
+	{HOOK_HOT_CANDIDATE, 0, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
 #endif
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type FixAllocHooks[]={
-	{HOOK_IAT_CANDIDATE, "VirtualAlloc", (FARPROC)VirtualAlloc, (FARPROC *)&pVirtualAlloc, (FARPROC)extVirtualAlloc},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type FixAllocHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "VirtualAlloc", (FARPROC)VirtualAlloc, (FARPROC *)&pVirtualAlloc, (FARPROC)extVirtualAlloc},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type FixIOHooks[]={
-	{HOOK_IAT_CANDIDATE, "ReadFile", (FARPROC)NULL, (FARPROC *)&pReadFile, (FARPROC)extReadFile},
-	{HOOK_IAT_CANDIDATE, "CreateFileA", (FARPROC)NULL, (FARPROC *)&pCreateFile, (FARPROC)extCreateFile},
-	{HOOK_IAT_CANDIDATE, "SetFilePointer", (FARPROC)NULL, (FARPROC *)&pSetFilePointer, (FARPROC)extSetFilePointer},
-	{HOOK_IAT_CANDIDATE, "CloseHandle", (FARPROC)NULL, (FARPROC *)&pCloseHandle, (FARPROC)extCloseHandle},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type FixIOHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "ReadFile", (FARPROC)NULL, (FARPROC *)&pReadFile, (FARPROC)extReadFile},
+	{HOOK_IAT_CANDIDATE, 0, "CreateFileA", (FARPROC)NULL, (FARPROC *)&pCreateFile, (FARPROC)extCreateFile},
+	{HOOK_IAT_CANDIDATE, 0, "SetFilePointer", (FARPROC)NULL, (FARPROC *)&pSetFilePointer, (FARPROC)extSetFilePointer},
+	{HOOK_IAT_CANDIDATE, 0, "CloseHandle", (FARPROC)NULL, (FARPROC *)&pCloseHandle, (FARPROC)extCloseHandle},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type LimitHooks[]={
-	{HOOK_HOT_CANDIDATE, "GetDiskFreeSpaceA", (FARPROC)GetDiskFreeSpaceA, (FARPROC *)&pGetDiskFreeSpaceA, (FARPROC)extGetDiskFreeSpaceA},
-	{HOOK_HOT_CANDIDATE, "GlobalMemoryStatus", (FARPROC)GlobalMemoryStatus, (FARPROC *)&pGlobalMemoryStatus, (FARPROC)extGlobalMemoryStatus},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type LimitHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "GetDiskFreeSpaceA", (FARPROC)GetDiskFreeSpaceA, (FARPROC *)&pGetDiskFreeSpaceA, (FARPROC)extGetDiskFreeSpaceA},
+	{HOOK_HOT_CANDIDATE, 0, "GlobalMemoryStatus", (FARPROC)GlobalMemoryStatus, (FARPROC *)&pGlobalMemoryStatus, (FARPROC)extGlobalMemoryStatus},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type TimeHooks[]={
-	{HOOK_HOT_CANDIDATE, "GetTickCount", (FARPROC)GetTickCount, (FARPROC *)&pGetTickCount, (FARPROC)extGetTickCount},
-	{HOOK_HOT_CANDIDATE, "GetLocalTime", (FARPROC)GetLocalTime, (FARPROC *)&pGetLocalTime, (FARPROC)extGetLocalTime},
-	{HOOK_HOT_CANDIDATE, "GetSystemTime", (FARPROC)GetSystemTime, (FARPROC *)&pGetSystemTime, (FARPROC)extGetSystemTime},
-	{HOOK_HOT_CANDIDATE, "GetSystemTimeAsFileTime", (FARPROC)GetSystemTimeAsFileTime, (FARPROC *)&pGetSystemTimeAsFileTime, (FARPROC)extGetSystemTimeAsFileTime},
-	{HOOK_HOT_CANDIDATE, "Sleep", (FARPROC)Sleep, (FARPROC *)&pSleep, (FARPROC)extSleep},
-	{HOOK_HOT_CANDIDATE, "SleepEx", (FARPROC)SleepEx, (FARPROC *)&pSleepEx, (FARPROC)extSleepEx},
-	{HOOK_HOT_CANDIDATE, "QueryPerformanceCounter", (FARPROC)QueryPerformanceCounter, (FARPROC *)&pQueryPerformanceCounter, (FARPROC)extQueryPerformanceCounter},
-	{HOOK_HOT_CANDIDATE, "QueryPerformanceFrequency", (FARPROC)QueryPerformanceFrequency, (FARPROC *)&pQueryPerformanceFrequency, (FARPROC)extQueryPerformanceFrequency},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type TimeHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "GetTickCount", (FARPROC)GetTickCount, (FARPROC *)&pGetTickCount, (FARPROC)extGetTickCount},
+	{HOOK_HOT_CANDIDATE, 0, "GetLocalTime", (FARPROC)GetLocalTime, (FARPROC *)&pGetLocalTime, (FARPROC)extGetLocalTime},
+	{HOOK_HOT_CANDIDATE, 0, "GetSystemTime", (FARPROC)GetSystemTime, (FARPROC *)&pGetSystemTime, (FARPROC)extGetSystemTime},
+	{HOOK_HOT_CANDIDATE, 0, "GetSystemTimeAsFileTime", (FARPROC)GetSystemTimeAsFileTime, (FARPROC *)&pGetSystemTimeAsFileTime, (FARPROC)extGetSystemTimeAsFileTime},
+	{HOOK_HOT_CANDIDATE, 0, "Sleep", (FARPROC)Sleep, (FARPROC *)&pSleep, (FARPROC)extSleep},
+	{HOOK_HOT_CANDIDATE, 0, "SleepEx", (FARPROC)SleepEx, (FARPROC *)&pSleepEx, (FARPROC)extSleepEx},
+	{HOOK_HOT_CANDIDATE, 0, "QueryPerformanceCounter", (FARPROC)QueryPerformanceCounter, (FARPROC *)&pQueryPerformanceCounter, (FARPROC)extQueryPerformanceCounter},
+	{HOOK_HOT_CANDIDATE, 0, "QueryPerformanceFrequency", (FARPROC)QueryPerformanceFrequency, (FARPROC *)&pQueryPerformanceFrequency, (FARPROC)extQueryPerformanceFrequency},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type VersionHooks[]={
-	{HOOK_HOT_CANDIDATE, "GetVersion", (FARPROC)GetVersion, (FARPROC *)&pGetVersion, (FARPROC)extGetVersion},
-	{HOOK_HOT_CANDIDATE, "GetVersionExA", (FARPROC)GetVersionExA, (FARPROC *)&pGetVersionExA, (FARPROC)extGetVersionExA},
-	{HOOK_HOT_CANDIDATE, "GetVersionExW", (FARPROC)GetVersionExW, (FARPROC *)&pGetVersionExW, (FARPROC)extGetVersionExW},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type VersionHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "GetVersion", (FARPROC)GetVersion, (FARPROC *)&pGetVersion, (FARPROC)extGetVersion},
+	{HOOK_HOT_CANDIDATE, 0, "GetVersionExA", (FARPROC)GetVersionExA, (FARPROC *)&pGetVersionExA, (FARPROC)extGetVersionExA},
+	{HOOK_HOT_CANDIDATE, 0, "GetVersionExW", (FARPROC)GetVersionExW, (FARPROC *)&pGetVersionExW, (FARPROC)extGetVersionExW},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 static char *libname = "kernel32.dll";
 
 void HookKernel32(HMODULE module)
 {
-	HookLibrary(module, Hooks, libname);
-	if(dxw.dwFlags3 & BUFFEREDIOFIX) HookLibrary(module, FixIOHooks, libname);
-	if(dxw.dwFlags2 & LIMITRESOURCES) HookLibrary(module, LimitHooks, libname);
-	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
-	if(dxw.dwFlags2 & FAKEVERSION) HookLibrary(module, VersionHooks, libname);
-	if(dxw.dwFlags6 & LEGACYALLOC) HookLibrary(module, FixAllocHooks, libname);
+	HookLibraryEx(module, Hooks, libname);
+	if(dxw.dwFlags3 & BUFFEREDIOFIX) HookLibraryEx(module, FixIOHooks, libname);
+	if(dxw.dwFlags2 & LIMITRESOURCES) HookLibraryEx(module, LimitHooks, libname);
+	if(dxw.dwFlags2 & TIMESTRETCH) HookLibraryEx(module, TimeHooks, libname);
+	if(dxw.dwFlags2 & FAKEVERSION) HookLibraryEx(module, VersionHooks, libname);
+	if(dxw.dwFlags6 & LEGACYALLOC) HookLibraryEx(module, FixAllocHooks, libname);
 }
 
 void HookKernel32Init()
 {
-	HookLibInit(Hooks);
-	HookLibInit(FixIOHooks);
-	HookLibInit(LimitHooks);
-	HookLibInit(TimeHooks);
-	HookLibInit(VersionHooks);
-	HookLibInit(FixAllocHooks);
+	HookLibInitEx(Hooks);
+	HookLibInitEx(FixIOHooks);
+	HookLibInitEx(LimitHooks);
+	HookLibInitEx(TimeHooks);
+	HookLibInitEx(VersionHooks);
+	HookLibInitEx(FixAllocHooks);
 }
 
 FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -132,22 +132,22 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 		}
 	}
 			
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 
 	if(dxw.dwFlags3 & BUFFEREDIOFIX)
-		if (addr=RemapLibrary(proc, hModule, FixIOHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, FixIOHooks)) return addr;
 
 	if(dxw.dwFlags2 & LIMITRESOURCES)
-		if (addr=RemapLibrary(proc, hModule, LimitHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, LimitHooks)) return addr;
 
 	if(dxw.dwFlags2 & TIMESTRETCH)
-		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, TimeHooks)) return addr;
 
 	if(dxw.dwFlags2 & FAKEVERSION)
-		if (addr=RemapLibrary(proc, hModule, VersionHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, VersionHooks)) return addr;
 
 	if(dxw.dwFlags6 & LEGACYALLOC)
-		if (addr=RemapLibrary(proc, hModule, FixAllocHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, FixAllocHooks)) return addr;
 	return NULL;
 }
 

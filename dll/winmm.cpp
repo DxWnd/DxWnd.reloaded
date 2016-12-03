@@ -33,53 +33,53 @@ typedef MMRESULT (WINAPI *joyGetPosEx_Type)(DWORD, LPJOYINFOEX);
 joyGetPosEx_Type pjoyGetPosEx = NULL;
 MMRESULT WINAPI extjoyGetPosEx(DWORD, LPJOYINFOEX);
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
-	{HOOK_IAT_CANDIDATE, "mciSendCommandW", NULL, (FARPROC *)&pmciSendCommandW, (FARPROC)extmciSendCommandW},
-	{HOOK_HOT_CANDIDATE, "mciGetDeviceIDA", NULL, (FARPROC *)&pmciGetDeviceIDA, (FARPROC)extmciGetDeviceIDA},
-	{HOOK_HOT_CANDIDATE, "mciGetDeviceIDW", NULL, (FARPROC *)&pmciGetDeviceIDW, (FARPROC)extmciGetDeviceIDW},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
+	{HOOK_IAT_CANDIDATE, 0, "mciSendCommandW", NULL, (FARPROC *)&pmciSendCommandW, (FARPROC)extmciSendCommandW},
+	{HOOK_HOT_CANDIDATE, 0, "mciGetDeviceIDA", NULL, (FARPROC *)&pmciGetDeviceIDA, (FARPROC)extmciGetDeviceIDA},
+	{HOOK_HOT_CANDIDATE, 0, "mciGetDeviceIDW", NULL, (FARPROC *)&pmciGetDeviceIDW, (FARPROC)extmciGetDeviceIDW},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type TimeHooks[]={
-	{HOOK_HOT_CANDIDATE, "timeGetTime", NULL, (FARPROC *)&ptimeGetTime, (FARPROC)exttimeGetTime},
-	{HOOK_HOT_CANDIDATE, "timeKillEvent", NULL, (FARPROC *)&ptimeKillEvent, (FARPROC)exttimeKillEvent},
-	{HOOK_HOT_CANDIDATE, "timeSetEvent", NULL, (FARPROC *)&ptimeSetEvent, (FARPROC)exttimeSetEvent},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type TimeHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "timeGetTime", NULL, (FARPROC *)&ptimeGetTime, (FARPROC)exttimeGetTime},
+	{HOOK_HOT_CANDIDATE, 0, "timeKillEvent", NULL, (FARPROC *)&ptimeKillEvent, (FARPROC)exttimeKillEvent},
+	{HOOK_HOT_CANDIDATE, 0, "timeSetEvent", NULL, (FARPROC *)&ptimeSetEvent, (FARPROC)exttimeSetEvent},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type RemapHooks[]={
-	{HOOK_HOT_CANDIDATE, "mciSendStringA", NULL, (FARPROC *)&pmciSendStringA, (FARPROC)extmciSendStringA},
-	{HOOK_HOT_CANDIDATE, "mciSendStringW", NULL, (FARPROC *)&pmciSendStringW, (FARPROC)extmciSendStringW},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type RemapHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "mciSendStringA", NULL, (FARPROC *)&pmciSendStringA, (FARPROC)extmciSendStringA},
+	{HOOK_HOT_CANDIDATE, 0, "mciSendStringW", NULL, (FARPROC *)&pmciSendStringW, (FARPROC)extmciSendStringW},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type JoyHooks[]={
-	{HOOK_IAT_CANDIDATE, "joyGetNumDevs", NULL, (FARPROC *)&pjoyGetNumDevs, (FARPROC)extjoyGetNumDevs},
-	{HOOK_IAT_CANDIDATE, "joyGetDevCapsA", NULL, (FARPROC *)&pjoyGetDevCapsA, (FARPROC)extjoyGetDevCapsA},
-	{HOOK_IAT_CANDIDATE, "joyGetPosEx", NULL, (FARPROC *)&pjoyGetPosEx, (FARPROC)extjoyGetPosEx},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type JoyHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "joyGetNumDevs", NULL, (FARPROC *)&pjoyGetNumDevs, (FARPROC)extjoyGetNumDevs},
+	{HOOK_IAT_CANDIDATE, 0, "joyGetDevCapsA", NULL, (FARPROC *)&pjoyGetDevCapsA, (FARPROC)extjoyGetDevCapsA},
+	{HOOK_IAT_CANDIDATE, 0, "joyGetPosEx", NULL, (FARPROC *)&pjoyGetPosEx, (FARPROC)extjoyGetPosEx},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 void HookWinMM(HMODULE module, char *libname)
 {
-	HookLibrary(module, Hooks, libname);
-	if(dxw.dwFlags2 & TIMESTRETCH) HookLibrary(module, TimeHooks, libname);
-	if(dxw.dwFlags5 & REMAPMCI) HookLibrary(module, RemapHooks, libname);
-	if(dxw.dwFlags6 & VIRTUALJOYSTICK) HookLibrary(module, JoyHooks, libname);
+	HookLibraryEx(module, Hooks, libname);
+	if(dxw.dwFlags2 & TIMESTRETCH) HookLibraryEx(module, TimeHooks, libname);
+	if(dxw.dwFlags5 & REMAPMCI) HookLibraryEx(module, RemapHooks, libname);
+	if(dxw.dwFlags6 & VIRTUALJOYSTICK) HookLibraryEx(module, JoyHooks, libname);
 }
 
 FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	if(dxw.dwFlags2 & TIMESTRETCH)
-		if (addr=RemapLibrary(proc, hModule, TimeHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, TimeHooks)) return addr;
 	if(dxw.dwFlags5 & REMAPMCI)
-		if (addr=RemapLibrary(proc, hModule, RemapHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, RemapHooks)) return addr;
 	if(dxw.dwFlags6 & VIRTUALJOYSTICK)
-		if (addr=RemapLibrary(proc, hModule, JoyHooks)) return addr;
+		if (addr=RemapLibraryEx(proc, hModule, JoyHooks)) return addr;
 
 	return NULL;
 }

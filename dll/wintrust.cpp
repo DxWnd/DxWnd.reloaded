@@ -9,20 +9,20 @@ typedef LONG	(WINAPI *WinVerifyTrust_Type)(HWND, GUID *, LPVOID);
 WinVerifyTrust_Type pWinVerifyTrust;
 extern LONG WINAPI extWinVerifyTrust(HWND, GUID *, LPVOID);
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "WinVerifyTrust", NULL, (FARPROC *)&pWinVerifyTrust, (FARPROC)extWinVerifyTrust},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "WinVerifyTrust", NULL, (FARPROC *)&pWinVerifyTrust, (FARPROC)extWinVerifyTrust},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 void HookTrust(HMODULE module)
 {
-	HookLibrary(module, Hooks, "wintrust.dll");
+	HookLibraryEx(module, Hooks, "wintrust.dll");
 }
 
 FARPROC Remap_trust_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;}
 
 LONG WINAPI extWinVerifyTrust(HWND hWnd, GUID *pgActionID, LPVOID pWVTData)

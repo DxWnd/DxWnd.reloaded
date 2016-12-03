@@ -14,7 +14,7 @@
 #define UNNOTIFY			0x00000001 
 #define EMULATESURFACE		0x00000002
 #define CLIPCURSOR		 	0x00000004 // Force cursor clipping within window
-//#define RESETPRIMARY		0x00000008 // reset emulated primary surface when reopening DDRaw object
+#define NEEDADMINCAPS		0x00000008 // DxWnd needs administrator's privileges to hook this program
 #define HOOKDI				0x00000010
 #define MODIFYMOUSE			0x00000020
 #define HANDLEEXCEPTIONS	0x00000040 // Handles exceptions: Div by 0 ....
@@ -98,7 +98,7 @@
 #define FULLSCREENONLY		0x00010000 // assume that the program is always in fullscreen mode
 #define FONTBYPASS			0x00020000 // bypass font unsupported API
 //#define YUV2RGB				0x00040000 // Simulate YUV to RGB color conversion
-//#define RGB2YUV				0x00080000 // Simulate RGB to YUV color conversion
+#define DEFAULTMESSAGES		0x00080000 // peocess  offending messages that are typical of a window with default action
 #define BUFFEREDIOFIX		0x00100000 // fix buffered IO incompatibilities between pre-Win98 and post-WinNT
 #define FILTERMESSAGES		0x00200000 // ignore offending messages that are typical of a window and are hot handled by a fullscreeen app
 #define PEEKALLMESSAGES		0x00400000 // force Peek-ing all sort of messages to avoid Win7 message queue saturation that leads to program halt 
@@ -217,6 +217,7 @@
 // seventh flags DWORD dxw.dwFlags7:
 #define LIMITDDRAW			0x00000001 // Limit the maximum available ddraw object version
 #define DISABLEDISABLEALTTAB 0x00000002 // Disables the compatibility patch that disables the Alt-Tab key and other special combinations
+#define FIXCLIPPERAREA		0x00000004 // fix clipper area in ddraw & GDI shared DC mode
 
 // eighth flags DWORD dxw.dwFlags8:
 

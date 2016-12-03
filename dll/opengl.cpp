@@ -24,29 +24,29 @@
 //typedef void (WINAPI *glDrawPixels_Type)(GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
 //glDrawPixels_Type pglDrawPixels = NULL;
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "glGetError", NULL, (FARPROC *)&pglGetError, (FARPROC)extglGetError},
-	{HOOK_IAT_CANDIDATE, "glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
-	{HOOK_IAT_CANDIDATE, "glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
-	{HOOK_IAT_CANDIDATE, "glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
-	{HOOK_IAT_CANDIDATE, "glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
-	{HOOK_IAT_CANDIDATE, "glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
-	{HOOK_IAT_CANDIDATE, "glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
-	{HOOK_IAT_CANDIDATE, "glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
-	{HOOK_IAT_CANDIDATE, "wglCreateContext", NULL, (FARPROC *)&pwglCreateContext, (FARPROC)extwglCreateContext},
-	{HOOK_IAT_CANDIDATE, "wglMakeCurrent", NULL, (FARPROC *)&pwglMakeCurrent, (FARPROC)extwglMakeCurrent},
-	{HOOK_IAT_CANDIDATE, "wglGetProcAddress", NULL, (FARPROC *)&pwglGetProcAddress, (FARPROC)extwglGetProcAddress},
-	{HOOK_IAT_CANDIDATE, "glTexImage2D", NULL, (FARPROC *)&pglTexImage2D, (FARPROC)extglTexImage2D},
-	//{HOOK_IAT_CANDIDATE, "glDrawPixels", NULL, (FARPROC *)&pglDrawPixels, (FARPROC)extglDrawPixels},
-	{HOOK_IAT_CANDIDATE, "glPixelZoom", NULL, (FARPROC *)&pglPixelZoom, (FARPROC)extglPixelZoom},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "glGetError", NULL, (FARPROC *)&pglGetError, (FARPROC)extglGetError},
+	{HOOK_IAT_CANDIDATE, 0, "glViewport", NULL, (FARPROC *)&pglViewport, (FARPROC)extglViewport},
+	{HOOK_IAT_CANDIDATE, 0, "glScissor", NULL, (FARPROC *)&pglScissor, (FARPROC)extglScissor},
+	{HOOK_IAT_CANDIDATE, 0, "glGetIntegerv", NULL, (FARPROC *)&pglGetIntegerv, (FARPROC)&extglGetIntegerv},
+	{HOOK_IAT_CANDIDATE, 0, "glDrawBuffer", NULL, (FARPROC *)&pglDrawBuffer, (FARPROC)extglDrawBuffer},
+	{HOOK_IAT_CANDIDATE, 0, "glPolygonMode", NULL, (FARPROC *)&pglPolygonMode, (FARPROC)extglPolygonMode},
+	{HOOK_IAT_CANDIDATE, 0, "glGetFloatv", NULL, (FARPROC *)&pglGetFloatv, (FARPROC)extglGetFloatv},
+	{HOOK_IAT_CANDIDATE, 0, "glClear", NULL, (FARPROC *)&pglClear, (FARPROC)extglClear},
+	{HOOK_IAT_CANDIDATE, 0, "wglCreateContext", NULL, (FARPROC *)&pwglCreateContext, (FARPROC)extwglCreateContext},
+	{HOOK_IAT_CANDIDATE, 0, "wglMakeCurrent", NULL, (FARPROC *)&pwglMakeCurrent, (FARPROC)extwglMakeCurrent},
+	{HOOK_IAT_CANDIDATE, 0, "wglGetProcAddress", NULL, (FARPROC *)&pwglGetProcAddress, (FARPROC)extwglGetProcAddress},
+	{HOOK_IAT_CANDIDATE, 0, "glTexImage2D", NULL, (FARPROC *)&pglTexImage2D, (FARPROC)extglTexImage2D},
+	//{HOOK_IAT_CANDIDATE, 0, "glDrawPixels", NULL, (FARPROC *)&pglDrawPixels, (FARPROC)extglDrawPixels},
+	{HOOK_IAT_CANDIDATE, 0, "glPixelZoom", NULL, (FARPROC *)&pglPixelZoom, (FARPROC)extglPixelZoom},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	if(!(dxw.dwFlags2 & HOOKOPENGL)) return NULL; 
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
 }
@@ -54,7 +54,7 @@ FARPROC Remap_gl_ProcAddress(LPCSTR proc, HMODULE hModule)
 PROC Remap_wgl_ProcAddress(LPCSTR proc)
 {
 	int i;
-	HookEntry_Type *Hook;
+	HookEntryEx_Type *Hook;
 	for(i=0; Hooks[i].APIName; i++){
 		Hook=&Hooks[i];
 		if (!strcmp(proc,Hook->APIName)){
@@ -83,7 +83,7 @@ void ForceHookOpenGL(HMODULE base) // to do .....
 	}
 
 	int i;
-	HookEntry_Type *Hook;
+	HookEntryEx_Type *Hook;
 	for(i=0; Hooks[i].APIName; i++){
 		Hook=&Hooks[i];
 		Hook->OriginalAddress = GetProcAddress(hGlLib, Hook->APIName);
@@ -96,7 +96,7 @@ void ForceHookOpenGL(HMODULE base) // to do .....
 
 void HookOpenGL(HMODULE module, char *customlib) 
 {
-	HookLibrary(module, Hooks, customlib);
+	HookLibraryEx(module, Hooks, customlib);
 }
 
 void HookOpenGLLibs(HMODULE module, char *customlib)

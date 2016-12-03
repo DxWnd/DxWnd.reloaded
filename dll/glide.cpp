@@ -21,13 +21,13 @@ grClipWindow_Type pgrClipWindow = 0;
 grSstWinOpen_Type pgrSstWinOpen = 0;
 grQueryResolutions_Type pgrQueryResolutions = 0;
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "_grGlideInit@0", (FARPROC)NULL, (FARPROC *)&pgrGlideInit, (FARPROC)extgrGlideInit},
-	{HOOK_IAT_CANDIDATE, "_grGlideShutdown@0", (FARPROC)NULL, (FARPROC *)&pgrGlideShutdown, (FARPROC)extgrGlideShutdown},
-	{HOOK_IAT_CANDIDATE, "_grClipWindow@16", (FARPROC)NULL, (FARPROC *)&pgrClipWindow, (FARPROC)extgrClipWindow},
-	{HOOK_IAT_CANDIDATE, "_grSstWinOpen@28", (FARPROC)NULL, (FARPROC *)&pgrSstWinOpen, (FARPROC)extgrSstWinOpen},
-	{HOOK_IAT_CANDIDATE, "_grQueryResolutions@8", (FARPROC)NULL, (FARPROC *)&pgrQueryResolutions, (FARPROC)extgrQueryResolutions},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "_grGlideInit@0", (FARPROC)NULL, (FARPROC *)&pgrGlideInit, (FARPROC)extgrGlideInit},
+	{HOOK_IAT_CANDIDATE, 0, "_grGlideShutdown@0", (FARPROC)NULL, (FARPROC *)&pgrGlideShutdown, (FARPROC)extgrGlideShutdown},
+	{HOOK_IAT_CANDIDATE, 0, "_grClipWindow@16", (FARPROC)NULL, (FARPROC *)&pgrClipWindow, (FARPROC)extgrClipWindow},
+	{HOOK_IAT_CANDIDATE, 0, "_grSstWinOpen@28", (FARPROC)NULL, (FARPROC *)&pgrSstWinOpen, (FARPROC)extgrSstWinOpen},
+	{HOOK_IAT_CANDIDATE, 0, "_grQueryResolutions@8", (FARPROC)NULL, (FARPROC *)&pgrQueryResolutions, (FARPROC)extgrQueryResolutions},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_Glide_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -35,7 +35,7 @@ FARPROC Remap_Glide_ProcAddress(LPCSTR proc, HMODULE hModule)
 	FARPROC addr;
 	OutTrace("Remap_Glide_ProcAddress: proc=%s\n", proc);
 	if(!(dxw.dwFlags4 & HOOKGLIDE)) return NULL; 
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
 }
@@ -43,9 +43,9 @@ FARPROC Remap_Glide_ProcAddress(LPCSTR proc, HMODULE hModule)
 void HookGlideLibs(HMODULE hModule)
 {
 	OutTraceDW("HookGlideLibs module=%x\n", hModule);
-	HookLibrary(hModule, Hooks, "glide.dll");
-	HookLibrary(hModule, Hooks, "glide2x.dll");
-	HookLibrary(hModule, Hooks, "glide3x.dll");
+	HookLibraryEx(hModule, Hooks, "glide.dll");
+	HookLibraryEx(hModule, Hooks, "glide2x.dll");
+	HookLibraryEx(hModule, Hooks, "glide3x.dll");
 	return;
 }
 

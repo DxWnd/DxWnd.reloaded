@@ -319,52 +319,52 @@ Release_Type pRelease9 = 0;
 DWORD dwD3DVersion;
 DWORD dwD3DSwapEffect;
 
-static HookEntry_Type d3d8Hooks[]={
-	{HOOK_HOT_CANDIDATE, "Direct3DCreate8", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate8, (FARPROC)extDirect3DCreate8},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type d3d8Hooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "Direct3DCreate8", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate8, (FARPROC)extDirect3DCreate8},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 
-static HookEntry_Type d3d9Hooks[]={
-	{HOOK_HOT_CANDIDATE, "Direct3DCreate9", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9, (FARPROC)extDirect3DCreate9},
-	{HOOK_HOT_CANDIDATE, "Direct3DCreate9Ex", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9Ex, (FARPROC)extDirect3DCreate9Ex},
-	{HOOK_HOT_CANDIDATE, "CheckFullScreen", (FARPROC)NULL, (FARPROC *)&pCheckFullScreen, (FARPROC)extCheckFullScreen},
-	{HOOK_HOT_CANDIDATE, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)&pDisableD3DSpy, (FARPROC)extDisableD3DSpy},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type d3d9Hooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "Direct3DCreate9", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9, (FARPROC)extDirect3DCreate9},
+	{HOOK_HOT_CANDIDATE, 0, "Direct3DCreate9Ex", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9Ex, (FARPROC)extDirect3DCreate9Ex},
+	{HOOK_HOT_CANDIDATE, 0, "CheckFullScreen", (FARPROC)NULL, (FARPROC *)&pCheckFullScreen, (FARPROC)extCheckFullScreen},
+	{HOOK_HOT_CANDIDATE, 0, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)&pDisableD3DSpy, (FARPROC)extDisableD3DSpy},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type d3d9Extra[]={
-	{HOOK_HOT_CANDIDATE, "Direct3DShaderValidatorCreate9", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDirect3DShaderValidatorCreate9},
-	{HOOK_HOT_CANDIDATE, "DebugSetLevel", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDebugSetLevel},
-	{HOOK_HOT_CANDIDATE, "DebugSetMute", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDebugSetMute},
-	{HOOK_HOT_CANDIDATE, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDisableD3DSpy},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type d3d9Extra[]={
+	{HOOK_HOT_CANDIDATE, 0, "Direct3DShaderValidatorCreate9", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDirect3DShaderValidatorCreate9},
+	{HOOK_HOT_CANDIDATE, 0, "DebugSetLevel", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDebugSetLevel},
+	{HOOK_HOT_CANDIDATE, 0, "DebugSetMute", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDebugSetMute},
+	{HOOK_HOT_CANDIDATE, 0, "DisableD3DSpy", (FARPROC)NULL, (FARPROC *)NULL, (FARPROC)voidDisableD3DSpy},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type d3d10Hooks[]={
-	{HOOK_HOT_CANDIDATE, "D3D10CreateDevice", (FARPROC)NULL, (FARPROC *)&pD3D10CreateDevice, (FARPROC)extD3D10CreateDevice},
-	{HOOK_HOT_CANDIDATE, "D3D10CreateDeviceAndSwapChain", (FARPROC)NULL, (FARPROC *)&pD3D10CreateDeviceAndSwapChain, (FARPROC)extD3D10CreateDeviceAndSwapChain},
-	{HOOK_HOT_CANDIDATE, "CheckFullScreen", (FARPROC)NULL, (FARPROC *)&pCheckFullScreen, (FARPROC)extCheckFullScreen},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type d3d10Hooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "D3D10CreateDevice", (FARPROC)NULL, (FARPROC *)&pD3D10CreateDevice, (FARPROC)extD3D10CreateDevice},
+	{HOOK_HOT_CANDIDATE, 0, "D3D10CreateDeviceAndSwapChain", (FARPROC)NULL, (FARPROC *)&pD3D10CreateDeviceAndSwapChain, (FARPROC)extD3D10CreateDeviceAndSwapChain},
+	{HOOK_HOT_CANDIDATE, 0, "CheckFullScreen", (FARPROC)NULL, (FARPROC *)&pCheckFullScreen, (FARPROC)extCheckFullScreen},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type d3d10_1Hooks[]={
-	{HOOK_HOT_CANDIDATE, "D3D11CreateDevice", (FARPROC)NULL, (FARPROC *)&pD3D11CreateDevice, (FARPROC)extD3D11CreateDevice},
-	{HOOK_HOT_CANDIDATE, "D3D11CreateDeviceAndSwapChain", (FARPROC)NULL, (FARPROC *)&pD3D11CreateDeviceAndSwapChain, (FARPROC)extD3D11CreateDeviceAndSwapChain},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type d3d10_1Hooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "D3D11CreateDevice", (FARPROC)NULL, (FARPROC *)&pD3D11CreateDevice, (FARPROC)extD3D11CreateDevice},
+	{HOOK_HOT_CANDIDATE, 0, "D3D11CreateDeviceAndSwapChain", (FARPROC)NULL, (FARPROC *)&pD3D11CreateDeviceAndSwapChain, (FARPROC)extD3D11CreateDeviceAndSwapChain},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntry_Type d3d11Hooks[]={
-	{HOOK_HOT_CANDIDATE, "D3D10CreateDevice1", (FARPROC)NULL, (FARPROC *)&pD3D10CreateDevice1, (FARPROC)extD3D10CreateDevice1},
-	{HOOK_HOT_CANDIDATE, "D3D10CreateDeviceAndSwapChain1", (FARPROC)NULL, (FARPROC *)&pD3D10CreateDeviceAndSwapChain1, (FARPROC)extD3D10CreateDeviceAndSwapChain1},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type d3d11Hooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "D3D10CreateDevice1", (FARPROC)NULL, (FARPROC *)&pD3D10CreateDevice1, (FARPROC)extD3D10CreateDevice1},
+	{HOOK_HOT_CANDIDATE, 0, "D3D10CreateDeviceAndSwapChain1", (FARPROC)NULL, (FARPROC *)&pD3D10CreateDeviceAndSwapChain1, (FARPROC)extD3D10CreateDeviceAndSwapChain1},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_d3d8_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
-	if (addr=RemapLibrary(proc, hModule, d3d8Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, d3d8Hooks)) return addr;
 	return NULL;
 }
 
@@ -372,8 +372,8 @@ FARPROC Remap_d3d9_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
-	if (addr=RemapLibrary(proc, hModule, d3d9Hooks)) return addr;
-	if (dxw.dwFlags3 & SUPPRESSD3DEXT) if (addr=RemapLibrary(proc, hModule, d3d9Extra)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, d3d9Hooks)) return addr;
+	if (dxw.dwFlags3 & SUPPRESSD3DEXT) if (addr=RemapLibraryEx(proc, hModule, d3d9Extra)) return addr;
 	return NULL;
 }
 
@@ -381,7 +381,7 @@ FARPROC Remap_d3d10_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
-	if (addr=RemapLibrary(proc, hModule, d3d10Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, d3d10Hooks)) return addr;
 	return NULL;
 }
 
@@ -389,7 +389,7 @@ FARPROC Remap_d3d10_1_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
-	if (addr=RemapLibrary(proc, hModule, d3d10_1Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, d3d10_1Hooks)) return addr;
 	return NULL;
 }
 
@@ -397,7 +397,7 @@ FARPROC Remap_d3d11_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
 	//if (dxw.dwTargetDDVersion == HOOKDDRAWNONE) return NULL;
-	if (addr=RemapLibrary(proc, hModule, d3d11Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, d3d11Hooks)) return addr;
 	return NULL;
 }
 
@@ -410,25 +410,25 @@ int HookDirect3D(HMODULE module, int version){
 	OutTraceDW("HookDirect3D: module=%x version=%d\n", module, version);
 	switch(version){
 	case 0:
-		HookLibrary(module, d3d8Hooks, "d3d8.dll");
-		HookLibrary(module, d3d9Hooks, "d3d9.dll");
+		HookLibraryEx(module, d3d8Hooks, "d3d8.dll");
+		HookLibraryEx(module, d3d9Hooks, "d3d9.dll");
 #ifdef HOOKD3D10ANDLATER
-		HookLibrary(module, d3d10Hooks, "d3d10.dll");
-		HookLibrary(module, d3d10_1Hooks, "d3d10_1.dll");
-		HookLibrary(module, d3d11Hooks, "d3d11.dll");
+		HookLibraryEx(module, d3d10Hooks, "d3d10.dll");
+		HookLibraryEx(module, d3d10_1Hooks, "d3d10_1.dll");
+		HookLibraryEx(module, d3d11Hooks, "d3d11.dll");
 #endif
 		break;
 	case 8:
-		PinLibrary(d3d8Hooks, "d3d8.dll"); // pin for "Port Royale 2"
-		HookLibrary(module, d3d8Hooks, "d3d8.dll");
+		PinLibraryEx(d3d8Hooks, "d3d8.dll"); // pin for "Port Royale 2"
+		HookLibraryEx(module, d3d8Hooks, "d3d8.dll");
 		if(pDirect3DCreate8){
 			lpd3d = (LPDIRECT3D9)extDirect3DCreate8(220);
 			if(lpd3d) lpd3d->Release();
 		}
 		break;
 	case 9:
-		PinLibrary(d3d9Hooks, "d3d9.dll");// pin for "Affari tuoi"
-		HookLibrary(module, d3d9Hooks, "d3d9.dll");
+		PinLibraryEx(d3d9Hooks, "d3d9.dll");// pin for "Affari tuoi"
+		HookLibraryEx(module, d3d9Hooks, "d3d9.dll");
 		if(pDirect3DCreate9){ 
 			lpd3d = (LPDIRECT3D9)extDirect3DCreate9(31);
 			if(lpd3d) lpd3d->Release();
@@ -436,10 +436,10 @@ int HookDirect3D(HMODULE module, int version){
 		break;
 #ifdef HOOKD3D10ANDLATER
 	case 10:
-		PinLibrary(d3d10Hooks, "d3d10.dll");
-		PinLibrary(d3d10_1Hooks, "d3d10_1.dll");
-		HookLibrary(module, d3d10Hooks, "d3d10.dll");
-		HookLibrary(module, d3d10_1Hooks, "d3d10_1.dll");
+		PinLibraryEx(d3d10Hooks, "d3d10.dll");
+		PinLibraryEx(d3d10_1Hooks, "d3d10_1.dll");
+		HookLibraryEx(module, d3d10Hooks, "d3d10.dll");
+		HookLibraryEx(module, d3d10_1Hooks, "d3d10_1.dll");
 		if(pD3D10CreateDevice){
 			res = extD3D10CreateDevice(
 				NULL,
@@ -452,8 +452,8 @@ int HookDirect3D(HMODULE module, int version){
 		}
 	break;
 	case 11:
-		PinLibrary(d3d11Hooks, "d3d11.dll");
-		HookLibrary(module, d3d11Hooks, "d3d11.dll");
+		PinLibraryEx(d3d11Hooks, "d3d11.dll");
+		HookLibraryEx(module, d3d11Hooks, "d3d11.dll");
 		if(pD3D11CreateDevice){
 			D3D_FEATURE_LEVEL FeatureLevel;
 			ID3D11DeviceContext *pImmediateContext;

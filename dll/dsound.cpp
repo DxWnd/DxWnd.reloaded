@@ -13,23 +13,27 @@
 #include "dxhelper.h"
 
 typedef HRESULT	(WINAPI *DirectSoundCreate_Type)(LPGUID, LPDIRECTSOUND *, LPUNKNOWN);
+typedef HRESULT (WINAPI *DirectSoundCreate8_Type)(LPCGUID, LPDIRECTSOUND8 *, LPUNKNOWN);
 typedef HRESULT	(WINAPI *SetCooperativeLevel_Type)  (void *, HWND, DWORD);
 
 DirectSoundCreate_Type pDirectSoundCreate = NULL;
+DirectSoundCreate8_Type pDirectSoundCreate8 = NULL;
 SetCooperativeLevel_Type pDSSetCooperativeLevel = NULL;
 
 HRESULT WINAPI extDirectSoundCreate(LPGUID, LPDIRECTSOUND *, LPUNKNOWN);
+HRESULT WINAPI extDirectSoundCreate8(LPCGUID, LPDIRECTSOUND8 *, LPUNKNOWN);
 HRESULT WINAPI extDSSetCooperativeLevel(void *, HWND, DWORD);
 
-static HookEntry_Type Hooks[]={
-	{HOOK_HOT_CANDIDATE, "DirectSoundCreate", (FARPROC)NULL, (FARPROC *)&pDirectSoundCreate, (FARPROC)extDirectSoundCreate},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	{HOOK_HOT_CANDIDATE, 0x0001, "DirectSoundCreate", (FARPROC)NULL, (FARPROC *)&pDirectSoundCreate, (FARPROC)extDirectSoundCreate},
+	{HOOK_HOT_CANDIDATE, 0x000B, "DirectSoundCreate8", (FARPROC)NULL, (FARPROC *)&pDirectSoundCreate8, (FARPROC)extDirectSoundCreate8},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_DSound_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
 
@@ -37,12 +41,12 @@ static char *libname = "dsound.dll";
 
 void HookDirectSound(HMODULE hModule)
 {
-	HookLibrary(hModule, Hooks, libname);
+	HookLibraryEx(hModule, Hooks, libname);
 }
 
 void HookDirectSoundInit()
 {
-	HookLibInit(Hooks);
+	HookLibInitEx(Hooks);
 }
 
 void HookDirectSoundObj(LPDIRECTSOUND *lpds)
@@ -55,14 +59,32 @@ HRESULT WINAPI extDirectSoundCreate(LPGUID guid, LPDIRECTSOUND *lpds, LPUNKNOWN 
 {
 	HRESULT res;
 
-	OutTrace("DirectSoundCreate: guid=%x\n", guid);
+	OutTraceDW("DirectSoundCreate: guid=%x\n", guid);
 	res = (*pDirectSoundCreate)(guid, lpds, unk);
 	if(res){
 		OutTraceE("DirectSoundCreate ERROR: res=%x(%s)\n", res, ExplainDDError(res));
-		return res;
 	}
+	else {
+		OutTraceDW("DirectSoundCreate lpDS=%x\n", *lpds);
+		HookDirectSoundObj(lpds);
+	}
+	return res;
+}
 
-	HookDirectSoundObj(lpds);
+HRESULT WINAPI extDirectSoundCreate8(LPCGUID lpcGuidDevice, LPDIRECTSOUND8 *ppDS8, LPUNKNOWN pUnkOuter)
+{
+	HRESULT res;
+
+	OutTraceDW("DirectSoundCreate8: guid=%x\n", lpcGuidDevice);
+	res = (*pDirectSoundCreate8)(lpcGuidDevice, ppDS8, pUnkOuter);
+	res = DD_OK;
+	if(res){
+		OutTraceE("DirectSoundCreate8 ERROR: res=%x(%s)\n", res, ExplainDDError(res));
+	}
+	else {
+		OutTraceDW("DirectSoundCreate8 lpDS8=%x\n", *ppDS8);
+		HookDirectSoundObj((LPDIRECTSOUND *)ppDS8);
+	}
 	return res;
 }
 

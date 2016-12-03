@@ -14,28 +14,28 @@ typedef LONG (WINAPI *RegEnumValueA_Type)(HKEY, DWORD, LPTSTR, LPDWORD, LPDWORD,
 LONG WINAPI extRegEnumValueA(HKEY, DWORD, LPTSTR, LPDWORD, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
 RegEnumValueA_Type pRegEnumValueA = NULL;
 
-static HookEntry_Type Hooks[]={
-	{HOOK_IAT_CANDIDATE, "RegOpenKeyExA", NULL, (FARPROC *)&pRegOpenKeyEx, (FARPROC)extRegOpenKeyEx},
-	{HOOK_IAT_CANDIDATE, "RegCloseKey", NULL, (FARPROC *)&pRegCloseKey, (FARPROC)extRegCloseKey},
-	{HOOK_IAT_CANDIDATE, "RegQueryValueExA", NULL, (FARPROC *)&pRegQueryValueEx, (FARPROC)extRegQueryValueEx},
-	{HOOK_IAT_CANDIDATE, "RegCreateKeyA", NULL, (FARPROC *)&pRegCreateKey, (FARPROC)extRegCreateKey},
-	{HOOK_IAT_CANDIDATE, "RegCreateKeyExA", NULL, (FARPROC *)&pRegCreateKeyEx, (FARPROC)extRegCreateKeyEx},
-	{HOOK_IAT_CANDIDATE, "RegSetValueExA", NULL, (FARPROC *)&pRegSetValueEx, (FARPROC)extRegSetValueEx},
-	{HOOK_IAT_CANDIDATE, "RegFlushKey", NULL, (FARPROC *)&pRegFlushKey, (FARPROC)extRegFlushKey},
+static HookEntryEx_Type Hooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "RegOpenKeyExA", NULL, (FARPROC *)&pRegOpenKeyEx, (FARPROC)extRegOpenKeyEx},
+	{HOOK_IAT_CANDIDATE, 0, "RegCloseKey", NULL, (FARPROC *)&pRegCloseKey, (FARPROC)extRegCloseKey},
+	{HOOK_IAT_CANDIDATE, 0, "RegQueryValueExA", NULL, (FARPROC *)&pRegQueryValueEx, (FARPROC)extRegQueryValueEx},
+	{HOOK_IAT_CANDIDATE, 0, "RegCreateKeyA", NULL, (FARPROC *)&pRegCreateKey, (FARPROC)extRegCreateKey},
+	{HOOK_IAT_CANDIDATE, 0, "RegCreateKeyExA", NULL, (FARPROC *)&pRegCreateKeyEx, (FARPROC)extRegCreateKeyEx},
+	{HOOK_IAT_CANDIDATE, 0, "RegSetValueExA", NULL, (FARPROC *)&pRegSetValueEx, (FARPROC)extRegSetValueEx},
+	{HOOK_IAT_CANDIDATE, 0, "RegFlushKey", NULL, (FARPROC *)&pRegFlushKey, (FARPROC)extRegFlushKey},
 	// v2.3.36
-	{HOOK_IAT_CANDIDATE, "RegEnumValueA", NULL, (FARPROC *)&pRegEnumValueA, (FARPROC)extRegEnumValueA},
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+	{HOOK_IAT_CANDIDATE, 0, "RegEnumValueA", NULL, (FARPROC *)&pRegEnumValueA, (FARPROC)extRegEnumValueA},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
  
 void HookAdvApi32(HMODULE module)
 {
-	HookLibrary(module, Hooks, "ADVAPI32.dll");
+	HookLibraryEx(module, Hooks, "ADVAPI32.dll");
 }
 
 FARPROC Remap_AdvApi32_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	return NULL;
 }
 

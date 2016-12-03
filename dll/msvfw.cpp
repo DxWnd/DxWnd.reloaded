@@ -29,31 +29,31 @@ typedef BOOL (WINAPI *DrawDibEnd_Type)(HDRAWDIB);
 DrawDibEnd_Type pDrawDibEnd = NULL;
 BOOL WINAPI extDrawDibEnd(HDRAWDIB);
 
-static HookEntry_Type Hooks[]={
-	//{HOOK_HOT_CANDIDATE, "ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
-	//{HOOK_HOT_CANDIDATE, "ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
-	{HOOK_HOT_CANDIDATE, "MCIWndCreateA", (FARPROC)NULL, (FARPROC *)&pMCIWndCreateA, (FARPROC)extMCIWndCreateA}, // "Man in Black" - beware: this is NOT STDCALL!!!
-	{HOOK_HOT_CANDIDATE, "ICGetDisplayFormat", (FARPROC)NULL, (FARPROC *)&pICGetDisplayFormat, (FARPROC)extICGetDisplayFormat}, // "Man in Black" - beware: this is NOT STDCALL!!!
-	{HOOK_HOT_CANDIDATE, "ICDrawBegin", (FARPROC)NULL, (FARPROC *)&pICDrawBegin, (FARPROC)extICDrawBegin}, 
-	{HOOK_HOT_CANDIDATE, "DrawDibDraw", (FARPROC)NULL, (FARPROC *)&pDrawDibDraw, (FARPROC)extDrawDibDraw}, 
-	{HOOK_HOT_CANDIDATE, "DrawDibBegin", (FARPROC)NULL, (FARPROC *)&pDrawDibBegin, (FARPROC)extDrawDibBegin}, 
-	{HOOK_HOT_CANDIDATE, "DrawDibStart", (FARPROC)NULL, (FARPROC *)&pDrawDibStart, (FARPROC)extDrawDibStart}, 
-	{HOOK_HOT_CANDIDATE, "DrawDibStop", (FARPROC)NULL, (FARPROC *)&pDrawDibStop, (FARPROC)extDrawDibStop}, 
-	{HOOK_HOT_CANDIDATE, "DrawDibEnd", (FARPROC)NULL, (FARPROC *)&pDrawDibEnd, (FARPROC)extDrawDibEnd}, 
-	{HOOK_IAT_CANDIDATE, 0, NULL, 0, 0} // terminator
+static HookEntryEx_Type Hooks[]={
+	//{HOOK_HOT_CANDIDATE, 0, "ICSendMessage", (FARPROC)NULL, (FARPROC *)&pICSendMessage, (FARPROC)extICSendMessage},
+	//{HOOK_HOT_CANDIDATE, 0, "ICOpen", (FARPROC)NULL, (FARPROC *)&pICOpen, (FARPROC)extICOpen},
+	{HOOK_HOT_CANDIDATE, 0, "MCIWndCreateA", (FARPROC)NULL, (FARPROC *)&pMCIWndCreateA, (FARPROC)extMCIWndCreateA}, // "Man in Black" - beware: this is NOT STDCALL!!!
+	{HOOK_HOT_CANDIDATE, 0, "ICGetDisplayFormat", (FARPROC)NULL, (FARPROC *)&pICGetDisplayFormat, (FARPROC)extICGetDisplayFormat}, // "Man in Black" - beware: this is NOT STDCALL!!!
+	{HOOK_HOT_CANDIDATE, 0, "ICDrawBegin", (FARPROC)NULL, (FARPROC *)&pICDrawBegin, (FARPROC)extICDrawBegin}, 
+	{HOOK_HOT_CANDIDATE, 0, "DrawDibDraw", (FARPROC)NULL, (FARPROC *)&pDrawDibDraw, (FARPROC)extDrawDibDraw}, 
+	{HOOK_HOT_CANDIDATE, 0, "DrawDibBegin", (FARPROC)NULL, (FARPROC *)&pDrawDibBegin, (FARPROC)extDrawDibBegin}, 
+	{HOOK_HOT_CANDIDATE, 0, "DrawDibStart", (FARPROC)NULL, (FARPROC *)&pDrawDibStart, (FARPROC)extDrawDibStart}, 
+	{HOOK_HOT_CANDIDATE, 0, "DrawDibStop", (FARPROC)NULL, (FARPROC *)&pDrawDibStop, (FARPROC)extDrawDibStop}, 
+	{HOOK_HOT_CANDIDATE, 0, "DrawDibEnd", (FARPROC)NULL, (FARPROC *)&pDrawDibEnd, (FARPROC)extDrawDibEnd}, 
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
 FARPROC Remap_vfw_ProcAddress(LPCSTR proc, HMODULE hModule)
 {
 	FARPROC addr;
-	if (addr=RemapLibrary(proc, hModule, Hooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	// NULL -> keep the original call address
 	return NULL;
 }
 
 void HookMSV4WLibs(HMODULE module)
 {
-	HookLibrary(module, Hooks, "MSVFW32.dll");
+	HookLibraryEx(module, Hooks, "MSVFW32.dll");
 }
 
 LRESULT WINAPI extICSendMessage(HIC hic, UINT wMsg, DWORD_PTR dw1, DWORD_PTR dw2)
