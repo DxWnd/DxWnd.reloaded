@@ -60,6 +60,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_DiabloTweak = FALSE;
 	m_HookDirectSound = FALSE;
 	m_HookSmackW32 = FALSE;
+	m_BlockPriorityClass = FALSE;
 	m_EASportsHack = FALSE;
 	m_LegacyAlloc = FALSE;
 	m_DisableMaxWinMode = FALSE;

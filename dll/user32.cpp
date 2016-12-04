@@ -94,6 +94,10 @@ BOOL WINAPI extDrawCaption(HWND, HDC, LPCRECT, UINT);
 typedef BOOL (WINAPI *PaintDesktop_Type)(HDC);
 PaintDesktop_Type pPaintDesktop = NULL;
 BOOL WINAPI extPaintDesktop(HDC);
+typedef VOID (WINAPI *mouse_event_Type)(DWORD, DWORD, DWORD, DWORD, ULONG_PTR);
+mouse_event_Type pmouse_event = NULL;
+VOID WINAPI extmouse_event(DWORD, DWORD, DWORD, DWORD, ULONG_PTR);
+
 
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
@@ -175,6 +179,7 @@ static HookEntryEx_Type Hooks[]={
 	//{HOOK_IAT_CANDIDATE, 0, "IsZoomed", (FARPROC)NULL, (FARPROC *)&pIsZoomed, (FARPROC)extIsZoomed},
 	//{HOOK_HOT_CANDIDATE, 0, "IsIconic", (FARPROC)IsIconic, (FARPROC *)&pIsIconic, (FARPROC)extIsIconic},
 	{HOOK_HOT_CANDIDATE, 0, "ScrollDC", (FARPROC)NULL, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
+	//{HOOK_IAT_CANDIDATE, 0, "mouse_event", (FARPROC)NULL, (FARPROC *)&pmouse_event, (FARPROC)extmouse_event}, 
 
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -239,6 +244,7 @@ static HookEntryEx_Type MouseHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "SetCursor", (FARPROC)SetCursor, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor},
 	{HOOK_IAT_CANDIDATE, 0, "SendMessageA", (FARPROC)SendMessageA, (FARPROC *)&pSendMessageA, (FARPROC)extSendMessageA}, 
 	{HOOK_IAT_CANDIDATE, 0, "SendMessageW", (FARPROC)SendMessageW, (FARPROC *)&pSendMessageW, (FARPROC)extSendMessageW}, 
+	//{HOOK_IAT_CANDIDATE, 0, "mouse_event", (FARPROC)NULL, (FARPROC *)&pmouse_event, (FARPROC)extmouse_event}, 
 	//{HOOK_IAT_CANDIDATE, 0, "SetPhysicalCursorPos", NULL, (FARPROC *)&pSetCursor, (FARPROC)extSetCursor}, // ???
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -408,7 +414,9 @@ LONG WINAPI MyChangeDisplaySettings(char *fname, BOOL WideChar, void *lpDevMode,
 		}
 	}
 	
-	if ((dwflags==0 || dwflags==CDS_FULLSCREEN) && lpDevMode){
+	// v2.03.61: bypass display mode changes also for CDS_UPDATEREGISTRY flag
+	// used by "Severance: Blade of Darkness" OpenGL renderer
+	if ((dwflags==0 || dwflags==CDS_FULLSCREEN || dwflags==CDS_UPDATEREGISTRY) && lpDevMode){
 		if (dxw.dwFlags1 & EMULATESURFACE || !(dmFields & DM_BITSPERPEL)){
 			OutTraceDW("%s: BYPASS res=DISP_CHANGE_SUCCESSFUL\n", fname);
 			return DISP_CHANGE_SUCCESSFUL;
@@ -1159,7 +1167,12 @@ BOOL WINAPI extGetWindowRect(HWND hwnd, LPRECT lpRect)
 	BOOL ret;
 	OutTraceB("GetWindowRect: hwnd=%x hWnd=%x FullScreen=%x\n", hwnd, dxw.GethWnd(), dxw.IsFullScreen());
 
-	if(dxw.IsRealDesktop(hwnd)) hwnd = dxw.GethWnd(); // v2.03.52: fix for "Storm Angel"
+	if(dxw.IsRealDesktop(hwnd)) {
+		// v2.03.52, v2.03.61: fix for "Storm Angel" and "Geneforge" :
+		// replace the real desktop with the virtual one only if that doesn't cause troubles.
+		HWND hwnd_try = dxw.GethWnd();
+		if ((*pGetWindowRect)(hwnd, lpRect)) hwnd = hwnd_try;
+	}
 
 	ret=(*pGetWindowRect)(hwnd, lpRect);
 	if(!ret) {
@@ -1943,7 +1956,7 @@ BOOL WINAPI extClipCursor(RECT *lpRectArg)
 	else
 		lpRect=NULL;
 
-	if(dxw.dwFlags1 & MODIFYMOUSE){
+	if(dxw.dwFlags1 & CLIENTREMAPPING){ //v2.03.61
 		// save desired clip region
 		// v2.02.39: fix - do not attempt to write to NULL lpRect
 		if (lpRect) {
@@ -3631,4 +3644,9 @@ BOOL WINAPI extPaintDesktop(HDC hdc)
 	ret = (*pPaintDesktop)(hdc);
 	if(!ret) OutTraceE("PaintDesktop ERROR: err=%d\n", GetLastError());
 	return ret;
+}
+VOID WINAPI extmouse_event(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData, ULONG_PTR dwExtraInfo)
+{
+	OutTrace("mouse_event: flags=%x xy=(%d,%d) data=%x, extrainfo=%lx\n", dwFlags, dx, dy, dwData, dwExtraInfo);
+	return (*pmouse_event)(dwFlags, dx, dy, dwData, dwExtraInfo);
 }

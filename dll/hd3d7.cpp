@@ -44,11 +44,18 @@ typedef HRESULT (WINAPI *CreateDevice3_Type)(void *, REFCLSID, LPDIRECTDRAWSURFA
 typedef HRESULT (WINAPI *CreateDevice7_Type)(void *, REFCLSID, LPDIRECTDRAWSURFACE7, LPDIRECT3DDEVICE7 *);
 typedef HRESULT (WINAPI *EnumZBufferFormats_Type)(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 
-QueryInterfaceD3_Type pQueryInterfaceD3 = NULL;
+QueryInterfaceD3_Type pQueryInterfaceD31 = NULL;
+QueryInterfaceD3_Type pQueryInterfaceD32 = NULL;
+QueryInterfaceD3_Type pQueryInterfaceD33 = NULL;
+QueryInterfaceD3_Type pQueryInterfaceD37 = NULL;
 Initialize_Type pInitialize = NULL;
-EnumDevices_Type pEnumDevices = NULL;
+EnumDevices_Type pEnumDevices1 = NULL;
+EnumDevices_Type pEnumDevices2 = NULL;
+EnumDevices_Type pEnumDevices3 = NULL;
 EnumDevices7_Type pEnumDevices7 = NULL;
-CreateLight_Type pCreateLight = NULL;
+CreateLight_Type pCreateLight1 = NULL;
+CreateLight_Type pCreateLight2 = NULL;
+CreateLight_Type pCreateLight3 = NULL;
 #ifdef TRACEMATERIAL
 CreateMaterial1_Type pCreateMaterial1 = NULL;
 CreateMaterial2_Type pCreateMaterial2 = NULL;
@@ -62,6 +69,18 @@ CreateDevice2_Type pCreateDevice2 = NULL;
 CreateDevice3_Type pCreateDevice3 = NULL;
 CreateDevice7_Type pCreateDevice7 = NULL;
 EnumZBufferFormats_Type pEnumZBufferFormats = NULL;
+
+HRESULT WINAPI extQueryInterfaceD31(void *, REFIID, LPVOID *);
+HRESULT WINAPI extQueryInterfaceD32(void *, REFIID, LPVOID *);
+HRESULT WINAPI extQueryInterfaceD33(void *, REFIID, LPVOID *);
+HRESULT WINAPI extQueryInterfaceD37(void *, REFIID, LPVOID *);
+HRESULT WINAPI extEnumDevices1(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
+HRESULT WINAPI extEnumDevices2(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
+HRESULT WINAPI extEnumDevices3(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
+HRESULT WINAPI extEnumDevices7(void *, LPD3DENUMDEVICESCALLBACK7, LPVOID);
+HRESULT WINAPI extCreateLight1(void *, LPDIRECT3DLIGHT *, IUnknown *);
+HRESULT WINAPI extCreateLight2(void *, LPDIRECT3DLIGHT *, IUnknown *);
+HRESULT WINAPI extCreateLight3(void *, LPDIRECT3DLIGHT *, IUnknown *);
 
 HRESULT WINAPI extEnumZBufferFormats(void *, REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 
@@ -163,9 +182,6 @@ GetMaterial_Type pGetMaterial = NULL;
 #endif
 
 HRESULT WINAPI extInitialize(void *);
-HRESULT WINAPI extEnumDevices(void *, LPD3DENUMDEVICESCALLBACK, LPVOID);
-HRESULT WINAPI extEnumDevices7(void *, LPD3DENUMDEVICESCALLBACK7, LPVOID);
-HRESULT WINAPI extCreateLight(void *, LPDIRECT3DLIGHT *, IUnknown *);
 #ifdef TRACEMATERIAL
 HRESULT WINAPI extCreateMaterial1(void *, LPDIRECT3DMATERIAL *, IUnknown *);
 HRESULT WINAPI extCreateMaterial2(void *, LPDIRECT3DMATERIAL2 *, IUnknown *);
@@ -400,10 +416,10 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 
 	switch(d3dversion){
 	case 1:
-		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
+		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD31, (void **)&pQueryInterfaceD31, "QueryInterface(D3S1)");
 		SetHook((void *)(**(DWORD **)lplpdd +  12), extInitialize, (void **)&pInitialize, "Initialize(1)");
-		SetHook((void *)(**(DWORD **)lplpdd +  16), extEnumDevices, (void **)&pEnumDevices, "EnumDevices");
-		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateLight, (void **)&pCreateLight, "CreateLight");
+		SetHook((void *)(**(DWORD **)lplpdd +  16), extEnumDevices1, (void **)&pEnumDevices1, "EnumDevices(1)");
+		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateLight1, (void **)&pCreateLight1, "CreateLight(1)");
 #ifdef TRACEMATERIAL
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateMaterial1, (void **)&pCreateMaterial1, "CreateMaterial(1)");
 #endif
@@ -411,9 +427,9 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extFindDevice, (void **)&pFindDevice, "FindDevice");	
 		break;
 	case 2:
-		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
-		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices, (void **)&pEnumDevices, "EnumDevices(2)");
-		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateLight, (void **)&pCreateLight, "CreateLight");
+		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD32, (void **)&pQueryInterfaceD32, "QueryInterface(D3S2)");
+		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices2, (void **)&pEnumDevices2, "EnumDevices(2)");
+		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateLight2, (void **)&pCreateLight2, "CreateLight(2)");
 #ifdef TRACEMATERIAL
 		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateMaterial2, (void **)&pCreateMaterial2, "CreateMaterial(2)");
 #endif
@@ -422,19 +438,19 @@ void HookDirect3DSession(LPDIRECTDRAW *lplpdd, int d3dversion)
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice2, (void **)&pCreateDevice2, "CreateDevice(D3D2)");
 		break;
 	case 3:
-		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
-		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices, (void **)&pEnumDevices, "EnumDevices(3)");
-		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateLight, (void **)&pCreateLight, "CreateLight");
+		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD33, (void **)&pQueryInterfaceD33, "QueryInterface(D3S3)");
+		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices3, (void **)&pEnumDevices3, "EnumDevices(3)");
+		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateLight3, (void **)&pCreateLight3, "CreateLight(3)");
 #ifdef TRACEMATERIAL
 		SetHook((void *)(**(DWORD **)lplpdd +  20), extCreateMaterial3, (void **)&pCreateMaterial3, "CreateMaterial(3)");
 #endif
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extCreateViewport3, (void **)&pCreateViewport3, "CreateViewport(3)");
 		SetHook((void *)(**(DWORD **)lplpdd +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
 		SetHook((void *)(**(DWORD **)lplpdd +  32), extCreateDevice3, (void **)&pCreateDevice3, "CreateDevice(D3D3)");
-		SetHook((void *)(**(DWORD **)lplpdd +  40), extEnumZBufferFormats, (void **)&pEnumZBufferFormats, "EnumZBufferFormats(D3D3)");
+		SetHook((void *)(**(DWORD **)lplpdd +  40), extEnumZBufferFormats, (void **)&pEnumZBufferFormats, "EnumZBufferFormats(D3D)");
 		break;
 	case 7:
-		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3S)");
+		SetHook((void *)(**(DWORD **)lplpdd +   0), extQueryInterfaceD37, (void **)&pQueryInterfaceD37, "QueryInterface(D3S7)");
 		SetHook((void *)(**(DWORD **)lplpdd +  12), extEnumDevices7, (void **)&pEnumDevices7, "EnumDevices(7)");
 		SetHook((void *)(**(DWORD **)lplpdd +  16), extCreateDevice7, (void **)&pCreateDevice7, "CreateDevice(D3D7)");
 		SetHook((void *)(**(DWORD **)lplpdd +  24), extEnumZBufferFormats, (void **)&pEnumZBufferFormats, "EnumZBufferFormats(D3D3)");
@@ -629,7 +645,7 @@ void HookTexture(LPVOID *lpTexture, int version)
 	}
 }
 
-HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID *ppvObj)
+HRESULT WINAPI extQueryInterfaceD3(QueryInterfaceD3_Type pQueryInterfaceD3, void *lpd3d, REFIID riid, LPVOID *ppvObj)
 {
 	HRESULT res;
 	int d3dversion;
@@ -647,8 +663,8 @@ HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID *ppvObj)
 	switch(d3dversion){
 	case 1:
 		SetHook((void *)(**(DWORD **)ppvObj +  12), extInitialize, (void **)&pInitialize, "Initialize");
-		SetHook((void *)(**(DWORD **)ppvObj +  16), extEnumDevices, (void **)&pEnumDevices, "EnumDevices");
-		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateLight, (void **)&pCreateLight, "CreateLight");
+		SetHook((void *)(**(DWORD **)ppvObj +  16), extEnumDevices1, (void **)&pEnumDevices1, "EnumDevices");
+		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateLight1, (void **)&pCreateLight1, "CreateLight(1)");
 #ifdef TRACEMATERIAL
 		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateMaterial1, (void **)&pCreateMaterial1, "CreateMaterial(1)");
 #endif
@@ -656,8 +672,8 @@ HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID *ppvObj)
 		SetHook((void *)(**(DWORD **)ppvObj +  32), extFindDevice, (void **)&pFindDevice, "FindDevice");	
 		break;
 	case 2:
-		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices, (void **)&pEnumDevices, "EnumDevices");
-		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight, (void **)&pCreateLight, "CreateLight");
+		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices2, (void **)&pEnumDevices2, "EnumDevices(2)");
+		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight2, (void **)&pCreateLight2, "CreateLight(2)");
 #ifdef TRACEMATERIAL
 		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial2, (void **)&pCreateMaterial2, "CreateMaterial(2)");
 #endif
@@ -665,8 +681,8 @@ HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID *ppvObj)
 		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice, (void **)&pFindDevice, "FindDevice");
 		break;
 	case 3:
-		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices, (void **)&pEnumDevices, "EnumDevices");
-		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight, (void **)&pCreateLight, "CreateLight");
+		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices3, (void **)&pEnumDevices3, "EnumDevices");
+		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight3, (void **)&pCreateLight3, "CreateLight(3)");
 #ifdef TRACEMATERIAL
 		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial3, (void **)&pCreateMaterial3, "CreateMaterial(3)");
 #endif
@@ -681,11 +697,22 @@ HRESULT WINAPI extQueryInterfaceD3(void *lpd3d, REFIID riid, LPVOID *ppvObj)
 	return res;
 }
 
+HRESULT WINAPI extQueryInterfaceD31(void *lpd3d, REFIID riid, LPVOID *ppvObj)
+{ return extQueryInterfaceD3(pQueryInterfaceD31, lpd3d, riid, ppvObj); }
+HRESULT WINAPI extQueryInterfaceD32(void *lpd3d, REFIID riid, LPVOID *ppvObj)
+{ return extQueryInterfaceD3(pQueryInterfaceD32, lpd3d, riid, ppvObj); }
+HRESULT WINAPI extQueryInterfaceD33(void *lpd3d, REFIID riid, LPVOID *ppvObj)
+{ return extQueryInterfaceD3(pQueryInterfaceD33, lpd3d, riid, ppvObj); }
+HRESULT WINAPI extQueryInterfaceD37(void *lpd3d, REFIID riid, LPVOID *ppvObj)
+{ return extQueryInterfaceD3(pQueryInterfaceD37, lpd3d, riid, ppvObj); }
+
+
+
 HRESULT WINAPI extQueryInterfaceD3D(void *lpd3ddev, REFIID riid, LPVOID *ppvObj)
 {
 	HRESULT res;
 	OutTraceD3D("QueryInterface(D3D): d3ddev=%x REFIID=%x obj=%x\n", lpd3ddev, riid.Data1, ppvObj);
-	res=(*pQueryInterfaceD3)(lpd3ddev, riid, ppvObj);
+	res=(*pQueryInterfaceD3D)(lpd3ddev, riid, ppvObj);
 	return res;
 }
 
@@ -776,7 +803,7 @@ HRESULT WINAPI extDeviceProxy7(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LP
 	return res;
 }
 
-HRESULT WINAPI extEnumDevices(void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
+HRESULT WINAPI extEnumDevices(EnumDevices_Type pEnumDevices, void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
 {
 	HRESULT res;
 	CallbackArg Arg;
@@ -789,6 +816,14 @@ HRESULT WINAPI extEnumDevices(void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID a
 	else OutTraceD3D("EnumDevices: OK\n");
 	return res;
 }
+
+HRESULT WINAPI extEnumDevices1(void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
+{ return extEnumDevices(pEnumDevices1, lpd3d, cb, arg); }
+HRESULT WINAPI extEnumDevices2(void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
+{ return extEnumDevices(pEnumDevices2, lpd3d, cb, arg); }
+HRESULT WINAPI extEnumDevices3(void *lpd3d, LPD3DENUMDEVICESCALLBACK cb, LPVOID arg)
+{ return extEnumDevices(pEnumDevices3, lpd3d, cb, arg); }
+
 
 HRESULT WINAPI extEnumDevices7(void *lpd3d, LPD3DENUMDEVICESCALLBACK7 cb, LPVOID arg)
 {
@@ -804,7 +839,7 @@ HRESULT WINAPI extEnumDevices7(void *lpd3d, LPD3DENUMDEVICESCALLBACK7 cb, LPVOID
 	return res;
 }
 
-HRESULT WINAPI extCreateLight(void *lpd3d, LPDIRECT3DLIGHT *lpLight, IUnknown *p0)
+HRESULT WINAPI extCreateLight(CreateLight_Type pCreateLight, void *lpd3d, LPDIRECT3DLIGHT *lpLight, IUnknown *p0)
 {
 	HRESULT res;
 
@@ -814,6 +849,13 @@ HRESULT WINAPI extCreateLight(void *lpd3d, LPDIRECT3DLIGHT *lpLight, IUnknown *p
 	else OutTraceD3D("CreateLight: OK\n");
 	return res;
 }
+
+HRESULT WINAPI extCreateLight1(void *lpd3d, LPDIRECT3DLIGHT *lpLight, IUnknown *p0)
+{ return extCreateLight(pCreateLight1, lpd3d, lpLight, p0); }
+HRESULT WINAPI extCreateLight2(void *lpd3d, LPDIRECT3DLIGHT *lpLight, IUnknown *p0)
+{ return extCreateLight(pCreateLight2, lpd3d, lpLight, p0); }
+HRESULT WINAPI extCreateLight3(void *lpd3d, LPDIRECT3DLIGHT *lpLight, IUnknown *p0)
+{ return extCreateLight(pCreateLight3, lpd3d, lpLight, p0); }
 
 #ifdef TRACEMATERIAL
 HRESULT WINAPI extCreateMaterial1(void *lpd3d, LPDIRECT3DMATERIAL *lpMaterial, IUnknown *p0)

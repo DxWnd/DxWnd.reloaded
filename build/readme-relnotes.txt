@@ -1068,3 +1068,12 @@ GUI: added the hook tab to move hooking flags in a single tab page
 
 v2.03.60 
 too many things, sorry, I'll fix it later.
+
+v2.03.61
+fix: set hook to ddraw SetPalette for all surface types (Drakan Order of the Flame)
+add: preliminary support for windowed / fullscreen switching
+fix: preliminary d3d7 function pointers separation for different interfaces
+add: block process priority class
+add: autohide DxWnd feature
+fix: GUI kill process now kills the whole process tree to avoid leaving live processes around. Happens for instance in Win7 with rundll32.exe for compatibility in 64 bit environment, and that one uses a full core CPU!
+fix: added CDS_UPDATEREGISTRY to the ChangeDisplaySettings modes to be neutralized. Needed in "Severance: Blade of Darkness".

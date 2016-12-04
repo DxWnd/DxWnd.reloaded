@@ -200,6 +200,7 @@ public:
 	BOOL	m_DiabloTweak;
 	BOOL	m_HookDirectSound;
 	BOOL	m_HookSmackW32;
+	BOOL	m_BlockPriorityClass;
 	BOOL	m_EASportsHack;
 	BOOL	m_LegacyAlloc;
 	BOOL	m_DisableMaxWinMode;

@@ -33,6 +33,7 @@ extern char m_ConfigFileName[20+1];
 extern BOOL Inject(DWORD, const char *);
 extern int KillProcByName(char *, BOOL);
 extern BOOL gTransientMode;
+extern BOOL gAutoHideMode;
 extern int iProgIndex;
 
 PRIVATEMAP *pTitles; // global ptr: get rid of it!!
@@ -41,6 +42,7 @@ TARGETMAP *pTargets; // idem.
 #define LOCKINJECTIONTHREADS
 
 char gInitPath[MAX_PATH]; // don't put it into the class because it must be used after destructor
+CWnd *pParent;
 
 // beware: it must operate upon count+1 sized arrays
 char *strnncpy(char *dest, char *src, size_t count)
@@ -318,6 +320,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
 	if(dlg->m_HookDirectSound) t->flags7 |= HOOKDIRECTSOUND;
 	if(dlg->m_HookSmackW32) t->flags7 |= HOOKSMACKW32;
+	if(dlg->m_BlockPriorityClass) t->flags7 |= BLOCKPRIORITYCLASS;
 	if(dlg->m_EASportsHack) t->flags5 |= EASPORTSHACK;
 	if(dlg->m_LegacyAlloc) t->flags6 |= LEGACYALLOC;
 	if(dlg->m_DisableMaxWinMode) t->flags6 |= DISABLEMAXWINMODE;
@@ -553,6 +556,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
 	dlg->m_HookDirectSound = t->flags7 & HOOKDIRECTSOUND ? 1 : 0;
 	dlg->m_HookSmackW32 = t->flags7 & HOOKSMACKW32 ? 1 : 0;
+	dlg->m_BlockPriorityClass = t->flags7 & BLOCKPRIORITYCLASS ? 1 : 0;
 	dlg->m_EASportsHack = t->flags5 & EASPORTSHACK ? 1 : 0;
 	dlg->m_LegacyAlloc = t->flags6 & LEGACYALLOC ? 1 : 0;
 	dlg->m_DisableMaxWinMode = t->flags6 & DISABLEMAXWINMODE ? 1 : 0;
@@ -2024,13 +2028,15 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 			TickCount=0;
 			Tray->StopAnimation();
 			Tray->SetIcon(IconId);
-			if(gTransientMode) {
-				IdleCount++;
-				if(IdleCount > 2) {
+			IdleCount++;
+			if(IdleCount == 2) {
+				if(gTransientMode) {
 					Tray->HideIcon();
 					delete(Tray->GetAncestor(GA_ROOTOWNER));
 					exit(0);
 				}
+				if(gAutoHideMode) {
+					Tray->MaximiseFromTray(pParent, FALSE);				}
 			}
 		}
 		else {
@@ -2070,9 +2076,9 @@ DWORD WINAPI TrayIconUpdate(CSystemTray *Tray)
 
 void CDxwndhostView::OnGoToTrayIcon() 
 {
-	CWnd *pParent = this->GetParent();
 	CMenu *menu = this->GetParent()->GetMenu();
 	UINT IconId;
+	pParent = this->GetParent();
 	if(!this->SystemTray.Enabled()){
 		HANDLE StatusThread;
 		DWORD dwThrdId;
@@ -2492,6 +2498,8 @@ void CDxwndhostView::OnRun()
 	}
 	// wait & recover
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RecoverTargetMaps, (LPVOID)TargetMaps, 0, NULL);
+	if(gAutoHideMode) this->OnGoToTrayIcon(); 
+
 }
 
 void SwitchToColorDepth(int bpp)

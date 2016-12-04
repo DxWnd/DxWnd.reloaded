@@ -35,6 +35,7 @@ UINT m_StartToTray = FALSE;
 UINT m_InitialState = DXW_ACTIVE;
 BOOL gbDebug = FALSE;
 BOOL gTransientMode = FALSE;
+BOOL gAutoHideMode = FALSE;
 int iProgIndex;
 extern char m_ConfigFileName[20+1] = "dxwnd.ini";
 
@@ -59,6 +60,8 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 	// /lang=<XX> -- loads the language resources in Resources_<XX>.dll extension
 	// /c:<path> -- loads <path> config file instead of default dxwnd.ini
 	// /e -- terminates (Ends) the active dxwnd session
+	// /r:<n> -- run the n-th game in configuration and terminate together with it
+	// /a -- auto-hide mode while a game is running
 	if(bFlag) {
 		CString sParam(lpszParam);
 		if (sParam.MakeLower() == "t"){
@@ -67,6 +70,10 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 		}
 		if (sParam.MakeLower() == "i"){
 			m_InitialState=DXW_IDLE;
+			return;
+		}
+		if (sParam.MakeLower() == "a"){
+			gAutoHideMode=TRUE;
 			return;
 		}
 		if (sParam.MakeLower() == "debug"){
@@ -160,6 +167,7 @@ BOOL CDxwndhostApp::InitInstance()
 	//CompatibilityMinLevel = GetPrivateProfileInt("window", "compatminlevel", 0, InitPath);
 
 	if(!gbDebug) gbDebug = GetPrivateProfileInt("window", "debug", 0, InitPath); // debug flag set from config file
+	if(!gAutoHideMode) gAutoHideMode = GetPrivateProfileInt("window", "autohide", 0, InitPath); // debug flag set from config file
 
 	if(!LangSelected){
 		LANGID LangId;

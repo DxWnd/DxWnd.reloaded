@@ -14,6 +14,7 @@
 BOOL WINAPI extCheckRemoteDebuggerPresent(HANDLE, PBOOL);
 LPVOID WINAPI extVirtualAlloc(LPVOID, SIZE_T, DWORD, DWORD);
 UINT WINAPI extWinExec(LPCSTR, UINT);
+BOOL WINAPI extSetPriorityClass(HANDLE, DWORD);
 
 extern HRESULT WINAPI extDirectDrawEnumerateA(LPDDENUMCALLBACK, LPVOID);
 extern HRESULT WINAPI extDirectDrawEnumerateExA(LPDDENUMCALLBACKEX, LPVOID, DWORD);
@@ -21,11 +22,13 @@ extern HRESULT WINAPI extDirectDrawEnumerateExA(LPDDENUMCALLBACKEX, LPVOID, DWOR
 typedef LPVOID (WINAPI *VirtualAlloc_Type)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, 
 										   BOOL, DWORD, LPVOID, LPCTSTR, LPSTARTUPINFO, LPPROCESS_INFORMATION);
+typedef BOOL (WINAPI *SetPriorityClass_Type)(HANDLE, DWORD);
 typedef UINT (WINAPI *WinExec_Type)(LPCSTR, UINT);
 
 CreateProcessA_Type pCreateProcessA = NULL;
 VirtualAlloc_Type pVirtualAlloc = NULL;
 WinExec_Type pWinExec = NULL;
+SetPriorityClass_Type pSetPriorityClass = NULL;
 
 #ifdef NOFREELIBRARY
 typedef BOOL (WINAPI *FreeLibrary_Type)(HMODULE);
@@ -54,6 +57,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "GetTempFileNameA", (FARPROC)GetTempFileNameA, (FARPROC *)&pGetTempFileName, (FARPROC)extGetTempFileName},
 	{HOOK_IAT_CANDIDATE, 0, "CreateProcessA", (FARPROC)NULL, (FARPROC *)&pCreateProcessA, (FARPROC)extCreateProcessA},
 	//{HOOK_IAT_CANDIDATE, 0, "WinExec", (FARPROC)NULL, (FARPROC *)&pWinExec, (FARPROC)extWinExec},
+	{HOOK_HOT_CANDIDATE, 0, "SetPriorityClass", (FARPROC)SetPriorityClass, (FARPROC *)&pSetPriorityClass, (FARPROC)extSetPriorityClass},
 #ifdef NOFREELIBRARY
 	{HOOK_HOT_CANDIDATE, 0, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
 #endif
@@ -1132,4 +1136,14 @@ UINT WINAPI extWinExec(LPCSTR lpCmdLine, UINT uCmdShow)
 	if(ret<31)
 		OutTraceE("WinExec: ERROR ret=%x\n", ret);
 	return ret;
+}
+
+BOOL WINAPI extSetPriorityClass(HANDLE hProcess, DWORD dwPriorityClass)
+{
+	OutTraceDW("SetPriorityClass: hProcess=%x class=%x\n", hProcess, dwPriorityClass);
+	if(dxw.dwFlags7 & BLOCKPRIORITYCLASS) {
+		OutTraceDW("SetPriorityClass: BLOCKED\n");
+		return TRUE;
+	}
+	return (*pSetPriorityClass)(hProcess, dwPriorityClass);
 }

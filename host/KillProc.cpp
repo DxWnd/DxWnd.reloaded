@@ -157,6 +157,7 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
 					return 0; // just tell you found it.
 				}
 
+#ifdef KILLSINGLEPROCESS
 				// First open for termination
 				hProc=OpenProcess(PROCESS_TERMINATE,FALSE,aiPID[i]);
 				if(hProc)
@@ -182,6 +183,11 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
                     FreeLibrary(hInstLib);
 					return 604;
 				}
+#else
+				// this will kill the whole process tree - though with no feedback retcode.
+				extern void KillProcessTree(DWORD);
+				KillProcessTree(aiPID[i]);
+#endif
 			}
 		}
 	}

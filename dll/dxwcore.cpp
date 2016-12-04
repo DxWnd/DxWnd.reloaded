@@ -442,11 +442,11 @@ void dxwCore::SetClipCursor()
 	}
 	// check for errors to avoid setting random clip regions
 	if(!(*pGetClientRect)(hWnd, &Rect)){
-		OutTraceE("GetClientRect: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+		OutTraceE("SetClipCursor: GetClientRect ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return;
 	}
 	if(!(*pClientToScreen)(hWnd, &UpLeftCorner)){
-		OutTraceE("ClientToScreen: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+		OutTraceE("SetClipCursor: ClientToScreen ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return ;
 	}
 	Rect.left+=UpLeftCorner.x;
@@ -455,7 +455,7 @@ void dxwCore::SetClipCursor()
 	Rect.bottom+=UpLeftCorner.y;
 	(*pClipCursor)(NULL);
 	if(!(*pClipCursor)(&Rect))
-		OutTraceE("ClipCursor: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+		OutTraceE("SetClipCursor: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	OutTraceDW("SetClipCursor: rect=(%d,%d)-(%d,%d)\n",
 		Rect.left, Rect.top, Rect.right, Rect.bottom);
 }
@@ -1913,7 +1913,10 @@ static char *VKeyLabels[DXVK_SIZE]={
 	"altf4",
 	"printscreen",
 	"corner",
-	"freezetime"
+	"freezetime",
+	"fullscreen",
+	"workarea",
+	"desktop",
 };
 
 void dxwCore::MapKeysInit()
@@ -1939,7 +1942,7 @@ UINT dxwCore::MapKeysConfig(UINT message, LPARAM lparam, WPARAM wparam)
 	if(message!=WM_SYSKEYDOWN) return DXVK_NONE;
 	for(int idx=1; idx<DXVK_SIZE; idx++)
 		if(VKeyConfig[idx]==wparam) {
-			OutTrace("keymapping GOT=%d\n", idx);
+			OutTrace("keymapping GOT=0x%02X\n", idx);
 			return idx;
 		}
 	return DXVK_NONE;

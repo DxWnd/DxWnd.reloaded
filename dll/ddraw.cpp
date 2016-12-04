@@ -1197,6 +1197,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock1 : extLockDir1, (void **)&pLock1, "Lock(S1)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock1 : extUnlockDir1, (void **)&pUnlock1, "Unlock(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC1, (void **)&pReleaseDC1, "ReleaseDC(S1)");
+		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette1, (void **)&pSetPalette1, "SetPalette(S1)");
 		break;
 	case 2:
 		SetHook((void *)(**(DWORD **)lplpdds), extQueryInterfaceS2, (void **)&pQueryInterfaceS2, "QueryInterface(S2)");
@@ -1216,6 +1217,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock2 : extLockDir2, (void **)&pLock2, "Lock(S2)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock2 : extUnlockDir2, (void **)&pUnlock2, "Unlock(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC2, (void **)&pReleaseDC2, "ReleaseDC(S2)");
+		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette2, (void **)&pSetPalette2, "SetPalette(S2)");
 		break;
 	case 3:
 		SetHook((void *)(**(DWORD **)lplpdds), extQueryInterfaceS3, (void **)&pQueryInterfaceS3, "QueryInterface(S3)");
@@ -1235,6 +1237,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock3 : extLockDir3, (void **)&pLock3, "Lock(S3)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock3 : extUnlockDir3, (void **)&pUnlock3, "Unlock(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC3, (void **)&pReleaseDC3, "ReleaseDC(S3)");
+		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette3, (void **)&pSetPalette3, "SetPalette(S3)");
 		// added in interface version 3
 		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc3, (void **)&pSetSurfaceDesc3, "SetSurfaceDesc(S3)");
 		break;
@@ -1256,6 +1259,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock4 : extLockDir4, (void **)&pLock4, "Lock(S4)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock4 : extUnlockDir4, (void **)&pUnlock4, "Unlock(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC4, (void **)&pReleaseDC4, "ReleaseDC(S4)");
+		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette4, (void **)&pSetPalette4, "SetPalette(S4)");
 		// added in interface version 3
 		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc4, (void **)&pSetSurfaceDesc4, "SetSurfaceDesc(S4)");
 		break;
@@ -1277,6 +1281,7 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock7 : extLockDir7, (void **)&pLock7, "Lock(S7)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock7 : extUnlockDir7, (void **)&pUnlock7, "Unlock(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC7, (void **)&pReleaseDC7, "ReleaseDC(S7)");
+		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette7, (void **)&pSetPalette7, "SetPalette(S7)");
 		// added in interface version 3
 		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc7, (void **)&pSetSurfaceDesc7, "SetSurfaceDesc(S7)");
 		break;
@@ -1289,19 +1294,14 @@ static void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPr
 	SetHook((void *)(**(DWORD **)lplpdds + 116), extSetColorKey, (void **)&pSetColorKey, "SetColorKey(S)");
 	switch(dxversion) {
 	case 1:
-		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette1, (void **)&pSetPalette1, "SetPalette(S1)");
 		break;
 	case 2:
-		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette2, (void **)&pSetPalette2, "SetPalette(S2)");
 		break;
 	case 3:
-		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette3, (void **)&pSetPalette3, "SetPalette(S3)");
 		break;
 	case 4:
-		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette4, (void **)&pSetPalette4, "SetPalette(S4)");
 		break;
 	case 7:
-		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette7, (void **)&pSetPalette7, "SetPalette(S7)");
 		break;
 	}
 }
@@ -2323,6 +2323,26 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 		if(IsDebug) DescribeSurface(lpDDSEmu_Back, dxversion, "DDSEmu_Back", __LINE__);
 		dxwss.PopSurface(lpDDSEmu_Back);
 		//if (dxw.dwTFlags & OUTPROXYTRACE) HookDDSurfaceGeneric(&lpDDSEmu_Back, dxversion);
+	}
+}
+
+void RestoreDDrawSurfaces()
+{
+	// if it's a ddraw game ....
+	if(lpPrimaryDD){
+		OutTraceDW("RestoreDDrawSurfaces: rebuilding surfaces for dd session %x\n", lpPrimaryDD);
+		ReleaseS_Type pReleaseS;
+		CreateSurface_Type pCreateSurface;
+		switch(iBakBufferVersion){
+			case 1: pCreateSurface=(CreateSurface_Type)pCreateSurface1; pReleaseS=pReleaseS1; break;
+			case 2: pCreateSurface=(CreateSurface_Type)pCreateSurface2; pReleaseS=pReleaseS2; break;
+			case 3: pCreateSurface=(CreateSurface_Type)pCreateSurface3; pReleaseS=pReleaseS3; break;
+			case 4: pCreateSurface=(CreateSurface_Type)pCreateSurface4; pReleaseS=pReleaseS4; break;
+			case 7: pCreateSurface=(CreateSurface_Type)pCreateSurface7; pReleaseS=pReleaseS7; break;
+		}
+		if(lpDDSEmu_Back) while((*pReleaseS)(lpDDSEmu_Back)); lpDDSEmu_Back=0;
+		if(lpDDSEmu_Prim) while((*pReleaseS)(lpDDSEmu_Prim)); lpDDSEmu_Prim=0;
+		BuildRealSurfaces(lpPrimaryDD, pCreateSurface, iBakBufferVersion);
 	}
 }
 
@@ -5175,8 +5195,8 @@ ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECTDRAW lp
 			lpDDSEmu_Back=NULL;
 			lpDDP=NULL;
 			iDDPExtraRefCounter = 0;
-			lpPrimaryDD=NULL; // v2.02.31
 		}
+		if(ActualRef==0) lpPrimaryDD=NULL; // v2.03.61
 	}
 
 	// when lpdd session is closed (ref==0) the system restores the default color depth

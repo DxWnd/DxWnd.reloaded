@@ -219,7 +219,8 @@
 #define DISABLEDISABLEALTTAB 0x00000002 // Disables the compatibility patch that disables the Alt-Tab key and other special combinations
 #define FIXCLIPPERAREA		0x00000004 // fix clipper area in ddraw & GDI shared DC mode
 #define HOOKDIRECTSOUND		0x00000008
-#define HOOKSMACKW32			0x00000010
+#define HOOKSMACKW32		0x00000010
+#define BLOCKPRIORITYCLASS  0x00000020 // blocks attempts to change the process priority class
 
 // eighth flags DWORD dxw.dwFlags8:
 

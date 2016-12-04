@@ -21,7 +21,7 @@ extern void D3D9TextureHandling(void *, int);
 extern void D3D8TextureHandling(void *, int);
 
 void *lpD3DActiveDevice = NULL;
-
+//DWORD gActiveDeviceParams[64];
 typedef HRESULT (WINAPI *QueryInterface_Type)(void *, REFIID riid, void** ppvObj);
 
 // D3D8/9 API
@@ -1160,6 +1160,7 @@ HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devicetype,
 	}
 	OutTraceD3D("SUCCESS! device=%x\n", *ppd3dd);
 	lpD3DActiveDevice = *ppd3dd;
+//	memcpy(gActiveDeviceParams, param, 64*sizeof(DWORD));
 
 	if(dwD3DVersion == 8){ 
 		HookD3DDevice8(ppd3dd);
@@ -2317,3 +2318,25 @@ HRESULT WINAPI extQueryInterfaceTex(void *obj, REFIID riid, void** ppvObj)
 }
 #endif
 
+void RestoreD3DSurfaces(BOOL bFullScreen)
+{
+	//DWORD param[64];
+	//HRESULT res;
+
+	// a well programmed D3D game should provide to Reset by itself, so the best thing to do is NOTHING
+	return;
+
+	//if(lpD3DActiveDevice){
+	//	OutTrace("RestoreD3DSurfaces(%d): reset device %x fullscreen=%x\n", dwD3DVersion, lpD3DActiveDevice, bFullScreen);
+	//	RECT Desktop;
+	//	memcpy(param, gActiveDeviceParams, sizeof(param));
+	//	if(bFullScreen){
+	//		(*pGetClientRect)(0, &Desktop);
+	//		param[0] = Desktop.right;			// BackBufferWidth
+	//		param[1] = Desktop.bottom;			// BackBufferHeight
+	//	}
+	//	res=(*pReset)(lpD3DActiveDevice, (D3DPRESENT_PARAMETERS *)param);
+	//	if(res != DD_OK) OutTraceE("RestoreD3DSurfaces: Reset size=(%dx%d) err=%x(%s)\n", 
+	//		param[0], param[1], res, ExplainDDError(res));
+	//}
+}

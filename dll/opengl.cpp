@@ -58,7 +58,10 @@ PROC Remap_wgl_ProcAddress(LPCSTR proc)
 	for(i=0; Hooks[i].APIName; i++){
 		Hook=&Hooks[i];
 		if (!strcmp(proc,Hook->APIName)){
-			if (Hook->StoreAddress) *(Hook->StoreAddress)=(*pwglGetProcAddress)(proc);
+			if (Hook->StoreAddress) { // avoid clearing function pointers
+				PROC Addr = (*pwglGetProcAddress)(proc);
+				if(Addr) *(Hook->StoreAddress)=Addr;
+			}
 			OutTraceDW("GetProcAddress: hooking proc=%s at addr=%x\n", ProcToString(proc), (Hook->StoreAddress) ? *(Hook->StoreAddress) : 0);
 			return Hook->HookerAddress;
 		}
@@ -307,6 +310,9 @@ static void glTextureDump(GLint internalFormat, GLenum Format, GLsizei w, GLsize
 	}
 
 	if((w < MinTexX) || (h < MinTexY)) return;
+	if((w > MaxTexX) || (h > MaxTexY)) return;
+
+	if(internalFormat != 4) return; // the only safe for now ....
 
 	// temporary ....
 					dwRBitMask = 0x000000FF;
@@ -381,11 +387,12 @@ static void glTextureDump(GLint internalFormat, GLenum Format, GLsizei w, GLsize
 		pbi.bV4BlueMask = dwBBitMask;
 		pbi.bV4AlphaMask = dwABitMask;
 		pbi.bV4CSType = LCS_CALIBRATED_RGB;
-		iScanLineSize = ((w * dwRGBBitCount + 0x1F) & ~0x1F)/8;
+		iScanLineSize = ((w * dwRGBBitCount + 0x1F) & ~0x1F)/8; 
 
 		// calculate the bitmap hash
+		OutTraceB("glTextureDump: hash linesize=%d h=%d\n", iScanLineSize, h);
 		DWORD hash = Hash((BYTE *)data, iScanLineSize * h);
-
+		
 		// Create the .BMP file. 
 		//sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.bmp", 
 		//	GetDxWndPath(), w, h, sType, hash);
