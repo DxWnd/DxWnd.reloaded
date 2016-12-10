@@ -1,13 +1,20 @@
 
-[HKEY_CLASSES_ROOT\The Creed]
-"Scene16"=".\\data\\scene16.cus"
-"InstallType"="MAXIMUM"
-"InstallDir"="."
-"Password"="CREED"
-"LockCode"=dword:04fcf000
-"Version"=dword:00000096
+[HKEY_LOCAL_MACHINE\SOFTWARE\Interplay]
 
-[HKEY_LOCAL_MACHINE\SOFTWARE\Insomnia Entertainment]
-[HKEY_LOCAL_MACHINE\SOFTWARE\Insomnia Entertainment\The Creed]
-[HKEY_LOCAL_MACHINE\SOFTWARE\Insomnia Entertainment\The Creed\1.00.000]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Interplay\Dragon Dice]
+"ApplicationPath"="d:\\games\\ddice\\"
+"StarfleetDemo"=dword:00000001
+"GameInstalled"=dword:00000001
+"ZoomLevel"=dword:00000000
+"DieSortType"=dword:00000001
+"DisplayDieFaceType"=dword:00000000
+"DisplayRoll"=dword:00000001
+"DisplayBattle"=dword:00000001
+"DisplayDragonVsDragon"=dword:00000001
+"PlaySounds"=dword:00000001
+"PlayMusic"=dword:00000001
+"DemoMode"=dword:00000001
+"DisplayGameMessages"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Interplay\Dragon Dice\1.0]
 

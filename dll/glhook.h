@@ -20,6 +20,8 @@ typedef void (WINAPI *glPixelZoom_Type)(GLfloat, GLfloat);
 typedef void (WINAPI *glBegin_Type)(GLenum);
 typedef void (WINAPI *glBindTexture_Type)(GLenum, GLuint);
 typedef void (WINAPI *glPixelStorei_Type)(GLenum, GLint);
+typedef void (WINAPI *glCopyTexImage2D_Type)(GLenum, GLint, GLenum, GLint, GLint, GLsizei, GLsizei, GLint);
+
 
 extern GLenum WINAPI extglGetError();
 extern void WINAPI extglViewport(GLint,  GLint,  GLsizei,  GLsizei);
@@ -39,6 +41,7 @@ extern void WINAPI extglPixelZoom(GLfloat, GLfloat);
 extern void WINAPI extglBegin(GLenum);
 extern void WINAPI extglBindTexture(GLenum, GLuint);
 extern void WINAPI extglPixelStorei(GLenum, GLint);
+extern void WINAPI extglCopyTexImage2D(GLenum, GLint, GLenum, GLint, GLint, GLsizei, GLsizei, GLint);
 
 #ifdef DXWDECLARATIONS 
 #undef DXWEXTERN
@@ -71,3 +74,4 @@ DXWEXTERN glPixelZoom_Type pglPixelZoom;
 DXWEXTERN glBegin_Type pglBegin;
 DXWEXTERN glBindTexture_Type pglBindTexture;
 DXWEXTERN glPixelStorei_Type pglPixelStorei;
+DXWEXTERN glCopyTexImage2D_Type pglCopyTexImage2D;

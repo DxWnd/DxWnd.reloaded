@@ -130,12 +130,12 @@ static char *Flag6Names[32]={
 
 static char *Flag7Names[32]={
 	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "HOOKDIRECTSOUND",
-	"--------", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
+	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
 	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
 	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "INJECTSUSPENDED",
 	"SSUPPRESSDIERRORS", "HOOKNORUN", "FIXBINDTEXTURE", "ENUM16BITMODES",
 	"SHAREDKEYBOARD", "HOOKNOUPDATE", "HOOKGLUT32", "INITIALRES",
-	"MAXIMUMRES", "LOCKCOLORDEPTH", "", "",
+	"MAXIMUMRES", "LOCKCOLORDEPTH", "FIXSMACKLOOP", "",
 	"", "", "", "",
 };
 
@@ -593,7 +593,7 @@ void SetHook(void *target, void *hookproc, void **hookedproc, char *hookname)
 			OutTrace("SetHook: %s exception\n", hookname);
 	};
 	*hookedproc = tmp;
-	OutTraceH("SetHook: DEBUG2 *hookedproc=%x, name=%s\n", tmp, hookname);
+	OutTraceH("SetHook: *hookedproc=%x, name=%s\n", tmp, hookname);
 }
 
 // v2.02.53: thorough scan - the IAT is scanned considering the possibility to have each dll module 
@@ -951,7 +951,6 @@ void HookModule(HMODULE base, int dxversion)
 	HookMSV4WLibs(base);					// SYSLIBIDX_MSVFW -- used by Aliens & Amazons demo: what for?
 	HookDirectSound(base);					// SYSLIBIDX_DSOUND
 	HookWinMM(base, "winmm.dll");			// SYSLIBIDX_WINMM
-	if(dxw.dwFlags6 & HOOKGOGLIBS) HookWinMM(base, "win32.dll"); // SYSLIBIDX_WINMM
 	HookDirectInput(base);					// SYSLIBIDX_DINPUT,
 	HookDirectInput8(base);					// SYSLIBIDX_DINPUT8,
 	HookTrust(base);						// SYSLIBIDX_WINTRUST
@@ -960,9 +959,11 @@ void HookModule(HMODULE base, int dxversion)
 	HookImagehlp(base);						// SYSLIBIDX_IMAGEHLP
 	HookComDlg32(base);						// SYSLIBIDX_COMDLG32
 	HookComCtl32(base);						// SYSLIBIDX_COMCTL32
-	HookAVIFil32(base); // SYSLIBIDX_AVIFIL32
-	// unimplemented
-	if(dxw.dwFlags4 & HOOKGLIDE) HookGlideLibs(base); 	
+	HookAVIFil32(base);						// SYSLIBIDX_AVIFIL32
+	// optional hooks
+	if(dxw.dwFlags6 & HOOKGOGLIBS) HookWinMM(base, "win32.dll"); // SYSLIBIDX_WINMM
+	if(dxw.dwFlags4 & HOOKGLIDE) HookGlideLibs(base);	// OpenGl32.dll
+	if(dxw.dwFlags7 & HOOKSMACKW32) HookSmackW32(base);	// SMACKW32.DLL	
 }
 
 #define USEWINNLSENABLE

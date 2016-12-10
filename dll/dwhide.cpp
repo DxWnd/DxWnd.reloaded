@@ -52,6 +52,7 @@ void gShowHideTaskBar(BOOL bHide /*=FALSE*/)
 }
 
 static bool quit = false;
+static HWND wHider=0;
 
 #ifdef FOUR_WINDOWS_STRIPED_HIDER
 static LRESULT CALLBACK Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
@@ -82,18 +83,32 @@ static LRESULT CALLBACK Hider_Message_Handler(HWND hwnd, UINT umsg, WPARAM wpara
         break;
     }
 
-	if (((umsg >= WM_MOUSEFIRST) && (umsg <= WM_MOUSELAST)) ||
-		(umsg == WM_NOTIFY)){
-		(*pSetWindowPos)(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOOWNERZORDER|SWP_NOSENDCHANGING);
-		return 0;
-    }
+	// OutTrace("HIDER: msg=%x(%s) w/lparam= %x-%x\n", umsg, ExplainWinMessage(umsg), wparam, lparam);
 
-	//(*pSetWindowPos)(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
-	//(*pSetWindowPos)(hwnd, dxw.GethWnd(), 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+	if(hwnd == wHider){
+		switch(umsg){
+			case WM_NOTIFY:
+			case WM_SETFOCUS:
+			case WM_LBUTTONDOWN:
+			//case WM_LBUTTONUP:
+			//case WM_LBUTTONDBLCLK:
+			case WM_RBUTTONDOWN:
+			//case WM_RBUTTONUP:
+			//case WM_RBUTTONDBLCLK:
+			case WM_MBUTTONDOWN:
+			//case WM_MBUTTONUP:
+			//case WM_MBUTTONDBLCLK:
+				(*pInvalidateRect)(hwnd, NULL, TRUE);
+				(*pSetWindowPos)(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOOWNERZORDER|SWP_NOSENDCHANGING);
+				(*pSetWindowPos)(dxw.GethWnd(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOOWNERZORDER|SWP_NOSENDCHANGING);
+				return 0;
+				break;
+			default:
+				break;
+		}
+	}
+
 	return (*pDefWindowProcA)(hwnd, umsg, wparam, lparam);
-	//ret = (*pDefWindowProcA)(hwnd, umsg, wparam, lparam);
-	//return ret;
-	//return 1;
 }
 #endif
 
@@ -259,7 +274,6 @@ void dxwCore::HideDesktop(HWND hwnd)
 {
 	static BOOL DoOnce=TRUE;
 	static ATOM aClass;
-	static HWND wHider=0;
 	RECT wRect, wDesktop;
 	static HINSTANCE hinst=NULL;
 
@@ -273,7 +287,7 @@ void dxwCore::HideDesktop(HWND hwnd)
 		return;
 	}
 
-	dxw.GetMonitorWorkarea(&wDesktop, dxw.dwFlags6 & HIDETASKBAR);
+	dxw.GetMonitorWorkarea(&wDesktop, (Coordinates != DXW_DESKTOP_FULL));
 	if(dxw.dwFlags6 & HIDETASKBAR)gShowHideTaskBar(TRUE);
 
 	//OutTrace("Hider: desktop=(%d,%d)-(%d,%d)\n", wDesktop.left, wDesktop.top, wDesktop.right, wDesktop.bottom);

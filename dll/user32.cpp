@@ -15,6 +15,7 @@
 #include <Wingdi.h>
 
 #define FIXCHILDSIZE FALSE
+
 #define _Warn(s) MessageBox(0, s, "to do", MB_ICONEXCLAMATION)
 
 BOOL IsChangeDisplaySettingsHotPatched = FALSE;
@@ -117,6 +118,25 @@ BOOL WINAPI extEnumDisplayDevicesW(LPCWSTR, DWORD, PDISPLAY_DEVICEW, DWORD);
 typedef INT_PTR (WINAPI *DialogBoxIndirectParamA_Type)(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
 DialogBoxIndirectParamA_Type pDialogBoxIndirectParamA = NULL;
 INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
+typedef HWND (WINAPI *GetFocus_Type)(void);
+GetFocus_Type pGetFocus;
+HWND WINAPI extGetFocus(void);
+//typedef HWND (WINAPI *GetTopWindow_Type)(HWND);
+//GetTopWindow_Type pGetTopWindow;
+//HWND WINAPI extGetTopWindow(HWND);
+typedef DWORD (WINAPI *GetWindowThreadProcessId_Type)(HWND, LPDWORD);
+GetWindowThreadProcessId_Type pGetWindowThreadProcessId;
+DWORD WINAPI extGetWindowThreadProcessId(HWND, LPDWORD);
+typedef HWND (WINAPI *GetWindow_Type)(HWND, UINT);
+GetWindow_Type pGetWindow;
+HWND WINAPI extGetWindow(HWND, UINT);
+typedef BOOL (WINAPI *IsWindow_Type)(HWND);
+IsWindow_Type pIsWindow;
+BOOL WINAPI extIsWindow(HWND);
+typedef HWND (WINAPI *SetFocus_Type)(HWND);
+SetFocus_Type pSetFocus;
+HWND WINAPI extSetFocus(HWND);
+
 
 
 #ifdef TRACEPALETTE
@@ -170,8 +190,20 @@ static HookEntryEx_Type Hooks[]={
 	// hot by MinHook since v2.03.07
 	{HOOK_HOT_CANDIDATE, 0, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
 	{HOOK_HOT_CANDIDATE, 0, "SystemParametersInfoW", (FARPROC)SystemParametersInfoW, (FARPROC *)&pSystemParametersInfoW, (FARPROC)extSystemParametersInfoW},
-	//{HOOK_HOT_CANDIDATE, 0, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
-	//{HOOK_HOT_CANDIDATE, 0, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+
+#ifdef GALAPAGOSTEST
+	// test for Galapagos
+	{HOOK_HOT_CANDIDATE, 0, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
+	{HOOK_HOT_CANDIDATE, 0, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
+	{HOOK_HOT_CANDIDATE, 0, "GetFocus", (FARPROC)GetFocus, (FARPROC *)&pGetFocus, (FARPROC)extGetFocus},
+	{HOOK_HOT_CANDIDATE, 0, "SetFocus", (FARPROC)SetFocus, (FARPROC *)&pSetFocus, (FARPROC)extSetFocus},
+	{HOOK_HOT_CANDIDATE, 0, "IsWindow", (FARPROC)IsWindow, (FARPROC *)&pIsWindow, (FARPROC)extIsWindow},
+	{HOOK_HOT_CANDIDATE, 0, "GetWindow", (FARPROC)GetWindow, (FARPROC *)&pGetWindow, (FARPROC)extGetWindow},
+	{HOOK_HOT_CANDIDATE, 0, "GetWindowThreadProcessId", (FARPROC)GetWindowThreadProcessId, (FARPROC *)&pGetWindowThreadProcessId, (FARPROC)extGetWindowThreadProcessId},
+	{HOOK_HOT_CANDIDATE, 0, "GetTopWindow", (FARPROC)GetTopWindow, (FARPROC *)&pGetTopWindow, (FARPROC)extGetTopWindow},
+	{HOOK_HOT_CANDIDATE, 0, "GetFocus", (FARPROC)GetFocus, (FARPROC *)&pGetFocus, (FARPROC)extGetFocus},
+#endif
+
 	//{HOOK_IAT_CANDIDATE, 0, "GetWindowTextA", (FARPROC)GetWindowTextA, (FARPROC *)&pGetWindowTextA, (FARPROC)extGetWindowTextA},
 	//{HOOK_HOT_CANDIDATE, 0, "EnumDisplayMonitors", (FARPROC)EnumDisplayMonitors, (FARPROC *)&pEnumDisplayMonitors, (FARPROC)extEnumDisplayMonitors},
 #ifdef TRACEPALETTE
@@ -1930,21 +1962,34 @@ BOOL WINAPI extInvertRect(HDC hdc, const RECT *lprc)
 
 int WINAPI extValidateRect(HWND hwnd, const RECT *lprc)
 {
+	// v2.03.91: manages the possibility of a NULL lprc value
 	int res;
 	RECT rc;
 
-	OutTraceDW("ValidateRect: hwnd=%x rect=(%d,%d)-(%d,%d)\n",
-		hwnd, lprc->left, lprc->top, lprc->right, lprc->bottom);
+	if(IsTraceDW){
+		if (lprc)
+			OutTrace("ValidateRect: rect=(%d,%d)-(%d,%d)\n", 
+				lprc->left, lprc->top, lprc->right, lprc->bottom);
+		else 
+			OutTrace("ValidateRect: rect=(NULL)\n");
+	}
 
-	memcpy(&rc, lprc, sizeof(rc));
+	if(lprc){
+		// avoid changing the pointed RECT structure!!
+		memcpy(&rc, lprc, sizeof(rc));
+		lprc = &rc;
+	}
 
 	if(dxw.IsFullScreen()) {
 		if(dxw.IsRealDesktop(hwnd)) hwnd=dxw.GethWnd();		
-		dxw.MapClient(&rc);
-		OutTraceDW("ValidateRect: fixed rect=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
+		if(lprc) dxw.MapClient((LPRECT)lprc);
+		if (lprc) {
+			OutTraceDW("ValidateRect: fixed rect=(%d,%d)-(%d,%d)\n", 
+				lprc->left, lprc->top, lprc->right, lprc->bottom);
+		}
 	}
 
-	res=(*pValidateRect)(hwnd, &rc);
+	res=(*pValidateRect)(hwnd, lprc);
 	return res;
 }
 
@@ -2201,8 +2246,8 @@ static HDC WINAPI sGetDC(HWND hwnd, char *ApiName)
 		case GDIMODE_EMULATED:
 			ret=dxw.AcquireEmulatedDC(lochwnd);
 			break;
-		case GDIMODE_STRETCHED:
 		case GDIMODE_SHAREDDC:
+		case GDIMODE_STRETCHED:
 		default:
 			ret=(*pGDIGetDC)(lochwnd);
 			break;
@@ -2268,8 +2313,8 @@ int WINAPI extGDIReleaseDC(HWND hwnd, HDC hDC)
 		case GDIMODE_EMULATED:
 			res=dxw.ReleaseEmulatedDC(hwnd);
 			break;
-		case GDIMODE_STRETCHED:
 		case GDIMODE_SHAREDDC:
+		case GDIMODE_STRETCHED:
 		default:
 			res=(*pGDIReleaseDC)(hwnd, hDC);
 			break;
@@ -3050,6 +3095,47 @@ HWND WINAPI extGetForegroundWindow(void)
 		OutTraceDW("GetForegroundWindow: ret=%x->%x\n", ret, dxw.GethWnd());
 		return dxw.GethWnd();
 	}
+	return ret;
+}
+
+HWND WINAPI extGetFocus(void)
+{
+	HWND ret;
+	ret=(*pGetFocus)();
+	OutTraceDW("GetFocus: ret=%x\n", ret);
+	return ret;
+}
+
+DWORD WINAPI extGetWindowThreadProcessId(HWND hWnd, LPDWORD lpdwProcessId)
+{
+	DWORD ret;
+	ret=(*pGetWindowThreadProcessId)(hWnd, lpdwProcessId);
+	if(lpdwProcessId) OutTraceDW("GetWindowThreadProcessId: pid=%x\n", *lpdwProcessId);
+	OutTraceDW("GetWindowThreadProcessId: hwnd=%x ret=%x\n", hWnd, ret);
+	return ret;
+}
+
+HWND WINAPI extGetWindow(HWND hWnd, UINT uCmd)
+{
+	HWND ret;
+	ret=(*pGetWindow)(hWnd, uCmd);
+	OutTraceDW("GetWindow: hwnd=%x cmd=%x ret=%x\n", hWnd, uCmd, ret);
+	return ret;
+}
+
+BOOL WINAPI extIsWindow(HWND hWnd)
+{
+	BOOL ret;
+	ret=(*pIsWindow)(hWnd);
+	OutTraceDW("IsWindow: hwnd=%x ret=%x\n", hWnd, ret);
+	return ret;
+}
+
+HWND WINAPI extSetFocus(HWND hWnd)
+{
+	HWND ret;
+	ret=(*pSetFocus)(hWnd);
+	OutTraceDW("SetFocus: hwnd=%x ret=%x\n", hWnd, ret);
 	return ret;
 }
 

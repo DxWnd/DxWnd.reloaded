@@ -168,8 +168,9 @@ static HRESULT WINAPI EmuBlt_8_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAWS
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst, 0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return 0;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -244,8 +245,9 @@ static HRESULT WINAPI BilinearBlt_8_to_32(int dxversion, Blt_Type pBlt, LPDIRECT
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("BilBlt8_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return 0;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -338,8 +340,9 @@ static HRESULT WINAPI EmuBlt_16_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAW
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return res;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -412,8 +415,9 @@ static HRESULT WINAPI Deinterlace_16_to_32(int dxversion, Blt_Type pBlt, LPDIREC
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return res;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -518,8 +522,9 @@ static HRESULT WINAPI BilinearBlt_16_to_32(int dxversion, Blt_Type pBlt, LPDIREC
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("BilBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return res;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -614,8 +619,9 @@ static HRESULT WINAPI EmuBlt_24_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAW
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt24_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return res;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -691,8 +697,9 @@ static HRESULT WINAPI EmuBlt_32_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAW
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return res;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -762,8 +769,9 @@ static HRESULT WINAPI EmuBlt_8_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAWS
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return 0;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -842,8 +850,9 @@ static HRESULT WINAPI BilinearBlt_8_to_16(int dxversion, Blt_Type pBlt, LPDIRECT
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("BilBlt8_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return 0;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -939,8 +948,9 @@ static HRESULT WINAPI EmuBlt_16_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAW
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt16_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return 0;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -1049,8 +1059,9 @@ static HRESULT WINAPI BilinearBlt_16_to_16(int dxversion, Blt_Type pBlt, LPDIREC
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("BilBlt16_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return res;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -1144,8 +1155,9 @@ static HRESULT WINAPI EmuBlt_24_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAW
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt24_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return 0;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -1215,8 +1227,9 @@ static HRESULT WINAPI EmuBlt_32_to_16(int dxversion, Blt_Type pBlt, LPDIRECTDRAW
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("EmuBlt32_16: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return 0;
 		}
 		lpsurface=ddsd_src.lpSurface;
@@ -1291,8 +1304,9 @@ static HRESULT WINAPI BilinearBlt_32_to_32(int dxversion, Blt_Type pBlt, LPDIREC
 	}
 	else {
 		if(res=(*pLockMethod(dxversion))(lpddssrc, 0, (LPDDSURFACEDESC)&ddsd_src, DDLOCK_SURFACEMEMORYPTR|DDLOCK_READONLY|DDLOCK_WAIT, 0)) {
-			(*pUnlockMethod(dxversion))(lpddsdst,0);
 			OutTraceE("BilBlt32_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+			(*pUnlockMethod(dxversion))(lpddsdst,0);
+			(*pUnlockMethod(dxversion))(lpddssrc, 0);
 			return res;
 		}
 		lpsurface=ddsd_src.lpSurface;

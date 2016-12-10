@@ -354,18 +354,17 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			dxwFixWindowPos("WindowProc", hwnd, lparam);
 			OutTraceDW("WindowProc: %s fixed size=(%d,%d)\n", 
 				(message == WM_WINDOWPOSCHANGED) ? "WM_WINDOWPOSCHANGED" : "WM_WINDOWPOSCHANGING", wp->cx, wp->cy);
-			// try to lock main wind & control parent together
-			if((message==WM_WINDOWPOSCHANGED) && hControlParentWnd){
-				if(dxw.IsDesktop(hwnd)) {
+			if(message==WM_WINDOWPOSCHANGED) {
+				// try to lock main wind & control parent together
+				if(dxw.IsDesktop(hwnd) && hControlParentWnd) {
 					POINT fo = dxw.GetFrameOffset();
 					(*pMoveWindow)(hControlParentWnd, wp->x+fo.x, wp->y+fo.y, wp->cx, wp->cy, TRUE);
-					dxw.UpdateDesktopCoordinates();
 				}
-			}
-			// v2.03.30: in window mode, it seems that the WM_ACTIVATEAPP message is not sent to the main win.
-			// this PostMessage call recovers "Thorgal" block at the end of intro movie and "Championship Manager 03 04" cursor
-			if((message==WM_WINDOWPOSCHANGED) && (dxw.dwFlags6 & ACTIVATEAPP)){
-				PostMessage(hwnd, WM_ACTIVATEAPP, 1, 0);
+				// v2.03.30: in window mode, it seems that the WM_ACTIVATEAPP message is not sent to the main win.
+				// this PostMessage call recovers "Thorgal" block at the end of intro movie and "Championship Manager 03 04" cursor
+				if (dxw.dwFlags6 & ACTIVATEAPP){
+					PostMessage(hwnd, WM_ACTIVATEAPP, 1, 0);
+				}
 			}
 		}
 		break;
@@ -489,8 +488,27 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_SYSCOMMAND:
 		// v2.03.56.fix1 by FunkyFr3sh: ensure that "C&C Red Alert 2" receives the WM_SYSCOMMAND / SC_CLOSE message
 		// that likely is filtered by the application logic
-		if(dxw.Windowize && (wparam == SC_CLOSE) && (dxw.dwFlags6 & TERMINATEONCLOSE)) {
-			return (*pDefWindowProcA)(hwnd, message, wparam, lparam);
+		// v2.03.91: from msdn - In WM_SYSCOMMAND messages, the four low-order bits of the wParam parameter are used 
+		// internally by the system. To obtain the correct result when testing the value of wParam, an application 
+		// must combine the value 0xFFF0 with the wParam value by using the bitwise AND operator. 
+		if(dxw.Windowize && ((wparam & 0xFFF0)== SC_CLOSE) && (dxw.dwFlags6 & TERMINATEONCLOSE)) {
+			LRESULT lres;
+			lres = (*pDefWindowProcA)(hwnd, message, wparam, lparam);
+			return lres;
+		}
+		if(dxw.Windowize){
+			static int iLastX, iLastY, iLastW, iLastH;
+			switch(wparam & 0xFFF0){
+				case SC_MINIMIZE:
+					iLastX = dxw.iPosX; iLastY = dxw.iPosY;
+					iLastW = dxw.iSizX; iLastH = dxw.iSizY;
+					dxw.iPosX = dxw.iPosY = dxw.iSizX = dxw.iSizY = 0;
+					break;
+				case SC_RESTORE:
+					dxw.iPosX = iLastX; dxw.iPosY = iLastY;
+					dxw.iSizX = iLastW; dxw.iSizY = iLastH;
+					break;
+			}
 		}
 		break;
 	case WM_CLOSE:
@@ -597,8 +615,19 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		// v2.02.36: use CallWindowProc that handles WinProc handles
 		ret=(*pCallWindowProcA)(pWindowProc, hwnd, message, wparam, lparam);
 
-		// save last NCHITTEST cursor position for use with KEEPASPECTRATIO scaling
-		if(message==WM_NCHITTEST) LastCursorPos=ret;
+
+		switch(message){
+			case WM_SIZE:
+			//case WM_WINDOWPOSCHANGED: - no good!!!!
+				// update new coordinates
+				if (dxw.IsFullScreen()) dxw.UpdateDesktopCoordinates();
+				break;
+			case WM_NCHITTEST:
+				// save last NCHITTEST cursor position for use with KEEPASPECTRATIO scaling
+				LastCursorPos=ret;
+				break;
+		}
+
 		// v2.1.89: if FORCEWINRESIZE add standard processing for the missing WM_NC* messages
 		if(dxw.dwFlags2 & FORCEWINRESIZE){ 
 			switch(message){

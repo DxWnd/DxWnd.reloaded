@@ -1280,3 +1280,19 @@ add: preliminary opengl/glut32 hook
 fix: ZBUFFER capabilities - allow "Galapagos" to run in hw accelerated mode
 fix: separated D3D FindDevice hookers for D3D version 1/2/3
 fix: some unused code cleanup
+
+v2.03.91
+fix: lowered priority level for dinput/GetDeviceState log message to debug
+fix: added unlock of source surface in EmuBlt* routines
+add: reintroduced SmackW32.dll hooking - necessary for "Galapagos" intro movie
+fix: fixed GDI32 CreateDCA/W, hookers (pretty much reverted to previous working code...)
+add: preliminary hook for OpenGL glCopyTexImage2D
+add: OpenGL better logging
+fix: defaulting process all textures for limit = 0,0
+fix: manages the possibility or ValidateRect receiving a NULL RECT pointer - fix "Galapagos" crash in GDI scaled mode
+add: auto-blit mode in SmakW32 frame loop - shows "Galapagos" company logo intro movie
+fix: force stop blitting on window minimize event - fixes "Galapagos" and many others ....
+
+v2.03.91.fx1,2:
+fix: eliminated LOC causing bad window sizing
+fix: better desktop hider management

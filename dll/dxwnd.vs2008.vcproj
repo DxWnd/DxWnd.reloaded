@@ -502,6 +502,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\smack.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\supmodes.cpp"
 				>
 			</File>
@@ -571,11 +575,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\rad.h"
+				>
+			</File>
+			<File
 				RelativePath=".\resource.h"
 				>
 			</File>
 			<File
 				RelativePath=".\shareddc.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\smack.h"
 				>
 			</File>
 			<File

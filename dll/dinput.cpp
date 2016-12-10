@@ -636,7 +636,7 @@ HRESULT WINAPI extGetDeviceState(LPDIRECTINPUTDEVICE lpdid, DWORD cbdata, LPDIMO
 	HRESULT res; 
 	POINT p = {0, 0};
 
-	OutTraceDW("GetDeviceState(I): did=%x(%s) cbData=%i,%i\n", lpdid, sDevice(lpdid), cbdata, dxw.bActive);
+	OutTraceB("GetDeviceState(I): did=%x(%s) cbData=%i,%i\n", lpdid, sDevice(lpdid), cbdata, dxw.bActive);
 
 	res = (*pGetDeviceState)(lpdid, cbdata, lpvdata);
 

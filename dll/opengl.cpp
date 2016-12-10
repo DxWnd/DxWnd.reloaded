@@ -54,9 +54,16 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "glPixelZoom", NULL, (FARPROC *)&pglPixelZoom, (FARPROC)extglPixelZoom},
 	//{HOOK_IAT_CANDIDATE, 0, "glBegin", NULL, (FARPROC *)&pglBegin, (FARPROC)extglBegin},
 	{HOOK_IAT_CANDIDATE, 0, "glBindTexture", NULL, (FARPROC *)&pglBindTexture, (FARPROC)extglBindTexture},
+	//{HOOK_IAT_CANDIDATE, 0, "glCopyTexImage2D", NULL, (FARPROC *)&pglCopyTexImage2D, (FARPROC)extglCopyTexImage2D},
 	//{HOOK_IAT_CANDIDATE, 0, "glPixelStorei", NULL, (FARPROC *)&pglPixelStorei, (FARPROC)extglPixelStorei},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
+
+// to do:
+//	glutInitDisplayMode
+//  glutCreateWindow,  glutCreateSubWindow
+//	glutPositionWindow,  glutReshapeWindow
+//	glGetFloatv ( GL_SCISSOR_BOX - GL_VIEWPORT )
 
 static HookEntryEx_Type GlutHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "glutFullScreen", NULL, (FARPROC *)&pglutFullScreen, (FARPROC)extglutFullScreen},
@@ -140,6 +147,30 @@ void HookOpenGL(HMODULE module, char *customlib)
 	if(dxw.dwFlags7 & HOOKGLUT32) HookLibraryEx(module, GlutHooks, "glut32.dll");
 
 	return;
+}
+
+static char *ExplainTarget(GLint t)
+{
+	char *p;
+	switch(t){
+		case GL_TEXTURE_1D: p="GL_TEXTURE_1D"; break;
+		case GL_TEXTURE_2D: p="GL_TEXTURE_2D"; break;
+		case GL_TEXTURE_3D: p="GL_TEXTURE_3D"; break;
+		case GL_PROXY_TEXTURE_2D: p="GL_PROXY_TEXTURE_2D"; break;
+		case GL_TEXTURE_1D_ARRAY: p="GL_TEXTURE_1D_ARRAY"; break;
+		case GL_PROXY_TEXTURE_1D_ARRAY: p="GL_PROXY_TEXTURE_1D_ARRAY"; break;
+		case GL_TEXTURE_RECTANGLE: p="GL_TEXTURE_RECTANGLE"; break;
+		case GL_PROXY_TEXTURE_RECTANGLE: p="GL_PROXY_TEXTURE_RECTANGLE"; break;
+		case GL_TEXTURE_CUBE_MAP_POSITIVE_X: p="GL_TEXTURE_CUBE_MAP_POSITIVE_X"; break;
+		case GL_TEXTURE_CUBE_MAP_NEGATIVE_X: p="GL_TEXTURE_CUBE_MAP_NEGATIVE_X"; break;
+		case GL_TEXTURE_CUBE_MAP_POSITIVE_Y: p="GL_TEXTURE_CUBE_MAP_POSITIVE_Y"; break;
+		case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y: p="GL_TEXTURE_CUBE_MAP_NEGATIVE_Y"; break;
+		case GL_TEXTURE_CUBE_MAP_POSITIVE_Z: p="GL_TEXTURE_CUBE_MAP_POSITIVE_Z"; break;
+		case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z: p="GL_TEXTURE_CUBE_MAP_NEGATIVE_Z"; break;
+		case GL_TEXTURE_CUBE_MAP: p="GL_TEXTURE_CUBE_MAP"; break;
+		default: p="???"; break;
+	}
+	return p;
 }
 
 GLenum WINAPI extglGetError()
@@ -300,14 +331,6 @@ BOOL WINAPI extwglMakeCurrent(HDC hdc, HGLRC hglrc)
 	return ret;
 }
 
-// to do:
-//	glutSetWindow - save current window handle
-//	glutInitWindowPosition, glutInitWindowSize
-//	glutInitDisplayMode
-//  glutCreateWindow,  glutCreateSubWindow
-//	glutPositionWindow,  glutReshapeWindow
-//	glGetFloatv ( GL_SCISSOR_BOX - GL_VIEWPORT )
-
 static unsigned int Hash(BYTE *buf, int len)
 {
    unsigned int b    = 378551;
@@ -343,10 +366,22 @@ static void glTextureDump(GLint internalFormat, GLenum Format, GLsizei w, GLsize
 		DoOnce = FALSE;
 	}
 
-	if((w < MinTexX) || (h < MinTexY)) return;
-	if((w > MaxTexX) || (h > MaxTexY)) return;
+	if((MinTexX && (w<MinTexX)) || (MinTexY && (h<MinTexY))) {
+		OutTrace("TextureDump: SKIP small texture\n");
+		return;
+	}
+	if((MaxTexX && (w>MaxTexX)) || (MaxTexY && (h>MaxTexY))) {
+		OutTrace("TextureDump: SKIP big texture\n");
+		return;
+	}
 
-	if(internalFormat != 4) return; // the only safe for now ....
+	switch(internalFormat){
+		case GL_TRIANGLES: break; // the only safe for now ....
+		case GL_QUADS: 
+		case GL_RGB:  // from "Alone in the Dark the new nightmare" .....
+		case GL_RGBA:  
+		default: return; 
+	}
 
 	// temporary ....
 					dwRBitMask = 0x000000FF;
@@ -474,8 +509,8 @@ void WINAPI extglTexImage2D(
   	GLenum type,
   	const GLvoid * data)
 {
-	OutTraceDW("glTexImage2D: TEXTURE target=%x level=%x internalformat=%x format=%x type=%x size=(%dx%d)\n", 
-		target, level, internalFormat, format, type, width, height);
+	OutTraceDW("glTexImage2D: TEXTURE target=%x(%s) level=%x internalformat=%x format=%x type=%x size=(%dx%d)\n", 
+		target, ExplainTarget(target), level, internalFormat, format, type, width, height);
 
 	switch(target){
 		//case GL_PROXY_TEXTURE_RECTANGLE:
@@ -503,6 +538,47 @@ void WINAPI extglTexImage2D(
 	if(dxw.dwFlags4 & NOTEXTURES) return;
 
 	return (*pglTexImage2D)(target, level, internalFormat, width, height, border, format, type, data);
+}
+
+void WINAPI extglCopyTexImage2D(
+	GLenum target,
+  	GLint level,
+  	GLenum internalFormat,
+  	GLint x,
+  	GLint y,
+  	GLsizei width,
+  	GLsizei height,
+  	GLint border)
+{
+	OutTraceDW("glCopyTexImage2D: TEXTURE target=%x(%s) level=%x internalformat=%x pos=(%d,%d) size=(%dx%d) border=%d\n", 
+		target, ExplainTarget(target), level, internalFormat, x, y, width, height, border);
+
+	switch(target){
+		//case GL_PROXY_TEXTURE_RECTANGLE:
+		//case GL_PROXY_TEXTURE_2D:
+		case GL_TEXTURE_2D:
+		case GL_TEXTURE_RECTANGLE:
+			switch(dxw.dwFlags5 & TEXTUREMASK){
+				default:
+				case TEXTUREHIGHLIGHT: 
+					//glTextureHighlight(s);
+					break;
+				case TEXTUREDUMP: 
+					//glTextureDump(internalFormat, 0, width, height, 0, glGet(GL_READ_BUFFER));
+					break;
+				case TEXTUREHACK:
+					//glTextureHack(...);
+					break;
+				case TEXTURETRANSP:
+					//glTextureTransp(...);
+					break;
+			}
+			break;
+	}
+
+	if(dxw.dwFlags4 & NOTEXTURES) return;
+
+	return (*pglCopyTexImage2D)(target, level, internalFormat, x, y, width, height, border);
 }
 
 #if 0
@@ -572,7 +648,7 @@ void WINAPI extglBegin(GLenum mode)
 void WINAPI extglBindTexture(GLenum target, GLuint texture)
 {
 	GLenum glerr;
-	OutTraceDW("glBindTexture: target=%x texture=%x\n", target, texture);
+	OutTraceDW("glBindTexture: target=%x(%s) texture=%x\n", target, ExplainTarget(target), texture);
 
 	if(dxw.dwFlags7 & FIXBINDTEXTURE) {
 		static GLuint uiLastTex = 0;

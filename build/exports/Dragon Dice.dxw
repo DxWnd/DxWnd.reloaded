@@ -1,0 +1,35 @@
+[target]
+title0=Dragon Dice
+path0=D:\Games\ddice\dd.exe
+startfolder0=
+launchpath0=
+module0=
+opengllib0=
+notes0=Game path must be set in registry
+registry0=\n[HKEY_LOCAL_MACHINE\SOFTWARE\Interplay]\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Interplay\Dragon Dice]\n"ApplicationPath"="d:\\games\\ddice\\"\n"StarfleetDemo"=dword:00000001\n"GameInstalled"=dword:00000001\n"ZoomLevel"=dword:00000000\n"DieSortType"=dword:00000001\n"DisplayDieFaceType"=dword:00000000\n"DisplayRoll"=dword:00000001\n"DisplayBattle"=dword:00000001\n"DisplayDragonVsDragon"=dword:00000001\n"PlaySounds"=dword:00000001\n"PlayMusic"=dword:00000001\n"DemoMode"=dword:00000001\n"DisplayGameMessages"=dword:00000001\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Interplay\Dragon Dice\1.0]\n
+ver0=0
+monitorid0=-1
+coord0=0
+flag0=136314882
+flagg0=1207959552
+flagh0=1044
+flagi0=1212153860
+flagj0=4224
+flagk0=65536
+flagl0=32768
+flagm0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2
+initresw0=800
+initresh0=600

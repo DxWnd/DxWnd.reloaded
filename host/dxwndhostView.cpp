@@ -353,6 +353,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
 	if(dlg->m_HookDirectSound) t->flags7 |= HOOKDIRECTSOUND;
 	if(dlg->m_HookSmackW32) t->flags7 |= HOOKSMACKW32;
+	if(dlg->m_FixSmackLoop) t->flags7 |= FIXSMACKLOOP;
 	if(dlg->m_BlockPriorityClass) t->flags7 |= BLOCKPRIORITYCLASS;
 	if(dlg->m_EASportsHack) t->flags5 |= EASPORTSHACK;
 	if(dlg->m_LegacyAlloc) t->flags6 |= LEGACYALLOC;
@@ -618,6 +619,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
 	dlg->m_HookDirectSound = t->flags7 & HOOKDIRECTSOUND ? 1 : 0;
 	dlg->m_HookSmackW32 = t->flags7 & HOOKSMACKW32 ? 1 : 0;
+	dlg->m_FixSmackLoop = t->flags7 & FIXSMACKLOOP ? 1 : 0;
 	dlg->m_BlockPriorityClass = t->flags7 & BLOCKPRIORITYCLASS ? 1 : 0;
 	dlg->m_EASportsHack = t->flags5 & EASPORTSHACK ? 1 : 0;
 	dlg->m_LegacyAlloc = t->flags6 & LEGACYALLOC ? 1 : 0;

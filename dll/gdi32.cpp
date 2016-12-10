@@ -873,16 +873,10 @@ HDC WINAPI extGDICreateDCA(LPSTR lpszDriver, LPSTR lpszDevice, LPSTR lpszOutput,
 
 	if (!lpszDriver || !strncmp(lpszDriver,"DISPLAY",7)) {
 		switch(dxw.GDIEmulationMode){
+			case GDIMODE_NONE:
+			case GDIMODE_STRETCHED:
 			case GDIMODE_EMULATED:
-				OutTraceDW("GDI.CreateDCA: returning emulated DC\n");
-				RetHDC=dxw.AcquireEmulatedDC(dxw.GethWnd());
-				break;
 			case GDIMODE_SHAREDDC:
-				OutTraceDW("GDI.CreateDCA: returning shared DC\n");
-				WinHDC=(*pGDIGetDC)(dxw.GethWnd());
-				sdc.GetPrimaryDC(WinHDC);
-				RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
-				sdc.PutPrimaryDC(WinHDC, FALSE);
 			default:
 				OutTraceDW("GDI.CreateDCA: returning window surface DC\n");
 				WinHDC=(*pGDIGetDC)(dxw.GethWnd());
@@ -908,16 +902,18 @@ HDC WINAPI extGDICreateDCW(LPWSTR lpszDriver, LPWSTR lpszDevice, LPWSTR lpszOutp
 		lpszDriver?lpszDriver:L"(NULL)", lpszDevice?lpszDevice:L"(NULL)", lpszOutput?lpszOutput:L"(NULL)", lpdvmInit);
 
 	if (!lpszDriver || !wcsncmp(lpszDriver,L"DISPLAY",7)) {
-		if(dxw.GDIEmulationMode == GDIMODE_EMULATED){
-			RetHDC=dxw.AcquireEmulatedDC(dxw.GethWnd());
+		switch(dxw.GDIEmulationMode){
+			case GDIMODE_NONE:
+			case GDIMODE_STRETCHED:
+			case GDIMODE_EMULATED:
+			case GDIMODE_SHAREDDC:
+			default:
+				OutTraceDW("GDI.CreateDCA: returning window surface DC\n");
+				WinHDC=(*pGDIGetDC)(dxw.GethWnd());
+				RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
+				(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
+				break;
 		}
-		else {
-			OutTraceDW("GDI.CreateDCW: returning window surface DC\n");
-			WinHDC=(*pGDIGetDC)(dxw.GethWnd());
-			RetHDC=(*pGDICreateCompatibleDC)(WinHDC);
-			(*pGDIReleaseDC)(dxw.GethWnd(), WinHDC);
-		}
-
 	}
 	else{
 		RetHDC=(*pGDICreateDCW)(lpszDriver, lpszDevice, lpszOutput, lpdvmInit);
@@ -1254,15 +1250,6 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	if(IsDCLeakageDest) (*pGDIReleaseDC)(dxw.GethWnd(), hdcDest);
 	if(res && IsToScreen) dxw.ShowOverlay(hdcDest);
 	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	return res;
-}
-
-BOOL WINAPI extGDIDeleteDC(HDC hdc)
-{
-	BOOL res;
-	OutTraceDW("GDI.DeleteDC: hdc=%x\n", hdc);
-	res=(*pGDIDeleteDC)(hdc);
-	if(!res) OutTraceE("GDI.DeleteDC: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
 
