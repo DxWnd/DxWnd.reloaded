@@ -599,6 +599,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\stb_dxt.h"
+				>
+			</File>
+			<File
 				RelativePath=".\syslibs.h"
 				>
 			</File>

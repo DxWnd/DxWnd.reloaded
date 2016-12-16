@@ -289,8 +289,8 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 					OutTraceE("WaitForVerticalBlank ERROR: res=%x\n", res2);
 			}
 			bVSyncDone = FALSE;
-			BlitToWindow(dxw.GethWnd(), lpddssrc);
 		}
+		BlitToWindow(dxw.GethWnd(), lpddssrc);
 		return DD_OK;
 	}
 

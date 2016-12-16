@@ -8,7 +8,23 @@
 #include "syslibs.h"
 #include "stdio.h"
 
+#define STB_DXT_IMPLEMENTATION
+#include "stb_dxt.h"
+
 extern unsigned int HashSurface(BYTE *, int, int, int);
+extern char *GetDxWndPath();
+
+static unsigned int HashBuffer(BYTE *buf, int len)
+{
+	unsigned int b    = 378551;
+	unsigned int a    = 63689;
+	DWORD hash = 0;
+	for(int i = 0; i < len; i++){
+		hash = (hash * a) + (*buf++);
+		a    = a * b;
+	}
+	return hash;
+}
 
 static WORD Melt_123(WORD c1, WORD c2)
 {
@@ -124,34 +140,191 @@ char *ExplainD3DSurfaceFormat(DWORD dwFormat)
 	return s;
 }
 
-#define GRIDSIZE 16
-
-void D3DTextureHighlight(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
+static int FormatColorDepth(D3DFORMAT Format)
 {
-	switch (Desc.Format){
+	int iColorDepth = 0;
+	switch (Format){
 		case D3DFMT_X8R8G8B8: 
-		case D3DFMT_A8R8G8B8:
-			{
-				DWORD *p;
-				DWORD color;
-				color=(DWORD)(rand() & 0x00FFFFFF);
-				for(UINT y=0; y<Desc.Height; y++){
-					p = (DWORD *)LockedRect.pBits + ((y * LockedRect.Pitch) >> 2);
-					for(UINT x=0; x<Desc.Width; x++) *(p+x) = color;
-				}
-				for(UINT y=0; y<Desc.Height; y++){
-					p = (DWORD *)LockedRect.pBits + ((y * LockedRect.Pitch) >> 2);
-					for(UINT x=0; x<Desc.Width; x+=GRIDSIZE) *(p+x) = 0;
-					if((y%GRIDSIZE)==0) for(UINT x=0; x<Desc.Width; x++) *(p++) = 0;
-				}
-			}
-			break;
+		case D3DFMT_A8R8G8B8: 
+		case D3DFMT_DXT2:
 		case D3DFMT_DXT3:
-			//if(Desc.Height) for(UINT y=0; y<(Desc.Height>>2); y+=2)
-			//	memset((BYTE *)LockedRect.pBits + (y * LockedRect.Pitch), 0x00, LockedRect.Pitch);
-		default:
+		case D3DFMT_DXT4:
+		case D3DFMT_DXT5:
+		case D3DFMT_A8:
+		case D3DFMT_L8:
+			iColorDepth = 32;
+			break;
+		case D3DFMT_DXT1:
+		case D3DFMT_A4R4G4B4: // AoE III
+		case D3DFMT_X4R4G4B4:
+		case D3DFMT_A1R5G5B5: //  AoE III
+		case D3DFMT_X1R5G5B5:
+		case D3DFMT_R5G6B5:
+			iColorDepth = 16;
 			break;
 	}
+	return iColorDepth;
+}
+
+// FormatColorBytes macro gives color depth in bytes by dividing by 8 (=> lshift 3)
+#define FormatColorBytes(Format) (FormatColorDepth(Format) >> 3)
+
+static DWORD TextureSize(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
+{
+	DWORD dwSize;
+
+	// calculate the texture size 
+	switch (Desc.Format){
+		case D3DFMT_A4R4G4B4:
+		case D3DFMT_X4R4G4B4:
+		case D3DFMT_X1R5G5B5:
+		case D3DFMT_A1R5G5B5:
+		case D3DFMT_R5G6B5:
+		case D3DFMT_X8R8G8B8: 
+		case D3DFMT_A8R8G8B8: 
+		//case D3DFMT_A8:
+		//case D3DFMT_L8:
+			dwSize = Desc.Width * Desc.Height * FormatColorBytes(Desc.Format);
+			break;
+		case D3DFMT_DXT1: 
+		case D3DFMT_DXT2: 
+		case D3DFMT_DXT3: 
+		case D3DFMT_DXT4: 
+		case D3DFMT_DXT5: 
+			dwSize = (Desc.Width * Desc.Height * FormatColorBytes(Desc.Format)) / 4;
+			break;
+		default:
+			dwSize = 0; // 0 = unknown or not interesting
+			break;
+	}
+	return dwSize;
+}
+
+static DWORD D3DHash(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
+{
+	DWORD hash;
+	static BOOL DoOnce = TRUE;
+
+	// calculate the bitmap hash
+	hash = 0;
+	switch (Desc.Format){
+		// hash for uncompressed bmp-like formats with possible empty area at end of pitch size
+		case D3DFMT_A4R4G4B4:
+		case D3DFMT_X4R4G4B4:
+		case D3DFMT_X8R8G8B8: 
+		case D3DFMT_A8R8G8B8: 
+		case D3DFMT_R5G6B5:
+		case D3DFMT_X1R5G5B5:
+		case D3DFMT_A1R5G5B5:
+		case D3DFMT_A8:
+		case D3DFMT_L8:
+			hash = HashSurface((BYTE *)LockedRect.pBits, LockedRect.Pitch, Desc.Width, Desc.Height);
+			break;
+		// hash for fixed ratio compressed formats
+		case D3DFMT_DXT1: 
+		case D3DFMT_DXT2: 
+		case D3DFMT_DXT3: 
+		case D3DFMT_DXT4: 
+		case D3DFMT_DXT5: 
+			hash = HashBuffer((BYTE *)LockedRect.pBits, TextureSize(Desc, LockedRect)); 
+			break;
+		case D3DFMT_V8U8:
+		case D3DFMT_Q8W8V8U8: // Tiger Woods PGA Tour 08
+		case D3DFMT_V16U16:
+		case D3DFMT_Q16W16V16U16:
+		case D3DFMT_CxV8U8:
+		case D3DFMT_L6V5U5:
+		case D3DFMT_X8L8V8U8:
+		case D3DFMT_A2W10V10U10:
+			// Bumpmap surfaces, dump is meaningless .....
+			break;
+		default:
+			char sMsg[80+1];
+			if(DoOnce){
+				sprintf_s(sMsg, 80, "Unhandled texture type=%d(%s)", Desc.Format, ExplainD3DSurfaceFormat(Desc.Format));
+				MessageBox(0, sMsg, "WARN", MB_OK | MB_ICONEXCLAMATION);
+				DoOnce = FALSE;
+			}
+			break;
+	}
+	return hash;
+}
+
+BOOL SetBMPStruct(LPBITMAPV4HEADER lpBV4Hdr, LPBITMAPFILEHEADER lpBFHdr, D3DSURFACE_DESC Desc)
+{
+	// set bmp invariant parameters
+	memset((void *)lpBV4Hdr, 0, sizeof(BITMAPV4HEADER));
+	lpBV4Hdr->bV4Size = sizeof(BITMAPV4HEADER); 
+	lpBV4Hdr->bV4Width = Desc.Width;
+	lpBV4Hdr->bV4Height = Desc.Height;
+	lpBV4Hdr->bV4Planes = 1;
+	lpBV4Hdr->bV4V4Compression = BI_BITFIELDS;
+	lpBV4Hdr->bV4XPelsPerMeter = 1;
+	lpBV4Hdr->bV4YPelsPerMeter = 1;
+	lpBV4Hdr->bV4ClrUsed = 0;
+	lpBV4Hdr->bV4ClrImportant = 0;
+	lpBV4Hdr->bV4CSType = LCS_CALIBRATED_RGB;
+	lpBFHdr->bfType = 0x4d42;        // 0x42 = "B" 0x4d = "M"  
+	lpBFHdr->bfReserved1 = 0; 
+	lpBFHdr->bfReserved2 = 0; 
+
+	switch (Desc.Format){
+		case D3DFMT_X8R8G8B8: 
+		case D3DFMT_A8R8G8B8: 
+		case D3DFMT_DXT2:
+		case D3DFMT_DXT3:
+		case D3DFMT_DXT4:
+		case D3DFMT_DXT5:
+		case D3DFMT_A8:
+		case D3DFMT_L8:
+			lpBV4Hdr->bV4BitCount = 32;
+			lpBV4Hdr->bV4RedMask = 0x00FF0000;
+			lpBV4Hdr->bV4GreenMask = 0x0000FF00;
+			lpBV4Hdr->bV4BlueMask = 0x000000FF;
+			lpBV4Hdr->bV4AlphaMask = 0xFF000000;
+			break;
+		case D3DFMT_DXT1:
+			lpBV4Hdr->bV4BitCount = 16;
+			lpBV4Hdr->bV4RedMask = 0xF800;
+			lpBV4Hdr->bV4GreenMask = 0x07E0;
+			lpBV4Hdr->bV4BlueMask = 0x001F;
+			lpBV4Hdr->bV4AlphaMask = 0x0000;
+			break;
+		case D3DFMT_A4R4G4B4: // AoE III
+		case D3DFMT_X4R4G4B4:
+			lpBV4Hdr->bV4BitCount = 16;
+			lpBV4Hdr->bV4RedMask = 0x0F00;
+			lpBV4Hdr->bV4GreenMask = 0x00F0;
+			lpBV4Hdr->bV4BlueMask = 0x000F;
+			lpBV4Hdr->bV4AlphaMask = 0xF000;
+			break;
+		case D3DFMT_A1R5G5B5: //  AoE III
+		case D3DFMT_X1R5G5B5:
+			lpBV4Hdr->bV4BitCount = 16;
+			lpBV4Hdr->bV4RedMask = 0x7C00;
+			lpBV4Hdr->bV4GreenMask = 0x03E0;
+			lpBV4Hdr->bV4BlueMask = 0x001F;
+			lpBV4Hdr->bV4AlphaMask = 0x8000;
+			break;		
+		case D3DFMT_R5G6B5:
+			lpBV4Hdr->bV4BitCount = 16;
+			lpBV4Hdr->bV4RedMask = 0x7C00;
+			lpBV4Hdr->bV4GreenMask = 0x03E0;
+			lpBV4Hdr->bV4BlueMask = 0x001F;
+			lpBV4Hdr->bV4AlphaMask = 0x0000;
+			break;		
+	}
+
+	lpBV4Hdr->bV4SizeImage = ((lpBV4Hdr->bV4Width * lpBV4Hdr->bV4BitCount + 0x1F) & ~0x1F)/8 * lpBV4Hdr->bV4Height; 
+	lpBV4Hdr->bV4Height = - lpBV4Hdr->bV4Height;
+
+	// Compute the size of the entire file.  
+	lpBFHdr->bfSize = (DWORD) (sizeof(BITMAPFILEHEADER) + lpBV4Hdr->bV4Size + lpBV4Hdr->bV4ClrUsed * sizeof(RGBQUAD) + lpBV4Hdr->bV4SizeImage); 
+
+	// Compute the offset to the array of color indices.  
+	lpBFHdr->bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + lpBV4Hdr->bV4Size + lpBV4Hdr->bV4ClrUsed * sizeof (RGBQUAD); 
+
+	return 0;
 }
 
 void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
@@ -165,10 +338,10 @@ void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 	int iSurfaceSize, iScanLineSize;
 	char pszFile[MAX_PATH];
 	DWORD hash;
+	BOOL IsRaw = (dxw.dwFlags8 & RAWFORMAT);
 
 	if(DoOnce){
 		char sProfilePath[MAX_PATH];
-		extern char *GetDxWndPath();
 		sprintf(sProfilePath, "%s\\dxwnd.ini", GetDxWndPath());
 		MinTexX=GetPrivateProfileInt("Texture", "MinTexX", 0, sProfilePath);
 		MaxTexX=GetPrivateProfileInt("Texture", "MaxTexX", 0, sProfilePath);
@@ -193,136 +366,35 @@ void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 		}
 		iSurfaceSize = Desc.Height * LockedRect.Pitch;
 
-		// calculate the bitmap hash
-		hash = 0;
-		switch (Desc.Format){
-			case D3DFMT_A4R4G4B4:
-			case D3DFMT_X4R4G4B4:
-			case D3DFMT_X8R8G8B8: 
-			case D3DFMT_A8R8G8B8: 
-			case D3DFMT_R5G6B5:
-			case D3DFMT_X1R5G5B5:
-			case D3DFMT_A1R5G5B5:
-			case D3DFMT_A8:
-			case D3DFMT_L8:
-				hash = HashSurface((BYTE *)LockedRect.pBits, LockedRect.Pitch, Desc.Width, Desc.Height);
-				break;
-			case D3DFMT_DXT1: 
-				hash = HashSurface((BYTE *)LockedRect.pBits, LockedRect.Pitch / 6, Desc.Width / 6, Desc.Height); 
-				break;
-			case D3DFMT_DXT2: 
-			case D3DFMT_DXT3: 
-				hash = HashSurface((BYTE *)LockedRect.pBits, LockedRect.Pitch / 4, Desc.Width / 4, Desc.Height); 
-				break;
-			case D3DFMT_DXT4: 
-			case D3DFMT_DXT5: 
-				hash = HashSurface((BYTE *)LockedRect.pBits, LockedRect.Pitch / 4, Desc.Width / 4, Desc.Height); 
-				break;
-			case D3DFMT_V8U8:
-			case D3DFMT_Q8W8V8U8: // Tiger Woods PGA Tour 08
-			case D3DFMT_V16U16:
-			case D3DFMT_Q16W16V16U16:
-			case D3DFMT_CxV8U8:
-			case D3DFMT_L6V5U5:
-			case D3DFMT_X8L8V8U8:
-			case D3DFMT_A2W10V10U10:
-				// Bumpmap surfaces, dump is meaningless .....
-				break;
-			default:
-				char sMsg[80+1];
-				static BOOL DoOnce = TRUE;
-				if(DoOnce){
-					sprintf_s(sMsg, 80, "Unhandled texture type=%d(%s)", Desc.Format, ExplainD3DSurfaceFormat(Desc.Format));
-					MessageBox(0, sMsg, "WARN", MB_OK | MB_ICONEXCLAMATION);
-					DoOnce = FALSE;
-				}
-				break;
+		// skip unsupported raw compressions
+		if(!TextureSize(Desc, LockedRect)){
+			OutTrace("TextureDump: UNSUPPORTED\n"); 
+			break; 
 		}
 
+		// calculate the bitmap hash
+		hash = D3DHash(Desc, LockedRect);
 		if(!hash) {
 			OutTrace("TextureDump: hash=NULL\n"); 
 			break; // almost certainly, an empty black surface!
 		}
 
 		// Create the .BMP file. 
-		extern char *GetDxWndPath();
-		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.bmp", 
-			GetDxWndPath(), Desc.Width, Desc.Height, ExplainD3DSurfaceFormat(Desc.Format), hash);
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.%s", 
+			GetDxWndPath(), Desc.Width, Desc.Height, ExplainD3DSurfaceFormat(Desc.Format), 
+			hash, IsRaw ? "raw" : "bmp");
 		hf = fopen(pszFile, "wb");
 		if(!hf) break;
 
-		// set bmp invariant parameters
-		memset((void *)&pbi, 0, sizeof(BITMAPV4HEADER));
-		pbi.bV4Size = sizeof(BITMAPV4HEADER); 
-		pbi.bV4Width = Desc.Width;
-		pbi.bV4Height = Desc.Height;
-		pbi.bV4Planes = 1;
-		pbi.bV4V4Compression = BI_BITFIELDS;
-		pbi.bV4XPelsPerMeter = 1;
-		pbi.bV4YPelsPerMeter = 1;
-		pbi.bV4ClrUsed = 0;
-		pbi.bV4ClrImportant = 0;
-		pbi.bV4CSType = LCS_CALIBRATED_RGB;
-		hdr.bfType = 0x4d42;        // 0x42 = "B" 0x4d = "M"  
-		hdr.bfReserved1 = 0; 
-		hdr.bfReserved2 = 0; 
-
-		switch (Desc.Format){
-			case D3DFMT_X8R8G8B8: 
-			case D3DFMT_A8R8G8B8: 
-			case D3DFMT_DXT2:
-			case D3DFMT_DXT3:
-			case D3DFMT_DXT4:
-			case D3DFMT_DXT5:
-			case D3DFMT_A8:
-			case D3DFMT_L8:
-				pbi.bV4BitCount = 32;
-				pbi.bV4RedMask = 0x00FF0000;
-				pbi.bV4GreenMask = 0x0000FF00;
-				pbi.bV4BlueMask = 0x000000FF;
-				pbi.bV4AlphaMask = 0xFF000000;
-				break;
-			case D3DFMT_DXT1:
-				pbi.bV4BitCount = 16;
-				pbi.bV4RedMask = 0xF800;
-				pbi.bV4GreenMask = 0x07E0;
-				pbi.bV4BlueMask = 0x001F;
-				pbi.bV4AlphaMask = 0x0000;
-				break;
-			case D3DFMT_A4R4G4B4: // AoE III
-			case D3DFMT_X4R4G4B4:
-				pbi.bV4BitCount = 16;
-				pbi.bV4RedMask = 0x0F00;
-				pbi.bV4GreenMask = 0x00F0;
-				pbi.bV4BlueMask = 0x000F;
-				pbi.bV4AlphaMask = 0xF000;
-				break;
-			case D3DFMT_A1R5G5B5: //  AoE III
-			case D3DFMT_X1R5G5B5:
-				pbi.bV4BitCount = 16;
-				pbi.bV4RedMask = 0x7C00;
-				pbi.bV4GreenMask = 0x03E0;
-				pbi.bV4BlueMask = 0x001F;
-				pbi.bV4AlphaMask = 0x8000;
-				break;		
-			case D3DFMT_R5G6B5:
-				pbi.bV4BitCount = 16;
-				pbi.bV4RedMask = 0x7C00;
-				pbi.bV4GreenMask = 0x03E0;
-				pbi.bV4BlueMask = 0x001F;
-				pbi.bV4AlphaMask = 0x0000;
-				break;		
+		if(IsRaw){
+			fwrite((BYTE *)LockedRect.pBits, TextureSize(Desc, LockedRect), 1, hf);
+			fclose(hf);
+			return;
 		}
 
-		pbi.bV4SizeImage = ((pbi.bV4Width * pbi.bV4BitCount + 0x1F) & ~0x1F)/8 * pbi.bV4Height; 
+		// set bmp invariant parameters
+		if (SetBMPStruct(&pbi, &hdr, Desc)) break;
 		iScanLineSize = ((pbi.bV4Width * pbi.bV4BitCount + 0x1F) & ~0x1F)/8;
-		pbi.bV4Height = - pbi.bV4Height;
-
-		// Compute the size of the entire file.  
-		hdr.bfSize = (DWORD) (sizeof(BITMAPFILEHEADER) + pbi.bV4Size + pbi.bV4ClrUsed * sizeof(RGBQUAD) + pbi.bV4SizeImage); 
-
-		// Compute the offset to the array of color indices.  
-		hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + pbi.bV4Size + pbi.bV4ClrUsed * sizeof (RGBQUAD); 
 
 		// Copy the BITMAPFILEHEADER into the .BMP file.  
 		fwrite((LPVOID)&hdr, sizeof(BITMAPFILEHEADER), 1, hf);
@@ -531,6 +603,260 @@ void D3DTextureDump(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 
 void D3DTextureHack(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 {
+	static BOOL DoOnce = TRUE;
+	static int MinTexX, MinTexY, MaxTexX, MaxTexY;
+	FILE *hf;
+	BITMAPFILEHEADER hdr;       // bitmap file-header 
+	BITMAPV4HEADER pbi;			// bitmap info-header  
+	int iSurfaceSize, iScanLineSize;
+	char pszFile[MAX_PATH];
+	DWORD hash;
+	int w, h; 
+	BOOL IsRaw = (dxw.dwFlags8 & RAWFORMAT);
+
+	OutTraceB("TextureHack(D3D)\n");
+
+	if(DoOnce){
+		char sProfilePath[MAX_PATH];
+		sprintf(sProfilePath, "%s\\dxwnd.ini", GetDxWndPath());
+		MinTexX=GetPrivateProfileInt("Texture", "MinTexX", 0, sProfilePath);
+		MaxTexX=GetPrivateProfileInt("Texture", "MaxTexX", 0, sProfilePath);
+		MinTexY=GetPrivateProfileInt("Texture", "MinTexY", 0, sProfilePath);
+		MaxTexY=GetPrivateProfileInt("Texture", "MaxTexY", 0, sProfilePath);
+		OutTrace("TextureHack: size min=(%dx%d) max=(%dx%d)\n", MinTexX, MinTexY, MaxTexX, MaxTexY);
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.in", GetDxWndPath());
+		DoOnce = FALSE;
+	}
+
+	while(TRUE){ // fake loop
+		w = Desc.Width;
+		h = Desc.Height;
+		if((MinTexX && (w<MinTexX)) || (MinTexY && (h<MinTexY))) {
+			OutTrace("TextureHack: SKIP small texture\n");
+			break;
+		}
+		if((MaxTexX && (w>MaxTexX)) || (MaxTexY && (h>MaxTexY))) {
+			OutTrace("TextureHack: SKIP big texture\n");
+			break;
+		}
+		iSurfaceSize = Desc.Height * LockedRect.Pitch;
+
+		// calculate the bitmap hash
+		hash = D3DHash(Desc, LockedRect);
+		if(!hash) {
+			OutTrace("TextureHack: hash=NULL\n"); 
+			break; // almost certainly, an empty black surface!
+		}
+
+		// Look for the .BMP file. 
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.in\\texture.%03d.%03d.%s.%08X.%s", 
+			GetDxWndPath(), Desc.Width, Desc.Height, ExplainD3DSurfaceFormat(Desc.Format), 
+			hash, IsRaw ? "raw" : "bmp");
+		hf = fopen(pszFile, "rb");
+		if(!hf) break; // no updated texture to load
+
+		OutTrace("TextureHack: IMPORT path=%s\n", pszFile);
+
+		if(IsRaw){
+			fread((BYTE *)LockedRect.pBits, TextureSize(Desc, LockedRect), 1, hf);
+			fclose(hf);
+			return;
+		}
+
+		int iBitCount = FormatColorDepth(Desc.Format);
+		if(iBitCount == 0){
+			OutTrace("TextureHack: unsupported format=%x\n", Desc.Format); 
+			break;
+		}
+		iScanLineSize = ((Desc.Width * iBitCount + 0x1F) & ~0x1F)/8;
+
+		while(TRUE) { // fake loop to ensure final fclose
+			// Read the BITMAPFILEHEADER from the .BMP file (and throw away ...).  
+			if(fread((LPVOID)&hdr, sizeof(BITMAPFILEHEADER), 1, hf) != 1)break;
+
+			// Read the BITMAPINFOHEADER (and throw away ...).  
+			// If the file contains BITMAPV4HEADER or BITMAPV5HEADER, no problem: next fseek will settle things
+			if(fread((LPVOID)&pbi, sizeof(BITMAPINFOHEADER), 1, hf) != 1) break;
+
+			// skip the RGBQUAD array if the editor inserted one
+			fseek(hf, hdr.bfOffBits, SEEK_SET);
+
+			switch (Desc.Format){
+				case D3DFMT_X8R8G8B8: 
+				case D3DFMT_A8R8G8B8: 
+					// Read the new texture  from the .BMP file.  
+					if(pbi.bV4Height < 0){
+						// biHeight < 0 -> scan lines from top to bottom, same as surface/texture convention
+						for(int y=0; y<(int)Desc.Height; y++){
+							BYTE *p = (BYTE *)LockedRect.pBits + (LockedRect.Pitch * y);
+							fseek(hf, hdr.bfOffBits + (iScanLineSize * y), SEEK_SET);
+							if(fread((LPVOID)p, LockedRect.Pitch, 1, hf) != 1) break;
+						}
+					}
+					else {
+						// biHeight > 0 -> scan lines from bottom to top, inverse order as surface/texture convention
+						for(int y=0; y<(int)Desc.Height; y++){
+							BYTE *p = (BYTE *)LockedRect.pBits + (LockedRect.Pitch * ((Desc.Height-1) - y));
+							fseek(hf, hdr.bfOffBits + (iScanLineSize * y), SEEK_SET);
+							if(fread((LPVOID)p, LockedRect.Pitch, 1, hf) != 1) break;
+						}
+					}
+					break;
+				case D3DFMT_DXT1:
+					// Read the new texture  from the .BMP file.  
+					if(pbi.bV4Height < 0){
+						BYTE *p = (BYTE *)LockedRect.pBits;
+						BYTE *fb;
+						fb = (BYTE *)malloc(Desc.Width * Desc.Height * sizeof(WORD));
+						if(!fb) {
+							OutTrace("TextureHack: malloc error\n");
+							break;
+						}
+						fseek(hf, hdr.bfOffBits, SEEK_SET);
+						if(fread((LPVOID)fb, Desc.Height * Desc.Width * (iBitCount / 8), 1, hf) != 1) {
+							OutTrace("TextureHack: fread error\n");
+							free(fb);
+							break;
+						}
+						// biHeight < 0 -> scan lines from top to bottom, same as surface/texture convention
+						for(int y=0; y<(int)Desc.Height; y+=4){
+							for(int x=0; x<(int)Desc.Width; x+=4){
+								OutTrace("Compressing line=%d row=%d\n", y, x);
+								stb_compress_dxt_block(p, fb, FALSE, STB_DXT_NORMAL);
+								p += (16 * sizeof(DWORD) / 8);
+								OutTrace("Compression done\n");
+								fb += 4 * 2;
+							}
+						}
+						free(fb);
+					}
+					break;
+				case D3DFMT_DXT5:
+					// Read the new texture  from the .BMP file.  
+					if(pbi.bV4Height < 0){
+						BYTE *p = (BYTE *)LockedRect.pBits;
+						BYTE *fb;
+						fb = (BYTE *)malloc(Desc.Width * Desc.Height * sizeof(DWORD));
+						if(!fb) {
+							OutTrace("TextureHack: malloc error\n");
+							break;
+						}
+						fseek(hf, hdr.bfOffBits, SEEK_SET);
+						if(fread((LPVOID)fb, Desc.Height * Desc.Width * (iBitCount / 8), 1, hf) != 1) {
+							OutTrace("TextureHack: fread error\n");
+							free(fb);
+							break;
+						}
+						// biHeight < 0 -> scan lines from top to bottom, same as surface/texture convention
+						for(int y=0; y<(int)Desc.Height; y+=4){
+							for(int x=0; x<(int)Desc.Width; x+=4){
+								OutTrace("Compressing line=%d row=%d\n", y, x);
+								stb_compress_dxt_block(p, fb, FALSE, STB_DXT_NORMAL);
+								p += (16 * sizeof(DWORD) / 4);
+								OutTrace("Compression done\n");
+								fb += 4 * 4;
+							}
+						}
+						free(fb);
+					}
+					break;
+			}
+
+			OutTrace("TextureHack: TEXTURE LOAD DONE\n");
+			break;
+		}
+
+		fclose(hf);
+		break;
+	}
+}
+
+#define GRIDSIZE 16
+
+void D3DTextureHighlight(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
+{
+	switch (Desc.Format){
+		case D3DFMT_X8R8G8B8: 
+		case D3DFMT_A8R8G8B8:
+			{
+				DWORD *p;
+				DWORD color;
+				color=(DWORD)(rand() & 0x00FFFFFF);
+				for(UINT y=0; y<Desc.Height; y++){
+					p = (DWORD *)LockedRect.pBits + ((y * LockedRect.Pitch) >> 2);
+					for(UINT x=0; x<Desc.Width; x++) *(p+x) = color;
+				}
+				for(UINT y=0; y<Desc.Height; y++){
+					p = (DWORD *)LockedRect.pBits + ((y * LockedRect.Pitch) >> 2);
+					for(UINT x=0; x<Desc.Width; x+=GRIDSIZE) *(p+x) = 0;
+					if((y%GRIDSIZE)==0) for(UINT x=0; x<Desc.Width; x++) *(p++) = 0;
+				}
+			}
+			break;
+		case D3DFMT_DXT1:
+			{
+				WORD color = (WORD)(rand() & 0x0000FFFF);
+				WORD whiteline[4] = {0xFFFF, 0xFFFF, 0x0000, 0x0000};
+				WORD coloredline[4] = {0xFFFF, 0xFFFF, 0x0000, 0x0000};
+				BYTE *w = (BYTE *)LockedRect.pBits;
+				coloredline[0] = coloredline[1] = color;
+#ifdef SOLIDCOLOR
+				int max = (int)TextureSize(Desc, LockedRect) / 8;
+				for(int i=0; i<max; i++, w+=8){
+					memcpy((void *)w, (i%16)?(void *)coloredline:(void *)whiteline, 8);
+				}
+#else
+				for(UINT y=0; y<Desc.Height; y+=4){
+					for(UINT x=0; x<Desc.Width; x+=4){
+						if((y%GRIDSIZE)==0) 
+							memcpy((void *)w, (void *)whiteline, 8);
+						else
+							memcpy((void *)w, (x%GRIDSIZE)?(void *)coloredline:(void *)whiteline, 8);
+						w+=8;
+					}
+				}
+#endif
+			}
+			break;
+		case D3DFMT_DXT2:
+		case D3DFMT_DXT3:
+		case D3DFMT_DXT4:
+		case D3DFMT_DXT5:
+			{
+				DWORD color = (WORD)(rand() & 0x00FFFFFF);
+				DWORD whiteline[8] = {0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF};
+				DWORD coloredline[8] = {0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF};
+				BYTE *w = (BYTE *)LockedRect.pBits;
+				coloredline[2] = coloredline[3] = color;
+#ifdef SOLIDCOLOR
+				int max = (int)TextureSize(Desc, LockedRect) / 8;
+				for(int i=0; i<max; i++, w+=8){
+					memcpy((void *)w, (i%16)?(void *)coloredline:(void *)whiteline, 8);
+				}
+#else
+				for(UINT y=0; y<Desc.Height; y+=4){
+					for(UINT x=0; x<Desc.Width; x+=4){
+						if((y%GRIDSIZE)==0) 
+							memcpy((void *)w, (void *)whiteline, 16);
+						else
+							memcpy((void *)w, (x%GRIDSIZE)?(void *)coloredline:(void *)whiteline, 16);
+						w+=16;
+					}
+				}
+#endif
+			}
+			break;
+		default:
+			{
+				BYTE color;
+				DWORD dwSize;
+				color=(BYTE)(rand() & 0x000000FF);
+				if(dwSize=TextureSize(Desc, LockedRect)){
+					memset(LockedRect.pBits, color, dwSize);
+				}
+			}
+			break;
+	}
 }
 
 void D3DTextureTransp(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)

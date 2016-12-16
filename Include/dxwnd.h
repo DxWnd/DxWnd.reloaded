@@ -258,6 +258,9 @@
 #define NOHALDEVICE			0x00000040 // Simulates a situation of lack of 3D hardware support, like in presence of remote desktop
 #define CLIPLOCKED			0x00000080 // never destroy cursor clipper on window move events ....
 #define PRETENDVISIBLE		0x00000100 // Pretend the main window is visible (IsWindowVisible) and on Z-order top (GetTopWindow)
+#define RAWFORMAT			0x00000200 // texture dump / hack are performed in raw format, compression / decompression to be made offline
+#define WININSULATION		0x00000400 // EnumerateWin finds no windows!
+#define FIXMOUSEHOOK		0x00000800 // fixes mouse coordinates retrieved through MouseProc routine associated to SetWindowsHook(WH_MOUSE,..)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

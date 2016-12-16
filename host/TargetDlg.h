@@ -148,7 +148,7 @@ public:
 	BOOL	m_NoWindowMove;
 	BOOL	m_HookChildWin;
 	BOOL	m_MessageProc;
-	//BOOL	m_NoMouseProc;
+	BOOL	m_FixMouseHook;
 	BOOL	m_FixNCHITTEST;
 	BOOL	m_RecoverScreenMode;
 	BOOL	m_RefreshOnResize;
@@ -201,6 +201,7 @@ public:
 	BOOL	m_SyncPalette;
 	BOOL	m_NoWinErrors;
 	BOOL	m_PretendVisible;
+	BOOL	m_WinInsulation;
 	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;
@@ -263,6 +264,7 @@ public:
 	BOOL	m_SuppressD3DExt;
 	BOOL	m_Enum16bitModes;
 	BOOL	m_TrimTextureFormats;
+	BOOL	m_RawFormat;
 	BOOL	m_LimitScreenRes;
 	BOOL	m_InitialRes;
 	BOOL	m_MaximumRes;

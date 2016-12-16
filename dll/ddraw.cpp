@@ -76,6 +76,11 @@ HRESULT WINAPI extCreateSurface2(LPDIRECTDRAW, DDSURFACEDESC *, LPDIRECTDRAWSURF
 HRESULT WINAPI extCreateSurface3(LPDIRECTDRAW, DDSURFACEDESC *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extCreateSurface4(LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extCreateSurface7(LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
+HRESULT WINAPI extDuplicateSurface1(LPDIRECTDRAW, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE FAR *);
+HRESULT WINAPI extDuplicateSurface2(LPDIRECTDRAW, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE FAR *);
+HRESULT WINAPI extDuplicateSurface3(LPDIRECTDRAW, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE FAR *);
+HRESULT WINAPI extDuplicateSurface4(LPDIRECTDRAW, LPDIRECTDRAWSURFACE4, LPDIRECTDRAWSURFACE4 FAR *);
+HRESULT WINAPI extDuplicateSurface7(LPDIRECTDRAW, LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 FAR *);
 HRESULT WINAPI extFlipToGDISurface1(LPDIRECTDRAW);
 HRESULT WINAPI extFlipToGDISurface2(LPDIRECTDRAW);
 HRESULT WINAPI extFlipToGDISurface3(LPDIRECTDRAW);
@@ -314,6 +319,9 @@ Compact_Type pCompact;
 CreateClipper_Type pCreateClipper1, pCreateClipper2, pCreateClipper3, pCreateClipper4, pCreateClipper7;
 CreatePalette_Type pCreatePalette1, pCreatePalette2, pCreatePalette3, pCreatePalette4, pCreatePalette7;
 CreateSurface1_Type pCreateSurface1, pCreateSurface2, pCreateSurface3, pCreateSurface4, pCreateSurface7;
+DuplicateSurface_Type pDuplicateSurface1, pDuplicateSurface2, pDuplicateSurface3;
+DuplicateSurface4_Type pDuplicateSurface4;
+DuplicateSurface7_Type pDuplicateSurface7;
 EnumDisplayModes1_Type pEnumDisplayModes1, pEnumDisplayModes2, pEnumDisplayModes3;
 EnumDisplayModes4_Type pEnumDisplayModes4, pEnumDisplayModes7;
 EnumSurfaces1_Type pEnumSurfaces1;
@@ -416,7 +424,7 @@ GammaRamp_Type pDDSetGammaRamp;
 extern PALETTEENTRY DefaultSystemPalette[256];
 LPDIRECTDRAWSURFACE lpDDSEmu_Prim=NULL;
 LPDIRECTDRAWSURFACE lpDDSEmu_Back=NULL;
-LPDIRECTDRAWSURFACE lpDDZBuffer=NULL;
+LPDIRECTDRAWSURFACE lpDDZBuffer=NULL; // BEWARE! Likely, this global is useless ....
 // v2.1.87: lpPrimaryDD is the DIRECTDRAW object to which the primary surface and all 
 // the service objects (emulated backbuffer, emulater primary, ....) are attached.
 LPDIRECTDRAW lpPrimaryDD=NULL;
@@ -1156,10 +1164,11 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	switch(dxversion) {
 	case 1:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD1, (void **)&pQueryInterfaceD1, "QueryInterface(D1)");
-		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper1, (void **)&pCreateClipper1, "CreateClipper(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD1, (void **)&pReleaseD1, "Release(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper1, (void **)&pCreateClipper1, "CreateClipper(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette1, (void **)&pCreatePalette1, "CreatePalette(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface1, (void **)&pCreateSurface1, "CreateSurface(D1)");
+		SetHook((void *)(**(DWORD **)lplpdd + 28), extDuplicateSurface1, (void **)&pDuplicateSurface1, "DuplicateSurface(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes1, (void **)&pEnumDisplayModes1, "EnumDisplayModes(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface1, (void **)&pFlipToGDISurface1, "FlipToGDISurface(D1)");
 		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps1D, (void **)&pGetCaps1D, "GetCaps(D1)");
@@ -1174,10 +1183,11 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		break;
 	case 2:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD2, (void **)&pQueryInterfaceD2, "QueryInterface(D2)");
-		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper2, (void **)&pCreateClipper2, "CreateClipper(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD2, (void **)&pReleaseD2, "Release(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper2, (void **)&pCreateClipper2, "CreateClipper(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette2, (void **)&pCreatePalette2, "CreatePalette(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface2, (void **)&pCreateSurface2, "CreateSurface(D2)");
+		SetHook((void *)(**(DWORD **)lplpdd + 28), extDuplicateSurface2, (void **)&pDuplicateSurface2, "DuplicateSurface(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes2, (void **)&pEnumDisplayModes2, "EnumDisplayModes(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface2, (void **)&pFlipToGDISurface2, "FlipToGDISurface(D2)");
 		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps2D, (void **)&pGetCaps2D, "GetCaps(D2)");
@@ -1194,10 +1204,11 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		break;
 	case 3:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD3, (void **)&pQueryInterfaceD3, "QueryInterface(D3)");
-		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper3, (void **)&pCreateClipper3, "CreateClipper(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD3, (void **)&pReleaseD3, "Release(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper3, (void **)&pCreateClipper3, "CreateClipper(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette3, (void **)&pCreatePalette3, "CreatePalette(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface3, (void **)&pCreateSurface3, "CreateSurface(D3)");
+		SetHook((void *)(**(DWORD **)lplpdd + 28), extDuplicateSurface3, (void **)&pDuplicateSurface3, "DuplicateSurface(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes3, (void **)&pEnumDisplayModes3, "EnumDisplayModes(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface3, (void **)&pFlipToGDISurface3, "FlipToGDISurface(D3)");
 		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps3D, (void **)&pGetCaps3D, "GetCaps(D3)");
@@ -1214,10 +1225,11 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		break;
 	case 4:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD4, (void **)&pQueryInterfaceD4, "QueryInterface(D4)");
-		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper4, (void **)&pCreateClipper4, "CreateClipper(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD4, (void **)&pReleaseD4, "Release(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper4, (void **)&pCreateClipper4, "CreateClipper(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette4, (void **)&pCreatePalette4, "CreatePalette(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface4, (void **)&pCreateSurface4, "CreateSurface(D4)");
+		SetHook((void *)(**(DWORD **)lplpdd + 28), extDuplicateSurface4, (void **)&pDuplicateSurface4, "DuplicateSurface(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes4, (void **)&pEnumDisplayModes4, "EnumDisplayModes(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface4, (void **)&pFlipToGDISurface4, "FlipToGDISurface(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps4D, (void **)&pGetCaps4D, "GetCaps(D4)");
@@ -1236,10 +1248,11 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		break;
 	case 7:
 		SetHook((void *)(**(DWORD **)lplpdd), extQueryInterfaceD7, (void **)&pQueryInterfaceD7, "QueryInterface(D7)");
-		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper7, (void **)&pCreateClipper7, "CreateClipper(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd +  8), extReleaseD7, (void **)&pReleaseD7, "Release(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 16), extCreateClipper7, (void **)&pCreateClipper7, "CreateClipper(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 20), extCreatePalette7, (void **)&pCreatePalette7, "CreatePalette(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 24), extCreateSurface7, (void **)&pCreateSurface7, "CreateSurface(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 28), extDuplicateSurface7, (void **)&pDuplicateSurface7, "DuplicateSurface(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 32), extEnumDisplayModes7, (void **)&pEnumDisplayModes7, "EnumDisplayModes(D4)");
 		SetHook((void *)(**(DWORD **)lplpdd + 40), extFlipToGDISurface7, (void **)&pFlipToGDISurface7, "FlipToGDISurface(D7)");
 		SetHook((void *)(**(DWORD **)lplpdd + 44), extGetCaps7D, (void **)&pGetCaps7D, "GetCaps(D7)");
@@ -1835,18 +1848,21 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 	return DD_OK;
 }
 
-static HRESULT WINAPI extInitialize(Initialize_Type pInitialize, LPDIRECTDRAW lpdd, GUID FAR *lpguid)
+static HRESULT WINAPI extInitialize(int dxversion, Initialize_Type pInitialize, LPDIRECTDRAW lpdd, GUID FAR *lpguid)
 {
 	HRESULT res;
 	GUID FAR *lpPrivGuid = lpguid;
 
-	OutTraceDDRAW("Initialize: lpdd=%x guid=%x(%s)\n", lpdd, lpguid, ExplainGUID(lpguid));
+	OutTraceDDRAW("Initialize(%d): lpdd=%x guid=%x(%s)\n", dxversion, lpdd, lpguid, ExplainGUID(lpguid));
 
 	if((dxw.dwFlags3 & FORCESHEL) && (lpguid==NULL)) lpPrivGuid=(GUID FAR *)DDCREATE_EMULATIONONLY;
 
 	res=(*pInitialize)(lpdd, lpPrivGuid);
 
-	if(res == DDERR_ALREADYINITIALIZED) res=DD_OK; // v2.03.18: this error could be caused by the CoCreateInstance implementation
+	if(res == DDERR_ALREADYINITIALIZED) {
+		OutTrace("Initialize: SKIP DDERR_ALREADYINITIALIZED error\n");
+		res=DD_OK; // v2.03.18: this error could be caused by the CoCreateInstance implementation
+	}
 	if(dxw.dwFlags3 & COLORFIX) (((DDRAWI_DIRECTDRAW_INT *)lpdd))->lpLcl->dwAppHackFlags |= 0x800;
 	if(res) OutTraceE("Initialize ERROR: res=%x(%s)\n", res, ExplainDDError(res));
 	
@@ -1854,15 +1870,15 @@ static HRESULT WINAPI extInitialize(Initialize_Type pInitialize, LPDIRECTDRAW lp
 }
 
 HRESULT WINAPI extInitialize1(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
-{ return extInitialize(pInitialize1, lpdd, lpguid); }
+{ return extInitialize(1, pInitialize1, lpdd, lpguid); }
 HRESULT WINAPI extInitialize2(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
-{ return extInitialize(pInitialize2, lpdd, lpguid); }
+{ return extInitialize(2, pInitialize2, lpdd, lpguid); }
 HRESULT WINAPI extInitialize3(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
-{ return extInitialize(pInitialize3, lpdd, lpguid); }
+{ return extInitialize(3, pInitialize3, lpdd, lpguid); }
 HRESULT WINAPI extInitialize4(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
-{ return extInitialize(pInitialize4, lpdd, lpguid); }
+{ return extInitialize(4, pInitialize4, lpdd, lpguid); }
 HRESULT WINAPI extInitialize7(LPDIRECTDRAW lpdd, GUID FAR *lpguid)
-{ return extInitialize(pInitialize7, lpdd, lpguid); }
+{ return extInitialize(7, pInitialize7, lpdd, lpguid); }
 
 static HRESULT WINAPI extRestoreDisplayMode(int dxversion, RestoreDisplayMode_Type pRestoreDisplayMode, LPDIRECTDRAW lpdd)
 {
@@ -2203,7 +2219,7 @@ HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 		char sInfo[81];
 		strcpy(sInfo, "");
 		if (dxversion>=4) sprintf(sInfo, " dwRefresh=%i dwFlags=%x", dwrefreshrate, dwflags);
-		OutTrace("SetDisplayMode: version=%d dwWidth=%i dwHeight=%i dwBPP=%i%s\n",
+		OutTrace("SetDisplayMode(%d): dwWidth=%i dwHeight=%i dwBPP=%i%s\n",
 			dxversion, dwwidth, dwheight, dwbpp, sInfo);
 	}
 
@@ -2625,6 +2641,9 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 			OutTraceDW("GetAttachedSurface(%d): NOHALDEVICE no attached ZBUFFER\n", dxversion);
 			return DDERR_NOTFOUND;
 		}
+
+		// attempt to fix S.C.A.R.S. black screen bug ... failed
+		//if(lpddsc->dwCaps == (DDSCAPS_TEXTURE|DDSCAPS_MIPMAP)) lpddsc->dwCaps = DDSCAPS_TEXTURE;
 	}
 	else {
 		// Virtual primary surfaces are created with no DDSCAPS_3DDEVICE caps, so don't look for it ....
@@ -3138,7 +3157,7 @@ HRESULT WINAPI extFlip(int dxversion, Flip_Type pFlip, LPDIRECTDRAWSURFACE lpdds
 
 	bEmulatedFlip = dxw.Windowize || dxw.IsEmulated;
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
-	OutTraceDDRAW("Flip(%d): %s lpdds=%x%s, src=%x, flags=%x(%s) version=%d\n", 
+	OutTraceDDRAW("Flip(%d): %s lpdds=%x%s, src=%x, flags=%x(%s)\n", 
 		dxversion, bEmulatedFlip?"EMULATED":"GENUINE",
 		lpdds, IsPrim?"(PRIM)":"", lpddssrc, dwflags, ExplainFlipFlags(dwflags));
 
@@ -3985,20 +4004,18 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 	}
 
 	res=(*pUnlock)(lpdds, lprect); 
+	if(res==DDERR_NOTLOCKED) res=DD_OK; // ignore not locked error
 	if (IsPrim && res==DD_OK) {
 		if(dxversion < 4) lprect=NULL; // v2.03.60
 		res=sBlt(dxversion, pBlt, "Unlock", lpdds, lprect, lpdds, lprect, NULL, 0, FALSE);
 	}
-	if(res==DDERR_NOTLOCKED) res=DD_OK; // ignore not locked error
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
-
 	if((dxw.dwFlags5 & TEXTUREMASK) && (!IsPrim)) {
 		// Texture Handling on Unlock
 		TextureHandling(lpdds, dxversion);
 	}
-
+	OutTraceB("Unlock OK\n");
 	return res;
 }
 
@@ -4091,8 +4108,16 @@ static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECT
 	res=(*pUnlock)(lpdds, lprect);
 	if(res==DDERR_NOTLOCKED) res=DD_OK; // ignore not locked error
 	if (res) OutTraceE("Unlock ERROR res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
-	if (IsPrim && res==DD_OK) sBlt(dxversion, pBlt, "Unlock", lpdds, NULL, lpdds, NULL, NULL, 0, FALSE);
+	if (IsPrim && res==DD_OK) {
+		if(dxversion < 4) lprect=NULL; // v2.03.60
+		res=sBlt(dxversion, pBlt, "Unlock", lpdds, lprect, lpdds, lprect, NULL, 0, FALSE);
+	}
 	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
+	if((dxw.dwFlags5 & TEXTUREMASK) && (!IsPrim)) {
+		// Texture Handling on Unlock
+		TextureHandling(lpdds, dxversion);
+	}
+	OutTraceB("Unlock OK\n");
 	return res;
 }
 
@@ -4603,6 +4628,7 @@ static HRESULT WINAPI extSetColorKey(SetColorKey_Type pSetColorKey, LPDIRECTDRAW
 	res=(*pSetColorKey)(lpdds, flags, lpDDColorKey);
 	if(res) OutTraceE("SetColorKey: ERROR flags=%x lpdds=%x res=%x(%s)\n", 
 		flags, lpdds, res, ExplainDDError(res));
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	return res;
 }
 
@@ -4617,32 +4643,33 @@ HRESULT WINAPI extSetColorKey4(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLOR
 HRESULT WINAPI extSetColorKey7(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
 { return extSetColorKey(pSetColorKey7, lpdds, flags, lpDDColorKey); }
 
-static HRESULT WINAPI extGetColorKey(GetColorKey_Type pGetColorKey, LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
+static HRESULT WINAPI extGetColorKey(int dxversion, GetColorKey_Type pGetColorKey, LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
 {
 	HRESULT res;
 	BOOL IsPrim;
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
-	OutTraceDDRAW("GetColorKey(S): lpdds=%x%s flags=%x(%s)\n", 
-		lpdds, (IsPrim ? "(PRIM)" : ""), flags, ExplainColorKeyFlag(flags));
+	OutTraceDDRAW("GetColorKey(S%d): lpdds=%x%s flags=%x(%s)\n", 
+		dxversion, lpdds, (IsPrim ? "(PRIM)" : ""), flags, ExplainColorKeyFlag(flags));
 	res=(*pGetColorKey)(lpdds, flags, lpDDColorKey);
 	if(res) 
 		OutTraceE("GetColorKey: ERROR lpdds=%x flags=%x res=%x(%s)\n", lpdds, flags, res, ExplainDDError(res));
 	else
 		OutTraceDDRAW("GetColorKey: colors=(L:%x,H:%x)\n", 
 			lpDDColorKey->dwColorSpaceLowValue, lpDDColorKey->dwColorSpaceHighValue);
+	if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 	return res;
 }
 
 HRESULT WINAPI extGetColorKey1(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
-{ return extGetColorKey(pGetColorKey1, lpdds, flags, lpDDColorKey); }
+{ return extGetColorKey(1, pGetColorKey1, lpdds, flags, lpDDColorKey); }
 HRESULT WINAPI extGetColorKey2(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
-{ return extGetColorKey(pGetColorKey2, lpdds, flags, lpDDColorKey); }
+{ return extGetColorKey(2, pGetColorKey2, lpdds, flags, lpDDColorKey); }
 HRESULT WINAPI extGetColorKey3(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
-{ return extGetColorKey(pGetColorKey3, lpdds, flags, lpDDColorKey); }
+{ return extGetColorKey(3, pGetColorKey3, lpdds, flags, lpDDColorKey); }
 HRESULT WINAPI extGetColorKey4(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
-{ return extGetColorKey(pGetColorKey4, lpdds, flags, lpDDColorKey); }
+{ return extGetColorKey(4, pGetColorKey4, lpdds, flags, lpDDColorKey); }
 HRESULT WINAPI extGetColorKey7(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLORKEY lpDDColorKey)
-{ return extGetColorKey(pGetColorKey7, lpdds, flags, lpDDColorKey); }
+{ return extGetColorKey(7, pGetColorKey7, lpdds, flags, lpDDColorKey); }
 
 static HRESULT WINAPI extEnumAttachedSurfaces(EnumAttachedSurfaces_Type pEnumAttachedSurfaces, LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
 {
@@ -4858,6 +4885,7 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 	}
 
 	if(IsFixed) OutTraceDW("GetCaps(S%d): lpdds=%x FIXED %s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
+	//if(IsDebug) HexTrace((unsigned char *)caps, sizeof(DDSCAPS));
 	return res;
 }
 
@@ -4947,6 +4975,7 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 	
 	if(IsFixed){
 		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, sLabel, __LINE__));
+		//if(IsDebug) HexTrace((unsigned char *)lpddsd, sizeof(DDSURFACEDESC));
 	}
 
 	return DD_OK;
@@ -5478,3 +5507,26 @@ HRESULT WINAPI extCompact(LPDIRECTDRAW lpdd)
 	OutTraceDW("Compact: lpdd=%x\n", lpdd);
 	return DD_OK;
 }
+
+HRESULT WINAPI extDuplicateSurface(int dxversion, DuplicateSurface_Type pDuplicateSurface, LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE lpddssrc, LPDIRECTDRAWSURFACE FAR *lpddsdest)
+{
+	HRESULT res;
+	OutTrace("DuplicateSurface(%d): lpdd=%x lpddsrc=%x\n", dxversion, lpdd, lpddssrc);
+	res = (*pDuplicateSurface)(lpdd, lpddssrc, lpddsdest);
+	if(res)
+			OutTrace("DuplicateSurface: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	else
+		OutTrace("DuplicateSurface: lpddsdest=%x\n", *lpddsdest);
+	return res;
+}
+
+HRESULT WINAPI extDuplicateSurface1(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE lpddssrc, LPDIRECTDRAWSURFACE FAR *lpddsdest)
+{ return extDuplicateSurface(1, pDuplicateSurface1, lpdd, lpddssrc, lpddsdest); }
+HRESULT WINAPI extDuplicateSurface2(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE lpddssrc, LPDIRECTDRAWSURFACE FAR *lpddsdest)
+{ return extDuplicateSurface(2, pDuplicateSurface2, lpdd, lpddssrc, lpddsdest); }
+HRESULT WINAPI extDuplicateSurface3(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE lpddssrc, LPDIRECTDRAWSURFACE FAR *lpddsdest)
+{ return extDuplicateSurface(3, pDuplicateSurface3, lpdd, lpddssrc, lpddsdest); }
+HRESULT WINAPI extDuplicateSurface4(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE4 lpddssrc, LPDIRECTDRAWSURFACE4 FAR *lpddsdest)
+{ return extDuplicateSurface(4, (DuplicateSurface_Type)pDuplicateSurface4, lpdd, (LPDIRECTDRAWSURFACE)lpddssrc, (LPDIRECTDRAWSURFACE *)lpddsdest); }
+HRESULT WINAPI extDuplicateSurface7(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE7 lpddssrc, LPDIRECTDRAWSURFACE7 FAR *lpddsdest)
+{ return extDuplicateSurface(7, (DuplicateSurface_Type)pDuplicateSurface7, lpdd, (LPDIRECTDRAWSURFACE)lpddssrc, (LPDIRECTDRAWSURFACE *)lpddsdest); }

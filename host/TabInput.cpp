@@ -36,7 +36,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_KEEPCURSORWITHIN, cTarget->m_KeepCursorWithin);
 	DDX_Check(pDX, IDC_KEEPCURSORFIXED, cTarget->m_KeepCursorFixed);
 	DDX_Check(pDX, IDC_MESSAGEPROC, cTarget->m_MessageProc);
-	//DDX_Check(pDX, IDC_NOMOUSEPROC, cTarget->m_NoMouseProc);
+	DDX_Check(pDX, IDC_FIXMOUSEHOOK, cTarget->m_FixMouseHook);
 	DDX_Check(pDX, IDC_FIXNCHITTEST, cTarget->m_FixNCHITTEST);
 	DDX_Check(pDX, IDC_SLOW, cTarget->m_SlowDown);
 	DDX_Check(pDX, IDC_RELEASEMOUSE, cTarget->m_ReleaseMouse);

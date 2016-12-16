@@ -94,7 +94,6 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags8 = target->flags8;
 	dwTFlags = target->tflags;
 	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
-	IsEmulated = (dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)) ? TRUE : FALSE;
 	IsVisible = TRUE;
 	if(dwFlags3 & FULLSCREENONLY) FullScreen=TRUE;
 	gsModules = target->module;
@@ -150,6 +149,16 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	if (dwFlags2 & GDISTRETCHED)	GDIEmulationMode = GDIMODE_STRETCHED;  
 	if (dwFlags3 & GDIEMULATEDC)	GDIEmulationMode = GDIMODE_EMULATED; 
 	if (dwFlags6 & SHAREDDC)		GDIEmulationMode = GDIMODE_SHAREDDC; 
+
+	if(dwFlags5 & HYBRIDMODE) {
+		// special mode settings ....
+		dwFlags1 |= EMULATESURFACE;
+		dwFlags2 |= SETCOMPATIBILITY;
+		dwFlags5 &= ~(BILINEARFILTER | AEROBOOST); 
+	}
+	if(dwFlags5 & GDIMODE) dwFlags1 |= EMULATESURFACE;
+	if(dwFlags5 & STRESSRESOURCES) dwFlags5 |= LIMITRESOURCES;
+	IsEmulated = (dwFlags1 & (EMULATESURFACE|EMULATEBUFFER)) ? TRUE : FALSE; // includes also the HYBRIDMODE and GDIMODE cases ....
 
 	extern GetWindowLong_Type pGetWindowLong;
 	extern SetWindowLong_Type pSetWindowLong;

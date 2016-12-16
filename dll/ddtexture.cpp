@@ -187,6 +187,7 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 	static int MinTexX, MinTexY, MaxTexX, MaxTexY;
 	static BOOL DoOnce = TRUE;
 	char pszFile[MAX_PATH];
+	BOOL IsRaw = (dxw.dwFlags8 & RAWFORMAT);
 
 	OutTraceB("TextureDump(%d): lpdds=%x\n", dxversion, s);
 
@@ -228,6 +229,10 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 			OutTrace("TextureDump: SKIP 0BPP texture\n");
 			break;
 		}
+		if((ddsd.lPitch == 0) || (ddsd.dwHeight == 0)) {
+			OutTrace("TextureDump: SKIP void texture\n");
+			break;
+		}
 
 		iSurfaceSize = ddsd.dwHeight * ddsd.lPitch;
 
@@ -266,10 +271,17 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 		}
 
 		// Create the .BMP file. 
-		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.bmp", 
-			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), hash);
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.%s", 
+			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), 
+			hash, IsRaw ? "raw" : "bmp");
 		hf = fopen(pszFile, "wb");
 		if(!hf) break;
+
+		if(IsRaw){
+			fwrite((BYTE *)ddsd.lpSurface, ddsd.lPitch * ddsd.dwHeight, 1, hf);
+			fclose(hf);
+			return;
+		}
 
 		hdr.bfType = 0x4d42;        // 0x42 = "B" 0x4d = "M"  
 		// Compute the size of the entire file.  
@@ -309,6 +321,7 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 	DDSURFACEDESC2 ddsd;
 	int w, h, iSurfaceSize, iScanLineSize;
 	HRESULT res;
+	BOOL IsRaw = (dxw.dwFlags8 & RAWFORMAT);
 
 	OutTraceB("TextureHack(%d): lpdds=%x\n", dxversion, s);
 
@@ -332,6 +345,26 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 		char pszFile[81];
 		int iSizeImage;
 
+		// calculate the bitmap hash
+		DWORD hash;
+		hash = HashSurface((BYTE *)ddsd.lpSurface, ddsd.lPitch, ddsd.dwWidth, ddsd.dwHeight); 
+		if(!hash) break; // almost certainly, an empty black surface!
+
+		// Look for the .BMP file. 
+		sprintf_s(pszFile, MAX_PATH, "%s\\texture.in\\texture.%03d.%03d.%s.%08X.%s", 
+			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), 
+			hash, IsRaw ? "raw" : "bmp");
+		hf = fopen(pszFile, "rb");
+		if(!hf) break; // no updated texture to load
+
+		OutTrace("TextureHack: IMPORT path=%s\n", pszFile);
+
+		if(IsRaw){
+			fread((BYTE *)ddsd.lpSurface, ddsd.lPitch * ddsd.dwHeight, 1, hf);
+			fclose(hf);
+			return;
+		}
+
 		memset((void *)&pbi, 0, sizeof(BITMAPINFOHEADER));
 		pbi.biSize = sizeof(BITMAPINFOHEADER); 
 		pbi.biWidth = ddsd.dwWidth;
@@ -340,19 +373,6 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 		pbi.biSizeImage = ((pbi.biWidth * pbi.biBitCount + 0x1F) & ~0x1F)/8 * pbi.biHeight; 
 		iSizeImage = pbi.biSizeImage;
 		iScanLineSize = ((pbi.biWidth * pbi.biBitCount + 0x1F) & ~0x1F)/8;
-
-		// calculate the bitmap hash
-		DWORD hash;
-		hash = HashSurface((BYTE *)ddsd.lpSurface, ddsd.lPitch, ddsd.dwWidth, ddsd.dwHeight); 
-		if(!hash) break; // almost certainly, an empty black surface!
-
-		// Look for the .BMP file. 
-		sprintf_s(pszFile, MAX_PATH, "%s\\texture.in\\texture.%03d.%03d.%s.%08X.bmp", 
-			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), hash);
-		hf = fopen(pszFile, "rb");
-		if(!hf) break; // no updated texture to load
-
-		OutTrace("HASH bmp file %x\n", hf);
 
 		while(TRUE) { // fake loop to ensure final fclose
 			// Read the BITMAPFILEHEADER from the .BMP file (and throw away ...).  

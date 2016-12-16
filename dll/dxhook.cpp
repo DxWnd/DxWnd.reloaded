@@ -142,7 +142,7 @@ static char *Flag7Names[32]={
 static char *Flag8Names[32]={
 	"FORCEWAIT", "FORCENOWAIT", "FORCEVSYNC", "FORCENOVSYNC",
 	"VSYNCSCANLINES", "TRIMTEXTUREFORMATS", "NOHALDEVICE", "CLIPLOCK",
-	"", "", "", "",
+	"PRETENDVISIBLE", "RAWFORMAT", "WININSULATION", "FIXMOUSEHOOK",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -1380,14 +1380,6 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	SetDllDirectory(sSourcePath);
 
 	if(dxw.bHintActive) ShowHint(HINT_HINT);
-	if(dxw.dwFlags5 & HYBRIDMODE) {
-		// special mode settings ....
-		dxw.dwFlags1 |= EMULATESURFACE;
-		dxw.dwFlags2 |= SETCOMPATIBILITY;
-		dxw.dwFlags5 &= ~(BILINEARFILTER | AEROBOOST); 
-	}
-	if(dxw.dwFlags5 & GDIMODE) dxw.dwFlags1 |= EMULATESURFACE;
-	if(dxw.dwFlags5 & STRESSRESOURCES) dxw.dwFlags5 |= LIMITRESOURCES;
 
 	if(DoOnce){
 		DoOnce = FALSE;

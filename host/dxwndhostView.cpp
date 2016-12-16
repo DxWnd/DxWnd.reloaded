@@ -222,7 +222,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HotPatch) t->flags4 |= HOTPATCH;
 	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
 	if(dlg->m_ShowHints) t->flags7 |= SHOWHINTS;
-	//if(dlg->m_FilterMessages) t->flags3 |= FILTERMESSAGES;
 	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
 	if(dlg->m_NoWinPosChanges) t->flags5 |= NOWINPOSCHANGES;
 	if(dlg->m_MessagePump) t->flags5 |= MESSAGEPUMP;
@@ -234,7 +233,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	}
 
 	switch(dlg->m_DxEmulationMode){
-		//case 0: t->flags |= AUTOMATIC; break;
 		case 0: break;
 		case 1: t->flags |= EMULATEBUFFER; break;
 		case 2: t->flags |= LOCKEDSURFACE; break;
@@ -262,7 +260,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 1: t->flags2 |= GDISTRETCHED; break;
 		case 2: t->flags3 |= GDIEMULATEDC; break;
 		case 3: t->flags6 |= SHAREDDC; break;
-		//case 3: t->flags |= MAPGDITOPRIMARY; break;
 	}
 
 	switch(dlg->m_ResTypes){
@@ -353,7 +350,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_OutDebug) t->tflags |= OUTDEBUG;
 	if(dlg->m_CursorTrace) t->tflags |= OUTCURSORTRACE;
 	if(dlg->m_OutDebugString) t->tflags |= OUTDEBUGSTRING;
-	//if(dlg->m_EraseLogFile) t->tflags |= ERASELOGFILE;
 	if(dlg->m_AddTimeStamp) t->tflags |= ADDTIMESTAMP;
 	if(dlg->m_AddRelativeTime) t->tflags |= ADDRELATIVETIME;
 	if(dlg->m_OutWinMessages) t->tflags |= OUTWINMESSAGES;
@@ -388,6 +384,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_Enum16bitModes) t->flags7 |= ENUM16BITMODES;
 	if(dlg->m_TrimTextureFormats) t->flags8 |= TRIMTEXTUREFORMATS;
+	if(dlg->m_RawFormat) t->flags8 |= RAWFORMAT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
@@ -423,20 +420,15 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_LimitScreenRes) t->flags4 |= LIMITSCREENRES;
 	if(dlg->m_SingleProcAffinity) t->flags3 |= SINGLEPROCAFFINITY;
 	if(dlg->m_UseLastCore) t->flags5 |= USELASTCORE;
-	//if(dlg->m_SaveLoad) t->flags |= SAVELOAD;
 	if(dlg->m_SlowDown) t->flags |= SLOWDOWN;
 	if(dlg->m_BlitFromBackBuffer) t->flags |= BLITFROMBACKBUFFER;
 	if(dlg->m_NoFlipEmulation) t->flags4 |= NOFLIPEMULATION;
 	if(dlg->m_LockColorDepth) t->flags7 |= LOCKCOLORDEPTH;
-	//if(dlg->m_SuppressClipping) t->flags |= SUPPRESSCLIPPING;
-	//if(dlg->m_ForceClipper) t->flags3 |= FORCECLIPPER;
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
 	if(dlg->m_IndependentRefresh) t->flags2 |= INDEPENDENTREFRESH;
 	if(dlg->m_TextureFormat) t->flags5 |= TEXTUREFORMAT;
 	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
-	//if(dlg->m_EnableClipping) t->flags |= DISABLECLIPPING;
-	//if(dlg->m_CursorClipping) t->flags |= CLIPCURSOR;
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
 	if(dlg->m_FixTextOut) t->flags |= FIXTEXTOUT;
 	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
@@ -468,15 +460,12 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HideMultiMonitor) t->flags2 |= HIDEMULTIMONITOR;
 	if(dlg->m_FixD3DFrame) t->flags3 |= FIXD3DFRAME;
 	if(dlg->m_NoWindowMove) t->flags3 |= NOWINDOWMOVE;
-	//if(dlg->m_Force16BPP) t->flags3 |= FORCE16BPP;
 	if(dlg->m_HookChildWin) t->flags |= HOOKCHILDWIN;
 	if(dlg->m_MessageProc) t->flags |= MESSAGEPROC;
-	//if(dlg->m_NoMouseProc) t->flags6 |= NOMOUSEPROC;
+	if(dlg->m_FixMouseHook) t->flags8 |= FIXMOUSEHOOK;
 	if(dlg->m_FixNCHITTEST) t->flags2 |= FIXNCHITTEST;
 	if(dlg->m_RecoverScreenMode) t->flags2 |= RECOVERSCREENMODE;
 	if(dlg->m_RefreshOnResize) t->flags2 |= REFRESHONRESIZE;
-	//if(dlg->m_Init8BPP) t->flags2 |= INIT8BPP;
-	//if(dlg->m_Init16BPP) t->flags2 |= INIT16BPP;
 	if(dlg->m_BackBufAttach) t->flags2 |= BACKBUFATTACH;
 	if(dlg->m_ClearTextureFourCC) t->flags7 |= CLEARTEXTUREFOURCC;
 	if(dlg->m_NoDDExclusiveMode) t->flags7 |= NODDEXCLUSIVEMODE;
@@ -523,14 +512,11 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SyncPalette) t->flags6 |= SYNCPALETTE;
 	if(dlg->m_NoWinErrors) t->flags7 |= NOWINERRORS;
 	if(dlg->m_PretendVisible) t->flags8 |= PRETENDVISIBLE;
+	if(dlg->m_WinInsulation) t->flags8 |= WININSULATION;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	if(dlg->m_InitialRes) t->flags7 |= INITIALRES;
 	if(dlg->m_MaximumRes) t->flags7 |= MAXIMUMRES;
-	//if(dlg->m_ForceVSync) t->flags8 |= FORCEVSYNC;
-	//if(dlg->m_ForceNoVSync) t->flags8 |= FORCENOVSYNC;
-	//if(dlg->m_ForceWait) t->flags8 |= FORCEWAIT;
-	//if(dlg->m_ForceNoWait) t->flags8 |= FORCENOWAIT;
 	t->posx = dlg->m_PosX;
 	t->posy = dlg->m_PosY;
 	t->sizx = dlg->m_SizX;
@@ -577,7 +563,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_FullScreenOnly = t->flags3 & FULLSCREENONLY ? 1 : 0;
 	dlg->m_ShowHints = t->flags7 & SHOWHINTS ? 1 : 0;
-	//dlg->m_FilterMessages = t->flags3 & FILTERMESSAGES ? 1 : 0;
 	dlg->m_PeekAllMessages = t->flags3 & PEEKALLMESSAGES ? 1 : 0;
 	dlg->m_NoWinPosChanges = t->flags5 & NOWINPOSCHANGES ? 1 : 0;
 	dlg->m_MessagePump = t->flags5 & MESSAGEPUMP ? 1 : 0;
@@ -601,7 +586,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags2 & GDISTRETCHED) dlg->m_DCEmulationMode = 1;
 	if(t->flags3 & GDIEMULATEDC) dlg->m_DCEmulationMode = 2;
 	if(t->flags6 & SHAREDDC    ) dlg->m_DCEmulationMode = 3;
-	//if(t->flags & MAPGDITOPRIMARY) dlg->m_DCEmulationMode = 3;
 
 	dlg->m_ResTypes = 0;
 	if(t->flags4 & SUPPORTSVGA) dlg->m_ResTypes = 0;
@@ -690,6 +674,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_Enum16bitModes = t->flags7 & ENUM16BITMODES ? 1 : 0;
 	dlg->m_TrimTextureFormats = t->flags8 & TRIMTEXTUREFORMATS ? 1 : 0;
+	dlg->m_RawFormat = t->flags8 & RAWFORMAT ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
@@ -744,20 +729,15 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ClearTarget = t->flags5 & CLEARTARGET ? 1 : 0;
 	dlg->m_FixPitch = t->flags6 & FIXPITCH ? 1 : 0;
 	dlg->m_Power2Width = t->flags6 & POWER2WIDTH ? 1 : 0;
-	//dlg->m_SaveLoad = t->flags & SAVELOAD ? 1 : 0;
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
 	dlg->m_NoFlipEmulation = t->flags4 & NOFLIPEMULATION ? 1 : 0;
 	dlg->m_LockColorDepth = t->flags7 & LOCKCOLORDEPTH ? 1 : 0;
-//	dlg->m_SuppressClipping = t->flags & SUPPRESSCLIPPING ? 1 : 0;
-//	dlg->m_ForceClipper = t->flags3 & FORCECLIPPER ? 1 : 0;
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
 	dlg->m_IndependentRefresh = t->flags2 & INDEPENDENTREFRESH ? 1 : 0;
 	dlg->m_TextureFormat = t->flags5 & TEXTUREFORMAT ? 1 : 0;
 	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
-	//dlg->m_EnableClipping = t->flags & DISABLECLIPPING ? 1 : 0;
-	//dlg->m_CursorClipping = t->flags & CLIPCURSOR ? 1 : 0;
 	dlg->m_VideoToSystemMem = t->flags & SWITCHVIDEOMEMORY ? 1 : 0;
 	dlg->m_FixTextOut = t->flags & FIXTEXTOUT ? 1 : 0;
 	dlg->m_SharedDC = t->flags6 & SHAREDDC ? 1 : 0;
@@ -790,9 +770,9 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HideMultiMonitor = t->flags2 & HIDEMULTIMONITOR ? 1 : 0;
 	dlg->m_FixD3DFrame = t->flags3 & FIXD3DFRAME ? 1 : 0;
 	dlg->m_NoWindowMove = t->flags3 & NOWINDOWMOVE ? 1 : 0;
-	//dlg->m_Force16BPP = t->flags3 & FORCE16BPP ? 1 : 0;
 	dlg->m_HookChildWin = t->flags & HOOKCHILDWIN ? 1 : 0;
 	dlg->m_MessageProc = t->flags & MESSAGEPROC ? 1 : 0;
+	dlg->m_FixMouseHook = t->flags8 & FIXMOUSEHOOK ? 1 : 0;
 	dlg->m_FixNCHITTEST = t->flags2 & FIXNCHITTEST ? 1 : 0;
 	dlg->m_RecoverScreenMode = t->flags2 & RECOVERSCREENMODE ? 1 : 0;
 	dlg->m_RefreshOnResize = t->flags2 & REFRESHONRESIZE ? 1 : 0;
@@ -842,14 +822,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SyncPalette = t->flags6 & SYNCPALETTE ? 1 : 0;
 	dlg->m_NoWinErrors = t->flags7 & NOWINERRORS ? 1 : 0;
 	dlg->m_PretendVisible = t->flags8 & PRETENDVISIBLE ? 1 : 0;
+	dlg->m_WinInsulation = t->flags8 & WININSULATION ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_InitialRes = t->flags7 & INITIALRES ? 1 : 0;
 	dlg->m_MaximumRes = t->flags7 & MAXIMUMRES ? 1 : 0;
-	//dlg->m_ForceVSync = t->flags8 & FORCEVSYNC ? 1 : 0;
-	//dlg->m_ForceNoVSync = t->flags8 & FORCENOVSYNC ? 1 : 0;
-	//dlg->m_ForceWait = t->flags8 & FORCEWAIT ? 1 : 0;
-	//dlg->m_ForceNoWait = t->flags8 & FORCENOWAIT ? 1 : 0;
 	dlg->m_PosX = t->posx;
 	dlg->m_PosY = t->posy;
 	dlg->m_SizX = t->sizx;

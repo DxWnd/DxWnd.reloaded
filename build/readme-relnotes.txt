@@ -1372,15 +1372,22 @@ fix: recovered DEFAULTMESSAGES option
 fix: normalized output for ddraw GetScanLine() method
 fix: fixed the policy for redrecting the WindowProc routine. Fixes "Ultimate Spiderman" clipping problems, and possibly much more
 
-v2.03.99/fx1-3
+v2.03.99
 fix: unwanted hook to directsound when passing by CoCreateInstance()
 fix: transient mode, now checks for both the target and the launcher to be dead before terminating
 add: Direct3D TRIMTEXTUREFORMAT flag, to mimic MS "DirectXTrimTextureFormat" shim. Fixes problems in "Heavy Gear 2" and "Star Wars: Rogue Squardon 3D".
 add: D3DDevice GetCaps hooking and full dump of D3DDevice capabilities
 add: "No HAL Device" flag, making it unavailable the IID_Direct3DHALDevice device. Fixes "Grand Prix World" when the 3D car models are invisible.
 add: reorganization of mouse clipper fields, with the addition of LOCK mode (useful for Tribal Rage)
-fix: handling of Lock/Unlock methods differentiated in ddraw 4 vs. 7. Fixes "Hoyle Casino Empire"
-fix: texture hack now search for hacked textures in the texture.in folder, as stated in the documentation
-fix: D3D7 EnumDevices hexdump fixed
-add: flag "Pretend Win visible on top" (PRETENDVISIBLE) to let the program believe that the main window is always visible and on z-order top as a fullscreen window should be
-fix: fixed some divide by 0 conditions when window is minimized
+
+v2.04.00
+add: texture management for D3D textures: XCTn compressed textures, raw mode, texture highlight and hack
+add: Input / "fix MOUSEHOOK callback" option, fixes "Jagged Alliance 2" mouse problems
+add: GDI / "Pretend Win visible & on top" option: experimental, let the program believe that the main window is visible and on top of z-order as usually happens to full screen applications
+add: GDI / "Win insulation" flag: avoid enumerating windows so that the program can't interfere with them. Fixes "Tribal Rage" damages to desktop.
+add: hook to ddraw DuplicateSurface() method, so far for logging only.
+fix: eliminated possible divide by 0 exception when minimizing windows
+fix: mouse clipping now selected by radio buttons (default, off, on, locked)
+fix: bug in D3D device enumeration log
+fix: bug in Hybrid and GDI ddraw surface rendering
+fix: missing "No HAL Device" flag default to disabled

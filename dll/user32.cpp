@@ -13,6 +13,7 @@
 #include "dxhelper.h"
 #include "shareddc.hpp"
 #include <Wingdi.h>
+#include <Winuser.h>
 
 #define FIXCHILDSIZE FALSE
 
@@ -139,6 +140,9 @@ HWND WINAPI extSetFocus(HWND);
 typedef HBITMAP (WINAPI *LoadBitmapA_Type)(HINSTANCE, LPCSTR);
 LoadBitmapA_Type pLoadBitmapA;
 HBITMAP WINAPI extLoadBitmapA(HINSTANCE, LPCSTR);
+typedef BOOL (WINAPI *EnumWindows_Type)(WNDENUMPROC, LPARAM);
+EnumWindows_Type pEnumWindows;
+BOOL WINAPI extEnumWindows(WNDENUMPROC, LPARAM);
 
 
 
@@ -248,7 +252,9 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "EnumDisplayDevicesW", (FARPROC)EnumDisplayDevicesW, (FARPROC *)&pEnumDisplayDevicesW, (FARPROC)extEnumDisplayDevicesW},
 	
 	//{HOOK_IAT_CANDIDATE, 0, "LoadBitmapA", (FARPROC)NULL, (FARPROC *)&pLoadBitmapA, (FARPROC)extLoadBitmapA},
-	
+
+	{HOOK_IAT_CANDIDATE, 0, "EnumWindows", (FARPROC)NULL, (FARPROC *)&pEnumWindows, (FARPROC)extEnumWindows},
+
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -3633,6 +3639,7 @@ LRESULT CALLBACK extMouseHookProc(int code, WPARAM wParam, LPARAM lParam)
 */
 
 HOOKPROC glpMessageHookProcessFunction;
+HOOKPROC glpMouseHookProcessFunction;
 
 LRESULT CALLBACK extMessageHookProc(int code, WPARAM wParam, LPARAM lParam)
 {
@@ -3648,6 +3655,19 @@ LRESULT CALLBACK extMessageHookProc(int code, WPARAM wParam, LPARAM lParam)
 			)			
 			ret = (*glpMessageHookProcessFunction)(code, wParam, lParam);
 	}
+	return ret;
+}
+
+LRESULT CALLBACK extMouseHookProc(int code, WPARAM wParam, LPARAM lParam)
+{
+	LRESULT ret;
+	OutTraceC("MouseHookProc: code=%x wParam=%x lParam=%x\n", code, wParam, lParam);
+    MOUSEHOOKSTRUCT *pMouseStruct = (MOUSEHOOKSTRUCT *)lParam;
+    if (pMouseStruct != NULL){
+		OutTraceC("MouseHookProc: event=%s pos=(%d,%d)\n", ExplainWinMessage(wParam), pMouseStruct->pt.x, pMouseStruct->pt.y);
+		extGetCursorPos(&(pMouseStruct->pt)); 
+    }
+    ret = (*glpMouseHookProcessFunction)(code, wParam, lParam);
 	return ret;
 }
 
@@ -3675,6 +3695,12 @@ static HHOOK WINAPI extSetWindowsHookEx(SetWindowsHookEx_Type pSetWindowsHookEx,
 	if((dxw.dwFlags7 & DISABLEDISABLEALTTAB) && (idHook == WH_KEYBOARD_LL)) {
 		OutTraceDW("SetWindowsHookEx: DISABLEDISABLEALTTAB bypass active\n");
 		return NULL;
+	}
+
+	if((dxw.dwFlags8 & FIXMOUSEHOOK) && (idHook == WH_MOUSE)){
+		OutTraceDW("SetWindowsHookEx: FIXMOUSEHOOK filter active\n");
+		glpMouseHookProcessFunction = lpfn;
+		lpfn=extMouseHookProc;
 	}
 
 	ret=(*pSetWindowsHookEx)(idHook, lpfn, hMod, dwThreadId);
@@ -4081,6 +4107,16 @@ HBITMAP WINAPI extLoadBitmapA(HINSTANCE hInstance, LPCSTR lpBitmapName)
 		OutTrace("LoadBitmapA: ERROR err=%d\n", GetLastError());
 	}
 	return ret;
+}
+
+BOOL WINAPI extEnumWindows(WNDENUMPROC lpEnumFunc, LPARAM lParam)
+{
+	OutTrace("EnumerateWindows\n");
+	if(dxw.dwFlags8 & WININSULATION){
+		OutTrace("EnumerateWindows: BYPASS\n");
+		return TRUE;
+	}
+	return (*pEnumWindows)(lpEnumFunc, lParam);
 }
 
 // To do:

@@ -222,7 +222,7 @@ HRESULT WINAPI extDirectInputCreateA(HINSTANCE hinst, DWORD dwversion, LPDIRECTI
 {
 	HRESULT res;
 
-	OutTraceDW("DirectInputCreateA: version=%x\n", dwversion);
+	OutTraceDW("DirectInputCreateA(%x)\n", dwversion);
 
 	res = (*pDirectInputCreateA)(hinst, dwversion, lplpdi, pu);
 	if(res) {
@@ -251,7 +251,7 @@ HRESULT WINAPI extDirectInputCreateW(HINSTANCE hinst, DWORD dwversion, LPDIRECTI
 {
 	HRESULT res;
 
-	OutTraceDW("DirectInputCreateW: version=%x\n", dwversion);
+	OutTraceDW("DirectInputCreateW(%x)\n", dwversion);
 
 	res = (*pDirectInputCreateW)(hinst, dwversion, lplpdi, pu);
 	if(res) {

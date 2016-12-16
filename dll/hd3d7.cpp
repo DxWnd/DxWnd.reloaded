@@ -698,7 +698,7 @@ HRESULT WINAPI extQueryInterfaceD3(int d3dversion, QueryInterfaceD3_Type pQueryI
 	HRESULT res;
 
 	OutTraceD3D("QueryInterfaceD3(%d): d3d=%x REFIID=%x obj=%x\n", d3dversion, lpd3d, riid.Data1, ppvObj);
-	d3dversion=0;
+	//d3dversion=0;
 	res=(*pQueryInterfaceD3)(lpd3d, riid, ppvObj);
 	//switch(riid.Data1){
 	//	case 0x3BBA0080: d3dversion=1; break;

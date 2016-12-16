@@ -31,9 +31,12 @@ BOOL DxSelfElevate(CDxwndhostView *view)
 		{
 			// Launch itself as administrator.
 			SHELLEXECUTEINFO sei = { sizeof(sei) };
+			char CurrentDir[MAX_PATH+1];
 			CString args;
 			sei.lpVerb = "runas";
 			sei.lpFile = szPath;
+			::GetCurrentDirectory(MAX_PATH, CurrentDir);
+			sei.lpDirectory = CurrentDir;
 			//sei.hwnd = (HWND)this->GetMainWnd();
 			sei.hwnd = (HWND)NULL; // set to NULL to force the confirmation dialog on top of everything...
 			sei.nShow = SW_NORMAL;
