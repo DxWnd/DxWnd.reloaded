@@ -1336,10 +1336,10 @@ static HRESULT WINAPI BilinearBlt_32_to_32(int dxversion, Blt_Type pBlt, LPDIREC
 			Q5 = Melt32(*(src32+1), *(src32+ddsd_src.lPitch+1)); // to be used in next for cycle
 			Q4 = Melt32(Q3, Q5);
 
-			*(dest) = (WORD)Q1;
-			*(dest+1) = (WORD)Q2;
-			*(dest+ddsd_dst.lPitch) = (WORD)Q3;
-			*(dest+ddsd_dst.lPitch+1) = (WORD)Q4;
+			*(dest) = Q1;
+			*(dest+1) = Q2;
+			*(dest+ddsd_dst.lPitch) = Q3;
+			*(dest+ddsd_dst.lPitch+1) = Q4;
 			src32++;
 			dest+=2;
         }
@@ -1351,10 +1351,10 @@ static HRESULT WINAPI BilinearBlt_32_to_32(int dxversion, Blt_Type pBlt, LPDIREC
 		Q1 = *(src32);
 		Q2 = Melt32(Q1, *(src32+1));
 
-		*(dest) = (WORD)Q1;
-		*(dest+1) = (WORD)Q2;
-		*(dest+ddsd_dst.lPitch) = (WORD)Q1;
-		*(dest+ddsd_dst.lPitch+1) = (WORD)Q2;
+		*(dest) = Q1;
+		*(dest+1) = Q2;
+		*(dest+ddsd_dst.lPitch) = Q1;
+		*(dest+ddsd_dst.lPitch+1) = Q2;
 		src32++;
 		dest+=2;
     }

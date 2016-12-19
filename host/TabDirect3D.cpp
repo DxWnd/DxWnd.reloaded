@@ -42,7 +42,7 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 
 	// Texture management
 	DDX_Radio(pDX, IDC_TEXTURENONE, cTarget->m_TextureHandling);
-	DDX_Check(pDX, IDC_RAWFORMAT, cTarget->m_RawFormat);
+	DDX_Radio(pDX, IDC_BMPFORMAT, cTarget->m_TextureFileFormat);
 
 	// 3D Effects
 	DDX_Check(pDX, IDC_NOTEXTURES, cTarget->m_NoTextures);

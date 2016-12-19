@@ -264,7 +264,7 @@ public:
 	BOOL	m_SuppressD3DExt;
 	BOOL	m_Enum16bitModes;
 	BOOL	m_TrimTextureFormats;
-	BOOL	m_RawFormat;
+	//BOOL	m_RawFormat;
 	BOOL	m_LimitScreenRes;
 	BOOL	m_InitialRes;
 	BOOL	m_MaximumRes;
@@ -285,6 +285,7 @@ public:
 	int		m_SwapEffect;
 	int		m_ClipperMode;
 	int		m_ScanLine;
+	int		m_TextureFileFormat;
 	//}}AFX_DATA
 
 

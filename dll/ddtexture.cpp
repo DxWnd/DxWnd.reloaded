@@ -8,6 +8,7 @@
 #include "dxhook.h"
 #include "syslibs.h"
 #include "dxhelper.h"
+#include "dxdds.h"
 
 extern char *ExplainDDError(DWORD);
 
@@ -20,6 +21,12 @@ extern Unlock4_Type pUnlockMethod(int);
 extern int Set_dwSize_From_Surface();
 
 #define GRIDSIZE 16
+
+typedef enum {
+	FORMAT_BMP = 0,
+	FORMAT_RAW,
+	FORMAT_DDS
+};
 
 /* RS Hash Function */
 
@@ -187,7 +194,8 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 	static int MinTexX, MinTexY, MaxTexX, MaxTexY;
 	static BOOL DoOnce = TRUE;
 	char pszFile[MAX_PATH];
-	BOOL IsRaw = (dxw.dwFlags8 & RAWFORMAT);
+	char *sExt;
+	static int iTextureFileFormat;
 
 	OutTraceB("TextureDump(%d): lpdds=%x\n", dxversion, s);
 
@@ -198,9 +206,12 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 		MaxTexX=GetPrivateProfileInt("Texture", "MaxTexX", 0, sProfilePath);
 		MinTexY=GetPrivateProfileInt("Texture", "MinTexY", 0, sProfilePath);
 		MaxTexY=GetPrivateProfileInt("Texture", "MaxTexY", 0, sProfilePath);
-		OutTrace("TextureDump: size min=(%dx%d) max=(%dx%d)\n", MinTexX, MinTexY, MaxTexX, MaxTexY);
 		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out", GetDxWndPath());
 		CreateDirectory(pszFile, NULL);
+		iTextureFileFormat = FORMAT_BMP;
+		if(dxw.dwFlags8 & RAWFORMAT) iTextureFileFormat = FORMAT_RAW;
+		if(dxw.dwFlags8 & DDSFORMAT) iTextureFileFormat = FORMAT_DDS;
+		OutTrace("TextureDump: size min=(%dx%d) max=(%dx%d) format=%d\n", MinTexX, MinTexY, MaxTexX, MaxTexY, iTextureFileFormat);
 		DoOnce = FALSE;
 	}
 
@@ -271,42 +282,78 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 		}
 
 		// Create the .BMP file. 
+		switch (iTextureFileFormat){
+			case FORMAT_BMP: sExt = "bmp"; break; 
+			case FORMAT_RAW: sExt = "raw"; break; 
+			case FORMAT_DDS: sExt = "dds"; break; 
+		}
 		sprintf_s(pszFile, MAX_PATH, "%s\\texture.out\\texture.%03d.%03d.%s.%08X.%s", 
-			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), 
-			hash, IsRaw ? "raw" : "bmp");
+			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), hash, sExt);
 		hf = fopen(pszFile, "wb");
 		if(!hf) break;
 
-		if(IsRaw){
-			fwrite((BYTE *)ddsd.lpSurface, ddsd.lPitch * ddsd.dwHeight, 1, hf);
-			fclose(hf);
-			return;
+		switch(iTextureFileFormat){
+
+			case FORMAT_RAW:
+
+				if(fwrite((BYTE *)ddsd.lpSurface, ddsd.lPitch * ddsd.dwHeight, 1, hf)!=1)
+					OutTraceE("TextureHack: fwrite ERROR err=%d\n", GetLastError());
+				break;
+
+			case FORMAT_DDS: {
+
+				// no good for 8bpp textured bitmaps !!!
+				DDS_HEADER ddsh;
+				if(fwrite("DDS ", 4, 1, hf)!=1)
+					OutTraceE("TextureHack: fwrite ERROR err=%d\n", GetLastError());
+				memset(&ddsh, 0, sizeof(ddsh));
+				ddsh.dwSize = sizeof(ddsh);
+				ddsh.dwFlags = DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT|DDSD_PITCH;
+				ddsh.dwHeight = ddsd.dwHeight;
+				ddsh.dwWidth = ddsd.dwWidth;
+				ddsh.ddspf.dwSize = sizeof(DDS_PIXELFORMAT);
+				ddsh.ddspf.dwFlags = DDPF_RGB;			
+				ddsh.dwPitchOrLinearSize = (DWORD)ddsd.lPitch;
+				ddsh.ddspf.dwABitMask = ddsd.ddpfPixelFormat.dwRGBAlphaBitMask;
+				ddsh.ddspf.dwRBitMask = ddsd.ddpfPixelFormat.dwRBitMask;
+				ddsh.ddspf.dwGBitMask = ddsd.ddpfPixelFormat.dwGBitMask;
+				ddsh.ddspf.dwBBitMask = ddsd.ddpfPixelFormat.dwBBitMask;
+				ddsh.ddspf.dwRGBBitCount = ddsd.ddpfPixelFormat.dwRGBBitCount;
+				if(fwrite((BYTE *)&ddsh, sizeof(ddsh), 1, hf)!=1)
+					OutTraceE("TextureHack: fwrite ERROR err=%d\n", GetLastError());
+				if(fwrite((BYTE *)ddsd.lpSurface, ddsd.lPitch * ddsd.dwHeight, 1, hf)!=1)
+					OutTraceE("TextureHack: fwrite ERROR err=%d\n", GetLastError());
+				}
+				break;
+
+			case FORMAT_BMP:
+
+				hdr.bfType = 0x4d42;        // 0x42 = "B" 0x4d = "M"  
+				// Compute the size of the entire file.  
+				hdr.bfSize = (DWORD) (sizeof(BITMAPFILEHEADER) + pbi.bV4Size + pbi.bV4ClrUsed * sizeof(RGBQUAD) + pbi.bV4SizeImage); 
+				hdr.bfReserved1 = 0; 
+				hdr.bfReserved2 = 0; 
+
+				// Compute the offset to the array of color indices.  
+				hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + pbi.bV4Size + pbi.bV4ClrUsed * sizeof (RGBQUAD); 
+
+				// Copy the BITMAPFILEHEADER into the .BMP file.  
+				fwrite((LPVOID)&hdr, sizeof(BITMAPFILEHEADER), 1, hf);
+
+				// Copy the BITMAPINFOHEADER array into the file.  
+				fwrite((LPVOID)&pbi, sizeof(BITMAPV4HEADER), 1, hf);
+
+				// Copy the RGBQUAD array into the file.  
+				if(pbi.bV4ClrUsed){
+					extern DWORD PaletteEntries[256];
+					fwrite((LPVOID)PaletteEntries, pbi.bV4ClrUsed * sizeof (RGBQUAD), 1, hf);
+				}
+
+				// Copy the array of color indices into the .BMP file.  
+				for(int y=0; y<(int)ddsd.dwHeight; y++)
+					fwrite((BYTE *)ddsd.lpSurface + (y*ddsd.lPitch), iScanLineSize, 1, hf);
+				break;
 		}
-
-		hdr.bfType = 0x4d42;        // 0x42 = "B" 0x4d = "M"  
-		// Compute the size of the entire file.  
-		hdr.bfSize = (DWORD) (sizeof(BITMAPFILEHEADER) + pbi.bV4Size + pbi.bV4ClrUsed * sizeof(RGBQUAD) + pbi.bV4SizeImage); 
-		hdr.bfReserved1 = 0; 
-		hdr.bfReserved2 = 0; 
-
-		// Compute the offset to the array of color indices.  
-		hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + pbi.bV4Size + pbi.bV4ClrUsed * sizeof (RGBQUAD); 
-
-		// Copy the BITMAPFILEHEADER into the .BMP file.  
-		fwrite((LPVOID)&hdr, sizeof(BITMAPFILEHEADER), 1, hf);
-
-		// Copy the BITMAPINFOHEADER array into the file.  
-		fwrite((LPVOID)&pbi, sizeof(BITMAPV4HEADER), 1, hf);
-
-		// Copy the RGBQUAD array into the file.  
-		if(pbi.bV4ClrUsed){
-			extern DWORD PaletteEntries[256];
-			fwrite((LPVOID)PaletteEntries, pbi.bV4ClrUsed * sizeof (RGBQUAD), 1, hf);
-		}
-
-		// Copy the array of color indices into the .BMP file.  
-		for(int y=0; y<(int)ddsd.dwHeight; y++)
-			fwrite((BYTE *)ddsd.lpSurface + (y*ddsd.lPitch), iScanLineSize, 1, hf);
 
 		// Close the .BMP file.  
 		fclose(hf);
@@ -318,10 +365,27 @@ static void TextureDump(LPDIRECTDRAWSURFACE s, int dxversion)
 
 static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 {
+	static BOOL DoOnce = TRUE;
 	DDSURFACEDESC2 ddsd;
 	int w, h, iSurfaceSize, iScanLineSize;
 	HRESULT res;
-	BOOL IsRaw = (dxw.dwFlags8 & RAWFORMAT);
+	char *sExt;
+	static int iTextureFileFormat;
+
+	if(DoOnce){
+		//char sProfilePath[MAX_PATH];
+		//sprintf(sProfilePath, "%s\\dxwnd.ini", GetDxWndPath());
+		//MinTexX=GetPrivateProfileInt("Texture", "MinTexX", 0, sProfilePath);
+		//MaxTexX=GetPrivateProfileInt("Texture", "MaxTexX", 0, sProfilePath);
+		//MinTexY=GetPrivateProfileInt("Texture", "MinTexY", 0, sProfilePath);
+		//MaxTexY=GetPrivateProfileInt("Texture", "MaxTexY", 0, sProfilePath);
+		//sprintf_s(pszFile, MAX_PATH, "%s\\texture.in", GetDxWndPath());
+		iTextureFileFormat = FORMAT_BMP;
+		if(dxw.dwFlags8 & RAWFORMAT) iTextureFileFormat = FORMAT_RAW;
+		if(dxw.dwFlags8 & DDSFORMAT) iTextureFileFormat = FORMAT_DDS;
+		//OutTrace("TextureHack: size min=(%dx%d) max=(%dx%d) format=%d\n", MinTexX, MinTexY, MaxTexX, MaxTexY, iTextureFileFormat);
+		OutTrace("TextureHack: format=%d\n", iTextureFileFormat);
+	}
 
 	OutTraceB("TextureHack(%d): lpdds=%x\n", dxversion, s);
 
@@ -351,61 +415,86 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 		if(!hash) break; // almost certainly, an empty black surface!
 
 		// Look for the .BMP file. 
+		switch (iTextureFileFormat){
+			case FORMAT_BMP: sExt = "bmp"; break; 
+			case FORMAT_RAW: sExt = "raw"; break; 
+			case FORMAT_DDS: sExt = "dds"; break; 
+		}
 		sprintf_s(pszFile, MAX_PATH, "%s\\texture.in\\texture.%03d.%03d.%s.%08X.%s", 
-			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), 
-			hash, IsRaw ? "raw" : "bmp");
+			GetDxWndPath(), ddsd.dwWidth, ddsd.dwHeight, SurfaceType(ddsd.ddpfPixelFormat), hash, sExt);
 		hf = fopen(pszFile, "rb");
 		if(!hf) break; // no updated texture to load
 
 		OutTrace("TextureHack: IMPORT path=%s\n", pszFile);
 
-		if(IsRaw){
-			fread((BYTE *)ddsd.lpSurface, ddsd.lPitch * ddsd.dwHeight, 1, hf);
-			fclose(hf);
-			return;
-		}
+		switch(iTextureFileFormat){
 
-		memset((void *)&pbi, 0, sizeof(BITMAPINFOHEADER));
-		pbi.biSize = sizeof(BITMAPINFOHEADER); 
-		pbi.biWidth = ddsd.dwWidth;
-		pbi.biHeight = ddsd.dwHeight;
-		pbi.biBitCount = (WORD)ddsd.ddpfPixelFormat.dwRGBBitCount;
-		pbi.biSizeImage = ((pbi.biWidth * pbi.biBitCount + 0x1F) & ~0x1F)/8 * pbi.biHeight; 
-		iSizeImage = pbi.biSizeImage;
-		iScanLineSize = ((pbi.biWidth * pbi.biBitCount + 0x1F) & ~0x1F)/8;
+			case FORMAT_RAW: {
 
-		while(TRUE) { // fake loop to ensure final fclose
-			// Read the BITMAPFILEHEADER from the .BMP file (and throw away ...).  
-			if(fread((LPVOID)&hdr, sizeof(BITMAPFILEHEADER), 1, hf) != 1)break;
-
-			// Read the BITMAPINFOHEADER (and throw away ...).  
-			// If the file contains BITMAPV4HEADER or BITMAPV5HEADER, no problem: next fseek will settle things
-			if(fread((LPVOID)&pbi, sizeof(BITMAPINFOHEADER), 1, hf) != 1) break;
-
-			// skip the RGBQUAD array if the editor inserted one
-			fseek(hf, hdr.bfOffBits, SEEK_SET);
-
-			// Read the new texture  from the .BMP file.  
-			if(pbi.biHeight < 0){
-				// biHeight < 0 -> scan lines from top to bottom, same as surface/texture convention
-				for(int y=0; y<(int)ddsd.dwHeight; y++){
-					BYTE *p = (BYTE *)ddsd.lpSurface + (ddsd.lPitch * y);
-					fseek(hf, hdr.bfOffBits + (iScanLineSize * y), SEEK_SET);
-					if(fread((LPVOID)p, ddsd.lPitch, 1, hf) != 1) break;
+				if(fread((BYTE *)ddsd.lpSurface, ddsd.lPitch * ddsd.dwHeight, 1, hf)!=1)
+					OutTraceE("TextureHack: fread ERROR err=%d\n", GetLastError());
 				}
+				break;
+
+			case FORMAT_DDS: {
+
+				BYTE magic[4];
+				DDS_HEADER ddsh;
+				// assume the file is sane, read and throw away magic and dds header
+				if(fread(magic, 4, 1, hf)!=1)
+					OutTraceE("TextureHack: fread ERROR err=%d\n", GetLastError());
+				if(fread((BYTE *)&ddsh, sizeof(ddsh), 1, hf)!=1)
+					OutTraceE("TextureHack: fread ERROR err=%d\n", GetLastError());
+				memset(&ddsh, 0, sizeof(ddsh));
+				if(fread((BYTE *)ddsd.lpSurface, ddsd.lPitch * ddsd.dwHeight, 1, hf)!=1)
+					OutTraceE("TextureHack: fread ERROR err=%d\n", GetLastError());
 			}
-			else {
-				// biHeight > 0 -> scan lines from bottom to top, inverse order as surface/texture convention
-				for(int y=0; y<(int)ddsd.dwHeight; y++){
-					BYTE *p = (BYTE *)ddsd.lpSurface + (ddsd.lPitch * ((ddsd.dwHeight-1) - y));
-					fseek(hf, hdr.bfOffBits + (iScanLineSize * y), SEEK_SET);
-					if(fread((LPVOID)p, ddsd.lPitch, 1, hf) != 1) break;
+			break;
+
+			case FORMAT_BMP: 
+
+				memset((void *)&pbi, 0, sizeof(BITMAPINFOHEADER));
+				pbi.biSize = sizeof(BITMAPINFOHEADER); 
+				pbi.biWidth = ddsd.dwWidth;
+				pbi.biHeight = ddsd.dwHeight;
+				pbi.biBitCount = (WORD)ddsd.ddpfPixelFormat.dwRGBBitCount;
+				pbi.biSizeImage = ((pbi.biWidth * pbi.biBitCount + 0x1F) & ~0x1F)/8 * pbi.biHeight; 
+				iSizeImage = pbi.biSizeImage;
+				iScanLineSize = ((pbi.biWidth * pbi.biBitCount + 0x1F) & ~0x1F)/8;
+
+				while(TRUE) { // fake loop to ensure final fclose
+					// Read the BITMAPFILEHEADER from the .BMP file (and throw away ...).  
+					if(fread((LPVOID)&hdr, sizeof(BITMAPFILEHEADER), 1, hf) != 1)break;
+
+					// Read the BITMAPINFOHEADER (and throw away ...).  
+					// If the file contains BITMAPV4HEADER or BITMAPV5HEADER, no problem: next fseek will settle things
+					if(fread((LPVOID)&pbi, sizeof(BITMAPINFOHEADER), 1, hf) != 1) break;
+
+					// skip the RGBQUAD array if the editor inserted one
+					fseek(hf, hdr.bfOffBits, SEEK_SET);
+
+					// Read the new texture  from the .BMP file.  
+					if(pbi.biHeight < 0){
+						// biHeight < 0 -> scan lines from top to bottom, same as surface/texture convention
+						for(int y=0; y<(int)ddsd.dwHeight; y++){
+							BYTE *p = (BYTE *)ddsd.lpSurface + (ddsd.lPitch * y);
+							fseek(hf, hdr.bfOffBits + (iScanLineSize * y), SEEK_SET);
+							if(fread((LPVOID)p, ddsd.lPitch, 1, hf) != 1) break;
+						}
+					}
+					else {
+						// biHeight > 0 -> scan lines from bottom to top, inverse order as surface/texture convention
+						for(int y=0; y<(int)ddsd.dwHeight; y++){
+							BYTE *p = (BYTE *)ddsd.lpSurface + (ddsd.lPitch * ((ddsd.dwHeight-1) - y));
+							fseek(hf, hdr.bfOffBits + (iScanLineSize * y), SEEK_SET);
+							if(fread((LPVOID)p, ddsd.lPitch, 1, hf) != 1) break;
+						}
+					}
+					OutTrace("TextureHack: TEXTURE LOAD DONE\n");
+					break;
 				}
-			}
-			OutTrace("TextureHack: TEXTURE LOAD DONE\n");
 			break;
 		}
-
 		// Close the .BMP file.  
 		fclose(hf);
 		break;

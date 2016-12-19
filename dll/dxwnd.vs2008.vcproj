@@ -543,6 +543,10 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
+				RelativePath=".\dxdds.h"
+				>
+			</File>
+			<File
 				RelativePath=".\dxhelper.h"
 				>
 			</File>

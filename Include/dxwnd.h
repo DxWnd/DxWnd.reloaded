@@ -261,6 +261,7 @@
 #define RAWFORMAT			0x00000200 // texture dump / hack are performed in raw format, compression / decompression to be made offline
 #define WININSULATION		0x00000400 // EnumerateWin finds no windows!
 #define FIXMOUSEHOOK		0x00000800 // fixes mouse coordinates retrieved through MouseProc routine associated to SetWindowsHook(WH_MOUSE,..)
+#define DDSFORMAT			0x00001000 // texture dump / hack are performed in MS DDS format
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

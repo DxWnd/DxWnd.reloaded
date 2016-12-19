@@ -338,6 +338,12 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags |= SUPPRESSCLIPPING; break;
 	}
 
+	switch(dlg->m_TextureFileFormat){
+		case 0: break;
+		case 1: t->flags8 |= RAWFORMAT; break;
+		case 2: t->flags8 |= DDSFORMAT; break;
+	}
+
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
 	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
@@ -384,7 +390,6 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_Enum16bitModes) t->flags7 |= ENUM16BITMODES;
 	if(dlg->m_TrimTextureFormats) t->flags8 |= TRIMTEXTUREFORMATS;
-	if(dlg->m_RawFormat) t->flags8 |= RAWFORMAT;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
@@ -647,6 +652,10 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if (t->flags3 & FORCECLIPPER) dlg->m_ClipperMode = 1;
 	if (t->flags & SUPPRESSCLIPPING) dlg->m_ClipperMode = 2;
 
+	dlg->m_TextureFileFormat = 0;
+	if( t->flags8 & RAWFORMAT) dlg->m_TextureFileFormat = 1;
+	if( t->flags8 & DDSFORMAT) dlg->m_TextureFileFormat = 2;
+
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
 	dlg->m_EmulateRelMouse = t->flags6 & EMULATERELMOUSE ? 1 : 0;
@@ -674,7 +683,6 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_Enum16bitModes = t->flags7 & ENUM16BITMODES ? 1 : 0;
 	dlg->m_TrimTextureFormats = t->flags8 & TRIMTEXTUREFORMATS ? 1 : 0;
-	dlg->m_RawFormat = t->flags8 & RAWFORMAT ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
