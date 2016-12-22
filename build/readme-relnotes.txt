@@ -1380,7 +1380,7 @@ add: D3DDevice GetCaps hooking and full dump of D3DDevice capabilities
 add: "No HAL Device" flag, making it unavailable the IID_Direct3DHALDevice device. Fixes "Grand Prix World" when the 3D car models are invisible.
 add: reorganization of mouse clipper fields, with the addition of LOCK mode (useful for Tribal Rage)
 
-v2.04.00/fx2
+v2.04.00/fx1
 add: texture management for D3D textures: XCTn compressed textures, raw mode, texture highlight and hack
 add: Input / "fix MOUSEHOOK callback" option, fixes "Jagged Alliance 2" mouse problems
 add: GDI / "Pretend Win visible & on top" option: experimental, let the program believe that the main window is visible and on top of z-order as usually happens to full screen applications
@@ -1392,4 +1392,13 @@ fix: bug in D3D device enumeration log
 fix: bug in Hybrid and GDI ddraw surface rendering
 fix: missing "No HAL Device" flag default to disabled
 fix: improvements in texture handling, dds format support for DirectDraw textures
-fix: fixed fast bilinear 2X on 32 bit color depth
+
+v2.04.01
+add: preliminary WinG32 handling
+add: minimal WinG32 replacement, thank to Wine source code
+add: DirectX(2)/"Create a Desktop Win" option. Fixes "Man TT Super Bike"
+add: new hooking schema for IAT organized like original "Al Unser Jr. Arcade Racing"
+fix: in virtual registry fix to handle the '@' void label case properly
+fix: added hook for RegQueryValueA, used by "Warhammer 40.000 Shadow of the Horned Rat"
+fix: virtual registry logging
+

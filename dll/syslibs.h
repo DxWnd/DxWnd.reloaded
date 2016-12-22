@@ -21,6 +21,7 @@ typedef LONG	(WINAPI *RegCloseKey_Type)(HKEY);
 typedef LONG	(WINAPI *RegCreateKey_Type)(HKEY, LPCTSTR, PHKEY);
 typedef LONG	(WINAPI *RegCreateKeyEx_Type)(HKEY, LPCTSTR, DWORD, LPTSTR, DWORD, REGSAM, LPSECURITY_ATTRIBUTES, PHKEY, LPDWORD);
 typedef LONG	(WINAPI *RegOpenKeyEx_Type)(HKEY, LPCTSTR, DWORD, REGSAM, PHKEY);
+typedef LONG	(WINAPI *RegQueryValue_Type)(HKEY, LPCTSTR, LPTSTR, PLONG);
 typedef LONG	(WINAPI *RegQueryValueEx_Type)(HKEY, LPCTSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
 typedef LONG	(WINAPI *RegSetValueEx_Type)(HKEY, LPCTSTR, DWORD, DWORD, const BYTE *, DWORD);
 
@@ -108,7 +109,35 @@ typedef BOOL	(WINAPI *GDIGetPixelFormat_Type)(HDC);
 typedef int		(WINAPI *ChoosePixelFormat_Type)(HDC, const PIXELFORMATDESCRIPTOR *);
 typedef int		(WINAPI *DescribePixelFormat_Type)(HDC, int, UINT, LPPIXELFORMATDESCRIPTOR);
 typedef DWORD	(WINAPI *GetObjectType_Type)(HGDIOBJ);
-
+typedef int (WINAPI *SetDIBits_Type)(HDC, HBITMAP, UINT, UINT, const VOID *, const BITMAPINFO *, UINT);
+typedef int (WINAPI *OffsetRgn_Type)(HRGN, int, int);
+typedef COLORREF (WINAPI *GetPixel_Type)(HDC, int, int);
+typedef BOOL (WINAPI *PlgBlt_Type)(HDC, const POINT *, HDC, int, int, int, int, HBITMAP, int, int);
+typedef BOOL (WINAPI *SetPixelV_Type)(HDC, int, int, COLORREF);
+typedef BOOL (WINAPI *Chord_Type)(HDC, int, int, int, int, int, int, int, int);
+typedef BOOL (WINAPI *PolyTextOutA_Type)(HDC, const POLYTEXTA *, int);
+typedef BOOL (WINAPI *PolyTextOutW_Type)(HDC, const POLYTEXTW *, int);
+typedef int (WINAPI *GetDIBits_Type)(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITMAPINFO, UINT);
+typedef HBITMAP (WINAPI *CreateDIBitmap_Type)(HDC, BITMAPINFOHEADER *, DWORD, const VOID *, const BITMAPINFO *, UINT);
+typedef HBITMAP (WINAPI *CreateDIBSection_Type)(HDC, const BITMAPINFO *, UINT, VOID **, HANDLE, DWORD);
+typedef HBITMAP (WINAPI *CreateDiscardableBitmap_Type)(HDC, int, int);
+typedef BOOL (WINAPI *ExtFloodFill_Type)(HDC, int, int, COLORREF, UINT);
+typedef BOOL (WINAPI *GdiAlphaBlend_Type)(HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION);
+typedef BOOL (WINAPI *GdiGradientFill_Type)(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
+typedef BOOL (WINAPI *GdiTransparentBlt_Type)(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
+typedef BOOL (WINAPI *Pie_Type)(HDC, int, int, int, int, int, int, int, int);
+typedef BOOL (WINAPI *AngleArc_Type)(HDC, int, int, DWORD, FLOAT, FLOAT);
+typedef BOOL (WINAPI *PolyPolyline_Type)(HDC, const POINT *, const DWORD *, DWORD);
+typedef BOOL (WINAPI *FillRgn_Type)(HDC, HRGN, HBRUSH);
+typedef BOOL (WINAPI *FrameRgn_Type)(HDC, HRGN, HBRUSH, int, int);
+typedef BOOL (WINAPI *InvertRgn_Type)(HDC, HRGN);
+typedef BOOL (WINAPI *PaintRgn_Type)(HDC, HRGN);
+typedef int (WINAPI *SetMapMode_Type)(HDC, int);
+typedef BOOL (WINAPI *RoundRect_Type)(HDC, int, int, int, int, int, int);
+typedef BOOL (WINAPI *PolyPolygon_Type)(HDC, const POINT *, const INT *, int);
+//typedef BOOL (WINAPI *DPtoLP_Type)(HDC, LPPOINT, int);
+typedef BOOL (WINAPI *PlayEnhMetaFile_Type)(HDC, HENHMETAFILE, const RECT *);
+typedef UINT (WINAPI *SetPaletteEntries_Type)(HPALETTE, UINT, UINT, const PALETTEENTRY *);
 
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -256,6 +285,7 @@ DXWEXTERN RegCloseKey_Type pRegCloseKey DXWINITIALIZED;
 DXWEXTERN RegCreateKey_Type pRegCreateKey DXWINITIALIZED;
 DXWEXTERN RegCreateKeyEx_Type pRegCreateKeyEx DXWINITIALIZED;
 DXWEXTERN RegOpenKeyEx_Type pRegOpenKeyEx DXWINITIALIZED;
+DXWEXTERN RegQueryValue_Type pRegQueryValue DXWINITIALIZED;
 DXWEXTERN RegQueryValueEx_Type pRegQueryValueEx DXWINITIALIZED;
 DXWEXTERN RegSetValueEx_Type pRegSetValueEx DXWINITIALIZED;
 
@@ -347,6 +377,35 @@ DXWEXTERN GDIGetPixelFormat_Type pGDIGetPixelFormat DXWINITIALIZED;
 DXWEXTERN ChoosePixelFormat_Type pChoosePixelFormat DXWINITIALIZED;
 DXWEXTERN DescribePixelFormat_Type pDescribePixelFormat DXWINITIALIZED;
 DXWEXTERN GetObjectType_Type pGetObjectType DXWINITIALIZED;
+DXWEXTERN SetDIBits_Type pSetDIBits DXWINITIALIZED;
+DXWEXTERN OffsetRgn_Type pOffsetRgn DXWINITIALIZED;
+DXWEXTERN GetPixel_Type pGetPixel DXWINITIALIZED;
+DXWEXTERN PlgBlt_Type pPlgBlt DXWINITIALIZED;
+DXWEXTERN SetPixelV_Type pSetPixelV DXWINITIALIZED;
+DXWEXTERN Chord_Type pChord DXWINITIALIZED;
+DXWEXTERN PolyTextOutA_Type pPolyTextOutA DXWINITIALIZED;
+DXWEXTERN PolyTextOutW_Type pPolyTextOutW DXWINITIALIZED;
+DXWEXTERN GetDIBits_Type pGetDIBits DXWINITIALIZED;
+DXWEXTERN CreateDIBitmap_Type pCreateDIBitmap DXWINITIALIZED;
+DXWEXTERN CreateDIBSection_Type pCreateDIBSection DXWINITIALIZED;
+DXWEXTERN CreateDiscardableBitmap_Type pCreateDiscardableBitmap DXWINITIALIZED;
+DXWEXTERN ExtFloodFill_Type pExtFloodFill DXWINITIALIZED;
+DXWEXTERN GdiAlphaBlend_Type pGdiAlphaBlend DXWINITIALIZED;
+DXWEXTERN GdiGradientFill_Type pGdiGradientFill DXWINITIALIZED;
+DXWEXTERN GdiTransparentBlt_Type pGdiTransparentBlt DXWINITIALIZED;
+DXWEXTERN Pie_Type pPie DXWINITIALIZED;
+DXWEXTERN AngleArc_Type pAngleArc DXWINITIALIZED;
+DXWEXTERN PolyPolyline_Type pPolyPolyline DXWINITIALIZED;
+DXWEXTERN FillRgn_Type pFillRgn DXWINITIALIZED;
+DXWEXTERN FrameRgn_Type pFrameRgn DXWINITIALIZED;
+DXWEXTERN InvertRgn_Type pInvertRgn DXWINITIALIZED;
+DXWEXTERN PaintRgn_Type pPaintRgn DXWINITIALIZED;
+DXWEXTERN SetMapMode_Type pSetMapMode DXWINITIALIZED;
+DXWEXTERN RoundRect_Type pRoundRect DXWINITIALIZED;
+DXWEXTERN PolyPolygon_Type pPolyPolygon DXWINITIALIZED;
+//DXWEXTERN DPtoLP_Type pDPtoLP DXWINITIALIZED;
+DXWEXTERN PlayEnhMetaFile_Type pPlayEnhMetaFile DXWINITIALIZED;
+DXWEXTERN SetPaletteEntries_Type pSetPaletteEntries DXWINITIALIZED;
 
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
@@ -380,9 +439,9 @@ DXWEXTERN GetExitCodeProcess_Type pGetExitCodeProcess DXWINITIALIZED;
 
 // ole32.dll:
 DXWEXTERN CoCreateInstance_Type pCoCreateInstance DXWINITIALIZED;
-DXWEXTERN CoCreateInstanceEx_Type pCoCreateInstanceEx  DXWINITIALIZED;
-DXWEXTERN CoInitialize_Type pCoInitialize  DXWINITIALIZED;
-DXWEXTERN CoUninitialize_Type pCoUninitialize  DXWINITIALIZED;
+DXWEXTERN CoCreateInstanceEx_Type pCoCreateInstanceEx DXWINITIALIZED;
+DXWEXTERN CoInitialize_Type pCoInitialize DXWINITIALIZED;
+DXWEXTERN CoUninitialize_Type pCoUninitialize DXWINITIALIZED;
 
 // user32.dll:
 DXWEXTERN BeginPaint_Type pBeginPaint DXWINITIALIZED;
@@ -486,6 +545,7 @@ extern LONG	WINAPI extRegCloseKey(HKEY);
 extern LONG	WINAPI extRegCreateKey(HKEY, LPCTSTR, PHKEY);
 extern LONG	WINAPI extRegCreateKeyEx(HKEY, LPCTSTR, DWORD, LPTSTR, DWORD, REGSAM, LPSECURITY_ATTRIBUTES, PHKEY, LPDWORD);
 extern LONG	WINAPI extRegOpenKeyEx(HKEY, LPCTSTR, DWORD, REGSAM, PHKEY);
+extern LONG	WINAPI extRegQueryValue(HKEY, LPCTSTR, LPTSTR, PLONG);
 extern LONG	WINAPI extRegQueryValueEx(HKEY, LPCTSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
 extern LONG	WINAPI extRegSetValueEx(HKEY, LPCTSTR, DWORD, DWORD, const BYTE *, DWORD);
 
@@ -575,6 +635,35 @@ extern int WINAPI extGDIGetPixelFormat(HDC);
 extern int WINAPI extChoosePixelFormat(HDC, const PIXELFORMATDESCRIPTOR *);
 extern int WINAPI extDescribePixelFormat(HDC, int, UINT, LPPIXELFORMATDESCRIPTOR);
 extern DWORD WINAPI extGetObjectType(HGDIOBJ);
+extern int WINAPI extSetDIBits(HDC, HBITMAP, UINT, UINT, const VOID *, const BITMAPINFO *, UINT);
+extern int WINAPI extOffsetRgn(HRGN, int, int);
+extern COLORREF WINAPI extGetPixel(HDC, int, int);
+extern BOOL WINAPI extPlgBlt(HDC, const POINT *, HDC, int, int, int, int, HBITMAP, int, int);
+extern BOOL WINAPI extSetPixelV(HDC, int, int, COLORREF);
+extern BOOL WINAPI extChord(HDC, int, int, int, int, int, int, int, int);
+extern BOOL WINAPI extPolyTextOutA(HDC, const POLYTEXTA *, int);
+extern BOOL WINAPI extPolyTextOutW(HDC, const POLYTEXTW *, int);
+extern int WINAPI extGetDIBits(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITMAPINFO, UINT);
+extern HBITMAP WINAPI extCreateDIBitmap(HDC, BITMAPINFOHEADER *, DWORD, const VOID *, const BITMAPINFO *, UINT);
+extern HBITMAP WINAPI extCreateDIBSection(HDC, const BITMAPINFO *, UINT, VOID **, HANDLE, DWORD);
+extern BOOL WINAPI extExtFloodFill(HDC, int, int, COLORREF, UINT);
+extern HBITMAP WINAPI extCreateDiscardableBitmap(HDC, int, int);
+extern BOOL WINAPI extGdiAlphaBlend(HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION);
+extern BOOL WINAPI extGdiGradientFill(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
+extern BOOL WINAPI extGdiTransparentBlt(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
+extern BOOL WINAPI extPie(HDC, int, int, int, int, int, int, int, int);
+extern BOOL WINAPI extAngleArc(HDC, int, int, DWORD, FLOAT, FLOAT);
+extern BOOL WINAPI extPolyPolyline(HDC, const POINT *, const DWORD *, DWORD);
+extern BOOL WINAPI extFillRgn(HDC, HRGN, HBRUSH);
+extern BOOL WINAPI extFrameRgn(HDC, HRGN, HBRUSH, int, int);
+extern BOOL WINAPI extInvertRgn(HDC, HRGN);
+extern BOOL WINAPI extPaintRgn(HDC, HRGN);
+extern int WINAPI extSetMapMode(HDC, int);
+extern BOOL WINAPI extRoundRect(HDC, int, int, int, int, int, int);
+extern BOOL WINAPI extPolyPolygon(HDC, const POINT *, const INT *, int);
+//extern BOOL WINAPI extDPtoLP(HDC, LPPOINT, int);
+extern BOOL WINAPI extPlayEnhMetaFile(HDC, HENHMETAFILE, const RECT *);
+extern UINT WINAPI extSetPaletteEntries(HPALETTE, UINT, UINT, const PALETTEENTRY *);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -711,6 +800,7 @@ extern MMRESULT WINAPI exttimeKillEvent(UINT);
 extern void	HookKernel32Init();
 extern void	HookUser32Init();
 extern void	HookGDI32Init();
+extern void	HookWinG32Init();
 extern void HookImagehlpInit();
 
 /* eof */

@@ -1,0 +1,12 @@
+LIBRARY "WinG32"
+EXPORTS
+WinGBitBlt					= WinGBitBlt					@1
+WinGCreateBitmap			= WinGCreateBitmap				@2
+WinGCreateDC				= WinGCreateDC					@3
+WinGCreateHalftoneBrush		= WinGCreateHalftoneBrush		@4
+WinGCreateHalftonePalette	= WinGCreateHalftonePalette		@5
+WinGGetDIBColorTable		= WinGGetDIBColorTable			@6
+WinGGetDIBPointer			= WinGGetDIBPointer				@7
+WinGRecommendDIBFormat		= WinGRecommendDIBFormat		@8
+WinGSetDIBColorTable		= WinGSetDIBColorTable			@9
+WinGStretchBlt				= WinGStretchBlt				@10

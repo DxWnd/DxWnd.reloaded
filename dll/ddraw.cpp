@@ -2378,6 +2378,27 @@ HRESULT WINAPI extGetDisplayMode4(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
 HRESULT WINAPI extGetDisplayMode7(LPDIRECTDRAW lpdd, LPDDSURFACEDESC2 lpddsd)
 { return extGetDisplayMode(7, (GetDisplayMode_Type)pGetDisplayMode7, lpdd, (LPDDSURFACEDESC)lpddsd); }
 
+static HWND CreateVirtualDesktop(LPRECT TargetPos)
+{
+	HWND hDesktopWindow;
+	HINSTANCE hinst=NULL;
+
+	HWND hParent = GetDesktopWindow(); // not hooked yet !
+	hDesktopWindow=(*pCreateWindowExA)(0, "Static", "DxWnd Desktop", WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, hParent, NULL, hinst, NULL);
+	if(hDesktopWindow){
+		(*pMoveWindow)(hDesktopWindow, TargetPos->left, TargetPos->top, TargetPos->right-TargetPos->left, TargetPos->bottom-TargetPos->top, TRUE);
+		(*pSetWindowLong)(hDesktopWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+		(*pShowWindow)(hDesktopWindow, SW_RESTORE);
+		OutTraceDW("created desktop emulation: hwnd=%x\n", hDesktopWindow);
+		return hDesktopWindow; 
+
+	}
+	else{
+		OutTraceE("CreateWindowEx ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+		return NULL;
+	}
+}
+
 HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pSetCooperativeLevel, LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
 {
 	HRESULT res;
@@ -2407,6 +2428,20 @@ HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pS
 
 	if(dxw.Windowize || (dxw.dwFlags7 & NODDEXCLUSIVEMODE)){
 		if (dwflags & DDSCL_FULLSCREEN){
+
+			// v2.04.01: CREATEDESKTOP option for games that despite all efforts don't have
+			// a valid main window, so we build one. 
+			// Fixes (somehow) "Man TT Super Bike".
+			if(dxw.dwFlags6 & CREATEDESKTOP){
+				static BOOL bDoOnce = TRUE;
+				if(bDoOnce){
+					RECT desktop = dxw.GetUnmappedScreenRect();
+					hwnd = CreateVirtualDesktop(&desktop);
+					dxw.SethWnd(hwnd);
+					bDoOnce=FALSE;
+				}
+			}
+
 			// v2.01.82 fix:
 			// WARN: Tomb Raider 4 demo is setting cooperative level against hwnd 0 (desktop)
 			// so in this case better use the registered hWnd value. Same as GP500, who uses 

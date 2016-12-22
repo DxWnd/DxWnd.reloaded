@@ -47,90 +47,6 @@ COLORREF WINAPI extSetBkColor(HDC, COLORREF);
 COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor);
 int WINAPI extSetBkMode(HDC, int);
 */
-typedef int (WINAPI *SetDIBits_Type)(HDC, HBITMAP, UINT, UINT, const VOID *, const BITMAPINFO *, UINT);
-int WINAPI extSetDIBits(HDC, HBITMAP, UINT, UINT, const VOID *, const BITMAPINFO *, UINT);
-SetDIBits_Type pSetDIBits = NULL;
-typedef int (WINAPI *OffsetRgn_Type)(HRGN, int, int);
-OffsetRgn_Type pOffsetRgn = NULL;
-int WINAPI extOffsetRgn(HRGN, int, int);
-typedef COLORREF (WINAPI *GetPixel_Type)(HDC, int, int);
-GetPixel_Type pGetPixel = NULL;
-COLORREF WINAPI extGetPixel(HDC, int, int);
-typedef BOOL (WINAPI *PlgBlt_Type)(HDC, const POINT *, HDC, int, int, int, int, HBITMAP, int, int);
-PlgBlt_Type pPlgBlt = NULL;
-BOOL WINAPI extPlgBlt(HDC, const POINT *, HDC, int, int, int, int, HBITMAP, int, int);
-typedef BOOL (WINAPI *SetPixelV_Type)(HDC, int, int, COLORREF);
-SetPixelV_Type pSetPixelV = NULL;
-BOOL WINAPI extSetPixelV(HDC, int, int, COLORREF);
-typedef BOOL (WINAPI *Chord_Type)(HDC, int, int, int, int, int, int, int, int);
-Chord_Type pChord = NULL;
-BOOL WINAPI extChord(HDC, int, int, int, int, int, int, int, int);
-typedef BOOL (WINAPI *PolyTextOutA_Type)(HDC, const POLYTEXTA *, int);
-PolyTextOutA_Type pPolyTextOutA = NULL;
-BOOL WINAPI extPolyTextOutA(HDC, const POLYTEXTA *, int);
-typedef BOOL (WINAPI *PolyTextOutW_Type)(HDC, const POLYTEXTW *, int);
-PolyTextOutW_Type pPolyTextOutW = NULL;
-BOOL WINAPI extPolyTextOutW(HDC, const POLYTEXTW *, int);
-typedef int (WINAPI *GetDIBits_Type)(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITMAPINFO, UINT);
-GetDIBits_Type pGetDIBits = NULL;
-int WINAPI extGetDIBits(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITMAPINFO, UINT);
-typedef HBITMAP (WINAPI *CreateDIBitmap_Type)(HDC, BITMAPINFOHEADER *, DWORD, const VOID *, const BITMAPINFO *, UINT);
-CreateDIBitmap_Type pCreateDIBitmap = NULL;
-HBITMAP WINAPI extCreateDIBitmap(HDC, BITMAPINFOHEADER *, DWORD, const VOID *, const BITMAPINFO *, UINT);
-typedef HBITMAP (WINAPI *CreateDIBSection_Type)(HDC, const BITMAPINFO *, UINT, VOID **, HANDLE, DWORD);
-CreateDIBSection_Type pCreateDIBSection = NULL;
-HBITMAP WINAPI extCreateDIBSection(HDC, const BITMAPINFO *, UINT, VOID **, HANDLE, DWORD);
-typedef HBITMAP (WINAPI *CreateDiscardableBitmap_Type)(HDC, int, int);
-CreateDiscardableBitmap_Type pCreateDiscardableBitmap = NULL;
-HBITMAP WINAPI extCreateDiscardableBitmap(HDC, int, int);
-typedef BOOL (WINAPI *ExtFloodFill_Type)(HDC, int, int, COLORREF, UINT);
-ExtFloodFill_Type pExtFloodFill = NULL;
-BOOL WINAPI extExtFloodFill(HDC, int, int, COLORREF, UINT);
-typedef BOOL (WINAPI *GdiAlphaBlend_Type)(HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION);
-GdiAlphaBlend_Type pGdiAlphaBlend = NULL;
-BOOL WINAPI extGdiAlphaBlend(HDC, int, int, int, int, HDC, int, int, int, int, BLENDFUNCTION);
-typedef BOOL (WINAPI *GdiGradientFill_Type)(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
-GdiGradientFill_Type pGdiGradientFill = NULL;
-BOOL WINAPI extGdiGradientFill(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
-typedef BOOL (WINAPI *GdiTransparentBlt_Type)(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
-GdiTransparentBlt_Type pGdiTransparentBlt = NULL;
-BOOL WINAPI extGdiTransparentBlt(HDC, int, int, int, int, HDC, int, int, int, int, UINT);
-typedef BOOL (WINAPI *Pie_Type)(HDC, int, int, int, int, int, int, int, int);
-Pie_Type pPie = NULL;
-BOOL WINAPI extPie(HDC, int, int, int, int, int, int, int, int);
-typedef BOOL (WINAPI *AngleArc_Type)(HDC, int, int, DWORD, FLOAT, FLOAT);
-AngleArc_Type pAngleArc = NULL;
-BOOL WINAPI extAngleArc(HDC, int, int, DWORD, FLOAT, FLOAT);
-typedef BOOL (WINAPI *PolyPolyline_Type)(HDC, const POINT *, const DWORD *, DWORD);
-PolyPolyline_Type pPolyPolyline = NULL;
-BOOL WINAPI extPolyPolyline(HDC, const POINT *, const DWORD *, DWORD);
-typedef BOOL (WINAPI *FillRgn_Type)(HDC, HRGN, HBRUSH);
-FillRgn_Type pFillRgn = NULL;
-BOOL WINAPI extFillRgn(HDC, HRGN, HBRUSH);
-typedef BOOL (WINAPI *FrameRgn_Type)(HDC, HRGN, HBRUSH, int, int);
-FrameRgn_Type pFrameRgn = NULL;
-BOOL WINAPI extFrameRgn(HDC, HRGN, HBRUSH, int, int);
-typedef BOOL (WINAPI *InvertRgn_Type)(HDC, HRGN);
-InvertRgn_Type pInvertRgn = NULL;
-BOOL WINAPI extInvertRgn(HDC, HRGN);
-typedef BOOL (WINAPI *PaintRgn_Type)(HDC, HRGN);
-PaintRgn_Type pPaintRgn = NULL;
-BOOL WINAPI extPaintRgn(HDC, HRGN);
-typedef int (WINAPI *SetMapMode_Type)(HDC, int);
-SetMapMode_Type pSetMapMode = NULL;
-int WINAPI extSetMapMode(HDC, int);
-typedef BOOL (WINAPI *RoundRect_Type)(HDC, int, int, int, int, int, int);
-RoundRect_Type pRoundRect = NULL;
-BOOL WINAPI extRoundRect(HDC, int, int, int, int, int, int);
-typedef BOOL (WINAPI *PolyPolygon_Type)(HDC, const POINT *, const INT *, int);
-PolyPolygon_Type pPolyPolygon = NULL;
-BOOL WINAPI extPolyPolygon(HDC, const POINT *, const INT *, int);
-//typedef BOOL (WINAPI *DPtoLP_Type)(HDC, LPPOINT, int);
-//DPtoLP_Type pDPtoLP = NULL;
-//BOOL WINAPI extDPtoLP(HDC, LPPOINT, int);
-typedef BOOL (WINAPI *PlayEnhMetaFile_Type)(HDC, HENHMETAFILE, const RECT *);
-PlayEnhMetaFile_Type pPlayEnhMetaFile = NULL;
-BOOL WINAPI extPlayEnhMetaFile(HDC, HENHMETAFILE, const RECT *);
 
 static HookEntryEx_Type Hooks[]={
 
@@ -151,6 +67,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "ChoosePixelFormat", (FARPROC)NULL, (FARPROC *)&pChoosePixelFormat, (FARPROC)extChoosePixelFormat},
 	{HOOK_IAT_CANDIDATE, 0, "DescribePixelFormat", (FARPROC)NULL, (FARPROC *)&pDescribePixelFormat, (FARPROC)extDescribePixelFormat},
 	{HOOK_HOT_CANDIDATE, 0, "GetPaletteEntries", (FARPROC)GetPaletteEntries, (FARPROC *)&pGetPaletteEntries, (FARPROC)extGetPaletteEntries},
+	{HOOK_HOT_CANDIDATE, 0, "SetPaletteEntries", (FARPROC)SetPaletteEntries, (FARPROC *)&pSetPaletteEntries, (FARPROC)extSetPaletteEntries},
 	{HOOK_HOT_CANDIDATE, 0, "GetSystemPaletteUse", (FARPROC)GetSystemPaletteUse, (FARPROC *)&pGetSystemPaletteUse, (FARPROC)extGetSystemPaletteUse},
 	{HOOK_HOT_CANDIDATE, 0, "CreateICA", (FARPROC)CreateICA, (FARPROC *)&pCreateICA, (FARPROC)extCreateICA}, // Riven
 #ifdef TRACEPALETTE
@@ -181,7 +98,7 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "GetDIBits", (FARPROC)GetDIBits, (FARPROC *)&pGetDIBits, (FARPROC)extGetDIBits},
 	{HOOK_IAT_CANDIDATE, 0, "CreateCompatibleBitmap", (FARPROC)CreateCompatibleBitmap, (FARPROC *)&pCreateCompatibleBitmap, (FARPROC)extCreateCompatibleBitmap}, 
 	{HOOK_IAT_CANDIDATE, 0, "CreateDIBitmap", (FARPROC)NULL, (FARPROC *)&pCreateDIBitmap, (FARPROC)extCreateDIBitmap}, 
-	{HOOK_IAT_CANDIDATE, 0, "CreateDIBSection", (FARPROC)NULL, (FARPROC *)&pCreateDIBSection, (FARPROC)extCreateDIBSection}, 
+	{HOOK_HOT_CANDIDATE, 0, "CreateDIBSection", (FARPROC)CreateDIBSection, (FARPROC *)&pCreateDIBSection, (FARPROC)extCreateDIBSection}, 
 	{HOOK_IAT_CANDIDATE, 0, "CreateDiscardableBitmap", (FARPROC)NULL, (FARPROC *)&pCreateDiscardableBitmap, (FARPROC)extCreateDiscardableBitmap}, 
 	{HOOK_IAT_CANDIDATE, 0, "ExtFloodFill", (FARPROC)NULL, (FARPROC *)&pExtFloodFill, (FARPROC)extExtFloodFill}, 
 	{HOOK_IAT_CANDIDATE, 0, "GdiAlphaBlend", (FARPROC)NULL, (FARPROC *)&pGdiAlphaBlend, (FARPROC)extGdiAlphaBlend}, 
@@ -790,6 +707,7 @@ BOOL WINAPI extAnimatePalette(HPALETTE hpal, UINT iStartIndex, UINT cEntries, co
 		OutTraceE("AnimatePalette ERROR: err=%d\n", GetLastError());
 		ret = TRUE;
 	}
+	// if(dxw.IsFullScreen()) (*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
 	return ret;
 }
 
@@ -820,6 +738,7 @@ UINT WINAPI extRealizePalette(HDC hdc)
 		ret=(*pGDIRealizePalette)(hdc);
 
 	OutTraceDW("GDI.RealizePalette: hdc=%x nEntries=%d\n", hdc, ret);
+	// if(dxw.IsFullScreen()) (*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
 	return ret;
 }
 
@@ -1852,7 +1771,7 @@ int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 		}
 	}
 
-	return (*pSetDIBits)(hdc, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
+	ret = (*pSetDIBits)(hdc, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
 	if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBits: ERROR err=%d\n", GetLastError()); 
 	return ret;
 }
@@ -1879,7 +1798,7 @@ int WINAPI extGetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 		}
 	}
 
-	return (*pGetDIBits)(hdc, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, uUsage);
+	ret = (*pGetDIBits)(hdc, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, uUsage);
 	if(!ret || (ret==GDI_ERROR)) OutTraceE("GetDIBits: ERROR err=%d\n", GetLastError()); 
 	return ret;
 }
@@ -3003,7 +2922,7 @@ HBITMAP WINAPI extCreateDIBitmap(HDC hdc, BITMAPINFOHEADER *lpbmih, DWORD fdwIni
 HBITMAP WINAPI extCreateDIBSection(HDC hdc, const BITMAPINFO *pbmi, UINT iUsage, VOID **ppvBits, HANDLE hSection, DWORD dwOffset)
 {
 	HBITMAP ret;
-	OutTraceDW("CreateDIBSection: hdc=%x bmi=%s usage=%s hsect=%x offset=%x\n", hdc, sBMIDump((BITMAPINFO *)pbmi), ExplainDIBUsage(iUsage), hSection, dwOffset);
+	OutTraceDW("CreateDIBSection: hdc=%x bmi={%s} usage=%s hsect=%x offset=%x\n", hdc, sBMIDump((BITMAPINFO *)pbmi), ExplainDIBUsage(iUsage), hSection, dwOffset);
 
 	if(dxw.IsToRemap(hdc)) {
 		switch(dxw.GDIEmulationMode){
@@ -3356,3 +3275,46 @@ BOOL WINAPI extGetDCOrgEx(HDC hdc, LPPOINT lpPoint)
 	}
 	return ret;
 }
+
+UINT WINAPI extSetPaletteEntries(HPALETTE hpal, UINT iStart, UINT cEntries, const PALETTEENTRY *lppe)
+{
+	UINT ret;
+	OutTraceDW("SetPaletteEntries: hpal=%x start=%d entries=%d\n", hpal, iStart, cEntries);
+	ret = (*pSetPaletteEntries)(hpal, iStart, cEntries, lppe);
+	// the only purpose of hooking this call is the fact that in windowed mode a palette update
+	// does not flush the HDC updates to the device like in fullscreen (Win98?) mode.
+	// if(dxw.IsFullScreen()) (*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
+	return ret;
+}
+
+#if 0
+LONG WINAPI extSetBitmapBits(HBITMAP hbmp, DWORD cBytes, VOID *lpBits)
+{
+	LONG ret;
+	if(IsTraceDW){
+		OutTrace("SetDIBits: hdc=%x hbmp=%x lines=(%d,%d) ColorUse=%x(%s)\n", hdc, hbmp, uStartScan, cScanLines, fuColorUse, ExplainDIBUsage(fuColorUse));
+		TraceBITMAPINFOHEADER("SetDIBits", (BITMAPINFOHEADER *)&(lpbmi->bmiHeader));
+	}
+
+	if(dxw.IsToRemap(hdc)){
+		switch(dxw.GDIEmulationMode){
+			case GDIMODE_SHAREDDC: // this will flicker !!!!
+				sdc.GetPrimaryDC(hdc);
+				ret=(*pSetDIBits)(sdc.GetHdc(), hbmp, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
+				if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBits: ERROR err=%d\n", GetLastError()); 
+				sdc.PutPrimaryDC(hdc, TRUE, 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight);
+				return ret;
+				break;
+			case GDIMODE_STRETCHED: 
+			case GDIMODE_EMULATED:
+			default:
+				break;
+		}
+	}
+
+	ret = (*pSetBitmapBits)(hbmp, cBytes, lpBits);
+	if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBits: ERROR err=%d\n", GetLastError()); 
+	return ret;
+}
+#endif
+

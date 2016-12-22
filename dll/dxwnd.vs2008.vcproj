@@ -526,6 +526,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\wing32.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\winmm.cpp"
 				>
 			</File>

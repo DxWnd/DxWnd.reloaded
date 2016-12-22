@@ -74,6 +74,7 @@ public:
 	BOOL	m_HookNoRun;
 	BOOL	m_CopyNoShims;
 	BOOL	m_HookNoUpdate;
+	BOOL	m_SequencedIAT;
 	BOOL	m_TerminateOnClose;
 	BOOL	m_ConfirmOnClose;
 	BOOL	m_EmulateRegistry;
@@ -157,6 +158,7 @@ public:
 	BOOL	m_BackBufAttach;
 	BOOL	m_ClearTextureFourCC;
 	BOOL	m_NoDDExclusiveMode;
+	BOOL	m_CreateDesktop;
 	//BOOL	m_ForceVSync;
 	//BOOL	m_ForceNoVSync;
 	//BOOL	m_ForceWait;
@@ -228,6 +230,7 @@ public:
 	BOOL	m_AEROBoost;
 	BOOL	m_DiabloTweak;
 	BOOL	m_HookDirectSound;
+	BOOL	m_HookWinG32;
 	BOOL	m_HookSmackW32;
 	BOOL	m_FixSmackLoop;
 	BOOL	m_BlockPriorityClass;

@@ -17,6 +17,7 @@ RegEnumValueA_Type pRegEnumValueA = NULL;
 static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "RegOpenKeyExA", NULL, (FARPROC *)&pRegOpenKeyEx, (FARPROC)extRegOpenKeyEx},
 	{HOOK_IAT_CANDIDATE, 0, "RegCloseKey", NULL, (FARPROC *)&pRegCloseKey, (FARPROC)extRegCloseKey},
+	{HOOK_IAT_CANDIDATE, 0, "RegQueryValueA", NULL, (FARPROC *)&pRegQueryValue, (FARPROC)extRegQueryValue},
 	{HOOK_IAT_CANDIDATE, 0, "RegQueryValueExA", NULL, (FARPROC *)&pRegQueryValueEx, (FARPROC)extRegQueryValueEx},
 	{HOOK_IAT_CANDIDATE, 0, "RegCreateKeyA", NULL, (FARPROC *)&pRegCreateKey, (FARPROC)extRegCreateKey},
 	{HOOK_IAT_CANDIDATE, 0, "RegCreateKeyExA", NULL, (FARPROC *)&pRegCreateKeyEx, (FARPROC)extRegCreateKeyEx},
@@ -199,6 +200,8 @@ static LONG SeekValueName(FILE *regf, LPCTSTR lpValueName)
 	char RegBuf[MAX_PATH+1];
 	long KeySeekPtr;
 	res = ERROR_FILE_NOT_FOUND;
+	// v2.04.01: fix to handle the '@' case properly
+	if(lpValueName) if(!lpValueName[0]) lpValueName=NULL; 
 	KeySeekPtr = ftell(regf);
 	fgets(RegBuf, 256, regf);
 	while (!feof(regf)){
@@ -367,6 +370,7 @@ static void LogKeyValue(char *ApiName, LONG res, LPDWORD lpType, LPBYTE lpData, 
 } 
 
 static LONG myRegOpenKeyEx(
+			    LPCSTR label,
 				HKEY hKey,
 				LPCTSTR lpSubKey,
 				PHKEY phkResult)
@@ -376,7 +380,7 @@ static LONG myRegOpenKeyEx(
 	char RegBuf[MAX_PATH+1];
 
 	sprintf(sKey,"%s\\%s", hKey2String(hKey), lpSubKey);
-	OutTraceR("RegOpenKeyEx: searching for key=\"%s\"\n", sKey);
+	OutTraceR("%s: searching for key=\"%s\"\n", label, sKey);
 
 	regf=OpenFakeRegistry();
 	if(regf!=NULL){
@@ -386,7 +390,7 @@ static LONG myRegOpenKeyEx(
 			if(RegBuf[0]=='['){
 				// beware: registry keys are case insensitive. Must use _strnicmp instead of strncmp
 				if((!_strnicmp(&RegBuf[1],sKey,strlen(sKey))) && (RegBuf[strlen(sKey)+1]==']')){
-					OutTrace("RegOpenKeyEx: found fake Key=\"%s\" hkResult=%x\n", sKey, phkResult ? *phkResult : 0);
+					OutTrace("%s: found fake Key=\"%s\" hkResult=%x\n", label, sKey, phkResult ? *phkResult : 0);
 					fclose(regf);
 					return ERROR_SUCCESS;
 				}
@@ -416,7 +420,7 @@ LONG WINAPI extRegOpenKeyEx(
 		hKey, hKey2String(hKey), lpSubKey, ulOptions);
 
 	if(dxw.dwFlags4 & OVERRIDEREGISTRY){
-		res = myRegOpenKeyEx(hKey, lpSubKey, phkResult);
+		res = myRegOpenKeyEx("RegOpenKeyEx", hKey, lpSubKey, phkResult);
 		if(res == ERROR_SUCCESS) return res;
 	}
 
@@ -434,7 +438,48 @@ LONG WINAPI extRegOpenKeyEx(
 
 	if((res==ERROR_SUCCESS) || !(dxw.dwFlags3 & EMULATEREGISTRY) || (dxw.dwFlags4 & OVERRIDEREGISTRY)) return res;
 	
-	return myRegOpenKeyEx(hKey, lpSubKey, phkResult);
+	return myRegOpenKeyEx("RegOpenKeyEx", hKey, lpSubKey, phkResult);
+}
+
+// extRegQueryValue: legacy API, almost always replaced by extRegQueryValueEx but referenced
+// in "Warhammer 40.000 Shadow of the Horned Rat"
+
+LONG WINAPI extRegQueryValue(
+				HKEY hKey, 
+				LPCTSTR lpSubKey, 
+				LPTSTR lpValue, 
+				PLONG lpcbValue)
+{
+	LONG res;
+	FILE *regf;
+
+	OutTraceR("RegQueryValue: hKey=%x(%s) SubKey=\"%s\"\n", hKey, hKey2String(hKey), lpSubKey);
+	
+	if (!IsFake(hKey)){
+		res=(*pRegQueryValue)(hKey, lpSubKey, lpValue, lpcbValue);
+		if(IsTraceR) LogKeyValue("RegQueryValue", res, 0, (LPBYTE)lpValue, (LPDWORD)lpcbValue);
+		return res;
+	}
+
+	regf=OpenFakeRegistry();
+	if(regf==NULL) {
+		OutTraceR("RegQueryValue: error in OpenFakeRegistry err=%s\n", GetLastError());	
+		return ERROR_FILE_NOT_FOUND;
+	}
+	res = SeekFakeKey(regf, hKey);
+	if(res != ERROR_SUCCESS) {
+		OutTraceR("RegQueryValue: error in SeekFakeKey res=%x hKey=%x\n", res, hKey);	
+		return res;
+	}
+	res = SeekValueName(regf, lpSubKey);
+	if(res != ERROR_SUCCESS) {
+		OutTraceR("RegQueryValue: error in SeekValueName res=%x ValueName=%s\n", res, lpSubKey);	
+		return res;
+	}
+	res = GetKeyValue(regf, "RegQueryValue", lpSubKey, NULL, (LPBYTE)lpValue, (LPDWORD)lpcbValue);
+	if(IsTraceR) LogKeyValue("RegQueryValue", res, NULL, (LPBYTE)lpValue, (LPDWORD)lpcbValue);
+	fclose(regf);
+	return res;
 }
 
 LONG WINAPI extRegQueryValueEx(
@@ -519,7 +564,7 @@ LONG WINAPI extRegCreateKeyEx(HKEY hKey, LPCTSTR lpSubKey, DWORD Reserved, LPTST
 	if (dxw.dwFlags3 & EMULATEREGISTRY){
 		*phkResult = HKEY_FAKE;
         // V2.3.12: return existing fake key if any ....
-        if(dxw.dwFlags4 & OVERRIDEREGISTRY) myRegOpenKeyEx(hKey, lpSubKey, phkResult);
+        if(dxw.dwFlags4 & OVERRIDEREGISTRY) myRegOpenKeyEx("RegCreateKeyEx", hKey, lpSubKey, phkResult);
 		if(lpdwDisposition) *lpdwDisposition=REG_OPENED_EXISTING_KEY;
 		return ERROR_SUCCESS;
 	}
@@ -534,7 +579,7 @@ LONG WINAPI extRegCreateKey(HKEY hKey, LPCTSTR lpSubKey, PHKEY phkResult)
 	if (dxw.dwFlags3 & EMULATEREGISTRY){
 		*phkResult = HKEY_FAKE;
         // V2.3.12: return existing fake key if any ....
-        if(dxw.dwFlags4 & OVERRIDEREGISTRY) myRegOpenKeyEx(hKey, lpSubKey, phkResult);
+        if(dxw.dwFlags4 & OVERRIDEREGISTRY) myRegOpenKeyEx("RegCreateKey", hKey, lpSubKey, phkResult);
 		return ERROR_SUCCESS;
 	}
 	else

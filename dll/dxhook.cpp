@@ -53,7 +53,16 @@ Disasm_Type pDisasm;
 
 extern void InitScreenParameters(int);
 extern void *HotPatch(void *, const char *, void *);
-extern void *IATPatch(HMODULE, DWORD, char *, void *, const char *, void *);
+extern void *IATPatchDefault(HMODULE, DWORD, char *, void *, const char *, void *);
+extern void *IATPatchSequential(HMODULE, DWORD, char *, void *, const char *, void *);
+typedef void * (*IATPatch_Type)(HMODULE, DWORD, char *, void *, const char *, void *);
+extern void DumpImportTableDefault(HMODULE);
+extern void DumpImportTableSequential(HMODULE);
+typedef void (*DumpImportTable_Type)(HMODULE);
+IATPatch_Type IATPatch;
+DumpImportTable_Type DumpImportTable;
+extern BOOL IsIATSequential(HMODULE);
+
 void HookModule(HMODULE, int);
 void RecoverScreenMode();
 static void LockScreenMode(DWORD, DWORD, DWORD);
@@ -143,7 +152,7 @@ static char *Flag8Names[32]={
 	"FORCEWAIT", "FORCENOWAIT", "FORCEVSYNC", "FORCENOVSYNC",
 	"VSYNCSCANLINES", "TRIMTEXTUREFORMATS", "NOHALDEVICE", "CLIPLOCK",
 	"PRETENDVISIBLE", "RAWFORMAT", "WININSULATION", "FIXMOUSEHOOK",
-	"", "", "", "",
+	"DDSFORMAT", "HOOKWING32", "SEQUENCEDIAT", "",
 	"", "", "", "",
 	"", "", "", "",
 	"", "", "", "",
@@ -428,81 +437,6 @@ void HookDlls(HMODULE module)
 	return;
 }
 
-// Note: when pidesc->OriginalFirstThunk is NULL, the pidesc->FirstThunk points to an array of 
-// RVA for imported function names in the PE file, but when the loader loads the program these
-// values gets replaced by the function addresses. The only way to retrieve the function names 
-// after that event is to point to the dll name and get the list of the followin strings sequentially
-// taking in account that the function names have variable length and are aligned to a DWORD
-// boundary, so that a practical way to retrieve the next name is this piece of code:
-// for(; *fname; fname++); for(; !*fname; fname++);
-
-void DumpImportTable(HMODULE module)
-{
-	PIMAGE_NT_HEADERS pnth;
-	PIMAGE_IMPORT_DESCRIPTOR pidesc;
-	DWORD base, rva;
-	PSTR impmodule;
-	PIMAGE_THUNK_DATA ptaddr;
-	PIMAGE_THUNK_DATA ptname;
-	PIMAGE_IMPORT_BY_NAME piname;
-
-	base=(DWORD)module;
-	OutTrace("DumpImportTable: base=%x\n", base);
-	__try{
-		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
-		if(!pnth) {
-			OutTrace("DumpImportTable: ERROR no pnth at %d\n", __LINE__);
-			return;
-		}
-		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-		if(!rva) {
-			OutTrace("DumpImportTable: ERROR no rva at %d\n", __LINE__);
-			return;
-		}
-		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
-
-		while(pidesc->FirstThunk){
-			char *fname;
-			impmodule = (PSTR)(base + pidesc->Name);
-			OutTrace("DumpImportTable: ENTRY timestamp=%x module=%s forwarderchain=%x\n", 
-				pidesc->TimeDateStamp, impmodule, pidesc->ForwarderChain);
-			if(pidesc->OriginalFirstThunk) {
-				ptname = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk);
-			}
-			else{
-				ptname = 0;
-				fname = impmodule;
-				for(; *fname; fname++); for(; !*fname; fname++);
-				OutTrace("DumpImportTable: no PE OFTs - stripped module=%s\n", impmodule);
-			}
-			ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
-			while(ptaddr->u1.Function){
-				OutTrace("addr=%x", ptaddr->u1.Function); 
-				ptaddr ++;
-				if(ptname){
-					if(!IMAGE_SNAP_BY_ORDINAL(ptname->u1.Ordinal)){
-						piname = (PIMAGE_IMPORT_BY_NAME)(base + (DWORD)ptname->u1.AddressOfData);
-						OutTrace(" hint=%x name=%s", piname->Hint, piname->Name);
-						ptname ++;
-					}
-				}
-				else {
-					OutTrace(" name=%s", fname);
-					for(; *fname; fname++); for(; !*fname; fname++);
-				}
-				OutTrace("\n");
-			}
-			OutTrace("*** EOT ***\n", ptaddr->u1.Function); 
-			pidesc ++;
-		}
-	}
-	__except(EXCEPTION_EXECUTE_HANDLER)
-	{       
-		OutTraceDW("DumpImportTable: EXCEPTION\n");
-	}
-	return;
-}
-
 // CheckImportTable: a good enough criteria to detect obfuscated executables is to count the entries in the most common
 // and somehow mandatory system dlls such as kernel32.dll, user32.dll and gdi32.dll
 // the routine counsts the kernel32.dll overall entries (they could be split in different sections!) and if lesser than 3
@@ -739,6 +673,7 @@ void HookSysLibsInit()
 	HookKernel32Init();
 	HookUser32Init();
 	HookGDI32Init();
+	HookWinG32Init();
 	HookImagehlpInit();
 }
 
@@ -989,6 +924,7 @@ void HookModule(HMODULE base, int dxversion)
 	if(dxw.dwFlags6 & HOOKGOGLIBS) HookWinMM(base, "win32.dll"); // SYSLIBIDX_WINMM
 	if(dxw.dwFlags4 & HOOKGLIDE) HookGlideLibs(base);	// OpenGl32.dll
 	if(dxw.dwFlags7 & HOOKSMACKW32) HookSmackW32(base);	// SMACKW32.DLL	
+	if(dxw.dwFlags8 & HOOKWING32) HookWinG32(base);		// WinG32.dll
 }
 
 #define USEWINNLSENABLE
@@ -1490,8 +1426,20 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	if(dxw.dwFlags7 & HOOKSMACKW32) {
 		dxw.PushDLL("smackw32",	SYSLIBIDX_SMACKW32);	// SMACKW32.DLL	
 	}
+	if(dxw.dwFlags8 & HOOKWING32) {
+		dxw.PushDLL("wing32",	SYSLIBIDX_WING32);	// WING32.DLL	
+	}
 
 	base=GetModuleHandle(NULL);
+	// set IAT navigators
+	IATPatch = IATPatchDefault;
+	DumpImportTable = DumpImportTableDefault;
+	//if(dxw.dwFlags8 & SEQUENCEDIAT) {
+	if(IsIATSequential(base)){
+		OutTraceDW("HookInit: setting sequential IAT navigation\n"); 
+		DumpImportTable = DumpImportTableSequential;
+		IATPatch = IATPatchSequential;
+	}
 	if (dxw.dwFlags3 & SINGLEPROCAFFINITY) SetSingleProcessAffinity(TRUE);
 	if (dxw.dwFlags5 & USELASTCORE) SetSingleProcessAffinity(FALSE);
 	if (dxw.dwFlags4 & INTERCEPTRDTSC) AddVectoredExceptionHandler(1, Int3Handler); // 1 = first call, 0 = call last
@@ -1694,3 +1642,4 @@ void HookLibInitEx(HookEntryEx_Type *Hooks)
 	for(; Hooks->APIName; Hooks++)
 		if (Hooks->StoreAddress) *(Hooks->StoreAddress) = Hooks->OriginalAddress;
 }
+

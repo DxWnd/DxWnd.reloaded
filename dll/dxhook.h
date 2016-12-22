@@ -17,6 +17,7 @@ extern void HookSmackW32(HMODULE);
 extern void HookAVIFil32(HMODULE);
 extern void HookComDlg32(HMODULE);
 extern void HookComCtl32(HMODULE);
+extern void HookWinG32(HMODULE);
 
 extern void InitPosition(int, int, int, int, int, int);
 //void InitWindowPos(int, int, int, int);
@@ -49,6 +50,7 @@ extern FARPROC Remap_DInput8_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_ComCtl32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_ComDlg32_ProcAddress(LPCSTR, HMODULE);
 extern FARPROC Remap_DSound_ProcAddress(LPCSTR, HMODULE);
+extern FARPROC Remap_WinG32_ProcAddress(LPCSTR, HMODULE);
 
 typedef enum {
 	HOOK_IAT_CANDIDATE = 0,

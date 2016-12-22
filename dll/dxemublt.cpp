@@ -1326,7 +1326,7 @@ static HRESULT WINAPI BilinearBlt_32_to_32(int dxversion, Blt_Type pBlt, LPDIREC
 	srcpitch = ddsd_src.lPitch - w;
 
 	//OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src32,dest,srcpitch,destpitch);
-    for(y = 0; y < h-1; y ++){ 
+	for(y = 0; y < h-1; y ++){ 
 		register DWORD Q1, Q2, Q3, Q4, Q5;
 		Q5 = Melt32(*(src32), *(src32+ddsd_src.lPitch));
         for(x = 0; x < w; x ++){

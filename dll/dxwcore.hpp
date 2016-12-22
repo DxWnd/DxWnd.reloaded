@@ -299,42 +299,6 @@ extern dxwSStack dxwss;
 extern dxwWStack dxwws;
 extern dxwCapsDB dxwcdb;
 
-#if 0
-typedef enum {
-	SYSLIBIDX_VERSION = 0,
-	SYSLIBIDX_DPLAYX,
-	SYSLIBIDX_WSOCK,
-	SYSLIBIDX_SHFOLDER,
-	SYSLIBIDX_SHELL32,
-	SYSLIBIDX_WS2_32,
-	SYSLIBIDX_TAPI32,
-	SYSLIBIDX_NETAPI32,
-	SYSLIBIDX_GLIDE,
-	SYSLIBIDX_GLIDE2X,
-	SYSLIBIDX_GLIDE3X,
-}
-enum_skipsyslibraries;
-
-#ifdef SYSLIBNAMES_DEFINES
-char *SkipNames[]={
-	"version",
-	"dplayx",
-	"wsock32",
-	"shfolder",
-	"shell32",
-	"ws2_32",
-	"tapi32",
-	"netapi32",
-	"glide",
-	"glide2x",
-	"glide3x",
-	NULL
-}
-#else
-extern char *SkipNames[];
-#endif
-#endif
-
 typedef enum {
 	SYSLIBIDX_KERNEL32 = 0,
 	SYSLIBIDX_USER32,
@@ -366,7 +330,7 @@ typedef enum {
 	SYSLIBIDX_GLIDE2,
 	SYSLIBIDX_GLIDE3,
 	SYSLIBIDX_SMACKW32,
-	FREE5,
+	SYSLIBIDX_WING32,
 	FREE6,
 	SYSLIBIDX_MAX 
 } 

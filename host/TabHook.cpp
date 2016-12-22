@@ -37,6 +37,7 @@ void CTabHook::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HOOKNORUN, cTarget->m_HookNoRun);
 	DDX_Check(pDX, IDC_COPYNOSHIMS, cTarget->m_CopyNoShims);
 	DDX_Check(pDX, IDC_HOOKNOUPDATE, cTarget->m_HookNoUpdate);
+	DDX_Check(pDX, IDC_SEQUENCEDIAT, cTarget->m_SequencedIAT);
 	DDX_Check(pDX, IDC_HOOKCHILDWIN, cTarget->m_HookChildWin);
 
 	// Kernel32
@@ -44,6 +45,7 @@ void CTabHook::DoDataExchange(CDataExchange* pDX)
 
 	// additional hooks
 	DDX_Check(pDX, IDC_HOOKDIRECTSOUND, cTarget->m_HookDirectSound);
+	DDX_Check(pDX, IDC_HOOKWING32, cTarget->m_HookWinG32);
 	DDX_Check(pDX, IDC_HOOKGLIDE, cTarget->m_HookGlide);
 }
 

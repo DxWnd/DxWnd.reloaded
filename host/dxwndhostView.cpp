@@ -210,6 +210,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HookNoRun) t->flags7 |= HOOKNORUN;
 	if(dlg->m_CopyNoShims) t->flags7 |= COPYNOSHIMS;
 	if(dlg->m_HookNoUpdate) t->flags7 |= HOOKNOUPDATE;
+	if(dlg->m_SequencedIAT) t->flags8 |= SEQUENCEDIAT;
 	if(dlg->m_TerminateOnClose) t->flags6 |= TERMINATEONCLOSE;
 	if(dlg->m_ConfirmOnClose) t->flags6 |= CONFIRMONCLOSE;
 	if(dlg->m_EmulateRegistry) t->flags3 |= EMULATEREGISTRY;
@@ -394,6 +395,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
 	if(dlg->m_HookDirectSound) t->flags7 |= HOOKDIRECTSOUND;
+	if(dlg->m_HookWinG32) t->flags8 |= HOOKWING32;
 	if(dlg->m_HookSmackW32) t->flags7 |= HOOKSMACKW32;
 	if(dlg->m_FixSmackLoop) t->flags7 |= FIXSMACKLOOP;
 	if(dlg->m_BlockPriorityClass) t->flags7 |= BLOCKPRIORITYCLASS;
@@ -474,6 +476,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_BackBufAttach) t->flags2 |= BACKBUFATTACH;
 	if(dlg->m_ClearTextureFourCC) t->flags7 |= CLEARTEXTUREFOURCC;
 	if(dlg->m_NoDDExclusiveMode) t->flags7 |= NODDEXCLUSIVEMODE;
+	if(dlg->m_CreateDesktop) t->flags6 |= CREATEDESKTOP;
 	if(dlg->m_HandleAltF4) t->flags |= HANDLEALTF4;
 	if(dlg->m_LimitFPS) t->flags2 |= LIMITFPS;
 	if(dlg->m_SkipFPS) t->flags2 |= SKIPFPS;
@@ -557,6 +560,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_HookNoRun = t->flags7 & HOOKNORUN ? 1 : 0;
 	dlg->m_CopyNoShims = t->flags7 & COPYNOSHIMS ? 1 : 0;
 	dlg->m_HookNoUpdate = t->flags7 & HOOKNOUPDATE ? 1 : 0;
+	dlg->m_SequencedIAT = t->flags8 & SEQUENCEDIAT ? 1 : 0;
 	dlg->m_TerminateOnClose = t->flags6 & TERMINATEONCLOSE ? 1 : 0;
 	dlg->m_ConfirmOnClose = t->flags6 & CONFIRMONCLOSE ? 1 : 0;
 	dlg->m_EmulateRegistry = t->flags3 & EMULATEREGISTRY ? 1 : 0;
@@ -687,6 +691,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;
 	dlg->m_HookDirectSound = t->flags7 & HOOKDIRECTSOUND ? 1 : 0;
+	dlg->m_HookWinG32 = t->flags8 & HOOKWING32 ? 1 : 0;
 	dlg->m_HookSmackW32 = t->flags7 & HOOKSMACKW32 ? 1 : 0;
 	dlg->m_FixSmackLoop = t->flags7 & FIXSMACKLOOP ? 1 : 0;
 	dlg->m_BlockPriorityClass = t->flags7 & BLOCKPRIORITYCLASS ? 1 : 0;
@@ -787,6 +792,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_BackBufAttach = t->flags2 & BACKBUFATTACH ? 1 : 0;
 	dlg->m_ClearTextureFourCC = t->flags7 & CLEARTEXTUREFOURCC ? 1 : 0;
 	dlg->m_NoDDExclusiveMode = t->flags7 & NODDEXCLUSIVEMODE ? 1 : 0;
+	dlg->m_CreateDesktop = t->flags6 & CREATEDESKTOP ? 1 : 0;
 	dlg->m_HandleAltF4 = t->flags & HANDLEALTF4 ? 1 : 0;
 	dlg->m_LimitFPS = t->flags2 & LIMITFPS ? 1 : 0;
 	dlg->m_SkipFPS = t->flags2 & SKIPFPS ? 1 : 0;

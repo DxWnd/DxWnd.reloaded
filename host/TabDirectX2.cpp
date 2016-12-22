@@ -47,6 +47,7 @@ void CTabDirectX2::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_BACKBUFATTACH, cTarget->m_BackBufAttach);
 	DDX_Check(pDX, IDC_CLEARTEXTUREFOURCC, cTarget->m_ClearTextureFourCC);
 	DDX_Check(pDX, IDC_NODDEXCLUSIVEMODE, cTarget->m_NoDDExclusiveMode);
+	DDX_Check(pDX, IDC_CREATEDESKTOP, cTarget->m_CreateDesktop);
 
 	// Vsync 
 	//DDX_Check(pDX, IDC_SAVELOAD, cTarget->m_SaveLoad);
@@ -60,8 +61,6 @@ void CTabDirectX2::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SCANLINE, cTarget->m_ScanLine);
 
 	// Clipper
-	//DDX_Check(pDX, IDC_SUPPRESSCLIPPING, cTarget->m_SuppressClipping);
-	//DDX_Check(pDX, IDC_FORCECLIPPER, cTarget->m_ForceClipper);
 	DDX_Radio(pDX, IDC_CLIPPERNONE, cTarget->m_ClipperMode);
 
 }

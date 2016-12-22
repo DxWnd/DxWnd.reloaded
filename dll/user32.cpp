@@ -1689,6 +1689,8 @@ static HWND WINAPI CreateWindowCommon(
 	// v2.03.53: revised code, logic moved to IsFullscreenWindow
 
 	if(isNewDesktop=IsFullscreenWindow(lpClassName, dwStyle, dwExStyle, hWndParent, x, y, nWidth, nHeight)){
+		OutTraceB("%s: ASSERT IsFullscreenWindow==TRUE\n", ApiName);
+
 		// if already in fullscreen mode, save previous settings
 		if(dxw.IsFullScreen() && dxw.GethWnd()){
 			hLastFullScrWin = dxw.GethWnd();
@@ -1696,7 +1698,7 @@ static HWND WINAPI CreateWindowCommon(
 		}
 
 		// update virtual screen size if it has grown 
-		// v2.03.58 fix: do't consider CW_USEDEFAULT ad a big unsigned integer!! Fixes "Imperialism".
+		// v2.03.58 fix: don't consider CW_USEDEFAULT as a big unsigned integer!! Fixes "Imperialism".
 		if((nWidth != CW_USEDEFAULT) && (nHeight != CW_USEDEFAULT)) dxw.SetScreenSize(nWidth, nHeight);
 
 		// inserted some checks here, since the main window could be destroyed

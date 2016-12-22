@@ -218,7 +218,7 @@
 #define LIMITDDRAW			0x00000001 // Limit the maximum available ddraw object version
 #define DISABLEDISABLEALTTAB 0x00000002 // Disables the compatibility patch that disables the Alt-Tab key and other special combinations
 #define FIXCLIPPERAREA		0x00000004 // fix clipper area in ddraw & GDI shared DC mode
-#define HOOKDIRECTSOUND		0x00000008
+#define HOOKDIRECTSOUND		0x00000008 // Hook DirectSound dll
 #define HOOKSMACKW32		0x00000010 // hook Smackw32 functions
 #define BLOCKPRIORITYCLASS  0x00000020 // blocks attempts to change the process priority class
 #define CPUSLOWDOWN			0x00000040 // reduces CPU time dedicated to non time critical threads
@@ -262,6 +262,8 @@
 #define WININSULATION		0x00000400 // EnumerateWin finds no windows!
 #define FIXMOUSEHOOK		0x00000800 // fixes mouse coordinates retrieved through MouseProc routine associated to SetWindowsHook(WH_MOUSE,..)
 #define DDSFORMAT			0x00001000 // texture dump / hack are performed in MS DDS format
+#define HOOKWING32			0x00002000 // Hook WinG32.dll
+#define SEQUENCEDIAT		0x00004000 // IFT has sequential format, DLL entries before and API next
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
