@@ -146,6 +146,7 @@ void *IATPatchSequential(HMODULE module, DWORD ordinal, char *dll, void *apiproc
 		}
 		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
 
+		// move fname pointer to first API name
 		char *fname;
 		while(pidesc->FirstThunk){
 			impmodule = (PSTR)(base + pidesc->Name);
@@ -154,7 +155,7 @@ void *IATPatchSequential(HMODULE module, DWORD ordinal, char *dll, void *apiproc
 			pidesc ++;
 		}
 		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
-		OutTrace("IATPatch: no PE OFTs - first call=%s\n", fname);
+		OutTraceB("IATPatch: first call=%s\n", fname);
 
 		while(pidesc->FirstThunk){
 			impmodule = (PSTR)(base + pidesc->Name);
@@ -204,7 +205,7 @@ void *IATPatchSequential(HMODULE module, DWORD ordinal, char *dll, void *apiproc
 				}
 
 				if(ptaddr->u1.Function) {
-					OutTraceDW("IATPatch: hooking %s\n", fname);
+					OutTraceDW("IATPatch: hooking %s\n", apiname);
 					org = (void *)ptaddr->u1.Function;
 					if(org == hookproc) return 0; // already hooked
 						
@@ -466,7 +467,7 @@ BOOL IsIATSequential(HMODULE module)
 		// skip first string
 		for(; *fname; fname++); for(; !*fname; fname++);
 		// if second string is another DLL it is sequential, otherwise not.
-		// OutTrace("IsIATSequential: second entry=%s\n", fname);
+		OutTraceB("IsIATSequential: second entry=%s\n", fname);
 		return (BOOL)stristr(fname, ".DLL");
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)

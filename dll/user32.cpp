@@ -899,7 +899,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 	// v2.03.94.fx2: removed dxw.IsFullScreen() check here ... WinProc routine must be verified in all conditions
 	// fixes "Nascar Racing 3" that was setting the WinProc while still in non fullscreen mode!
 	if ((nIndex==GWL_WNDPROC)||(nIndex==DWL_DLGPROC)) { 
-		WNDPROC lres;
+		LONG lres;
 		WNDPROC OldProc;
 		DWORD WinStyle;
 		BOOL bHooked = FALSE;
@@ -921,42 +921,48 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 		OldProc = (WNDPROC)(*pGetWindowLong)(hwnd, nIndex);
 		WinStyle = (*pGetWindowLong)(hwnd, GWL_STYLE);
 
-		// hook extWindowProc to main win ....
-		if(dxw.IsDesktop(hwnd) && !(dxw.dwFlags6 & NOWINDOWHOOKS)){
-			if(OldProc==extWindowProc) OldProc=dxwws.GetProc(hwnd);
-			dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
-			res=(LONG)OldProc;
-			SetLastError(0);
-			lres=(WNDPROC)(*pSetWindowLong)(hwnd, nIndex, (LONG)extWindowProc);
-			OutTraceDW("SetWindowLong: DESKTOP hooked %x->%x\n", dwNewLong, extWindowProc);
-			bHooked = TRUE;
-		}
+		while(TRUE){ // fake loop
+			lres = -1; // initialize with not 0 value since 0 means error
+			if(!(dxw.dwFlags6 & NOWINDOWHOOKS)){
+				// hook extWindowProc to main win ....
+				if(dxw.IsDesktop(hwnd)){
+					if(OldProc==extWindowProc) OldProc=dxwws.GetProc(hwnd);
+					dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
+					res=(LONG)OldProc;
+					SetLastError(0);
+					lres=(*pSetWindowLong)(hwnd, nIndex, (LONG)extWindowProc);
+					OutTraceDW("SetWindowLong: DESKTOP hooked %x->%x\n", dwNewLong, extWindowProc);
+					break;
+				}
 
-		// hook extChildWindowProc to child win ....
-		if((WinStyle & WS_CHILD) && (dxw.dwFlags1 & HOOKCHILDWIN) && !(dxw.dwFlags6 & NOWINDOWHOOKS)){
-			if(OldProc==extChildWindowProc) OldProc=dxwws.GetProc(hwnd);
-			dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
-			res=(LONG)OldProc;
-			SetLastError(0);
-			lres=(WNDPROC)(*pSetWindowLong)(hwnd, nIndex, (LONG)extChildWindowProc);
-			OutTraceDW("SetWindowLong: CHILD hooked %x->%x\n", dwNewLong, extChildWindowProc);
-			bHooked = TRUE;
-		}
+				// hook extDlgWindowProc to dialog win ....
+				if((WinStyle & DWL_DLGPROC) && (dxw.dwFlags1 & HOOKCHILDWIN)){
+					if(OldProc==extDialogWindowProc) OldProc=dxwws.GetProc(hwnd);
+					dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
+					res=(LONG)OldProc;
+					SetLastError(0);
+					lres=(*pSetWindowLong)(hwnd, nIndex, (LONG)extDialogWindowProc);
+					OutTraceDW("SetWindowLong: DIALOG hooked %x->%x\n", dwNewLong, extDialogWindowProc);
+					break;
+				}
 
-		// hook extDlgWindowProc to dialog win ....
-		if((WinStyle & DWL_DLGPROC) && (dxw.dwFlags1 & HOOKCHILDWIN) && !(dxw.dwFlags6 & NOWINDOWHOOKS)){
-			if(OldProc==extDialogWindowProc) OldProc=dxwws.GetProc(hwnd);
-			dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
-			res=(LONG)OldProc;
-			SetLastError(0);
-			lres=(WNDPROC)(*pSetWindowLong)(hwnd, nIndex, (LONG)extDialogWindowProc);
-			OutTraceDW("SetWindowLong: DIALOG hooked %x->%x\n", dwNewLong, extDialogWindowProc);
-			bHooked = TRUE;
-		}
+				// hook extChildWindowProc to child win ....
+				if((WinStyle & WS_CHILD) && (dxw.dwFlags1 & HOOKCHILDWIN)){
+					if(OldProc==extChildWindowProc) OldProc=dxwws.GetProc(hwnd);
+					dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
+					res=(LONG)OldProc;
+					SetLastError(0);
+					lres=(*pSetWindowLong)(hwnd, nIndex, (LONG)extChildWindowProc);
+					OutTraceDW("SetWindowLong: CHILD hooked %x->%x\n", dwNewLong, extChildWindowProc);
+					break;
+				}
+			}
 
-		// hook dwNewLong if not done otherwise
-		if(!bHooked) res=(*pSetWindowLong)(hwnd, nIndex, dwNewLong);
-		if(!lres && GetLastError())OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+			// hook dwNewLong if not done otherwise
+			res = (*pSetWindowLong)(hwnd, nIndex, dwNewLong);
+			break;
+		}
+		if(!lres && GetLastError()) OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	}
 	else{
 		// through here for any message different from GWL_WNDPROC or DWL_DLGPROC
@@ -3747,7 +3753,7 @@ BOOL WINAPI extSwitchDesktop(HDESK hDesktop)
 
 HDESK WINAPI extOpenDesktop(LPTSTR lpszDesktop, DWORD dwFlags, BOOL fInherit, ACCESS_MASK dwDesiredAccess)
 {
-	OutTraceDW("CreateDesktop: SUPPRESS flags=%x access=%x\n", dwFlags, dwDesiredAccess);
+	OutTraceDW("OpenDesktop: SUPPRESS flags=%x access=%x\n", dwFlags, dwDesiredAccess);
 	return (HDESK)0xDEADBEEF; // fake handle
 	//return (HDESK)NULL; // fake handle
 }

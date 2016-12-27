@@ -24,10 +24,14 @@ typedef struct {
 typedef Smack * (WINAPI *SmackOpen_Type)(HANDLE, UINT32, INT32);
 typedef Smack * (WINAPI *Smacker_Type)(HANDLE);
 typedef Smack * (WINAPI *Smacker2_Type)(HANDLE, UINT32);
+typedef Smack * (WINAPI *SmackColorRemap_Type)(HANDLE, const void PTR4 *, u32, u32);
+typedef Smack * (WINAPI *SmackColorRemapWithTrans_Type)(HANDLE, const void PTR4 *, u32, u32, u32);
 
 SmackOpen_Type pSmackOpen;
 Smacker_Type pSmackClose, pSmackWait, pSmackDoFrame, pSmackNextFrame, pSmackSoundUseMSS, pSmackSoundUseDirectSound;
 Smacker2_Type pSmackSoundOnOff, pSmackGoto;
+SmackColorRemap_Type pSmackColorRemap;
+SmackColorRemapWithTrans_Type pSmackColorRemapWithTrans;
 
 Smack * WINAPI extSmackOpen(HANDLE, UINT32, INT32);
 Smack * WINAPI extSmackClose(HANDLE);
@@ -38,6 +42,8 @@ Smack * WINAPI extSmackSoundUseMSS(HANDLE);
 Smack * WINAPI extSmackSoundUseDirectSound(HANDLE);
 Smack * WINAPI extSmackSoundOnOff(HANDLE, UINT32);
 Smack * WINAPI extSmackGoto(HANDLE, UINT32);
+Smack * WINAPI extSmackColorRemap(HANDLE, const void PTR4 *, u32, u32);
+Smack * WINAPI extSmackColorRemapWithTrans(HANDLE, const void PTR4 *, u32, u32, u32);
 
 static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0x000E, "_SmackOpen@12", (FARPROC)NULL, (FARPROC *)&pSmackOpen, (FARPROC)extSmackOpen},
@@ -49,6 +55,8 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0x001B, "_SmackGoto@8", (FARPROC)NULL, (FARPROC *)&pSmackGoto, (FARPROC)extSmackGoto},
 	{HOOK_IAT_CANDIDATE, 0x0015, "_SmackNextFrame@4", (FARPROC)NULL, (FARPROC *)&pSmackNextFrame, (FARPROC)extSmackNextFrame},
 	{HOOK_IAT_CANDIDATE, 0x0026, "_SmackSoundUseDirectSound@4", (FARPROC)NULL, (FARPROC *)&pSmackSoundUseDirectSound, (FARPROC)extSmackSoundUseDirectSound},
+	{HOOK_IAT_CANDIDATE, 0x0000, "_SmackColorRemap@16", (FARPROC)NULL, (FARPROC *)&pSmackColorRemap, (FARPROC)extSmackColorRemap},
+	{HOOK_IAT_CANDIDATE, 0x0000, "_SmackColorRemapWithTrans@20", (FARPROC)NULL, (FARPROC *)&pSmackColorRemapWithTrans, (FARPROC)extSmackColorRemapWithTrans},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -183,6 +191,24 @@ Smack * WINAPI extSmackGoto(HANDLE h, UINT32 flag)
 	OutTraceDW("SmackGoto: h=%x flag=%x\n", h, flag);
 	DumpSmack((Smack *)h);
 	return (*pSmackGoto)(h, flag);
+}
+
+Smack * WINAPI extSmackColorRemap(HANDLE h, const void PTR4 *remappal, u32 numcolors, u32 paltype)
+{
+	OutTraceDW("SmackColorRemap: h=%x numcolors=%d paltype=%d\n", h, numcolors, paltype);
+	DumpSmack((Smack *)h);
+	// BYPASS the call to avoid resolution changes
+	//return (*pSmackColorRemap)(h, remappal, numcolors, paltype);
+	return (Smack *)h;
+}
+
+Smack * WINAPI extSmackColorRemapWithTrans(HANDLE h, const void PTR4 *remappal, u32 numcolors, u32 paltype, u32 transindex)
+{
+	OutTraceDW("SmackColorRemapWithTrans: h=%x numcolors=%d paltype=%d transindex=%d\n", h, numcolors, paltype, transindex);
+	DumpSmack((Smack *)h);
+	// BYPASS the call to avoid resolution changes
+	//return (*pSmackColorRemapWithTrans)(h, remappal, numcolors, paltype);
+	return (Smack *)h;
 }
 
 /* ---------------------------------------------------------------

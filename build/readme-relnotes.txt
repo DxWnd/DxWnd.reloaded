@@ -1393,7 +1393,7 @@ fix: bug in Hybrid and GDI ddraw surface rendering
 fix: missing "No HAL Device" flag default to disabled
 fix: improvements in texture handling, dds format support for DirectDraw textures
 
-v2.04.01
+v2.04.01/fx2
 add: preliminary WinG32 handling
 add: minimal WinG32 replacement, thank to Wine source code
 add: DirectX(2)/"Create a Desktop Win" option. Fixes "Man TT Super Bike"
@@ -1401,4 +1401,7 @@ add: new hooking schema for IAT organized like original "Al Unser Jr. Arcade Rac
 fix: in virtual registry fix to handle the '@' void label case properly
 fix: added hook for RegQueryValueA, used by "Warhammer 40.000 Shadow of the Horned Rat"
 fix: virtual registry logging
-
+add: added SmackW32 hooking to bypass SmackColorRemapWithTrans and SmackColorRemap: SmackColorRemap seems involved in changing screen resolution in "Civil War Generals 2"
+fix: some log messages
+fix: SetWindowLong hooker: eliminated a unassigned variable condition
+fix: added hooker for GDI32/SetROP2 call to insert a InvalidateRect as in older OS. Makes "Titanic" working.

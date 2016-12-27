@@ -70,6 +70,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "SetPaletteEntries", (FARPROC)SetPaletteEntries, (FARPROC *)&pSetPaletteEntries, (FARPROC)extSetPaletteEntries},
 	{HOOK_HOT_CANDIDATE, 0, "GetSystemPaletteUse", (FARPROC)GetSystemPaletteUse, (FARPROC *)&pGetSystemPaletteUse, (FARPROC)extGetSystemPaletteUse},
 	{HOOK_HOT_CANDIDATE, 0, "CreateICA", (FARPROC)CreateICA, (FARPROC *)&pCreateICA, (FARPROC)extCreateICA}, // Riven
+	{HOOK_HOT_CANDIDATE, 0, "SetROP2", (FARPROC)SetROP2, (FARPROC *)&pSetROP2, (FARPROC)extSetROP2}, // Titanic
 #ifdef TRACEPALETTE
 	{HOOK_IAT_CANDIDATE, 0, "ResizePalette", (FARPROC)ResizePalette, (FARPROC *)&pResizePalette, (FARPROC)extResizePalette},
 #endif	
@@ -1705,7 +1706,8 @@ int WINAPI extSetDIBits(HDC hdc, HBITMAP hbmp, UINT uStartScan, UINT cScanLines,
 {
 	int ret;
 	if(IsTraceDW){
-		OutTrace("SetDIBits: hdc=%x hbmp=%x lines=(%d,%d) ColorUse=%x(%s)\n", hdc, hbmp, uStartScan, cScanLines, fuColorUse, ExplainDIBUsage(fuColorUse));
+		OutTrace("SetDIBits: hdc=%x%s hbmp=%x lines=(%d,%d) ColorUse=%x(%s)\n", 
+			hdc, dxw.IsToRemap(hdc)?"(R)":"", hbmp, uStartScan, cScanLines, fuColorUse, ExplainDIBUsage(fuColorUse));
 		TraceBITMAPINFOHEADER("SetDIBits", (BITMAPINFOHEADER *)&(lpbmi->bmiHeader));
 	}
 
@@ -3284,6 +3286,20 @@ UINT WINAPI extSetPaletteEntries(HPALETTE hpal, UINT iStart, UINT cEntries, cons
 	// the only purpose of hooking this call is the fact that in windowed mode a palette update
 	// does not flush the HDC updates to the device like in fullscreen (Win98?) mode.
 	// if(dxw.IsFullScreen()) (*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
+	return ret;
+}
+
+int WINAPI extSetROP2(HDC hdc, int fnDrawMode)
+{
+	// In early OS the SetROP2 caused some sort of screen refresh, that does no longer happen in recent ones.
+	// So wrapping the function and inserting a InvalidateRect right after that fixes the problem.
+	// This trick fixes the black screens in "Titanic - an adventure out of time" on Win10.
+	// N.b. Titanic calls SetTextColor, SetBkColor and SetROP2 in sequence, it might be possible that the 
+	// API to hook for refreshing is another, or even them all!
+	int ret;
+	OutTrace("SetROP2: hdc=%x drawmode=%d\n", hdc, fnDrawMode);
+	ret = (*pSetROP2)(hdc, fnDrawMode);
+	(*pInvalidateRect)(WindowFromDC(hdc), NULL, 0);
 	return ret;
 }
 
