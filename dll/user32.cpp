@@ -1468,7 +1468,8 @@ HWND WINAPI extGetDesktopWindow(void)
 	}
 
 	OutTraceDW("GetDesktopWindow: FullScreen=%x\n", dxw.IsFullScreen());
-	if (dxw.IsFullScreen()){ 
+	// v2.04.01.fx4: do not return the main window if we still don't have one (dxw.GethWnd() == NULL)
+	if (dxw.IsFullScreen() && dxw.GethWnd()){ 
 		OutTraceDW("GetDesktopWindow: returning main window hwnd=%x\n", dxw.GethWnd());
 		return dxw.GethWnd();
 	}

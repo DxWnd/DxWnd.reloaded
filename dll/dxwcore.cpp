@@ -52,6 +52,8 @@ dxwCore::dxwCore()
 	iRefreshDelays[1]=17;
 	iRefreshDelayCount=2;
 	TimeFreeze = FALSE;
+	dwScreenWidth = 0;
+	dwScreenHeight = 0;
 }
 
 dxwCore::~dxwCore()
@@ -139,8 +141,11 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	// AutoScale: when iSizX == iSizY == 0, size is set to current screen resolution
 	bAutoScale = !(iSizX && iSizY);
 	// guessed initial screen resolution
-	dwScreenWidth = 800;
-	dwScreenHeight = 600;
+	// v2.04.01.fx4: set default value ONLY when zero, because some program may initialize
+	// them before creating a window that triggers second initialization, like "Spearhead"
+	// through the Smack32 SmackSetSystemRes call
+	if(!dwScreenWidth) dwScreenWidth = 800;
+	if(!dwScreenHeight) dwScreenHeight = 600;
 
 	SlowRatio = target->SlowRatio;
 	ScanLine = target->ScanLine;
@@ -518,6 +523,8 @@ void dxwCore::DumpPalette(DWORD dwcount, LPPALETTEENTRY lpentries)
 {
 	char sInfo[(14*256)+1];
 	sInfo[0]=0;
+	// "Spearhead" has a bug that sets 897 palette entries!
+	if(dwcount > 256) dwcount=256;
 	for(DWORD idx=0; idx<dwcount; idx++) 
 		sprintf(sInfo, "%s(%02x.%02x.%02x:%02x)", sInfo, 
 		lpentries[idx].peRed, lpentries[idx].peGreen, lpentries[idx].peBlue, lpentries[idx].peFlags);

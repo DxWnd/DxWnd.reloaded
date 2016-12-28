@@ -26,12 +26,14 @@ typedef Smack * (WINAPI *Smacker_Type)(HANDLE);
 typedef Smack * (WINAPI *Smacker2_Type)(HANDLE, UINT32);
 typedef Smack * (WINAPI *SmackColorRemap_Type)(HANDLE, const void PTR4 *, u32, u32);
 typedef Smack * (WINAPI *SmackColorRemapWithTrans_Type)(HANDLE, const void PTR4 *, u32, u32, u32);
+typedef u32		(RADEXPLINK *SmackSetSystemRes_Type)(u32);
 
 SmackOpen_Type pSmackOpen;
 Smacker_Type pSmackClose, pSmackWait, pSmackDoFrame, pSmackNextFrame, pSmackSoundUseMSS, pSmackSoundUseDirectSound;
 Smacker2_Type pSmackSoundOnOff, pSmackGoto;
 SmackColorRemap_Type pSmackColorRemap;
 SmackColorRemapWithTrans_Type pSmackColorRemapWithTrans;
+SmackSetSystemRes_Type pSmackSetSystemRes;
 
 Smack * WINAPI extSmackOpen(HANDLE, UINT32, INT32);
 Smack * WINAPI extSmackClose(HANDLE);
@@ -44,6 +46,7 @@ Smack * WINAPI extSmackSoundOnOff(HANDLE, UINT32);
 Smack * WINAPI extSmackGoto(HANDLE, UINT32);
 Smack * WINAPI extSmackColorRemap(HANDLE, const void PTR4 *, u32, u32);
 Smack * WINAPI extSmackColorRemapWithTrans(HANDLE, const void PTR4 *, u32, u32, u32);
+u32 RADEXPLINK extSmackSetSystemRes(u32 mode);
 
 static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0x000E, "_SmackOpen@12", (FARPROC)NULL, (FARPROC *)&pSmackOpen, (FARPROC)extSmackOpen},
@@ -57,6 +60,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0x0026, "_SmackSoundUseDirectSound@4", (FARPROC)NULL, (FARPROC *)&pSmackSoundUseDirectSound, (FARPROC)extSmackSoundUseDirectSound},
 	{HOOK_IAT_CANDIDATE, 0x0000, "_SmackColorRemap@16", (FARPROC)NULL, (FARPROC *)&pSmackColorRemap, (FARPROC)extSmackColorRemap},
 	{HOOK_IAT_CANDIDATE, 0x0000, "_SmackColorRemapWithTrans@20", (FARPROC)NULL, (FARPROC *)&pSmackColorRemapWithTrans, (FARPROC)extSmackColorRemapWithTrans},
+	{HOOK_IAT_CANDIDATE, 0x0000, "_SmackSetSystemRes@4", (FARPROC)NULL, (FARPROC *)&pSmackSetSystemRes, (FARPROC)extSmackSetSystemRes},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -211,6 +215,46 @@ Smack * WINAPI extSmackColorRemapWithTrans(HANDLE h, const void PTR4 *remappal, 
 	return (Smack *)h;
 }
 
+/* ---------------------------------------------------------------
+#define SMACKRESRESET    0
+#define SMACKRES640X400  1
+#define SMACKRES640X480  2
+#define SMACKRES800X600  3
+#define SMACKRES1024X768 4
+
+RADEXPFUNC u32 RADEXPLINK SmackSetSystemRes(u32 mode);  // use SMACKRES* values
+
+#define SMACKNOCUSTOMBLIT        128
+#define SMACKSMOOTHBLIT          256
+#define SMACKINTERLACEBLIT 512
+/* ------------------------------------------------------------ */
+
+u32 RADEXPLINK extSmackSetSystemRes(u32 mode)
+{
+	char *modes[5]={"reset", "640X400", "640X480", "800X600", "1024X768"};
+	int width, height;
+	static int prevwidth, prevheight;
+	OutTraceDW("SmackSetSystemRes: mode=%x(%s)\n", mode, modes[mode % 5]);
+	// BYPASS the call to avoid resolution changes
+	//return (*pSmackSetSystemRes)(h);
+	mode = mode % 5;
+	// save previous screen resolution for later mode=0 usage
+	if(mode){
+		prevwidth=dxw.GetScreenWidth();
+		prevheight=dxw.GetScreenHeight();
+		dxw.SetFullScreen(TRUE);
+	}
+	switch(mode){
+		case 0: width=prevwidth; height=prevheight; break;
+		case 1: width=640; height=400; break;
+		case 2: width=640; height=480; break;
+		case 3: width=800; height=600; break;
+		case 4: width=1024; height=768; break;
+	}
+	dxw.SetScreenSize(width, height);
+	if(dxw.Windowize && dxw.GethWnd()) AdjustWindowFrame(dxw.GethWnd(), width, height);
+	return 0;
+}
 /* ---------------------------------------------------------------
 Used by M2 Tank Platoon II:
 Ordinal 0x0015 name _SmackNextFrame@4
