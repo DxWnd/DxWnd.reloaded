@@ -79,8 +79,27 @@ typedef struct _DDCAPS_DX7
 typedef DDCAPS_DX7 FAR* LPDDCAPS_DX7;
 #endif
 
-void SetMinimalCaps(LPDDCAPS c1, LPDDCAPS c2)
+void SetMinimalCaps(int dxversion, LPDDCAPS c1, LPDDCAPS c2)
 {
+	DWORD dwMaxSize;
+	switch(dxversion){
+		case 1: 
+		case 2:
+		case 3:
+			dwMaxSize=sizeof(DDCAPS_DX3); 
+			break;
+		case 4:
+		case 5:
+			dwMaxSize=sizeof(DDCAPS_DX5); 
+			break;
+		case 6:
+			dwMaxSize=sizeof(DDCAPS_DX6); 
+			break;
+		case 7:
+			dwMaxSize=sizeof(DDCAPS_DX7); 
+			break;
+	}
+
 #ifdef VIRTUAL_CAPS_VMWARE
 	if(c1){
 		int dwSize = c1->dwSize;
@@ -198,6 +217,7 @@ CapsDump(c2:SW)=
 */ 
 	if(c1){
 		DWORD dwSize = c1->dwSize;
+		if(dwSize > dwMaxSize) dwSize = dwMaxSize;
 		DWORD dwVidMemTotal = c1->dwVidMemTotal;
 		DWORD dwVidMemFree = c1->dwVidMemFree;
 		memset((void *)c1, 0, dwSize);
@@ -219,7 +239,8 @@ CapsDump(c2:SW)=
 		}
 	}
 	if(c2){
-		int dwSize = c2->dwSize;
+		DWORD dwSize = c2->dwSize;
+		if(dwSize > dwMaxSize) dwSize = dwMaxSize;
 		DWORD dwVidMemTotal = c2->dwVidMemTotal;
 		DWORD dwVidMemFree = c2->dwVidMemFree;
 		memset((void *)c2, 0, dwSize);

@@ -1,117 +1,20 @@
-OnRun idx=1 prog="F:\Games\Titanic\TI.noshim.EXE"
-self elevation
-debugger mode
-create process: path="F:\Games\Titanic"
-create process: base=0x400000 path="F:\Games\Titanic\TI.noshim.EXE"
-create thread: th=0xD0 base=0x3A4000 start=0x76828500
-load dll: base=0x774F0000 path="C:\Windows\SysWOW64\ntdll.dll"
-unload dll: base=0x5F0000
-load dll: base=0x76800000 path="C:\Windows\SysWOW64\kernel32.dll"
-unload dll: base=0x76800000
-unload dll: base=0x5F0000
-unload dll: base=0x5F0000
-load dll: base=0x76800000 path="C:\Windows\SysWOW64\kernel32.dll"
-load dll: base=0x76A40000 path="C:\Windows\SysWOW64\KernelBase.dll"
-load dll: base=0x6AE60000 path="C:\Windows\SysWOW64\apphelp.dll"
-load dll: base=0x76080000 path="C:\Windows\SysWOW64\user32.dll"
-load dll: base=0x76440000 path="C:\Windows\SysWOW64\win32u.dll"
-create thread: th=0xD0 base=0x3A7000 start=0x775267C0
-load dll: base=0x77150000 path="C:\Windows\SysWOW64\gdi32.dll"
-load dll: base=0x76CF0000 path="C:\Windows\SysWOW64\gdi32full.dll"
-create thread: th=0xD0 base=0x3AA000 start=0x775267C0
-load dll: base=0x74060000 path="C:\Windows\SysWOW64\comdlg32.dll"
-create thread: th=0xD0 base=0x3AD000 start=0x775267C0
-load dll: base=0x761E0000 path="C:\Windows\SysWOW64\msvcrt.dll"
-load dll: base=0x76460000 path="C:\Windows\SysWOW64\combase.dll"
-load dll: base=0x76C10000 path="C:\Windows\SysWOW64\ucrtbase.dll"
-load dll: base=0x77330000 path="C:\Windows\SysWOW64\rpcrt4.dll"
-load dll: base=0x73FB0000 path="C:\Windows\SysWOW64\sspicli.dll"
-load dll: base=0x73FA0000 path="C:\Windows\SysWOW64\cryptbase.dll"
-load dll: base=0x73FD0000 path="C:\Windows\SysWOW64\bcryptprimitives.dll"
-load dll: base=0x769E0000 path="C:\Windows\SysWOW64\sechost.dll"
-load dll: base=0x77460000 path="C:\Windows\SysWOW64\SHCore.dll"
-load dll: base=0x76E50000 path="C:\Windows\SysWOW64\shlwapi.dll"
-load dll: base=0x741D0000 path="C:\Windows\SysWOW64\shell32.dll"
-load dll: base=0x725E0000 path="C:\Windows\WinSxS\x86_microsoft.windows.common-controls_6595b64144ccf1df_5.82.14393.447_none_5507ded2cb4f7f4c\comctl32.dll"
-load dll: base=0x76400000 path="C:\Windows\SysWOW64\cfgmgr32.dll"
-load dll: base=0x762B0000 path="C:\Windows\SysWOW64\advapi32.dll"
-load dll: base=0x755B0000 path="C:\Windows\SysWOW64\windows.storage.dll"
-load dll: base=0x75FA0000 path="C:\Windows\SysWOW64\powrprof.dll"
-load dll: base=0x76BF0000 path="C:\Windows\SysWOW64\kernel.appcore.dll"
-load dll: base=0x762A0000 path="C:\Windows\SysWOW64\profapi.dll"
-load dll: base=0x72750000 path="C:\Windows\SysWOW64\winmm.dll"
-load dll: base=0x72720000 path="C:\Windows\SysWOW64\winmmbase.dll"
-load dll: base=0x1D0000 path="C:\Windows\SysWOW64\winmmbase.dll"
-load dll: base=0x630000 path="C:\Windows\SysWOW64\winmmbase.dll"
-unload dll: base=0x1D0000
-unload dll: base=0x630000
-exception: code=0x80000003(Breakpoint) addr=0x7759748C first=1
-load dll: base=0x74030000 path="C:\Windows\SysWOW64\imm32.dll"
-load dll: base=0x10000000 path="D:\DxWnd.develop\v2_04_01_fx4_src\build\dxwnd.dll"
-load dll: base=0x5F290000 path="C:\Windows\SysWOW64\ddraw.dll"
-load dll: base=0x61910000 path="C:\Windows\SysWOW64\dciman32.dll"
-unload dll: base=0x61910000
-unload dll: base=0x5F290000
-exit thread: exitcode=0x10000000
-load dll: base=0x57B40000 path="C:\Windows\SysWOW64\dinput.dll"
-load dll: base=0x5D4B0000 path="C:\Windows\SysWOW64\hid.dll"
-load dll: base=0x75B20000 path="C:\Windows\SysWOW64\setupapi.dll"
-load dll: base=0x686E0000 path="C:\Windows\SysWOW64\devobj.dll"
-load dll: base=0x77180000 path="C:\Windows\SysWOW64\wintrust.dll"
-load dll: base=0x76350000 path="C:\Windows\SysWOW64\msasn1.dll"
-load dll: base=0x76680000 path="C:\Windows\SysWOW64\crypt32.dll"
-create thread: th=0xB4 base=0x3B0000 start=0x7272EF70
-output debug: len=22 unicode=0
-output debug: len=56 unicode=0
-output debug: len=22 unicode=0
-output debug: len=56 unicode=0
-output debug: len=22 unicode=0
-output debug: len=56 unicode=0
-output debug: len=22 unicode=0
-output debug: len=56 unicode=0
-output debug: len=22 unicode=0
-output debug: len=56 unicode=0
-load dll: base=0x6AB70000 path="C:\Windows\SysWOW64\uxtheme.dll"
-load dll: base=0x77010000 path="C:\Windows\SysWOW64\msctf.dll"
-load dll: base=0x77230000 path="C:\Windows\SysWOW64\oleaut32.dll"
-load dll: base=0x74150000 path="C:\Windows\SysWOW64\msvcp_win.dll"
-load dll: base=0x44BD0000 path="C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\Tools\spyxxhk.dll"
-load dll: base=0x704E0000 path="C:\Windows\WinSxS\x86_microsoft.vc90.crt_1fc8b3b9a1e18e3b_9.0.30729.9247_none_5090cb78bcba4a35\msvcr90.dll"
-load dll: base=0x718F0000 path="C:\Windows\SysWOW64\dwmapi.dll"
-load dll: base=0x685A0000 path="C:\Windows\SysWOW64\MMDevAPI.dll"
-load dll: base=0x689E0000 path="C:\Windows\SysWOW64\propsys.dll"
-load dll: base=0x5CAD0000 path="C:\Windows\SysWOW64\wdmaud.drv"
-load dll: base=0x73370000 path="C:\Windows\SysWOW64\avrt.dll"
-load dll: base=0x671D0000 path="C:\Windows\SysWOW64\ksuser.dll"
-load dll: base=0x65240000 path="C:\Windows\SysWOW64\AudioSes.dll"
-load dll: base=0x66550000 path="C:\Windows\SysWOW64\WinTypes.dll"
-load dll: base=0x5D4D0000 path="C:\Windows\SysWOW64\msacm32.drv"
-load dll: base=0x727C0000 path="C:\Windows\SysWOW64\msacm32.dll"
-load dll: base=0x5D4C0000 path="C:\Windows\SysWOW64\midimap.dll"
-load dll: base=0x728C0000 path="C:\Windows\WinSxS\x86_microsoft.windows.common-controls_6595b64144ccf1df_6.0.14393.447_none_89c64d28dafea4b9\comctl32.dll"
-create thread: th=0x2D0 base=0x3B3000 start=0x5CADA060
-load dll: base=0x3B70000 path="C:\Windows\SysWOW64\clbcatq.dll"
-create thread: th=0xD8 base=0x3B6000 start=0x775267C0
-create thread: th=0x2D0 base=0x3B9000 start=0x775267C0
-create thread: th=0x2D0 base=0x3BC000 start=0x775267C0
-create thread: th=0x2D0 base=0x3BF000 start=0x775267C0
-exit thread: exitcode=0x0
-exit thread: exitcode=0x0
-exit thread: exitcode=0x0
-exit thread: exitcode=0x0
-exit thread: exitcode=0x0
-exit thread: exitcode=0x0
-exit thread: exitcode=0x0
-exit thread: exitcode=0x0
-exit thread: exitcode=0x0
-exit process
-OnRun idx=0 prog="F:\Games\Garfield\GARFIELD.NOSHIM.EXE"
+OnRun idx=6 prog="D:\Games\Tomb Raider III\tomb3.exe"
+setwindowshook mode
+OnRun idx=4 prog="D:\Games\Spearhead\Spearhead.exe"
 injectsuspended mode
-InjectSuspended: exe=F:\Games\Garfield\GARFIELD.NOSHIM.EXE dir=F:\Games\Garfield
-Target handle=2d0
-NT Header offset=100
-AddressOfEntryPoint=10000 ImageBase=400000
-Thread start address=410000
-wait cycle 0 eip=77560970
-wait cycle 1 eip=77560970
-wait cycle 2 eip=410000
+InjectSuspended: exe=D:\Games\Spearhead\Spearhead.exe dir=D:\Games\Spearhead
+Target handle=7ac
+NT Header offset=80
+AddressOfEntryPoint=1AA380 ImageBase=400000
+Thread start address=5aa380
+wait cycle 0 eip=5aa380
+OnRun idx=4 prog="D:\Games\Spearhead\Spearhead.exe"
+injectsuspended mode
+InjectSuspended: exe=D:\Games\Spearhead\Spearhead.exe dir=D:\Games\Spearhead
+Target handle=768
+NT Header offset=80
+AddressOfEntryPoint=1AA380 ImageBase=400000
+Thread start address=5aa380
+wait cycle 0 eip=5aa380
+OnRun idx=3 prog="F:\Games\Nascar 2000\NASCAR 2000.exe"
+setwindowshook mode

@@ -1,12 +1,4 @@
-OnRun idx=23 prog="D:\Games\Crimson_Skies\crimson.exe"
+OnRun idx=6 prog="D:\Games\Tomb Raider III\tomb3.exe"
 setwindowshook mode
-OnRun idx=23 prog="D:\Games\Crimson_Skies\crimson.exe"
+OnRun idx=6 prog="D:\Games\Tomb Raider III\tomb3.exe"
 setwindowshook mode
-OnRun idx=23 prog="D:\Games\Crimson_Skies\crimson.exe"
-injectsuspended mode
-InjectSuspended: exe=D:\Games\Crimson_Skies\crimson.exe dir=D:\Games\Crimson_Skies
-Target handle=844
-NT Header offset=F8
-AddressOfEntryPoint=1F7056 ImageBase=400000
-Thread start address=5f7056
-wait cycle 0 eip=5f7056

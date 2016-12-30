@@ -1393,7 +1393,7 @@ fix: bug in Hybrid and GDI ddraw surface rendering
 fix: missing "No HAL Device" flag default to disabled
 fix: improvements in texture handling, dds format support for DirectDraw textures
 
-v2.04.01/fx4
+v2.04.01/fx6
 add: preliminary WinG32 handling
 add: minimal WinG32 replacement, thank to Wine source code
 add: DirectX(2)/"Create a Desktop Win" option. Fixes "Man TT Super Bike"
@@ -1407,3 +1407,6 @@ fix: SetWindowLong hooker: eliminated a unassigned variable condition
 fix: added hooker for GDI32/SetROP2 call to insert a InvalidateRect as in older OS. Makes "Titanic" working.
 fix: added hooker for Smack32/SmackSetSystemRes call to prevent resolution change and set proper virtual screen size: see "Spearhead"
 fix: fixed virtual screen size initialization so that it doesn't override settings defined before first window creation: see "Spearhead"
+fix: fixed error condition when DirectDraw::GetCaps is invoked with wrong length - fix "Spearhead" bug
+fix?: ZBUFFER original capabilities passed to new surface created by QueryInterface - so far, useless
+fix: bug causing crash when using fast bilinear filtering 2X 
