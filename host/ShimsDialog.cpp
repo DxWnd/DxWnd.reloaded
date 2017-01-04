@@ -381,6 +381,12 @@ char * MatchExe(char *FileName)
 	pSdbGetMatchingExe = (PSdbGetMatchingExe) GetProcAddress(hAppHelp, "SdbGetMatchingExe");
 	pSdbReleaseMatchingExe = (PSdbReleaseMatchingExe) GetProcAddress(hAppHelp, "SdbReleaseMatchingExe");
 
+	if(pSdbGetMatchingExe == NULL){
+		// rough protection: we assume that if this is found, then all fpointers are there.
+		sprintf(sBuf, "Unsupported Shim DB\n", FileName);
+		return sBuf;
+	}
+
 	BOOL bRet = pSdbGetMatchingExe(NULL, (LPCWSTR)szFileName, NULL, NULL, 0, &result);
 	if (bRet){
 		sprintf(sBuf, "Shim found for file: %s\n", FileName);

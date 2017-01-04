@@ -1393,7 +1393,7 @@ fix: bug in Hybrid and GDI ddraw surface rendering
 fix: missing "No HAL Device" flag default to disabled
 fix: improvements in texture handling, dds format support for DirectDraw textures
 
-v2.04.01/fx6
+v2.04.01/fx5
 add: preliminary WinG32 handling
 add: minimal WinG32 replacement, thank to Wine source code
 add: DirectX(2)/"Create a Desktop Win" option. Fixes "Man TT Super Bike"
@@ -1409,4 +1409,11 @@ fix: added hooker for Smack32/SmackSetSystemRes call to prevent resolution chang
 fix: fixed virtual screen size initialization so that it doesn't override settings defined before first window creation: see "Spearhead"
 fix: fixed error condition when DirectDraw::GetCaps is invoked with wrong length - fix "Spearhead" bug
 fix?: ZBUFFER original capabilities passed to new surface created by QueryInterface - so far, useless
-fix: bug causing crash when using fast bilinear filtering 2X 
+
+v2.04.02
+fix: avoid crashing on View Shims command on WinXP
+fix: bilinear 2X crash
+fix: handling of 16 to 32 bpp color conversion in D3D8 IDirect3DDevice8 Copyrects and GetFrontBuffer methods. Fixes "Dirt track Racing 2" missing panels.
+fix: more / better logging
+fix: in USER32/CreateWindow* calls, handles the case where a to-be main window is moved/resized before being declared as main window. Fixes uncontrolled position changes in "Civil Wars 2 Generals".
+add: preliminary hooks for message loop APIs USER32/PeekMessage, GetMessage, PostMessage. Now PeekMessage includes SLOWDOW flag processing, reduces CPU time in "Civil Wars 2 Generals".

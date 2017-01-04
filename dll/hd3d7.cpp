@@ -119,6 +119,7 @@ typedef HRESULT (WINAPI *SetTexture3_Type)(void *, DWORD, LPDIRECT3DTEXTURE2);
 typedef HRESULT (WINAPI *SetTexture7_Type)(void *, DWORD, LPDIRECTDRAWSURFACE7);
 typedef HRESULT (WINAPI *SwapTextureHandles_Type)(void *, LPDIRECT3DTEXTURE, LPDIRECT3DTEXTURE);
 typedef HRESULT (WINAPI *SwapTextureHandles2_Type)(void *, LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
+typedef HRESULT (WINAPI *SetTransform_Type)(void *, D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
 
 QueryInterfaceD3_Type pQueryInterfaceD3D = NULL;
 ReleaseD3D_Type pReleaseD3D1, pReleaseD3D2, pReleaseD3D3, pReleaseD3D7;
@@ -150,6 +151,7 @@ SetTexture3_Type pSetTexture3 = NULL;
 SetTexture7_Type pSetTexture7 = NULL;
 SwapTextureHandles_Type pSwapTextureHandles = NULL;
 SwapTextureHandles2_Type pSwapTextureHandles2 = NULL;
+SetTransform_Type pSetTransform2, pSetTransform3, pSetTransform7;
 
 // IDirect3DViewport-n interfaces
 
@@ -275,6 +277,9 @@ HRESULT WINAPI extSetTexture3(void *, DWORD, LPDIRECT3DTEXTURE2);
 HRESULT WINAPI extSetTexture7(void *, DWORD, LPDIRECTDRAWSURFACE7);
 HRESULT WINAPI extSwapTextureHandles(void *, LPDIRECT3DTEXTURE, LPDIRECT3DTEXTURE);
 HRESULT WINAPI extSwapTextureHandles2(void *, LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
+HRESULT WINAPI extSetTransform2(void *, D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
+HRESULT WINAPI extSetTransform3(void *, D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
+HRESULT WINAPI extSetTransform7(void *, D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
 
 // Texture
 
@@ -529,6 +534,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetCurrentViewport2, (void **)&pSetCurrentViewport2, "SetCurrentViewport(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  56), extGetCurrentViewport2, (void **)&pGetCurrentViewport2, "GetCurrentViewport(2)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  92), extSetRenderState2, (void **)&pSetRenderState2, "SetRenderState(2)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev + 100), extSetTransform2, (void **)&pSetTransform2, "SetTransform(2)");
 		if(pSetRenderState2){
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
 			if(dxw.dwFlags4 & DISABLEFOGGING) (*pSetRenderState2)(*lpd3ddev, D3DRENDERSTATE_FOGENABLE, FALSE); 
@@ -547,6 +553,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  52), extGetCurrentViewport3, (void **)&pGetCurrentViewport3, "GetCurrentViewport(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  88), extSetRenderState3, (void **)&pSetRenderState3, "SetRenderState(3)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  96), extSetLightState3, (void **)&pSetLightState3, "SetLightState(3)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev + 100), extSetTransform3, (void **)&pSetTransform3, "SetTransform(3)");
 		if (dxw.dwFlags4 & NOTEXTURES) SetHook((void *)(**(DWORD **)lpd3ddev + 152), extSetTexture3, (void **)&pSetTexture3, "SetTexture(D3)");
 		if(pSetRenderState3){
 			if(dxw.dwFlags2 & WIREFRAME)(*pSetRenderState3)(*lpd3ddev, D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME); 		
@@ -561,6 +568,7 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extEnumTextureFormats7, (void **)&pEnumTextureFormats7, "EnumTextureFormats(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extBeginScene7, (void **)&pBeginScene7, "BeginScene(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  24), extEndScene7, (void **)&pEndScene7, "EndScene(7)");
+		//SetHook((void *)(**(DWORD **)lpd3ddev +  44), extSetTransform7, (void **)&pSetTransform7, "SetTransform(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  52), extSetViewport7, (void **)&pSetViewport7, "SetViewport(7)");
 		//SetHook((void *)(**(DWORD **)lpd3ddev +  60), extGetViewport7, (void **)&pGetViewport7, "GetViewport(7)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  80), extSetRenderState7, (void **)&pSetRenderState7, "SetRenderState(7)");
@@ -1234,19 +1242,11 @@ HRESULT WINAPI extSetRenderState(SetRenderState3_Type pSetRenderState, int versi
 }
 
 HRESULT WINAPI extSetRenderState2(void *d3dd, D3DRENDERSTATETYPE State, DWORD Value)
-{
-	return extSetRenderState(pSetRenderState2, 2, d3dd, State, Value);
-}
-
+{ return extSetRenderState(pSetRenderState2, 2, d3dd, State, Value); }
 HRESULT WINAPI extSetRenderState3(void *d3dd, D3DRENDERSTATETYPE State, DWORD Value)
-{
-	return extSetRenderState(pSetRenderState3, 3, d3dd, State, Value);
-}
-
+{ return extSetRenderState(pSetRenderState3, 3, d3dd, State, Value); }
 HRESULT WINAPI extSetRenderState7(void *d3dd, D3DRENDERSTATETYPE State, DWORD Value)
-{
-	return extSetRenderState(pSetRenderState7, 7, d3dd, State, Value);
-}
+{ return extSetRenderState(pSetRenderState7, 7, d3dd, State, Value); }
 
 static HRESULT WINAPI dxwRestoreCallback(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
 {
@@ -1578,11 +1578,11 @@ HRESULT WINAPI extSetViewport2_2(void *lpvp, LPD3DVIEWPORT2 vpd)
 {
 	HRESULT res;
 
-	OutTraceD3D("SetViewport2(VP3): viewport=%x viewportd=%x size=%d pos=(%d,%d) dim=(%dx%d)\n", 
-		lpvp, vpd, vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight);
+	OutTraceD3D("SetViewport2(VP2): viewport=%x viewportd=%x size=%d pos=(%d,%d) dim=(%dx%d) Z=(%f-%f)\n", 
+		lpvp, vpd, vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight, vpd->dvMinZ, vpd->dvMaxZ);
 	res=(*pSetViewport2_2)(lpvp, vpd);
-	if(res) OutTraceE("SetViewport2(VP3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	else OutTraceD3D("SetViewport2(VP3): OK\n");
+	if(res) OutTraceE("SetViewport2(VP2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	else OutTraceD3D("SetViewport2(VP2): OK\n");
 	return res;
 }
 
@@ -1590,10 +1590,10 @@ HRESULT WINAPI extGetViewport2_2(void *lpvp, LPD3DVIEWPORT2 vpd)
 {
 	HRESULT res;
 
-	OutTraceD3D("GetViewport2(VP3): viewport=%x viewportd=%x\n", lpvp, vpd);
+	OutTraceD3D("GetViewport2(VP2): viewport=%x viewportd=%x\n", lpvp, vpd);
 	res=(*pGetViewport2_2)(lpvp, vpd);
-	if(res) OutTraceE("GetViewport2(VP3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	else OutTraceD3D("GetViewport2(VP3): OK size=%d pos=(%d,%d) dim=(%dx%d)\n",
+	if(res) OutTraceE("GetViewport2(VP2) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+	else OutTraceD3D("GetViewport2(VP2): OK size=%d pos=(%d,%d) dim=(%dx%d)\n",
 		vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight);
 	return res;
 }
@@ -1602,8 +1602,8 @@ HRESULT WINAPI extSetViewport2_3(void *lpvp, LPD3DVIEWPORT2 vpd)
 {
 	HRESULT res;
 
-	OutTraceD3D("SetViewport2(VP3): viewport=%x viewportd=%x size=%d pos=(%d,%d) dim=(%dx%d)\n", 
-		lpvp, vpd, vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight);
+	OutTraceD3D("SetViewport2(VP3): viewport=%x viewportd=%x size=%d pos=(%d,%d) dim=(%dx%d) Z=(%f-%f)\n", 
+		lpvp, vpd, vpd->dwSize, vpd->dwX, vpd->dwY, vpd->dwWidth, vpd->dwHeight, vpd->dvMinZ, vpd->dvMaxZ);
 	res=(*pSetViewport2_3)(lpvp, vpd);
 	if(res) OutTraceE("SetViewport2(VP3) ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	else OutTraceD3D("SetViewport2(VP3): OK\n");
@@ -2016,7 +2016,7 @@ static HRESULT CALLBACK lpTextureDumper(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpCon
 HRESULT WINAPI extEnumTextureFormats(int d3dversion, EnumTextureFormats_Type pEnumTextureFormats, void *lpd3dd, LPD3DENUMPIXELFORMATSCALLBACK lptfcallback, LPVOID arg)
 {
 	HRESULT res;
-	OutTrace("EnumTextureFormats(%d): lpd3dd=%x cb=%x arg=%x\n", d3dversion, lpd3dd, lptfcallback, arg);
+	OutTraceD3D("EnumTextureFormats(%d): lpd3dd=%x cb=%x arg=%x\n", d3dversion, lpd3dd, lptfcallback, arg);
 	if(IsDebug) (*pEnumTextureFormats)(lpd3dd, lpTextureDumper, arg);
 
 	if(dxw.dwFlags7 & CLEARTEXTUREFOURCC){
@@ -2028,7 +2028,7 @@ HRESULT WINAPI extEnumTextureFormats(int d3dversion, EnumTextureFormats_Type pEn
 	else{
 		res = (*pEnumTextureFormats)(lpd3dd, lptfcallback, arg);
 	}
-	if(res) OutTrace("EnumTextureFormats: res=%x(%s)\n", res, ExplainDDError(res));
+	if(res) OutTraceD3D("EnumTextureFormats: res=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
 
@@ -2040,3 +2040,50 @@ HRESULT WINAPI extEnumTextureFormats3(void *lpd3dd, LPD3DENUMPIXELFORMATSCALLBAC
 { return extEnumTextureFormats(3, pEnumTextureFormats3, lpd3dd, lptfcallback, arg); }
 HRESULT WINAPI extEnumTextureFormats7(void *lpd3dd, LPD3DENUMPIXELFORMATSCALLBACK lptfcallback, LPVOID arg)
 { return extEnumTextureFormats(7, pEnumTextureFormats7, lpd3dd, lptfcallback, arg); }
+
+static char *sTransformType(D3DTRANSFORMSTATETYPE tstype)
+{
+	char *s;
+	switch(tstype){
+		case D3DTRANSFORMSTATE_WORLD:		s = "WORLD"; break;
+		case D3DTRANSFORMSTATE_VIEW:		s = "VIEW"; break;
+		case D3DTRANSFORMSTATE_PROJECTION:	s = "PROJECTION"; break;
+		case D3DTRANSFORMSTATE_WORLD1:		s = "WORLD1"; break;
+		case D3DTRANSFORMSTATE_WORLD2:		s = "WORLD2"; break;
+		case D3DTRANSFORMSTATE_WORLD3:		s = "WORLD3"; break;
+		case D3DTRANSFORMSTATE_TEXTURE0:	s = "TEXTURE0"; break;
+		case D3DTRANSFORMSTATE_TEXTURE1:	s = "TEXTURE1"; break;
+		case D3DTRANSFORMSTATE_TEXTURE2:	s = "TEXTURE2"; break;
+		case D3DTRANSFORMSTATE_TEXTURE3:	s = "TEXTURE3"; break;
+		case D3DTRANSFORMSTATE_TEXTURE4:	s = "TEXTURE4"; break;
+		case D3DTRANSFORMSTATE_TEXTURE5:	s = "TEXTURE5"; break;
+		case D3DTRANSFORMSTATE_TEXTURE6:	s = "TEXTURE6"; break;
+		case D3DTRANSFORMSTATE_TEXTURE7:	s = "TEXTURE7"; break;
+		default:	s = "unknown"; break;
+	}
+	return s;
+}
+
+static HRESULT WINAPI SetTransform(int d3dversion, SetTransform_Type pSetTransform, void *lpd3dd, D3DTRANSFORMSTATETYPE tstype, LPD3DMATRIX matrix)
+{
+	HRESULT res;
+
+	OutTrace("SetTransform(%d): lpd3dd=%x tstype=%x(%s) matrix={\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n}\n", 
+		d3dversion, lpd3dd, tstype, sTransformType(tstype),
+		matrix->_11, matrix->_12, matrix->_13, matrix->_14,
+		matrix->_21, matrix->_22, matrix->_23, matrix->_24,
+		matrix->_31, matrix->_32, matrix->_33, matrix->_34,
+		matrix->_41, matrix->_42, matrix->_43, matrix->_44);
+
+	res = (*pSetTransform)(lpd3dd, tstype, matrix);
+	if(res) OutTraceE("SetTransform ERROR: ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extSetTransform2(void *lpd3dd, D3DTRANSFORMSTATETYPE tstype, LPD3DMATRIX matrix)
+{ return SetTransform(2, pSetTransform2, lpd3dd, tstype, matrix); }
+HRESULT WINAPI extSetTransform3(void *lpd3dd, D3DTRANSFORMSTATETYPE tstype, LPD3DMATRIX matrix)
+{ return SetTransform(3, pSetTransform3, lpd3dd, tstype, matrix); }
+HRESULT WINAPI extSetTransform7(void *lpd3dd, D3DTRANSFORMSTATETYPE tstype, LPD3DMATRIX matrix)
+{ return SetTransform(7, pSetTransform7, lpd3dd, tstype, matrix); }
+

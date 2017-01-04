@@ -2925,7 +2925,7 @@ void InjectSuspended(char *exepath, char *dirpath)
 	FILE *fExe = NULL;
 	BOOL bKillProcess = FALSE;
 
-	OutTrace("InjectSuspended: exe=%s dir=%s\n",exepath, dirpath);
+	OutTrace("InjectSuspended: exe=\"%s\" dir=\"%s\"\n",exepath, dirpath);
 	ZeroMemory(&sinfo, sizeof(sinfo));
 	sinfo.cb = sizeof(sinfo);
 	// attempt to load the specified target

@@ -20,6 +20,8 @@
 #define _Warn(s) MessageBox(0, s, "to do", MB_ICONEXCLAMATION)
 
 BOOL IsChangeDisplaySettingsHotPatched = FALSE;
+BOOL InMainWinCreation = FALSE;
+
 extern BOOL bFlippedDC;
 extern HDC hFlippedDC;
 
@@ -38,9 +40,6 @@ SetWindowsHookEx_Type pSetWindowsHookExA = NULL;
 SetWindowsHookEx_Type pSetWindowsHookExW = NULL;
 HHOOK WINAPI extSetWindowsHookExA(int, HOOKPROC, HINSTANCE, DWORD);
 HHOOK WINAPI extSetWindowsHookExW(int, HOOKPROC, HINSTANCE, DWORD);
-typedef BOOL (WINAPI *PostMessageA_Type)(HWND, UINT, WPARAM, LPARAM);
-PostMessageA_Type pPostMessageA = NULL;
-BOOL WINAPI extPostMessageA(HWND, UINT, WPARAM, LPARAM);
 typedef HRESULT (WINAPI *MessageBoxTimeoutA_Type)(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
 MessageBoxTimeoutA_Type pMessageBoxTimeoutA = NULL;
 HRESULT WINAPI extMessageBoxTimeoutA(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
@@ -144,7 +143,14 @@ typedef BOOL (WINAPI *EnumWindows_Type)(WNDENUMPROC, LPARAM);
 EnumWindows_Type pEnumWindows;
 BOOL WINAPI extEnumWindows(WNDENUMPROC, LPARAM);
 
-
+typedef BOOL	(WINAPI *GetMessage_Type)(LPMSG, HWND, UINT, UINT);
+GetMessage_Type pGetMessageA, pGetMessageW;
+BOOL	WINAPI extGetMessageA(LPMSG, HWND, UINT, UINT);
+BOOL	WINAPI extGetMessageW(LPMSG, HWND, UINT, UINT);
+typedef BOOL	(WINAPI *PostMessage_Type)(HWND, UINT, WPARAM, LPARAM);
+PostMessage_Type pPostMessageA, pPostMessageW;
+BOOL	WINAPI extPostMessageA(HWND, UINT, WPARAM, LPARAM);
+BOOL	WINAPI extPostMessageW(HWND, UINT, WPARAM, LPARAM);
 
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
@@ -304,12 +310,6 @@ static HookEntryEx_Type ScaledHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-static HookEntryEx_Type PeekAllHooks[]={
-	{HOOK_IAT_CANDIDATE, 0, "PeekMessageA", (FARPROC)PeekMessageA, (FARPROC *)&pPeekMessageA, (FARPROC)extPeekMessageA},
-	{HOOK_IAT_CANDIDATE, 0, "PeekMessageW", (FARPROC)PeekMessageW, (FARPROC *)&pPeekMessageW, (FARPROC)extPeekMessageW},
-	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
-};
-
 static HookEntryEx_Type MouseHooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "GetCursorPos", (FARPROC)GetCursorPos, (FARPROC *)&pGetCursorPos, (FARPROC)extGetCursorPos},
 	{HOOK_HOT_CANDIDATE, 0, "SetCursorPos", (FARPROC)SetCursorPos, (FARPROC *)&pSetCursorPos, (FARPROC)extSetCursorPos},
@@ -346,6 +346,16 @@ static HookEntryEx_Type DesktopHooks[]={ // currently unused, needed for X-Files
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
+static HookEntryEx_Type MsgLoopHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "PeekMessageA", (FARPROC)PeekMessageA, (FARPROC *)&pPeekMessageA, (FARPROC)extPeekMessageA},
+	{HOOK_IAT_CANDIDATE, 0, "PeekMessageW", (FARPROC)PeekMessageW, (FARPROC *)&pPeekMessageW, (FARPROC)extPeekMessageW},
+	{HOOK_IAT_CANDIDATE, 0, "GetMessageA", (FARPROC)GetMessageA, (FARPROC *)&pGetMessageA, (FARPROC)extGetMessageA},
+	{HOOK_IAT_CANDIDATE, 0, "GetMessageW", (FARPROC)GetMessageW, (FARPROC *)&pGetMessageW, (FARPROC)extGetMessageW},
+	{HOOK_IAT_CANDIDATE, 0, "PostMessageA", (FARPROC)PostMessageA, (FARPROC *)&pPostMessageA, (FARPROC)extPostMessageA},
+	{HOOK_IAT_CANDIDATE, 0, "PostMessageW", (FARPROC)PostMessageW, (FARPROC *)&pPostMessageW, (FARPROC)extPostMessageW},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
+};
+
 static char *libname = "user32.dll";
 
 void HookUser32(HMODULE hModule)
@@ -353,12 +363,12 @@ void HookUser32(HMODULE hModule)
 
 	HookLibraryEx(hModule, Hooks, libname);
 	HookLibraryEx(hModule, WinHooks, libname);
+	HookLibraryEx(hModule, MsgLoopHooks, libname);
 
 	if (dxw.GDIEmulationMode != GDIMODE_NONE) HookLibraryEx(hModule, SyscallHooks, libname);
 	if (dxw.dwFlags2 & GDISTRETCHED)	HookLibraryEx(hModule, ScaledHooks, libname);
 	if (dxw.dwFlags1 & CLIENTREMAPPING) HookLibraryEx(hModule, RemapHooks, libname);
 	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) HookLibraryEx(hModule, MouseHooks, libname);
-	if (dxw.dwFlags3 & PEEKALLMESSAGES) HookLibraryEx(hModule, PeekAllHooks, libname);
 	if (dxw.dwFlags2 & TIMESTRETCH) HookLibraryEx(hModule, TimeHooks, libname);
 
 	IsChangeDisplaySettingsHotPatched = IsHotPatchedEx(Hooks, "ChangeDisplaySettingsExA") || IsHotPatchedEx(Hooks, "ChangeDisplaySettingsExW");
@@ -380,6 +390,7 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 	FARPROC addr;
 	if (addr=RemapLibraryEx(proc, hModule, Hooks)) return addr;
 	if (addr=RemapLibraryEx(proc, hModule, WinHooks)) return addr;
+	if (addr=RemapLibraryEx(proc, hModule, MsgLoopHooks)) return addr;
 
 	if (dxw.dwFlags1 & CLIENTREMAPPING) 
 		if (addr=RemapLibraryEx(proc, hModule, RemapHooks)) return addr;
@@ -389,8 +400,6 @@ FARPROC Remap_user32_ProcAddress(LPCSTR proc, HMODULE hModule)
 		if (addr=RemapLibraryEx(proc, hModule, ScaledHooks)) return addr;  
 	if ((dxw.dwFlags1 & (MODIFYMOUSE|SLOWDOWN|KEEPCURSORWITHIN)) || (dxw.dwFlags2 & KEEPCURSORFIXED)) 
 		if (addr=RemapLibraryEx(proc, hModule, MouseHooks)) return addr;
-	if (dxw.dwFlags3 & PEEKALLMESSAGES)
-		if (addr=RemapLibraryEx(proc, hModule, PeekAllHooks)) return addr;
 	if((dxw.dwFlags2 & TIMESTRETCH) && (dxw.dwFlags4 & STRETCHTIMERS)) 
 		if (addr=RemapLibraryEx(proc, hModule, TimeHooks)) return addr;
 
@@ -998,7 +1007,7 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 	}
 
 	// in fullscreen, but a child window inside .....
-	if (!dxw.IsDesktop(hwnd)){
+	if (!dxw.IsDesktop(hwnd) && !InMainWinCreation){
 		RECT r;
 		r.left = X;
 		r.right = X + cx;
@@ -1230,36 +1239,41 @@ static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HW
 	BOOL res;
 
 	if(dxw.dwFlags3 & PEEKALLMESSAGES){
-	if((wMsgFilterMin==0) && (wMsgFilterMax == 0)){
-		// no filtering, everything is good
-		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
+		if((wMsgFilterMin==0) && (wMsgFilterMax == 0)){
+			// no filtering, everything is good
+			res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
+		}
+		else {
+			MSG Dummy;
+			// better eliminate all messages before and after the selected range !!!!
+			//if(wMsgFilterMin)(*pPeekMessage)(&Dummy, hwnd, 0, wMsgFilterMin-1, TRUE);
+			if(wMsgFilterMin>0x0F)(*pPeekMessage)(&Dummy, hwnd, 0x0F, wMsgFilterMin-1, TRUE);
+			res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
+			if(wMsgFilterMax<WM_KEYFIRST)(*pPeekMessage)(&Dummy, hwnd, wMsgFilterMax+1, WM_KEYFIRST-1, TRUE); // don't touch above WM_KEYFIRST !!!!
+		}
+
+		if(res)
+			OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+				lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
+				lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
+				lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
+		else
+			OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) res=%x\n", 
+				lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg), res);
 	}
 	else {
-		MSG Dummy;
-		// better eliminate all messages before and after the selected range !!!!
-		//if(wMsgFilterMin)(*pPeekMessage)(&Dummy, hwnd, 0, wMsgFilterMin-1, TRUE);
-		if(wMsgFilterMin>0x0F)(*pPeekMessage)(&Dummy, hwnd, 0x0F, wMsgFilterMin-1, TRUE);
 		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
-		if(wMsgFilterMax<WM_KEYFIRST)(*pPeekMessage)(&Dummy, hwnd, wMsgFilterMax+1, WM_KEYFIRST-1, TRUE); // don't touch above WM_KEYFIRST !!!!
-	}
-
-	if(res)
-		OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+		OutTraceW("PeekMessage: lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
 			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
 			lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
 			lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
-	else
-		OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) res=%x\n", 
-			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg), res);
-	}
-	else {
-		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
-		OutTrace("PeekMessage: lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
-			lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
-			lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
 	}
 
+	if(dxw.dwFlags1 & MODIFYMOUSE){
+		 extGetCursorPos(&(lpMsg->pt));
+	}
+
+	if(dxw.dwFlags1 & SLOWDOWN) (*pSleep)(1);
 
 	return res;
 }
@@ -1268,6 +1282,42 @@ BOOL WINAPI extPeekMessageA(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMs
 { return extPeekMessage(pPeekMessageA, lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg); }
 BOOL WINAPI extPeekMessageW(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 { return extPeekMessage(pPeekMessageW, lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg); }
+
+static BOOL WINAPI extGetMessage(GetMessage_Type pGetMessage, LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax)
+{
+	BOOL res;
+
+	res=(*pGetMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax);
+	OutTraceW("GetMessage: lpmsg=%x hwnd=%x filter=(%x-%x) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+		lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, 
+		lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
+		lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
+
+	if(dxw.dwFlags1 & MODIFYMOUSE){
+		 extGetCursorPos(&(lpMsg->pt));
+	}
+
+	return res;
+}
+
+BOOL WINAPI extGetMessageA(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax)
+{ return extGetMessage(pGetMessageA, lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax); }
+BOOL WINAPI extGetMessageW(LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax)
+{ return extGetMessage(pGetMessageW, lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax); }
+
+BOOL WINAPI extPostMessage(PostMessage_Type pPostMessage, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	BOOL res;
+	res = (*pPostMessage)(hWnd, Msg, wParam, lParam);
+	OutTraceW("PostMessage: hwnd=%x msg=%x(%s) wparam=%x, lparam=%x res=%x\n", 
+		hWnd, Msg, ExplainWinMessage(Msg), wParam, lParam, res);
+	return res;
+}
+
+BOOL WINAPI extPostMessageA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{ return extPostMessage(pPostMessageA, hwnd, Msg, wParam, lParam); }
+BOOL WINAPI extPostMessageW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{ return extPostMessage(pPostMessageW, hwnd, Msg, wParam, lParam); }
 
 BOOL WINAPI extClientToScreen(HWND hwnd, LPPOINT lppoint)
 {
@@ -1716,8 +1766,8 @@ static HWND WINAPI CreateWindowCommon(
 			x=dxw.iPosX;
 			y=dxw.iPosY;
 		}
-		nWidth=dxw.GetScreenWidth();
-		nHeight=dxw.GetScreenHeight();
+		nWidth=dxw.iSizX;
+		nHeight=dxw.iSizY;
 		OutTraceDW("%s: fixed client pos=(%d,%d) size=(%d,%d) valid=%x\n", 
 			ApiName, x, y, nWidth, nHeight, isValidHandle);
 		dxw.SetFullScreen(TRUE);
@@ -1758,10 +1808,15 @@ static HWND WINAPI CreateWindowCommon(
 	OutTraceB("%s: fixed pos=(%d,%d) size=(%d,%d) Style=%x(%s) ExStyle=%x(%s)\n",
 		ApiName, x, y, nWidth, nHeight, dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle));
 
+	// v2.04.02: InMainWinCreation semaphore, signals to the CreateWin callback that the window to be created will be a main window,
+	// so rules about LOCKWINPOS etc. must be applied. Fixes "Civil War 2 Generals" main window displacement. 
+	InMainWinCreation = TRUE;
 	if(WideChar)
 		hwnd= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 	else
 		hwnd= (*pCreateWindowExA)(dwExStyle, (LPCSTR)lpClassName, (LPCSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	InMainWinCreation = FALSE;
+
 	if (hwnd==(HWND)NULL){
 		OutTraceE("%s: ERROR err=%d Style=%x(%s) ExStyle=%x\n",
 			ApiName, GetLastError(), dwStyle, ExplainStyle(dwStyle), dwExStyle);

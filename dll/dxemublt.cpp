@@ -96,7 +96,7 @@ static DWORD Melt16_565(DWORD c1, DWORD c2)
 	return ret;
 }
 
-static void SetPalette16BPP()
+void SetPalette16BPP()
 {
 // OutTraceDW("DEBUG: h=%d w=%d src=%x dst=%x spitch=%d dpitch=%d\n",h,w,src16,dest,srcpitch,destpitch);
 	unsigned int pi;

@@ -109,12 +109,14 @@ typedef BOOL	(WINAPI *ShowCursor8_Type)(void *, BOOL);
 typedef BOOL	(WINAPI *ShowCursor9_Type)(void *, BOOL);
 typedef HRESULT (WINAPI *CreateAdditionalSwapChain_Type)(void *, D3DPRESENT_PARAMETERS *, IDirect3DSwapChain9 **);
 typedef HRESULT (WINAPI *GetSwapChain_Type)(void *, UINT, IDirect3DSwapChain9**);
-typedef UINT (WINAPI *GetNumberOfSwapChains_Type)(void *);
+typedef UINT	(WINAPI *GetNumberOfSwapChains_Type)(void *);
 typedef HRESULT (WINAPI *BeginStateBlock_Type)(void *);
 typedef HRESULT (WINAPI *EndStateBlock8_Type)(void *, DWORD *);
 typedef HRESULT (WINAPI *EndStateBlock9_Type)(void *, IDirect3DStateBlock9**);
 typedef HRESULT (WINAPI *CreateTexture8_Type)(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **);
 typedef HRESULT (WINAPI *CreateTexture9_Type)(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **, HANDLE *);
+typedef HRESULT	(WINAPI *CopyRects_Type)(void *, LPDIRECTDRAWSURFACE, CONST RECT *, UINT, LPDIRECTDRAWSURFACE, CONST POINT *);
+typedef HRESULT (WINAPI *GetFrontBuffer_Type)(void *, LPDIRECTDRAWSURFACE);
 
 UINT	WINAPI extGetAvailableTextureMem8(void *);
 UINT	WINAPI extGetAvailableTextureMem9(void *);
@@ -138,6 +140,9 @@ HRESULT WINAPI extEndStateBlock8(void *, DWORD *);
 HRESULT WINAPI extEndStateBlock9(void *, IDirect3DStateBlock9**);
 HRESULT WINAPI extCreateTexture8(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **);
 HRESULT WINAPI extCreateTexture9(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **, HANDLE *);
+// CopyRects prototype uses IDirect3DSurface8 *, but to avoid including d3d8.h better use a generic ptr as LPDIRECTDRAWSURFACE
+HRESULT	WINAPI extCopyRects(void *, LPDIRECTDRAWSURFACE, CONST RECT *, UINT, LPDIRECTDRAWSURFACE, CONST POINT *);
+HRESULT WINAPI extGetFrontBuffer(void *, LPDIRECTDRAWSURFACE);
 
 GetAvailableTextureMem_Type pGetAvailableTextureMem8, pGetAvailableTextureMem9;
 TestCooperativeLevel_Type pTestCooperativeLevel8, pTestCooperativeLevel9;
@@ -159,6 +164,8 @@ EndStateBlock8_Type pEndStateBlock8 = 0;
 EndStateBlock9_Type pEndStateBlock9 = 0;
 CreateTexture8_Type pCreateTexture8 = 0;
 CreateTexture9_Type pCreateTexture9 = 0;
+CopyRects_Type pCopyRects = 0;
+GetFrontBuffer_Type pGetFrontBuffer = 0;
 
 // IDirect3DTexture8/9 methods
 
@@ -469,8 +476,9 @@ void HookD3DDevice8(void** ppD3Ddev8)
 	if(dxw.dwFlags5 & TEXTUREMASK){
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 80), extCreateTexture8, (void **)&pCreateTexture8, "CreateTexture(D8)");
 	}
-	//SetHook((void *)(**(DWORD **)ppD3Ddev8 + 112), extCopyRects, (void **)&pCopyRects, "CopyRects(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 100), extCreateRenderTarget8, (void **)&pCreateRenderTarget8, "CreateRenderTarget(D8)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 112), extCopyRects, (void **)&pCopyRects, "CopyRects(D8)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 120), extGetFrontBuffer, (void **)&pGetFrontBuffer, "GetFrontBuffer(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 136), extBeginScene8, (void **)&pBeginScene8, "BeginScene(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 140), extEndScene8, (void **)&pEndScene8, "EndScene(D8)");
 	if((dxw.dwFlags2 & WIREFRAME) || (dxw.dwFlags4 & DISABLEFOGGING) || (dxw.dwFlags4 & ZBUFFERALWAYS)){
@@ -2350,4 +2358,48 @@ UINT WINAPI extGetAdapterModeCount9(void *lpd3d, UINT Adapter, D3DFORMAT Format)
 	}
 	OutTraceD3D("GetAdapterModeCount(9): ret=%d\n", ret);
 	return ret;
+}
+
+HRESULT WINAPI extGetFrontBuffer(void *lpd3dd, LPDIRECTDRAWSURFACE pDestSurface)
+{
+	HRESULT res;
+	OutTraceD3D("GetFrontBuffer(8): d3d=%x dest=%x\n", lpd3dd, pDestSurface);
+	res = (*pGetFrontBuffer)(lpd3dd, pDestSurface);
+
+	// v2.04.02: Fix for "Dirt Track Racing 2": GetFrontBuffer in windowed mode through DxWnd intervention may yterminate in error
+	// since the Front Buffer size is the whole screen and the surface provided by the application only maps the virtual coordinates.
+	// So, the dxGetFrontBuffer() routine tries to match the surfaces, but in any case, also if an error happens, better return a
+	// fake D3D_OK condition.
+
+	if(res == D3DERR_INVALIDCALL) {
+		extern HRESULT  dxGetFrontBuffer(void *, LPDIRECTDRAWSURFACE);
+		res = dxGetFrontBuffer(lpd3dd, pDestSurface);
+		if(res) OutTraceDW("GetFrontBuffer(8): ret=%x return FAKE D3D_OK\n", res);
+		res = D3D_OK;
+	}
+
+	OutTraceD3D("GetFrontBuffer(8): ret=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extCopyRects(void *lpd3dd, LPDIRECTDRAWSURFACE pSourceSurface, CONST RECT *pSourceRectsArray, UINT cRects, LPDIRECTDRAWSURFACE pDestinationSurface, CONST POINT *pDestPointsArray)
+{
+	HRESULT res;
+	OutTraceD3D("CopyRects(8): d3d=%x source=%x dest=%x rects=%d\n", lpd3dd, pSourceSurface, pDestinationSurface, cRects);
+
+	// v2.04.02: Fix for "Dirt Track Racing 2": in early D3D8 implementation it seems that invoking this Copyrects method for 0 rects count didn't hurt,
+	// but now the method returns an error. 
+	// added a patch for handling the "if(cRects==0)" case - it is not worth a flag, it seems good for all circumstances, isn't it?
+	// Beware: it seems (from some code snippet) that lpDevice->CopyRects(lpSrcSurface, NULL, 0, lpDestSurface, NULL) means copy the whole lpSrcSurface
+	// to lpDestSurface. In windowized mode the peration may fail because of the different sizing!
+
+	res = (*pCopyRects)(lpd3dd, pSourceSurface, pSourceRectsArray, cRects, pDestinationSurface, pDestPointsArray);
+	if((res == D3DERR_INVALIDCALL) && (cRects==0)) {
+		extern HRESULT  dxCopyRects(void *, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE);
+		res = dxCopyRects(lpd3dd, pSourceSurface, pDestinationSurface);
+		if(res) OutTraceDW("CopyRects(8): res=%x FAKE D3D_OK on 0 rects\n", res);
+		res = D3D_OK;
+	}
+	OutTraceD3D("CopyRects(8): ret=%x\n", res);
+	return res;
 }

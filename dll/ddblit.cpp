@@ -45,9 +45,7 @@ static HRESULT sBltNoPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	FromScreen=dxwss.IsAPrimarySurface(lpddssrc); 
 
 	// make a working copy of srcrect if not NULL
-	if (lpsrcrect){
-		srcrect=*lpsrcrect;
-	}
+	if (lpsrcrect) srcrect=*lpsrcrect;
 	// when blitting from a primary surface on screen (that is in non emulated mode), correct offsets
 	// You should take account also for scaled primary surfaces, but that would be a hard task: 
 	// a reduced primary surface (in not-emulated mode) would bring quality loss!!!
@@ -93,6 +91,7 @@ static HRESULT sBltNoPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 	//	}
 	//	break;
 	case DDERR_SURFACEBUSY:
+		if (lpsrcrect) srcrect=*lpsrcrect;
 		(*pUnlockMethod(dxversion))(lpdds, NULL);
 		if (lpddssrc) (*pUnlockMethod(dxversion))(lpddssrc, NULL);	
 		if (IsDebug) BlitTrace("BUSY", lpsrcrect ? &srcrect : NULL, lpdestrect, __LINE__);
