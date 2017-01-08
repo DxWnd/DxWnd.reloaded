@@ -1417,3 +1417,9 @@ fix: handling of 16 to 32 bpp color conversion in D3D8 IDirect3DDevice8 Copyrect
 fix: more / better logging
 fix: in USER32/CreateWindow* calls, handles the case where a to-be main window is moved/resized before being declared as main window. Fixes uncontrolled position changes in "Civil Wars 2 Generals".
 add: preliminary hooks for message loop APIs USER32/PeekMessage, GetMessage, PostMessage. Now PeekMessage includes SLOWDOW flag processing, reduces CPU time in "Civil Wars 2 Generals".
+
+v2.04.03-fx1
+add: D3D8 16bpp backbuffer emulation on 32bpp color depth. Fixes "Dangerous Waters" on 32bpp Win8-10 
+add: more OpenGL wgl* hooks, used by "StarSiege 2014".
+fix: using correct version method pointers in bilinear blit, avoids crash in "Daytona USA" using bilinear filtering
+fix: do not try to CloseHandle the handle returned by GetMenu, avoids debugger exceptions.

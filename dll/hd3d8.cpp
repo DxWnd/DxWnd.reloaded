@@ -205,6 +205,11 @@ HRESULT dxGetFrontBuffer(void *lpd3dd, LPDIRECTDRAWSURFACE xdest)
 	return DD_OK;
 }
 
+HRESULT exCreateImageSurface8(void *lpd3dd, UINT w, UINT h, D3DFORMAT Format, LPDIRECTDRAWSURFACE *ppBackBuffer)
+{
+	return ((IDirect3DDevice8 *)lpd3dd)->CreateImageSurface(w, h, Format, (IDirect3DSurface8 **)ppBackBuffer);
+}
+
 HRESULT  dxCopyRects(void *lpd3dd, LPDIRECTDRAWSURFACE psrc, LPDIRECTDRAWSURFACE pdst)
 {
 	HRESULT res;
@@ -319,4 +324,178 @@ HRESULT  dxCopyRects(void *lpd3dd, LPDIRECTDRAWSURFACE psrc, LPDIRECTDRAWSURFACE
 	return res;
 }
 
+LPDIRECT3DSURFACE8 D3D8EmulatedBackBuffer;
+LPDIRECT3DSURFACE8 D3D8RealBackBuffer;
+LPDIRECT3DSURFACE8 RealDepthBuffer;
+LPDIRECT3DTEXTURE8 D3D8EmulatedBackBufferTexture;
+IDirect3DSurface8* EmulatedBackBufferTextureLevel0;
 
+LPDIRECTDRAWSURFACE dwGetVirtualBackBuffer()
+{
+	return (LPDIRECTDRAWSURFACE)D3D8EmulatedBackBuffer;
+}
+
+HRESULT dwD3D8InitEmulation(void *lpd3ddx)
+{
+	HRESULT res;
+	LPDIRECT3DDEVICE8 lpd3dd = (LPDIRECT3DDEVICE8)lpd3ddx;
+
+    // Create the render target which will be used as the real back buffer.
+    res = lpd3dd->CreateRenderTarget(dxw.GetScreenWidth(), dxw.GetScreenHeight(), D3DFMT_R5G6B5, D3DMULTISAMPLE_NONE, TRUE, &D3D8EmulatedBackBuffer);
+    if(res) OutTraceE("dwD3D8InitEmulation: CreateRenderTarget ERROR res=%x at %d\n", res, __LINE__);
+
+    res = lpd3dd->CreateTexture(dxw.GetScreenWidth(), dxw.GetScreenHeight(), 1, 0, D3DFMT_R5G6B5, D3DPOOL_DEFAULT, &D3D8EmulatedBackBufferTexture);
+    if(res) OutTraceE("dwD3D8InitEmulation: CreateTexture ERROR res=%x at %d\n", res, __LINE__);
+
+    res = D3D8EmulatedBackBufferTexture->GetSurfaceLevel(0, &EmulatedBackBufferTextureLevel0);
+    if(res) OutTraceE("dwD3D8InitEmulation: GetSurfaceLevel ERROR res=%x at %d\n", res, __LINE__);
+
+    // Locate the real buffers.
+    res = lpd3dd->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &D3D8RealBackBuffer);
+    if(res) OutTraceE("dwD3D8InitEmulation: GetBackBuffer ERROR res=%x at %d\n", res, __LINE__);
+
+    res = lpd3dd->GetDepthStencilSurface(&RealDepthBuffer);
+    if(res) OutTraceE("dwD3D8InitEmulation: GetDepthStencilSurface ERROR res=%x at %d\n", res, __LINE__);
+
+    // Switch the render target to the emulated one by default.
+
+    res = lpd3dd->SetRenderTarget(D3D8EmulatedBackBuffer, RealDepthBuffer);
+    if(res) OutTraceE("dwD3D8InitEmulation: SetRenderTarget ERROR res=%x at %d\n", res, __LINE__);
+
+    return D3D_OK;
+}
+
+void dwD3D8ShutdownEmulation(void *lpd3ddx)
+{
+	HRESULT res;
+	LPDIRECT3DDEVICE8 lpd3dd = (LPDIRECT3DDEVICE8)lpd3ddx;
+    
+	// Restore targets.
+
+    res=lpd3dd->SetRenderTarget(D3D8RealBackBuffer, RealDepthBuffer);
+    if(res) OutTraceE("dwD3D8ShutdownEmulation: SetRenderTarget ERROR res=%x at %d\n", res, __LINE__);
+    res=D3D8RealBackBuffer->Release();
+    res=RealDepthBuffer->Release();
+
+    // Destroy emulation objects.
+
+    res=EmulatedBackBufferTextureLevel0->Release();
+    res=D3D8EmulatedBackBufferTexture->Release();
+    res=D3D8EmulatedBackBuffer->Release();
+}
+
+static DWORD set_rs(LPDIRECT3DDEVICE8 lpd3dd, const D3DRENDERSTATETYPE type, const DWORD value)
+{
+    DWORD old_value;
+    lpd3dd->GetRenderState(type, &old_value);
+    lpd3dd->SetRenderState(type, value);
+    return old_value;
+}
+
+static DWORD set_tss(LPDIRECT3DDEVICE8 lpd3dd, const DWORD stage, const D3DTEXTURESTAGESTATETYPE type, const DWORD value)
+{
+    DWORD old_value;
+    lpd3dd->GetTextureStageState(stage, type, &old_value);
+    lpd3dd->SetTextureStageState(stage, type, value);
+    return old_value;
+}
+
+HRESULT dwD3D8Present(void *lpd3ddx, CONST RECT *pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion)
+{
+	HRESULT res;
+	LPDIRECT3DDEVICE8 lpd3dd = (LPDIRECT3DDEVICE8)lpd3ddx;
+
+    if (pSourceRect || pDestRect || hDestWindowOverride || pDirtyRegion) {
+        OutTraceE("dwD3D8Present: ERROR only parameter-less Present is supported\n");
+        return D3DERR_INVALIDCALL;
+    }
+
+    // Blit the render target to the texture.
+
+    res = lpd3dd->CopyRects(D3D8EmulatedBackBuffer, NULL, 0, EmulatedBackBufferTextureLevel0, NULL);
+    if(res) OutTraceE("dwD3D8Present: CopyRects ERROR res=%x at %d\n", res, __LINE__);
+
+    // Render the texture to the real back buffer.
+
+    res = lpd3dd->BeginScene();
+	if(res) {
+		OutTraceE("dwD3D8Present: CopyRects ERROR res=%x at %d\n", res, __LINE__);
+		return D3DERR_INVALIDCALL;
+	}
+
+    LPDIRECT3DSURFACE8 old_back_buffer;
+    LPDIRECT3DSURFACE8 old_depth_buffer;
+    lpd3dd->GetRenderTarget(&old_back_buffer);
+    lpd3dd->GetDepthStencilSurface(&old_depth_buffer);
+
+    lpd3dd->SetRenderTarget(D3D8RealBackBuffer, RealDepthBuffer);
+
+    LPDIRECT3DBASETEXTURE8 old_txt;
+    lpd3dd->GetTexture(0, &old_txt);
+    lpd3dd->SetTexture(0, D3D8EmulatedBackBufferTexture);
+
+    DWORD old_vs;
+    lpd3dd->GetVertexShader(&old_vs);
+    lpd3dd->SetVertexShader(D3DFVF_XYZRHW | D3DFVF_TEX1);
+
+    IDirect3DVertexBuffer8 *old_stream_0;
+    UINT old_stream_0_stride;
+    lpd3dd->GetStreamSource(0, &old_stream_0, &old_stream_0_stride);
+
+    const DWORD old_cull = set_rs(lpd3dd, D3DRS_CULLMODE, D3DCULL_NONE);
+    const DWORD old_atest = set_rs(lpd3dd, D3DRS_ALPHATESTENABLE, FALSE);
+    const DWORD old_blend = set_rs(lpd3dd, D3DRS_ALPHABLENDENABLE, FALSE);
+    const DWORD old_z_enable = set_rs(lpd3dd, D3DRS_ZENABLE, FALSE);
+    const DWORD old_z_write = set_rs(lpd3dd, D3DRS_ZWRITEENABLE, FALSE);
+    const DWORD old_stencil = set_rs(lpd3dd, D3DRS_STENCILENABLE, FALSE);
+    const DWORD old_fog = set_rs(lpd3dd, D3DRS_FOGENABLE, FALSE);
+    const DWORD old_specular = set_rs(lpd3dd, D3DRS_SPECULARENABLE, FALSE);
+    const DWORD old_zbias = set_rs(lpd3dd, D3DRS_ZBIAS, 0);
+
+    const DWORD old_colorop_0 = set_tss(lpd3dd, 0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+    const DWORD old_colorarg_0 = set_tss(lpd3dd, 0, D3DTSS_COLORARG0, D3DTA_TEXTURE);
+    const DWORD old_colorop_1 = set_tss(lpd3dd, 1, D3DTSS_COLOROP, D3DTOP_DISABLE);
+    const DWORD old_mag_filter_0 = set_tss(lpd3dd, 0, D3DTSS_MAGFILTER, D3DTEXF_POINT);
+    const DWORD old_min_filter_0 = set_tss(lpd3dd, 0, D3DTSS_MINFILTER, D3DTEXF_POINT);
+
+    const float right = static_cast<float>(dxw.GetScreenWidth());
+    const float bottom = static_cast<float>(dxw.GetScreenHeight());
+
+    const struct QuadVertex {
+        float x, y, z, w;
+        float u, v;
+    } quad[] = {
+        {-0.5f + 0.0f,  -0.5f + 0.0f,   0.5f, 1.0f, 0.0f, 0.0f},
+        {-0.5f + right, -0.5f + 0.0f,   0.5f, 1.0f, 1.0f, 0.0f},
+        {-0.5f + right, -0.5f + bottom, 0.5f, 1.0f, 1.0f, 1.0f},
+        {-0.5f + 0.0f,  -0.5f + bottom, 0.5f, 1.0f, 0.0f, 1.0f},
+    };
+    lpd3dd->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, quad, sizeof(QuadVertex));
+
+    // Restore whatever parts of the state are necessary.
+    // Currently we do not restore viewport.
+
+    lpd3dd->SetRenderTarget(old_back_buffer, old_depth_buffer);
+    lpd3dd->SetTexture(0, old_txt);
+    lpd3dd->SetVertexShader(old_vs);
+
+    lpd3dd->SetRenderState(D3DRS_CULLMODE, old_cull);
+    lpd3dd->SetRenderState(D3DRS_ALPHATESTENABLE, old_atest);
+    lpd3dd->SetRenderState(D3DRS_ALPHABLENDENABLE, old_blend);
+    lpd3dd->SetRenderState(D3DRS_ZENABLE, old_z_enable);
+    lpd3dd->SetRenderState(D3DRS_ZWRITEENABLE, old_z_write);
+    lpd3dd->SetRenderState(D3DRS_STENCILENABLE, old_stencil);
+    lpd3dd->SetRenderState(D3DRS_FOGENABLE, old_fog);
+    lpd3dd->SetRenderState(D3DRS_SPECULARENABLE, old_specular);
+    lpd3dd->SetRenderState(D3DRS_ZBIAS, old_zbias);
+
+    lpd3dd->SetTextureStageState(0, D3DTSS_COLOROP, old_colorop_0);
+    lpd3dd->SetTextureStageState(0, D3DTSS_COLORARG0, old_colorarg_0);
+    lpd3dd->SetTextureStageState(1, D3DTSS_COLOROP, old_colorop_1);
+    lpd3dd->SetTextureStageState(0, D3DTSS_MAGFILTER, old_mag_filter_0);
+    lpd3dd->SetTextureStageState(0, D3DTSS_MINFILTER, old_min_filter_0);
+
+    lpd3dd->SetStreamSource(0, old_stream_0, old_stream_0_stride);
+    lpd3dd->EndScene();
+	return D3D_OK;
+}

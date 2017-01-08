@@ -53,6 +53,9 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	// Swap Effect
 	DDX_Check(pDX, IDC_FORCESWAPEFFECT, cTarget->m_ForcesSwapEffect);
 	DDX_Radio(pDX, IDC_SWAP_DISCARD, cTarget->m_SwapEffect);
+
+	// Emulations ....
+	DDX_Check(pDX, IDC_D3D8BACK16, cTarget->m_D3D8Back16);
 }
 
 BEGIN_MESSAGE_MAP(CTabDirect3D, CDialog)

@@ -264,6 +264,7 @@
 #define DDSFORMAT			0x00001000 // texture dump / hack are performed in MS DDS format
 #define HOOKWING32			0x00002000 // Hook WinG32.dll
 #define SEQUENCEDIAT		0x00004000 // IFT has sequential format, DLL entries before and API next
+#define D3D8BACK16			0x00008000 // D3D8 emulate 16 bpp backbuffer on a 32 bpp desktop (Win8-10 needed feature)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

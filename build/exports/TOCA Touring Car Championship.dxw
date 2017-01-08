@@ -1,0 +1,36 @@
+[target]
+title0=TOCA Touring Car Championship
+path0=F:\Games\tourcar\tourcars.exe
+startfolder0=
+launchpath0=F:\Games\tourcar\setup.exe
+module0=
+opengllib0=
+notes0=
+registry0=\n[HKEY_LOCAL_MACHINE\SOFTWARE\Codemasters]\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Codemasters\Touring Car]\n"GameDirectory"="F:\\Games\\tourcar\\"\n"CD_Drive"="."\n"Install_Drive"="F:"\n"CardHintIndex"=dword:00000000\n"ShowRunInfo"=dword:00000000\n"S3RunInfo"=dword:00000000\n\n
+ver0=0
+monitorid0=-1
+coord0=0
+flag0=673185834
+flagg0=1207959552
+flagh0=528
+flagi0=138412032
+flagj0=4224
+flagk0=65536
+flagl0=0
+flagm0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=0
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2
+scanline0=0
+initresw0=800
+initresh0=600

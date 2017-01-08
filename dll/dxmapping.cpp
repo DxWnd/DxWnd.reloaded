@@ -26,7 +26,7 @@ void dxwCore::UpdateDesktopCoordinates()
 	RECT Client;
 	POINT UpLeft = {0, 0};
 
-	OutTraceB("dxwCore::UpdateDesktopCoordinates: OLD pos=(%d,%d) size=(%dx%d)\n", iPosX, iPosY, iSizX, iSizY);
+	//OutTraceB("dxwCore::UpdateDesktopCoordinates: OLD pos=(%d,%d) size=(%dx%d)\n", iPosX, iPosY, iSizX, iSizY);
 	if(!(*pGetClientRect)(hWnd, &Client)) return;
 	if((Client.right == 0) || (Client.bottom == 0)) return;
 	if(!(*pClientToScreen)(hWnd, &UpLeft)) return;
@@ -35,7 +35,7 @@ void dxwCore::UpdateDesktopCoordinates()
 	iPosY = UpLeft.y;
 	iSizX = Client.right - Client.left;
 	iSizY = Client.bottom - Client.top;
-	OutTraceB("dxwCore::UpdateDesktopCoordinates: NEW pos=(%d,%d) size=(%dx%d)\n", iPosX, iPosY, iSizX, iSizY);
+	//OutTraceB("dxwCore::UpdateDesktopCoordinates: NEW pos=(%d,%d) size=(%dx%d)\n", iPosX, iPosY, iSizX, iSizY);
 }
 
 // GetScreenRect: returns a RECT sized as the virtual desktop
@@ -460,7 +460,7 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 		// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
 		hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
 		AdjustWindowRectEx(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
-		if (hMenu) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
+		// if (hMenu) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
 		switch(dxw.Coordinates){
 		case DXW_DESKTOP_WORKAREA:
 		case DXW_DESKTOP_FULL:

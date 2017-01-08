@@ -391,6 +391,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SuppressD3DExt) t->flags3 |= SUPPRESSD3DEXT;
 	if(dlg->m_Enum16bitModes) t->flags7 |= ENUM16BITMODES;
 	if(dlg->m_TrimTextureFormats) t->flags8 |= TRIMTEXTUREFORMATS;
+	if(dlg->m_D3D8Back16) t->flags8 |= D3D8BACK16;
 	if(dlg->m_SetCompatibility) t->flags2 |= SETCOMPATIBILITY;
 	if(dlg->m_AEROBoost) t->flags5 |= AEROBOOST;
 	if(dlg->m_DiabloTweak) t->flags5 |= DIABLOTWEAK;
@@ -687,6 +688,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_Enum16bitModes = t->flags7 & ENUM16BITMODES ? 1 : 0;
 	dlg->m_TrimTextureFormats = t->flags8 & TRIMTEXTUREFORMATS ? 1 : 0;
+	dlg->m_D3D8Back16 = t->flags8 & D3D8BACK16 ? 1 : 0;
 	dlg->m_SetCompatibility = t->flags2 & SETCOMPATIBILITY ? 1 : 0;
 	dlg->m_AEROBoost = t->flags5 & AEROBOOST ? 1 : 0;
 	dlg->m_DiabloTweak = t->flags5 & DIABLOTWEAK ? 1 : 0;

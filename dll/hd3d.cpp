@@ -20,6 +20,16 @@
 
 extern void D3D9TextureHandling(void *, int);
 extern void D3D8TextureHandling(void *, int);
+extern HRESULT exCreateImageSurface8(void *, UINT, UINT, D3DFORMAT, LPDIRECTDRAWSURFACE *);
+extern HRESULT dxCopyRects(void *, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE);
+extern HRESULT dwD3D8InitEmulation(void *);
+extern LPDIRECTDRAWSURFACE dwGetVirtualBackBuffer();
+extern void dwD3D8ShutdownEmulation(void *);
+extern HRESULT dwD3D8Present(void *, CONST RECT *, CONST RECT*, HWND, CONST RGNDATA *);
+extern void HookWindowProc(HWND);
+extern char *ExplainDDError(DWORD);
+extern char *ExplainRenderstateValue(DWORD Value);
+extern HRESULT dxGetFrontBuffer(void *, LPDIRECTDRAWSURFACE);
 
 void *lpD3DActiveDevice = NULL;
 typedef HRESULT (WINAPI *QueryInterface_Type)(void *, REFIID riid, void** ppvObj);
@@ -67,6 +77,7 @@ typedef HMONITOR (WINAPI *GetAdapterMonitor_Type)(void *, UINT);
 typedef HRESULT (WINAPI *CreateDevice_Type)(void *, UINT, D3DDEVTYPE, HWND, DWORD, void *, void **);
 typedef HRESULT (WINAPI *CreateDeviceEx_Type)(void *, UINT, D3DDEVTYPE, HWND, DWORD, void *, D3DDISPLAYMODEEX *, void **);
 typedef BOOL	(WINAPI *DisableD3DSpy_Type)(void);
+typedef HRESULT (WINAPI *GetBackBuffer8_Type)(void *, UINT, D3DBACKBUFFER_TYPE, LPDIRECTDRAWSURFACE *);
 
 UINT WINAPI extGetAdapterCount8(void *);
 UINT WINAPI extGetAdapterCount9(void *);
@@ -83,6 +94,7 @@ HMONITOR WINAPI extGetAdapterMonitor9(void *, UINT);
 HRESULT WINAPI extCreateDevice8(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, void **);
 HRESULT WINAPI extCreateDevice9(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, void **);
 HRESULT WINAPI extCreateDeviceEx(void *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, D3DDISPLAYMODEEX *, void **);
+HRESULT WINAPI extGetBackBuffer8(void *, UINT, D3DBACKBUFFER_TYPE, LPDIRECTDRAWSURFACE *);
 
 GetAdapterCount_Type pGetAdapterCount8, pGetAdapterCount9;
 GetAdapterModeCount8_Type pGetAdapterModeCount8;
@@ -94,6 +106,7 @@ D3DGetDeviceCaps9_Type pD3DGetDeviceCaps9 = 0;
 GetAdapterMonitor_Type pGetAdapterMonitor8, pGetAdapterMonitor9;
 CreateDevice_Type pCreateDevice8, pCreateDevice9;
 CreateDeviceEx_Type pCreateDeviceEx = 0;
+GetBackBuffer8_Type pGetBackBuffer8 = 0;
 
 // IDirect3DDevice8/9 methods
 
@@ -117,6 +130,7 @@ typedef HRESULT (WINAPI *CreateTexture8_Type)(void *, UINT, UINT, UINT, DWORD, D
 typedef HRESULT (WINAPI *CreateTexture9_Type)(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3DPOOL, void **, HANDLE *);
 typedef HRESULT	(WINAPI *CopyRects_Type)(void *, LPDIRECTDRAWSURFACE, CONST RECT *, UINT, LPDIRECTDRAWSURFACE, CONST POINT *);
 typedef HRESULT (WINAPI *GetFrontBuffer_Type)(void *, LPDIRECTDRAWSURFACE);
+typedef ULONG	(WINAPI *ReleaseDev_Type)(void *);
 
 UINT	WINAPI extGetAvailableTextureMem8(void *);
 UINT	WINAPI extGetAvailableTextureMem9(void *);
@@ -143,6 +157,8 @@ HRESULT WINAPI extCreateTexture9(void *, UINT, UINT, UINT, DWORD, D3DFORMAT, D3D
 // CopyRects prototype uses IDirect3DSurface8 *, but to avoid including d3d8.h better use a generic ptr as LPDIRECTDRAWSURFACE
 HRESULT	WINAPI extCopyRects(void *, LPDIRECTDRAWSURFACE, CONST RECT *, UINT, LPDIRECTDRAWSURFACE, CONST POINT *);
 HRESULT WINAPI extGetFrontBuffer(void *, LPDIRECTDRAWSURFACE);
+ULONG WINAPI extReleaseDev8(void *);
+ULONG WINAPI extReleaseDev9(void *);
 
 GetAvailableTextureMem_Type pGetAvailableTextureMem8, pGetAvailableTextureMem9;
 TestCooperativeLevel_Type pTestCooperativeLevel8, pTestCooperativeLevel9;
@@ -166,6 +182,7 @@ CreateTexture8_Type pCreateTexture8 = 0;
 CreateTexture9_Type pCreateTexture9 = 0;
 CopyRects_Type pCopyRects = 0;
 GetFrontBuffer_Type pGetFrontBuffer = 0;
+ReleaseDev_Type pReleaseDev8, pReleaseDev9;
 
 // IDirect3DTexture8/9 methods
 
@@ -233,8 +250,6 @@ void	WINAPI extSetGammaRamp8(void *, UINT, DWORD, D3DGAMMARAMP *);
 void	WINAPI extSetGammaRamp9(void *, UINT, DWORD, D3DGAMMARAMP *);
 void	WINAPI extGetGammaRamp8(void *, UINT, D3DGAMMARAMP *);
 void	WINAPI extGetGammaRamp9(void *, UINT, D3DGAMMARAMP *);
-ULONG WINAPI extAddRef9(void *);
-ULONG WINAPI extRelease9(void *);
 BOOL  WINAPI voidDisableD3DSpy(void);
 
 ULONG WINAPI extCreateRenderTarget8(void *, UINT, UINT, D3DFORMAT, D3DMULTISAMPLE_TYPE, BOOL, void**);
@@ -254,8 +269,6 @@ HRESULT WINAPI extD3D11CreateDevice(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UI
 HRESULT WINAPI extD3D11CreateDeviceAndSwapChain(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT, const D3D_FEATURE_LEVEL *, UINT, UINT, const DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **, ID3D11Device **, D3D_FEATURE_LEVEL *, ID3D11DeviceContext **);
 void WINAPI extRSSetViewports10(void *, UINT, D3D10_VIEWPORT *);
 void WINAPI extRSSetViewports11(ID3D11DeviceContext *, UINT, D3D11_VIEWPORT *);
-
-extern char *ExplainDDError(DWORD);
 
 QueryInterface_Type pQueryInterfaceD3D8 = 0;
 QueryInterface_Type pQueryInterfaceDev8 = 0;
@@ -460,6 +473,7 @@ void HookD3DDevice8(void** ppD3Ddev8)
 {
 	OutTraceD3D("Device hook for IID_IDirect3DDevice8 interface\n");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 +  0), extQueryInterfaceDev8, (void **)&pQueryInterfaceDev8, "QueryInterface(D8)");
+	//SetHook((void *)(**(DWORD **)ppD3Ddev8 +  8), extReleaseDev8, (void **)&pReleaseDev8, "Release(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 12), extTestCooperativeLevel8, (void **)&pTestCooperativeLevel8, "TestCooperativeLevel(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 16), extGetAvailableTextureMem8, (void **)&pGetAvailableTextureMem8, "GetAvailableTextureMem(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 24), extGetDirect3D8, (void **)&pGetDirect3D8, "GetDirect3D(D8)");
@@ -469,6 +483,7 @@ void HookD3DDevice8(void** ppD3Ddev8)
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 52), extCreateAdditionalSwapChain8, (void **)&pCreateAdditionalSwapChain8, "CreateAdditionalSwapChain(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 56), extReset8, (void **)&pReset8, "Reset(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 60), extPresent8, (void **)&pPresent8, "Present(D8)");
+	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 64), extGetBackBuffer8, (void **)&pGetBackBuffer8, "GetBackBuffer(D8)");
 	if(dxw.dwFlags2 & DISABLEGAMMARAMP){
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 72), extSetGammaRamp8, (void **)&pSetGammaRamp8, "SetGammaRamp(D8)");
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 76), extGetGammaRamp8, (void **)&pGetGammaRamp8, "GetGammaRamp(D8)");
@@ -503,6 +518,7 @@ void HookD3DDevice9(void** ppD3Ddev9)
 {
 	OutTraceD3D("Device hook for IID_IDirect3DDevice9 interface\n");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 +  0), extQueryInterfaceDev9, (void **)&pQueryInterfaceDev9, "QueryInterface(D9)");
+	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +  8), extReleaseDev9, (void **)&pReleaseDev9, "Release(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 12), extTestCooperativeLevel9, (void **)&pTestCooperativeLevel9, "TestCooperativeLevel(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 16), extGetAvailableTextureMem9, (void **)&pGetAvailableTextureMem9, "GetAvailableTextureMem(D9)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 24), extGetDirect3D9, (void **)&pGetDirect3D9, "GetDirect3D(D9)");
@@ -611,6 +627,26 @@ void HookDirect3D9(void *lpd3d, BOOL ex)
 	SetHook((void *)(*(DWORD *)lpd3d + 60), extGetAdapterMonitor9, (void **)&pGetAdapterMonitor9, "GetAdapterMonitor(D9)");
 	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice9, (void **)&pCreateDevice9, "CreateDevice(D9)");
 	if(ex) SetHook((void *)(*(DWORD *)lpd3d + 80), extCreateDeviceEx, (void **)&pCreateDeviceEx, "CreateDeviceEx(D9)");
+}
+
+static char *ExplainD3DBehaviourFlags(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"D3DCREATE_");
+	if (c & D3DCREATE_FPU_PRESERVE) strcat(eb, "FPU_PRESERVE+");
+	if (c & D3DCREATE_MULTITHREADED) strcat(eb, "MULTITHREADED+");
+	if (c & D3DCREATE_PUREDEVICE) strcat(eb, "PUREDEVICE+");
+	if (c & D3DCREATE_SOFTWARE_VERTEXPROCESSING) strcat(eb, "SOFTWARE_VERTEXPROCESSING+");
+	if (c & D3DCREATE_HARDWARE_VERTEXPROCESSING) strcat(eb, "HARDWARE_VERTEXPROCESSING+");
+	if (c & D3DCREATE_MIXED_VERTEXPROCESSING) strcat(eb, "MIXED_VERTEXPROCESSING+");
+	if (c & D3DCREATE_DISABLE_DRIVER_MANAGEMENT) strcat(eb, "DISABLE_DRIVER_MANAGEMENT+");
+	if (c & D3DCREATE_ADAPTERGROUP_DEVICE) strcat(eb, "ADAPTERGROUP_DEVICE+");
+	if (c & D3DCREATE_DISABLE_DRIVER_MANAGEMENT_EX) strcat(eb, "DISABLE_DRIVER_MANAGEMENT_EX+");
+	l=strlen(eb);
+	if (l>strlen("D3DCREATE_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
 }
 
 void* WINAPI extDirect3DCreate9(UINT sdkversion)
@@ -739,7 +775,7 @@ static HRESULT WINAPI extReset(int dwD3DVersion, void *pd3dd, D3DPRESENT_PARAMET
 		OutTrace("D3D%d::Reset\n", dwD3DVersion);
 		OutTrace("    BackBufferWidth = %i\n", *(tmp ++));
 		OutTrace("    BackBufferHeight = %i\n", *(tmp ++));
-		OutTrace("    BackBufferFormat = %i\n", *(tmp ++));
+		OutTrace("    BackBufferFormat = %i(%s)\n", *(tmp ++), ExplainD3DSurfaceFormat(param[2]));
 		OutTrace("    BackBufferCount = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleType = %i\n", *(tmp ++));
 		if(dwD3DVersion == 9) OutTrace("    MultiSampleQuality = %i\n", *(tmp ++));
@@ -808,10 +844,19 @@ static HRESULT WINAPI extReset(int dwD3DVersion, void *pd3dd, D3DPRESENT_PARAMET
 		}
 	}
 
+	if((dxw.dwFlags8 & D3D8BACK16) && (dwD3DVersion == 8)){
+		D3DPRESENT_PARAMETERS *params = (D3DPRESENT_PARAMETERS *)&param[0];
+		dwD3D8ShutdownEmulation(pd3dd);
+		// Change the presentation effect from D3DSWAPEFFECT_COPY to D3DSWAPEFFECT_DISCARD to fix blank screen on W10.
+		params->SwapEffect = D3DSWAPEFFECT_DISCARD;
+		// Drop the lockable backbuffer flag to be safe. We do not need it.
+		params->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+	}
+
 	if(!(dxw.dwFlags4 & NOD3DRESET)){ 
 		res = (*pReset)(pd3dd, (D3DPRESENT_PARAMETERS *)param);
 		if(res){
-			OutTraceD3D("switching to mode=%x\n", mode.Format);
+			OutTraceD3D("err=%x(%s) switching to mode=%d(%s)\n", res, ExplainDDError(res), mode.Format, ExplainD3DSurfaceFormat(mode.Format));
 			param[2] = mode.Format; // first attempt: current screen mode
 			res = (*pReset)(pd3dd, (D3DPRESENT_PARAMETERS *)param);
 		}
@@ -825,7 +870,7 @@ static HRESULT WINAPI extReset(int dwD3DVersion, void *pd3dd, D3DPRESENT_PARAMET
 			return D3DERR_INVALIDCALL;
 		}
 		if(res){
-			OutTraceD3D("FAILED! %x\n", res);
+			OutTraceD3D("FAILED! %x(%s)\n", res, ExplainDDError(res));
 			return res;
 		}
 		OutTraceD3D("SUCCESS!\n");
@@ -834,6 +879,11 @@ static HRESULT WINAPI extReset(int dwD3DVersion, void *pd3dd, D3DPRESENT_PARAMET
 	else{
 		OutTraceD3D("SKIPPED!\n");
 		res=D3D_OK;
+	}
+
+	if((dxw.dwFlags8 & D3D8BACK16) && (dwD3DVersion == 8)){
+		dwD3D8InitEmulation(pd3dd);
+		if(res) OutTraceE("Reset: dwD3D8InitEmulation ERROR: err=%x(%s)\n", res, ExplainDDError(res));
 	}
 
 	dxw.SetScreenSize(pPresParam->BackBufferWidth, pPresParam->BackBufferHeight);
@@ -853,7 +903,7 @@ HRESULT WINAPI extReset8(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 HRESULT WINAPI extReset9(void *pd3dd, D3DPRESENT_PARAMETERS* pPresParam)
 { return extReset(9, pd3dd, pPresParam); }
 
-static HRESULT WINAPI extPresent(Present_Type pPresent, void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
+static HRESULT WINAPI extPresent(int d3dversion, Present_Type pPresent, void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
 {
 	HRESULT res;
 	RECT RemappedSrcRect, RemappedDstRect;
@@ -864,12 +914,18 @@ static HRESULT WINAPI extPresent(Present_Type pPresent, void *pd3dd, CONST RECT 
 		else strcpy(sSourceRect, "(NULL)");
 		if (pDestRect) sprintf_s(sDestRect, 80, "(%d,%d)-(%d,%d)", pDestRect->left, pDestRect->top, pDestRect->right, pDestRect->bottom);
 		else strcpy(sDestRect, "(NULL)");
-		OutTraceB("Present: SourceRect=%s DestRect=%s hDestWndOverride=%x\n", sSourceRect, sDestRect, hDestWindowOverride);
+		OutTraceB("Present(%d): d3dd=%x SourceRect=%s DestRect=%s hDestWndOverride=%x dirtyregion=%x\n", 
+			d3dversion, pd3dd, sSourceRect, sDestRect, hDestWindowOverride, pDirtyRegion);
 	}
 
 	// frame counter handling....
 	if (dxw.HandleFPS()) return D3D_OK;
 	if (dxw.dwFlags1 & SAVELOAD) dxw.VSyncWait();
+
+	if((dxw.dwFlags8 & D3D8BACK16) && (d3dversion == 8)){
+		res = dwD3D8Present(pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+		OutTraceD3D("Present: EMULATION res=%x\n", res);
+	}
 
 	if(dxw.dwFlags2 & FULLRECTBLT) pSourceRect = pDestRect = NULL;
 	if(dxw.Windowize){
@@ -888,15 +944,29 @@ static HRESULT WINAPI extPresent(Present_Type pPresent, void *pd3dd, CONST RECT 
 	}
 
 	res=(*pPresent)(pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
-	if(res) OutTraceE("Present: err=%x(%s)\n", res, ExplainDDError(res));
+	if(res) {
+		OutTraceE("Present: err=%x(%s)\n", res, ExplainDDError(res));
+	}
+	else {
+		if(IsDebug){
+			if(pDirtyRegion) {
+				OutTrace("Present: D3D_OK dirtyreg={buf=%x type=%d count=%d rgnsize=%x bound=(%d,%d)-(%d,%d)}\n", 
+					pDirtyRegion->Buffer, pDirtyRegion->rdh.iType, pDirtyRegion->rdh.nCount, pDirtyRegion->rdh.nRgnSize,
+					pDirtyRegion->rdh.rcBound.left, pDirtyRegion->rdh.rcBound.top, pDirtyRegion->rdh.rcBound.right, pDirtyRegion->rdh.rcBound.bottom);
+			}
+			else {
+				OutTrace("Present: D3D_OK\n");
+			}
+		}
+	}
 	dxw.ShowOverlay();
 	return res;
 }
 
 HRESULT WINAPI extPresent8(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
-{ return extPresent(pPresent8, pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion); }
+{ return extPresent(8, pPresent8, pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion); }
 HRESULT WINAPI extPresent9(void *pd3dd, CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
-{ return extPresent(pPresent9, pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion); }
+{ return extPresent(9, pPresent9, pd3dd, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion); }
 
 HRESULT WINAPI extGetDisplayMode8(void *lpd3d, D3DDISPLAYMODE *pMode)
 {
@@ -980,12 +1050,12 @@ HRESULT WINAPI extEnumAdapterModes9(void *lpd3d, UINT Adapter, D3DFORMAT Format,
 	return res;
 }
 
-HRESULT WINAPI extGetAdapterDisplayMode8(void *lpd3d, UINT Adapter, D3DDISPLAYMODE *pMode)
+HRESULT WINAPI extGetAdapterDisplayMode(int d3dversion, GetAdapterDisplayMode_Type pGetAdapterDisplayMode, void *lpd3d, UINT Adapter, D3DDISPLAYMODE *pMode)
 {
 	HRESULT res;
-	res=(*pGetAdapterDisplayMode8)(lpd3d, Adapter, pMode);
-	OutTraceD3D("GetAdapterDisplayMode(8): size=(%dx%d) RefreshRate=%d Format=%d\n",
-		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
+	res=(*pGetAdapterDisplayMode)(lpd3d, Adapter, pMode);
+	OutTraceD3D("GetAdapterDisplayMode(%d): size=(%dx%d) RefreshRate=%d Format=%d(%s)\n",
+		d3dversion, pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format, ExplainD3DSurfaceFormat(pMode->Format));
 	if(dxw.dwFlags2 & KEEPASPECTRATIO){
 		pMode->Width=dxw.iSizX;
 		pMode->Height=dxw.iSizY;
@@ -994,33 +1064,19 @@ HRESULT WINAPI extGetAdapterDisplayMode8(void *lpd3d, UINT Adapter, D3DDISPLAYMO
 		pMode->Width = dxw.GetScreenWidth();
 		pMode->Height = dxw.GetScreenHeight();
 	}
-	OutTraceD3D("GetAdapterDisplayMode(8): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
+	OutTraceD3D("GetAdapterDisplayMode: fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
 	dxw.SetVSyncDelays(pMode->RefreshRate);
 	return res;
 }
 
+HRESULT WINAPI extGetAdapterDisplayMode8(void *lpd3d, UINT Adapter, D3DDISPLAYMODE *pMode)
+{ return extGetAdapterDisplayMode(8, pGetAdapterDisplayMode8, lpd3d, Adapter, pMode); }
 HRESULT WINAPI extGetAdapterDisplayMode9(void *lpd3d, UINT Adapter, D3DDISPLAYMODE *pMode)
-{
-	HRESULT res;
-	res=(*pGetAdapterDisplayMode9)(lpd3d, Adapter, pMode);
-	OutTraceD3D("GetAdapterDisplayMode(9): size=(%dx%d) RefreshRate=%d Format=%d\n",
-		pMode->Width, pMode->Height, pMode->RefreshRate, pMode->Format);
-	if(dxw.dwFlags2 & KEEPASPECTRATIO){
-		pMode->Width=dxw.iSizX;
-		pMode->Height=dxw.iSizY;
-	}
-	else{
-		pMode->Width = dxw.GetScreenWidth();
-		pMode->Height = dxw.GetScreenHeight();
-	}
-	OutTraceD3D("GetAdapterDisplayMode(9): fixed size=(%dx%d)\n", pMode->Width, pMode->Height);
-	dxw.SetVSyncDelays(pMode->RefreshRate);
-	return res;
-}
+{ return extGetAdapterDisplayMode(9, pGetAdapterDisplayMode9, lpd3d, Adapter, pMode); }
+
 
 HWND FixD3DWindowFrame(HWND hFocusWin)
 {
-	extern void HookWindowProc(HWND);
 	HWND hRetWnd = hFocusWin;
 
 	if(!(dxw.dwFlags3 & NOWINDOWMOVE)) 
@@ -1068,7 +1124,7 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 	dxw.SetScreenSize(param[0], param[1]);
 
 	if(dxw.Windowize) hfocuswindow=FixD3DWindowFrame(hfocuswindow);
-
+	
 	if(IsTraceD3D){
 		tmp = param;
 		DWORD SwapEffect;
@@ -1076,10 +1132,10 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 		OutTrace("  Adapter = %i\n", adapter);
 		OutTrace("  DeviceType = %i\n", devicetype);
 		OutTrace("  hFocusWindow = 0x%x\n", hfocuswindow);
-		OutTrace("  BehaviorFlags = 0x%x\n", behaviorflags);
+		OutTrace("  BehaviorFlags = 0x%x(%s)\n", behaviorflags, ExplainD3DBehaviourFlags(behaviorflags));
 		OutTrace("    BackBufferWidth = %i\n", *(tmp ++));
 		OutTrace("    BackBufferHeight = %i\n", *(tmp ++));
-		OutTrace("    BackBufferFormat = %i\n", *(tmp ++));
+		OutTrace("    BackBufferFormat = %i(%s)\n", *(tmp ++), ExplainD3DSurfaceFormat(param[2]));
 		OutTrace("    BackBufferCount = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleType = %i\n", *(tmp ++));
 		if(dwD3DVersion == 9) OutTrace("    MultiSampleQuality = %i\n", *(tmp ++));
@@ -1098,7 +1154,7 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 		(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
 	else
 		(*pGetAdapterDisplayMode8)(lpd3d, 0, &mode);
-	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
+	OutTraceD3D("    Current Format = %d(%s)\n", mode.Format, ExplainD3DSurfaceFormat(mode.Format));
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
 
@@ -1128,12 +1184,12 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 		}
 		res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		if(res){
-			OutTraceD3D("err=%x switching to mode=%x\n", res, mode.Format);
+			OutTraceD3D("err=%x(%s) switching to mode=%d(%s)\n", res, ExplainDDError(res), mode.Format, ExplainD3DSurfaceFormat(mode.Format));
 			param[2] = mode.Format; // first attempt: current screen mode
 			res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		}
 		if(res){
-			OutTraceD3D("err=%x switching to mode=D3DFMT_UNKNOWN\n", res);
+			OutTraceD3D("err=%x(%s) switching to mode=D3DFMT_UNKNOWN\n", res, ExplainDDError(res));
 			param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
 			res = (*pCreateDevice9)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		}
@@ -1151,23 +1207,27 @@ static HRESULT WINAPI extCreateDevice(void *lpd3d, UINT adapter, D3DDEVTYPE devi
 		}
 		res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		if(res){
-			OutTraceD3D("err=%x switching to mode=%x\n", res, mode.Format);
+			OutTraceD3D("err=%x(%s) switching to mode=%d(%s)\n", res, ExplainDDError(res), mode.Format, ExplainD3DSurfaceFormat(mode.Format));
 			param[2] = mode.Format; // first attempt: current screen mode
 			res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		}
 		if(res){
-			OutTraceD3D("err=%x switching to mode=D3DFMT_UNKNOWN\n", res);
+			OutTraceD3D("err=%x(%s) switching to mode=D3DFMT_UNKNOWN\n", res, ExplainDDError(res));
 			param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
 			res = (*pCreateDevice8)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, ppd3dd);
 		}
 	}
 
 	if(res){
-		OutTraceD3D("FAILED! err=%x\n", res);
+		OutTraceD3D("FAILED! err=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
 	OutTraceD3D("SUCCESS! device=%x\n", *ppd3dd);
 	lpD3DActiveDevice = *ppd3dd;
+
+	if((dxw.dwFlags8 & D3D8BACK16) && (dwD3DVersion == 8)){
+		dwD3D8InitEmulation(*ppd3dd);
+	}
 
 	if(dwD3DVersion == 8){ 
 		HookD3DDevice8(ppd3dd);
@@ -1218,7 +1278,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 		OutTrace("  BehaviorFlags = 0x%x\n", behaviorflags);
 		OutTrace("    BackBufferWidth = %i\n", *(tmp ++));
 		OutTrace("    BackBufferHeight = %i\n", *(tmp ++));
-		OutTrace("    BackBufferFormat = %i\n", *(tmp ++));
+		OutTrace("    BackBufferFormat = %i(%s)\n", *(tmp ++), ExplainD3DSurfaceFormat(param[2]));
 		OutTrace("    BackBufferCount = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleType = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleQuality = %i\n", *(tmp ++));
@@ -1235,7 +1295,7 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 
 	//((LPDIRECT3D9)lpd3d)->GetAdapterDisplayMode(0, &mode);
 	(*pGetAdapterDisplayMode9)(lpd3d, 0, &mode);
-	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
+	OutTraceD3D("    Current Format = %d(%s)\n", mode.Format, ExplainD3DSurfaceFormat(mode.Format));
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
 
@@ -1270,17 +1330,17 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 
 	res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
 	if(res){
-		OutTraceD3D("err=%x switching to mode=%x\n", res, mode.Format);
+		OutTraceD3D("err=%x(%s) switching to mode=%d(%s)\n", res, ExplainDDError(res), mode.Format, ExplainD3DSurfaceFormat(mode.Format));
 		param[2] = mode.Format; // first attempt: current screen mode
 		res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
 	}
 	if(res){
-		OutTraceD3D("err=%x switching to mode=D3DFMT_UNKNOWN\n", res);
+		OutTraceD3D("err=%x(%s) switching to mode=D3DFMT_UNKNOWN\n", res, ExplainDDError(res));
 		param[2] = D3DFMT_UNKNOWN; // second attempt: unknown, good for windowed mode
 		res = (*pCreateDeviceEx)(lpd3d, 0, devicetype, hfocuswindow, behaviorflags, param, pFullscreenDisplayMode, ppd3dd);
 	}
 	if(res){
-		OutTraceD3D("FAILED! err=%x\n", res);
+		OutTraceD3D("FAILED! err=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
 	OutTraceD3D("SUCCESS!\n"); 
@@ -1298,8 +1358,6 @@ HRESULT WINAPI extCreateDeviceEx(void *lpd3d, UINT adapter, D3DDEVTYPE devicetyp
 	
 	return DD_OK;
 }
-
-extern char *ExplainRenderstateValue(DWORD Value);
 
 static HRESULT WINAPI extSetRenderState(SetRenderState_Type pSetRenderState, void *pd3dd, D3DRENDERSTATETYPE State, DWORD Value) 
 {
@@ -1387,7 +1445,7 @@ static HRESULT WINAPI extCreateAdditionalSwapChain(int dwD3DVersion, void *lpd3d
 		OutTrace("D3D%d::CreateAdditionalSwapChain\n", dwD3DVersion);
 		OutTrace("    BackBufferWidth = %i\n", *(tmp ++));
 		OutTrace("    BackBufferHeight = %i\n", *(tmp ++));
-		OutTrace("    BackBufferFormat = %i\n", *(tmp ++));
+		OutTrace("    BackBufferFormat = %i(%s)\n", *(tmp ++), ExplainD3DSurfaceFormat(param[2]));
 		OutTrace("    BackBufferCount = %i\n", *(tmp ++));
 		OutTrace("    MultiSampleType = %i\n", *(tmp ++));
 		if(dwD3DVersion == 9) OutTrace("    MultiSampleQuality = %i\n", *(tmp ++));
@@ -1405,7 +1463,7 @@ static HRESULT WINAPI extCreateAdditionalSwapChain(int dwD3DVersion, void *lpd3d
 	res2=(*pGetAdapterDisplayMode)(lpd3dd, D3DADAPTER_DEFAULT, &mode);
 
 	if(res2==DD_OK){
-	OutTraceD3D("    Current Format = 0x%x\n", mode.Format);
+	OutTraceD3D("    Current Format = %d(%s)\n", mode.Format, ExplainD3DSurfaceFormat(mode.Format));
 	OutTraceD3D("    Current ScreenSize = (%dx%d)\n", mode.Width, mode.Height);
 	OutTraceD3D("    Current Refresh Rate = %d\n", mode.RefreshRate);
 	}
@@ -1440,7 +1498,7 @@ static HRESULT WINAPI extCreateAdditionalSwapChain(int dwD3DVersion, void *lpd3d
 
 	res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
 	if(res && (res2==DD_OK)){
-		OutTraceD3D("switching to mode=%x\n", mode.Format);
+		OutTraceD3D("err=%x(%s) switching to mode=%d(%s)\n", res, ExplainDDError(res), mode.Format, ExplainD3DSurfaceFormat(mode.Format));
 		param[2] = mode.Format; // first attempt: current screen mode
 		res=(*pCreateAdditionalSwapChain)(lpd3dd, (D3DPRESENT_PARAMETERS *)param, ppSwapChain);
 	}
@@ -1712,6 +1770,19 @@ HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
 	return res;
 }
 
+static ULONG WINAPI ReleaseDev(int d3dversion, ReleaseDev_Type pReleaseDev, void *lpdd)
+{
+	ULONG ActualRef;
+	ActualRef=(*pReleaseDev)(lpdd);
+	OutTraceD3D("Release(D%d): lpdd=%x ret=%d\n", d3dversion, lpdd, ActualRef);
+	return ActualRef;
+}
+
+ULONG WINAPI extReleaseDev8(void *lpdd)
+{ return ReleaseDev(8, pReleaseDev8, lpdd); }
+ULONG WINAPI extReleaseDev9(void *lpdd)
+{ return ReleaseDev(9, pReleaseDev9, lpdd); }
+
 HRESULT WINAPI extGetDirect3D8(void *lpdd3dd, void **ppD3D8)
 {
 	HRESULT res;
@@ -1792,22 +1863,6 @@ void WINAPI extSetCursorPosition8(void *lpdd3dd, int X, int Y, DWORD Flags)
 	if(dxw.dwFlags2 & KEEPCURSORFIXED) return;
 	// to do: proper scaling.....
 	//(*pSetCursorPosition8)(lpdd3dd, X, Y, Flags);
-}
-
-ULONG WINAPI extAddRef9(void *lpdd3dd)
-{
-	ULONG res;
-	res=(*pAddRef9)(lpdd3dd);
-	OutTraceD3D("Device::AddRef(9): dd3dd=%x res=%x\n", lpdd3dd, res);
-	return res;
-}
-
-ULONG WINAPI extRelease9(void *lpdd3dd)
-{
-	ULONG res;
-	res=(*pRelease9)(lpdd3dd);
-	OutTraceD3D("Device::Release(9): dd3dd=%x res=%x\n", lpdd3dd, res);
-	return res;
 }
 
 //ULONG WINAPI extCreateRenderTarget8(void *lpdd3dd, UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, BOOL Lockable, IDirect3DSurface8** ppSurface) 
@@ -1936,22 +1991,7 @@ HRESULT WINAPI voidDirect3DShaderValidatorCreate9(void)
 	return 0;
 }
 
-static HRESULT WINAPI extCheckDeviceType(CheckDeviceType_Type pCheckDeviceType, void *lpd3d, UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
-{
-	HRESULT res;
-	OutTraceD3D("CheckDeviceType: d3d=%x adapter=%d windowed=%x\n", lpd3d, Adapter, bWindowed);
-	if(dxw.Windowize) bWindowed = TRUE;
-	res = (*pCheckDeviceType)(lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed);
-	OutTraceD3D("CheckDeviceType: res=%x\n", res);
-	return res;
-}
-
-HRESULT WINAPI extCheckDeviceType8(void *lpd3d, UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
-{ return extCheckDeviceType(pCheckDeviceType8, lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed); }
-HRESULT WINAPI extCheckDeviceType9(void *lpd3d, UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
-{ return extCheckDeviceType(pCheckDeviceType9, lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed); }
-
-static char *ExplainD3D9DeviceType(D3DDEVTYPE DeviceType)
+static char *ExplainD3DDeviceType(D3DDEVTYPE DeviceType)
 {
 	char *s;
 	switch(DeviceType){
@@ -1964,10 +2004,26 @@ static char *ExplainD3D9DeviceType(D3DDEVTYPE DeviceType)
 	return s;
 }
 
-HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps, int version)
+static HRESULT WINAPI extCheckDeviceType(int d3dversion, CheckDeviceType_Type pCheckDeviceType, void *lpd3d, UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
 {
 	HRESULT res;
-	OutTraceD3D("GetDeviceCaps(%d): d3d=%x adapter=%d devtype=%x(%s)\n", version, lpd3d, Adapter, DeviceType, ExplainD3D9DeviceType(DeviceType));
+	OutTraceD3D("CheckDeviceType(%d): d3d=%x adapter=%d devtype=%x(%s) backbufferformat=%d(%s) windowed=%x\n", 
+		d3dversion, lpd3d, Adapter, DevType, ExplainD3DDeviceType(DevType), AdapterFormat, ExplainD3DSurfaceFormat(AdapterFormat), bWindowed);
+	if(dxw.Windowize) bWindowed = TRUE;
+	res = (*pCheckDeviceType)(lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed);
+	OutTraceD3D("CheckDeviceType: res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extCheckDeviceType8(void *lpd3d, UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
+{ return extCheckDeviceType(8, pCheckDeviceType8, lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed); }
+HRESULT WINAPI extCheckDeviceType9(void *lpd3d, UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
+{ return extCheckDeviceType(9, pCheckDeviceType9, lpd3d, Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed); }
+
+HRESULT WINAPI extD3DGetDeviceCaps(int version, void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps)
+{
+	HRESULT res;
+	OutTraceD3D("GetDeviceCaps(%d): d3d=%x adapter=%d devtype=%x(%s)\n", version, lpd3d, Adapter, DeviceType, ExplainD3DDeviceType(DeviceType));
 	
 	if(version == 8)
 		res=(*pD3DGetDeviceCaps8)(lpd3d, Adapter, DeviceType, (D3DCAPS8 *)pCaps);
@@ -1992,7 +2048,7 @@ HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceT
 				"AlphaCmpCaps=%x\n\t"
 				"ShadeCaps=%x\n\t"
 				"TextureCaps=%x\n\t",
-				pCaps->DeviceType, ExplainD3D9DeviceType(pCaps->DeviceType), 
+				pCaps->DeviceType, ExplainD3DDeviceType(pCaps->DeviceType), 
 				pCaps->Caps, pCaps->Caps2, pCaps->Caps3, 
 				pCaps->PresentationIntervals,
 				pCaps->CursorCaps, pCaps->DevCaps,
@@ -2052,7 +2108,7 @@ HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceT
 				"VertexShaderVersion=%x\n\t"
 				"MaxVertexShaderConst=%d\n\t"
 				"PixelShaderVersion=%x\n\t"
-				"PixelShader1xMaxValue=%f\n\t",
+				"PixelShader1xMaxValue=%f\n",
 				pCaps->MaxTextureWidth, pCaps->MaxTextureHeight, 
 				pCaps->MaxVolumeExtent, 
 				pCaps->MaxTextureRepeat, 
@@ -2081,7 +2137,7 @@ HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceT
 				pCaps->PixelShaderVersion, 
 				pCaps->PixelShader1xMaxValue);
 			if(version == 9) OutTrace(
-				"DevCaps2=%x Reserved5=%x\n\t"
+				"\tDevCaps2=%x Reserved5=%x\n\t"
 				"MaxNpatchTessellationLevel=%f\n\t"
 				"MasterAdapterOrdinal=%i\n\t"
 				"AdapterOrdinalInGroup=%i\n\t"
@@ -2111,7 +2167,7 @@ HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceT
 	}
 
 	if(dxw.dwFlags7 & SUPPRESSOVERLAY){
-		if(pCaps->Caps & D3DCAPS_OVERLAY) OutTraceDW("GetDeviceCaps(%d): SUPPRESS OVERLAY CAP\n");
+		if(pCaps->Caps & D3DCAPS_OVERLAY) OutTraceDW("GetDeviceCaps(%d): SUPPRESS OVERLAY CAP\n", version);
 		pCaps->Caps &= ~D3DCAPS_OVERLAY;
 	}
 	
@@ -2119,9 +2175,9 @@ HRESULT WINAPI extD3DGetDeviceCaps(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceT
 }
 
 HRESULT WINAPI extD3DGetDeviceCaps8(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS8 *pCaps)
-{ return extD3DGetDeviceCaps(lpd3d, Adapter, DeviceType, (D3DCAPS9 *)pCaps, 8); }
+{ return extD3DGetDeviceCaps(8, lpd3d, Adapter, DeviceType, (D3DCAPS9 *)pCaps); }
 HRESULT WINAPI extD3DGetDeviceCaps9(void *lpd3d, UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9 *pCaps)
-{ return extD3DGetDeviceCaps(lpd3d, Adapter, DeviceType, pCaps, 9); }
+{ return extD3DGetDeviceCaps(9, lpd3d, Adapter, DeviceType, pCaps); }
 
 static HMONITOR WINAPI extGetAdapterMonitor(GetAdapterMonitor_Type pGetAdapterMonitor, void *lpd3d, UINT Adapter)
 {
@@ -2274,6 +2330,7 @@ static HRESULT WINAPI extLockRect(LockRect_Type pLockRect, void *lpd3dtex, UINT 
 			strcpy_s(sRect, 80, "NULL");
 		OutTrace("Texture::LockRect: lpd3dtex=%x level=%d rect=%s flags=%x\n", lpd3dtex, Level, sRect, Flags);
 	}
+
 	res=(*pLockRect)(lpd3dtex, Level, pLockedRect, pRect, Flags);
 	if (res) OutTraceE("Device::LockRect ERROR: err=%x\n", res);
 	else {
@@ -2293,7 +2350,12 @@ static HRESULT WINAPI extUnlockRect(UnlockRect_Type pUnlockRect, void *lpd3dtex,
 {
 	HRESULT res;
 	OutTraceD3D("Texture::UnlockRect: lpd3dtex=%x level=%d\n", lpd3dtex, Level);
+
 	res=(*pUnlockRect)(lpd3dtex, Level);
+	if (res) OutTraceE("Device::UnlockRect ERROR: err=%x\n", res);
+	else {
+		OutTraceD3D("Device::UnlockRect: D3D_OK\n");
+	}
 
 	if(TextureHandling) TextureHandling(lpd3dtex, Level);
 	return res;
@@ -2372,7 +2434,6 @@ HRESULT WINAPI extGetFrontBuffer(void *lpd3dd, LPDIRECTDRAWSURFACE pDestSurface)
 	// fake D3D_OK condition.
 
 	if(res == D3DERR_INVALIDCALL) {
-		extern HRESULT  dxGetFrontBuffer(void *, LPDIRECTDRAWSURFACE);
 		res = dxGetFrontBuffer(lpd3dd, pDestSurface);
 		if(res) OutTraceDW("GetFrontBuffer(8): ret=%x return FAKE D3D_OK\n", res);
 		res = D3D_OK;
@@ -2395,11 +2456,34 @@ HRESULT WINAPI extCopyRects(void *lpd3dd, LPDIRECTDRAWSURFACE pSourceSurface, CO
 
 	res = (*pCopyRects)(lpd3dd, pSourceSurface, pSourceRectsArray, cRects, pDestinationSurface, pDestPointsArray);
 	if((res == D3DERR_INVALIDCALL) && (cRects==0)) {
-		extern HRESULT  dxCopyRects(void *, LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE);
 		res = dxCopyRects(lpd3dd, pSourceSurface, pDestinationSurface);
 		if(res) OutTraceDW("CopyRects(8): res=%x FAKE D3D_OK on 0 rects\n", res);
 		res = D3D_OK;
 	}
 	OutTraceD3D("CopyRects(8): ret=%x\n", res);
+	return res;
+}
+
+//    STDMETHOD(GetBackBuffer)(THIS_ UINT iSwapChain,UINT iBackBuffer,D3DBACKBUFFER_TYPE Type,IDirect3DSurface9** ppBackBuffer) PURE;
+
+HRESULT WINAPI extGetBackBuffer8(void *lpd3dd, UINT BackBuffer, D3DBACKBUFFER_TYPE Type, LPDIRECTDRAWSURFACE *ppBackBuffer) 
+{
+	HRESULT res;
+	OutTraceD3D("GetBackBuffer(8): d3d=%x backbuffer=%x type=%x\n", lpd3dd, BackBuffer, Type);
+
+	if((dxw.dwFlags8 & D3D8BACK16) && (dwD3DVersion == 8)){
+		if ((BackBuffer != 0) || (Type != D3DBACKBUFFER_TYPE_MONO)) {
+			return D3DERR_INVALIDCALL;
+		}
+		*ppBackBuffer = dwGetVirtualBackBuffer();
+		(*ppBackBuffer)->AddRef();
+		OutTraceD3D("GetBackBuffer(8): EMULATION OK\n");
+		return D3D_OK;
+	}
+
+	res = (*pGetBackBuffer8)(lpd3dd, BackBuffer, Type, ppBackBuffer);
+	if(res) OutTraceE("GetBackBuffer(8): ret=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+
+	if(res) OutTraceE("GetBackBuffer(8): ret=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }

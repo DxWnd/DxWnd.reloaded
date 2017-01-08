@@ -267,6 +267,7 @@ public:
 	BOOL	m_SuppressD3DExt;
 	BOOL	m_Enum16bitModes;
 	BOOL	m_TrimTextureFormats;
+	BOOL	m_D3D8Back16;
 	//BOOL	m_RawFormat;
 	BOOL	m_LimitScreenRes;
 	BOOL	m_InitialRes;

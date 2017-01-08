@@ -2996,7 +2996,7 @@ HRESULT WINAPI PrimaryBilinearBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURF
 	BltFast_Type pBltFast;
 	int dwSize;
 
-	switch(dxversion){
+	switch(iBakBufferVersion){ // v2.04.03.fx1 fix: must use iBakBufferVersion, not dxversion!
 		default:
 		case 1: pBltFast=pBltFast1; pCreateSurface=pCreateSurface1; dwSize = sizeof(DDSURFACEDESC); break;
 		case 2: pBltFast=pBltFast2; pCreateSurface=(CreateSurface1_Type)pCreateSurface2; dwSize = sizeof(DDSURFACEDESC); break;
@@ -3004,6 +3004,7 @@ HRESULT WINAPI PrimaryBilinearBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURF
 		case 4: pBltFast=pBltFast4; pCreateSurface=(CreateSurface1_Type)pCreateSurface4; dwSize = sizeof(DDSURFACEDESC2); break;
 		case 7: pBltFast=pBltFast7; pCreateSurface=(CreateSurface1_Type)pCreateSurface7; dwSize = sizeof(DDSURFACEDESC2); break;
 	}
+
 	caps.dwCaps = DDSCAPS_BACKBUFFER;
 	memset(&ddsd, 0, sizeof(DDSURFACEDESC));
 	ddsd.dwSize = dwSize;
