@@ -6,26 +6,13 @@
 #include "syslibs.h"
 #include "dxhook.h"
 
-#if 0
-#pragma pack(1)
-typedef struct {
-  UINT32 Version;
-  UINT32 Width;
-  UINT32 Height;
-  UINT32 Frame;
-  UINT32 mspf;
-  char unknown[864];
-  UINT32 FrameNum;
-} Smack;
-#else
 #include "smack.h"
-#endif
 
 typedef Smack * (WINAPI *SmackOpen_Type)(HANDLE, UINT32, INT32);
-typedef Smack * (WINAPI *Smacker_Type)(HANDLE);
-typedef Smack * (WINAPI *Smacker2_Type)(HANDLE, UINT32);
-typedef Smack * (WINAPI *SmackColorRemap_Type)(HANDLE, const void PTR4 *, u32, u32);
-typedef Smack * (WINAPI *SmackColorRemapWithTrans_Type)(HANDLE, const void PTR4 *, u32, u32, u32);
+typedef Smack * (WINAPI *Smacker_Type)(Smack *);
+typedef Smack * (WINAPI *Smacker2_Type)(Smack *, UINT32);
+typedef Smack * (WINAPI *SmackColorRemap_Type)(Smack *, const void PTR4 *, u32, u32);
+typedef Smack * (WINAPI *SmackColorRemapWithTrans_Type)(Smack *, const void PTR4 *, u32, u32, u32);
 typedef u32		(RADEXPLINK *SmackSetSystemRes_Type)(u32);
 
 SmackOpen_Type pSmackOpen;
@@ -36,16 +23,16 @@ SmackColorRemapWithTrans_Type pSmackColorRemapWithTrans;
 SmackSetSystemRes_Type pSmackSetSystemRes;
 
 Smack * WINAPI extSmackOpen(HANDLE, UINT32, INT32);
-Smack * WINAPI extSmackClose(HANDLE);
-Smack * WINAPI extSmackWait(HANDLE);
-Smack * WINAPI extSmackDoFrame(HANDLE);
-Smack * WINAPI extSmackNextFrame(HANDLE);
-Smack * WINAPI extSmackSoundUseMSS(HANDLE);
-Smack * WINAPI extSmackSoundUseDirectSound(HANDLE);
-Smack * WINAPI extSmackSoundOnOff(HANDLE, UINT32);
-Smack * WINAPI extSmackGoto(HANDLE, UINT32);
-Smack * WINAPI extSmackColorRemap(HANDLE, const void PTR4 *, u32, u32);
-Smack * WINAPI extSmackColorRemapWithTrans(HANDLE, const void PTR4 *, u32, u32, u32);
+Smack * WINAPI extSmackClose(Smack *);
+Smack * WINAPI extSmackWait(Smack *);
+Smack * WINAPI extSmackDoFrame(Smack *);
+Smack * WINAPI extSmackNextFrame(Smack *);
+Smack * WINAPI extSmackSoundUseMSS(Smack *);
+Smack * WINAPI extSmackSoundUseDirectSound(Smack *);
+Smack * WINAPI extSmackSoundOnOff(Smack *, UINT32);
+Smack * WINAPI extSmackGoto(Smack *, UINT32);
+Smack * WINAPI extSmackColorRemap(Smack *, const void PTR4 *, u32, u32);
+Smack * WINAPI extSmackColorRemapWithTrans(Smack *, const void PTR4 *, u32, u32, u32);
 u32 RADEXPLINK extSmackSetSystemRes(u32 mode);
 
 static HookEntryEx_Type Hooks[]={
@@ -124,32 +111,36 @@ static void DumpSmack(Smack *s)
 
 Smack * WINAPI extSmackOpen(HANDLE SmackFile, UINT32 flags, INT32 extrabuf)
 {
-	Smack *ret;
+	Smack *h;
 	OutTraceDW("SmackOpen: SmackFile=%x flags=%x(%s) extrabuf=%x\n", SmackFile, flags, ExplainSmackFlags(flags), extrabuf);
 	if(!pSmackOpen) OutTraceE("ASSERT: NULL pSmackOpen\n");
-	ret=(*pSmackOpen)(SmackFile, flags, extrabuf);
-	OutTraceDW("SmackOpen: ret=%x\n", ret);
-	if (ret) {
-		OutTraceDW("SmackOpen: version=\"%4.4s\" screen=(%dx%d) frame_count=%d frame_number=%d\n", 
-			(char *)&(ret->Version), ret->Width, ret->Height, ret->Frames, ret->FrameNum);
+	h=(*pSmackOpen)(SmackFile, flags, extrabuf);
+	OutTraceDW("SmackOpen: ret=%x\n", h);
+	if (!h) return NULL;
+		
+	DumpSmack(h);
+	if(dxw.dwFlags6 & NOMOVIES) {
+		OutTraceDW("SmackOpen: NOMOVIES\n");
+		h->Frames = 1; // returning NULL or a frame counter below 1 is risky!
+		return h;
 	}
-	return ret;
+	return h;
 }
 
-Smack * WINAPI extSmackClose(HANDLE h)
+Smack * WINAPI extSmackClose(Smack *h)
 {
 	OutTraceDW("SmackClose: h=%x\n", h);
 	return (*pSmackClose)(h);
 }
 
-Smack * WINAPI extSmackWait(HANDLE h)
+Smack * WINAPI extSmackWait(Smack *h)
 {
 	OutTraceDW("SmackWait: h=%x\n", h);
 	DumpSmack((Smack *)h);
 	return (*pSmackWait)(h);
 }
 
-Smack * WINAPI extSmackDoFrame(HANDLE h)
+Smack * WINAPI extSmackDoFrame(Smack *h)
 {
 	Smack *ret;
 	OutTraceDW("SmackDoFrame: h=%x\n", h);
@@ -162,57 +153,57 @@ Smack * WINAPI extSmackDoFrame(HANDLE h)
 	return ret;
 }
 
-Smack * WINAPI extSmackNextFrame(HANDLE h)
+Smack * WINAPI extSmackNextFrame(Smack *h)
 {
 	OutTraceDW("SmackNextFrame: h=%x\n", h);
-	DumpSmack((Smack *)h);
+	DumpSmack(h);
 	return (*pSmackNextFrame)(h);
 }
 
-Smack * WINAPI extSmackSoundUseMSS(HANDLE h)
+Smack * WINAPI extSmackSoundUseMSS(Smack *h)
 {
 	OutTraceDW("SmackSoundUseMSS: h=%x\n", h);
-	DumpSmack((Smack *)h);
+	DumpSmack(h);
 	return (*pSmackSoundUseMSS)(h);
 }
 
-Smack * WINAPI extSmackSoundUseDirectSound(HANDLE h)
+Smack * WINAPI extSmackSoundUseDirectSound(Smack *h)
 {
 	OutTraceDW("SmackSoundUseDirectSound: h=%x\n", h);
-	DumpSmack((Smack *)h);
+	DumpSmack(h);
 	return (*pSmackSoundUseDirectSound)(h);
 }
 
-Smack * WINAPI extSmackSoundOnOff(HANDLE h, UINT32 flag)
+Smack * WINAPI extSmackSoundOnOff(Smack *h, UINT32 flag)
 {
 	OutTraceDW("SmackSoundOnOff: h=%x flag=%x\n", h, flag);
-	DumpSmack((Smack *)h);
+	DumpSmack(h);
 	return (*pSmackSoundOnOff)(h, flag);
 }
 
-Smack * WINAPI extSmackGoto(HANDLE h, UINT32 flag)
+Smack * WINAPI extSmackGoto(Smack *h, UINT32 flag)
 {
 	OutTraceDW("SmackGoto: h=%x flag=%x\n", h, flag);
-	DumpSmack((Smack *)h);
+	DumpSmack(h);
 	return (*pSmackGoto)(h, flag);
 }
 
-Smack * WINAPI extSmackColorRemap(HANDLE h, const void PTR4 *remappal, u32 numcolors, u32 paltype)
+Smack * WINAPI extSmackColorRemap(Smack *h, const void PTR4 *remappal, u32 numcolors, u32 paltype)
 {
 	OutTraceDW("SmackColorRemap: h=%x numcolors=%d paltype=%d\n", h, numcolors, paltype);
-	DumpSmack((Smack *)h);
+	DumpSmack(h);
 	// BYPASS the call to avoid resolution changes
 	//return (*pSmackColorRemap)(h, remappal, numcolors, paltype);
-	return (Smack *)h;
+	return h;
 }
 
-Smack * WINAPI extSmackColorRemapWithTrans(HANDLE h, const void PTR4 *remappal, u32 numcolors, u32 paltype, u32 transindex)
+Smack * WINAPI extSmackColorRemapWithTrans(Smack *h, const void PTR4 *remappal, u32 numcolors, u32 paltype, u32 transindex)
 {
 	OutTraceDW("SmackColorRemapWithTrans: h=%x numcolors=%d paltype=%d transindex=%d\n", h, numcolors, paltype, transindex);
-	DumpSmack((Smack *)h);
+	DumpSmack(h);
 	// BYPASS the call to avoid resolution changes
 	//return (*pSmackColorRemapWithTrans)(h, remappal, numcolors, paltype);
-	return (Smack *)h;
+	return h;
 }
 
 /* ---------------------------------------------------------------

@@ -18,6 +18,7 @@ protected: // Create from serialization only features.
 	afx_msg void OnHotKey(UINT, UINT, UINT);
 	DECLARE_DYNCREATE(CDxwndhostView)
 	BOOL isUpdated;
+	BOOL isRegistryUpdated;
 	void SaveConfigFile();
 	BOOL OnInitDialog();
 
@@ -89,6 +90,7 @@ protected:
 	afx_msg void OnSetPath();
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnRun();
+	afx_msg void OnRun(BOOL);
 	afx_msg void OnClearAllLogs();
 	afx_msg void OnGoToTrayIcon();
 	afx_msg void OnSaveFile();

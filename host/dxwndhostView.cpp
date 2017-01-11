@@ -95,7 +95,6 @@ static char *Unescape(char *s, char **dest)
 	return *dest;
 }
 
-
 void GetFolderFromPath(char *path)
 {
 	for(char *c=&path[strlen(path)-1]; (c>path) && (*c!='\\'); c--) *c=0;
@@ -1230,6 +1229,7 @@ void CDxwndhostView::SaveConfigFile()
 	}
 	for(; i < MAXTARGETS; i ++) ClearTarget(i, gInitPath);
 	this->isUpdated=FALSE;
+	this->isRegistryUpdated=FALSE;
 }
 
 CDxwndhostView::~CDxwndhostView()
@@ -1384,6 +1384,7 @@ void CDxwndhostView::OnInitialUpdate()
 		this->OnHookStop();
 	if(m_StartToTray) this->OnGoToTrayIcon();
 	this->isUpdated=FALSE;
+	this->isRegistryUpdated=FALSE;
 	pTitles = &PrivateMaps[0];
 	pTargets= &TargetMaps[0];
 
@@ -1488,6 +1489,7 @@ BOOL CDxwndhostView::OnImport(CString sFilePath)
 	Resize();
 	SetTarget(TargetMaps);	
 	this->isUpdated=TRUE;
+	this->isRegistryUpdated=TRUE;
 	return TRUE;
 }
 
@@ -1567,6 +1569,7 @@ void CDxwndhostView::OnImport()
 		Resize();
 		SetTarget(TargetMaps);	
 		this->isUpdated=TRUE;
+		this->isRegistryUpdated=TRUE;
 	}
 }
 
@@ -1591,6 +1594,7 @@ void CDxwndhostView::OnModify()
 		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE); 
 		PrivateMaps[i].notes = (char *)realloc(PrivateMaps[i].notes, strlen(dlg.m_Notes.GetString())+1);
 		strcpy(PrivateMaps[i].notes, (char *)dlg.m_Notes.GetString());
+		if(strcmp((char *)dlg.m_Registry.GetString(), PrivateMaps[i].registry)) this->isRegistryUpdated=TRUE;
 		PrivateMaps[i].registry = (char *)realloc(PrivateMaps[i].registry, strlen(dlg.m_Registry.GetString())+1);
 		strcpy(PrivateMaps[i].registry, (char *)dlg.m_Registry.GetString());
 		strnncpy(PrivateMaps[i].launchpath, (char *)dlg.m_LaunchPath.GetString(), MAX_PATH);
@@ -1829,6 +1833,7 @@ void CDxwndhostView::OnSort()
 
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
+	this->isRegistryUpdated=TRUE;
 }
 
 BOOL PauseResumeThreadList(DWORD dwOwnerPID, bool bResumeThread) 
@@ -2071,6 +2076,7 @@ void CDxwndhostView::OnAdd(char *sInitialPath)
 		Resize();
 		SetTarget(TargetMaps);	
 		this->isUpdated=TRUE;
+		this->isRegistryUpdated=TRUE;
 	}
 }
 
@@ -2105,6 +2111,7 @@ void CDxwndhostView::OnDuplicate()
 	}
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
+	this->isRegistryUpdated=TRUE;
 }
 
 void CDxwndhostView::OnMoveTop() 
@@ -2141,6 +2148,7 @@ void CDxwndhostView::OnMoveTop()
 	}
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
+	this->isRegistryUpdated=TRUE;
 }
 
 void CDxwndhostView::OnMoveUp() 
@@ -2175,6 +2183,7 @@ void CDxwndhostView::OnMoveUp()
 	}
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
+	this->isRegistryUpdated=TRUE;
 }
 
 void CDxwndhostView::OnMoveDown() 
@@ -2209,6 +2218,7 @@ void CDxwndhostView::OnMoveDown()
 	}
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
+	this->isRegistryUpdated=TRUE;
 }
 
 void CDxwndhostView::OnMoveBottom() 
@@ -2246,6 +2256,7 @@ void CDxwndhostView::OnMoveBottom()
 	}
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
+	this->isRegistryUpdated=TRUE;
 }
 
 void CDxwndhostView::OnDelete() 
@@ -2281,6 +2292,7 @@ void CDxwndhostView::OnDelete()
 	Resize();
 	SetTarget(TargetMaps);
 	this->isUpdated=TRUE;
+	this->isRegistryUpdated=TRUE;
 }
 
 void CDxwndhostView::OnHookStart() 
@@ -2544,6 +2556,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	switch(res){
 	case ID_PRUN:
 		OnRun();
+		break;
+	case ID_RUNUNHOOKED:
+		OnRun(TRUE);
 		break;
 	case ID_PMODIFY:
 		OnModify();
@@ -3231,6 +3246,11 @@ PROCESSMAP pm;
 
 void CDxwndhostView::OnRun() 
 {
+	OnRun(FALSE); 
+}
+
+void CDxwndhostView::OnRun(BOOL bForceNoHook) 
+{
 	CListCtrl& listctrl = GetListCtrl();
 	POSITION pos;
 	int i;
@@ -3268,8 +3288,9 @@ void CDxwndhostView::OnRun()
 		MakeHiddenFile(exepath);
 		strncpy(RestrictedMaps[0].path, exepath, MAX_PATH);
 	}
+	if(bForceNoHook) RestrictedMaps[0].flags3 &= ~HOOKENABLED;
 	SetTarget(RestrictedMaps);	
-	OutTrace("OnRun idx=%d prog=\"%s\"\n", i, TargetMaps[i].path);
+	OutTrace("OnRun idx=%d prog=\"%s\" unhooked=%x\n", i, TargetMaps[i].path, bForceNoHook);
 
 	if(TargetMaps[i].flags7 & HOOKNORUN){
 		MessageBoxLang(DXW_STRING_CANT_RUN, DXW_STRING_WARNING, MB_ICONERROR|MB_OK);
@@ -3287,7 +3308,7 @@ void CDxwndhostView::OnRun()
 	}
 
 	if((TargetMaps[i].flags3 & EMULATEREGISTRY) || (TargetMaps[i].flags4 & OVERRIDEREGISTRY)){
-		if(this->isUpdated){
+		if(this->isRegistryUpdated){
 			if(MessageBoxLang(DXW_STRING_VREG_UPDATE,DXW_STRING_WARNING, MB_OKCANCEL|MB_ICONINFORMATION)==IDOK)
 				this->SaveConfigFile();
 		}
@@ -3307,7 +3328,9 @@ void CDxwndhostView::OnRun()
 		CheckSafeDiscVersion(TargetMaps[i].path);
 	}
 
-	if(TargetMaps[i].flags2 & STARTDEBUG){
+	// v2.04.04: fix - STARTDEBUG and INJECTSUSPENDED must take place only when HOOKENABLED
+	if ((TargetMaps[i].flags2 & STARTDEBUG) && 
+		(TargetMaps[i].flags3 & HOOKENABLED)){
 		OutTrace("debugger mode\n");
 		ThreadInfo_Type ThreadInfo;
 		ThreadInfo.TM=&TargetMaps[i];
@@ -3316,7 +3339,8 @@ void CDxwndhostView::OnRun()
 		CloseHandle(CreateThread( NULL, 0, StartDebug, &ThreadInfo, 0, NULL)); 
 	}
 	else
-	if(TargetMaps[i].flags7 & INJECTSUSPENDED){
+	if ((TargetMaps[i].flags7 & INJECTSUSPENDED) &&
+		(TargetMaps[i].flags3 & HOOKENABLED)){
 		OutTrace("injectsuspended mode\n");
 		InjectSuspended(exepath, folderpath); 
 	}
@@ -3337,7 +3361,9 @@ void CDxwndhostView::OnRun()
 
 	// wait & recover
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RecoverTargetMaps, (LPVOID)TargetMaps, 0, NULL);
-	if(gAutoHideMode) this->OnGoToTrayIcon();
+	// go to tray icon mode when autohide is set, but only if hooking is enabled. If not enable it 
+	// is not possible to monitor the process status, so the window will never show automatically!
+	if(gAutoHideMode && !bForceNoHook) this->OnGoToTrayIcon();
 
 	// not working: the file is opened, can't be deleted
 	//if(TargetMaps[i].flags7 & COPYNOSHIMS){

@@ -1423,3 +1423,14 @@ add: D3D8 16bpp backbuffer emulation on 32bpp color depth. Fixes "Dangerous Wate
 add: more OpenGL wgl* hooks, used by "StarSiege 2014".
 fix: using correct version method pointers in bilinear blit, avoids crash in "Daytona USA" using bilinear filtering
 fix: do not try to CloseHandle the handle returned by GetMenu, avoids debugger exceptions.
+
+v2.04.04
+GUI:
+add: run unhooked command 
+fix: improved logic to propose config save only when virtual registry string is potentially updated
+fix: when hooking is disabled, STARTDEBUG and INJECTSUSPENDED processing don't take place
+DLL:
+fix: crashing condition on "hide desktop background" option - fixes M&MVI crash
+fix: mouse loop coordinate fix when main window is not set
+fix: eliminated log of dmDeviceName field in ChangeDisplaySettings* calls because the field may be not initialized
+fix: NOMOVIES option now stops also SmackW32 movies (making movie length only 1 photogram).

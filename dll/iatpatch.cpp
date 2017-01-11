@@ -155,14 +155,14 @@ void *IATPatchSequential(HMODULE module, DWORD ordinal, char *dll, void *apiproc
 			pidesc ++;
 		}
 		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
-		OutTraceB("IATPatch: first call=%s\n", fname);
+		//OutTraceB("IATPatch: first call=%s\n", fname);
 
 		while(pidesc->FirstThunk){
 			impmodule = (PSTR)(base + pidesc->Name);
 
 			if(!lstrcmpi(dll, impmodule)) {
 				OutTraceH("IATPatch: dll=%s found at %x\n", dll, impmodule);
-				OutTraceH("IATPatch: first call=%s\n", fname);
+				//OutTraceH("IATPatch: first call=%s\n", fname);
 
 				ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
 				ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
@@ -228,7 +228,7 @@ void *IATPatchSequential(HMODULE module, DWORD ordinal, char *dll, void *apiproc
 				}
 			}
 			else{
-				OutTraceDW("IATPatch: skip dll=%s first call=%s\n", impmodule, fname);
+				//OutTraceDW("IATPatch: skip dll=%s first call=%s\n", impmodule, fname);
 				// skip dll fnames ...
 				ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
 				//ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;

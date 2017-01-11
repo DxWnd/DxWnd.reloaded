@@ -165,7 +165,7 @@ static HookEntryEx_Type Hooks[]={
 	
 	//{HOOK_IAT_CANDIDATE, 0, "TranslateMessage", (FARPROC)TranslateMessage, (FARPROC *)&pTranslateMessage, (FARPROC)extTranslateMessage}, 
 	
-	{HOOK_IAT_CANDIDATE, 0, "UpdateWindow", (FARPROC)NULL, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow},
+	{HOOK_IAT_CANDIDATE, 0, "UpdateWindow", (FARPROC)UpdateWindow, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow}, // v2.04.04: needed for "Hide Desktop" option
 	//{HOOK_IAT_CANDIDATE, 0, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
 	//{HOOK_IAT_CANDIDATE, 0, "SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
 	{HOOK_HOT_CANDIDATE, 0x25, "ChangeDisplaySettingsA", (FARPROC)ChangeDisplaySettingsA, (FARPROC *)&pChangeDisplaySettingsA, (FARPROC)extChangeDisplaySettingsA},
@@ -777,6 +777,7 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 	BOOL res;
 	extern HWND hTrayWnd;
 	static long iLastSizX, iLastSizY;
+	int nOrigCmd;
 	//static long iLastPosX, iLastPosY;
 
 	OutTraceDW("ShowWindow: hwnd=%x, CmdShow=%x(%s)\n", hwnd, nCmdShow, ExplainShowCmd(nCmdShow));
@@ -787,6 +788,7 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 		return TRUE;
 	}
 
+	nOrigCmd = nCmdShow;
 	if (dxw.dwFlags1 & PREVENTMAXIMIZE){
 		if(nCmdShow==SW_MAXIMIZE){
 			OutTraceDW("ShowWindow: suppress SW_MAXIMIZE maximize\n");
@@ -804,14 +806,12 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 	}	
 
 	res=(*pShowWindow)(hwnd, nCmdShow);
-	// v2.03.95: force zero size when minimize and drefresh window coordinates
+	// v2.03.95: force zero size when minimize and refresh window coordinates
 	if(hwnd == dxw.GethWnd()){
 		if(nCmdShow==SW_MINIMIZE) {
 			dxw.IsVisible = FALSE;
 			iLastSizX = dxw.iSizX;
 			iLastSizY = dxw.iSizY;
-			//iLastPosX = dxw.iPosX;
-			//iLastPosY = dxw.iPosY;
 			dxw.iSizX = dxw.iSizY = 0;
 		}
 		else {
@@ -819,11 +819,10 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 			if((dxw.iSizX == 0) && (dxw.iSizY == 0)){
 				dxw.iSizX = iLastSizX;
 				dxw.iSizY = iLastSizY;
-				//dxw.iPosX = iLastPosX;
-				//dxw.iPosY = iLastPosY;
 			}
 		}
 	}
+
 	//dxw.UpdateDesktopCoordinates();
 	OutTraceDW("ShowWindow: res=%x\n", res);
 
@@ -1269,8 +1268,14 @@ static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HW
 			lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
 	}
 
-	if(dxw.dwFlags1 & MODIFYMOUSE){
-		 extGetCursorPos(&(lpMsg->pt));
+	if((dxw.dwFlags1 & MODIFYMOUSE) && dxw.GethWnd()){
+		POINT point;
+		//res=(*pGetCursorPos)(&point); // can't do this. Why?
+		point = lpMsg->pt;
+		point=dxw.ScreenToClient(point);
+		point=dxw.FixCursorPos(point);
+		OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", lpMsg->pt.x, lpMsg->pt.y, point.x, point.y);
+		lpMsg->pt = point;
 	}
 
 	if(dxw.dwFlags1 & SLOWDOWN) (*pSleep)(1);
@@ -2340,8 +2345,9 @@ LONG WINAPI extChangeDisplaySettingsA(DEVMODEA *lpDevMode, DWORD dwflags)
 	if(IsTraceDDRAW){
 		char sInfo[1024];
 		strcpy(sInfo, "");
-		if (lpDevMode) sprintf(sInfo, " DeviceName=%s fields=%x(%s) size=(%d x %d) bpp=%d", 
-			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
+		// v2.04.04: dmDeviceName not printed since it could be not initialized (Warhammer SOTHR)
+		if (lpDevMode) sprintf(sInfo, " fields=%x(%s) size=(%d x %d) bpp=%d", 
+			lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
 		OutTrace("ChangeDisplaySettingsA: lpDevMode=%x flags=%x(%s)%s\n", 
 			lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags), sInfo);
@@ -2358,8 +2364,9 @@ LONG WINAPI extChangeDisplaySettingsW(DEVMODEW *lpDevMode, DWORD dwflags)
 	if(IsTraceDDRAW){
 		char sInfo[1024];
 		strcpy(sInfo, "");
-		if (lpDevMode) sprintf(sInfo, " DeviceName=%ls fields=%x(%s) size=(%d x %d) bpp=%d", 
-			lpDevMode->dmDeviceName, lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
+		// v2.04.04: dmDeviceName not printed since it could be not initialized (Warhammer SOTHR)
+		if (lpDevMode) sprintf(sInfo, "fields=%x(%s) size=(%d x %d) bpp=%d", 
+			lpDevMode->dmFields, ExplainDevModeFields(lpDevMode->dmFields),
 			lpDevMode->dmPelsWidth, lpDevMode->dmPelsHeight, lpDevMode->dmBitsPerPel);
 		OutTrace("ChangeDisplaySettingsW: lpDevMode=%x flags=%x(%s)%s\n", 
 			lpDevMode, dwflags, ExplainChangeDisplaySettingsFlags(dwflags), sInfo);

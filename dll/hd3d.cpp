@@ -509,9 +509,6 @@ void HookD3DDevice8(void** ppD3Ddev8)
 	if((dxw.dwFlags5 & TEXTUREMASK) || (dxw.dwFlags4 & NOTEXTURES)){
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 244), extSetTexture8, (void **)&pSetTexture8, "SetTexture(D8)");
 	}
-	//if (!(dxw.dwTFlags & OUTPROXYTRACE)) return;
-	//SetHook((void *)(**(DWORD **)ppD3Ddev8 +  4), extAddRef8, (void **)&pAddRef8, "AddRef(D8)");
-	//SetHook((void *)(**(DWORD **)ppD3Ddev8 +  8), extRelease8, (void **)&pRelease8, "Release(D8)");
 }
 
 void HookD3DDevice9(void** ppD3Ddev9)
