@@ -146,6 +146,8 @@ public: // methods
 	void GetMonitorWorkarea(LPRECT, BOOL);
 	void CalculateWindowPos(HWND, DWORD, DWORD, LPWINDOWPOS);
 	void MessagePump(void);
+	void Mark(HDC, BOOL, COLORREF, int, int, int, int);
+	void Mark(HDC, BOOL, COLORREF, RECT);
 
 public: // simple data variables
 	int MonitorId;

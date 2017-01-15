@@ -360,6 +360,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_AddRelativeTime) t->tflags |= ADDRELATIVETIME;
 	if(dlg->m_OutWinMessages) t->tflags |= OUTWINMESSAGES;
 	if(dlg->m_OutDWTrace) t->tflags |= OUTDXWINTRACE;
+	if(dlg->m_OutOGLTrace) t->tflags |= OUTOGLTRACE;
+	if(dlg->m_OutWGTrace) t->tflags |= OUTWINGTRACE;
 	if(dlg->m_OutDDRAWTrace) t->tflags |= OUTDDRAWTRACE;
 	if(dlg->m_OutD3DTrace) t->tflags |= OUTD3DTRACE;
 	if(dlg->m_AssertDialog) t->tflags |= ASSERTDIALOG;
@@ -376,6 +378,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_BufferedIOFix) t->flags3 |= BUFFEREDIOFIX;
 	if(dlg->m_ZBufferClean) t->flags4 |= ZBUFFERCLEAN;
 	if(dlg->m_ZBuffer0Clean) t->flags4 |= ZBUFFER0CLEAN;
+	if(dlg->m_DynamicZClean) t->flags8 |= DYNAMICZCLEAN;
 	if(dlg->m_ZBufferAlways) t->flags4 |= ZBUFFERALWAYS;
 	if(dlg->m_HotPatchAlways) t->flags4 |= HOTPATCHALWAYS;
 	if(dlg->m_FreezeInjectedSon) t->flags5 |= FREEZEINJECTEDSON;
@@ -452,6 +455,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FlipEmulation) t->flags6 |= FLIPEMULATION;
 	if(dlg->m_MarkBlit) t->flags3 |= MARKBLIT;
 	if(dlg->m_MarkLock) t->flags3 |= MARKLOCK;
+	if(dlg->m_MarkWinG32) t->flags8 |= MARKWING32;
+	if(dlg->m_MarkGDI32) t->flags8 |= MARKGDI32;
 	if(dlg->m_NoSysMemPrimary) t->flags6 |= NOSYSMEMPRIMARY;
 	if(dlg->m_NoSysMemBackBuf) t->flags6 |= NOSYSMEMBACKBUF;
 	if(dlg->m_NoBlt) t->flags5 |= NOBLT;
@@ -676,6 +681,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_AddRelativeTime = t->tflags & ADDRELATIVETIME ? 1 : 0;
 	dlg->m_OutWinMessages = t->tflags & OUTWINMESSAGES ? 1 : 0;
 	dlg->m_OutDWTrace = t->tflags & OUTDXWINTRACE ? 1 : 0;
+	dlg->m_OutOGLTrace = t->tflags & OUTOGLTRACE ? 1 : 0;
+	dlg->m_OutWGTrace = t->tflags & OUTWINGTRACE ? 1 : 0;
 	dlg->m_OutD3DTrace = t->tflags & OUTD3DTRACE ? 1 : 0;
 	dlg->m_OutDDRAWTrace = t->tflags & OUTDDRAWTRACE ? 1 : 0;
 	dlg->m_AssertDialog = t->tflags & ASSERTDIALOG ? 1 : 0;
@@ -733,6 +740,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_BufferedIOFix = t->flags3 & BUFFEREDIOFIX ? 1 : 0;
 	dlg->m_ZBufferClean = t->flags4 & ZBUFFERCLEAN ? 1 : 0;
 	dlg->m_ZBuffer0Clean = t->flags4 & ZBUFFER0CLEAN ? 1 : 0;
+	dlg->m_DynamicZClean = t->flags8 & DYNAMICZCLEAN ? 1 : 0;
 	dlg->m_ZBufferAlways = t->flags4 & ZBUFFERALWAYS ? 1 : 0;
 	dlg->m_HotPatchAlways = t->flags4 & HOTPATCHALWAYS ? 1 : 0;
 	dlg->m_FreezeInjectedSon = t->flags5 & FREEZEINJECTEDSON ? 1 : 0;
@@ -769,6 +777,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FlipEmulation = t->flags6 & FLIPEMULATION ? 1 : 0;
 	dlg->m_MarkBlit = t->flags3 & MARKBLIT ? 1 : 0;
 	dlg->m_MarkLock = t->flags3 & MARKLOCK ? 1 : 0;
+	dlg->m_MarkWinG32 = t->flags8 & MARKWING32 ? 1 : 0;
+	dlg->m_MarkGDI32 = t->flags8 & MARKGDI32 ? 1 : 0;
 	dlg->m_NoSysMemPrimary = t->flags6 & NOSYSMEMPRIMARY ? 1 : 0;
 	dlg->m_NoSysMemBackBuf = t->flags6 & NOSYSMEMBACKBUF ? 1 : 0;
 	dlg->m_NoBlt = t->flags5 & NOBLT ? 1 : 0;
@@ -1620,6 +1630,7 @@ void CDxwndhostView::OnExplore()
 	POSITION pos;
 	int len;
 	CString	FilePath;
+	HINSTANCE ret;
 
 	CListCtrl& listctrl = GetListCtrl();
 
@@ -1630,8 +1641,16 @@ void CDxwndhostView::OnExplore()
 	len=FilePath.ReverseFind('\\');	
 	if (len==0) return;
 	FilePath.Truncate(len);
+	//MessageBox(FilePath, "path", 0);
 
-	ShellExecute(NULL, "explore", FilePath, NULL, NULL, SW_SHOW);
+	extern BOOL IsWinXP(void);
+	ret = ShellExecute(NULL, IsWinXP() ? "open" : "explore", FilePath, NULL, NULL, SW_SHOW);
+	if((int)ret <= 32){
+		char message[MAX_PATH];
+		sprintf(message, "ShellExecute(\"%s\", \"%s\") failed.\nerror=%d",
+			IsWinXP() ? "open" : "explore", FilePath, ret);
+		MessageBox(message, "error", 0);
+	}
 }
 
 void CDxwndhostView::OnViewLog() 
@@ -2551,7 +2570,8 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	int res;
 	
 	ClientToScreen(&point);
-	popup.LoadMenu(IDR_MENU_POPUP);
+	popup.LoadMenu(gbDebug ? IDR_MENU_POPUP_EX : IDR_MENU_POPUP);
+
 	res = popup.GetSubMenu(0)->TrackPopupMenu(TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON | TPM_RETURNCMD, point.x, point.y, this);
 	switch(res){
 	case ID_PRUN:

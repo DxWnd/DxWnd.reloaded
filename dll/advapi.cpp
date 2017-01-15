@@ -56,6 +56,61 @@ static FILE *OpenFakeRegistry();
 static char *hKey2String(HKEY);
 static LONG myRegOpenKeyEx(HKEY, LPCTSTR, PHKEY);
 
+// int ReplaceVar(pData, lplpData, lpcbData): 
+// extract the token name from pData beginning up to '}' delimiter
+// calculates the value of the token. If the token is unknown, the value is null string.
+// if *lplpData, copies the token value string to *lplpData and increments *lplpData
+// if lpcbData, increments the key length of the token value length
+// returns the length of token label to advance the parsing loop
+
+typedef enum {
+	LABEL_PATH = 0,
+	LABEL_WORKDIR,
+	LABEL_VOID,
+	LABEL_END
+};
+static char *sTokenLabels[LABEL_END+1]={
+	"path}",
+	"work}",
+	"}",
+	NULL
+};
+
+static int ReplaceVar(char *pData, LPBYTE *lplpData, LPDWORD lpcbData)
+{
+	int iTokenLength;
+	int iLabelLength;
+	int iTokenIndex;
+	char sTokenValue[MAX_PATH];
+	// search for a matching token
+	for(iTokenIndex=0; sTokenLabels[iTokenIndex]; iTokenIndex++){
+		if(!strncmp(pData, sTokenLabels[iTokenIndex], strlen(sTokenLabels[iTokenIndex]))) break;
+	}
+	// set token label length
+	iLabelLength = strlen(sTokenLabels[iTokenIndex]);
+	// do replacement
+	switch(iTokenIndex){
+		case LABEL_PATH:
+		case LABEL_WORKDIR:
+			GetCurrentDirectory(MAX_PATH, sTokenValue);
+			break;
+		case LABEL_VOID:
+		case LABEL_END:
+			strcpy(sTokenValue, "");
+			break;
+	}
+	// set output vars if not NULL
+	iTokenLength = strlen(sTokenValue);
+	OutTrace("REPLACED token=%d val=\"%s\" len=%d\n", iTokenIndex, sTokenValue, iTokenLength);
+	if(lplpData) {
+		strcpy((char *)*lplpData, sTokenValue);
+		*lplpData += iTokenLength;
+	}
+	if(lpcbData) *lpcbData += iTokenLength;
+	// return label length to advance parsing
+	return iLabelLength;
+}
+
 static char *hKey2String(HKEY hKey)
 {
 	char *skey;
@@ -280,7 +335,18 @@ static DWORD GetKeyValue(
 			if(lpType) *lpType=REG_SZ;
 			pData++;
 			while(*pData && (*pData != '"')){
-				if(*pData=='\\') pData++;
+				if(*pData=='\\') {
+					pData++;
+					switch(*pData){
+						case '{':{
+							pData++; // skip '{'
+							pData += ReplaceVar(pData, &lpb, lpcbData);
+							}
+							break;
+						default: 
+							break; // skip first '\'
+					}
+				}
 				if(lpData && lpcbData) if(*lpcbData < cbData) *lpb++=*pData;
 				pData++;
 				if(lpcbData) (*lpcbData)++;

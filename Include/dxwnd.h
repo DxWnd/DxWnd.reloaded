@@ -265,6 +265,9 @@
 #define HOOKWING32			0x00002000 // Hook WinG32.dll
 #define SEQUENCEDIAT		0x00004000 // IFT has sequential format, DLL entries before and API next
 #define D3D8BACK16			0x00008000 // D3D8 emulate 16 bpp backbuffer on a 32 bpp desktop (Win8-10 needed feature)
+#define MARKWING32			0x00010000 // Marks (highlights with colored frames) all WinG32 operations
+#define DYNAMICZCLEAN		0x00020000 // Performs ZBUFFER cleaning also every time the ZBUFFER is activated
+#define MARKGDI32			0x00040000 // Marks (highlights with colored frames) the main GDI32 operations
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -280,6 +283,8 @@
 #define TRACEHOOKS			0x00000400 // log hook operations
 #define OUTD3DTRACE			0x00000800 // traces DxWnd direct3d screen handling
 #define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
+#define OUTWINGTRACE		0x00002000 // traces WinG32 hooked calls
+#define OUTOGLTRACE			0x00004000 // traces OpenGL hooked calls
 #define ADDRELATIVETIME		0x08000000 // log timestamp is relative to previous line
 //#define NOLOGCLOSE			0x10000000 // avoid closing the log file handle ("Riven, during CD changes ...)
 #define ADDTIMESTAMP		0x20000000 // add timestamp (GetTickCount) to log file
@@ -385,6 +390,8 @@ LRESULT CALLBACK dw_Hider_Message_Handler(HWND, UINT, WPARAM, LPARAM);
 #define OutTraceH if(dxw.dwTFlags & TRACEHOOKS) OutTrace
 #define OutTraceP OutTrace
 #define OutTraceE OutTrace
+#define OutTraceWG if(dxw.dwTFlags & OUTWINGTRACE) OutTrace
+#define OutTraceOGL if(dxw.dwTFlags & OUTOGLTRACE) OutTrace
 
 #define IsTraceW (dxw.dwTFlags & OUTWINMESSAGES)
 //#define IsTraceX (dxw.dwTFlags & OUTPROXYTRACE)
@@ -396,6 +403,8 @@ LRESULT CALLBACK dw_Hider_Message_Handler(HWND, UINT, WPARAM, LPARAM);
 #define IsTraceH (dxw.dwTFlags & TRACEHOOKS)
 #define IsTraceP (TRUE)
 #define IsTraceE (TRUE)
+#define IsTraceWG (dxw.dwTFlags & OUTWINGTRACE)
+#define IsTraceOGL (dxw.dwTFlags & OUTOGLTRACE)
 #define IsDebug  (dxw.dwTFlags & OUTDEBUG)
 #define IsAssertEnabled (dxw.dwTFlags & ASSERTDIALOG)
 #define STEP OutTrace("STEP at %s:%d\n", __FILE__, __LINE__)

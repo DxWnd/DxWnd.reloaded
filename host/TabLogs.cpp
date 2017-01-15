@@ -51,6 +51,8 @@ void CTabLogs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_IMPORTTABLE, cTarget->m_ImportTable);
 	DDX_Check(pDX, IDC_OUTREGISTRY, cTarget->m_RegistryOp);
 	DDX_Check(pDX, IDC_TRACEHOOKS, cTarget->m_TraceHooks);
+	DDX_Check(pDX, IDC_OUTOGLTRACE, cTarget->m_OutOGLTrace);
+	DDX_Check(pDX, IDC_OUTWGTRACE, cTarget->m_OutWGTrace);
 }
 
 BEGIN_MESSAGE_MAP(CTabLogs, CDialog)

@@ -199,9 +199,9 @@ void WINAPI extglViewport(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height
 	RECT client;
 	POINT p={0,0};
 	HWND hwnd;
+	OutTraceOGL("glViewport: pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	hwnd=dxw.GethWnd();
 	(*pGetClientRect)(hwnd, &client);
-	OutTraceDW("glViewport: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	if(IsDebug) OutTrace("glViewport: DEBUG hwnd=%x win=(%d,%d) screen=(%d,%d)\n",
 		hwnd, client.right, client.bottom, dxw.GetScreenWidth(), dxw.GetScreenHeight());
 	if(x==CW_USEDEFAULT) x=0;
@@ -220,7 +220,7 @@ void WINAPI extglScissor(GLint  x,  GLint  y,  GLsizei  width,  GLsizei  height)
 	POINT p={0,0};
 	//if (dxw.dwFlags2 & HANDLEFPS) if(dxw.HandleFPS()) return;
 	(*pGetClientRect)(dxw.GethWnd(), &client);
-	OutTraceDW("glScissor: declared pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
+	OutTraceOGL("glScissor: pos=(%d,%d) size=(%d,%d)\n", x, y, width, height);
 	x = (x * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
 	y = (y * (GLint)client.bottom) / (GLint)dxw.GetScreenHeight();
 	width = (width * (GLint)client.right) / (GLint)dxw.GetScreenWidth();
@@ -268,16 +268,19 @@ void WINAPI extglDrawBuffer(GLenum mode)
 
 void WINAPI extglPolygonMode(GLenum face, GLenum mode)
 {
-	OutTraceDW("glPolygonMode: face=%x mode=%x\n", face, mode);
+	OutTraceOGL("glPolygonMode: face=%x mode=%x\n", face, mode);
 	//OutTraceDW("glPolygonMode: extglPolygonMode=%x pglPolygonMode=%x\n", extglPolygonMode, pglPolygonMode);
-	if(dxw.dwFlags2 & WIREFRAME) mode = GL_LINE; // trick to set wireframe mode....
+	if(dxw.dwFlags2 & WIREFRAME) {
+		OutTraceDW("glPolygonMode: WIREFRAME forcind mode=GL_LINE\n");
+		mode = GL_LINE; // trick to set wireframe mode....
+	}
 	(*pglPolygonMode)(face, mode);
 	return;
 }
 
 void WINAPI extglGetFloatv(GLenum pname, GLboolean *params)
 {
-	OutTraceDW("glGetFloatv: pname=%x\n", pname);
+	OutTraceOGL("glGetFloatv: pname=%x\n", pname);
 	(*pglGetFloatv)(pname, params);
 	return;
 }
@@ -294,7 +297,7 @@ void WINAPI extglClear(GLbitfield mask)
 HGLRC WINAPI extwglCreateContext(HDC hdc)
 {
 	HGLRC ret;
-	OutTraceDW("wglCreateContext: hdc=%x\n", hdc);
+	OutTraceOGL("wglCreateContext: hdc=%x\n", hdc);
 	// v2.02.31: don't let it use desktop hdc
 	if(dxw.IsRealDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
@@ -318,7 +321,7 @@ PROC WINAPI extwglGetProcAddress(LPCSTR proc)
 {
 	PROC procaddr;
 
-	OutTraceDW("wglGetProcAddress: proc=%s\n", proc);
+	OutTraceOGL("wglGetProcAddress: proc=%s\n", proc);
 	procaddr=Remap_wgl_ProcAddress(proc);
 	if (!procaddr) procaddr=(*pwglGetProcAddress)(proc);
 	return procaddr;
@@ -328,7 +331,7 @@ BOOL WINAPI extwglMakeCurrent(HDC hdc, HGLRC hglrc)
 {
 	BOOL ret;
 
-	OutTraceDW("wglMakeCurrent: hdc=%x hglrc=%x\n", hdc, hglrc);
+	OutTraceOGL("wglMakeCurrent: hdc=%x hglrc=%x\n", hdc, hglrc);
 	// v2.02.31: don't let it use desktop hdc
 	if(dxw.IsDesktop(WindowFromDC(hdc))){
 		HDC oldhdc = hdc;
@@ -523,7 +526,7 @@ void WINAPI extglTexImage2D(
   	GLenum type,
   	const GLvoid * data)
 {
-	OutTraceDW("glTexImage2D: TEXTURE target=%x(%s) level=%x internalformat=%x format=%x type=%x size=(%dx%d)\n", 
+	OutTraceOGL("glTexImage2D: TEXTURE target=%x(%s) level=%x internalformat=%x format=%x type=%x size=(%dx%d)\n", 
 		target, ExplainTarget(target), level, internalFormat, format, type, width, height);
 
 	switch(target){
@@ -564,7 +567,7 @@ void WINAPI extglCopyTexImage2D(
   	GLsizei height,
   	GLint border)
 {
-	OutTraceDW("glCopyTexImage2D: TEXTURE target=%x(%s) level=%x internalformat=%x pos=(%d,%d) size=(%dx%d) border=%d\n", 
+	OutTraceOGL("glCopyTexImage2D: TEXTURE target=%x(%s) level=%x internalformat=%x pos=(%d,%d) size=(%dx%d) border=%d\n", 
 		target, ExplainTarget(target), level, internalFormat, x, y, width, height, border);
 
 	switch(target){
@@ -634,7 +637,7 @@ void WINAPI extglDrawPixels(GLsizei width, GLsizei height, GLenum format, GLenum
 void WINAPI extglPixelZoom(GLfloat xfactor, GLfloat yfactor)
 {
 	GLenum glerr;
-	OutTraceDW("glPixelZoom: x,y factor=(%f,%f)\n", xfactor, yfactor);
+	OutTraceOGL("glPixelZoom: x,y factor=(%f,%f)\n", xfactor, yfactor);
 
 	if(dxw.dwFlags6 & FIXPIXELZOOM){
 		RECT desktop;
@@ -651,18 +654,18 @@ void WINAPI extglPixelZoom(GLfloat xfactor, GLfloat yfactor)
 void WINAPI extglBegin(GLenum mode)
 {
 	GLenum glerr;
-	OutTraceDW("glBegin: mode=%x\n", mode);
+	OutTraceOGL("glBegin: mode=%x\n", mode);
 
 	//if(mode == GL_QUADS) mode = GL_TRIANGLES;
 	(*pglBegin)(mode);
-	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTraceE("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }
 
 void WINAPI extglBindTexture(GLenum target, GLuint texture)
 {
 	GLenum glerr;
-	OutTraceDW("glBindTexture: target=%x(%s) texture=%x\n", target, ExplainTarget(target), texture);
+	OutTraceOGL("glBindTexture: target=%x(%s) texture=%x\n", target, ExplainTarget(target), texture);
 
 	if(dxw.dwFlags7 & FIXBINDTEXTURE) {
 		static GLuint uiLastTex = 0;
@@ -671,14 +674,14 @@ void WINAPI extglBindTexture(GLenum target, GLuint texture)
 	}
 
 	(*pglBindTexture)(target, texture);
-	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
+	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTraceE("GLERR %d ad %d\n", glerr, __LINE__);
 	return;
 }
 
 void WINAPI extglPixelStorei(GLenum pname,  GLint param)
 {
 	GLenum glerr;
-	OutTraceDW("glPixelStorei: pname=%x param=%x\n", pname, param);
+	OutTraceOGL("glPixelStorei: pname=%x param=%x\n", pname, param);
 
 	(*pglPixelStorei)(pname, param);
 	if ((glerr=extglGetError())!= GL_NO_ERROR) OutTrace("GLERR %d ad %d\n", glerr, __LINE__);
@@ -687,6 +690,7 @@ void WINAPI extglPixelStorei(GLenum pname,  GLint param)
 
 void WINAPI extglutFullScreen(void)
 {
+	OutTraceOGL("glutFullScreen: void\n");
 	if(!dxw.Windowize) return (*pglutFullScreen)();
 	OutTraceDW("glutFullScreen BYPASS\n");
 	dxw.SetFullScreen(TRUE);
@@ -695,10 +699,10 @@ void WINAPI extglutFullScreen(void)
 void extglutInitWindowSize(int width, int height)
 {
 	int dummy1, dummy2;
+	OutTraceOGL("glutInitWindowSize: size=(%dx%d)\n", width, height);
 	if(dxw.Windowize){
 		dummy1=0;
 		dummy2=0;
-		OutTraceDW("glutInitWindowSize: width=%d height=%d\n", width, height);
 		dxw.MapWindow(&dummy1, &dummy2, &width, &height);	
 		OutTraceDW("glutInitWindowSize: FIXED width=%d height=%d\n", width, height);
 	}
@@ -708,19 +712,19 @@ void extglutInitWindowSize(int width, int height)
 void extglutInitWindowPosition(int x, int y)
 {
 	int dummy1, dummy2;
+	OutTraceOGL("glutInitWindowPosition: pos=(%d,%d)\n", x, y);
 	if(dxw.Windowize){
 		dummy1=0;
 		dummy2=0;
-		OutTraceDW("glutInitWindowPosition: x=%d y=%d\n", x, y);
 		dxw.MapWindow(&x, &y, &dummy1, &dummy2);
-		OutTraceDW("glutInitWindowPosition: FIXED x=%d y=%d\n", x, y);
+		OutTraceDW("glutInitWindowPosition: FIXED pos=(%d,%d)\n", x, y);
 	}
 	(*pglutInitWindowPosition)(x, y);
 }
 
 void WINAPI extglutSetWindow(HWND win)
 {
-	OutTraceDW("glutSetWindow: win=%x\n", win);
+	OutTraceOGL("glutSetWindow: win=%x\n", win);
 	if(dxw.Windowize && dxw.IsRealDesktop(win)) win=dxw.GethWnd();
 	(*pglutSetWindow)(win);
 }
@@ -742,6 +746,7 @@ static char *glStringName(GLenum name)
 const  GLubyte* WINAPI extglGetString(GLenum name)
 {
 	const GLubyte* ret;
+	OutTraceOGL("glGetString: name=%s\n", name);
 	ret = (*pglGetString)(name);
 	if(IsTraceDW){
 		if(strlen((const char *)ret)<80)
@@ -762,6 +767,7 @@ const  GLubyte* WINAPI extglGetString(GLenum name)
 char* WINAPI extwglGetExtensionsStringEXT(void)
 {
 	char *ret;
+	OutTraceOGL("wglGetExtensionsStringEXT: void\n");
 	ret = (*pwglGetExtensionsStringEXT)();
 	if(IsTraceDW){
 		if(strlen((const char *)ret)<80)
@@ -782,6 +788,7 @@ char* WINAPI extwglGetExtensionsStringEXT(void)
 const GLubyte* WINAPI extgluGetString(GLenum name)
 {
 	const GLubyte* ret;
+	OutTraceOGL("gluGetString: name=%s\n", name);
 	ret = (*pgluGetString)(name);
 	if(IsTraceDW){
 		if(strlen((const char *)ret)<80)

@@ -1471,3 +1471,22 @@ void dxwCore::MessagePump()
 		DispatchMessage(&msg);
 	}
 }
+
+void dxwCore::Mark(HDC hdc, BOOL scale, COLORREF color, int x, int y, int cx, int cy)
+{
+	RECT frame;
+	HBRUSH brush = CreateSolidBrush(color);
+	frame.left = x; frame.top = y;
+	frame.right = x+cx; frame.bottom = y+cy;
+	if(scale) dxw.MapClient(&frame);
+	(*pFrameRect)(hdc, &frame, brush);
+	DeleteObject(brush);
+}
+
+void dxwCore::Mark(HDC hdc, BOOL scale, COLORREF color, RECT frame)
+{
+	HBRUSH brush = CreateSolidBrush(color);
+	if(scale) dxw.MapClient(&frame);
+	(*pFrameRect)(hdc, &frame, brush);
+	DeleteObject(brush);
+}

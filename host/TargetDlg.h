@@ -60,6 +60,8 @@ public:
 	BOOL	m_OutDebugString;
 	BOOL	m_OutWinMessages;
 	BOOL	m_OutDWTrace;
+	BOOL	m_OutOGLTrace;
+	BOOL	m_OutWGTrace;
 	BOOL	m_OutD3DTrace;
 	BOOL	m_OutDDRAWTrace;
 	BOOL	m_AssertDialog;
@@ -131,6 +133,8 @@ public:
 	BOOL	m_FlipEmulation;
 	BOOL	m_MarkBlit;
 	BOOL	m_MarkLock;
+	BOOL	m_MarkWinG32;
+	BOOL	m_MarkGDI32;
 	BOOL	m_NoSysMemPrimary;
 	BOOL	m_NoSysMemBackBuf;
 	BOOL	m_NoBlt;
@@ -215,6 +219,7 @@ public:
 	BOOL	m_BufferedIOFix;
 	BOOL	m_ZBufferClean;
 	BOOL	m_ZBuffer0Clean;
+	BOOL	m_DynamicZClean;
 	BOOL	m_ZBufferAlways;
 	BOOL	m_HotPatchAlways;
 	BOOL	m_FreezeInjectedSon;

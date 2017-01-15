@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.04.04"
+#define VERSION "2.04.05"
 
 #define DDTHREADLOCK 1
 

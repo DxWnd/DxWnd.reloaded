@@ -47,6 +47,15 @@ COLORREF WINAPI extSetBkColor(HDC, COLORREF);
 COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor);
 int WINAPI extSetBkMode(HDC, int);
 */
+typedef int (WINAPI *EnumFontsA_Type)(HDC, LPCSTR, FONTENUMPROC, LPARAM);
+EnumFontsA_Type pEnumFontsA;
+int WINAPI extEnumFontsA(HDC, LPCSTR, FONTENUMPROC, LPARAM);
+typedef BOOL (WINAPI *GetTextExtentPointA_Type)(HDC, LPCTSTR, int, LPSIZE);
+GetTextExtentPointA_Type pGetTextExtentPointA;
+BOOL WINAPI extGetTextExtentPointA(HDC, LPCTSTR, int, LPSIZE);
+typedef BOOL (WINAPI *GetTextExtentPoint32A_Type)(HDC, LPCTSTR, int, LPSIZE);
+GetTextExtentPoint32A_Type pGetTextExtentPoint32A;
+BOOL WINAPI extGetTextExtentPoint32A(HDC, LPCTSTR, int, LPSIZE);
 
 static HookEntryEx_Type Hooks[]={
 
@@ -74,6 +83,7 @@ static HookEntryEx_Type Hooks[]={
 #ifdef TRACEPALETTE
 	{HOOK_IAT_CANDIDATE, 0, "ResizePalette", (FARPROC)ResizePalette, (FARPROC *)&pResizePalette, (FARPROC)extResizePalette},
 #endif	
+	{HOOK_HOT_CANDIDATE, 0, "EnumFontsA", (FARPROC)EnumFontsA, (FARPROC *)&pEnumFontsA, (FARPROC)extEnumFontsA}, // Titanic
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 }; 
  
@@ -150,6 +160,8 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "CreateDCW", (FARPROC)CreateDCW, (FARPROC *)&pGDICreateDCW, (FARPROC)extGDICreateDCW}, 
 
 	{HOOK_IAT_CANDIDATE, 0, "PlayEnhMetaFile", (FARPROC)PlayEnhMetaFile, (FARPROC *)&pPlayEnhMetaFile, (FARPROC)extPlayEnhMetaFile}, 
+	{HOOK_IAT_CANDIDATE, 0, "GetTextExtentPointA", (FARPROC)NULL, (FARPROC *)&pGetTextExtentPointA, (FARPROC)extGetTextExtentPointA}, 
+	{HOOK_IAT_CANDIDATE, 0, "GetTextExtentPoint32A", (FARPROC)NULL, (FARPROC *)&pGetTextExtentPoint32A, (FARPROC)extGetTextExtentPoint32A}, 
 
 	// CreateDCW .....	
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator 
@@ -192,6 +204,9 @@ static HookEntryEx_Type FontHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "CreateScalableFontResourceW", (FARPROC)CreateScalableFontResourceW, (FARPROC *)&pCreateScalableFontResourceW, (FARPROC)extCreateScalableFontResourceW},
 	{HOOK_IAT_CANDIDATE, 0, "AddFontResourceA", (FARPROC)AddFontResourceA, (FARPROC *)&pAddFontResourceA, (FARPROC)extAddFontResourceA},
 	{HOOK_IAT_CANDIDATE, 0, "AddFontResourceW", (FARPROC)AddFontResourceW, (FARPROC *)&pAddFontResourceW, (FARPROC)extAddFontResourceW},
+	// v2.04.05: Used by "Warhammer: Shadow of the Horned Rat"
+	{HOOK_IAT_CANDIDATE, 0, "RemoveFontResourceA", (FARPROC)RemoveFontResourceA, (FARPROC *)&pRemoveFontResourceA, (FARPROC)extRemoveFontResourceA},
+	{HOOK_IAT_CANDIDATE, 0, "RemoveFontResourceW", (FARPROC)RemoveFontResourceW, (FARPROC *)&pRemoveFontResourceW, (FARPROC)extRemoveFontResourceW},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -1022,7 +1037,10 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 
 	if(IsDCLeakageSrc) (*pGDIReleaseDC)(dxw.GethWnd(), hdcSrc);
 	if(IsDCLeakageDest) (*pGDIReleaseDC)(dxw.GethWnd(), hdcDest);
-	if(res && IsToScreen) dxw.ShowOverlay(hdcDest);
+	if(res && IsToScreen) {
+		dxw.ShowOverlay(hdcDest);
+		if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdcDest, FALSE, RGB(0, 0, 255), nXDest, nYDest, nWidth, nHeight);
+	}
 	if(!res) OutTraceE("GDI.BitBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
@@ -1115,7 +1133,10 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 
 	if(IsDCLeakageSrc) (*pGDIReleaseDC)(dxw.GethWnd(), hdcSrc);
 	if(IsDCLeakageDest) (*pGDIReleaseDC)(dxw.GethWnd(), hdcDest);
-	if(res && IsToScreen) dxw.ShowOverlay(hdcDest);
+	if(res && IsToScreen) {
+		dxw.ShowOverlay(hdcDest);
+		if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdcDest, FALSE, RGB(0, 250, 250), nXDest, nYDest, nWidth, nHeight);
+	}
 	if(!res) OutTraceE("GDI.StretchBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
@@ -1177,7 +1198,10 @@ BOOL WINAPI extGDIPatBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	}
 
 	if(IsDCLeakageDest) (*pGDIReleaseDC)(dxw.GethWnd(), hdcDest);
-	if(res && IsToScreen) dxw.ShowOverlay(hdcDest);
+	if(res && IsToScreen) {
+		dxw.ShowOverlay(hdcDest);
+		if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdcDest, FALSE, RGB(255, 255, 0), nXDest, nYDest, nWidth, nHeight);
+	}
 	if(!res) OutTraceE("GDI.PatBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
 	return res;
 }
@@ -1698,6 +1722,7 @@ int WINAPI extStretchDIBits(HDC hdc, int XDest, int YDest, int nDestWidth, int n
 	}
 
 	ret=(*pStretchDIBits)(hdc, XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight, lpBits, lpBitsInfo, iUsage, dwRop);
+	if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdc, FALSE, RGB(255, 0, 255), XDest, YDest, nDestWidth, nDestHeight);
 	if(!ret || (ret==GDI_ERROR)) OutTraceE("StretchDIBits: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
 }
@@ -1857,6 +1882,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 					OutTraceE("DeleteObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 				if(!(DeleteDC(hTempDc)))
 					OutTraceE("DeleteDC: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+				if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdc, FALSE, RGB(255, 255, 255),  XDest, YDest, dwWidth, dwHeight);
 				return ret;
 				break;
 			case GDIMODE_EMULATED:
@@ -1868,6 +1894,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 				ret=(*pSetDIBitsToDevice)(hdc, X, Y, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
 				bGDIRecursionFlag = FALSE;
 				if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+				if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdc, FALSE, RGB(255, 255, 255),  XDest, YDest, dwWidth, dwHeight);
 				return ret;
 			default:
 				break;
@@ -1877,6 +1904,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 	ret=(*pSetDIBitsToDevice)(hdc, XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
 	bGDIRecursionFlag = FALSE;
 	if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
+	if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdc, FALSE, RGB(255, 255, 255),  XDest, YDest, dwWidth, dwHeight);
 	return ret;
 }
 
@@ -2105,14 +2133,17 @@ HRGN WINAPI extCreateRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nB
 HRGN WINAPI extCreateRectRgnIndirect(const RECT *lprc)
 {
 	HRGN ret;
+	RECT rc;
 	OutTraceDW("CreateRectRgnIndirect: rect=(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
 
+	// v2.04.05: copy the RECT, do not alter the values!
+	rc = *lprc;
 	if (dxw.IsFullScreen()){
-		dxw.MapClient((RECT *)lprc);
-		OutTraceDW("CreateRectRgnIndirect: fixed rect=(%d,%d)-(%d,%d)\n", lprc->left, lprc->top, lprc->right, lprc->bottom);
+		dxw.MapClient(&rc);
+		OutTraceDW("CreateRectRgnIndirect: fixed rect=(%d,%d)-(%d,%d)\n", rc.left, rc.top, rc.right, rc.bottom);
 	}
 
-	ret=(*pCreateRectRgnIndirect)(lprc);
+	ret=(*pCreateRectRgnIndirect)(&rc);
 	if(!ret) OutTraceE("CreateRectRgnIndirect: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 	return ret;
 }
@@ -2463,6 +2494,19 @@ int WINAPI extAddFontResourceA(LPCTSTR lpszFontFile)
 	return res;
 }
 
+int WINAPI extRemoveFontResourceA(LPCTSTR lpszFontFile)
+{
+	BOOL res;
+	OutTraceDW("RemoveFontResource: FontFile=\"%s\"\n", lpszFontFile);
+	if(dxw.dwFlags3 & FONTBYPASS) {
+		OutTraceDW("RemoveFontResource: SUPPRESS FontFile=\"%s\"\n", lpszFontFile);
+		return TRUE;
+	}
+	res=(*pRemoveFontResourceA)(lpszFontFile);
+	if(!res) OutTraceE("RemoveFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return res;
+}
+
 int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
 {
 	BOOL res;
@@ -2473,6 +2517,28 @@ int WINAPI extAddFontResourceW(LPCWSTR lpszFontFile)
 	}
 	res=(*pAddFontResourceW)(lpszFontFile);
 	if(!res) OutTraceE("AddFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return res;
+}
+
+int WINAPI extRemoveFontResourceW(LPCWSTR lpszFontFile)
+{
+	BOOL res;
+	OutTraceDW("RemoveFontResource: FontFile=\"%ls\"\n", lpszFontFile);
+	if(dxw.dwFlags3 & FONTBYPASS) {
+		OutTraceDW("RemoveFontResource: SUPPRESS FontFile=\"%ls\"\n", lpszFontFile);
+		return TRUE;
+	}
+	res=(*pRemoveFontResourceW)(lpszFontFile);
+	if(!res) OutTraceE("RemoveFontResource: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
+	return res;
+}
+
+int WINAPI extEnumFontsA(HDC hdc, LPCSTR lpFaceName, FONTENUMPROC lpFontFunc, LPARAM lParam)
+{
+	int res;
+	OutTraceDW("EnumFonts: hdc=%x facename=\"%s\" fontfunc=%x lparam=%x\n", hdc, lpFaceName, lpFontFunc, lParam);
+	res = (*pEnumFontsA)(hdc, lpFaceName, lpFontFunc, lParam);
+	OutTraceDW("EnumFonts: res=0x%x\n", res);
 	return res;
 }
 
@@ -2997,9 +3063,75 @@ BOOL WINAPI extExtFloodFill(HDC hdc, int nXStart, int nYStart, COLORREF crColor,
 
 BOOL WINAPI extGdiAlphaBlend(HDC hdcDest, int xoriginDest, int yoriginDest, int wDest, int hDest, HDC hdcSrc, int xoriginSrc, int yoriginSrc, int wSrc, int hSrc, BLENDFUNCTION ftn)
 {
-	// to be handled the 4 flux cases .....
-	_Warn("GdiAlphaBlend");
-	return TRUE;
+	BOOL ret;
+	int Flux;
+	BOOL IsToScreen, IsFromScreen;
+	BOOL IsDCLeakageSrc = FALSE;
+	BOOL IsDCLeakageDest = FALSE;
+
+	// v2.04.05: call found in Rhem during savegame load
+	OutTraceDW("GdiAlphaBlend: dest {hdc=%x pos=(%d,%d) size=(%dx%d)} source {hdc=%x pos=(%d,%d) size=(%dx%d)} ftn=%x\n", 
+		hdcDest, xoriginDest, yoriginDest, wDest, hDest, hdcSrc, xoriginSrc, yoriginSrc, wSrc, hSrc, ftn);
+
+	if(hdcDest == NULL){
+		hdcDest = (*pGDIGetDC)(dxw.GethWnd());
+		OutTraceB("GdiAlphaBlend: DEBUG hdc dest=NULL->%x\n", hdcDest);
+		IsDCLeakageDest = TRUE;
+	}
+	if(hdcSrc == NULL){
+		hdcSrc = (*pGDIGetDC)(dxw.GethWnd());
+		OutTraceB("GdiAlphaBlend: DEBUG hdc src=NULL->%x\n", hdcSrc);
+		IsDCLeakageSrc = TRUE;
+	}
+
+	IsToScreen=(OBJ_DC == (*pGetObjectType)(hdcDest));
+	IsFromScreen=(OBJ_DC == (*pGetObjectType)(hdcSrc));
+	Flux = (IsToScreen ? 1 : 0) + (IsFromScreen ? 2 : 0); 
+	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
+
+	//_Warn("GdiAlphaBlend");
+	switch(dxw.GDIEmulationMode){
+		case GDIMODE_SHAREDDC: 
+			switch(Flux){
+				case 0: // memory to memory
+					ret=(*pGdiAlphaBlend)(hdcSrc, xoriginDest, yoriginDest, wDest, hDest, hdcSrc, xoriginSrc, yoriginSrc, wSrc, hSrc, ftn);
+					break;
+				case 1: // memory to screen
+				case 3: // screen to screen
+					sdc.GetPrimaryDC(hdcDest);
+					ret=(*pGdiAlphaBlend)(sdc.GetHdc(), xoriginDest, yoriginDest, wDest, hDest, hdcSrc, xoriginSrc, yoriginSrc, wSrc, hSrc, ftn);
+					sdc.PutPrimaryDC(hdcDest, TRUE, xoriginDest, yoriginDest, wDest, hDest);
+					break;
+				case 2: // screen to memory using virtual screen
+					sdc.GetPrimaryDC(hdcSrc);
+					ret=(*pGdiAlphaBlend)(hdcDest, xoriginDest, yoriginDest, wDest, hDest, sdc.GetHdc(), xoriginSrc, yoriginSrc, wSrc, hSrc, ftn);
+					sdc.PutPrimaryDC(hdcSrc, FALSE, xoriginSrc, yoriginSrc, wSrc, hSrc);
+					break;
+			}
+			break;			
+		case GDIMODE_STRETCHED: 
+			switch(Flux){
+				case 1: // memory to screen
+					dxw.MapClient(&xoriginDest, &yoriginDest, &wDest, &hDest);
+					break;
+				case 2: // screen to memory
+					dxw.MapClient(&xoriginSrc, &yoriginSrc, &wSrc, &hSrc);
+					break;
+				default:
+					break;
+			}
+			// fallthrough ....
+		case GDIMODE_EMULATED:
+		default:
+			ret=(*pGdiAlphaBlend)(hdcDest, xoriginDest, yoriginDest, wDest, hDest, hdcSrc, xoriginSrc, yoriginSrc, wSrc, hSrc, ftn);
+			break;
+	}
+
+	if(IsDCLeakageSrc) (*pGDIReleaseDC)(dxw.GethWnd(), hdcSrc);
+	if(IsDCLeakageDest) (*pGDIReleaseDC)(dxw.GethWnd(), hdcDest);
+	if(ret && IsToScreen) dxw.ShowOverlay(hdcDest);
+	if(!ret) OutTraceE("GdiAlphaBlend ERROR: err=%d\n", GetLastError());
+	return ret;
 }
 
 BOOL WINAPI extGdiGradientFill(HDC hdc, PTRIVERTEX pVertex, ULONG nVertex, PVOID pMesh, ULONG nMesh, ULONG ulMode)
@@ -3297,9 +3429,63 @@ int WINAPI extSetROP2(HDC hdc, int fnDrawMode)
 	// N.b. Titanic calls SetTextColor, SetBkColor and SetROP2 in sequence, it might be possible that the 
 	// API to hook for refreshing is another, or even them all!
 	int ret;
-	OutTrace("SetROP2: hdc=%x drawmode=%d\n", hdc, fnDrawMode);
+	OutTraceDW("SetROP2: hdc=%x drawmode=%d\n", hdc, fnDrawMode);
 	ret = (*pSetROP2)(hdc, fnDrawMode);
 	(*pInvalidateRect)(WindowFromDC(hdc), NULL, 0);
+	return ret;
+}
+
+// v2.04.05: GetTextExtentPointA hooker for "Warhammer Shadow of the Horned Rat"
+BOOL WINAPI extGetTextExtentPointA(HDC hdc, LPCTSTR lpString, int cbString, LPSIZE lpSize)
+{
+	BOOL ret;
+	OutTraceDW("GetTextExtentPointA: hdc=%x string=\"%s\"(%d)\n", hdc, lpString, cbString);
+
+	ret = (*pGetTextExtentPointA)(hdc, lpString, cbString, lpSize);
+	if(!ret){
+		OutTraceDW("GetTextExtentPointA ERROR: err=%d\n", GetLastError);
+		return ret;
+	}
+	
+	OutTraceDW("GetTextExtentPointA: size=(%dx%d)\n", lpSize->cx, lpSize->cy);
+	// beware: size scaling is appropriate only when referred to video DC
+	switch(dxw.GDIEmulationMode){
+		case GDIMODE_STRETCHED: 
+			if(dxw.Windowize && dxw.IsToRemap(hdc)){
+				dxw.UnmapClient((LPRECT)lpSize);
+				OutTraceDW("GetTextExtentPointA: remapped size=(%dx%d)\n", lpSize->cx, lpSize->cy);
+			}
+			break;
+		default:
+			break;
+	}
+	return ret;
+}
+
+// v2.04.05: GetTextExtentPoint32A hooker for "Warhammer Shadow of the Horned Rat"
+BOOL WINAPI extGetTextExtentPoint32A(HDC hdc, LPCTSTR lpString, int cbString, LPSIZE lpSize)
+{
+	BOOL ret;
+	OutTraceDW("GetTextExtentPoint32A: hdc=%x string=\"%s\"(%d)\n", hdc, lpString, cbString);
+
+	ret = (*pGetTextExtentPoint32A)(hdc, lpString, cbString, lpSize);
+	if(!ret){
+		OutTraceDW("GetTextExtentPoint32A ERROR: err=%d\n", GetLastError);
+		return ret;
+	}
+	
+	OutTraceDW("GetTextExtentPoint32A: size=(%dx%d)\n", lpSize->cx, lpSize->cy);
+	// beware: size scaling is appropriate only when referred to video DC
+	switch(dxw.GDIEmulationMode){
+		case GDIMODE_STRETCHED: 
+			if(dxw.Windowize && dxw.IsToRemap(hdc)){
+				dxw.UnmapClient((LPRECT)lpSize);
+				OutTraceDW("GetTextExtentPoint32A: remapped size=(%dx%d)\n", lpSize->cx, lpSize->cy);
+			}
+			break;
+		default:
+			break;
+	}
 	return ret;
 }
 

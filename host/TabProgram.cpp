@@ -137,7 +137,7 @@ END_MESSAGE_MAP()
 
 extern void GetFolderFromPath(char *);
 
-static BOOL IsWinXP()
+BOOL IsWinXP()
 {
 	OSVERSIONINFO osvi;
 	ZeroMemory(&osvi, sizeof(OSVERSIONINFO));

@@ -30,6 +30,7 @@ void CTabDirect3D::DoDataExchange(CDataExchange* pDX)
 	// Direct3D tweaks
 	DDX_Check(pDX, IDC_ZBUFFERCLEAN, cTarget->m_ZBufferClean);
 	DDX_Check(pDX, IDC_ZBUFFER0CLEAN, cTarget->m_ZBuffer0Clean);
+	DDX_Check(pDX, IDC_DYNAMICZCLEAN, cTarget->m_DynamicZClean);
 	DDX_Check(pDX, IDC_NOPOWER2FIX, cTarget->m_NoPower2Fix);
 	DDX_Check(pDX, IDC_NOD3DRESET, cTarget->m_NoD3DReset);
 	DDX_Check(pDX, IDC_SUPPRESSD3DEXT, cTarget->m_SuppressD3DExt);

@@ -1134,6 +1134,13 @@ LRESULT WINAPI extSendMessage(char *apiname, SendMessage_Type pSendMessage, HWND
 			lParam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("%s: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", apiname, hwnd, prev.x, prev.y, curr.x, curr.y);
 			break;
+#if 1
+			// unnecessaty: set "Bypass font unsupported api" ??
+		case WM_FONTCHANGE:
+			// suppress WM_FONTCHANGE avoids "Warhammer: Shadow of the Horned Rat" crash when entering battle
+			return 0;
+			break;
+#endif
 		default:
 			break;
 		}
@@ -1815,12 +1822,14 @@ static HWND WINAPI CreateWindowCommon(
 
 	// v2.04.02: InMainWinCreation semaphore, signals to the CreateWin callback that the window to be created will be a main window,
 	// so rules about LOCKWINPOS etc. must be applied. Fixes "Civil War 2 Generals" main window displacement. 
-	InMainWinCreation = TRUE;
+	// v2.04.05: the semaphore must be a counter, since within the CreateWin callback there could be other CreateWin calls.
+	// happens in "Warhammer: Shadow of the Horned Rat" !
+	InMainWinCreation++;
 	if(WideChar)
 		hwnd= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 	else
 		hwnd= (*pCreateWindowExA)(dwExStyle, (LPCSTR)lpClassName, (LPCSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-	InMainWinCreation = FALSE;
+	InMainWinCreation--;
 
 	if (hwnd==(HWND)NULL){
 		OutTraceE("%s: ERROR err=%d Style=%x(%s) ExStyle=%x\n",
@@ -2660,7 +2669,7 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 	OutTraceDW("MoveWindow: hwnd=%x xy=(%d,%d) size=(%d,%d) repaint=%x fullscreen=%x\n",
 		hwnd, X, Y, nWidth, nHeight, bRepaint, dxw.IsFullScreen());
 
-	if(dxw.Windowize){
+	if(dxw.Windowize && !InMainWinCreation){
 		if(dxw.IsDesktop(hwnd)){
 			// v2.1.93: happens in "Emergency Fighters for Life" ...
 			// what is the meaning of this? is it related to video stretching?

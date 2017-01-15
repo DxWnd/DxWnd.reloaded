@@ -1434,3 +1434,23 @@ fix: crashing condition on "hide desktop background" option - fixes M&MVI crash
 fix: mouse loop coordinate fix when main window is not set
 fix: eliminated log of dmDeviceName field in ChangeDisplaySettings* calls because the field may be not initialized
 fix: NOMOVIES option now stops also SmackW32 movies (making movie length only 1 photogram).
+
+v2.04.05
+GUI:
+add: preliminary implementation of Dummy/Expert GUI modes
+fix: "Explore" command implementation for WinXP
+DLL:
+add: preliminary implementation of virtual registry tokens to make configuration relocable
+fix: capability fix on surface creation. DDSCAPS_TEXTURE is replaced by DDSCAPS_OFFSCREENPLAIN. Fixes "Dominant Species" on certain situations where the surface creatuion returns DDERR_UNSUPPORTED code.
+add: preliminary hook for GDI32 RemoveFontResources and EnumFonts
+fix: CreateRectRgnIndirect wrapper altered input RECT* coordinates
+fix: separated D3D QueryInterface pointers and wrappers, added wrapping for QueryInterface D3D v7
+fix: log cleanup
+add: "Dynamic ZBUFFER fix" flag (DYNAMICZCLEAN): needed to fix some of "Tonic Trouble" rendering problems.
+add: OpenGL dedicated logging
+add: WinG32 dedicated logging
+fix?: bypass for WM_FONTCHANGE: avoids "Warhammer: Shadow of the Horned Rat" crash when entering battle
+add: WinG32 debug highlighting of blitted rects on screen
+add: GDI32 debug highlighting of blitted rects on screen
+add: hooks for GDI32 GetTextExtentPointA and GetTextExtentPoint32A: needed for proper string rendering on "Warhammer: Shadow of the Horned Rat"
+add: hook for GDI32 GdiAlphaBlend, very rare call that appeared in "RHEM" during savegame load.

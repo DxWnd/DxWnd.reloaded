@@ -30,6 +30,8 @@
 
 #include "stdio.h"
 
+extern int WINAPI extFrameRect(HDC, const RECT *, HBRUSH);
+
 typedef BOOL (WINAPI *WinGBitBlt_Type)(HDC, INT, INT, INT, INT, HDC, INT, INT);
 typedef BOOL (WINAPI *WinGStretchBlt_Type)(HDC, INT, INT, INT, INT, HDC, INT, INT, INT, INT);
 typedef HBITMAP (WINAPI *WinGCreateBitmap_Type)(HDC, BITMAPINFO *, void **);
@@ -96,28 +98,27 @@ FARPROC Remap_WinG32_ProcAddress(LPCSTR proc, HMODULE hModule)
 
 HDC WINAPI extWinGCreateDC(void)
 {
-	OutTrace("WinGCreateDC\n");
+	OutTraceWG("WinGCreateDC\n");
     return extGDICreateCompatibleDC(0);
 }
 
 HBITMAP WINAPI extWinGCreateBitmap(HDC hdc, BITMAPINFO *bmi, void **bits)
 {
 	HBITMAP ret;
-	OutTrace("WinGCreateBitmap: hdc=%x bmi=%x\n", hdc, bmi);
+	OutTraceWG("WinGCreateBitmap: hdc=%x bmi=%x\n", hdc, bmi);
     ret = extCreateDIBSection(hdc, bmi, 0, bits, 0, 0);
-	OutTrace("WinGCreateBitmap: ret=%x\n", ret);
-    //return (*pCreateDIBSection)(hdc, bmi, 0, bits, 0, 0);
-	//(*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
+	OutTraceWG("WinGCreateBitmap: ret=%x\n", ret);
 	return ret;
 }
 
 BOOL WINAPI extWinGBitBlt(HDC hdcDst, INT xDst, INT yDst, INT width, INT height, HDC hdcSrc, INT xSrc, INT ySrc )
 {
 	BOOL ret;
-	OutTrace("WinGBitBlt: hdcdest=%x pos=(%d,%d) size=(%dx%d) hdcsrc=%x pos=(%d,%d)\n", 
+	OutTraceWG("WinGBitBlt: hdcdest=%x pos=(%d,%d) size=(%dx%d) hdcsrc=%x pos=(%d,%d)\n", 
 		hdcDst, xDst, yDst, width, height, hdcSrc, xSrc, ySrc);
     ret = extGDIBitBlt(hdcDst, xDst, yDst, width, height, hdcSrc, xSrc, ySrc, SRCCOPY);
-	//(*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
+
+	if(dxw.dwFlags8 & MARKWING32) dxw.Mark(hdcDst, TRUE, RGB(0, 255, 0), xDst, yDst, width, height);
 	return ret;
 }
 
@@ -127,20 +128,21 @@ BOOL WINAPI extWinGStretchBlt(HDC hdcDst, INT xDst, INT yDst, INT widthDst, INT 
     INT old_blt_mode;
     BOOL ret;
 	
-	OutTrace("WinGStretchBlt: hdcdest=%x pos=(%d,%d) size=(%dx%d) hdcsrc=%x pos=(%d,%d) size=(%dx%d)\n",
+	OutTraceWG("WinGStretchBlt: hdcdest=%x pos=(%d,%d) size=(%dx%d) hdcsrc=%x pos=(%d,%d) size=(%dx%d)\n",
 		hdcDst, xDst, yDst, widthDst, heightDst, hdcSrc, xSrc, ySrc, widthSrc, heightSrc);
 	// wing hdc is always a screen DC.
     old_blt_mode = SetStretchBltMode( hdcDst, COLORONCOLOR );
     ret = extGDIStretchBlt( hdcDst, xDst, yDst, widthDst, heightDst, 
 		hdcSrc, xSrc, ySrc, widthSrc, heightSrc, SRCCOPY );
     SetStretchBltMode( hdcDst, old_blt_mode );
-	//(*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
+
+	if(dxw.dwFlags8 & MARKWING32) dxw.Mark(hdcDst, TRUE, RGB(255, 0, 0), xDst, yDst, widthDst, heightDst);
     return ret;
 }
 
 BOOL WINAPI extWinGRecommendDIBFormat(BITMAPINFO *bmi)
 {
-	OutTrace("WinGRecommendDIBFormat\n");
+	OutTraceWG("WinGRecommendDIBFormat\n");
     if (!bmi) return FALSE;
 
     bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -162,7 +164,7 @@ void * WINAPI extWinGGetDIBPointer(HBITMAP hbmp, BITMAPINFO *bmi)
 {
     DIBSECTION ds;
 
-	OutTrace("WinGGetDIBPointer\n");
+	OutTraceWG("WinGGetDIBPointer\n");
 	if (GetObjectW( hbmp, sizeof(ds), &ds ) == sizeof(ds)) {
         memcpy( &bmi->bmiHeader, &ds.dsBmih, sizeof(*bmi) );
         return ds.dsBm.bmBits;
@@ -172,14 +174,14 @@ void * WINAPI extWinGGetDIBPointer(HBITMAP hbmp, BITMAPINFO *bmi)
 
 UINT WINAPI extWinGSetDIBColorTable(HDC hdc, UINT start, UINT end, RGBQUAD *colors)
 {
-	OutTrace("WinGSetDIBColorTable: hdc=%x start=%d end=%d\n", hdc, start, end);
+	OutTraceWG("WinGSetDIBColorTable: hdc=%x start=%d end=%d\n", hdc, start, end);
 	(*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
 	return SetDIBColorTable( hdc, start, end, colors );
 }
 
 UINT WINAPI extWinGGetDIBColorTable(HDC hdc, UINT start, UINT end, RGBQUAD *colors)
 {
-	OutTrace("WinGGetDIBColorTable: hdc=%x start=%d end=%d\n", hdc, start, end);
+	OutTraceWG("WinGGetDIBColorTable: hdc=%x start=%d end=%d\n", hdc, start, end);
 	(*pInvalidateRect)(dxw.GethWnd(), NULL, FALSE);
     return GetDIBColorTable( hdc, start, end, colors );
 }
@@ -189,6 +191,7 @@ HPALETTE WINAPI extWinGCreateHalfTonePalette(void)
     HDC hdc;
     HPALETTE hpal;
 
+	OutTraceWG("WinGCreateHalfTonePalette: void\n");
     hdc = GetDC(0);
     hpal = CreateHalftonePalette(hdc);
     ReleaseDC(0, hdc);
@@ -199,6 +202,6 @@ HPALETTE WINAPI extWinGCreateHalfTonePalette(void)
 
 HBRUSH WINAPI extWinGCreateHalfToneBrush(HDC hdc, COLORREF color, INT type)
 {
-	OutTrace("WinGCreateHalfToneBrush: hdc=%x color=%x type=%d\n", hdc, color, type);
+	OutTraceWG("WinGCreateHalfToneBrush: hdc=%x color=%x type=%d\n", hdc, color, type);
 	return CreateSolidBrush(color);
 }
