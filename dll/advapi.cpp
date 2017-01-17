@@ -101,7 +101,7 @@ static int ReplaceVar(char *pData, LPBYTE *lplpData, LPDWORD lpcbData)
 	}
 	// set output vars if not NULL
 	iTokenLength = strlen(sTokenValue);
-	OutTrace("REPLACED token=%d val=\"%s\" len=%d\n", iTokenIndex, sTokenValue, iTokenLength);
+	OutTraceR("REPLACED token=%d val=\"%s\" len=%d\n", iTokenIndex, sTokenValue, iTokenLength);
 	if(lplpData) {
 		strcpy((char *)*lplpData, sTokenValue);
 		*lplpData += iTokenLength;
@@ -456,7 +456,7 @@ static LONG myRegOpenKeyEx(
 			if(RegBuf[0]=='['){
 				// beware: registry keys are case insensitive. Must use _strnicmp instead of strncmp
 				if((!_strnicmp(&RegBuf[1],sKey,strlen(sKey))) && (RegBuf[strlen(sKey)+1]==']')){
-					OutTrace("%s: found fake Key=\"%s\" hkResult=%x\n", label, sKey, phkResult ? *phkResult : 0);
+					OutTraceR("%s: found fake Key=\"%s\" hkResult=%x\n", label, sKey, phkResult ? *phkResult : 0);
 					fclose(regf);
 					return ERROR_SUCCESS;
 				}

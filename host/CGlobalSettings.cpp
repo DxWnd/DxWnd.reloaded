@@ -80,7 +80,7 @@ IMPLEMENT_DYNAMIC(CGlobalSettings, CDialog)
 CGlobalSettings::CGlobalSettings(CWnd* pParent /*=NULL*/)
 	: CDialog(CGlobalSettings::IDD, pParent)
 {
-	m_DebugMode = GetPrivateProfileInt("window", "debug", 0, gInitPath);
+	//m_DebugMode = GetPrivateProfileInt("window", "debug", 0, gInitPath);
 	m_AutoHideMode = GetPrivateProfileInt("window", "autohide", 0, gInitPath); 
 	m_CheckAdminRights = GetPrivateProfileInt("window", "checkadmin", 0, gInitPath);
 	m_NameFromFolder = GetPrivateProfileInt("window", "namefromfolder", 0, gInitPath);
@@ -112,7 +112,7 @@ void CGlobalSettings::DoDataExchange(CDataExchange* pDX)
 	CString sDefaultPosX, sDefaultPosY;
 	sDefaultPosX.Format("%d", m_DefaultPosX);
 	sDefaultPosY.Format("%d", m_DefaultPosY);
-	DDX_Check(pDX, IDC_CONFIG_DEBUGMODE, m_DebugMode);
+	//DDX_Check(pDX, IDC_CONFIG_DEBUGMODE, m_DebugMode);
 	DDX_Check(pDX, IDC_CONFIG_AUTOHIDE, m_AutoHideMode);
 	DDX_Check(pDX, IDC_CONFIG_CHECKADMIN, m_CheckAdminRights);
 	DDX_Check(pDX, IDC_CONFIG_NAMEFROMFOLDER, m_NameFromFolder);
@@ -180,8 +180,8 @@ void CGlobalSettings::OnOK()
 	char val[32];
 	CDialog::OnOK();
 	// boolean flags
-	sprintf_s(val, sizeof(val), "%i", m_DebugMode);
-	WritePrivateProfileString("window", "debug", val, gInitPath);
+	//sprintf_s(val, sizeof(val), "%i", m_DebugMode);
+	//WritePrivateProfileString("window", "debug", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", m_AutoHideMode);
 	WritePrivateProfileString("window", "autohide", val, gInitPath);
 	sprintf_s(val, sizeof(val), "%i", m_CheckAdminRights);
@@ -244,7 +244,7 @@ void CGlobalSettings::OnOK()
 			WritePrivateProfileString("keymapping", HKeys[i].sIniLabel, "", gInitPath);
 	}
 	//(CDxwndhostView *)(this->GetParent())->UpdateHotKeys();
-	gbDebug = m_DebugMode;
+	//gbDebug = m_DebugMode;
 	gAutoHideMode = m_AutoHideMode;
 	gWarnOnExit = m_WarnOnExit;
 }

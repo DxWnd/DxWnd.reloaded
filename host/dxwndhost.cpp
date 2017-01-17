@@ -148,17 +148,6 @@ BOOL CDxwndhostApp::InitInstance()
 
 	// standard initialization
 
-	// Register the document template.
-
-	CSingleDocTemplate* pDocTemplate;
-	pDocTemplate = new CSingleDocTemplate(
-		IDR_MAINFRAME,
-		RUNTIME_CLASS(CDxwndhostDoc),
-		RUNTIME_CLASS(CMainFrame),       // SDI main frame window
-		RUNTIME_CLASS(CDxwndhostView));
-	AddDocTemplate(pDocTemplate);
-
-	
 	// DDE file open: Parse command line for standard shell commands and so on.
 	// Parse command line for standard shell commands, DDE, file open
 	// and user-defined flags. The CCommandLine class has been replaced
@@ -173,6 +162,16 @@ BOOL CDxwndhostApp::InitInstance()
 	if(!gbDebug) gbDebug = GetPrivateProfileInt("window", "debug", 0, InitPath); // debug flag set from config file
 	if(!gAutoHideMode) gAutoHideMode = GetPrivateProfileInt("window", "autohide", 0, InitPath); // debug flag set from config file
 	gWarnOnExit = GetPrivateProfileInt("window", "warnonexit", 0, InitPath); // WarnOnExit flag set from config file
+
+	// Register the document template.
+
+	CSingleDocTemplate* pDocTemplate;
+	pDocTemplate = new CSingleDocTemplate(
+		gbDebug ? IDR_MAINFRAME_EX : IDR_MAINFRAME,
+		RUNTIME_CLASS(CDxwndhostDoc),
+		RUNTIME_CLASS(CMainFrame),       // SDI main frame window
+		RUNTIME_CLASS(CDxwndhostView));
+	AddDocTemplate(pDocTemplate);
 
 	if(!LangSelected){
 		LANGID LangId;

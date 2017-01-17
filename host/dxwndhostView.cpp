@@ -129,6 +129,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_DELETE, OnDelete)
 	ON_COMMAND(ID_FILE_SORTPROGRAMSLIST, OnSort)
 	ON_COMMAND(ID_EDIT_GLOBALSETTINGS, OnGlobalSettings)
+	ON_COMMAND(ID_OPTIONS_EXPERTMODE, OnExpertModeToggle)
 	ON_COMMAND(ID_FILE_CLEARALLLOGS, OnClearAllLogs)
 	ON_COMMAND(ID_FILE_GOTOTRAYICON, OnGoToTrayIcon)
 	ON_COMMAND(ID_FILE_SAVE, OnSaveFile)
@@ -2537,6 +2538,19 @@ void CDxwndhostView::OnGlobalSettings()
 	CGlobalSettings *pDlg = new CGlobalSettings();
 	BOOL ret = pDlg->Create(CGlobalSettings::IDD, this); 
 	pDlg->ShowWindow(SW_SHOW);
+}
+
+void CDxwndhostView::OnExpertModeToggle() 
+{
+	CMenu *menu;
+	gbDebug = !gbDebug;
+	menu = this->GetParent()->GetMenu();
+	::DestroyMenu(menu->GetSafeHmenu());
+	menu->LoadMenu(gbDebug ? IDR_MAINFRAME_EX : IDR_MAINFRAME);	
+	this->GetParent()->SetMenu(menu);
+	menu->CheckMenuItem(ID_OPTIONS_EXPERTMODE, gbDebug ? MF_CHECKED : MF_UNCHECKED);
+	WritePrivateProfileString("window", "debug", (gbDebug ? "1" : "0"), gInitPath);
+
 }
 
 void CDxwndhostView::OnViewTimeSlider()

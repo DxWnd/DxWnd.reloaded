@@ -1822,48 +1822,48 @@ HRESULT WINAPI extTexInitialize(void *t, LPDIRECT3DDEVICE lpd3dd, LPDIRECTDRAWSU
 	return (*pTInitialize)(t, lpd3dd, lpdds);
 }
 
-HRESULT WINAPI extTexGetHandle(TexGetHandle_Type pTGetHandle, void *t, LPDIRECT3DDEVICE lpd3dd, LPD3DTEXTUREHANDLE lpth)
+static HRESULT WINAPI extTexGetHandle(int version, TexGetHandle_Type pTGetHandle, void *t, LPDIRECT3DDEVICE lpd3dd, LPD3DTEXTUREHANDLE lpth)
 {
 	HRESULT ret;
-	OutTrace("Texture::GetHandle lpt=%x lpd3dd=%x lpth=%x\n", t, lpd3dd, lpth);
+	OutTrace("Texture(%d)::GetHandle lpt=%x lpd3dd=%x lpth=%x\n", version, t, lpd3dd, lpth);
 	ret = (*pTGetHandle)(t, lpd3dd, lpth);
 	if(ret) OutTraceE("Texture::Load ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
 
 HRESULT WINAPI extTexGetHandle1(void *t, LPDIRECT3DDEVICE lpd3dd, LPD3DTEXTUREHANDLE lpth)
-{ return extTexGetHandle(pTGetHandle1, t, lpd3dd, lpth); }
+{ return extTexGetHandle(1, pTGetHandle1, t, lpd3dd, lpth); }
 HRESULT WINAPI extTexGetHandle2(void *t, LPDIRECT3DDEVICE2 lpd3dd, LPD3DTEXTUREHANDLE lpth)
-{ return extTexGetHandle(pTGetHandle2, t, (LPDIRECT3DDEVICE)lpd3dd, lpth); }
+{ return extTexGetHandle(2, pTGetHandle2, t, (LPDIRECT3DDEVICE)lpd3dd, lpth); }
 
 
-HRESULT WINAPI extTexPaletteChanged(TexPaletteChanged_Type pTPaletteChanged, void *t, DWORD dw1, DWORD dw2)
+static HRESULT WINAPI extTexPaletteChanged(int version, TexPaletteChanged_Type pTPaletteChanged, void *t, DWORD dw1, DWORD dw2)
 {
 	HRESULT ret;
-	OutTrace("Texture::PaletteChanged lpt=%x dw1=%x dw2=%x\n", t, dw1, dw2);
+	OutTrace("Texture(%d)::PaletteChanged lpt=%x dw1=%x dw2=%x\n", version, t, dw1, dw2);
 	ret = (*pTPaletteChanged)(t, dw1, dw2);
 	if(ret) OutTraceE("Texture::PaletteChanged ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
 
 HRESULT WINAPI extTexPaletteChanged1(void *t, DWORD dw1, DWORD dw2)
-{ return extTexPaletteChanged(pTPaletteChanged1, t, dw1, dw2); }
+{ return extTexPaletteChanged(1, pTPaletteChanged1, t, dw1, dw2); }
 HRESULT WINAPI extTexPaletteChanged2(void *t, DWORD dw1, DWORD dw2)
-{ return extTexPaletteChanged(pTPaletteChanged2, t, dw1, dw2); }
+{ return extTexPaletteChanged(2, pTPaletteChanged2, t, dw1, dw2); }
 
-HRESULT WINAPI extTexLoad(TexLoad_Type pTLoad, void *t, LPDIRECT3DTEXTURE lpt)
+HRESULT WINAPI extTexLoad(int version, TexLoad_Type pTLoad, void *t, LPDIRECT3DTEXTURE lpt)
 {
 	HRESULT ret;
-	OutTrace("Texture::Load lpt=%x lpd3dt=%x\n", t, lpt);
+	OutTrace("Texture(%d)::Load lpt=%x lpd3dt=%x\n", version, t, lpt);
 	ret = (*pTLoad)(t, lpt);
 	if(ret) OutTraceE("Texture::Load ERROR res=%x(%s)\n", ret, ExplainDDError(ret));
 	return ret;
 }
 
 HRESULT WINAPI extTexLoad1(void *t, LPDIRECT3DTEXTURE lpt)
-{ return extTexLoad(pTLoad1, t, lpt); }
+{ return extTexLoad(1, pTLoad1, t, lpt); }
 HRESULT WINAPI extTexLoad2(void *t, LPDIRECT3DTEXTURE lpt)
-{ return extTexLoad(pTLoad2, t, lpt); }
+{ return extTexLoad(2, pTLoad2, t, lpt); }
 
 HRESULT WINAPI extTexUnload(void *t)
 {

@@ -467,7 +467,7 @@ BOOL IsIATSequential(HMODULE module)
 		// skip first string
 		for(; *fname; fname++); for(; !*fname; fname++);
 		// if second string is another DLL it is sequential, otherwise not.
-		OutTraceB("IsIATSequential: second entry=%s\n", fname);
+		//OutTraceB("IsIATSequential: second entry=%s\n", fname);
 		return (BOOL)stristr(fname, ".DLL");
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)

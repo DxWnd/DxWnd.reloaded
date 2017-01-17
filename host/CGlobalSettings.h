@@ -31,7 +31,7 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
-	BOOL m_DebugMode;
+	//BOOL m_DebugMode;
 	BOOL m_UpdatePaths;
 	BOOL m_AutoHideMode;
 	BOOL m_CheckAdminRights;

@@ -83,6 +83,7 @@ protected:
 	afx_msg void OnTaskbarShow();
 	afx_msg void OnSort();
 	afx_msg void OnGlobalSettings();
+	afx_msg void OnExpertModeToggle();
 	afx_msg void OnViewLog();
 	afx_msg void OnDeleteLog();
 	afx_msg void OnDebugView();

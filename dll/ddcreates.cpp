@@ -715,11 +715,13 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
 	// v2.04.05: error condition found & fixed on certain platforms for "Dominant Species" only (so far).
-	if ((res == DDERR_UNSUPPORTED) && (ddsd.ddsCaps.dwCaps == (DDSCAPS_SYSTEMMEMORY|DDSCAPS_TEXTURE))){
+	if (((res == DDERR_UNSUPPORTED) || (res == DDERR_UNSUPPORTEDMODE)) && 
+		(ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE)){
 		OutTraceDW("BuildGenericEmu: CreateSurface ERROR res=%x(%s) at %d, TEXTURE->OFFSCREENPLAIN retry\n", res, ExplainDDError(res), __LINE__);
-		ddsd.ddsCaps.dwCaps = (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+		ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_TEXTURE|DDSCAPS_ALLOCONLOAD);
+		ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN);
 		res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, pu);
-	}
+	}	
 	if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res!=DD_OK)){
 		OutTraceDW("BuildGenericEmu: CreateSurface ERROR res=%x(%s) at %d, retry\n", res, ExplainDDError(res), __LINE__);
 		ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;

@@ -224,7 +224,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	POINT prev, curr;
 	RECT rect;
 	static int i=0;
-	static int ClipCursorToggleState = 1;
+	static int ClipCursorToggleState = 0;
 	WNDPROC pWindowProc;
 	extern void dxwFixWindowPos(char *, HWND, LPARAM);
 	extern LPRECT lpClipRegion;
@@ -236,9 +236,20 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	extern void DDrawScreenShot(int);
 
 	if(DoOnce){
+		RECT cliprect;
+		BOOL clipret;
 		DoOnce=FALSE;
 		IsToBeLocked=(dxw.dwFlags1 & LOCKWINPOS);
 		LastTimeShift=SaveTimeShift=dxw.TimeShift;
+		clipret = (*pGetClipCursor)(&cliprect);
+		// v2.04.06: you always get a clipper area. To tell that the clipper is NOT active for your window 
+		// you can compare the clipper area with the whole desktop. If they are equivalent, you have no 
+		// clipper (or you are in fullscreen mode, but that is equivalent).
+		ClipCursorToggleState = TRUE;
+		if (((cliprect.right - cliprect.left) == (*pGetSystemMetrics)(SM_CXVIRTUALSCREEN)) && 
+			((cliprect.bottom - cliprect.top) == (*pGetSystemMetrics)(SM_CYVIRTUALSCREEN))) 
+			ClipCursorToggleState = FALSE;
+		OutTraceDW("Initial clipper status=%x\n", ClipCursorToggleState);
 	}
 
 	// v2.1.93: adjust clipping region
@@ -467,7 +478,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_MBUTTONUP:
 	case WM_MBUTTONDBLCLK:
 		if(dxw.Windowize){
-			if((dxw.dwFlags1 & CLIPCURSOR) && ClipCursorToggleState) dxw.SetClipCursor();
+			if((dxw.dwFlags1 & CLIPCURSOR) && !ClipCursorToggleState) {
+				ClipCursorToggleState = TRUE;
+				dxw.SetClipCursor();
+			}
 			if((dxw.dwFlags1 & MODIFYMOUSE) && !(dxw.dwFlags1 & MESSAGEPROC)){ // mouse processing  
 				// scale mouse coordinates
 				prev.x = LOWORD(lparam);
@@ -488,7 +502,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;	
 	case WM_SETFOCUS:
 		OutTraceDW("WindowProc: hwnd=%x GOT FOCUS\n", hwnd);
-		if(dxw.dwFlags1 & CLIPCURSOR) dxw.SetClipCursor();
+		if(dxw.dwFlags1 & CLIPCURSOR) {
+			ClipCursorToggleState = TRUE;
+			dxw.SetClipCursor();
+		}
 		if (dxw.dwFlags1 & DISABLECLIPPING) extClipCursor(lpClipRegion);
 		break;
 	case WM_KILLFOCUS:
@@ -551,11 +568,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		DxWndKey=dxw.MapKeysConfig(message, lparam, wparam);
 		switch (DxWndKey){
 		case DXVK_CLIPTOGGLE:
-			if(dxw.dwFlags1 & CLIPCURSOR){
-				OutTraceDW("WindowProc: WM_SYSKEYDOWN key=%x ToggleState=%x\n",wparam,ClipCursorToggleState);
-				ClipCursorToggleState = !ClipCursorToggleState;
-				ClipCursorToggleState ? dxw.SetClipCursor() : dxw.EraseClipCursor();
-			}
+			OutTraceDW("WindowProc: WM_SYSKEYDOWN key=%x ToggleState=%x\n", wparam, ClipCursorToggleState);
+			ClipCursorToggleState = !ClipCursorToggleState;
+			ClipCursorToggleState ? dxw.SetClipCursor() : dxw.EraseClipCursor();
 			break;
 		case DXVK_REFRESH:
 			dxw.ScreenRefresh();
