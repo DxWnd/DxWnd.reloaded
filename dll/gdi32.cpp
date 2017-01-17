@@ -3134,18 +3134,125 @@ BOOL WINAPI extGdiAlphaBlend(HDC hdcDest, int xoriginDest, int yoriginDest, int 
 	return ret;
 }
 
+static char *sGradientMode(ULONG mode)
+{
+	char *s;
+	switch(mode){
+		case GRADIENT_FILL_RECT_H: s="RECT_H"; break;
+		case GRADIENT_FILL_RECT_V: s="RECT_V"; break;
+		case GRADIENT_FILL_TRIANGLE: s="TRIANGLE"; break;
+		default: s="???"; break;
+	}
+	return s;
+}
+
 BOOL WINAPI extGdiGradientFill(HDC hdc, PTRIVERTEX pVertex, ULONG nVertex, PVOID pMesh, ULONG nMesh, ULONG ulMode)
 {
-	_Warn("GdiGradientFill");
+	// v2.04.06.fx2: found in RHEM when DirectX emulation is off (?).
+	// temporary version - doesn't scale nor return error
+	BOOL ret;
+	OutTraceDW("GDI.GdiGradientFill: HDC=%x nVertex=%d nMesh=%d mode=%x(%s)\n", 
+		hdc, nVertex, nMesh, ulMode, sGradientMode(ulMode));
+
+	ret = (*pGdiGradientFill)(hdc, pVertex, nVertex, pMesh, nMesh, ulMode);
+	if(!ret) OutTraceE("GDI.GdiGradientFill ERROR: err=%d\n", GetLastError());
 	return TRUE;
 }
 
-BOOL WINAPI extGdiTransparentBlt(HDC hdcDest, int xoriginDest, int yoriginDest, int wDest, int hDest,
-							  HDC  hdcSrc, int xoriginSrc, int yoriginSrc, int wSrc, int hSrc, UINT crTransparent)
+BOOL WINAPI extGdiTransparentBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, 
+							 HDC hdcSrc, int nXSrc, int nYSrc, int nWSrc, int nHSrc, UINT crTransparent)
 {
-	// to be handled the 4 flux cases .....
-	_Warn("GdiTransparentBlt");
-	return TRUE;
+	BOOL res;
+	BOOL IsToScreen;
+	BOOL IsFromScreen;
+	BOOL IsDCLeakageSrc = FALSE;
+	BOOL IsDCLeakageDest = FALSE;
+	int Flux;
+
+	OutTraceDW("GDI.GdiTransparentBlt: HDC=%x nXDest=%d nYDest=%d nWidth=%d nHeight=%d hdcSrc=%x nXSrc=%d nYSrc=%d nWSrc=%d nHSrc=%d transp=%x\n", 
+		hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, crTransparent);
+
+	OutTraceB("GDI.GdiTransparentBlt: DEBUG FullScreen=%x target hdctype=%x(%s) hwnd=%x\n", 
+		dxw.IsFullScreen(), (*pGetObjectType)(hdcDest), ExplainDCType((*pGetObjectType)(hdcDest)), WindowFromDC(hdcDest));
+
+	if(dxw.GDIEmulationMode == GDIMODE_EMULATED){
+		if (hdcDest==dxw.RealHDC) hdcDest=dxw.VirtualHDC;
+		OutTraceB("GDI.GdiTransparentBlt: DEBUG emulated hdc dest=%x->%x\n", dxw.RealHDC, hdcDest);
+	}
+
+	if(hdcDest == NULL){
+		// happens in Reah, hdc is NULL despite the fact that BeginPaint returns a valid DC. Too bad, we recover here ...
+		hdcDest = (*pGDIGetDC)(dxw.GethWnd());
+		OutTraceB("GDI.GdiTransparentBlt: DEBUG hdc dest=NULL->%x\n", hdcDest);
+		IsDCLeakageDest = TRUE;
+	}
+	if(hdcSrc == NULL){
+		hdcSrc = (*pGDIGetDC)(dxw.GethWnd());
+		OutTraceB("GDI.GdiTransparentBlt: DEBUG hdc src=NULL->%x\n", hdcSrc);
+		IsDCLeakageSrc = TRUE;
+	}
+
+	IsToScreen=(OBJ_DC == (*pGetObjectType)(hdcDest));
+	IsFromScreen=(OBJ_DC == (*pGetObjectType)(hdcSrc));
+	Flux = (IsToScreen ? 1 : 0) + (IsFromScreen ? 2 : 0); 
+	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
+
+	if(dxw.IsToRemap(hdcDest) && (hdcDest != hdcSrc)){
+		switch(dxw.GDIEmulationMode){
+			case GDIMODE_SHAREDDC:
+				switch(Flux){
+					case 0: // memory to memory
+						res=(*pGdiTransparentBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, crTransparent);
+						break;
+					case 1: // memory to screen
+					case 3: // screen to screen
+						sdc.GetPrimaryDC(hdcDest);
+						res=(*pGdiTransparentBlt)(sdc.GetHdc(), nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, crTransparent);
+						sdc.PutPrimaryDC(hdcDest, TRUE, nXDest, nYDest, nWidth, nHeight);
+						break;
+					case 2: // screen to memory using virtual screen
+						sdc.GetPrimaryDC(hdcSrc);
+						res=(*pGdiTransparentBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, sdc.GetHdc(), nXSrc, nYSrc, nWSrc, nHSrc, crTransparent);
+						sdc.PutPrimaryDC(hdcSrc, FALSE, nXSrc, nYSrc, nWSrc, nHSrc);
+						break;
+				}
+				break;
+			case GDIMODE_STRETCHED: {
+				int nWDest, nHDest;
+				nWDest= nWidth;
+				nHDest= nHeight;
+				switch(Flux){
+					case 1: // memory to screen
+						dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+						break;
+					case 2: // screen to memory
+						dxw.MapClient(&nXSrc, &nYSrc, &nWidth, &nHeight);
+						break;
+					default:
+						break;
+				}
+				res=(*pGdiTransparentBlt)(hdcDest, nXDest, nYDest, nWDest, nHDest, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, crTransparent);
+				OutTraceB("GDI.GdiTransparentBlt: DEBUG DC dest=(%d,%d) size=(%d,%d)\n", nXDest, nYDest, nWDest, nHDest);
+				}
+				break;
+			case GDIMODE_EMULATED:
+			default:
+				res=(*pGdiTransparentBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, crTransparent);
+				break;
+		}
+	}
+	else {
+		res=(*pGdiTransparentBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, crTransparent);
+	}
+
+	if(IsDCLeakageSrc) (*pGDIReleaseDC)(dxw.GethWnd(), hdcSrc);
+	if(IsDCLeakageDest) (*pGDIReleaseDC)(dxw.GethWnd(), hdcDest);
+	if(res && IsToScreen) {
+		dxw.ShowOverlay(hdcDest);
+		if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdcDest, FALSE, RGB(255, 255, 255), nXDest, nYDest, nWidth, nHeight);
+	}
+	if(!res) OutTraceE("GDI.GdiTransparentBlt: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	return res;
 }
 
 BOOL WINAPI extPie(HDC hdc, int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nXRadial1, int nYRadial1, int nXRadial2, int nYRadial2)
