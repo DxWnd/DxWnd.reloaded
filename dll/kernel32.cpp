@@ -954,8 +954,15 @@ HANDLE WINAPI extCreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwS
 BOOL WINAPI extCloseHandle(HANDLE hObject)
 {
 	BOOL ret;
-	OutTrace("CloseHandle: hFile=%x\n", hObject);
-	if (hObject && (hObject != (HANDLE)-1)) __try {ret=CloseHandle(hObject);} __except(EXCEPTION_EXECUTE_HANDLER){};
+	if (hObject && (hObject != (HANDLE)-1)) {
+		OutTraceB("CloseHandle: hFile=%x\n", hObject);
+		__try {ret=CloseHandle(hObject);
+		} 
+		__except(EXCEPTION_EXECUTE_HANDLER){};
+	}
+	else{
+		OutTraceDW("CloseHandle: BYPASS hFile=%x\n", hObject);
+	}
 	return ret;
 }
 

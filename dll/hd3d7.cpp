@@ -702,51 +702,91 @@ void HookTexture(LPVOID *lpTexture, int version)
 	}
 }
 
-HRESULT WINAPI extQueryInterfaceD3(int d3dversion, QueryInterfaceD3_Type pQueryInterfaceD3, void *lpd3d, REFIID riid, LPVOID *ppvObj)
+HRESULT WINAPI extQueryInterfaceD3(int d3dversion, QueryInterfaceD3_Type pQueryInterfaceD3, void *lpd3d, REFIID riid, LPVOID *obp)
 {
 	HRESULT res;
+	unsigned int dwLocalDDVersion;
+	unsigned int dwLocalD3DVersion;
 
-	OutTraceD3D("QueryInterface(D3D%d): d3d=%x REFIID=%x obj=%x\n", d3dversion, lpd3d, riid.Data1, ppvObj);
-	res=(*pQueryInterfaceD3)(lpd3d, riid, ppvObj);
-	if(res){
-		OutTraceE("QueryInterface(D3D) ERROR: err=%x(%s)\n", res, ExplainDDError(res));
+	res = (*pQueryInterfaceD3)(lpd3d, riid, obp);
+	OutTraceDDRAW("QueryInterface(D3D%d): lpdd=%x REFIID=%x(%s) obp=%x ret=%x at %d\n",
+		d3dversion, lpd3d, riid.Data1, ExplainGUID((GUID *)&riid), *obp, res, __LINE__);	
+	
+	if(res) {
+		OutTraceE("QueryInterface(D3D) ERROR: res=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
-	switch(d3dversion){
-	case 1:
-		SetHook((void *)(**(DWORD **)ppvObj +  12), extInitialize, (void **)&pInitialize, "Initialize");
-		SetHook((void *)(**(DWORD **)ppvObj +  16), extEnumDevices1, (void **)&pEnumDevices1, "EnumDevices");
-		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateLight1, (void **)&pCreateLight1, "CreateLight(1)");
-#ifdef TRACEMATERIAL
-		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateMaterial1, (void **)&pCreateMaterial1, "CreateMaterial(1)");
-#endif
-		SetHook((void *)(**(DWORD **)ppvObj +  28), extCreateViewport1, (void **)&pCreateViewport1, "CreateViewport(1)");
-		SetHook((void *)(**(DWORD **)ppvObj +  32), extFindDevice1, (void **)&pFindDevice1, "FindDevice(1)");	
+
+	dwLocalDDVersion=0;
+	dwLocalD3DVersion=0;
+	switch(riid.Data1){
+	case 0x6C14DB80:		//DirectDraw1
+		dwLocalDDVersion = 1;	
 		break;
-	case 2:
-		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices2, (void **)&pEnumDevices2, "EnumDevices(2)");
-		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight2, (void **)&pCreateLight2, "CreateLight(2)");
-#ifdef TRACEMATERIAL
-		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial2, (void **)&pCreateMaterial2, "CreateMaterial(2)");
-#endif
-		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateViewport2, (void **)&pCreateViewport2, "CreateViewport(2)"); 
-		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice2, (void **)&pFindDevice2, "FindDevice(2)");
+	case 0xB3A6F3E0:		//DirectDraw2
+		dwLocalDDVersion = 2;
 		break;
-	case 3:
-		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices3, (void **)&pEnumDevices3, "EnumDevices(3)");
-		SetHook((void *)(**(DWORD **)ppvObj +  16), extCreateLight3, (void **)&pCreateLight3, "CreateLight(3)");
-#ifdef TRACEMATERIAL
-		SetHook((void *)(**(DWORD **)ppvObj +  20), extCreateMaterial3, (void **)&pCreateMaterial3, "CreateMaterial(3)");
-#endif
-		SetHook((void *)(**(DWORD **)ppvObj +  24), extCreateViewport3, (void **)&pCreateViewport3, "CreateViewport(3)"); 
-		SetHook((void *)(**(DWORD **)ppvObj +  28), extFindDevice3, (void **)&pFindDevice3, "FindDevice(3)");
+	case 0x618f8ad4: 		//DirectDraw3
+		dwLocalDDVersion = 3;
 		break;
-	case 7:
-		SetHook((void *)(**(DWORD **)ppvObj +  12), extEnumDevices7, (void **)&pEnumDevices7, "EnumDevices(7)");
-		SetHook((void *)(**(DWORD **)ppvObj +  32), extCreateDevice7, (void **)&pCreateDevice7, "CreateDevice(D3D7)");
+	case 0x9c59509a:		//DirectDraw4 
+		dwLocalDDVersion = 4;
+		break;
+	case 0x15e65ec0:		//DirectDraw7
+		dwLocalDDVersion = 7;
+		break;
+	case 0x3BBA0080:		//Direct3D
+		dwLocalD3DVersion = 1;
+		break;
+	case 0x6aae1ec1:		//Direct3D2
+		dwLocalD3DVersion = 2;
+		break;
+	case 0xbb223240:		//Direct3D3
+		dwLocalD3DVersion = 3;
+		break;
+	case 0xf5049e77:		//Direct3D7
+		dwLocalD3DVersion = 7;
 		break;
 	}
-	return res;
+	if (! *obp){ 
+		OutTraceDDRAW("QueryInterface(D): Interface for DX version %d not found\n", dwLocalDDVersion);
+		return(0);
+	}
+	if(dwLocalDDVersion)  OutTraceDW("QueryInterface(D): Got interface for DX version %d\n", dwLocalDDVersion);
+	if(dwLocalD3DVersion) OutTraceDW("QueryInterface(D): Got interface for D3D version %d\n", dwLocalD3DVersion);
+
+	if (dwLocalDDVersion > dxw.dwMaxDDVersion) {
+		*obp = NULL;
+		OutTraceDW("QueryInterface(D): lpdd=%x REFIID=%x obp=(NULL) ret=%x at %d\n",
+			lpd3d, riid.Data1, res, __LINE__);
+		return(0);
+	}
+
+	switch (dwLocalDDVersion){
+	case 1: // you never know ....
+	case 2:
+	case 3:
+	case 4:
+	case 7:
+		dxw.dwDDVersion=dwLocalDDVersion;
+		extern void HookDDSession(LPDIRECTDRAW *, int);
+		HookDDSession((LPDIRECTDRAW *)obp, dxw.dwDDVersion);
+		break;
+	}
+
+	switch (dwLocalD3DVersion){
+	case 1: 
+	case 2:
+	case 3:
+	case 7:
+		HookDirect3DSession((LPDIRECTDRAW *)obp, dwLocalD3DVersion);
+		break;
+	}
+
+	OutTraceDDRAW("QueryInterface(D3D): lpdd=%x REFIID=%x obp=%x DDVersion=%d ret=0\n",
+		lpd3d, riid.Data1, *obp, dxw.dwDDVersion);
+
+	return D3D_OK;
 }
 
 HRESULT WINAPI extQueryInterfaceD31(void *lpd3d, REFIID riid, LPVOID *ppvObj)
@@ -924,7 +964,7 @@ HRESULT WINAPI extEnumDevices(int d3dversion, EnumDevices_Type pEnumDevices, voi
 	HRESULT res;
 	CallbackArg Arg;
 
-	OutTraceD3D("EnumDevices(D#D%d): d3d=%x arg=%x\n", d3dversion, lpd3d, arg);
+	OutTraceD3D("EnumDevices(D3D%d): d3d=%x arg=%x\n", d3dversion, lpd3d, arg);
 	Arg.cb= &cb;
 	Arg.arg=arg;
 	res=(*pEnumDevices)(lpd3d, (LPD3DENUMDEVICESCALLBACK)extDeviceProxy, (LPVOID)&Arg);

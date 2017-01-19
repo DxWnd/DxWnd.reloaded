@@ -1455,10 +1455,13 @@ add: GDI32 debug highlighting of blitted rects on screen
 add: hooks for GDI32 GetTextExtentPointA and GetTextExtentPoint32A: needed for proper string rendering on "Warhammer: Shadow of the Horned Rat"
 add: hook for GDI32 GdiAlphaBlend, very rare call that appeared in "RHEM" during savegame load.
 
-v2.04.06
+v2.04.06/fx3
 GUI:
 add: Expert mode
 DLL:
 fix: corrected condition to print two virtual registry log messages
 fix: improved logic to recover surfaces with DDSCAPS_TEXTURE capability - ref. "Dominant Species"
 fix: fixed cursor clipping state and toggle key to make it work in all conditions
+fix: D3D objects hooking with QueryInterface method. Fixes "Wizardry Chronicle"
+fix: add hook for GDI32 GdiGradientFill and GdiTransparentBlt, present in "RHEM"
+fix: log messages for CloseHandle wrapper
