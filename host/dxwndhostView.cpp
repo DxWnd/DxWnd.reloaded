@@ -458,6 +458,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_MarkLock) t->flags3 |= MARKLOCK;
 	if(dlg->m_MarkWinG32) t->flags8 |= MARKWING32;
 	if(dlg->m_MarkGDI32) t->flags8 |= MARKGDI32;
+	if(dlg->m_DumpDIBSection) t->flags8 |= DUMPDIBSECTION;
+	if(dlg->m_DumpDevContext) t->flags8 |= DUMPDEVCONTEXT;
 	if(dlg->m_NoSysMemPrimary) t->flags6 |= NOSYSMEMPRIMARY;
 	if(dlg->m_NoSysMemBackBuf) t->flags6 |= NOSYSMEMBACKBUF;
 	if(dlg->m_NoBlt) t->flags5 |= NOBLT;
@@ -780,6 +782,8 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_MarkLock = t->flags3 & MARKLOCK ? 1 : 0;
 	dlg->m_MarkWinG32 = t->flags8 & MARKWING32 ? 1 : 0;
 	dlg->m_MarkGDI32 = t->flags8 & MARKGDI32 ? 1 : 0;
+	dlg->m_DumpDIBSection = t->flags8 & DUMPDIBSECTION ? 1 : 0;
+	dlg->m_DumpDevContext = t->flags8 & DUMPDEVCONTEXT ? 1 : 0;
 	dlg->m_NoSysMemPrimary = t->flags6 & NOSYSMEMPRIMARY ? 1 : 0;
 	dlg->m_NoSysMemBackBuf = t->flags6 & NOSYSMEMBACKBUF ? 1 : 0;
 	dlg->m_NoBlt = t->flags5 & NOBLT ? 1 : 0;

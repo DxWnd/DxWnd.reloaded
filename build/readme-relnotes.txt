@@ -1458,6 +1458,7 @@ add: hook for GDI32 GdiAlphaBlend, very rare call that appeared in "RHEM" during
 v2.04.06/fx3
 GUI:
 add: Expert mode
+add: experimental dump od DIB sections and blitted dc for debugging purposes
 DLL:
 fix: corrected condition to print two virtual registry log messages
 fix: improved logic to recover surfaces with DDSCAPS_TEXTURE capability - ref. "Dominant Species"
@@ -1465,3 +1466,6 @@ fix: fixed cursor clipping state and toggle key to make it work in all condition
 fix: D3D objects hooking with QueryInterface method. Fixes "Wizardry Chronicle"
 fix: add hook for GDI32 GdiGradientFill and GdiTransparentBlt, present in "RHEM"
 fix: log messages for CloseHandle wrapper
+fix: log messages for GetPixel wrapper
+fix: window position in MoveWindow for ANCHORED mode and big windows
+fix: DialogBoxParamA wrapper

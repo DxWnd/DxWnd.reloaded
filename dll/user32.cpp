@@ -579,7 +579,8 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 			wp->x  = MaxPos.x;
 			wp->y  = MaxPos.y;
 			OutTraceDW("%s: SET anchored pos=(%d,%d) size=(%dx%d)\n", ApiName, wp->x, wp->y, wp->cx, wp->cy);
-		}	}
+		}	
+	}
 
 	if ((dxw.dwFlags2 & KEEPASPECTRATIO) && dxw.IsFullScreen() && (hwnd==dxw.GethWnd())){ 
 		// note: while keeping aspect ration, resizing from one corner doesn't tell
@@ -2615,17 +2616,15 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpTemplate, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM lParamInit)
 {
 	HWND RetHWND;
-	BOOL FullScreen;
-	FullScreen = dxw.IsFullScreen();
 	OutTraceDW("CreateDialogIndirectParam: hInstance=%x lpTemplate=(style=%x extstyle=%x items=%d pos=(%d,%d) size=(%dx%d)) hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, 
 		lpTemplate->style, lpTemplate->dwExtendedStyle, lpTemplate->cdit, lpTemplate->x, lpTemplate->y, lpTemplate->cx, lpTemplate->cy,
 		hWndParent, lpDialogFunc, lParamInit);
 	if(dxw.IsFullScreen() && hWndParent==NULL) hWndParent=dxw.GethWnd();
 	// v2.03.98: commented out the temporary return to windowed mode to make Red Alert 2 dialog work again!
-	//dxw.SetFullScreen(FALSE);
+	//InMainWinCreation++;
 	RetHWND=(*pCreateDialogIndirectParam)(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit);
-	//dxw.SetFullScreen(FullScreen);
+	//InMainWinCreation--;
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL
 	if(	lpDialogFunc &&
@@ -2642,14 +2641,12 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM lParamInit)
 {
 	HWND RetHWND;
-	BOOL FullScreen;
-	FullScreen = dxw.IsFullScreen();
 	OutTraceDW("CreateDialogParam: hInstance=%x lpTemplateName=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, sTemplateName(lpTemplateName), hWndParent, lpDialogFunc, lParamInit);
 	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
-	//dxw.SetFullScreen(FALSE);
+	//InMainWinCreation++;
 	RetHWND=(*pCreateDialogParam)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, lParamInit);
-	//dxw.SetFullScreen(FullScreen);
+	//InMainWinCreation--;
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL: fix for "LEGO Stunt Rally"
 	if(	lpDialogFunc &&
@@ -2715,20 +2712,31 @@ BOOL WINAPI extMoveWindow(HWND hwnd, int X, int Y, int nWidth, int nHeight, BOOL
 				RECT screen;
 				DWORD dwStyle;
 				POINT upleft = {0,0};
+				char *sStyle;
 				(*pGetClientRect)(dxw.GethWnd(),&screen);
 				(*pClientToScreen)(dxw.GethWnd(),&upleft);
 				if((dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE)) && WS_CHILDWINDOW){
 					// Big main child window: see "Reah"
 					X=Y=0;
+					sStyle="(child) ";
 				}
 				else{
 					// Regular big main window, usual case.
-				X=upleft.x;
-				Y=upleft.y;
+					X=upleft.x;
+					Y=upleft.y;
+					sStyle="";
 				}
 				nWidth=screen.right;
 				nHeight=screen.bottom;
-				OutTraceDW("MoveWindow: fixed BIG win pos=(%d,%d) size=(%d,%d)\n", X, Y, nWidth, nHeight);
+				if (dxw.dwFlags7 & ANCHORED){ 
+					WINDOWPOS MaxPos;
+					dxw.CalculateWindowPos(hwnd, dxw.iSizX, dxw.iSizY, &MaxPos);
+					nWidth = MaxPos.cx;
+					nHeight = MaxPos.cy;
+					X  = MaxPos.x;
+					Y  = MaxPos.y;
+				}	
+				OutTraceDW("MoveWindow: fixed BIG %swin pos=(%d,%d) size=(%d,%d)\n", sStyle, X, Y, nWidth, nHeight);
 			}
 		}
 	}
@@ -3838,18 +3846,17 @@ BOOL WINAPI extCloseDesktop(HDESK hDesktop)
 
 INT_PTR WINAPI extDialogBoxParamA(HINSTANCE hInstance, LPCTSTR lpTemplateName, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM dwInitParam)
 {
-	BOOL ret, FullScreen;
-	FullScreen = dxw.IsFullScreen();
+	BOOL ret;
 	OutTraceDW("DialogBoxParamA: FullScreen=%x TemplateName=\"%s\" WndParent=%x\n", 
-		FullScreen, sTemplateName(lpTemplateName), hWndParent);
+		dxw.IsFullScreen(), sTemplateName(lpTemplateName), hWndParent);
 	// attempt to fix "Colonial Project 2" dialog. Doesn't work, but it could be ok.....
 	//if(FullScreen && dxw.IsRealDesktop(hWndParent)){
 	//	OutTraceDW("DialogBoxParamA: remap WndParent=%x->%x\n", hWndParent, dxw.GethWnd());
 	//	hWndParent = dxw.GethWnd();
 	//}
-	dxw.SetFullScreen(FALSE);
+	//InMainWinCreation++;
 	ret = (*pDialogBoxParamA)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, dwInitParam);
-	dxw.SetFullScreen(FullScreen);
+	//InMainWinCreation--;
 	OutTraceDW("DialogBoxParamA: ret=%x\n", ret);
 	return ret;
 }

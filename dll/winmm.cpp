@@ -343,6 +343,13 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 					pw->hWnd = dxw.GethWnd();
 					OutTraceB("mciSendCommand: REDIRECT hwnd=%x\n", pw->hWnd);
 				}
+				// attempt to stretch "Wizardry Chronicle" intro movie, but it doesn't work ...
+				//if(1){
+				//	fdwCommand &= ~MCI_OVLY_WINDOW_DISABLE_STRETCH;
+				//	fdwCommand |= MCI_OVLY_WINDOW_ENABLE_STRETCH;
+				//	fdwCommand |= MCI_ANIM_WINDOW_HWND;
+				//	OutTraceB("mciSendCommand: STRETCH flags=%x hwnd=%x\n", fdwCommand, pw->hWnd);
+				//}
 				break;
 			case MCI_PUT:
 				RECT client;

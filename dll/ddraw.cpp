@@ -4224,7 +4224,7 @@ static HRESULT WINAPI extGetDC(int dxversion, GetDC_Type pGetDC, LPDIRECTDRAWSUR
 		res=(*pGetDC)(lpdds, pHDC);
 	}
 
-	OutTraceDDRAW("GetDC: res=%x hdc=%x\n",res, *pHDC);
+	OutTraceDDRAW("GetDC: res=%x(%s) hdc=%x\n", res, ExplainDDError(res), *pHDC);
 	return res;
 }
 

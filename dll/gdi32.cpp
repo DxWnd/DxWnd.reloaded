@@ -10,6 +10,8 @@
 
 #include "stdio.h"
 
+extern void DumpDibSection(const BITMAPINFO *, UINT, VOID *);
+extern void DumpHDC(HDC, int, int, int, int);
 static BOOL bGDIRecursionFlag = FALSE;
 
 static void Stopper(char *s, int line)
@@ -962,6 +964,8 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 	IsFromScreen=(OBJ_DC == (*pGetObjectType)(hdcSrc));
 	Flux = (IsToScreen ? 1 : 0) + (IsFromScreen ? 2 : 0); 
 	if (IsToScreen && (dxw.dwFlags3 & NOGDIBLT)) return TRUE;
+
+	if(IsToScreen && (dxw.dwFlags8 & DUMPDEVCONTEXT)) DumpHDC(hdcSrc, nXSrc, nYSrc, nWidth, nHeight);
 
 	if(dxw.IsFullScreen()){
 		//int nWSrc, nHSrc, 
@@ -2930,7 +2934,12 @@ COLORREF WINAPI extGetPixel(HDC hdc, int nXPos, int nYPos)
 	}
 	
 	ret=(*pGetPixel)(hdc, nXPos, nYPos);
-	if(!ret) OutTraceE("GetPixel ERROR: err=%d\n", GetLastError());
+	if(ret==CLR_INVALID) {
+		OutTraceE("GetPixel ERROR: err=%d\n", GetLastError());
+	}
+	else {
+		OutTraceDW("GetPixel: color=0x%x\n", ret);
+	}
 	return ret;}
 
 BOOL WINAPI extPlgBlt(HDC hdcDest, const POINT *lpPoint, HDC hdcSrc, int nXSrc, int nYSrc, int nWidth, int nHeight, HBITMAP hbmMask, int xMask, int yMask)
@@ -3011,7 +3020,9 @@ HBITMAP WINAPI extCreateDIBSection(HDC hdc, const BITMAPINFO *pbmi, UINT iUsage,
 	}
 	else {
 		OutTraceDW("CreateDIBSection: ret=%x\n", ret);
+		if(dxw.dwFlags8 & DUMPDIBSECTION) DumpDibSection(pbmi, iUsage, *ppvBits);
 	}
+
 	return ret;
 }
 

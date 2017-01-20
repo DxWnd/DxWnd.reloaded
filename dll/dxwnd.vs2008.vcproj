@@ -294,6 +294,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\dibdump.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dinput.cpp"
 				>
 				<FileConfiguration

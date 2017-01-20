@@ -268,6 +268,8 @@
 #define MARKWING32			0x00010000 // Marks (highlights with colored frames) all WinG32 operations
 #define DYNAMICZCLEAN		0x00020000 // Performs ZBUFFER cleaning also every time the ZBUFFER is activated
 #define MARKGDI32			0x00040000 // Marks (highlights with colored frames) the main GDI32 operations
+#define DUMPDIBSECTION		0x00080000 // dumps DIBs to BMP files for debugging purposes
+#define DUMPDEVCONTEXT		0x00100000 // dumps source HDC to BMP files for debugging purposes
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

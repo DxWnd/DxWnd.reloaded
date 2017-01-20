@@ -32,6 +32,8 @@ void CTabDebug::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_MARKLOCK, cTarget->m_MarkLock);
 	DDX_Check(pDX, IDC_MARKWING32, cTarget->m_MarkWinG32);
 	DDX_Check(pDX, IDC_MARKGDI32, cTarget->m_MarkGDI32);
+	DDX_Check(pDX, IDC_DUMPDIBSECTION, cTarget->m_DumpDIBSection);
+	DDX_Check(pDX, IDC_DUMPDEVCONTEXT, cTarget->m_DumpDevContext);
 	DDX_Check(pDX, IDC_NOBLT, cTarget->m_NoBlt);
 	DDX_Check(pDX, IDC_FASTBLT, cTarget->m_FastBlt);
 	DDX_Check(pDX, IDC_GDICOLORCONV, cTarget->m_GDIColorConv);

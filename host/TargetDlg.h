@@ -135,6 +135,8 @@ public:
 	BOOL	m_MarkLock;
 	BOOL	m_MarkWinG32;
 	BOOL	m_MarkGDI32;
+	BOOL	m_DumpDIBSection;
+	BOOL	m_DumpDevContext;
 	BOOL	m_NoSysMemPrimary;
 	BOOL	m_NoSysMemBackBuf;
 	BOOL	m_NoBlt;
