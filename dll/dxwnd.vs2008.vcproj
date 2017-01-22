@@ -510,6 +510,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\queryint.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shareddc.cpp"
 				>
 			</File>

@@ -32,6 +32,7 @@ extern BOOL IsChangeDisplaySettingsHotPatched;
 extern void TextureHandling(LPDIRECTDRAWSURFACE, int);
 extern void SetMinimalCaps(int, LPDDCAPS, LPDDCAPS);
 ColorConversion_Type pColorConversion = NULL;
+extern HRESULT WINAPI extQueryInterfaceDX(int, QueryInterface_Type, void *, REFIID, LPVOID *);
 
 HDC hFlippedDC = NULL;
 BOOL bFlippedDC = FALSE;
@@ -1449,7 +1450,7 @@ void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPrim)
 }
 
 
-static void HookGammaControl(LPVOID *obp)
+void HookGammaControl(LPVOID *obp)
 {
 	// IDirectDrawGammaControl::GetGammaRamp
 	SetHook((void *)(**(DWORD **)obp + 12), extDDGetGammaRamp, (void **)&pDDGetGammaRamp, "GetGammaRamp(G)");
@@ -1926,293 +1927,27 @@ HRESULT WINAPI extGetScanLine4(LPDIRECTDRAW lpdd, LPDWORD lpdwScanLine)
 HRESULT WINAPI extGetScanLine7(LPDIRECTDRAW lpdd, LPDWORD lpdwScanLine)
 { return extGetScanLine(7, pGetScanLine7, lpdd, lpdwScanLine); }
 
-static HRESULT WINAPI extQueryInterfaceD(int dxversion, QueryInterface_Type pQueryInterfaceD, void *lpdd, REFIID riid, LPVOID *obp)
-{
-	HRESULT res;
-	unsigned int dwLocalDDVersion;
-	unsigned int dwLocalD3DVersion;
-
-	res = (*pQueryInterfaceD)(lpdd, riid, obp);
-	OutTraceDDRAW("QueryInterface(D%d): lpdd=%x REFIID=%x(%s) obp=%x ret=%x at %d\n",
-		dxversion, lpdd, riid.Data1, ExplainGUID((GUID *)&riid), *obp, res, __LINE__);	
-	
-	if(res) {
-		OutTraceE("QueryInterface(D) ERROR: res=%x(%s)\n", res, ExplainDDError(res));
-		return res;
-	}
-
-	dwLocalDDVersion=0;
-	dwLocalD3DVersion=0;
-	switch(riid.Data1){
-	case 0x6C14DB80:		//DirectDraw1
-		dwLocalDDVersion = 1;	
-		break;
-	case 0xB3A6F3E0:		//DirectDraw2
-		dwLocalDDVersion = 2;
-		break;
-	case 0x618f8ad4: 		//DirectDraw3
-		dwLocalDDVersion = 3;
-		break;
-	case 0x9c59509a:		//DirectDraw4 
-		dwLocalDDVersion = 4;
-		break;
-	case 0x15e65ec0:		//DirectDraw7
-		dwLocalDDVersion = 7;
-		break;
-	case 0x3BBA0080:		//Direct3D
-		dwLocalD3DVersion = 1;
-		break;
-	case 0x6aae1ec1:		//Direct3D2
-		dwLocalD3DVersion = 2;
-		break;
-	case 0xbb223240:		//Direct3D3
-		dwLocalD3DVersion = 3;
-		break;
-	case 0xf5049e77:		//Direct3D7
-		dwLocalD3DVersion = 7;
-		break;
-	}
-	if (! *obp){ 
-		OutTraceDDRAW("QueryInterface(D): Interface for DX version %d not found\n", dwLocalDDVersion);
-		return(0);
-	}
-	if(dwLocalDDVersion)  OutTraceDW("QueryInterface(D): Got interface for DX version %d\n", dwLocalDDVersion);
-	if(dwLocalD3DVersion) OutTraceDW("QueryInterface(D): Got interface for D3D version %d\n", dwLocalD3DVersion);
-
-	if (dwLocalDDVersion > dxw.dwMaxDDVersion) {
-		*obp = NULL;
-		OutTraceDW("QueryInterface(D): lpdd=%x REFIID=%x obp=(NULL) ret=%x at %d\n",
-			lpdd, riid.Data1, res, __LINE__);
-		return(0);
-	}
-
-	switch (dwLocalDDVersion){
-	case 1: // you never know ....
-	case 2:
-	case 3:
-	case 4:
-		// it's not supposed to be written for DDVersion==7, but it works ....
-	case 7:
-		dxw.dwDDVersion=dwLocalDDVersion;
-		HookDDSession((LPDIRECTDRAW *)obp, dxw.dwDDVersion);
-		break;
-	}
-
-	extern void HookDirect3DSession(LPDIRECTDRAW *, int);
-	switch (dwLocalD3DVersion){
-	case 1: 
-	case 2:
-	case 3:
-	case 7:
-		HookDirect3DSession((LPDIRECTDRAW *)obp, dwLocalD3DVersion);
-		break;
-	}
-
-	OutTraceDDRAW("QueryInterface(D): lpdd=%x REFIID=%x obp=%x DDVersion=%d ret=0\n",
-		lpdd, riid.Data1, *obp, dxw.dwDDVersion);
-
-	return 0;
-}
-
 HRESULT WINAPI extQueryInterfaceD1(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(1, pQueryInterfaceD1, lpdd, riid, obp); }
+{ return extQueryInterfaceDX(1, pQueryInterfaceD1, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD2(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(2, pQueryInterfaceD2, lpdd, riid, obp); }
+{ return extQueryInterfaceDX(2, pQueryInterfaceD2, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD3(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(3, pQueryInterfaceD3, lpdd, riid, obp); }
+{ return extQueryInterfaceDX(3, pQueryInterfaceD3, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD4(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(4, pQueryInterfaceD4, lpdd, riid, obp); }
+{ return extQueryInterfaceDX(4, pQueryInterfaceD4, lpdd, riid, obp); }
 HRESULT WINAPI extQueryInterfaceD7(void *lpdd, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceD(7, pQueryInterfaceD7, lpdd, riid, obp); }
-
-// some unhandled interfaces in emulation mode:
-// REFIID={84e63de0-46aa-11cf-816f-0000c020156e}: IID_IDirect3DHALDevice
-
-static HRESULT WINAPI extQueryInterfaceS(int dxversion, QueryInterface_Type pQueryInterfaceS, void *lpdds, REFIID riid, LPVOID *obp)
-{
-	HRESULT res;
-	BOOL IsPrim;
-	BOOL IsBack;
-	BOOL IsGammaRamp;
-	unsigned int dwLocalDDVersion;
-	unsigned int dwLocalTexVersion;
-	unsigned int dwLocalD3DDeviceVersion;
-
-	IsPrim=dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds);
-	IsBack=dxwss.IsABackBufferSurface((LPDIRECTDRAWSURFACE)lpdds);
-	OutTraceDDRAW("QueryInterface(S%d): lpdds=%x%s REFIID=%x(%s)\n",
-		dxversion, lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds), riid.Data1, ExplainGUID((GUID *)&riid));	
-
-	IsGammaRamp=FALSE;
-
-	dwLocalDDVersion=0;
-	dwLocalTexVersion=0;
-	dwLocalD3DDeviceVersion=0;
-	switch(riid.Data1){
-	case 0x6C14DB81:
-		dwLocalDDVersion = 1;
-		break;
-	case 0x57805885:		//DDSurface2 - WIP (Dark Reign)
-		dwLocalDDVersion = 2;
-		break;
-	case 0xDA044E00:		//DDSurface3
-		dwLocalDDVersion = 3;
-		break;
-	case 0x0B2B8630:
-		dwLocalDDVersion = 4;
-		break;
-	case 0x06675a80:
-		dwLocalDDVersion = 7;
-		break;
-	// Direct3DDevice
-	case 0x84e63de0:
-		OutTraceDW("QueryInterface: IID_IDirect3DHALDevice\n");
-		dwLocalD3DDeviceVersion = 1;
-		break;
-	case 0xA4665C60: //  IID_IDirect3DRGBDevice
-		OutTraceDW("QueryInterface: IID_IDirect3DRGBDevice\n");
-		dwLocalD3DDeviceVersion = 1;
-		break;
-	case 0xF2086B20: //  IID_IDirect3DRampDevice
-		OutTraceDW("QueryInterface: IID_IDirect3DRampDevice\n");
-		dwLocalD3DDeviceVersion = 1;
-		break;
-	case 0x881949a1: //  IID_IDirect3DMMXDevice
-		OutTraceDW("QueryInterface: IID_IDirect3DMMXDevice\n");
-		dwLocalD3DDeviceVersion = 1;
-		break;
-	case 0x50936643: //  IID_IDirect3DRefDevice    
-		OutTraceDW("QueryInterface: IID_IDirect3DRefDevice\n");
-		dwLocalD3DDeviceVersion = 2;
-		break;
-	case 0x8767df22: //  IID_IDirect3DNullDevice
-		OutTraceDW("QueryInterface: IID_IDirect3DNullDevice\n");
-		dwLocalD3DDeviceVersion = 2;
-		break;
-	case 0xf5049e78: //  IID_IDirect3DTnLHalDevice, 
-		OutTraceDW("QueryInterface: IID_IDirect3DTnLHalDevice\n");
-		dwLocalD3DDeviceVersion = 3;
-		break;
-	case 0x64108800: //  IID_IDirect3DDevice       
-		OutTraceDW("QueryInterface: IID_IDirect3DDevice\n");
-		dwLocalD3DDeviceVersion = 1;
-		break;
-	case 0x93281501: //  IID_IDirect3DDevice2
-		OutTraceDW("QueryInterface: IID_IDirect3DDevice2\n");
-		dwLocalD3DDeviceVersion = 2;
-		break;
-	case 0xb0ab3b60: //  IID_IDirect3DDevice3 
-		OutTraceDW("QueryInterface: IID_IDirect3DDevice3\n");
-		dwLocalD3DDeviceVersion = 3;
-		break;
-	case 0xf5049e79: //  IID_IDirect3DDevice7  
-		OutTraceDW("QueryInterface: IID_IDirect3DDevice7\n");
-		dwLocalD3DDeviceVersion = 7;
-		break;
-	case 0x4B9F0EE0:
-		OutTraceDW("QueryInterface: IID_IDirectDrawColorControl\n");
-		break;
-	case 0x69C11C3E:
-		OutTraceDW("QueryInterface: IID_IDirectDrawGammaControl\n");
-		IsGammaRamp=TRUE;
-		break;
-	// textures
-	case 0x2CDCD9E0:
-		OutTraceDW("QueryInterface: IID_IDirect3DTexture\n");
-		dwLocalTexVersion = 1;
-		break;
-	case 0x93281502:
-		OutTraceDW("QueryInterface: IID_IDirect3DTexture2\n");
-		dwLocalTexVersion = 2;
-		break;
-	} 
-
-	if (dwLocalDDVersion > dxw.dwMaxDDVersion) {
-		*obp = NULL;
-		OutTraceDW("QueryInterface(S): DDVersion=%d SUPPRESS lpdds=%x(%s) REFIID=%x obp=(NULL) ret=0 at %d\n",
-			dwLocalDDVersion, lpdds, IsPrim?"":"(PRIM)", riid.Data1, __LINE__);
-		return(0);
-	}
-
-	// fix the target for gamma ramp creation: if it is a primary surface, use the real one!!
-	// v2.03.37: do this just when in esurface emulated mode!! 
-	if(	IsGammaRamp && 
-		(dxw.dwFlags1 & EMULATESURFACE) && 
-		dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds)) 
-		lpdds = lpDDSEmu_Prim; 
-
-	res = (*pQueryInterfaceS)(lpdds, riid, obp);
-
-	if(res) // added trace
-	{
-		OutTraceDW("QueryInterface(S): ERROR lpdds=%x%s REFIID=%x obp=%x ret=%x(%s) at %d\n",
-			lpdds, IsPrim?"(PRIM)":"", riid.Data1, *obp, res, ExplainDDError(res), __LINE__);
-		return res;
-	}
-
-	if (! *obp) {
-		OutTraceDW("QueryInterface(S): Interface for DX version %d not found\n", dwLocalDDVersion);
-		return 0;
-	}
-
-	// added trace
-	OutTraceDW("QueryInterface(S): lpdds=%x%s REFIID=%x obp=%x DDVersion=%d TexVersion=%d GammaRamp=%d D3DDevice=%d ret=0\n",
-		lpdds, IsPrim?"(PRIM)":"", riid.Data1, *obp, dwLocalDDVersion, dwLocalTexVersion, IsGammaRamp, dwLocalD3DDeviceVersion);
-
-	if (dwLocalDDVersion) {
-		switch (dwLocalDDVersion){
-			case 1: // added for The Sims
-			case 2:
-			case 3:
-			case 4: 
-			case 7:
-			dxw.dwDDVersion=dwLocalDDVersion;
-			if(IsPrim){
-				OutTraceDW("QueryInterface(S): primary=%x new=%x\n", lpdds, *obp);
-				dxwss.PushPrimarySurface((LPDIRECTDRAWSURFACE)*obp, dwLocalDDVersion);
-				HookDDSurface((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion, TRUE);
-			}
-			else{
-				if(IsBack) dxwss.PushBackBufferSurface((LPDIRECTDRAWSURFACE)*obp, dwLocalDDVersion);
-				else dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp);
-				// v2.02.13: seems that hooking inconditionally gives troubles. What is the proper safe hook condition?
-				HookDDSurface((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion, FALSE);
-			}
-			DWORD dwCaps;
-			if (dwCaps = dxwcdb.GetCaps((LPDIRECTDRAWSURFACE)lpdds)) {
-				OutTrace("QueryInterface(S): PASS caps=%x lpdds=%x->%x\n", dwCaps, lpdds, *obp);
-				dxwcdb.PushCaps(*(LPDIRECTDRAWSURFACE *)obp,dwCaps);
-			}
-			break;
-		}
-	}
-
-	if(dwLocalTexVersion) {
-		// Texture Handling on QueryInterface
-		if(dxw.dwFlags5 & TEXTUREMASK) TextureHandling((LPDIRECTDRAWSURFACE)lpdds, dxversion);
-		HookTexture(obp, dwLocalTexVersion);
-	}
-
-	if(IsGammaRamp)	HookGammaControl(obp);
-
-	if(dwLocalD3DDeviceVersion) {
-		extern void HookDirect3DDevice(void **, int);
-		HookDirect3DDevice(obp, dwLocalD3DDeviceVersion);
-	}
-	return 0;
-}
+{ return extQueryInterfaceDX(7, pQueryInterfaceD7, lpdd, riid, obp); }
 
 HRESULT WINAPI extQueryInterfaceS1(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(1, pQueryInterfaceS1, lpdds, riid, obp); }
+{ return extQueryInterfaceDX(1, pQueryInterfaceS1, lpdds, riid, obp); }
 HRESULT WINAPI extQueryInterfaceS2(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(2, pQueryInterfaceS2, lpdds, riid, obp); }
+{ return extQueryInterfaceDX(2, pQueryInterfaceS2, lpdds, riid, obp); }
 HRESULT WINAPI extQueryInterfaceS3(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(3, pQueryInterfaceS3, lpdds, riid, obp); }
+{ return extQueryInterfaceDX(3, pQueryInterfaceS3, lpdds, riid, obp); }
 HRESULT WINAPI extQueryInterfaceS4(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(4, pQueryInterfaceS4, lpdds, riid, obp); }
+{ return extQueryInterfaceDX(4, pQueryInterfaceS4, lpdds, riid, obp); }
 HRESULT WINAPI extQueryInterfaceS7(void *lpdds, REFIID riid, LPVOID *obp)
-{ return extQueryInterfaceS(7, pQueryInterfaceS7, lpdds, riid, obp); }
-
+{ return extQueryInterfaceDX(7, pQueryInterfaceS7, lpdds, riid, obp); }
 
 HRESULT WINAPI extSetDisplayMode(int dxversion, LPDIRECTDRAW lpdd,
 	DWORD dwwidth, DWORD dwheight, DWORD dwbpp, DWORD dwrefreshrate, DWORD dwflags)

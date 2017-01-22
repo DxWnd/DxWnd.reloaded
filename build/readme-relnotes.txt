@@ -1469,3 +1469,8 @@ fix: log messages for CloseHandle wrapper
 fix: log messages for GetPixel wrapper
 fix: window position in MoveWindow for ANCHORED mode and big windows
 fix: DialogBoxParamA wrapper
+
+v2.04.07
+fix: QueryInterface wrapper for ddraw classes unified in a single procedure.
+fix: D3D2 SwapTextureHandles hook fix - fixes "Wizardry Chronicle" texture problems
+fix: string overflow in TextureHack procedure for D3D1-7 textures

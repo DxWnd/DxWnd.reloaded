@@ -1171,16 +1171,18 @@ void dxwCore::FixWindowFrame(HWND hwnd)
 	OutTraceDW("FixWindowFrame: hwnd=%x foreground=%x\n", hwnd, GetForegroundWindow());
 
 	nStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
-	if (!nStyle){
-		OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
-		return;
-	}
+	// beware: 0 is a valid return code!
+	//if (!nStyle){
+	//	OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
+	//	return;
+	//}
 
 	nExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
-	if (!nExStyle){
-		OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
-		return;
-	}
+	// beware: 0 is a valid return code!
+	//if (!nExStyle){
+	//	OutTraceE("FixWindowFrame: GetWindowLong ERROR %d at %d\n",GetLastError(),__LINE__);
+	//	return;
+	//}
 
 	OutTraceDW("FixWindowFrame: style=%x(%s) exstyle=%x(%s)\n",
 		nStyle, ExplainStyle(nStyle),

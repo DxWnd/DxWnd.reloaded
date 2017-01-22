@@ -397,8 +397,8 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 		return;
 	}
 	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxwss.IsABackBufferSurface(s)) while (TRUE) { // fake loop to ensure final Unlock
-		OutTrace("TextureHack(%d): lpdds=%x BitCount=%d size=(%dx%d)\n", 
-			dxversion, s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
+		OutTrace("TextureHack(%d): lpdds=%x BitCount=%d size=(%dx%d) surface=%x\n", 
+			dxversion, s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight, ddsd.lpSurface);
 		w = ddsd.dwWidth;
 		h = ddsd.dwHeight;
 		iSurfaceSize = ddsd.dwHeight * ddsd.lPitch;
@@ -406,7 +406,7 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 		FILE *hf;
 		BITMAPFILEHEADER hdr;       // bitmap file-header 
 		BITMAPINFOHEADER pbi;		// bitmap info-header  
-		char pszFile[81];
+		char pszFile[MAX_PATH];
 		int iSizeImage;
 
 		// calculate the bitmap hash
