@@ -2307,6 +2307,7 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) { // z-buffer surface - set to memory
 		lpddsd->ddsCaps.dwCaps = DDSCAPS_ZBUFFER;  
+		if(dxw.dwFlags8 & ALLOWSYSMEMON3DDEV) lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER;  
 		return;
 	}
 

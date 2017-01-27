@@ -485,6 +485,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ClearTextureFourCC) t->flags7 |= CLEARTEXTUREFOURCC;
 	if(dlg->m_NoDDExclusiveMode) t->flags7 |= NODDEXCLUSIVEMODE;
 	if(dlg->m_CreateDesktop) t->flags6 |= CREATEDESKTOP;
+	if(dlg->m_AllowSysmemOn3DDev) t->flags8 |= ALLOWSYSMEMON3DDEV;
 	if(dlg->m_HandleAltF4) t->flags |= HANDLEALTF4;
 	if(dlg->m_LimitFPS) t->flags2 |= LIMITFPS;
 	if(dlg->m_SkipFPS) t->flags2 |= SKIPFPS;
@@ -529,6 +530,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoWinErrors) t->flags7 |= NOWINERRORS;
 	if(dlg->m_PretendVisible) t->flags8 |= PRETENDVISIBLE;
 	if(dlg->m_WinInsulation) t->flags8 |= WININSULATION;
+	if(dlg->m_QualityFonts) t->flags8 |= QUALITYFONTS;
 	if(dlg->m_AnalyticMode) t->flags3 |= ANALYTICMODE;
 	if(dlg->m_ReplacePrivOps) t->flags5 |= REPLACEPRIVOPS;
 	if(dlg->m_InitialRes) t->flags7 |= INITIALRES;
@@ -809,6 +811,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ClearTextureFourCC = t->flags7 & CLEARTEXTUREFOURCC ? 1 : 0;
 	dlg->m_NoDDExclusiveMode = t->flags7 & NODDEXCLUSIVEMODE ? 1 : 0;
 	dlg->m_CreateDesktop = t->flags6 & CREATEDESKTOP ? 1 : 0;
+	dlg->m_AllowSysmemOn3DDev = t->flags8 & ALLOWSYSMEMON3DDEV ? 1 : 0;
 	dlg->m_HandleAltF4 = t->flags & HANDLEALTF4 ? 1 : 0;
 	dlg->m_LimitFPS = t->flags2 & LIMITFPS ? 1 : 0;
 	dlg->m_SkipFPS = t->flags2 & SKIPFPS ? 1 : 0;
@@ -853,6 +856,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoWinErrors = t->flags7 & NOWINERRORS ? 1 : 0;
 	dlg->m_PretendVisible = t->flags8 & PRETENDVISIBLE ? 1 : 0;
 	dlg->m_WinInsulation = t->flags8 & WININSULATION ? 1 : 0;
+	dlg->m_QualityFonts = t->flags8 & QUALITYFONTS ? 1 : 0;
 	dlg->m_AnalyticMode = t->flags3 & ANALYTICMODE ? 1 : 0;
 	dlg->m_ReplacePrivOps = t->flags5 & REPLACEPRIVOPS ? 1 : 0;
 	dlg->m_InitialRes = t->flags7 & INITIALRES ? 1 : 0;
@@ -3350,7 +3354,7 @@ void CDxwndhostView::OnRun(BOOL bForceNoHook)
 			if(MessageBoxLang(DXW_STRING_VREG_UPDATE,DXW_STRING_WARNING, MB_OKCANCEL|MB_ICONINFORMATION)==IDOK)
 				this->SaveConfigFile();
 		}
-		OutTrace("export virtual registry\n");
+		OutTrace("export virtual registry entry[%d]\n");
 		FILE *regfp;
 		char *Registry;
 		Registry = PrivateMaps[i].registry;

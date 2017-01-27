@@ -18,6 +18,7 @@ void DumpDibSection(const BITMAPINFO *pbmi, UINT iUsage, VOID *pvBits)
 	BITMAPFILEHEADER hdr;       // bitmap file-header 
 	BITMAPV4HEADER pbi;			// bitmap info-header  
 	int iScanLineSize;
+	LONG bV4SizeImage;
 
 	if(iUsage != DIB_RGB_COLORS) return;
 	if(prog==0) CreateDirectory(".\\bmp.out", NULL);
@@ -29,7 +30,9 @@ void DumpDibSection(const BITMAPINFO *pbmi, UINT iUsage, VOID *pvBits)
 	pbi.bV4Width = pbmi->bmiHeader.biWidth;
 	pbi.bV4Height = pbmi->bmiHeader.biHeight;
 	pbi.bV4BitCount = pbmi->bmiHeader.biBitCount;
-	pbi.bV4SizeImage = ((pbi.bV4Width * pbi.bV4BitCount + 0x1F) & ~0x1F)/8 * pbi.bV4Height; 
+	bV4SizeImage = ((pbi.bV4Width * pbi.bV4BitCount + 0x1F) & ~0x1F)/8 * pbi.bV4Height; 
+	if(bV4SizeImage < 0) bV4SizeImage = -bV4SizeImage;
+	pbi.bV4SizeImage = bV4SizeImage;
 	pbi.bV4Height = - pbi.bV4Height;
 	pbi.bV4Planes = pbmi->bmiHeader.biPlanes;
 	pbi.bV4V4Compression = pbmi->bmiHeader.biCompression;
@@ -45,7 +48,7 @@ void DumpDibSection(const BITMAPINFO *pbmi, UINT iUsage, VOID *pvBits)
 	pbi.bV4AlphaMask = 0;
 	pbi.bV4CSType = LCS_CALIBRATED_RGB;
 	iScanLineSize = ((pbi.bV4Width * pbi.bV4BitCount + 0x1F) & ~0x1F)/8;
-	OutTrace("DumpDibSection: prog=%d size=%d wxh=(%dx%d) bc=%d sizeimg=%d planes=%d comp=%x ppm=(%dx%d) colors=%d imp=%d\n",
+	OutTrace("DumpDibSection: prog=%08.8d size=%d wxh=(%dx%d) bc=%d sizeimg=%d planes=%d comp=%x ppm=(%dx%d) colors=%d imp=%d\n",
 		prog,
 		pbi.bV4Size, pbi.bV4Width, pbi.bV4Height, pbi.bV4BitCount, pbi.bV4SizeImage,
 		pbi.bV4Planes, pbi.bV4V4Compression, pbi.bV4XPelsPerMeter, pbi.bV4YPelsPerMeter,

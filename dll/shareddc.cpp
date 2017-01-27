@@ -131,7 +131,7 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc)
 			_Warn("CreateCompatibleBitmap ERROR");
 		}
 
-		if(!SelectObject(VirtualHDC, VirtualPic)){
+		if(!(*pSelectObject)(VirtualHDC, VirtualPic)){
 			OutTraceE("dxwSDC::GetPrimaryDC: SelectObject ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 			_Warn("SelectObject ERROR");
 		}
@@ -311,9 +311,9 @@ BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen)
 
 void dxwSDC::copyDcAttributes(HDC destDC, HDC origDc, POINT origin)
 {
-	origFont = SelectObject(destDC, GetCurrentObject(origDc, OBJ_FONT));
-	origBrush = SelectObject(destDC, GetCurrentObject(origDc, OBJ_BRUSH));
-	origPen = SelectObject(destDC, GetCurrentObject(origDc, OBJ_PEN));
+	origFont = (*pSelectObject)(destDC, GetCurrentObject(origDc, OBJ_FONT));
+	origBrush = (*pSelectObject)(destDC, GetCurrentObject(origDc, OBJ_BRUSH));
+	origPen = (*pSelectObject)(destDC, GetCurrentObject(origDc, OBJ_PEN));
 
 	if (GM_ADVANCED == GetGraphicsMode(origDc)){
 		SetGraphicsMode(destDC, GM_ADVANCED);

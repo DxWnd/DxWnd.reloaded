@@ -5,7 +5,7 @@ for all system calls hooked by DxWnd:
 GDI32.dll
 Kernel32.dll
 ole32.dll
-user32.dll.dll
+user32.dll
 
 ====================================================================*/
 
@@ -139,6 +139,11 @@ typedef BOOL	(WINAPI *PolyPolygon_Type)(HDC, const POINT *, const INT *, int);
 typedef BOOL	(WINAPI *PlayEnhMetaFile_Type)(HDC, HENHMETAFILE, const RECT *);
 typedef UINT	(WINAPI *SetPaletteEntries_Type)(HPALETTE, UINT, UINT, const PALETTEENTRY *);
 typedef int		(WINAPI *SetROP2_Type)(HDC, int);
+typedef int		(WINAPI *EnumFontsA_Type)(HDC, LPCSTR, FONTENUMPROC, LPARAM);
+typedef BOOL	(WINAPI *GetTextExtentPointA_Type)(HDC, LPCTSTR, int, LPSIZE);
+typedef BOOL	(WINAPI *GetTextExtentPoint32A_Type)(HDC, LPCTSTR, int, LPSIZE);
+typedef HGDIOBJ (WINAPI *SelectObject_Type)(HDC, HGDIOBJ);
+typedef BOOL	(WINAPI *DeleteObject_Type)(HGDIOBJ);
 
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -255,6 +260,45 @@ typedef HWND	(WINAPI *WindowFromPoint_Type)(POINT);
 typedef HWND	(WINAPI *ChildWindowFromPoint_Type)(HWND, POINT);
 typedef HWND	(WINAPI *ChildWindowFromPointEx_Type)(HWND, POINT, UINT);
 typedef int		(WINAPI *GetWindowTextA_Type)(HWND, LPTSTR, int);
+typedef BOOL	(WINAPI *BringWindowToTop_Type)(HWND);
+typedef BOOL	(WINAPI *SetForegroundWindow_Type)(HWND);
+typedef HHOOK	(WINAPI *SetWindowsHookEx_Type)(int, HOOKPROC, HINSTANCE, DWORD);
+typedef HRESULT (WINAPI *MessageBoxTimeoutA_Type)(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
+typedef HRESULT (WINAPI *MessageBoxTimeoutW_Type)(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
+typedef BOOL	(WINAPI *IsIconic_Type)(HWND);
+typedef BOOL	(WINAPI *IsZoomed_Type)(HWND);
+typedef HDESK	(WINAPI *CreateDesktop_Type)(LPCTSTR, LPCTSTR, DEVMODE *, DWORD, ACCESS_MASK, LPSECURITY_ATTRIBUTES);
+typedef BOOL	(WINAPI *SwitchDesktop_Type)(HDESK);
+typedef HDESK	(WINAPI *OpenDesktop_Type)(LPTSTR, DWORD, BOOL, ACCESS_MASK);
+typedef BOOL	(WINAPI *CloseDesktop_Type)(HDESK);
+typedef int		(WINAPI *ValidateRect_Type)(HWND, const RECT *);
+typedef BOOL	(WINAPI *ScrollWindow_Type)(HWND, int, int, const RECT *, const RECT *);
+typedef INT_PTR (WINAPI *DialogBoxParamA_Type)(HINSTANCE, LPCTSTR, HWND, DLGPROC, LPARAM);
+typedef HWND	(WINAPI *GetParent_Type)(HWND);
+typedef BOOL	(WINAPI *InvalidateRgn_Type)(HWND, HRGN, BOOL);
+typedef BOOL	(WINAPI *InvertRect_Type)(HDC, const RECT *);
+typedef BOOL	(WINAPI *ScrollDC_Type)(HDC, int, int, const RECT *, const RECT *, HRGN, LPRECT);
+typedef BOOL	(WINAPI *DrawIcon_Type)(HDC hDC, int X, int Y, HICON hIcon); 
+typedef BOOL	(WINAPI *DrawIconEx_Type)(HDC, int, int, HICON, int, int, UINT, HBRUSH, UINT);
+typedef BOOL	(WINAPI *DrawCaption_Type)(HWND, HDC, LPCRECT, UINT);
+typedef BOOL	(WINAPI *PaintDesktop_Type)(HDC);
+typedef VOID	(WINAPI *mouse_event_Type)(DWORD, DWORD, DWORD, DWORD, ULONG_PTR);
+typedef BOOL	(WINAPI *ShowScrollBar_Type)(HWND, int, BOOL);
+typedef BOOL	(WINAPI *DrawMenuBar_Type)(HWND);
+//typedef BOOL (WINAPI *TranslateMessage_Type)(MSG *);
+typedef BOOL	(WINAPI *EnumDisplayDevicesA_Type)(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
+typedef BOOL	(WINAPI *EnumDisplayDevicesW_Type)(LPCWSTR, DWORD, PDISPLAY_DEVICEW, DWORD);
+typedef INT_PTR (WINAPI *DialogBoxIndirectParamA_Type)(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
+typedef HWND	(WINAPI *GetFocus_Type)(void);
+//typedef HWND (WINAPI *GetTopWindow_Type)(HWND);
+typedef DWORD	(WINAPI *GetWindowThreadProcessId_Type)(HWND, LPDWORD);
+typedef HWND	(WINAPI *GetWindow_Type)(HWND, UINT);
+typedef BOOL	(WINAPI *IsWindow_Type)(HWND);
+typedef HWND	(WINAPI *SetFocus_Type)(HWND);
+typedef HBITMAP (WINAPI *LoadBitmapA_Type)(HINSTANCE, LPCSTR);
+typedef BOOL	(WINAPI *EnumWindows_Type)(WNDENUMPROC, LPARAM);
+typedef BOOL	(WINAPI *GetMessage_Type)(LPMSG, HWND, UINT, UINT);
+typedef BOOL	(WINAPI *PostMessage_Type)(HWND, UINT, WPARAM, LPARAM);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -272,7 +316,8 @@ hooked APIs real pointers
 #undef DXWEXTERN
 #undef DXWINITIALIZED
 #define DXWEXTERN
-#define DXWINITIALIZED = NULL
+//#define DXWINITIALIZED = NULL
+#define DXWINITIALIZED
 #else
 #undef DXWEXTERN
 #undef DXWINITIALIZED
@@ -410,6 +455,12 @@ DXWEXTERN PolyPolygon_Type pPolyPolygon DXWINITIALIZED;
 DXWEXTERN PlayEnhMetaFile_Type pPlayEnhMetaFile DXWINITIALIZED;
 DXWEXTERN SetPaletteEntries_Type pSetPaletteEntries DXWINITIALIZED;
 DXWEXTERN SetROP2_Type pSetROP2 DXWINITIALIZED;
+DXWEXTERN EnumFontsA_Type pEnumFontsA DXWINITIALIZED;
+DXWEXTERN GetTextExtentPointA_Type pGetTextExtentPointA DXWINITIALIZED;
+DXWEXTERN GetTextExtentPoint32A_Type pGetTextExtentPoint32A DXWINITIALIZED;
+DXWEXTERN SelectObject_Type pSelectObject DXWINITIALIZED;
+DXWEXTERN DeleteObject_Type pDeleteObject DXWINITIALIZED;
+
 
 // Kernel32.dll:
 DXWEXTERN GetDiskFreeSpaceA_Type pGetDiskFreeSpaceA DXWINITIALIZED;
@@ -529,6 +580,46 @@ DXWEXTERN WindowFromPoint_Type pWindowFromPoint DXWINITIALIZED;
 DXWEXTERN ChildWindowFromPoint_Type pChildWindowFromPoint DXWINITIALIZED;
 DXWEXTERN ChildWindowFromPointEx_Type pChildWindowFromPointEx DXWINITIALIZED;
 DXWEXTERN GetWindowTextA_Type pGetWindowTextA DXWINITIALIZED;
+DXWEXTERN BringWindowToTop_Type pBringWindowToTop DXWINITIALIZED;
+DXWEXTERN SetForegroundWindow_Type pSetForegroundWindow DXWINITIALIZED;
+DXWEXTERN SetWindowsHookEx_Type pSetWindowsHookExA DXWINITIALIZED;
+DXWEXTERN SetWindowsHookEx_Type pSetWindowsHookExW DXWINITIALIZED;
+DXWEXTERN MessageBoxTimeoutA_Type pMessageBoxTimeoutA DXWINITIALIZED;
+DXWEXTERN MessageBoxTimeoutW_Type pMessageBoxTimeoutW DXWINITIALIZED;
+DXWEXTERN IsIconic_Type pIsIconic DXWINITIALIZED;
+DXWEXTERN IsZoomed_Type pIsZoomed DXWINITIALIZED;
+DXWEXTERN CreateDesktop_Type pCreateDesktop DXWINITIALIZED;
+DXWEXTERN SwitchDesktop_Type pSwitchDesktop DXWINITIALIZED;
+DXWEXTERN OpenDesktop_Type pOpenDesktop DXWINITIALIZED;
+DXWEXTERN CloseDesktop_Type pCloseDesktop DXWINITIALIZED;
+DXWEXTERN ValidateRect_Type pValidateRect DXWINITIALIZED;
+DXWEXTERN ScrollWindow_Type pScrollWindow DXWINITIALIZED;
+DXWEXTERN DialogBoxParamA_Type pDialogBoxParamA DXWINITIALIZED;
+DXWEXTERN GetParent_Type pGetParent DXWINITIALIZED;
+DXWEXTERN InvalidateRgn_Type pInvalidateRgn DXWINITIALIZED;
+DXWEXTERN InvertRect_Type pInvertRect DXWINITIALIZED;
+DXWEXTERN ScrollDC_Type pScrollDC DXWINITIALIZED;
+DXWEXTERN DrawIcon_Type pDrawIcon DXWINITIALIZED;
+DXWEXTERN DrawIconEx_Type pDrawIconEx DXWINITIALIZED;
+DXWEXTERN DrawCaption_Type pDrawCaption DXWINITIALIZED;
+DXWEXTERN PaintDesktop_Type pPaintDesktop DXWINITIALIZED;
+DXWEXTERN mouse_event_Type pmouse_event DXWINITIALIZED;
+DXWEXTERN ShowScrollBar_Type pShowScrollBar DXWINITIALIZED;
+DXWEXTERN DrawMenuBar_Type pDrawMenuBar DXWINITIALIZED;
+//TranslateMessage_Type pTranslateMessage DXWINITIALIZED;
+DXWEXTERN EnumDisplayDevicesA_Type pEnumDisplayDevicesA DXWINITIALIZED;
+DXWEXTERN EnumDisplayDevicesW_Type pEnumDisplayDevicesW DXWINITIALIZED;
+DXWEXTERN DialogBoxIndirectParamA_Type pDialogBoxIndirectParamA DXWINITIALIZED;
+DXWEXTERN GetFocus_Type pGetFocus DXWINITIALIZED;
+//GetTopWindow_Type pGetTopWindow DXWINITIALIZED;
+DXWEXTERN GetWindowThreadProcessId_Type pGetWindowThreadProcessId DXWINITIALIZED;
+DXWEXTERN GetWindow_Type pGetWindow DXWINITIALIZED;
+DXWEXTERN IsWindow_Type pIsWindow DXWINITIALIZED;
+DXWEXTERN SetFocus_Type pSetFocus DXWINITIALIZED;
+DXWEXTERN LoadBitmapA_Type pLoadBitmapA DXWINITIALIZED;
+DXWEXTERN EnumWindows_Type pEnumWindows DXWINITIALIZED;
+DXWEXTERN GetMessage_Type pGetMessageA, pGetMessageW DXWINITIALIZED;
+DXWEXTERN PostMessage_Type pPostMessageA, pPostMessageW DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommandA DXWINITIALIZED;
@@ -671,6 +762,11 @@ extern BOOL WINAPI extPolyPolygon(HDC, const POINT *, const INT *, int);
 extern BOOL WINAPI extPlayEnhMetaFile(HDC, HENHMETAFILE, const RECT *);
 extern UINT WINAPI extSetPaletteEntries(HPALETTE, UINT, UINT, const PALETTEENTRY *);
 extern int WINAPI extSetROP2(HDC, int);
+extern int WINAPI extEnumFontsA(HDC, LPCSTR, FONTENUMPROC, LPARAM);
+extern BOOL WINAPI extGetTextExtentPointA(HDC, LPCTSTR, int, LPSIZE);
+extern BOOL WINAPI extGetTextExtentPoint32A(HDC, LPCTSTR, int, LPSIZE);
+extern HGDIOBJ WINAPI extSelectObject(HDC, HGDIOBJ);
+extern BOOL WINAPI extDeleteObject(HGDIOBJ);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -792,6 +888,48 @@ extern HWND WINAPI extWindowFromPoint(POINT);
 extern HWND WINAPI extChildWindowFromPoint(HWND, POINT);
 extern HWND WINAPI extChildWindowFromPointEx(HWND, POINT, UINT);
 //extern int WINAPI extGetWindowTextA(HWND, LPTSTR, int);
+extern BOOL WINAPI extBringWindowToTop(HWND);
+extern BOOL WINAPI extSetForegroundWindow(HWND);
+extern HHOOK WINAPI extSetWindowsHookExA(int, HOOKPROC, HINSTANCE, DWORD);
+extern HHOOK WINAPI extSetWindowsHookExW(int, HOOKPROC, HINSTANCE, DWORD);
+extern HRESULT WINAPI extMessageBoxTimeoutA(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
+extern HRESULT WINAPI extMessageBoxTimeoutW(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
+extern BOOL WINAPI extIsIconic(HWND);
+extern BOOL WINAPI extIsZoomed(HWND);
+extern HDESK WINAPI extCreateDesktop(LPCTSTR, LPCTSTR, DEVMODE *, DWORD, ACCESS_MASK, LPSECURITY_ATTRIBUTES);
+extern BOOL WINAPI extSwitchDesktop(HDESK);
+extern HDESK WINAPI extOpenDesktop(LPTSTR, DWORD, BOOL, ACCESS_MASK);
+extern BOOL WINAPI extCloseDesktop(HDESK);
+extern int WINAPI extValidateRect(HWND, const RECT *);
+extern BOOL extScrollWindow(HWND, int, int, const RECT *, const RECT *);
+extern INT_PTR WINAPI extDialogBoxParamA(HINSTANCE, LPCTSTR, HWND, DLGPROC, LPARAM);
+extern HWND WINAPI extGetParent(HWND);
+extern BOOL WINAPI extInvalidateRgn(HWND, HRGN, BOOL);
+extern BOOL WINAPI extInvertRect(HDC, const RECT *);
+extern BOOL WINAPI extScrollDC(HDC, int, int, const RECT *, const RECT *, HRGN, LPRECT);
+extern BOOL WINAPI extDrawIcon(HDC hDC, int X, int Y, HICON hIcon); 
+extern BOOL WINAPI extDrawIconEx(HDC, int, int, HICON, int, int, UINT, HBRUSH, UINT);
+extern BOOL WINAPI extDrawCaption(HWND, HDC, LPCRECT, UINT);
+extern BOOL WINAPI extPaintDesktop(HDC);
+extern VOID WINAPI extmouse_event(DWORD, DWORD, DWORD, DWORD, ULONG_PTR);
+extern BOOL WINAPI extShowScrollBar(HWND, int, BOOL);
+extern BOOL WINAPI extDrawMenuBar(HWND);
+//extern BOOL WINAPI extTranslateMessage(MSG *);
+extern BOOL WINAPI extEnumDisplayDevicesA(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
+extern BOOL WINAPI extEnumDisplayDevicesW(LPCWSTR, DWORD, PDISPLAY_DEVICEW, DWORD);
+extern INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
+extern HWND WINAPI extGetFocus(void);
+//extern HWND WINAPI extGetTopWindow(HWND);
+extern DWORD WINAPI extGetWindowThreadProcessId(HWND, LPDWORD);
+extern HWND WINAPI extGetWindow(HWND, UINT);
+extern BOOL WINAPI extIsWindow(HWND);
+extern HWND WINAPI extSetFocus(HWND);
+extern HBITMAP WINAPI extLoadBitmapA(HINSTANCE, LPCSTR);
+extern BOOL WINAPI extEnumWindows(WNDENUMPROC, LPARAM);
+extern BOOL	WINAPI extGetMessageA(LPMSG, HWND, UINT, UINT);
+extern BOOL	WINAPI extGetMessageW(LPMSG, HWND, UINT, UINT);
+extern BOOL	WINAPI extPostMessageA(HWND, UINT, WPARAM, LPARAM);
+extern BOOL	WINAPI extPostMessageW(HWND, UINT, WPARAM, LPARAM);
 
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommandA(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -811,4 +949,11 @@ extern void	HookWinG32Init();
 extern void HookImagehlpInit();
 
 /* eof */
+
+
+
+
+
+
+
 

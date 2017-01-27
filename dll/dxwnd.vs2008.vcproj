@@ -410,6 +410,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\fontstack.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\gdi32.cpp"
 				>
 			</File>

@@ -165,6 +165,7 @@ public:
 	BOOL	m_ClearTextureFourCC;
 	BOOL	m_NoDDExclusiveMode;
 	BOOL	m_CreateDesktop;
+	BOOL	m_AllowSysmemOn3DDev;
 	//BOOL	m_ForceVSync;
 	//BOOL	m_ForceNoVSync;
 	//BOOL	m_ForceWait;
@@ -210,6 +211,7 @@ public:
 	BOOL	m_NoWinErrors;
 	BOOL	m_PretendVisible;
 	BOOL	m_WinInsulation;
+	BOOL	m_QualityFonts;
 	BOOL	m_AnalyticMode;
 	BOOL	m_NoPaletteUpdate;
 	BOOL	m_LimitResources;

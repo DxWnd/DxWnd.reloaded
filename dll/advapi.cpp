@@ -182,48 +182,10 @@ static FILE *OpenFakeRegistry()
 	DWORD dwAttrib;	
 	char sSourcePath[MAX_PATH+1];
 	char *p;
-	static BOOL LoadFromConfig = TRUE;
 	dwAttrib = GetFileAttributes("dxwnd.dll");
 	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) return NULL;
 	GetModuleFileName(GetModuleHandle("dxwnd"), sSourcePath, MAX_PATH);
 	p=&sSourcePath[strlen(sSourcePath)-strlen("dxwnd.dll")];
-	if(LoadFromConfig){
-		int Index;
-		char key[81];
-		char name[MAX_PATH+1];
-		char exepath[MAX_PATH+1];
-		strcpy(p, "dxwnd.ini");
-		GetModuleFileName(0, name, MAX_PATH);
-		//for(int i = 0; name[i]; i ++) name[i] = tolower(name[i]);
-		for(Index=0; Index<MAXTARGETS; Index++){
-			DWORD flags3;
-			sprintf_s(key, sizeof(key), "path%i", Index);
-			GetPrivateProfileString("target", key, "", exepath, MAX_PATH, sSourcePath);	
-			sprintf_s(key, sizeof(key), "flagh%i", Index);
-			flags3 = GetPrivateProfileInt("target", key, 0, sSourcePath);
-			if(!_stricmp(exepath, name) && (flags3 & HOOKENABLED)) break; // got it!
-		}
-		if(Index < MAXTARGETS){
-			FILE *freg;
-			char *RegBuf;
-			RegBuf = (char *)malloc(1000000+1); // 1MB!!
-			OutTrace("Fake registry: build virtual registry from dxwnd.ini entry #%d\n", Index);
-			sprintf_s(key, sizeof(key), "registry%i", Index);
-			GetPrivateProfileString("target", key, "", RegBuf, 1000000, sSourcePath);	
-			if(strlen(RegBuf)>0){
-				char *FileBuf = NULL;
-				Unescape(RegBuf, &FileBuf);
-				strcpy(p, "dxwnd.reg");
-				freg = fopen(sSourcePath,"w");
-				fwrite(FileBuf, 1, strlen(FileBuf), freg);
-				fputs("\n", freg);
-				fclose(freg);
-				free(FileBuf);
-			}
-			free(RegBuf);
-		}
-		LoadFromConfig = FALSE;
-	}
 	strcpy(p, "dxwnd.reg");
 	return fopen(sSourcePath,"r");
 }

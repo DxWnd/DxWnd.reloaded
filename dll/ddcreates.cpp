@@ -397,7 +397,12 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_FLIP|DDSCAPS_COMPLEX);
 	// v2.02.93: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
 	// this impact also on capabilities for temporary surfaces for AERO optimized handling
-	if ((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	// v2.04.08: this seems not always true, so it can be bypassed by ALLOWSYSMEMON3DDEV, just in case.
+	// should be tested with "Tomb Raider 3" in no emulation mode
+	if(!(dxw.dwFlags8 & ALLOWSYSMEMON3DDEV)){
+		if ((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)) 
+			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	}
 
 	// create Primary surface
 	OutTraceDW("BuildPrimaryDir: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]", __LINE__));
@@ -474,7 +479,13 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 
 	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
 	ddsd.ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
-	if(ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY; // necessary: Martian Gotic crashes otherwise
+	// necessary: Martian Gotic crashes otherwise
+	// v2.04.08: this seems no longer true in some cases, so ALLOWSYSMEMON3DDEV will bypass it.
+	// Should be tested with "Martian Gotic" and "Dominant Species" SW mode in emulation modes
+	if(!(dxw.dwFlags8 & ALLOWSYSMEMON3DDEV)){
+		if((ddsd.dwFlags & DDSD_CAPS) && (ddsd.ddsCaps.dwCaps & DDSCAPS_3DDEVICE))
+			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+	}
 	// on WinXP Fifa 99 doesn't like DDSCAPS_SYSTEMMEMORY cap, so better to leave a way to unset it....
 	if(dxw.dwFlags6 & NOSYSMEMBACKBUF) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
 	ddsd.dwWidth = dxw.GetScreenWidth();
@@ -632,13 +643,21 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 		ddsd.dwFlags |= (DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH);
 		ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_COMPLEX);
 		// v2.02.93: don't move primary / backbuf surfaces on systemmemory when 3DDEVICE is requested
-		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) {
-			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
-		}
-		else {
+		// v2.04.08: possibly no longer true ... to test with "Tomb Raider 3" non emulated modes
+		if(dxw.dwFlags8 & ALLOWSYSMEMON3DDEV){
 			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
 			if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
 			ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+		}
+		else {
+			if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) {
+				ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
+			}
+			else {
+				ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY; 
+				if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
+				ddsd.ddsCaps.dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM);
+			}
 		}
 	}
 	if(dxw.dwFlags6 & NOSYSMEMBACKBUF) ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;

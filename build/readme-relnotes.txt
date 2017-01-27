@@ -1474,3 +1474,15 @@ v2.04.07
 fix: QueryInterface wrapper for ddraw classes unified in a single procedure.
 fix: D3D2 SwapTextureHandles hook fix - fixes "Wizardry Chronicle" texture problems
 fix: string overflow in TextureHack procedure for D3D1-7 textures
+
+v2.04.08/fx1
+fix: improved DIB dumping & logging: fixed BMP header with negative size, dump only when DIB has attached image
+fix: safe CreateWindow mode, preserves original size & position within win creation. Fixes "Warhammer SotHR"
+blitting problems
+fix: virtual registry file created by GUI and not extracted by the dll. Ths avoids getting the first matching entry.
+fix: "Scale font parameters" fully revised, also renamed to "Scale font size"
+add: "High quality fonts" flag to force antialiasing font style
+fix: ddraw surface capability regression for emulated backbuffer: fixes "Dominant Species" textures in SW mode
+fix: ddraw surface capability regression for direct primary/backbuffer: should fix "Tomb raider 3" in HW mode
+fix: ddraw surface capability regression for zbuffer: fixes "Toca Touring Car" in SW mode
+fix: in fx1, bug crashing app when querying unknown interfaces!

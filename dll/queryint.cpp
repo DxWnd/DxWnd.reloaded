@@ -49,6 +49,7 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 		dxversion, lpdds, dxwss.ExplainSurfaceRole((LPDIRECTDRAWSURFACE)lpdds), riid.Data1, ExplainGUID((GUID *)&riid));	
 
 	iObjectVersion = 0;
+	iObjectType = TYPE_OBJECT_UNKNOWN;
 	switch(riid.Data1){
 	// DirectDraw
 	case 0x6C14DB80: // IID_IDirectDraw

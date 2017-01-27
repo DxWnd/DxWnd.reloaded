@@ -31,6 +31,7 @@ dxwSStack dxwss;
 dxwWStack dxwws;
 dxwCapsDB dxwcdb;
 dxwSDC sdc;
+dxwFStack fontdb;
 GetWindowLong_Type pGetWindowLong;
 SetWindowLong_Type pSetWindowLong;
 HWND hTrayWnd;
@@ -153,8 +154,8 @@ static char *Flag8Names[32]={
 	"VSYNCSCANLINES", "TRIMTEXTUREFORMATS", "NOHALDEVICE", "CLIPLOCK",
 	"PRETENDVISIBLE", "RAWFORMAT", "WININSULATION", "FIXMOUSEHOOK",
 	"DDSFORMAT", "HOOKWING32", "SEQUENCEDIAT", "D3D8BACK16",
-	"MARKWING32", "DYNAMICZCLEAN", "", "",
-	"", "", "", "",
+	"MARKWING32", "DYNAMICZCLEAN", "MARKGDI32", "DUMPDIBSECTION",
+	"DUMPDEVCONTEXT", "QUALITYFONTS", "ALLOWSYSMEMON3DDEV", "",
 	"", "", "", "",
 	"", "", "", "",
 };
@@ -163,11 +164,11 @@ static char *TFlagNames[32]={
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
 	"OUTSEPARATED", "**", "ASSERTDIALOG", "OUTIMPORTTABLE",
 	"OUTDEBUG", "OUTREGISTRY", "TRACEHOOKS", "OUTD3DTRACE",
-	"OUTDXWINTRACE", "ADDTIMESTAMP", "OUTDEBUGSTRING", "ERASELOGFILE",
+	"OUTDXWINTRACE", "OUTWINGTRACE", "OUTOGLTRACE", "",
 	"", "", "", "",
 	"", "", "", "",
-	"", "", "", "",
-	"", "", "", "",
+	"", "", "", "ADDRELATIVETIME",
+	"**", "ADDTIMESTAMP", "OUTDEBUGSTRING", "ERASELOGFILE",
 };
 
 char *GetDxWndPath()

@@ -48,6 +48,7 @@ void CTabDirectX2::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CLEARTEXTUREFOURCC, cTarget->m_ClearTextureFourCC);
 	DDX_Check(pDX, IDC_NODDEXCLUSIVEMODE, cTarget->m_NoDDExclusiveMode);
 	DDX_Check(pDX, IDC_CREATEDESKTOP, cTarget->m_CreateDesktop);
+	DDX_Check(pDX, IDC_ALLOWSYSMEMON3DDEV, cTarget->m_AllowSysmemOn3DDev);
 
 	// Vsync 
 	//DDX_Check(pDX, IDC_SAVELOAD, cTarget->m_SaveLoad);

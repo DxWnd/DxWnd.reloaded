@@ -29,128 +29,6 @@ extern HDC hFlippedDC;
 //EnumDisplayMonitors_Type pEnumDisplayMonitors = NULL;
 //BOOL WINAPI extEnumDisplayMonitors(HDC, LPCRECT, MONITORENUMPROC, LPARAM);
 
-typedef BOOL (WINAPI *BringWindowToTop_Type)(HWND);
-BringWindowToTop_Type pBringWindowToTop = NULL;
-BOOL WINAPI extBringWindowToTop(HWND);
-typedef BOOL (WINAPI *SetForegroundWindow_Type)(HWND);
-SetForegroundWindow_Type pSetForegroundWindow = NULL;
-BOOL WINAPI extSetForegroundWindow(HWND);
-typedef HHOOK (WINAPI *SetWindowsHookEx_Type)(int, HOOKPROC, HINSTANCE, DWORD);
-SetWindowsHookEx_Type pSetWindowsHookExA = NULL;
-SetWindowsHookEx_Type pSetWindowsHookExW = NULL;
-HHOOK WINAPI extSetWindowsHookExA(int, HOOKPROC, HINSTANCE, DWORD);
-HHOOK WINAPI extSetWindowsHookExW(int, HOOKPROC, HINSTANCE, DWORD);
-typedef HRESULT (WINAPI *MessageBoxTimeoutA_Type)(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
-MessageBoxTimeoutA_Type pMessageBoxTimeoutA = NULL;
-HRESULT WINAPI extMessageBoxTimeoutA(HWND, LPCSTR, LPCSTR, UINT, WORD, DWORD);
-typedef HRESULT (WINAPI *MessageBoxTimeoutW_Type)(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
-MessageBoxTimeoutW_Type pMessageBoxTimeoutW = NULL;
-HRESULT WINAPI extMessageBoxTimeoutW(HWND, LPCWSTR, LPCWSTR, UINT, WORD, DWORD);
-typedef BOOL (WINAPI *IsIconic_Type)(HWND);
-IsIconic_Type pIsIconic = NULL;
-BOOL WINAPI extIsIconic(HWND);
-typedef BOOL (WINAPI *IsZoomed_Type)(HWND);
-IsZoomed_Type pIsZoomed = NULL;
-BOOL WINAPI extIsZoomed(HWND);
-typedef HDESK (WINAPI *CreateDesktop_Type)(LPCTSTR, LPCTSTR, DEVMODE *, DWORD, ACCESS_MASK, LPSECURITY_ATTRIBUTES);
-CreateDesktop_Type pCreateDesktop = NULL;
-HDESK WINAPI extCreateDesktop(LPCTSTR, LPCTSTR, DEVMODE *, DWORD, ACCESS_MASK, LPSECURITY_ATTRIBUTES);
-typedef BOOL (WINAPI *SwitchDesktop_Type)(HDESK);
-SwitchDesktop_Type pSwitchDesktop = NULL;
-BOOL WINAPI extSwitchDesktop(HDESK);
-typedef HDESK (WINAPI *OpenDesktop_Type)(LPTSTR, DWORD, BOOL, ACCESS_MASK);
-OpenDesktop_Type pOpenDesktop = NULL;
-HDESK WINAPI extOpenDesktop(LPTSTR, DWORD, BOOL, ACCESS_MASK);
-typedef BOOL (WINAPI *CloseDesktop_Type)(HDESK);
-CloseDesktop_Type pCloseDesktop = NULL;
-BOOL WINAPI extCloseDesktop(HDESK);
-typedef int (WINAPI *ValidateRect_Type)(HWND, const RECT *);
-ValidateRect_Type pValidateRect = NULL;
-int WINAPI extValidateRect(HWND, const RECT *);
-typedef BOOL (WINAPI *ScrollWindow_Type)(HWND, int, int, const RECT *, const RECT *);
-ScrollWindow_Type pScrollWindow = NULL;
-BOOL extScrollWindow(HWND, int, int, const RECT *, const RECT *);
-typedef INT_PTR (WINAPI *DialogBoxParamA_Type)(HINSTANCE, LPCTSTR, HWND, DLGPROC, LPARAM);
-DialogBoxParamA_Type pDialogBoxParamA = NULL;
-INT_PTR WINAPI extDialogBoxParamA(HINSTANCE, LPCTSTR, HWND, DLGPROC, LPARAM);
-typedef HWND (WINAPI *GetParent_Type)(HWND);
-GetParent_Type pGetParent = NULL;
-HWND WINAPI extGetParent(HWND);
-typedef BOOL (WINAPI *InvalidateRgn_Type)(HWND, HRGN, BOOL);
-InvalidateRgn_Type pInvalidateRgn = NULL;
-BOOL WINAPI extInvalidateRgn(HWND, HRGN, BOOL);
-typedef BOOL (WINAPI *InvertRect_Type)(HDC, const RECT *);
-InvertRect_Type pInvertRect = NULL;
-BOOL WINAPI extInvertRect(HDC, const RECT *);
-typedef BOOL (WINAPI *ScrollDC_Type)(HDC, int, int, const RECT *, const RECT *, HRGN, LPRECT);
-ScrollDC_Type pScrollDC = NULL;
-BOOL WINAPI extScrollDC(HDC, int, int, const RECT *, const RECT *, HRGN, LPRECT);
-typedef BOOL (WINAPI *DrawIcon_Type)(HDC hDC, int X, int Y, HICON hIcon); 
-DrawIcon_Type pDrawIcon = NULL;
-BOOL WINAPI extDrawIcon(HDC hDC, int X, int Y, HICON hIcon); 
-typedef BOOL (WINAPI *DrawIconEx_Type)(HDC, int, int, HICON, int, int, UINT, HBRUSH, UINT);
-DrawIconEx_Type pDrawIconEx = NULL;
-BOOL WINAPI extDrawIconEx(HDC, int, int, HICON, int, int, UINT, HBRUSH, UINT);
-typedef BOOL (WINAPI *DrawCaption_Type)(HWND, HDC, LPCRECT, UINT);
-DrawCaption_Type pDrawCaption = NULL;
-BOOL WINAPI extDrawCaption(HWND, HDC, LPCRECT, UINT);
-typedef BOOL (WINAPI *PaintDesktop_Type)(HDC);
-PaintDesktop_Type pPaintDesktop = NULL;
-BOOL WINAPI extPaintDesktop(HDC);
-typedef VOID (WINAPI *mouse_event_Type)(DWORD, DWORD, DWORD, DWORD, ULONG_PTR);
-mouse_event_Type pmouse_event = NULL;
-VOID WINAPI extmouse_event(DWORD, DWORD, DWORD, DWORD, ULONG_PTR);
-typedef BOOL (WINAPI *ShowScrollBar_Type)(HWND, int, BOOL);
-ShowScrollBar_Type pShowScrollBar = NULL;
-BOOL WINAPI extShowScrollBar(HWND, int, BOOL);
-typedef BOOL (WINAPI *DrawMenuBar_Type)(HWND);
-DrawMenuBar_Type pDrawMenuBar = NULL;
-BOOL WINAPI extDrawMenuBar(HWND);
-//typedef BOOL (WINAPI *TranslateMessage_Type)(MSG *);
-//TranslateMessage_Type pTranslateMessage = NULL;
-//BOOL WINAPI extTranslateMessage(MSG *);
-typedef BOOL (WINAPI *EnumDisplayDevicesA_Type)(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
-EnumDisplayDevicesA_Type pEnumDisplayDevicesA = NULL;
-BOOL WINAPI extEnumDisplayDevicesA(LPCSTR, DWORD, PDISPLAY_DEVICE, DWORD);
-typedef BOOL (WINAPI *EnumDisplayDevicesW_Type)(LPCWSTR, DWORD, PDISPLAY_DEVICEW, DWORD);
-EnumDisplayDevicesW_Type pEnumDisplayDevicesW = NULL;
-BOOL WINAPI extEnumDisplayDevicesW(LPCWSTR, DWORD, PDISPLAY_DEVICEW, DWORD);
-typedef INT_PTR (WINAPI *DialogBoxIndirectParamA_Type)(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
-DialogBoxIndirectParamA_Type pDialogBoxIndirectParamA = NULL;
-INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE, LPCDLGTEMPLATE, HWND, DLGPROC, LPARAM);
-typedef HWND (WINAPI *GetFocus_Type)(void);
-GetFocus_Type pGetFocus;
-HWND WINAPI extGetFocus(void);
-//typedef HWND (WINAPI *GetTopWindow_Type)(HWND);
-//GetTopWindow_Type pGetTopWindow;
-//HWND WINAPI extGetTopWindow(HWND);
-typedef DWORD (WINAPI *GetWindowThreadProcessId_Type)(HWND, LPDWORD);
-GetWindowThreadProcessId_Type pGetWindowThreadProcessId;
-DWORD WINAPI extGetWindowThreadProcessId(HWND, LPDWORD);
-typedef HWND (WINAPI *GetWindow_Type)(HWND, UINT);
-GetWindow_Type pGetWindow;
-HWND WINAPI extGetWindow(HWND, UINT);
-typedef BOOL (WINAPI *IsWindow_Type)(HWND);
-IsWindow_Type pIsWindow;
-BOOL WINAPI extIsWindow(HWND);
-typedef HWND (WINAPI *SetFocus_Type)(HWND);
-SetFocus_Type pSetFocus;
-HWND WINAPI extSetFocus(HWND);
-typedef HBITMAP (WINAPI *LoadBitmapA_Type)(HINSTANCE, LPCSTR);
-LoadBitmapA_Type pLoadBitmapA;
-HBITMAP WINAPI extLoadBitmapA(HINSTANCE, LPCSTR);
-typedef BOOL (WINAPI *EnumWindows_Type)(WNDENUMPROC, LPARAM);
-EnumWindows_Type pEnumWindows;
-BOOL WINAPI extEnumWindows(WNDENUMPROC, LPARAM);
-
-typedef BOOL	(WINAPI *GetMessage_Type)(LPMSG, HWND, UINT, UINT);
-GetMessage_Type pGetMessageA, pGetMessageW;
-BOOL	WINAPI extGetMessageA(LPMSG, HWND, UINT, UINT);
-BOOL	WINAPI extGetMessageW(LPMSG, HWND, UINT, UINT);
-typedef BOOL	(WINAPI *PostMessage_Type)(HWND, UINT, WPARAM, LPARAM);
-PostMessage_Type pPostMessageA, pPostMessageW;
-BOOL	WINAPI extPostMessageA(HWND, UINT, WPARAM, LPARAM);
-BOOL	WINAPI extPostMessageW(HWND, UINT, WPARAM, LPARAM);
 
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
@@ -1026,14 +904,6 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 
 		res=(*pSetWindowPos)(hwnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 		if(!res)OutTraceE("SetWindowPos: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-
-		//HFONT hFont;
-		//hFont=CreateFont (
-		//	30, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, 
-		//	FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
-		//	DEFAULT_PITCH | FF_SWISS, NULL); // "Arial");
-		//SendMessage (hwnd, WM_SETFONT, WPARAM (hFont), TRUE);	
-
 		return res;
 	}
 
@@ -1135,13 +1005,10 @@ LRESULT WINAPI extSendMessage(char *apiname, SendMessage_Type pSendMessage, HWND
 			lParam = MAKELPARAM(curr.x, curr.y); 
 			OutTraceC("%s: hwnd=%x pos XY=(%d,%d)->(%d,%d)\n", apiname, hwnd, prev.x, prev.y, curr.x, curr.y);
 			break;
-#if 1
-			// unnecessaty: set "Bypass font unsupported api" ??
 		case WM_FONTCHANGE:
 			// suppress WM_FONTCHANGE avoids "Warhammer: Shadow of the Horned Rat" crash when entering battle
 			return 0;
 			break;
-#endif
 		default:
 			break;
 		}
@@ -1704,10 +1571,13 @@ static BOOL IsFullscreenWindow(
 
 static HWND hLastFullScrWin = 0;
 static DDPIXELFORMAT ddpLastPixelFormat;
+#define SAFEWINDOWCREATION TRUE
+
+typedef HWND (WINAPI *CreateWindow_Type)(DWORD, LPVOID, LPVOID, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
 
 static HWND WINAPI CreateWindowCommon(
   LPCTSTR ApiName,
-  BOOL WideChar,
+  CreateWindow_Type pCreateWindow,
   DWORD dwExStyle,
   void *lpClassName,
   void *lpWindowName,
@@ -1726,15 +1596,19 @@ static HWND WINAPI CreateWindowCommon(
 	BOOL isNewDesktop;
 	int iOrigW, iOrigH;
 	extern void GetMonitorWorkarea(int, LPRECT, BOOL);
+	int origx, origy, origw, origh;
+	DWORD origstyle, origexstyle;
+	origx = x;
+	origy = y;
+	origw = nWidth;
+	origh = nHeight;
+	origstyle = dwStyle;
+	origexstyle = dwExStyle;
 
 	iOrigW=nWidth;
 	iOrigH=nHeight;
 	if(!dxw.Windowize || (hWndParent == HWND_MESSAGE)){ // v2.02.87: don't process message windows (hWndParent == HWND_MESSAGE)
-		if(WideChar)
-			hwnd= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-		else
-			hwnd= (*pCreateWindowExA)(dwExStyle, (LPCSTR)lpClassName, (LPCSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-
+		hwnd= (*pCreateWindow)(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 		if ((dxw.dwFlags1 & HOOKCHILDWIN) && (dwStyle & (WS_CHILD|WS_DLGFRAME)))
 			HookChildWndProc(hwnd, dwStyle, ApiName);
 
@@ -1789,10 +1663,7 @@ static HWND WINAPI CreateWindowCommon(
 	if(dxw.dwFlags5 & UNLOCKZORDER) dwExStyle &= ~WS_EX_TOPMOST ;
 
 	if(!dxw.IsFullScreen()){ // v2.1.63: needed for "Monster Truck Madness"
-		if(WideChar)
-			hwnd= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-		else
-			hwnd= (*pCreateWindowExA)(dwExStyle, (LPCSTR)lpClassName, (LPCSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+		hwnd= (*pCreateWindow)(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 		OutTraceDW("%s: windowed mode ret=%x\n", ApiName, hwnd);
 		return hwnd;
 	}
@@ -1826,10 +1697,24 @@ static HWND WINAPI CreateWindowCommon(
 	// v2.04.05: the semaphore must be a counter, since within the CreateWin callback there could be other CreateWin calls.
 	// happens in "Warhammer: Shadow of the Horned Rat" !
 	InMainWinCreation++;
-	if(WideChar)
-		hwnd= (*pCreateWindowExW)(dwExStyle, (LPCWSTR)lpClassName, (LPCWSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-	else
-		hwnd= (*pCreateWindowExA)(dwExStyle, (LPCSTR)lpClassName, (LPCSTR)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+#if 1
+	// SAFEWINDOWCREATION mode: fixes problems of "Warhammer shadow of the Horned rat", but also allows "Diablo" to run in fake fullscreen high-res mode.
+	// this way, any creation callback routine invoked within the window creation will receive only the original call parameters, while the new scaled
+	// values and adjusted styles will be applied only after the creation.
+	hwnd= (*pCreateWindow)(origexstyle, lpClassName, lpWindowName, origstyle, origx, origy, origw, origh, hWndParent, hMenu, hInstance, lpParam);
+	if (hwnd) {
+		(*pSetWindowLong)(hwnd, GWL_STYLE, dwStyle);
+		(*pSetWindowLong)(hwnd, GWL_EXSTYLE, dwExStyle);
+		(*pMoveWindow)(hwnd, x, y, nWidth, nHeight, FALSE);
+	}
+#endif
+#if 0
+	hwnd= (*pCreateWindow)(dwExStyle, lpClassName, lpWindowName, dwStyle, origx, origy, origw, origh, hWndParent, hMenu, hInstance, lpParam);
+	if (hwnd)(*pMoveWindow)(hwnd, x, y, nWidth, nHeight, FALSE);
+#endif
+#if 0
+	hwnd= (*pCreateWindow)(dwExStyle, lpClassName, lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+#endif
 	InMainWinCreation--;
 
 	if (hwnd==(HWND)NULL){
@@ -1921,10 +1806,10 @@ HWND WINAPI extCreateWindowExW(
 		else sprintf(wString,"%d", nWidth);
 		if (nHeight==CW_USEDEFAULT) strcpy(hString,"CW_USEDEFAULT"); 
 		else sprintf(hString,"%d", nHeight);
-		OutTrace("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s) hWndParent=%x%s hMenu=%x\n",
+		OutTrace("CreateWindowExW: class=\"%ls\" wname=\"%ls\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s) hWndParent=%x%s hMenu=%x depth=%d\n",
 			ClassToWStr(lpClassName), lpWindowName, xString, yString, wString, hString, 
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle),
-			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu);
+			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu, InMainWinCreation);
 	}
 	OutTraceB("CreateWindowExW: DEBUG fullscreen=%x mainwin=%x screen=(%d,%d)\n", 
 		dxw.IsFullScreen(), dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
@@ -1936,7 +1821,7 @@ HWND WINAPI extCreateWindowExW(
 		nHeight = MainWin.bottom;
 	}
 
-	return CreateWindowCommon("CreateWindowExW", TRUE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+	return CreateWindowCommon("CreateWindowExW", (CreateWindow_Type)pCreateWindowExW, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
 // GHO: pro Diablo
@@ -1964,10 +1849,10 @@ HWND WINAPI extCreateWindowExA(
 		else sprintf(wString,"%d", nWidth);
 		if (nHeight==CW_USEDEFAULT) strcpy(hString,"CW_USEDEFAULT"); 
 		else sprintf(hString,"%d", nHeight);
-		OutTrace("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s) hWndParent=%x%s hMenu=%x\n",
+		OutTrace("CreateWindowExA: class=\"%s\" wname=\"%s\" pos=(%s,%s) size=(%s,%s) Style=%x(%s) ExStyle=%x(%s) hWndParent=%x%s hMenu=%x depth=%d\n",
 			ClassToStr(lpClassName), lpWindowName, xString, yString, wString, hString, 
 			dwStyle, ExplainStyle(dwStyle), dwExStyle, ExplainExStyle(dwExStyle),
-			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu);
+			hWndParent, hWndParent==HWND_MESSAGE?"(HWND_MESSAGE)":"", hMenu, InMainWinCreation);
 	}
 	OutTraceB("CreateWindowExA: DEBUG fullscreen=%x mainwin=%x screen=(%d,%d)\n", 
 		dxw.IsFullScreen(), dxw.GethWnd(), dxw.GetScreenWidth(), dxw.GetScreenHeight());
@@ -1979,7 +1864,7 @@ HWND WINAPI extCreateWindowExA(
 		nHeight = MainWin.bottom;
 	}
 
-	return CreateWindowCommon("CreateWindowExA", FALSE, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+	return CreateWindowCommon("CreateWindowExA", (CreateWindow_Type)CreateWindowExA, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
 extern void ExplainMsg(char *, HWND, UINT, WPARAM, LPARAM);
@@ -1992,6 +1877,11 @@ LRESULT WINAPI extCallWindowProcA(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WP
 	if(IsTraceW) ExplainMsg("CallWindowProcA", hwnd, Msg, wParam, lParam);
 	res = -1;
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("CallWindowProcA", hwnd, Msg, wParam, &lParam);
+
+	if((dxw.dwFlags1 & FIXTEXTOUT) && (Msg == WM_SETFONT)){
+		wParam = (WPARAM)fontdb.GetScaledFont((HFONT)wParam);
+		OutTraceDW("CallWindowProcA: replaced scaled font hfnt=%x\n", wParam);
+	}
 
 	if (res==(HRESULT)-1)
 		return (*pCallWindowProcA)(lpPrevWndFunc, hwnd, Msg, wParam, lParam);
@@ -2007,6 +1897,11 @@ LRESULT WINAPI extCallWindowProcW(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WP
 	if(IsTraceW) ExplainMsg("CallWindowProcW", hwnd, Msg, wParam, lParam);
 	res = -1;
 	if(hwnd == dxw.GethWnd()) res=FixWindowProc("CallWindowProcW", hwnd, Msg, wParam, &lParam);
+
+	if((dxw.dwFlags1 & FIXTEXTOUT) && (Msg == WM_SETFONT)){
+		wParam = (WPARAM)fontdb.GetScaledFont((HFONT)wParam);
+		OutTraceDW("CallWindowProcA: replaced scaled font hfnt=%x\n", wParam);
+	}
 
 	if (res==(HRESULT)-1)
 		return (*pCallWindowProcW)(lpPrevWndFunc, hwnd, Msg, wParam, lParam);

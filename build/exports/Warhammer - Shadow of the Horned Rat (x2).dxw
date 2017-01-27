@@ -1,0 +1,36 @@
+[target]
+title0=Warhammer - Shadow of the Horned Rat (x2)
+path0=D:\Games\Warhammer - Shadow of the Horned Rat\WHSHR.EXE
+startfolder0=
+launchpath0=
+module0=GAMEF.DLL
+opengllib0=
+notes0=Game setup:\n\n1) unzip packed game RIP\n2) copy RLDDF.DLL from SYSTEM32 subfolder to game dir\n3) copy DxWnd wing32.dll to game dir\n4) turn digital audio OFF or add sound WAV file (it is hardcoded in virtual registry!)\nor copy wav files in \Remote\Binary\GLUE\SPEECH folder\n
+registry0=\n[HKEY_LOCAL_MACHINE\SOFTWARE]\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape]\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB]\n;"Options"="3,1,1,2,1,1,0,0" // High Quality,  digital audio off\n"Options"="3,1,1,2,1,1,1,1" // High Quality,  digital audio on\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB\InstallDir]\n@="\{path}"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB\InstallOption]\n@="Maximum"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB\Language]\n@="ENG"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB\LocalDir]\n@="\{path}\\FILE"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB\RemoteDir]\n@="\{path}\\REMOTE"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB\SaveDir]\n@="\{path}\\TEMP"\n\n[HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB\UpdateDir]\n@="C:\\GAMES\\WARFB\\Update"\n\n[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\SharedDLLs]\n"C:\\WINDOWS\\SYSTEM32\\WING.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\WING32.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\WINGDE.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\WINGDIB.DRV"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\WINGPAL.WND"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RLDDF.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RLDDI.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFTF.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFTI.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLFRG16M.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLFRG256.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLFRG64K.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLFRM16M.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLFRM256.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLFRM64K.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLIRG16M.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLIRG256.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLIRG64K.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLIRM16M.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLIRM256.DLL"=hex:01,00,00,00\n"C:\\WINDOWS\\SYSTEM32\\RL\\SOFT\\RLIRM64K.DLL"=hex:01,00,00,00
+ver0=0
+monitorid0=-1
+coord0=1
+flag0=-1473609686
+flagg0=1209270312
+flagh0=2163732
+flagi0=1212153860
+flagj0=5248
+flagk0=2195456
+flagl0=67141648
+flagm0=2105344
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=1280
+sizy0=960
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=0
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2
+scanline0=0
+initresw0=800
+initresh0=600

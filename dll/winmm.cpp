@@ -672,7 +672,7 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 
 	if(g_hbmJoy == NULL) return; // show nothing ...
 
-    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, g_hbmJoy);
+    HBITMAP hbmOld = (HBITMAP)(*pSelectObject)(hdcMem, g_hbmJoy);
 	GetObject(g_hbmJoy, sizeof(bm), &bm);
 
 	(*pGetWindowRect)(dxw.GethWnd(), &win);
@@ -684,7 +684,7 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 	(*pGDIBitBlt)(hClientDC, x-(w>>1), y-(h>>1), w, h, hdcMem, 0, 0, SRCPAINT);
 
 	(*pSetViewportOrgEx)(hClientDC, PrevViewPort.x, PrevViewPort.y, NULL);
-    SelectObject(hdcMem, hbmOld);
+    (*pSelectObject)(hdcMem, hbmOld);
     DeleteDC(hdcMem);
 }
 

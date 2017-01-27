@@ -1,5 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+//#define BEST_QUALITY ANTIALIASED_QUALITY
+#define BEST_QUALITY CLEARTYPE_NATURAL_QUALITY
+
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 #include "syslibs.h"
@@ -49,18 +52,8 @@ COLORREF WINAPI extSetBkColor(HDC, COLORREF);
 COLORREF WINAPI extSetTextColor(HDC hdc, COLORREF crColor);
 int WINAPI extSetBkMode(HDC, int);
 */
-typedef int (WINAPI *EnumFontsA_Type)(HDC, LPCSTR, FONTENUMPROC, LPARAM);
-EnumFontsA_Type pEnumFontsA;
-int WINAPI extEnumFontsA(HDC, LPCSTR, FONTENUMPROC, LPARAM);
-typedef BOOL (WINAPI *GetTextExtentPointA_Type)(HDC, LPCTSTR, int, LPSIZE);
-GetTextExtentPointA_Type pGetTextExtentPointA;
-BOOL WINAPI extGetTextExtentPointA(HDC, LPCTSTR, int, LPSIZE);
-typedef BOOL (WINAPI *GetTextExtentPoint32A_Type)(HDC, LPCTSTR, int, LPSIZE);
-GetTextExtentPoint32A_Type pGetTextExtentPoint32A;
-BOOL WINAPI extGetTextExtentPoint32A(HDC, LPCTSTR, int, LPSIZE);
 
 static HookEntryEx_Type Hooks[]={
-
 	//{HOOK_IAT_CANDIDATE, 0, "DPtoLP", (FARPROC)DPtoLP, (FARPROC *)&pDPtoLP, (FARPROC)extDPtoLP},
 
 	{HOOK_IAT_CANDIDATE, 0, "GetDeviceCaps", (FARPROC)GetDeviceCaps, (FARPROC *)&pGDIGetDeviceCaps, (FARPROC)extGetDeviceCaps},
@@ -85,7 +78,6 @@ static HookEntryEx_Type Hooks[]={
 #ifdef TRACEPALETTE
 	{HOOK_IAT_CANDIDATE, 0, "ResizePalette", (FARPROC)ResizePalette, (FARPROC *)&pResizePalette, (FARPROC)extResizePalette},
 #endif	
-	{HOOK_HOT_CANDIDATE, 0, "EnumFontsA", (FARPROC)EnumFontsA, (FARPROC *)&pEnumFontsA, (FARPROC)extEnumFontsA}, // Titanic
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 }; 
  
@@ -162,8 +154,6 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "CreateDCW", (FARPROC)CreateDCW, (FARPROC *)&pGDICreateDCW, (FARPROC)extGDICreateDCW}, 
 
 	{HOOK_IAT_CANDIDATE, 0, "PlayEnhMetaFile", (FARPROC)PlayEnhMetaFile, (FARPROC *)&pPlayEnhMetaFile, (FARPROC)extPlayEnhMetaFile}, 
-	{HOOK_IAT_CANDIDATE, 0, "GetTextExtentPointA", (FARPROC)NULL, (FARPROC *)&pGetTextExtentPointA, (FARPROC)extGetTextExtentPointA}, 
-	{HOOK_IAT_CANDIDATE, 0, "GetTextExtentPoint32A", (FARPROC)NULL, (FARPROC *)&pGetTextExtentPoint32A, (FARPROC)extGetTextExtentPoint32A}, 
 
 	// CreateDCW .....	
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator 
@@ -190,8 +180,13 @@ static HookEntryEx_Type EmulateHooks[]={
 };
 
 static HookEntryEx_Type TextHooks[]={
-	{HOOK_IAT_CANDIDATE, 0, "CreateFontA", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
-	{HOOK_IAT_CANDIDATE, 0, "CreateFontIndirectA", (FARPROC)CreateFontIndirectA, (FARPROC *)&pGDICreateFontIndirect, (FARPROC)extCreateFontIndirect},
+	{HOOK_HOT_CANDIDATE, 0, "CreateFontA", (FARPROC)CreateFont, (FARPROC *)&pGDICreateFont, (FARPROC)extCreateFont},
+	{HOOK_HOT_CANDIDATE, 0, "CreateFontIndirectA", (FARPROC)CreateFontIndirectA, (FARPROC *)&pGDICreateFontIndirect, (FARPROC)extCreateFontIndirect},
+	{HOOK_IAT_CANDIDATE, 0, "GetTextExtentPointA", (FARPROC)NULL, (FARPROC *)&pGetTextExtentPointA, (FARPROC)extGetTextExtentPointA}, 
+	{HOOK_IAT_CANDIDATE, 0, "GetTextExtentPoint32A", (FARPROC)NULL, (FARPROC *)&pGetTextExtentPoint32A, (FARPROC)extGetTextExtentPoint32A}, 
+	{HOOK_HOT_CANDIDATE, 0, "EnumFontsA", (FARPROC)EnumFontsA, (FARPROC *)&pEnumFontsA, (FARPROC)extEnumFontsA}, // Titanic
+	{HOOK_HOT_CANDIDATE, 0, "SelectObject", (FARPROC)SelectObject, (FARPROC *)&pSelectObject, (FARPROC)extSelectObject}, // font scaling ....
+	{HOOK_HOT_CANDIDATE, 0, "DeleteObject", (FARPROC)DeleteObject, (FARPROC *)&pDeleteObject, (FARPROC)extDeleteObject}, // font scaling ....
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -1215,44 +1210,83 @@ HFONT WINAPI extCreateFont(int nHeight, int nWidth, int nEscapement, int nOrient
 				 DWORD fdwOutputPrecision, DWORD fdwClipPrecision, DWORD fdwQuality,
 				 DWORD fdwPitchAndFamily, LPCTSTR lpszFace)
 {
+	HFONT HFont, HScaled;
+
 	OutTraceDW("CreateFont: h=%d w=%d face=\"%s\"\n", nHeight, nWidth, lpszFace);
-	if(dxw.dwFlags1 & FIXTEXTOUT) {
+
+	if(dxw.dwFlags8 & QUALITYFONTS) fdwQuality = BEST_QUALITY;
+
+	HFont = (*pGDICreateFont)(nHeight, nWidth, nEscapement, nOrientation, fnWeight,
+				 fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharSet,
+				 fdwOutputPrecision, fdwClipPrecision, fdwQuality, 
+				 fdwPitchAndFamily, lpszFace);
+
+	if((dxw.dwFlags1 & FIXTEXTOUT) && HFont) {
 		if(nHeight > 0) dxw.MapClient(&nWidth, &nHeight);
 		else {
 			nHeight= -nHeight;
 			dxw.MapClient(&nWidth, &nHeight);
 			nHeight= -nHeight;
 		}
+		HScaled = (*pGDICreateFont)(nHeight, nWidth, nEscapement, nOrientation, fnWeight,
+					 fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharSet,
+					 fdwOutputPrecision, fdwClipPrecision, fdwQuality, 
+					 fdwPitchAndFamily, lpszFace);
+
+		if(HScaled){
+			OutTraceDW("CreateFontIndirect: associate font=%x scaled=%x\n", HFont, HScaled);
+			fontdb.Push(HFont, HScaled);
+		}
+		else{
+			OutTraceE("CreateFontIndirect ERROR: scaled font err=%d\n", GetLastError());
+		}
 	}
-	return (*pGDICreateFont)(nHeight, nWidth, nEscapement, nOrientation, fnWeight,
-				 fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharSet,
-				 fdwOutputPrecision, fdwClipPrecision, NONANTIALIASED_QUALITY,
-				 fdwPitchAndFamily, lpszFace);
+
+	if(HFont)
+		OutTraceDW("CreateFont: hfont=%x\n", HFont);
+	else
+		OutTraceDW("CreateFont ERROR: err=%d\n", GetLastError());
+	return HFont;
 }
 
 // CreateFontIndirect hook routine to avoid font aliasing that prevents reverse blitting working on palettized surfaces
+// NONANTIALIASED_QUALITY no longer necessary, since reverse blitting is no longer used
 
 HFONT WINAPI extCreateFontIndirect(const LOGFONT* lplf)
 {
+	HFONT HFont, HScaled;
 	LOGFONT lf;
-	HFONT retHFont;
 	OutTraceDW("CreateFontIndirect: h=%d w=%d face=\"%s\"\n", lplf->lfHeight, lplf->lfWidth, lplf->lfFaceName);
+
 	memcpy((char *)&lf, (char *)lplf, sizeof(LOGFONT));
-	lf.lfQuality=NONANTIALIASED_QUALITY;
+	if(dxw.dwFlags8 & QUALITYFONTS) lf.lfQuality = BEST_QUALITY; 
+	HFont=(*pGDICreateFontIndirect)(&lf);
+
 	if(dxw.dwFlags1 & FIXTEXTOUT) {
+		memcpy((char *)&lf, (char *)lplf, sizeof(LOGFONT));
+		if(dxw.dwFlags8 & QUALITYFONTS) lf.lfQuality = BEST_QUALITY; 
 		if(lf.lfHeight > 0) dxw.MapClient((int *)&lf.lfWidth, (int *)&lf.lfHeight);
 		else {
 			lf.lfHeight= -lf.lfHeight;
 			dxw.MapClient((int *)&lf.lfWidth, (int *)&lf.lfHeight);
 			lf.lfHeight= -lf.lfHeight;
 		}
+		HScaled=((*pGDICreateFontIndirect)(&lf));
+
+		if(HScaled){
+			OutTraceDW("CreateFontIndirect: associate font=%x scaled=%x\n", HFont, HScaled);
+			fontdb.Push(HFont, HScaled);
+		}
+		else{
+			OutTraceE("CreateFontIndirect ERROR: scaled font err=%d\n", GetLastError());
+		}
 	}
-	retHFont=((*pGDICreateFontIndirect)(&lf));
-	if(retHFont)
-		OutTraceDW("CreateFontIndirect: hfont=%x\n", retHFont);
+
+	if(HFont)
+		OutTraceDW("CreateFontIndirect: hfont=%x\n", HFont);
 	else
-		OutTraceDW("CreateFontIndirect: error=%d at %d\n", GetLastError(), __LINE__);
-	return retHFont;
+		OutTraceE("CreateFontIndirect ERROR: err=%d\n", GetLastError());
+	return HFont;
 }
 
 BOOL WINAPI extSetDeviceGammaRamp(HDC hDC, LPVOID lpRamp)
@@ -1873,7 +1907,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 				// dc to assign the needed size and color space to the temporary dc.
 				if(!(hbmPic=CreateCompatibleBitmap(hdc, OrigWidth, OrigHeight)))
 					OutTraceE("CreateCompatibleBitmap: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
-				if(!SelectObject(hTempDc, hbmPic))
+				if(!(*pSelectObject)(hTempDc, hbmPic))
 					OutTraceE("SelectObject: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 				if(!(ret=(*pSetDIBitsToDevice)(hTempDc, 0, 0, OrigWidth, OrigHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse)))
 					OutTraceE("SetDIBitsToDevice: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
@@ -3020,7 +3054,9 @@ HBITMAP WINAPI extCreateDIBSection(HDC hdc, const BITMAPINFO *pbmi, UINT iUsage,
 	}
 	else {
 		OutTraceDW("CreateDIBSection: ret=%x\n", ret);
-		if(dxw.dwFlags8 & DUMPDIBSECTION) DumpDibSection(pbmi, iUsage, *ppvBits);
+		// beware: it is worth dumping the DIB section only when hSection is not NULL
+		// which means the bitmap is connected to a shared memory file
+		if((dxw.dwFlags8 & DUMPDIBSECTION) && hSection) DumpDibSection(pbmi, iUsage, *ppvBits);
 	}
 
 	return ret;
@@ -3569,8 +3605,8 @@ BOOL WINAPI extGetTextExtentPointA(HDC hdc, LPCTSTR lpString, int cbString, LPSI
 	// beware: size scaling is appropriate only when referred to video DC
 	switch(dxw.GDIEmulationMode){
 		case GDIMODE_STRETCHED: 
-			if(dxw.Windowize && dxw.IsToRemap(hdc)){
-				dxw.UnmapClient((LPRECT)lpSize);
+			if(dxw.Windowize && (OBJ_DC == (*pGetObjectType)(hdc))){
+				dxw.UnmapClient((LPPOINT)lpSize);
 				OutTraceDW("GetTextExtentPointA: remapped size=(%dx%d)\n", lpSize->cx, lpSize->cy);
 			}
 			break;
@@ -3584,7 +3620,7 @@ BOOL WINAPI extGetTextExtentPointA(HDC hdc, LPCTSTR lpString, int cbString, LPSI
 BOOL WINAPI extGetTextExtentPoint32A(HDC hdc, LPCTSTR lpString, int cbString, LPSIZE lpSize)
 {
 	BOOL ret;
-	OutTraceDW("GetTextExtentPoint32A: hdc=%x string=\"%s\"(%d)\n", hdc, lpString, cbString);
+	OutTraceDW("GetTextExtentPoint32A: hdc=%x(%s) string=\"%s\"(%d)\n", hdc, GetObjectTypeStr(hdc), lpString, cbString);
 
 	ret = (*pGetTextExtentPoint32A)(hdc, lpString, cbString, lpSize);
 	if(!ret){
@@ -3596,8 +3632,8 @@ BOOL WINAPI extGetTextExtentPoint32A(HDC hdc, LPCTSTR lpString, int cbString, LP
 	// beware: size scaling is appropriate only when referred to video DC
 	switch(dxw.GDIEmulationMode){
 		case GDIMODE_STRETCHED: 
-			if(dxw.Windowize && dxw.IsToRemap(hdc)){
-				dxw.UnmapClient((LPRECT)lpSize);
+			if(dxw.Windowize && (OBJ_DC == (*pGetObjectType)(hdc))){
+				dxw.UnmapClient((LPPOINT)lpSize);
 				OutTraceDW("GetTextExtentPoint32A: remapped size=(%dx%d)\n", lpSize->cx, lpSize->cy);
 			}
 			break;
@@ -3638,3 +3674,37 @@ LONG WINAPI extSetBitmapBits(HBITMAP hbmp, DWORD cBytes, VOID *lpBits)
 }
 #endif
 
+HGDIOBJ WINAPI extSelectObject(HDC hdc, HGDIOBJ hgdiobj)
+{
+	HGDIOBJ ret;
+	OutTraceDW("SelectObject: hdc=%x(%s) obj=%x(%s)\n", hdc, GetObjectTypeStr(hdc), hgdiobj, GetObjectTypeStr((HDC)hgdiobj));
+	if(GetObjectType(hgdiobj)==OBJ_FONT){
+		if(GetObjectType(hdc)==OBJ_DC) {
+			HGDIOBJ scaled;
+			scaled = fontdb.GetScaledFont((HFONT)hgdiobj);
+			if(scaled) {
+				hgdiobj=scaled;
+				OutTraceDW("SelectObject: replaced font obj=%x\n", hgdiobj);
+			}
+			else{
+				OutTraceE("SelectObject: unmatched font obj=%x\n", hgdiobj);
+			}
+		}
+	}
+	ret = (*pSelectObject)(hdc, hgdiobj);
+	return ret;
+}
+
+BOOL WINAPI extDeleteObject(HGDIOBJ hgdiobj)
+{
+	BOOL ret;
+	HGDIOBJ scaledobj;
+	OutTraceDW("DeleteObject: obj=%x(%s)\n", hgdiobj, GetObjectTypeStr((HDC)hgdiobj));
+	if(GetObjectType(hgdiobj)==OBJ_FONT){
+		scaledobj=fontdb.DeleteFont((HFONT)hgdiobj);
+		OutTraceDW("DeleteObject: deleted font obj=%x scaled=%x\n", hgdiobj, scaledobj);
+	}
+	if(scaledobj) (*pDeleteObject)(scaledobj);
+	ret = (*pDeleteObject)(hgdiobj);
+	return ret;
+}

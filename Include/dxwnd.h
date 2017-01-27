@@ -270,6 +270,8 @@
 #define MARKGDI32			0x00040000 // Marks (highlights with colored frames) the main GDI32 operations
 #define DUMPDIBSECTION		0x00080000 // dumps DIBs to BMP files for debugging purposes
 #define DUMPDEVCONTEXT		0x00100000 // dumps source HDC to BMP files for debugging purposes
+#define QUALITYFONTS		0x00200000 // Forces adoption of high quality fonts (CLEARTYPE_NATURAL_QUALITY)
+#define ALLOWSYSMEMON3DDEV	0x00400000 // Suppress DDSCAPS_SYSTEMMEMORY option when DDSCAPS_3DDEVICE is set
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

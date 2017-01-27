@@ -31,6 +31,7 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CLIENTREMAPPING, cTarget->m_ClientRemapping);
 	DDX_Radio(pDX, IDC_GDINONE, cTarget->m_DCEmulationMode);
 	DDX_Check(pDX, IDC_FIXTEXTOUT, cTarget->m_FixTextOut);
+	DDX_Check(pDX, IDC_QUALITYFONTS, cTarget->m_QualityFonts);
 	DDX_Check(pDX, IDC_NOFILLRECT, cTarget->m_NoFillRect);
 	DDX_Check(pDX, IDC_FIXCLIPPERAREA, cTarget->m_FixClipperArea);
 	DDX_Check(pDX, IDC_SYNCPALETTE, cTarget->m_SyncPalette);

@@ -77,7 +77,7 @@ HDC dxwCore::AcquireEmulatedDC(HWND hwnd)
 	if(!(VirtualPic=CreateCompatibleBitmap(wdc, dxw.GetScreenWidth(), dxw.GetScreenHeight())))
 		OutTraceE("AcquireEmulatedDC: CreateCompatibleBitmap ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 
-	if(!(PrevSelection=SelectObject(VirtualHDC, VirtualPic)))
+	if(!(PrevSelection=(*pSelectObject)(VirtualHDC, VirtualPic)))
 		OutTraceE("AcquireEmulatedDC: SelectObject ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 	else {
 		if(!DeleteObject(PrevSelection))

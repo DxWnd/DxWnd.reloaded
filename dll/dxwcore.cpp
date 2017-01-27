@@ -1062,7 +1062,7 @@ void dxwCore::ShowBanner(HWND hwnd)
 
     g_hbmBall = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BANNER));
     HDC hdcMem = CreateCompatibleDC(hClientDC);
-    HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, g_hbmBall);
+    HBITMAP hbmOld = (HBITMAP)(*pSelectObject)(hdcMem, g_hbmBall);
     GetObject(g_hbmBall, sizeof(bm), &bm);
 
 	(*pGetWindowRect)(hwnd, &win);
@@ -1090,7 +1090,7 @@ void dxwCore::ShowBanner(HWND hwnd)
 	}
 	SetStretchBltMode(hClientDC, StretchMode);
 	(*pSetViewportOrgEx)(hClientDC, PrevViewPort.x, PrevViewPort.y, NULL);
-    SelectObject(hdcMem, hbmOld);
+    (*pSelectObject)(hdcMem, hbmOld);
     DeleteDC(hdcMem);
 	(*pGDIReleaseDC)(hwnd, hClientDC); 
 	Sleep(200);

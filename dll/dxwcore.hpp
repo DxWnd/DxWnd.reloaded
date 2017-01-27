@@ -2,6 +2,7 @@
 #include "syslibs.h"
 
 #define DDSQLEN 0x20
+#define MAXFONTS 0x40
 
 typedef struct {
 	DWORD dwTimerType;
@@ -39,6 +40,11 @@ typedef enum {
 	SURFACE_ROLE_PRIMARY = 1,
 	SURFACE_ROLE_BACKBUFFER
 } Enum_Surface_Role_Type;
+
+typedef struct {
+	HFONT font;
+	HFONT scaled;
+} FontDB_Type;
 
 class dxwCore
 {
@@ -296,10 +302,26 @@ private:
 	int WhndSize;
 };
 
+class dxwFStack
+{
+public:
+    dxwFStack();
+    virtual ~dxwFStack();
+
+public:
+	void Push(HFONT, HFONT);
+	HFONT GetScaledFont(HFONT);
+	HFONT DeleteFont(HFONT);
+
+protected:
+	FontDB_Type *FontDB;
+};
+
 extern dxwCore dxw;
 extern dxwSStack dxwss;
 extern dxwWStack dxwws;
 extern dxwCapsDB dxwcdb;
+extern dxwFStack fontdb;
 
 typedef enum {
 	SYSLIBIDX_KERNEL32 = 0,
