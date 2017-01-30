@@ -352,14 +352,7 @@ static HRESULT BuildPrimaryFullscreen(LPDIRECTDRAW lpdd, CreateSurface_Type pCre
 		if (res==DDERR_PRIMARYSURFACEALREADYEXISTS){
 			LPDIRECTDRAWSURFACE lpPrim;
 			GetGDISurface_Type pGetGDISurface;
-			switch(dxversion){
-				default: 
-				case 1: pGetGDISurface = pGetGDISurface1; break;
-				case 2: pGetGDISurface = pGetGDISurface2; break;
-				case 3: pGetGDISurface = pGetGDISurface3; break;
-				case 4: pGetGDISurface = pGetGDISurface4; break;
-				case 7: pGetGDISurface = pGetGDISurface7; break;
-			}
+			pGetGDISurface = pGetGDISurfaceMethod(dxversion);
 			OutTraceE("BuildPrimaryFullscreen: CreateSurface DDERR_PRIMARYSURFACEALREADYEXISTS workaround\n");
 			(*pGetGDISurface)(lpPrimaryDD, &lpPrim);
 			while ((*pReleaseSMethod(dxversion))(lpPrim));
@@ -411,14 +404,7 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		if (res==DDERR_PRIMARYSURFACEALREADYEXISTS){
 			LPDIRECTDRAWSURFACE lpPrim;
 			GetGDISurface_Type pGetGDISurface;
-			switch(dxversion){
-				default: 
-				case 1: pGetGDISurface = pGetGDISurface1; break;
-				case 2: pGetGDISurface = pGetGDISurface2; break;
-				case 3: pGetGDISurface = pGetGDISurface3; break;
-				case 4: pGetGDISurface = pGetGDISurface4; break;
-				case 7: pGetGDISurface = pGetGDISurface7; break;
-			}
+			pGetGDISurface = pGetGDISurfaceMethod(dxversion);
 			OutTraceE("BuildPrimaryDir: CreateSurface DDERR_PRIMARYSURFACEALREADYEXISTS workaround\n");
 			(*pGetGDISurface)(lpPrimaryDD, &lpPrim);
 			while ((*pReleaseSMethod(dxversion))(lpPrim));
@@ -668,14 +654,7 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 		LPDIRECTDRAWSURFACE lpPrim;
 		DDSURFACEDESC2 prim;
 		GetGDISurface_Type pGetGDISurface;
-		switch(dxversion){
-			default: 
-			case 1: pGetGDISurface = pGetGDISurface1; break;
-			case 2: pGetGDISurface = pGetGDISurface2; break;
-			case 3: pGetGDISurface = pGetGDISurface3; break;
-			case 4: pGetGDISurface = pGetGDISurface4; break;
-			case 7: pGetGDISurface = pGetGDISurface7; break;
-		}
+		pGetGDISurface = pGetGDISurfaceMethod(dxversion);
 		(*pGetGDISurface)(lpPrimaryDD, &lpPrim);
 		memset(&prim, 0, sizeof(DDSURFACEDESC2));
 		prim.dwSize = (dxversion >= 4) ? sizeof(DDSURFACEDESC2) : sizeof(DDSURFACEDESC);
@@ -1007,13 +986,20 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 		if(res) return res;
 		lpDDSPrim = *lplpdds;
 		dxwss.PushPrimarySurface(lpDDSPrim, dxversion);
+		dxwcdb.PushCaps(*lplpdds, lpddsd->ddsCaps.dwCaps);
 		RegisterPixelFormat(dxversion, lpDDSPrim);
 
 		if (BBCount){
+			DWORD dwCaps;
 			// build emulated backbuffer surface
 			res=AttachBackBuffer(lpdd, pCreateSurface, lpddsd, dxversion, &lpDDSBack, NULL);
 			if(res) return res;
 			dxwss.PushBackBufferSurface(lpDDSBack, dxversion);
+			// here we try to guess what sort of capabilities would expose a built-in backbuffer surface
+			dwCaps = lpddsd->ddsCaps.dwCaps;
+			dwCaps &= ~DDSCAPS_PRIMARYSURFACE;
+			dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY);
+			dxwcdb.PushCaps(lpDDSBack, dwCaps);
 		}
 
 		if(IsTraceDDRAW){

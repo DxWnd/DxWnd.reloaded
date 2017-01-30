@@ -1,11 +1,6 @@
-[window]
-posx=1165
-posy=618
-sizx=320
-sizy=200
 [target]
-title0=administrator
-path0=administrator
+title0=NASCAR 2000
+path0=F:\Games\Nascar 2000\NASCAR 2000.exe
 startfolder0=
 launchpath0=
 module0=
@@ -15,10 +10,10 @@ registry0=
 ver0=0
 monitorid0=-1
 coord0=0
-flag0=673185826
+flag0=673202210
 flagg0=1207959552
 flagh0=20
-flagi0=134217732
+flagi0=138412036
 flagj0=4224
 flagk0=65536
 flagl0=0

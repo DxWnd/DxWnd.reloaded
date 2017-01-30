@@ -303,7 +303,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;
 	case WM_NCCALCSIZE:
 	case WM_NCPAINT:
-		if((dxw.dwFlags1 & LOCKWINPOS) && (hwnd == dxw.GethWnd()) && dxw.IsFullScreen()){ // v2.02.30: don't alter child and other windows....
+		// v2.02.30: don't alter child and other windows....
+		// v2.04.09: comment inconsistent with code. Added '!' to if expression ....
+		if(!((dxw.dwFlags1 & LOCKWINPOS) && (hwnd == dxw.GethWnd()) && dxw.IsFullScreen())){ 
 			OutTraceDW("WindowProc: %s wparam=%x\n", ExplainWinMessage(message), wparam);
 			return (*pDefWindowProcA)(hwnd, message, wparam, lparam);
 		}

@@ -1,11 +1,11 @@
+
 [HKEY_LOCAL_MACHINE\SOFTWARE]
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape]
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB]
-;"Options"="1,1,1,1,1,2,1,1" // digital audio on
-"Options"="1,1,1,1,1,2,0,0" // digital audio off
-;"Options"="0,0,0,0,0,0,0,0" //all off
+;"Options"="3,1,1,2,1,1,0,0" // High Quality,  digital audio off
+"Options"="3,1,1,2,1,1,1,1" // High Quality,  digital audio on
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Mindscape\WarHammerFB\InstallDir]
 @="\{path}"

@@ -85,7 +85,6 @@ static HookEntryEx_Type Hooks[]={
 
 #ifdef GALAPAGOSTEST
 	// test for Galapagos
-	{HOOK_HOT_CANDIDATE, 0, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
 	{HOOK_HOT_CANDIDATE, 0, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	{HOOK_HOT_CANDIDATE, 0, "GetFocus", (FARPROC)GetFocus, (FARPROC *)&pGetFocus, (FARPROC)extGetFocus},
 	{HOOK_HOT_CANDIDATE, 0, "SetFocus", (FARPROC)SetFocus, (FARPROC *)&pSetFocus, (FARPROC)extSetFocus},
@@ -138,6 +137,9 @@ static HookEntryEx_Type Hooks[]={
 	//{HOOK_IAT_CANDIDATE, 0, "LoadBitmapA", (FARPROC)NULL, (FARPROC *)&pLoadBitmapA, (FARPROC)extLoadBitmapA},
 
 	{HOOK_IAT_CANDIDATE, 0, "EnumWindows", (FARPROC)NULL, (FARPROC *)&pEnumWindows, (FARPROC)extEnumWindows},
+	{HOOK_IAT_CANDIDATE, 0, "AdjustWindowRect", (FARPROC)NULL, (FARPROC *)&pAdjustWindowRect, (FARPROC)extAdjustWindowRect},
+	{HOOK_IAT_CANDIDATE, 0, "AdjustWindowRectEx", (FARPROC)AdjustWindowRectEx, (FARPROC *)&pAdjustWindowRectEx, (FARPROC)extAdjustWindowRectEx},
+	{HOOK_HOT_CANDIDATE, 0, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
 
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -476,7 +478,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 			dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 			dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 			hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
-			AdjustWindowRectEx(&full, dwStyle, (hMenu!=NULL), dwExStyle);
+			(*pAdjustWindowRectEx)(&full, dwStyle, (hMenu!=NULL), dwExStyle);
 			if (hMenu && (hMenu != (HMENU)-1)) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
 			BorderX= full.right - full.left - client.right;
 			BorderY= full.bottom - full.top - client.bottom;
@@ -516,7 +518,7 @@ void dxwFixWindowPos(char *ApiName, HWND hwnd, LPARAM lParam)
 		dwStyle=(*pGetWindowLong)(hwnd, GWL_STYLE);
 		dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 		hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
-		AdjustWindowRectEx(&wrect, dwStyle, (hMenu!=NULL), dwExStyle);
+		(*pAdjustWindowRectEx)(&wrect, dwStyle, (hMenu!=NULL), dwExStyle);
 		minx = wrect.right - wrect.left;
 		miny = wrect.bottom - wrect.top;
 		if(wp->cx < minx) wp->cx = minx;
@@ -940,7 +942,7 @@ BOOL WINAPI extSetWindowPos(HWND hwnd, HWND hWndInsertAfter, int X, int Y, int c
 	dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 	// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
 	hMenu = (dwCurStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
-	AdjustWindowRectEx(&rect, dwCurStyle, (hMenu!=NULL), dwExStyle);
+	(*pAdjustWindowRectEx)(&rect, dwCurStyle, (hMenu!=NULL), dwExStyle);
 	if (hMenu && (hMenu != (HMENU)-1)) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
 	cx=rect.right; cy=rect.bottom;
 	OutTraceDW("SetWindowPos: main form hwnd=%x fixed size=(%d,%d)\n", hwnd, cx, cy);
@@ -3084,7 +3086,7 @@ BOOL WINAPI extUpdateWindow(HWND hwnd)
 	}
 
 	ret=(*pUpdateWindow)(hwnd);
-	if(!ret) OutTraceE("UpdateWindow: ERROR er=%d\n", GetLastError());
+	if(!ret) OutTraceE("UpdateWindow: ERROR err=%d\n", GetLastError());
 	return ret;
 }
 
@@ -3203,7 +3205,8 @@ HWND WINAPI extGetActiveWindow(void)
 {
 	HWND ret;
 	ret=(*pGetActiveWindow)();
-	if(dxw.Windowize && dxw.IsFullScreen()) {
+	OutTraceDW("GetActiveWindow: ret=%x\n", ret);
+	if((dxw.dwFlags8 & WININSULATION) && dxw.Windowize && dxw.IsFullScreen()) {
 		OutTraceDW("GetActiveWindow: ret=%x->%x\n", ret, dxw.GethWnd());
 		return dxw.GethWnd();
 	}
@@ -4072,7 +4075,7 @@ INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE hInstance, LPCDLGTEMPLATE hD
 {
 	//INT_PTR ret;
 	// MessageBox(0, "DialogBoxIndirectParamA", "step", 0);
-	OutTrace("DialogBoxIndirectParamA: hInstance=%x pos=(%d,%d) size=(%dx%d) hWndParent=%x, lpDialogFunc=%x dwInitParam=%x\n",
+	OutTraceDW("DialogBoxIndirectParamA: hInstance=%x pos=(%d,%d) size=(%dx%d) hWndParent=%x, lpDialogFunc=%x dwInitParam=%x\n",
 		hInstance, hDialogTemplate->x, hDialogTemplate->y, hDialogTemplate->cx, hDialogTemplate->cy, hWndParent, lpDialogFunc, dwInitParam);
 	return (*pDialogBoxIndirectParamA)(hInstance, hDialogTemplate, hWndParent, lpDialogFunc, dwInitParam);
 }
@@ -4080,25 +4083,89 @@ INT_PTR WINAPI extDialogBoxIndirectParamA(HINSTANCE hInstance, LPCDLGTEMPLATE hD
 HBITMAP WINAPI extLoadBitmapA(HINSTANCE hInstance, LPCSTR lpBitmapName)
 {
 	HBITMAP ret;
-	OutTrace("LoadBitmapA: hinst=%x name=%s\n", hInstance, lpBitmapName);
+	OutTraceDW("LoadBitmapA: hinst=%x name=%s\n", hInstance, lpBitmapName);
 	ret = (*pLoadBitmapA)(hInstance, lpBitmapName);
 	if(ret){
-		OutTrace("LoadBitmapA: hbitmap=%x\n", ret);
+		OutTraceDW("LoadBitmapA: hbitmap=%x\n", ret);
 	}
 	else{
-		OutTrace("LoadBitmapA: ERROR err=%d\n", GetLastError());
+		OutTraceE("LoadBitmapA: ERROR err=%d\n", GetLastError());
 	}
 	return ret;
 }
 
 BOOL WINAPI extEnumWindows(WNDENUMPROC lpEnumFunc, LPARAM lParam)
 {
-	OutTrace("EnumerateWindows\n");
+	OutTraceDW("EnumerateWindows\n");
 	if(dxw.dwFlags8 & WININSULATION){
-		OutTrace("EnumerateWindows: BYPASS\n");
+		OutTraceDW("EnumerateWindows: BYPASS\n");
 		return TRUE;
 	}
 	return (*pEnumWindows)(lpEnumFunc, lParam);
+}
+
+static void RedirectCoordinates(LPRECT lpRect)
+{
+	BOOL IsBiggerThanWin;
+	BOOL IsBiggerThanScreen;
+	long w, h;
+	// try to determine if the coordinates could belong to a fullscreen main win
+	w = lpRect->right - lpRect->left;
+	h = lpRect->bottom - lpRect->top;
+	IsBiggerThanWin = (w >= dxw.iSizX) && (h >= dxw.iSizY);
+	IsBiggerThanScreen = (w >= (long)dxw.GetScreenWidth()) && (h >= (long)dxw.GetScreenHeight()); 
+	if(IsBiggerThanWin || IsBiggerThanScreen){
+		WINDOWPOS wp;
+		dxw.CalculateWindowPos(NULL, dxw.GetScreenWidth(), dxw.GetScreenHeight(), &wp);
+		lpRect->left = wp.x;
+		lpRect->right = wp.x + wp.cx;
+		lpRect->top = wp.y;
+		lpRect->bottom = wp.y + wp.cy;
+		OutTraceDW("AdjustWindowRect: FIX rect=(%d,%d)-(%d,%d)\n",
+		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+	}
+}
+
+BOOL WINAPI extAdjustWindowRect(LPRECT lpRect, DWORD dwStyle, BOOL bMenu)
+{
+	BOOL ret;
+	OutTraceDW("AdjustWindowRect: IN rect=(%d,%d)-(%d,%d) style=%x(%s) menu=%x\n",
+		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom,
+		dwStyle, ExplainStyle(dwStyle), bMenu);
+
+	if(dxw.dwFlags1 & LOCKWINPOS) RedirectCoordinates(lpRect);
+
+	ret = pAdjustWindowRect(lpRect, dwStyle, bMenu);
+
+	if(ret){
+		OutTraceDW("AdjustWindowRect: OUT rect=(%d,%d)-(%d,%d)\n",
+		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+	}
+	else{
+		OutTraceE("AdjustWindowRect ERROR: err=%d\n", GetLastError());
+	}
+	return ret;
+}
+
+BOOL WINAPI extAdjustWindowRectEx(LPRECT lpRect, DWORD dwStyle, BOOL bMenu, DWORD dwExStyle)
+{
+	BOOL ret;
+	OutTraceDW("AdjustWindowRectEx: IN rect=(%d,%d)-(%d,%d) style=%x(%s) menu=%x exstyle=%x(%s)\n",
+		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom,
+		dwStyle, ExplainStyle(dwStyle), bMenu, dwExStyle, ExplainExStyle(dwExStyle));
+
+	if(dxw.dwFlags1 & LOCKWINPOS) RedirectCoordinates(lpRect);
+
+	ret = pAdjustWindowRectEx(lpRect, dwStyle, bMenu, dwExStyle);
+
+	if(ret){
+		OutTraceDW("AdjustWindowRectEx: OUT rect=(%d,%d)-(%d,%d)\n",
+		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
+	}
+	else{
+		OutTraceE("AdjustWindowRectEx ERROR: err=%d\n", GetLastError());
+	}
+	return ret;
 }
 
 // To do:

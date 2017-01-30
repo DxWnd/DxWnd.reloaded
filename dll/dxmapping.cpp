@@ -421,6 +421,7 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 		break;
 	case DXW_SET_COORDINATES:
 	default:
+		// set size
 		if(bAutoScale){
 			MaxX = GetScreenWidth();
 			MaxY = GetScreenHeight();
@@ -443,6 +444,11 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 			MaxY = height;
 			if(dxw.dwFlags4 & BILINEAR2XFILTER) MaxY <<= 1; // double
 		}
+		// set pos
+		if(dxw.dwFlags7 & ANCHORED){
+			iPosX = iPos0X;
+			iPosY = iPos0Y;
+		}
 		rect.left = iPosX;
 		rect.top = iPosY; //v2.02.09
 		rect.right = iPosX + MaxX;
@@ -459,7 +465,7 @@ void dxwCore::CalculateWindowPos(HWND hwnd, DWORD width, DWORD height, LPWINDOWP
 		dwExStyle=(*pGetWindowLong)(hwnd, GWL_EXSTYLE);
 		// BEWARE: from MSDN -  If the window is a child window, the return value is undefined. 
 		hMenu = (dwStyle & WS_CHILD) ? NULL : GetMenu(hwnd);	
-		AdjustWindowRectEx(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
+		(*pAdjustWindowRectEx)(&rect, dwStyle, (hMenu!=NULL), dwExStyle);
 		// if (hMenu) __try {CloseHandle(hMenu);} __except(EXCEPTION_EXECUTE_HANDLER){};
 		switch(dxw.Coordinates){
 		case DXW_DESKTOP_WORKAREA:

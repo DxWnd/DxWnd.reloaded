@@ -1,11 +1,6 @@
-[window]
-posx=1165
-posy=618
-sizx=320
-sizy=200
 [target]
-title0=administrator
-path0=administrator
+title0=Warcraft Adventures - Lord Of The Clans
+path0=F:\Games\Warcraft Adventures - Lord Of The Clans\PlayWin.exe
 startfolder0=
 launchpath0=
 module0=

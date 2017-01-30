@@ -187,6 +187,8 @@ public: // simple data variables
 	long iPosY;
 	long iSizX;
 	long iSizY;
+	long iPos0X;
+	long iPos0Y;
 	long iSiz0X;
 	long iSiz0Y;
 	long iMaxW;

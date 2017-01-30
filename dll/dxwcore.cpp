@@ -131,8 +131,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	}
 	iSiz0X = iSizX = target->sizx;
 	iSiz0Y = iSizY = target->sizy;
-	iPosX = target->posx;
-	iPosY = target->posy;
+	iPos0X = iPosX = target->posx;
+	iPos0Y = iPosY = target->posy;
 	iMaxW = target->resw;
 	iMaxH = target->resh;
 	// Aspect Ratio from window size, or traditional 4:3 by default
@@ -1161,6 +1161,7 @@ DWORD dxwCore::FixWinExStyle(DWORD dwExStyle)
 			dwExStyle = 0;
 			break;
 	}
+
 	return dwExStyle;
 }
 

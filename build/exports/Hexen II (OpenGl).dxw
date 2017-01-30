@@ -1,11 +1,6 @@
-[window]
-posx=1165
-posy=618
-sizx=320
-sizy=200
 [target]
-title0=administrator
-path0=administrator
+title0=Hexen II (OpenGl)
+path0=D:\Games\Hexen II - RIP\glh2.exe
 startfolder0=
 launchpath0=
 module0=
@@ -15,10 +10,10 @@ registry0=
 ver0=0
 monitorid0=-1
 coord0=0
-flag0=673185826
-flagg0=1207959552
-flagh0=20
-flagi0=134217732
+flag0=673185827
+flagg0=1209401344
+flagh0=65556
+flagi0=138412036
 flagj0=4224
 flagk0=65536
 flagl0=0

@@ -41,6 +41,7 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 	BOOL IsBack;
 	int iObjectType;
 	int iObjectVersion;
+	DWORD dwCaps;
 	extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
 
 	IsPrim=dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds);
@@ -177,10 +178,9 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 	}
 
 	// added trace
-	OutTraceDW("QueryInterface: lpdds=%x%s REFIID=%x obp=%x obj=%s version=%d ret=0\n",
-		lpdds, IsPrim?"(PRIM)":"", riid.Data1, *obp, sLabel, iObjectVersion);
+	OutTraceDW("QueryInterface: lpdds=%x REFIID=%x obp=%x obj=%s version=%d ret=0\n",
+		lpdds, riid.Data1, *obp, sLabel, iObjectVersion);
 
-// --------- here .....
 	switch(iObjectType){
 		// simulate unavailable interfaces (useful?)
 		case TYPE_OBJECT_DIRECTDRAW:
@@ -195,15 +195,18 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 			}
 			else{
 				if(IsBack) dxwss.PushBackBufferSurface((LPDIRECTDRAWSURFACE)*obp, iObjectVersion);
-				else dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp);
+				else dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp); // no primary, no backbuffer, then pop.
 				// v2.02.13: seems that hooking inconditionally gives troubles. What is the proper safe hook condition?
 				HookDDSurface((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion, FALSE);
 			}
-			DWORD dwCaps;
-			if (dwCaps = dxwcdb.GetCaps((LPDIRECTDRAWSURFACE)lpdds)) {
-				OutTrace("QueryInterface(S): PASS caps=%x lpdds=%x->%x\n", dwCaps, lpdds, *obp);
-				dxwcdb.PushCaps(*(LPDIRECTDRAWSURFACE *)obp,dwCaps);
+			dwCaps = dxwcdb.GetCaps((LPDIRECTDRAWSURFACE)lpdds);
+			if (dwCaps) {
+				OutTraceDW("QueryInterface(S): PASS lpdds=%x->%x caps=%x(%s)\n", lpdds, *obp, dwCaps, ExplainDDSCaps(dwCaps));
+				dxwcdb.PushCaps(*(LPDIRECTDRAWSURFACE *)obp, dwCaps);
 			}	
+			else {
+				OutTraceDW("QueryInterface(S): NO CAPS\n");
+			}
 			break;
 		case TYPE_OBJECT_DIRECT3D:
 			HookDirect3DSession((LPDIRECTDRAW *)obp, iObjectVersion);

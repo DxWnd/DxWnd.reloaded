@@ -1486,3 +1486,11 @@ fix: ddraw surface capability regression for emulated backbuffer: fixes "Dominan
 fix: ddraw surface capability regression for direct primary/backbuffer: should fix "Tomb raider 3" in HW mode
 fix: ddraw surface capability regression for zbuffer: fixes "Toca Touring Car" in SW mode
 fix: in fx1, bug crashing app when querying unknown interfaces!
+
+v2.04.09
+add: hook USER32 AdjustWindowRect/Ex calls: fix window position problems for "Man TT Superbike"
+add: hook for USER32 GetActiveWindow() tracing. 
+fix: version hooking for IDIrectDraw methods called by IDIrectDrawSurface methods: fixes many crashes on ddraw games
+fix: capability registration passed in IDIrectDrawSurface::QueryInterface() calls: fixes settings for ZBUFFER surfaces
+fix: capsdb logging (developer's use only)
+fix: handling of WM_NCCALCSIZE & WM_NCPAINT messages in winproc hooker to align behaviour to comment. To be tested ...

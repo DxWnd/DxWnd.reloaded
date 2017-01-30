@@ -1,11 +1,6 @@
-[window]
-posx=1165
-posy=618
-sizx=320
-sizy=200
 [target]
-title0=administrator
-path0=administrator
+title0=ShipWreckers demo
+path0=F:\Games\ShipWreckers demo\SW.EXE
 startfolder0=
 launchpath0=
 module0=
@@ -18,10 +13,10 @@ coord0=0
 flag0=673185826
 flagg0=1207959552
 flagh0=20
-flagi0=134217732
+flagi0=138412036
 flagj0=4224
 flagk0=65536
-flagl0=0
+flagl0=1048576
 flagm0=0
 tflag0=0
 dflag0=0

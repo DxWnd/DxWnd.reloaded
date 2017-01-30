@@ -956,6 +956,20 @@ SetClipper_Type pSetClipperMethod(int dxversion)
 	return pSetClipper;
 }
 
+Blt_Type pGetBltMethod(int dxversion)
+{
+	Blt_Type pBlt;
+	switch(dxversion){
+		case 1: pBlt=pBlt1; break;
+		case 2: pBlt=pBlt2; break;
+		case 3: pBlt=pBlt3; break;
+		case 4: pBlt=pBlt4; break;
+		case 7: pBlt=pBlt7; break;
+	}
+	CHECKPTR(pBlt, "Blt"); 
+	return pBlt;
+}
+
 Blt_Type pBltMethod()
 {
 	Blt_Type pBlt;
@@ -2307,7 +2321,7 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) { // z-buffer surface - set to memory
 		lpddsd->ddsCaps.dwCaps = DDSCAPS_ZBUFFER;  
-		if(dxw.dwFlags8 & ALLOWSYSMEMON3DDEV) lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER;  
+		if (dxw.dwFlags8 & ALLOWSYSMEMON3DDEV) lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER;  
 		return;
 	}
 
@@ -2456,6 +2470,29 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 	}
 	else {
 		OutTraceDDRAW("GetAttachedSurface(%d): attached=%x\n", dxversion, *lplpddas); 
+
+		if(lpddsc->dwCaps & DDSCAPS_ZBUFFER){
+			char *sMode;
+			// Martian Gothic and others: if the ZBUFFER is unknown, then you must register virtual capabilities 
+			// compatible with those of the original surface!
+			DWORD dwCaps;
+			lpDDZBuffer = *lplpddas;
+			dwCaps = dxwcdb.GetCaps(*lplpddas);
+			if(!dwCaps){
+				dwCaps = dxwcdb.GetCaps(lpdds);
+				if(dwCaps){
+					dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);
+					dwCaps |= DDSCAPS_ZBUFFER;
+					//if(dwCaps & DDSCAPS_VIDEOMEMORY) dwCaps|=DDSCAPS_LOCALVIDMEM;
+					dxwcdb.PushCaps(*lplpddas, dwCaps);
+					sMode = "derived";
+				}
+				else sMode = "unknown";
+			}
+			else sMode = "known";
+			OutTraceDW("GetAttachedSurface(%d): ZBUFFER caps=%x(%s) (%s)\n", dxversion, dwCaps, ExplainDDSCaps(dwCaps), sMode);
+		}
+
 	}
 
 	return res;
@@ -2860,13 +2897,7 @@ HRESULT WINAPI ColorConversionEmulated(int dxversion, LPDIRECTDRAWSURFACE lpdds,
 	HRESULT res;
 	Blt_Type pBlt;
 	RECT srcrect, destrect;
-	switch(dxversion){
-		case 1: pBlt=pBlt1; break;
-		case 2: pBlt=pBlt2; break;
-		case 3: pBlt=pBlt3; break;
-		case 4: pBlt=pBlt4; break;
-		case 7: pBlt=pBlt7; break;
-	}
+	pBlt = pGetBltMethod(dxversion);
 	// v2.04.01.fx6: copy emurect since pEmuBlt will alter values!
 	srcrect=destrect=emurect;
 	res=(*pEmuBlt)(dxversion, pBlt, lpDDSEmu_Back, &destrect, lpdds, &srcrect, DDBLT_WAIT, 0);
@@ -2944,13 +2975,7 @@ HRESULT WINAPI extFlip(int dxversion, Flip_Type pFlip, LPDIRECTDRAWSURFACE lpdds
 		lpdds, IsPrim?"(PRIM)":"", lpddssrc, dwflags, ExplainFlipFlags(dwflags));
 
 	Blt_Type pBlt;
-	switch (dxversion){
-		case 1: pBlt = pBlt1; break;
-		case 2: pBlt = pBlt2; break;
-		case 3: pBlt = pBlt3; break;
-		case 4: pBlt = pBlt4; break;
-		case 7: pBlt = pBlt7; break;
-	}
+	pBlt = pGetBltMethod(dxversion);
 
 	if (!IsPrim){
 		if(lpddssrc){
@@ -3028,7 +3053,8 @@ HRESULT WINAPI extFlip(int dxversion, Flip_Type pFlip, LPDIRECTDRAWSURFACE lpdds
 			ddsd.dwHeight = dxw.GetScreenHeight();
 			ddsd.dwWidth = dxw.GetScreenWidth();
 		}
-		res2=(*pCreateSurfaceMethod(dxversion))(lpPrimaryDD, &ddsd, &lpddsTmp, NULL);
+		// v2.04.09 fix: dxversion replaced with iBakBufferVersion - fixes "Gruntz" crash
+		res2=(*pCreateSurfaceMethod(iBakBufferVersion))(lpPrimaryDD, &ddsd, &lpddsTmp, NULL); 
 		if(res2) {
 			OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
 			OutTraceE("Size=%d lpPrimaryDD=%x lpDDSBack=%x %s\n", 
@@ -3589,13 +3615,9 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 
 	PushLockedRect(lpdds, lprect);
 
-	switch(dxversion){
-		case 1: pBlt=pBlt1; pGetGDISurface=pGetGDISurface1; break;
-		case 2: pBlt=pBlt2; pGetGDISurface=pGetGDISurface2; break;
-		case 3: pBlt=pBlt3; pGetGDISurface=pGetGDISurface3; break;
-		case 4: pBlt=pBlt4; pGetGDISurface=pGetGDISurface4; break;
-		case 7: pBlt=pBlt7; pGetGDISurface=pGetGDISurface7; break;
-	}
+	// v2.04.09: for IDirectDraw methods use iBakBufferVersion instead of dxversion ...
+	pBlt = pGetBltMethod(dxversion);
+	pGetGDISurface = pGetGDISurfaceMethod(iBakBufferVersion);
 
 	// V2.02.43: Empire Earth does some test Lock operations apparently before the primary surface is created
 	if(lpPrimaryDD){
@@ -3718,13 +3740,7 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 		OutTrace("Unlock(%d): lpdds=%x%s %s\n", dxversion, lpdds, (IsPrim ? "(PRIM)": (IsBack ? "(BACK)" : "")), sRect);
 	}
 
-	switch(dxversion){
-		case 1: pBlt=pBlt1; break;
-		case 2: pBlt=pBlt2; break;
-		case 3: pBlt=pBlt3; break;
-		case 4: pBlt=pBlt4; break;
-		case 7: pBlt=pBlt7; break;
-	}
+	pBlt = pGetBltMethod(dxversion);
 
 	switch(dxversion){
 		case 4:
@@ -3861,14 +3877,9 @@ static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECT
 		OutTrace("Unlock(%d): lpdds=%x%s %s\n", dxversion, lpdds, (IsPrim ? "(PRIM)": (IsBack ? "(BACK)" : "")), sRect);
 	}
 
-	switch(dxversion){
-		default:
-		case 1: pGetGDISurface = pGetGDISurface1; pBlt = pBlt1; break;
-		case 2: pGetGDISurface = pGetGDISurface2; pBlt = pBlt2; break;
-		case 3: pGetGDISurface = pGetGDISurface3; pBlt = pBlt3; break;
-		case 4: pGetGDISurface = pGetGDISurface4; pBlt = pBlt4; break;
-		case 7: pGetGDISurface = pGetGDISurface7; pBlt = pBlt7; break;
-	}
+	// v2.04.09: for IDirectDraw methods use iBakBufferVersion instead of dxversion ...
+	pBlt = pGetBltMethod(dxversion);
+	pGetGDISurface = pGetGDISurfaceMethod(iBakBufferVersion);
 
 	if(dxw.dwFlags1 & LOCKEDSURFACE){
 		(*pGetGDISurface)(lpPrimaryDD, &lpDDSPrim);
@@ -3986,14 +3997,9 @@ HRESULT WINAPI extReleaseDC(int dxversion, ReleaseDC_Type pReleaseDC, LPDIRECTDR
 	if((IsPrim) && (dxw.dwFlags1 & EMULATESURFACE)) {\
 		Blt_Type pBlt;
 		GetGDISurface_Type pGetGDISurface;
-		switch(dxversion){
-			default:
-			case 1: pGetGDISurface = pGetGDISurface1; pBlt = pBlt1; break;
-			case 2: pGetGDISurface = pGetGDISurface2; pBlt = pBlt2; break;
-			case 3: pGetGDISurface = pGetGDISurface3; pBlt = pBlt3; break;
-			case 4: pGetGDISurface = pGetGDISurface4; pBlt = pBlt4; break;
-			case 7: pGetGDISurface = pGetGDISurface7; pBlt = pBlt7; break;
-		}
+		// v2.04.09: for IDirectDraw methods use iBakBufferVersion instead of dxversion ...
+		pBlt = pGetBltMethod(dxversion);
+		pGetGDISurface = pGetGDISurfaceMethod(iBakBufferVersion);
 		sBlt(dxversion, pBlt, "ReleaseDC", lpdds, NULL, lpdds, NULL, 0, NULL, FALSE);
 	}
 	if (res) OutTraceE("ReleaseDC: ERROR res=%x(%s)\n", res, ExplainDDError(res));

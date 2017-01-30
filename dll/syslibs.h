@@ -299,6 +299,8 @@ typedef HBITMAP (WINAPI *LoadBitmapA_Type)(HINSTANCE, LPCSTR);
 typedef BOOL	(WINAPI *EnumWindows_Type)(WNDENUMPROC, LPARAM);
 typedef BOOL	(WINAPI *GetMessage_Type)(LPMSG, HWND, UINT, UINT);
 typedef BOOL	(WINAPI *PostMessage_Type)(HWND, UINT, WPARAM, LPARAM);
+typedef BOOL	(WINAPI *AdjustWindowRect_Type)(LPRECT, DWORD, BOOL);
+typedef BOOL	(WINAPI *AdjustWindowRectEx_Type)(LPRECT, DWORD, BOOL, DWORD);
 
 // Winmm.dll:
 typedef MCIERROR(WINAPI *mciSendCommand_Type)(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
@@ -620,6 +622,8 @@ DXWEXTERN LoadBitmapA_Type pLoadBitmapA DXWINITIALIZED;
 DXWEXTERN EnumWindows_Type pEnumWindows DXWINITIALIZED;
 DXWEXTERN GetMessage_Type pGetMessageA, pGetMessageW DXWINITIALIZED;
 DXWEXTERN PostMessage_Type pPostMessageA, pPostMessageW DXWINITIALIZED;
+DXWEXTERN AdjustWindowRect_Type pAdjustWindowRect DXWINITIALIZED;
+DXWEXTERN AdjustWindowRectEx_Type pAdjustWindowRectEx DXWINITIALIZED;
 
 // Winmm.dll:
 DXWEXTERN mciSendCommand_Type pmciSendCommandA DXWINITIALIZED;
@@ -930,6 +934,8 @@ extern BOOL	WINAPI extGetMessageA(LPMSG, HWND, UINT, UINT);
 extern BOOL	WINAPI extGetMessageW(LPMSG, HWND, UINT, UINT);
 extern BOOL	WINAPI extPostMessageA(HWND, UINT, WPARAM, LPARAM);
 extern BOOL	WINAPI extPostMessageW(HWND, UINT, WPARAM, LPARAM);
+extern BOOL WINAPI extAdjustWindowRect(LPRECT, DWORD, BOOL);
+extern BOOL WINAPI extAdjustWindowRectEx(LPRECT, DWORD, BOOL, DWORD);
 
 // Winmm.dll:
 extern MCIERROR WINAPI extmciSendCommandA(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
