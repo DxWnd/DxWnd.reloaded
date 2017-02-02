@@ -462,6 +462,11 @@ void dxwCore::SetClipCursor()
 	Rect.right+=UpLeftCorner.x;
 	Rect.top+=UpLeftCorner.y;
 	Rect.bottom+=UpLeftCorner.y;
+
+//	if(0) {
+//		if(GetMenu(hWnd)) Rect.top -= (*pGetSystemMetrics)(SM_CYMENU);
+//	}
+
 	(*pClipCursor)(NULL);
 	if(!(*pClipCursor)(&Rect))
 		OutTraceE("SetClipCursor: ERROR err=%d at %d\n", GetLastError(), __LINE__);

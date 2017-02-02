@@ -39,15 +39,20 @@ void D3D9TextureHandling(void *arg, int Level)
 		OutTraceE("Texture::GetLevelDesc ERROR: res=%d(%s)\n", res, ExplainDDError(res));
 		return;
 	}
+	OutTraceB("D3D9TextureHandling: level=%d type=%x usage=%x\n", Level, Desc.Type, Desc.Usage);
 	switch(Desc.Type){
 		case D3DRTYPE_SURFACE:
 		case D3DRTYPE_TEXTURE:
 			break;
 		default:
+			OutTraceB("D3D9TextureHandling: SKIP type=%x usage=%x\n", Desc.Type);
 			return;
 			break;
 	}
-	if(Desc.Usage == D3DUSAGE_RENDERTARGET)return;
+	if(Desc.Usage == D3DUSAGE_RENDERTARGET){
+		OutTraceB("D3D9TextureHandling: SKIP usage=%x\n", Desc.Usage);
+		return;
+	}
 	//pSurfaceLevel->GetRenderTargetData(&pRenderTarget, &pDestSurface);
 	res=(*pLockRect9)(lpd3dtex, Level, &LockedRect, NULL, D3DLOCK_READONLY);
 	OutTrace("D3D9TextureHandling: lpd3dtex=%x level=%d format=0x%x(%s) size=(%dx%d) bits=%x pitch=%d\n", 

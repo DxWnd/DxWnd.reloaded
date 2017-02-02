@@ -503,6 +503,55 @@ static void TextureHack(LPDIRECTDRAWSURFACE s, int dxversion)
 	if (res) OutTraceE("TextureHack: Unlock ERROR lpdds=%x res=%x(%s) at %d\n", s, res, ExplainDDError(res), __LINE__);
 }
 
+void TextureTransp(LPDIRECTDRAWSURFACE s, int dxversion)
+{
+	DDSURFACEDESC2 ddsd;
+	int x, y, w, h;
+	HRESULT res;
+
+	OutTraceB("TextureTransp(%d): lpdds=%x\n", dxversion, s);
+
+	memset(&ddsd,0,sizeof(DDSURFACEDESC2));
+	ddsd.dwSize = Set_dwSize_From_Surface();
+	ddsd.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+//	if(res=(*pLockMethod(lpddsHookedVersion()))(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+	if(res=(*pLockMethod(dxversion))(s, 0, (LPDDSURFACEDESC)&ddsd, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
+		OutTraceE("TextureTransp(%d): Lock ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
+		return;
+	}
+	if((ddsd.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && !dxwss.IsABackBufferSurface(s)) {
+		OutTrace("TextureTransp(%d): lpdds=%x BitCount=%d size=(%dx%d)\n", 
+			dxversion, s, ddsd.ddpfPixelFormat.dwRGBBitCount, ddsd.dwWidth, ddsd.dwHeight);
+		w = ddsd.dwWidth;
+		h = ddsd.dwHeight;
+		switch (ddsd.ddpfPixelFormat.dwRGBBitCount){
+			case 8:
+				// no way
+				break;
+			case 16: 
+				{
+					WORD *p;
+					for(y=0; y<h; y++){
+						p = (WORD *)ddsd.lpSurface + ((y * ddsd.lPitch) >> 1);
+						for(x=0; x<w; x++) *(p+x) = (*(p+x) & 0x7FFF) | 0x8000;
+					}
+				}
+				break;
+			case 32: 
+				{
+					DWORD *p;
+					for(y=0; y<h; y++){
+						p = (DWORD *)ddsd.lpSurface + ((y * ddsd.lPitch) >> 2);
+						for(x=0; x<w; x++) *(p+x) = (*(p+x) & 0x00FFFFFF) | 0x7F000000;
+					}
+				}
+				break;
+		}
+	}
+	res=(*pUnlockMethod(dxversion))(s, NULL);
+	if (res) OutTraceE("TextureTransp: Unlock ERROR lpdds=%x res=%x(%s) at %d\n", s, res, ExplainDDError(res), __LINE__);
+}
+
 void TextureHandling(LPDIRECTDRAWSURFACE s, int dxversion)
 {
 	//OutTrace("TextureHandling(1-7): dxw.dwFlags5 = %x\n", dxw.dwFlags5 & (TEXTUREHIGHLIGHT|TEXTUREDUMP|TEXTUREHACK));
@@ -518,7 +567,7 @@ void TextureHandling(LPDIRECTDRAWSURFACE s, int dxversion)
 			TextureHack(s, dxversion);
 			break;
 		case TEXTURETRANSP:
-			//TextureTransp(s);
+			TextureTransp(s, dxversion);
 			break;
 	}
 }

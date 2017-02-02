@@ -17,6 +17,7 @@
 #include "PaletteDialog.h"
 #include "TimeSliderDialog.h"
 #include "ShimsDialog.h"
+#include "ViewFlagsDialog.h"
 #include "CGlobalSettings.h"
 
 #ifdef _DEBUG
@@ -153,6 +154,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_MOVE_UP, OnMoveUp)
 	ON_COMMAND(ID_MOVE_DOWN, OnMoveDown)
 	ON_COMMAND(ID_MOVE_BOTTOM, OnMoveBottom)
+	ON_COMMAND(ID_VIEW_FLAGS, OnViewFlags)
 	ON_WM_RBUTTONDOWN()
 	ON_WM_HOTKEY()
 	ON_WM_DROPFILES()
@@ -293,6 +295,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 1: t->flags5 |= TEXTUREHIGHLIGHT; break;
 		case 2: t->flags5 |= TEXTUREDUMP; break;
 		case 3: t->flags5 |= TEXTUREHACK; break;
+		case 4: t->flags5 |= TEXTURETRANSP; break;
 	}
 
 	switch(dlg->m_SonProcessMode){
@@ -628,6 +631,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if(t->flags5 & TEXTUREHIGHLIGHT) dlg->m_TextureHandling = 1;
 	if(t->flags5 & TEXTUREDUMP) dlg->m_TextureHandling = 2;
 	if(t->flags5 & TEXTUREHACK) dlg->m_TextureHandling = 3;
+	if(t->flags5 & TEXTURETRANSP) dlg->m_TextureHandling = 4;
 
 	dlg->m_SonProcessMode = 0;
 	if(t->flags4 & SUPPRESSCHILD) dlg->m_SonProcessMode = 1;
@@ -2527,6 +2531,26 @@ void CDxwndhostView::OnViewShims()
 	pDlg->ShowWindow(SW_SHOW);
 }
 
+TARGETMAP *ViewTarget; // dirty !!!!
+
+void CDxwndhostView::OnViewFlags() 
+{
+	int i;
+	CTargetDlg dlg;
+	POSITION pos;
+	CListCtrl& listctrl = GetListCtrl();
+
+	if(!listctrl.GetSelectedCount()) return;
+	pos = listctrl.GetFirstSelectedItemPosition();
+	i = listctrl.GetNextSelectedItem(pos);
+	ViewTarget = &TargetMaps[i];
+
+	CViewFlagsDialog *pDlg = new CViewFlagsDialog();
+
+	BOOL ret = pDlg->Create(CViewFlagsDialog::IDD, this); 
+	pDlg->ShowWindow(SW_SHOW);
+}
+
 void CDxwndhostView::OnViewDesktop()
 {
 	CDesktopDialog *pDlg = new CDesktopDialog();
@@ -2679,6 +2703,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 		break;
 	case ID_MOVE_BOTTOM:
 		OnMoveBottom();
+		break;
+	case ID_VIEW_FLAGS:
+		OnViewFlags();
 		break;
 	}
 	CListView::OnRButtonDown(nFlags, point);

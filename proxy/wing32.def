@@ -1,0 +1,12 @@
+LIBRARY "wing32"
+EXPORTS
+WinGCreateDC = FakeWinGCreateDC	@1
+WinGCreateBitmap = FakeWinGCreateBitmap	@2
+WinGBitBlt = FakeWinGBitBlt @3
+WinGStretchBlt = FakeWinGStretchBlt @4
+WinGRecommendDIBFormat = FakeWinGRecommendDIBFormat @5
+WinGGetDIBPointer = FakeWinGGetDIBPointer @6
+WinGSetDIBColorTable = FakeWinGSetDIBColorTable @7
+WinGGetDIBColorTable = FakeWinGGetDIBColorTable @8
+WinGCreateHalftonePalette = FakeWinGCreateHalftonePalette @9
+WinGCreateHalftoneBrush = FakeWinGCreateHalftoneBrush @10

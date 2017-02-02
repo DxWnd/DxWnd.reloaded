@@ -929,6 +929,69 @@ void D3DTextureHack(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 	}
 }
 
+void D3DTextureTransp(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
+{
+	switch (Desc.Format){
+		case D3DFMT_X8R8G8B8: 
+		case D3DFMT_A8R8G8B8:
+			{
+				DWORD *p;
+				for(UINT y=0; y<Desc.Height; y++){
+					p = (DWORD *)LockedRect.pBits + ((y * LockedRect.Pitch) >> 2);
+					for(UINT x=0; x<Desc.Width; x++) *(p+x) = (*(p+x) & 0x00FFFFFF) | 0x7F000000;
+				}
+			}
+			break;
+		case D3DFMT_A4R4G4B4: // AoE III - to test ....
+		case D3DFMT_X4R4G4B4:
+			{
+				WORD *p;
+				for(UINT y=0; y<Desc.Height; y++){
+					p = (WORD *)LockedRect.pBits + ((y * LockedRect.Pitch) >> 1);
+					for(UINT x=0; x<Desc.Width; x++) *(p+x) = (*(p+x) & 0x0FFF) | 0x7000;
+				}
+			}
+			break;
+		case D3DFMT_DXT1:
+			// no way, no alpha 
+			break;
+		case D3DFMT_DXT2:
+		case D3DFMT_DXT3:
+			{
+				WORD *p = (WORD *)LockedRect.pBits;
+				for(int y=0; y<(int)Desc.Height; y+=4){
+					for(int x=0; x<(int)Desc.Width; x+=4){
+						for(int row=0; row<4; row++) *(p+row) = 0x7F7F;
+						p += 8;
+					}
+				}
+			}
+			break;
+		case D3DFMT_DXT4:
+		case D3DFMT_DXT5:
+			{
+				WORD *p = (WORD *)LockedRect.pBits;
+				for(int y=0; y<(int)Desc.Height; y+=4){
+					for(int x=0; x<(int)Desc.Width; x+=4){
+						//*p = 0x7F7F;
+						*p = 0x5F5F;
+						//*(p+1) = 0x0;
+						//*(p+2) = 0x0;
+						//*(p+3) = 0x0;
+						*(p+1) = 0x9249;
+						*(p+2) = 0x2492;
+						*(p+3) = 0x4924;
+						p += 8;
+					}
+				}
+			}
+			break;
+		default:
+			// no way ....
+			break;
+	}
+}
+
 #define GRIDSIZE 16
 
 void D3DTextureHighlight(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
@@ -1015,8 +1078,4 @@ void D3DTextureHighlight(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
 			}
 			break;
 	}
-}
-
-void D3DTextureTransp(D3DSURFACE_DESC Desc, D3DLOCKED_RECT LockedRect)
-{
 }

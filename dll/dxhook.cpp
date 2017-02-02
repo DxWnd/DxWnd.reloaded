@@ -72,105 +72,6 @@ extern HANDLE hTraceMutex;
 
 CRITICAL_SECTION TraceCS; 
 
-static char *FlagNames[32]={
-	"UNNOTIFY", "EMULATESURFACE", "CLIPCURSOR", "NEEDADMINCAPS",
-	"HOOKDI", "MODIFYMOUSE", "HANDLEEXCEPTIONS", "SAVELOAD",
-	"EMULATEBUFFER", "HOOKDI8", "BLITFROMBACKBUFFER", "SUPPRESSCLIPPING",
-	"AUTOREFRESH", "FIXWINFRAME", "HIDEHWCURSOR", "SLOWDOWN",
-	"DISABLECLIPPING", "LOCKWINSTYLE", "MAPGDITOPRIMARY", "FIXTEXTOUT",
-	"KEEPCURSORWITHIN", "USERGB565", "SUPPRESSDXERRORS", "PREVENTMAXIMIZE",
-	"LOCKEDSURFACE", "FIXPARENTWIN", "SWITCHVIDEOMEMORY", "CLIENTREMAPPING",
-	"HANDLEALTF4", "LOCKWINPOS", "HOOKCHILDWIN", "MESSAGEPROC"
-};
-
-static char *Flag2Names[32]={
-	"RECOVERSCREENMODE", "REFRESHONRESIZE", "BACKBUFATTACH", "MODALSTYLE",
-	"KEEPASPECTRATIO", "INIT8BPP", "FORCEWINRESIZE", "INIT16BPP",
-	"KEEPCURSORFIXED", "DISABLEGAMMARAMP", "INDEPENDENTREFRESH", "FIXNCHITTEST",
-	"LIMITFPS", "SKIPFPS", "SHOWFPS", "HIDEMULTIMONITOR",
-	"TIMESTRETCH", "HOOKOPENGL", "LOCKEDSIZE", "SHOWHWCURSOR",
-	"GDISTRETCHED", "SHOWFPSOVERLAY", "FAKEVERSION", "FULLRECTBLT",
-	"NOPALETTEUPDATE", "SUPPRESSIME", "NOBANNER", "WINDOWIZE",
-	"LIMITRESOURCES", "STARTDEBUG", "SETCOMPATIBILITY", "WIREFRAME",
-};
-
-static char *Flag3Names[32]={
-	"FORCEHOOKOPENGL", "MARKBLIT", "HOOKDLLS", "SUPPRESSD3DEXT",
-	"HOOKENABLED", "FIXD3DFRAME", "FORCE16BPP", "BLACKWHITE",
-	"MARKLOCK", "SINGLEPROCAFFINITY", "EMULATEREGISTRY", "CDROMDRIVETYPE",
-	"NOWINDOWMOVE", "FORCECLIPPER", "LOCKSYSCOLORS", "GDIEMULATEDC",
-	"FULLSCREENONLY", "FONTBYPASS", "MINIMALCAPS", "DEFAULTMESSAGES",
-	"BUFFEREDIOFIX", "FILTERMESSAGES", "PEEKALLMESSAGES", "SURFACEWARN",
-	"ANALYTICMODE", "FORCESHEL", "CAPMASK", "COLORFIX",
-	"NODDRAWBLT", "NODDRAWFLIP", "NOGDIBLT", "NOPIXELFORMAT",
-};
-
-static char *Flag4Names[32]={
-	"NOALPHACHANNEL", "SUPPRESSCHILD", "FIXREFCOUNTER", "SHOWTIMESTRETCH",
-	"ZBUFFERCLEAN", "ZBUFFER0CLEAN", "ZBUFFERALWAYS", "DISABLEFOGGING",
-	"NOPOWER2FIX", "NOPERFCOUNTER", "BILINEAR2XFILTER", "INTERCEPTRDTSC",
-	"LIMITSCREENRES", "NOFILLRECT", "HOOKGLIDE", "HIDEDESKTOP",
-	"STRETCHTIMERS", "NOFLIPEMULATION", "NOTEXTURES", "RETURNNULLREF",
-	"FINETIMING", "NATIVERES", "SUPPORTSVGA", "SUPPORTHDTV",
-	"RELEASEMOUSE", "ENABLETIMEFREEZE", "HOTPATCH", "ENABLEHOTKEYS",
-	"HOTPATCHALWAYS", "NOD3DRESET", "OVERRIDEREGISTRY", "HIDECDROMEMPTY",
-};
-
-static char *Flag5Names[32]={
-	"DIABLOTWEAK", "CLEARTARGET", "NOWINPOSCHANGES", "ANSIWIDE",
-	"NOBLT", "USELASTCORE", "DOFASTBLT", "AEROBOOST",
-	"QUARTERBLT", "NOIMAGEHLP", "BILINEARFILTER", "REPLACEPRIVOPS",
-	"REMAPMCI", "TEXTUREHIGHLIGHT", "TEXTUREDUMP", "TEXTUREHACK",
-	"TEXTURETRANSP", "NORMALIZEPERFCOUNT", "HYBRIDMODE", "GDICOLORCONV",
-	"INJECTSON", "ENABLESONHOOK", "FREEZEINJECTEDSON", "GDIMODE",
-	"CENTERTOWIN", "STRESSRESOURCES", "MESSAGEPUMP", "TEXTUREFORMAT", 
-	"DEINTERLACE", "LOCKRESERVEDPALETTE", "UNLOCKZORDER", "EASPORTSHACK",
-};
-
-static char *Flag6Names[32]={
-	"FORCESWAPEFFECT", "LEGACYALLOC", "NODESTROYWINDOW", "NOMOVIES",
-	"SUPPRESSRELEASE", "FIXMOVIESCOLOR", "WOW64REGISTRY", "DISABLEMAXWINMODE",
-	"FIXPITCH", "POWER2WIDTH", "HIDETASKBAR", "ACTIVATEAPP",
-	"NOSYSMEMPRIMARY", "NOSYSMEMBACKBUF", "CONFIRMONCLOSE", "TERMINATEONCLOSE",
-	"FLIPEMULATION", "SETZBUFFERBITDEPTHS", "SHAREDDC", "WOW32REGISTRY",
-	"STRETCHMOVIES", "BYPASSMCI", "FIXPIXELZOOM", "---REUSEEMULATEDDC---",
-	"CREATEDESKTOP", "NOWINDOWHOOKS", "SYNCPALETTE", "VIRTUALJOYSTICK",
-	"UNACQUIRE", "HOOKGOGLIBS", "BYPASSGOGLIBS", "EMULATERELMOUSE",
-};
-
-static char *Flag7Names[32]={
-	"LIMITDDRAW", "DISABLEDISABLEALTTAB", "FIXCLIPPERAREA", "HOOKDIRECTSOUND",
-	"HOOKSMACKW32", "BLOCKPRIORITYCLASS", "CPUSLOWDOWN", "CPUMAXUSAGE",
-	"NOWINERRORS", "SUPPRESSOVERLAY", "INIT24BPP", "INIT32BPP",
-	"FIXGLOBALUNLOCK", "SHOWHINTS", "SKIPDEVTYPEHID", "INJECTSUSPENDED",
-	"SSUPPRESSDIERRORS", "HOOKNORUN", "FIXBINDTEXTURE", "ENUM16BITMODES",
-	"SHAREDKEYBOARD", "HOOKNOUPDATE", "HOOKGLUT32", "INITIALRES",
-	"MAXIMUMRES", "LOCKCOLORDEPTH", "FIXSMACKLOOP", "FIXFREELIBRARY",
-	"ANCHORED", "CLEARTEXTUREFOURCC", "NODDEXCLUSIVEMODE", "COPYNOSHIMS",
-};
-
-static char *Flag8Names[32]={
-	"FORCEWAIT", "FORCENOWAIT", "FORCEVSYNC", "FORCENOVSYNC",
-	"VSYNCSCANLINES", "TRIMTEXTUREFORMATS", "NOHALDEVICE", "CLIPLOCK",
-	"PRETENDVISIBLE", "RAWFORMAT", "WININSULATION", "FIXMOUSEHOOK",
-	"DDSFORMAT", "HOOKWING32", "SEQUENCEDIAT", "D3D8BACK16",
-	"MARKWING32", "DYNAMICZCLEAN", "MARKGDI32", "DUMPDIBSECTION",
-	"DUMPDEVCONTEXT", "QUALITYFONTS", "ALLOWSYSMEMON3DDEV", "",
-	"", "", "", "",
-	"", "", "", "",
-};
-
-static char *TFlagNames[32]={
-	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
-	"OUTSEPARATED", "**", "ASSERTDIALOG", "OUTIMPORTTABLE",
-	"OUTDEBUG", "OUTREGISTRY", "TRACEHOOKS", "OUTD3DTRACE",
-	"OUTDXWINTRACE", "OUTWINGTRACE", "OUTOGLTRACE", "",
-	"", "", "", "",
-	"", "", "", "",
-	"", "", "", "ADDRELATIVETIME",
-	"**", "ADDTIMESTAMP", "OUTDEBUGSTRING", "ERASELOGFILE",
-};
-
 char *GetDxWndPath()
 {
 	static BOOL DoOnce = TRUE;
@@ -191,7 +92,7 @@ char *GetDxWndPath()
 	return sFolderPath;
 }
 
-static void OutTraceHeader(FILE *fp)
+static void OutTraceHeader(FILE *fp, DWORD tflags)
 {
 	SYSTEMTIME Time;
 	char Version[20+1];
@@ -202,15 +103,15 @@ static void OutTraceHeader(FILE *fp)
 	fprintf(fp, "*** DxWnd %s log BEGIN: %02d-%02d-%04d %02d:%02d:%02d ***\n",
 		Version, Time.wDay, Time.wMonth, Time.wYear, Time.wHour, Time.wMinute, Time.wSecond);
 	fprintf(fp, "*** Flags= ");
-	for(i=0, dword=dxw.dwFlags1;  i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", FlagNames[i]);
-	for(i=0, dword=dxw.dwFlags2; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag2Names[i]);
-	for(i=0, dword=dxw.dwFlags3; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag3Names[i]);
-	for(i=0, dword=dxw.dwFlags4; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag4Names[i]);
-	for(i=0, dword=dxw.dwFlags5; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag5Names[i]);
-	for(i=0, dword=dxw.dwFlags6; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag6Names[i]);
-	for(i=0, dword=dxw.dwFlags7; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag7Names[i]);
-	for(i=0, dword=dxw.dwFlags8; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", Flag8Names[i]);
-	for(i=0, dword=dxw.dwTFlags; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", TFlagNames[i]);
+	for(i=0, dword=dxw.dwFlags1; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(0,i));
+	for(i=0, dword=dxw.dwFlags2; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(1,i));
+	for(i=0, dword=dxw.dwFlags3; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(2,i));
+	for(i=0, dword=dxw.dwFlags4; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(3,i));
+	for(i=0, dword=dxw.dwFlags5; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(4,i));
+	for(i=0, dword=dxw.dwFlags6; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(5,i));
+	for(i=0, dword=dxw.dwFlags7; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(6,i));
+	for(i=0, dword=dxw.dwFlags8; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(7,i));
+	for(i=0, dword=tflags      ; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(8,i));
 	fprintf(fp, "***\n");
 }
 
@@ -259,7 +160,7 @@ void OutTrace(const char *format, ...)
 		if (fp==NULL)
 			return; // last chance: do not log... 
 		else 
-			OutTraceHeader(fp);
+			OutTraceHeader(fp, tFlags);
 	}
 	va_start(al, format);
 	//vfprintf(fp, format, al);

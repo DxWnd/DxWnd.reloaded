@@ -47,15 +47,20 @@ void D3D8TextureHandling(void *arg, int Level)
 		return;
 	}
 	pSurfaceLevel->Release();
+	OutTraceB("D3D8TextureHandling: level=%d type=%x usage=%x\n", Level, Desc.Type, Desc.Usage);
 	switch(Desc.Type){
 		case D3DRTYPE_SURFACE:
 		case D3DRTYPE_TEXTURE:
 			break;
 		default:
+			OutTraceB("D3D88TextureHandling: SKIP type=%x\n", Desc.Type);
 			return;
 			break;
 	}
-	if(Desc.Usage == D3DUSAGE_RENDERTARGET)return;
+	if(Desc.Usage == D3DUSAGE_RENDERTARGET){
+		OutTraceB("D3D8TextureHandling: SKIP usage=%x\n", Desc.Usage);
+		return;
+	}
 	//pSurfaceLevel->GetRenderTargetData(&pRenderTarget, &pDestSurface);	
 	res=(*pLockRect8)(lpd3dtex, Level, &LockedRect, NULL, 0);
 	OutTrace("D3D8TextureHandling: lpd3dtex=%x level=%d format=0x%x(%s) size=(%dx%d) bits=%x pitch=%d\n", 

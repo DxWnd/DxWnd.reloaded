@@ -365,6 +365,7 @@ int GetHookStatus(DXWNDSTATUS *);
 DXWNDSTATUS *GetHookInfo();
 void HookInit(TARGETMAP *, HWND);
 void ShowHint(int);
+LPCSTR GetFlagCaption(int, int);
 
 char *GetDxWndPath();
 void *SetHook(void *, void *);

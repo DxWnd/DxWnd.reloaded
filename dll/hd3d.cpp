@@ -17,6 +17,7 @@
 
 #define HOOKD3D10ANDLATER 1
 #define TRACEALLMETHODS 1
+//#define DXWNDDISABLEDHOOKS 1
 
 extern void D3D9TextureHandling(void *, int);
 extern void D3D8TextureHandling(void *, int);
@@ -316,7 +317,6 @@ static HookEntryEx_Type d3d8Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
-
 static HookEntryEx_Type d3d9Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "Direct3DCreate9", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9, (FARPROC)extDirect3DCreate9},
 	{HOOK_HOT_CANDIDATE, 0, "Direct3DCreate9Ex", (FARPROC)NULL, (FARPROC *)&pDirect3DCreate9Ex, (FARPROC)extDirect3DCreate9Ex},
@@ -496,7 +496,7 @@ void HookD3DDevice8(void** ppD3Ddev8)
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 120), extGetFrontBuffer, (void **)&pGetFrontBuffer, "GetFrontBuffer(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 136), extBeginScene8, (void **)&pBeginScene8, "BeginScene(D8)");
 	SetHook((void *)(**(DWORD **)ppD3Ddev8 + 140), extEndScene8, (void **)&pEndScene8, "EndScene(D8)");
-	if((dxw.dwFlags2 & WIREFRAME) || (dxw.dwFlags4 & DISABLEFOGGING) || (dxw.dwFlags4 & ZBUFFERALWAYS)){
+	if((dxw.dwFlags2 & WIREFRAME) || (dxw.dwFlags4 & DISABLEFOGGING) || (dxw.dwFlags4 & ZBUFFERALWAYS) || (dxw.dwFlags5 & TEXTURETRANSP)){
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 200), extSetRenderState8, (void **)&pSetRenderState8, "SetRenderState(D8)");
 		SetHook((void *)(**(DWORD **)ppD3Ddev8 + 204), extGetRenderState8, (void **)&pGetRenderState8, "GetRenderState(D8)");
 		if(dxw.dwFlags2 & WIREFRAME) (*pSetRenderState8)((void *)*ppD3Ddev8, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
@@ -544,7 +544,7 @@ void HookD3DDevice9(void** ppD3Ddev9)
 	SetHook((void *)(**(DWORD **)ppD3Ddev9 + 168), extEndScene9, (void **)&pEndScene9, "EndScene(D9)");
 	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +188), extSetViewport, (void **)&pSetViewport, "SetViewport(D9)");
 	//SetHook((void *)(**(DWORD **)ppD3Ddev9 +192), extGetViewport, (void **)&pGetViewport, "GetViewport(D9)");
-	if((dxw.dwFlags2 & WIREFRAME) || (dxw.dwFlags4 & DISABLEFOGGING) || (dxw.dwFlags4 & ZBUFFERALWAYS)){
+	if((dxw.dwFlags2 & WIREFRAME) || (dxw.dwFlags4 & DISABLEFOGGING) || (dxw.dwFlags4 & ZBUFFERALWAYS) || (dxw.dwFlags5 & TEXTURETRANSP)){
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 228), extSetRenderState9, (void **)&pSetRenderState9, "SetRenderState(D9)");
 		SetHook((void *)(**(DWORD **)ppD3Ddev9 + 232), extGetRenderState9, (void **)&pGetRenderState9, "GetRenderState(D9)");
 		if(dxw.dwFlags2 & WIREFRAME) (*pSetRenderState9)((void *)*ppD3Ddev9, D3DRS_FILLMODE, D3DFILL_WIREFRAME);
@@ -588,6 +588,131 @@ void HookDirect3D8(void *lpd3d)
 	SetHook((void *)(*(DWORD *)lpd3d + 60), extCreateDevice8, (void **)&pCreateDevice8, "CreateDevice(D8)");
 }
 
+void HookDirect3D9(void *lpd3d, BOOL ex)
+{
+	SetHook((void *)(*(DWORD *)lpd3d +  0), extQueryInterfaceD3D9, (void **)&pQueryInterfaceD3D9, "QueryInterface(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount9, (void **)&pGetAdapterCount9, "GetAdapterCount(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier9, (void **)&pGetAdapterIdentifier9, "GetAdapterIdentifier(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 24), extGetAdapterModeCount9, (void **)&pGetAdapterModeCount9, "GetAdapterGetAdapterModeCount(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes9, (void **)&pEnumAdapterModes9, "EnumAdapterModes(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode9, (void **)&pGetAdapterDisplayMode9, "GetAdapterDisplayMode(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 36), extCheckDeviceType9, (void **)&pCheckDeviceType9, "CheckDeviceType(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 56), extD3DGetDeviceCaps9, (void **)&pD3DGetDeviceCaps9, "GetDeviceCaps(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 60), extGetAdapterMonitor9, (void **)&pGetAdapterMonitor9, "GetAdapterMonitor(D9)");
+	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice9, (void **)&pCreateDevice9, "CreateDevice(D9)");
+	if(ex) SetHook((void *)(*(DWORD *)lpd3d + 80), extCreateDeviceEx, (void **)&pCreateDeviceEx, "CreateDeviceEx(D9)");
+}
+
+typedef enum {
+	TYPE_OBJECT_UNKNOWN = 0,
+	TYPE_OBJECT_DIRECT3D,
+	TYPE_OBJECT_DIRECT3DDEVICE,
+	TYPE_OBJECT_GAMMARAMP,
+	TYPE_OBJECT_BASETEXTURE,
+	TYPE_OBJECT_TEXTURE,
+	TYPE_OBJECT_3DSURFACE,
+	TYPE_OBJECT_VIEWPORT };
+
+static HRESULT WINAPI QueryInterfaceD3D(int d3dversion, QueryInterface_Type pQueryInterfaceD3D, void *obj, REFIID riid, void** ppvObj)
+{
+	HRESULT res;
+	int iObjectType;
+	int iObjectVersion;
+	BOOL bEx = FALSE;
+
+	iObjectVersion = 0;
+	iObjectType = TYPE_OBJECT_UNKNOWN;
+
+	OutTraceD3D("D3D::QueryInterface(%d): d3d=%x riid=%x(%s)\n", d3dversion, obj, riid.Data1, ExplainGUID((GUID *)&riid));
+
+	switch(riid.Data1){
+	// DirectDraw
+	case 0x1dd9e8da: //IID_IDirect3D8
+		iObjectType=TYPE_OBJECT_DIRECT3D; iObjectVersion=8; break;
+	case 0x81bdcbca: // IID_IDirect3D9
+		iObjectType=TYPE_OBJECT_DIRECT3D; iObjectVersion=9; break;
+	case 0x02177241: // IID_IDirect3D9Ex
+		iObjectType=TYPE_OBJECT_DIRECT3D; iObjectVersion=9; bEx=TRUE; break;
+	case 0x7385e5df: // IID_IDirect3DDevice8
+		iObjectType=TYPE_OBJECT_DIRECT3DDEVICE; iObjectVersion=8; break;
+	case 0xd0223b96: // IID_IDirect3DDevice9
+		iObjectType=TYPE_OBJECT_DIRECT3DDEVICE; iObjectVersion=9; break;
+	case 0xb18b10ce: // IID_IDirect3DDevice9Ex
+		iObjectType=TYPE_OBJECT_DIRECT3DDEVICE; iObjectVersion=9; bEx=TRUE; break; // !!!!
+	case 0xb4211cfa: // IID_IDirect3DBaseTexture8
+		iObjectType=TYPE_OBJECT_BASETEXTURE; iObjectVersion=8; break;
+	case 0xe4cdd575: // IID_IDirect3DTexture8
+		iObjectType=TYPE_OBJECT_TEXTURE; iObjectVersion=8; break;
+	case 0x580ca87e: // IID_IDirect3DBaseTexture9  
+		iObjectType=TYPE_OBJECT_BASETEXTURE; iObjectVersion=9; break;
+	case 0x85c31227: // IID_IDirect3DTexture9
+		iObjectType=TYPE_OBJECT_TEXTURE; iObjectVersion=9; break;
+	case 0xb96eebca: // IID_IDirect3DSurface8
+		iObjectType=TYPE_OBJECT_3DSURFACE; iObjectVersion=8; break;
+	case 0x0cfbaf3a: // IID_IDirect3DSurface9 
+		iObjectType=TYPE_OBJECT_3DSURFACE; iObjectVersion=9; break;
+	}
+
+/* IID_IDirect3DDevice9Video */
+// {26DC4561-A1EE-4ae7-96DA-118A36C0EC95}
+// DEFINE_GUID(IID_IDirect3DDevice9Video, 0x26dc4561, 0xa1ee, 0x4ae7, 0x96, 0xda, 0x11, 0x8a, 0x36, 0xc0, 0xec, 0x95);
+
+	char *sLabel;
+	switch(iObjectType){
+		case TYPE_OBJECT_DIRECT3D: sLabel = "IID_IDirect3D"; break;
+		case TYPE_OBJECT_DIRECT3DDEVICE: sLabel = "IID_IDirect3DDevice"; break;
+		case TYPE_OBJECT_BASETEXTURE: sLabel = "IID_IDirect3DBaseTexture"; break;
+		case TYPE_OBJECT_TEXTURE: sLabel = "IID_IDirect3DTexture"; break;
+		case TYPE_OBJECT_3DSURFACE: sLabel = "IID_IDirect3DSurface"; break;
+		case TYPE_OBJECT_UNKNOWN: 
+		default: sLabel = "(unknown)"; break;
+	}
+	OutTraceDW("D3D::QueryInterface: Got interface for %s version %d\n", sLabel, iObjectVersion);
+
+	res=pQueryInterfaceD3D(obj, riid, ppvObj);
+	if(res) {
+		OutTraceDW("D3D::QueryInterface ERROR: obj=%x REFIID=%x obp=%x ret=%x(%s)\n",
+			obj, riid.Data1, *ppvObj, res, ExplainDDError(res));
+		return res;
+	}
+
+	if (! *ppvObj) {
+		OutTraceDW("D3D::QueryInterface: Interface for object %x not found\n", riid.Data1);
+		return res;
+	}
+
+	// added trace
+	OutTraceDW("D3D::QueryInterface: obj=%x REFIID=%x obp=%x obj=%s version=%d ret=0\n",
+		obj, riid.Data1, *ppvObj, sLabel, iObjectVersion);
+
+	if(iObjectVersion == 8){
+		switch(iObjectType){
+			case TYPE_OBJECT_DIRECT3D:			HookDirect3D8(ppvObj); break;
+			case TYPE_OBJECT_DIRECT3DDEVICE:	HookD3DDevice8(ppvObj); break;
+			case TYPE_OBJECT_TEXTURE:			HookD3DTexture8(ppvObj); break;
+		}
+	}
+	else{ // 9!
+		switch(iObjectType){
+			case TYPE_OBJECT_DIRECT3D:			HookDirect3D9(ppvObj, bEx); break;
+			case TYPE_OBJECT_DIRECT3DDEVICE:	HookD3DDevice9(ppvObj); break;
+			case TYPE_OBJECT_TEXTURE:			HookD3DTexture9(ppvObj); break;
+		}
+	}
+
+	OutTraceD3D("D3D::QueryInterface: obp=%x\n", *ppvObj);
+	return res;
+}
+
+HRESULT WINAPI extQueryInterfaceD3D8(void *obj, REFIID riid, void** ppvObj)
+{ return QueryInterfaceD3D(8, pQueryInterfaceD3D8, obj, riid, ppvObj); }
+HRESULT WINAPI extQueryInterfaceDev8(void *obj, REFIID riid, void** ppvObj)
+{ return QueryInterfaceD3D(8, pQueryInterfaceDev8, obj, riid, ppvObj); }
+HRESULT WINAPI extQueryInterfaceD3D9(void *obj, REFIID riid, void** ppvObj)
+{ return QueryInterfaceD3D(9, pQueryInterfaceD3D9, obj, riid, ppvObj); }
+HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
+{ return QueryInterfaceD3D(9, pQueryInterfaceDev9, obj, riid, ppvObj); }
+
 BOOL WINAPI extDisableD3DSpy(void)
 {
 	if(TRUE) return FALSE;
@@ -609,21 +734,6 @@ void* WINAPI extDirect3DCreate8(UINT sdkversion)
 	OutTraceD3D("Direct3DCreate8: d3d=%x\n", lpd3d);
 
 	return lpd3d;
-}
-
-void HookDirect3D9(void *lpd3d, BOOL ex)
-{
-	SetHook((void *)(*(DWORD *)lpd3d +  0), extQueryInterfaceD3D9, (void **)&pQueryInterfaceD3D9, "QueryInterface(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 16), extGetAdapterCount9, (void **)&pGetAdapterCount9, "GetAdapterCount(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 20), extGetAdapterIdentifier9, (void **)&pGetAdapterIdentifier9, "GetAdapterIdentifier(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 24), extGetAdapterModeCount9, (void **)&pGetAdapterModeCount9, "GetAdapterGetAdapterModeCount(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 28), extEnumAdapterModes9, (void **)&pEnumAdapterModes9, "EnumAdapterModes(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 32), extGetAdapterDisplayMode9, (void **)&pGetAdapterDisplayMode9, "GetAdapterDisplayMode(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 36), extCheckDeviceType9, (void **)&pCheckDeviceType9, "CheckDeviceType(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 56), extD3DGetDeviceCaps9, (void **)&pD3DGetDeviceCaps9, "GetDeviceCaps(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 60), extGetAdapterMonitor9, (void **)&pGetAdapterMonitor9, "GetAdapterMonitor(D9)");
-	SetHook((void *)(*(DWORD *)lpd3d + 64), extCreateDevice9, (void **)&pCreateDevice9, "CreateDevice(D9)");
-	if(ex) SetHook((void *)(*(DWORD *)lpd3d + 80), extCreateDeviceEx, (void **)&pCreateDeviceEx, "CreateDeviceEx(D9)");
 }
 
 static char *ExplainD3DBehaviourFlags(DWORD c)
@@ -1373,6 +1483,10 @@ static HRESULT WINAPI extSetRenderState(SetRenderState_Type pSetRenderState, voi
 		OutTraceD3D("SetRenderState: FIXED State=FOGENABLE Value=%x->FALSE\n", Value);
 		Value = FALSE;
 	}
+	if((dxw.dwFlags5 & TEXTURETRANSP) && (State == D3DRS_ALPHABLENDENABLE)){
+		OutTraceD3D("SetRenderState: FIXED State=ALPHABLENDENABLE Value=%x->TRUE\n", Value);
+		Value = TRUE;
+	}
 
 	res=(*pSetRenderState)(pd3dd, State, Value);
 	if(res) OutTraceE("SetRenderState: res=%x(%s)\n", res, ExplainDDError(res));
@@ -1697,76 +1811,6 @@ void WINAPI extRSSetViewports11(ID3D11DeviceContext *This, UINT NumViewports, D3
 	(*pRSSetViewports11)(This, NumViewports, pViewports);
 }
 
-HRESULT WINAPI extQueryInterfaceD3D8(void *obj, REFIID riid, void** ppvObj)
-{
-	HRESULT res;
-	OutTraceD3D("D3D::QueryInterface(8): d3d=%x riid=%x\n", obj, riid.Data1);
-	res=pQueryInterfaceD3D8(obj, riid, ppvObj);
-	if(res)
-		OutTraceE("D3D::QueryInterface(8): ERROR ret=%x(%s)\n", res, ExplainDDError(res));
-	else
-		OutTraceD3D("D3D::QueryInterface(8): obp=%x\n", *ppvObj);
-	return res;
-}
-
-HRESULT WINAPI extQueryInterfaceDev8(void *obj, REFIID riid, void** ppvObj)
-{
-	HRESULT res;
-	OutTraceD3D("Device::QueryInterface(8): d3d=%x riid=%x\n", obj, riid.Data1);
-	res=pQueryInterfaceDev8(obj, riid, ppvObj);
-	if(res){
-		OutTraceE("Device::QueryInterface(8): ERROR ret=%x(%s)\n", res, ExplainDDError(res));
-		return res;
-	}
-	OutTraceD3D("Device::QueryInterface(8): obp=%x\n", *ppvObj);
-
-	switch(*(DWORD *)&riid){
-	case 0x7385E5DF: // IID_IDirect3DDevice8
-		HookD3DDevice8(ppvObj);
-		break;
-	case 0xD0223B96: // IID_IDirect3DDevice9
-		HookD3DDevice9(ppvObj);
-		break;
-	}
-	return res;
-}
-
-HRESULT WINAPI extQueryInterfaceD3D9(void *obj, REFIID riid, void** ppvObj)
-{
-	HRESULT res;
-	OutTraceD3D("D3D::QueryInterface(9): d3d=%x riid=%x\n", obj, riid.Data1);
-	res=pQueryInterfaceD3D9(obj, riid, ppvObj);
-	if(res)
-		OutTraceE("D3D::QueryInterface(9): ERROR ret=%x(%s)\n", res, ExplainDDError(res));
-	else
-		OutTraceD3D("D3D::QueryInterface(9): obp=%x\n", *ppvObj);
-	return res;
-}
-
-HRESULT WINAPI extQueryInterfaceDev9(void *obj, REFIID riid, void** ppvObj)
-{
-	HRESULT res;
-
-	OutTraceD3D("Device::QueryInterface(9): d3d=%x riid=%x\n", obj, riid.Data1);
-	res=pQueryInterfaceDev9(obj, riid, ppvObj);
-	if(res){
-		OutTraceD3D("Device::QueryInterface(9): ERROR ret=%x\n", res);
-		return res;
-	}
-	OutTraceD3D("Device::QueryInterface(9): ppvObj=%x\n", *ppvObj);
-
-	switch(*(DWORD *)&riid){
-	case 0x7385E5DF: // IID_IDirect3DDevice8
-		HookD3DDevice8(ppvObj);
-		break;
-	case 0xD0223B96: // IID_IDirect3DDevice9
-		HookD3DDevice9(ppvObj);
-		break;
-	}
-
-	return res;
-}
-
 static ULONG WINAPI ReleaseDev(int d3dversion, ReleaseDev_Type pReleaseDev, void *lpdd)
 {
 	ULONG ActualRef;
@@ -1789,7 +1833,7 @@ HRESULT WINAPI extGetDirect3D8(void *lpdd3dd, void **ppD3D8)
 		OutTraceE("Device::GetDirect3D ERROR: d3dd=%x ret=%x\n", lpdd3dd, res);
 	else{
 		OutTraceD3D("Device::GetDirect3D: d3dd=%x d3d=%x\n", lpdd3dd, *ppD3D8);
-		HookDirect3D8(*ppD3D8);
+		// HookDirect3D8(*ppD3D8);
 	}
 	return res;
 }
@@ -1804,7 +1848,8 @@ HRESULT WINAPI extGetDirect3D9(void *lpdd3dd, void **ppD3D9)
 	else{
 		OutTraceD3D("Device::GetDirect3D: d3dd=%x d3d=%x\n", lpdd3dd, *ppD3D9);
 		// re-hook d3d session: neeeded for Need for Speed Underground
-		HookDirect3D9(*ppD3D9, FALSE);
+		// commented out: NFSU works also without it ....
+		// HookDirect3D9(*ppD3D9, FALSE);
 	}
 	return res;
 }
@@ -1880,6 +1925,8 @@ ULONG WINAPI extBeginScene8(void *lpdd3dd)
 	OutTraceB("Device::BeginScene(8): d3dd=%x\n", lpdd3dd);
 	res=(*pBeginScene8)(lpdd3dd);
 	if (res) OutTraceE("Device::BeginScene(8) ERROR: err=%x\n", res);
+
+	//if(dxw.dwFlags5 & TEXTURETRANSP) (*pSetRenderState8)(lpdd3dd, D3DRS_ALPHABLENDENABLE, TRUE);
 	return res;
 }
 
@@ -1889,6 +1936,8 @@ ULONG WINAPI extBeginScene9(void *lpdd3dd)
 	OutTraceB("Device::BeginScene(9): d3dd=%x\n", lpdd3dd);
 	res=(*pBeginScene9)(lpdd3dd);
 	if (res) OutTraceE("Device::BeginScene(9) ERROR: err=%x\n", res);
+
+	//if(dxw.dwFlags5 & TEXTURETRANSP) (*pSetRenderState9)(lpdd3dd, D3DRS_ALPHABLENDENABLE, TRUE);
 	return res;
 }
 

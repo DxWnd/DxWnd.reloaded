@@ -1031,6 +1031,18 @@ char *ExplainGUID(GUID FAR *lpguid)
 		case 0x54D41080: sguid="IID_IDirectInputDevice8A"; break;
 		case 0x54D41081: sguid="IID_IDirectInputDevice8W"; break;
 		case 0xE7E1F7C0: sguid="IID_IDirectInputEffect"; break;
+		case 0x1dd9e8da: sguid="IID_IDirect3D8"; break;
+		case 0x81bdcbca: sguid="IID_IDirect3D9"; break;
+		case 0x02177241: sguid="IID_IDirect3D9Ex"; break;
+		case 0x7385e5df: sguid="IID_IDirect3DDevice8"; break;
+		case 0xd0223b96: sguid="IID_IDirect3DDevice9"; break;
+		case 0xb18b10ce: sguid="IID_IDirect3DDevice9Ex"; break;
+		case 0xb4211cfa: sguid="IID_IDirect3DBaseTexture8"; break;
+		case 0xe4cdd575: sguid="IID_IDirect3DTexture8"; break;
+		case 0x580ca87e: sguid="IID_IDirect3DBaseTexture9"; break;
+		case 0x85c31227: sguid="IID_IDirect3DTexture9"; break;
+		case 0xb96eebca: sguid="IID_IDirect3DSurface8"; break;
+		case 0x0cfbaf3a: sguid="IID_IDirect3DSurface9"; break;
 		default: sguid="UNKNOWN"; break;
 	}
 	return sguid;

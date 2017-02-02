@@ -8,3 +8,4 @@ EXPORTS
 		GetHookInfo				@6
 		Inject					@7
 		GetThreadStartAddress	@8
+		GetFlagCaption			@9

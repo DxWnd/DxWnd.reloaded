@@ -528,6 +528,40 @@ static DWORD GetFlipWaitFlags(DWORD dwFlipFlags)
 	return dwFlipFlags;
 }
 
+static DWORD SetPrimaryCaps(DWORD dwCaps)
+{
+	dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
+	dwCaps |= (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE); // primary surfaces must be this way
+	dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
+	if(dwCaps & DDSCAPS_3DDEVICE) dwCaps |= DDSCAPS_LOCALVIDMEM;
+	return dwCaps;
+}
+
+static DWORD SetBackBufferCaps(DWORD dwCaps)			
+{
+	// v2.03.11: added DDSCAPS_FLIP capability to backbuffer surface: "Ignition" checks for it before Flip-ping to primary
+	dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM); // you never know....
+	dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
+	if(dwCaps & DDSCAPS_3DDEVICE) dwCaps |= DDSCAPS_LOCALVIDMEM;
+	//if(dwCaps & DDSCAPS_3DDEVICE) dwCaps |= (DDSCAPS_LOCALVIDMEM | DDSCAPS_COMPLEX);
+	return dwCaps;
+}
+
+static DWORD SetZBufferCaps(DWORD dwCaps)
+{
+	// beware! the ZBUFFER surface could have never been registered!
+	// in this case better adapt to the primary/backbuffer ones, since a ZBUFFER with no good caps won't work.
+
+	// input caps not null or simply DDSCAPS_ZBUFFER, supposedly good, don't touch ....
+	if(dwCaps & ~DDSCAPS_ZBUFFER) return dwCaps;
+
+	// ... else try to cope with primary surface caps
+	dwCaps = dxwcdb.GetCaps(dxwss.GetPrimarySurface());
+	dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);
+	dwCaps |= DDSCAPS_ZBUFFER;
+	return dwCaps;
+}
+
 static void Stopper(char *s, int line)
 {
 	char sMsg[81];
@@ -2316,6 +2350,15 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			lpddsd->ddpfPixelFormat.dwFourCC = 0;
 			lpddsd->ddpfPixelFormat.dwFlags &= ~DDPF_FOURCC;
 		}
+
+		//// try
+		//if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwRGBBitCount == 16)){
+		//	lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask = 0x8000;
+		//	lpddsd->ddpfPixelFormat.dwBBitMask = 0x001F;
+		//	lpddsd->ddpfPixelFormat.dwGBitMask = 0x03E0;
+		//	lpddsd->ddpfPixelFormat.dwRBitMask = 0x7C00;
+		//}
+		//// try
 		return;
 	}
 
@@ -2335,8 +2378,6 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 		return;
 	}
 
-
-	
 	// 3DDEVICE no TEXTURE: enforce PIXELFORMAT
 	// v2.02.90: added for "Zoo Tycoon" textures
 	// v2.03.48 - there are two situations
@@ -4550,7 +4591,7 @@ static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttached
 		}
 		//else if (IsBack) {
 		else {
-			// v2.02.13: emulate ZBUFFER attach to backbuffer: do nothing and return OK
+			// v2.02.13: emulate ZBUFFER attach to backbuffer/plain surface: do nothing and return OK
 			// this trick makes at least "Nocturne" work also in emulated mode when hardware acceleration
 			// is set in the game "Options" menu. 
 			if (sd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) // DDSCAPS_BACKBUFFER for double buffering ???
@@ -4558,6 +4599,40 @@ static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttached
 				OutTraceDW("AddAttachedSurface: emulating ZBUFFER attach on %s surface\n", IsBack ? "BACKBUFFER" : "PLAIN");
 				if (pAddRefS) (*pAddRefS)(lpdds);
 				res=DD_OK;
+			}
+		}
+	}
+	else {
+		// AddAttachedSurface successful, manage CAPS propagation
+		if ((dxw.dwFlags1 & EMULATESURFACE) && (IsPrim || IsBack)){
+		}
+		HRESULT sdres;
+		DDSURFACEDESC2 sd;
+		sd.dwSize=Set_dwSize_From_Surface();
+		sdres=lpddsadd->GetSurfaceDesc((DDSURFACEDESC *)&sd);
+		if (sdres) 
+			OutTraceE("AddAttachedSurface: GetSurfaceDesc ERROR res=%x at %d\n", sdres, __LINE__);
+		else
+			OutTraceDW("AddAttachedSurface: GetSurfaceDesc dwCaps=%x(%s)\n", 
+				sd.ddsCaps.dwCaps, ExplainDDSCaps(sd.ddsCaps.dwCaps));
+		if (IsPrim){
+			if (sd.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER)
+			OutTraceDW("AddAttachedSurface: registering BACKBUFFER attach on PRIMARY\n");
+			dxwss.PushBackBufferSurface(lpddsadd, 1);
+		}
+		//else if (IsBack) or plain surface for ZBUFFER {
+		else {
+			// v2.02.13: emulate ZBUFFER attach to backbuffer/plain surface
+			if ((sd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) && (dxw.dwFlags1 & EMULATESURFACE)){
+				DWORD dwCaps;
+				OutTraceDW("AddAttachedSurface: registering ZBUFFER attach on %s surface\n", IsBack ? "BACKBUFFER" : "PLAIN");
+				dwCaps = dxwcdb.GetCaps(lpdds);
+				if(dwCaps){
+					dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);
+					dwCaps |= DDSCAPS_ZBUFFER;
+					//if(dwCaps & DDSCAPS_VIDEOMEMORY) dwCaps|=DDSCAPS_LOCALVIDMEM;
+					dxwcdb.PushCaps(lpddsadd, dwCaps);
+				}
 			}
 		}
 	}
@@ -4644,33 +4719,18 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 	while(TRUE){ // fake loop
 		if (IsPrim) {
 			IsFixed=TRUE;
-			caps->dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
-			caps->dwCaps |= DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE; // primary surfaces must be this way
-			caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
-			if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= DDSCAPS_LOCALVIDMEM;
+			caps->dwCaps = SetPrimaryCaps(caps->dwCaps);
+			break;
 		}
-
 		if (IsBack) {
 			IsFixed=TRUE;
-			// v2.03.11: added DDSCAPS_FLIP capability to backbuffer surface: "Ignition" checks for it before Flip-ping to primary
-			caps->dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM); // you never know....
-			caps->dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
-			if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= DDSCAPS_LOCALVIDMEM;
-			//if(caps->dwCaps & DDSCAPS_3DDEVICE) caps->dwCaps |= (DDSCAPS_LOCALVIDMEM | DDSCAPS_COMPLEX);
+			caps->dwCaps = SetBackBufferCaps(caps->dwCaps);
+			break;
 		}
-
-		// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
-		// v2.03.90: "Galapagos" fix - if there's a DDSCAPS_SYSTEMMEMORY or DDSCAPS_VIDEOMEMORY spec, let it be.
-		// v2.03.97: "Galapagos" fix erased.
 		if (IsZBuf) {
-			DWORD dwCaps = dxwcdb.GetCaps(lpdds);
-			// beware! the ZBUFFER surface could have never been registered!
-			// in this case better keep the original capabilities (or adapt to the primary/backbuffer ones?)
-			if(dwCaps) {
-				IsFixed=TRUE;
-				sLabel="(REG.ZBUFFER)";
-				caps->dwCaps = dwCaps; 
-			}
+			IsFixed=TRUE;
+			caps->dwCaps = SetZBufferCaps(dxwcdb.GetCaps(lpdds));
+			break;
 		}
 		break; // inconditional break;
 	}
@@ -4738,36 +4798,22 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 		if (IsPrim) {
 			IsFixed=TRUE;
 			if (dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
-			lpddsd->ddsCaps.dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
-			lpddsd->ddsCaps.dwCaps |= (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE); // primary surfaces must be this way
-			lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
-			if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
+			lpddsd->ddsCaps.dwCaps = SetPrimaryCaps(lpddsd->ddsCaps.dwCaps);
 			lpddsd->dwBackBufferCount=DDSD_Prim.dwBackBufferCount;
 			lpddsd->dwHeight=dxw.GetScreenHeight();
 			lpddsd->dwWidth=dxw.GetScreenWidth();
 			break;
 		}
-
 		if (IsBack) {
 			IsFixed=TRUE;
-			// flags that backbuffer surfaces must have set
-			lpddsd->ddsCaps.dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM);; 
-			lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
-			if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) lpddsd->ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM;
+			lpddsd->ddsCaps.dwCaps = SetBackBufferCaps(lpddsd->ddsCaps.dwCaps);
 			break;
 		}
-
-		// v2.03.82: fixed logic for ZBUFFER capabilities: "The Creed" may have two, in SYSTEMMEMORY or in VIDEOMEMORY ...
-		if(IsZBuf) {
-			DWORD dwCaps = dxwcdb.GetCaps(lpdds);
-			if(dwCaps) {
-				IsFixed=TRUE;
-				sLabel="(REG.ZBUFFER)";
-				lpddsd->ddsCaps.dwCaps = dwCaps;
-			}
+		if (IsZBuf) {
+			IsFixed=TRUE;
+			lpddsd->ddsCaps.dwCaps = SetZBufferCaps(dxwcdb.GetCaps(lpdds));
 			break;
 		}
-
 		break; // inconditional break
 	}
 	

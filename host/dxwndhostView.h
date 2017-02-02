@@ -116,6 +116,7 @@ protected:
 	afx_msg void OnMoveDown();
 	afx_msg void OnMoveBottom();
 	afx_msg void OnDropFiles(HDROP hDropInfo);
+	afx_msg void OnViewFlags();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

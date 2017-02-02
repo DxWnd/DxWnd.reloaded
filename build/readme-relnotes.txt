@@ -1494,3 +1494,14 @@ fix: version hooking for IDIrectDraw methods called by IDIrectDrawSurface method
 fix: capability registration passed in IDIrectDrawSurface::QueryInterface() calls: fixes settings for ZBUFFER surfaces
 fix: capsdb logging (developer's use only)
 fix: handling of WM_NCCALCSIZE & WM_NCPAINT messages in winproc hooker to align behaviour to comment. To be tested ...
+
+v2.04.10
+GUI:
+add: view flags window (expert mode only)
+DLL:
+fix: prevent InvalidateRect on desktop, eliminates some flickering
+fix: ZBUFFER capability management - fixes "Galapagos" in HW mode (but it may crash because of the intro movie...)
+fix: logging of log flags
+fix: D3D8/9 QueryInterface fully revisited 
+add: (very) preliminary texture transparency hack
+

@@ -1,2 +1,5 @@
-OnRun idx=28 prog="D:\Games\ManTT\MANXTT.EXE" unhooked=0
+OnRun idx=36 prog="D:\Games\International Football 2000\MSIF2000.ICD" unhooked=0
+setwindowshook mode
+OnRun idx=36 prog="D:\Games\International Football 2000\MSIF2000.ICD" unhooked=0
+self elevation
 setwindowshook mode

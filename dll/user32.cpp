@@ -631,6 +631,10 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		OutTrace("InvalidateRect: hwnd=%x rect=%s erase=%x\n", hwnd, sRect, bErase);
 	}
 
+	if(dxw.IsRealDesktop(hwnd)){
+		hwnd = dxw.GethWnd();
+	}
+
 	RECT ScaledRect;
 	if(dxw.IsFullScreen()) { 
 		switch(dxw.GDIEmulationMode){
@@ -2513,6 +2517,7 @@ BOOL WINAPI extEndPaint(HWND hwnd, const PAINTSTRUCT *lpPaint)
 HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpTemplate, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM lParamInit)
 {
 	HWND RetHWND;
+
 	OutTraceDW("CreateDialogIndirectParam: hInstance=%x lpTemplate=(style=%x extstyle=%x items=%d pos=(%d,%d) size=(%dx%d)) hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, 
 		lpTemplate->style, lpTemplate->dwExtendedStyle, lpTemplate->cdit, lpTemplate->x, lpTemplate->y, lpTemplate->cx, lpTemplate->cy,

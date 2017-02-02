@@ -1175,6 +1175,10 @@ HRESULT WINAPI extSetRenderState(int version, SetRenderState3_Type pSetRenderSta
 		OutTraceD3D("SetRenderState: FIXED State=FOGENABLE Value=%x->FALSE\n", Value);
 		Value = FALSE;
 	}
+	if((dxw.dwFlags5 & TEXTURETRANSP) && (State == D3DRENDERSTATE_ALPHABLENDENABLE)){
+		OutTraceD3D("SetRenderState: FIXED State=ALPHABLENDENABLE Value=%x->TRUE\n", Value);
+		Value = TRUE;
+	}
 
 	// beware!!! likely this code would work for interface version 3 only !!!
 	if((State==D3DRENDERSTATE_ZWRITEENABLE) && (Value==TRUE) && (dxw.dwFlags8 & DYNAMICZCLEAN)){
