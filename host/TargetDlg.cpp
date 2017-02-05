@@ -12,6 +12,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+extern BOOL KillProcByName(char *, BOOL, BOOL);
 extern BOOL gbDebug;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -141,27 +142,23 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_Wow32Registry = FALSE; 
 	m_FullScreenOnly = FALSE; 
 	m_ShowHints = FALSE; 
-	//m_FilterMessages = FALSE; 
+	m_BackgroundPriority = FALSE; 
 	m_PeekAllMessages = FALSE; 
 	m_NoWinPosChanges = FALSE; 
 	m_MessagePump = FALSE; 
+	m_ClipMenu = FALSE;
 	m_NoBanner = FALSE;
 	m_FilePath = _T("");
 	m_Module = _T("");
-	//m_SaveLoad = FALSE;
 	m_SlowDown = FALSE;
 	m_BlitFromBackBuffer = FALSE;
 	m_NoFlipEmulation = FALSE;
 	m_LockColorDepth = FALSE;
-	//m_SuppressClipping = FALSE;
-	//m_ForceClipper = FALSE;
 	m_DisableGammaRamp = FALSE;
 	m_AutoRefresh = FALSE;
 	m_IndependentRefresh = FALSE;
 	m_TextureFormat = FALSE;
 	m_FixWinFrame = FALSE;
-	//m_EnableClipping = FALSE;
-	//m_CursorClipping = FALSE;
 	m_VideoToSystemMem = FALSE;
 	m_FixTextOut = FALSE;
 	m_SharedDC = FALSE; 
@@ -423,18 +420,17 @@ void CTargetDlg::OnBnClickedKill()
 	char FilePath[MAX_PATH+1];
 	char *lpProcName, *lpNext;
 	HRESULT res;
-	extern BOOL KillProcByName(char *, BOOL);
 
 	strncpy(FilePath, m_FilePath.GetBuffer(), MAX_PATH);
 	lpProcName=FilePath;
 	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
 
-	if(!KillProcByName(lpProcName, FALSE)){
+	if(!KillProcByName(lpProcName, FALSE, FALSE)){
 		wchar_t *wcstring = new wchar_t[48+1];
 		mbstowcs_s(NULL, wcstring, 48, lpProcName, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
-		KillProcByName(lpProcName, TRUE);
+		KillProcByName(lpProcName, TRUE, FALSE);
 	}
 	else{
 		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);

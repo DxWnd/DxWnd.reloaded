@@ -1,0 +1,14 @@
+OnRun idx=0 prog="F:\Games\ManTT\MANXTT.EXE" unhooked=0
+setwindowshook mode
+OnRun idx=31 prog="D:\Games\International Football 2000\MSIF2000.exe" unhooked=0
+setwindowshook mode
+OnRun idx=31 prog="D:\Games\International Football 2000\MSIF2000.exe" unhooked=0
+setwindowshook mode
+OnRun idx=34 prog="D:\Games\The Settlers 3 - Ultimate Collection\S3.EXE" unhooked=0
+setwindowshook mode
+OnRun idx=34 prog="D:\Games\The Settlers 3 - Ultimate Collection\S3.EXE" unhooked=0
+setwindowshook mode
+OnRun idx=34 prog="D:\Games\The Settlers 3 - Ultimate Collection\S3.EXE" unhooked=1
+setwindowshook mode
+OnRun idx=35 prog="F:\Games\Dungeon Odyssey Demo\DungOdy.exe" unhooked=0
+setwindowshook mode

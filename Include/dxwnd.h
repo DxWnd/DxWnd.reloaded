@@ -272,6 +272,8 @@
 #define DUMPDEVCONTEXT		0x00100000 // dumps source HDC to BMP files for debugging purposes
 #define QUALITYFONTS		0x00200000 // Forces adoption of high quality fonts (CLEARTYPE_NATURAL_QUALITY)
 #define ALLOWSYSMEMON3DDEV	0x00400000 // Suppress DDSCAPS_SYSTEMMEMORY option when DDSCAPS_3DDEVICE is set
+#define CLIPMENU			0x00800000 // Include window menu in mouse clipper area
+#define BACKGROUNDPRIORITY	0x01000000 // Lower process priority when in background state
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

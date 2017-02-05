@@ -158,7 +158,8 @@ static HookEntryEx_Type RemapHooks[]={
 
 static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "FrameRect", (FARPROC)FrameRect, (FARPROC *)&pFrameRect, (FARPROC)extFrameRect}, 
-	{HOOK_IAT_CANDIDATE, 0, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
+	// commented ot, dangerous: see comments
+	//{HOOK_IAT_CANDIDATE, 0, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
 	{HOOK_HOT_CANDIDATE, 0, "InvalidateRgn", (FARPROC)InvalidateRgn, (FARPROC *)&pInvalidateRgn, (FARPROC)extInvalidateRgn},
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutW", (FARPROC)TabbedTextOutW, (FARPROC *)&pTabbedTextOutW, (FARPROC)extTabbedTextOutW},
@@ -1158,6 +1159,17 @@ static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HW
 		OutTraceC("GetCursorPos: FIXED pos=(%d,%d)->(%d,%d)\n", lpMsg->pt.x, lpMsg->pt.y, point.x, point.y);
 		lpMsg->pt = point;
 	}
+
+	// to do? syncronize with extWindowProc code ....
+	//if(dxw.dwFlags2 & FORCEWINRESIZE){
+	//	extern BOOL IsWindowMovingMessage(int);
+	//	if(IsWindowMovingMessage(lpMsg->message)){
+	//		(*pGetMessageA)(lpMsg, hwnd, lpMsg->message, lpMsg->message);
+	//		TranslateMessage(lpMsg);
+	//		DispatchMessage(lpMsg);
+	//		return 0;
+	//	}
+	//}
 
 	if(dxw.dwFlags1 & SLOWDOWN) (*pSleep)(1);
 
@@ -3805,16 +3817,12 @@ BOOL extScrollWindow(HWND hWnd, int XAmount, int YAmount, const RECT *lpRect, co
 	return res;
 }
 
+// commented out, too dangerous. Known side effects:
+// 1) Recursion on HOT PATCH mode (or forever loop?)
+// 2) blanked dialog boxes in Galapagos
+// In any case, if useful somehow, it should not be hooked on GDImode != NONE condition
+
 #if 0
-// avoid invalidating whole desktop!!!
-BOOL InvalidateRgn(
-  _In_ HWND hWnd,
-  _In_ HRGN hRgn,
-  _In_ BOOL bErase
-);
-
-#endif
-
 HWND WINAPI extGetParent(HWND hWnd)
 {
 	// Beware: can cause recursion on HOT PATCH mode
@@ -3832,6 +3840,7 @@ HWND WINAPI extGetParent(HWND hWnd)
 
 	return ret;
 }
+#endif
 
 BOOL WINAPI extInvalidateRgn(HWND hWnd, HRGN hRgn, BOOL bErase)
 {
@@ -4111,24 +4120,14 @@ BOOL WINAPI extEnumWindows(WNDENUMPROC lpEnumFunc, LPARAM lParam)
 
 static void RedirectCoordinates(LPRECT lpRect)
 {
-	BOOL IsBiggerThanWin;
-	BOOL IsBiggerThanScreen;
-	long w, h;
-	// try to determine if the coordinates could belong to a fullscreen main win
-	w = lpRect->right - lpRect->left;
-	h = lpRect->bottom - lpRect->top;
-	IsBiggerThanWin = (w >= dxw.iSizX) && (h >= dxw.iSizY);
-	IsBiggerThanScreen = (w >= (long)dxw.GetScreenWidth()) && (h >= (long)dxw.GetScreenHeight()); 
-	if(IsBiggerThanWin || IsBiggerThanScreen){
-		WINDOWPOS wp;
-		dxw.CalculateWindowPos(NULL, dxw.GetScreenWidth(), dxw.GetScreenHeight(), &wp);
-		lpRect->left = wp.x;
-		lpRect->right = wp.x + wp.cx;
-		lpRect->top = wp.y;
-		lpRect->bottom = wp.y + wp.cy;
-		OutTraceDW("AdjustWindowRect: FIX rect=(%d,%d)-(%d,%d)\n",
-		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-	}
+	WINDOWPOS wp;
+	dxw.CalculateWindowPos(NULL, dxw.GetScreenWidth(), dxw.GetScreenHeight(), &wp);
+	lpRect->left = wp.x;
+	lpRect->right = wp.x + wp.cx;
+	lpRect->top = wp.y;
+	lpRect->bottom = wp.y + wp.cy;
+	OutTraceDW("AdjustWindowRect: FIX rect=(%d,%d)-(%d,%d)\n",
+	lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
 }
 
 BOOL WINAPI extAdjustWindowRect(LPRECT lpRect, DWORD dwStyle, BOOL bMenu)
@@ -4138,7 +4137,8 @@ BOOL WINAPI extAdjustWindowRect(LPRECT lpRect, DWORD dwStyle, BOOL bMenu)
 		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom,
 		dwStyle, ExplainStyle(dwStyle), bMenu);
 
-	if(dxw.dwFlags1 & LOCKWINPOS) RedirectCoordinates(lpRect);
+	//if(dxw.dwFlags2 & FORCEWINRESIZE) 
+	if(dxw.Windowize) RedirectCoordinates(lpRect);
 
 	ret = pAdjustWindowRect(lpRect, dwStyle, bMenu);
 
@@ -4159,7 +4159,8 @@ BOOL WINAPI extAdjustWindowRectEx(LPRECT lpRect, DWORD dwStyle, BOOL bMenu, DWOR
 		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom,
 		dwStyle, ExplainStyle(dwStyle), bMenu, dwExStyle, ExplainExStyle(dwExStyle));
 
-	if(dxw.dwFlags1 & LOCKWINPOS) RedirectCoordinates(lpRect);
+	//if(dxw.dwFlags2 & FORCEWINRESIZE) 
+	if(dxw.Windowize) RedirectCoordinates(lpRect);
 
 	ret = pAdjustWindowRectEx(lpRect, dwStyle, bMenu, dwExStyle);
 

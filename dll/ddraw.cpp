@@ -353,7 +353,6 @@ GetScanLine_Type pGetScanLine1, pGetScanLine2, pGetScanLine3, pGetScanLine4, pGe
 
 /* DirectDrawSurface hook pointers */
 QueryInterface_Type pQueryInterfaceS1, pQueryInterfaceS2, pQueryInterfaceS3, pQueryInterfaceS4, pQueryInterfaceS7;
-AddRefS_Type pAddRefS;
 ReleaseS_Type pReleaseS1, pReleaseS2, pReleaseS3, pReleaseS4, pReleaseS7;
 AddAttachedSurface_Type pAddAttachedSurface1, pAddAttachedSurface2, pAddAttachedSurface3, pAddAttachedSurface4, pAddAttachedSurface7;
 AddOverlayDirtyRect_Type pAddOverlayDirtyRect;
@@ -2502,10 +2501,13 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 		//if(dxw.dwFlags6 & SETZBUFFERBITDEPTHS){
 		//	if (lpDDZBuffer && (lpddsc->dwCaps & DDSCAPS_ZBUFFER)){ 
 		//		*lplpddas = lpDDZBuffer;
-		//		OutTraceDW("GetAttachedSurface(%d): SIMULATE ZBUFFER attach to %s=%x\n", dxversion, IsPrim?"PRIM":"BACK", lpdds); 
+		//		OutTraceDW("GetAttachedSurface(%d): SIMULATE ZBUFFER attach to %s=%x add=%x\n", 
+		//			dxversion, IsPrim?"PRIM":(IsBack?"BACK":"PLAIN"), lpdds, lpDDZBuffer); 
+		//		//if (pAddRefS) (*pAddRefS)(lpDDZBuffer); 
+		//		lpDDZBuffer->AddRef();
 		//		return DD_OK;
 		//	}
-		//}
+		//} 
 
 		OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
 	}
@@ -4586,7 +4588,6 @@ static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttached
 				(res==DDERR_NOEXCLUSIVEMODE))
 			OutTraceDW("AddAttachedSurface: emulating BACKBUFFER attach on PRIMARY\n");
 			dxwss.PushBackBufferSurface(lpddsadd, 1);
-			if (pAddRefS) (*pAddRefS)(lpdds);
 			res=DD_OK;
 		}
 		//else if (IsBack) {
@@ -4597,7 +4598,6 @@ static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttached
 			if (sd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) // DDSCAPS_BACKBUFFER for double buffering ???
 			if ((dxw.dwFlags1 & EMULATESURFACE) && (res==DDERR_CANNOTATTACHSURFACE)){
 				OutTraceDW("AddAttachedSurface: emulating ZBUFFER attach on %s surface\n", IsBack ? "BACKBUFFER" : "PLAIN");
-				if (pAddRefS) (*pAddRefS)(lpdds);
 				res=DD_OK;
 			}
 		}
@@ -4862,6 +4862,7 @@ static ULONG WINAPI extReleaseD(int dxversion, ReleaseD_Type pReleaseD, LPDIRECT
 			if(dxw.dwFlags1 & EMULATESURFACE){
 				if(lpDDSEmu_Prim) --VirtualRef;
 				if(lpDDSEmu_Back) --VirtualRef;
+				if(lpDDZBuffer) --VirtualRef; // is it correct ? Inserted to fix "Microsoft International Soccer 2000" in hw mode
 			}
 			if(VirtualRef<0) VirtualRef=0;
 			OutTraceDW("Release(D): fixed ref counter %d->%d\n", ActualRef, VirtualRef);

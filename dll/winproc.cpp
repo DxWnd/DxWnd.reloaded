@@ -196,6 +196,13 @@ static void dx_Cornerize(HWND hwnd)
 
 LRESULT LastCursorPos;
 
+void SetIdlePriority(BOOL idle)
+{
+	OutTrace("Setting priority class to %s\n", idle ? "IDLE_PRIORITY_CLASS" : "NORMAL_PRIORITY_CLASS");
+	if(!SetPriorityClass(GetCurrentProcess(), idle ? IDLE_PRIORITY_CLASS : NORMAL_PRIORITY_CLASS))
+		OutTraceE("SetPriorityClass ERROR: err=%d at %d\n", GetLastError(), __LINE__);
+}
+
 void ExplainMsg(char *ApiName, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	char sPos[161];
@@ -219,12 +226,27 @@ void ExplainMsg(char *ApiName, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam
 	OutTrace("%s[%x]: WinMsg=[0x%x]%s(%x,%x) %s\n", ApiName, hwnd, Msg, ExplainWinMessage(Msg), wParam, lParam, sPos);
 }
 
+static BOOL IsWindowMovingMessage(int msg)
+{
+	switch(msg){
+		// minimum set for win move/resize on Win10
+		case WM_NCLBUTTONDOWN:
+		case WM_NCLBUTTONUP:
+		case WM_WINDOWPOSCHANGED:
+		case WM_WINDOWPOSCHANGING:
+		case WM_STYLECHANGING: 
+		case WM_STYLECHANGED: 
+			return TRUE;
+			break;
+	}
+	return FALSE;
+}
+
 LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	POINT prev, curr;
 	RECT rect;
 	static int i=0;
-	static int ClipCursorToggleState = 0;
 	WNDPROC pWindowProc;
 	extern void dxwFixWindowPos(char *, HWND, LPARAM);
 	extern LPRECT lpClipRegion;
@@ -236,20 +258,9 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	extern void DDrawScreenShot(int);
 
 	if(DoOnce){
-		RECT cliprect;
-		BOOL clipret;
 		DoOnce=FALSE;
 		IsToBeLocked=(dxw.dwFlags1 & LOCKWINPOS);
 		LastTimeShift=SaveTimeShift=dxw.TimeShift;
-		clipret = (*pGetClipCursor)(&cliprect);
-		// v2.04.06: you always get a clipper area. To tell that the clipper is NOT active for your window 
-		// you can compare the clipper area with the whole desktop. If they are equivalent, you have no 
-		// clipper (or you are in fullscreen mode, but that is equivalent).
-		ClipCursorToggleState = TRUE;
-		if (((cliprect.right - cliprect.left) == (*pGetSystemMetrics)(SM_CXVIRTUALSCREEN)) && 
-			((cliprect.bottom - cliprect.top) == (*pGetSystemMetrics)(SM_CYVIRTUALSCREEN))) 
-			ClipCursorToggleState = FALSE;
-		OutTraceDW("Initial clipper status=%x\n", ClipCursorToggleState);
 	}
 
 	// v2.1.93: adjust clipping region
@@ -278,6 +289,16 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 				OutTraceDW("WindowProc[%x]: DEFAULT WinMsg=[0x%x]%s(%x,%x)\n", hwnd, message, ExplainWinMessage(message), wparam, lparam);
 				return (*pDefWindowProcA)(hwnd, message, wparam, lparam);
 			}
+		}
+	}
+
+	// v2.04.11: the processing of al least WM_WINPOSCHANG-ING/ED for "Man TT Superbike" must be placed
+	// here, before and avoiding the call to the original callback because of the AdjustWindowRect that
+	// is inside the callback and would keep the position fixed.
+	if(dxw.dwFlags2 & FORCEWINRESIZE){ 
+		//ExplainMsg("WindowProc", hwnd, message, wparam, lparam);
+		if(IsWindowMovingMessage(message)){
+			return (*pDefWindowProcA)(hwnd, message, wparam, lparam);
 		}
 	}
 
@@ -397,8 +418,11 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			dxw.dwFlags1 &= ~LOCKWINPOS;
 		}
 		while((*pShowCursor)(1) < 0);
-		if((dxw.dwFlags1 & CLIPCURSOR) && !(dxw.dwFlags8 & CLIPLOCKED)) dxw.EraseClipCursor();
-		if(dxw.dwFlags1 & DISABLECLIPPING) dxw.EraseClipCursor();
+		if (
+			((dxw.dwFlags1 & CLIPCURSOR) && !(dxw.dwFlags8 & CLIPLOCKED)) ||
+			(dxw.dwFlags1 & DISABLECLIPPING)) {
+			dxw.EraseClipCursor();
+		}
 		break;
 	case WM_EXITSIZEMOVE:
 		if(IsToBeLocked){
@@ -480,8 +504,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_MBUTTONUP:
 	case WM_MBUTTONDBLCLK:
 		if(dxw.Windowize){
-			if((dxw.dwFlags1 & CLIPCURSOR) && !ClipCursorToggleState) {
-				ClipCursorToggleState = TRUE;
+			if((dxw.dwFlags1 & CLIPCURSOR) && !dxw.IsClipCursorActive()) {
 				dxw.SetClipCursor();
 			}
 			if((dxw.dwFlags1 & MODIFYMOUSE) && !(dxw.dwFlags1 & MESSAGEPROC)){ // mouse processing  
@@ -505,15 +528,19 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 	case WM_SETFOCUS:
 		OutTraceDW("WindowProc: hwnd=%x GOT FOCUS\n", hwnd);
 		if(dxw.dwFlags1 & CLIPCURSOR) {
-			ClipCursorToggleState = TRUE;
 			dxw.SetClipCursor();
 		}
 		if (dxw.dwFlags1 & DISABLECLIPPING) extClipCursor(lpClipRegion);
+		if (dxw.dwFlags8 & BACKGROUNDPRIORITY) SetIdlePriority(FALSE);
 		break;
 	case WM_KILLFOCUS:
 		OutTraceDW("WindowProc: hwnd=%x LOST FOCUS\n", hwnd);
-		if((dxw.dwFlags1 & CLIPCURSOR) && !(dxw.dwFlags8 & CLIPLOCKED)) dxw.EraseClipCursor();
-		if (dxw.dwFlags1 & DISABLECLIPPING) dxw.EraseClipCursor();
+		if (
+			((dxw.dwFlags1 & CLIPCURSOR) && !(dxw.dwFlags8 & CLIPLOCKED)) ||
+			(dxw.dwFlags1 & DISABLECLIPPING)){
+			dxw.EraseClipCursor();
+		}
+		if (dxw.dwFlags8 & BACKGROUNDPRIORITY) SetIdlePriority(TRUE);
 		break;
 	case WM_SYSCOMMAND:
 		// v2.03.56.fix1 by FunkyFr3sh: ensure that "C&C Red Alert 2" receives the WM_SYSCOMMAND / SC_CLOSE message
@@ -570,9 +597,8 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		DxWndKey=dxw.MapKeysConfig(message, lparam, wparam);
 		switch (DxWndKey){
 		case DXVK_CLIPTOGGLE:
-			OutTraceDW("WindowProc: WM_SYSKEYDOWN key=%x ToggleState=%x\n", wparam, ClipCursorToggleState);
-			ClipCursorToggleState = !ClipCursorToggleState;
-			ClipCursorToggleState ? dxw.SetClipCursor() : dxw.EraseClipCursor();
+			OutTraceDW("WindowProc: WM_SYSKEYDOWN key=%x clipper=%x\n", wparam, dxw.IsClipCursorActive());
+			dxw.IsClipCursorActive() ? dxw.EraseClipCursor() : dxw.SetClipCursor();
 			break;
 		case DXVK_REFRESH:
 			dxw.ScreenRefresh();

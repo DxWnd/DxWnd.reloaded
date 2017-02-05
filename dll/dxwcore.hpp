@@ -74,6 +74,8 @@ public: // methods
 	void FixNCHITCursorPos(LPPOINT);
 	void SetClipCursor(void);
 	void EraseClipCursor(void);
+	void InitializeClipCursorState(void);
+	BOOL IsClipCursorActive(void);
 	BOOL IsValidMainWindow();
 	RECT MapWindowRect(LPRECT);
 	RECT MapWindowRect(void);
@@ -232,6 +234,7 @@ private:
 	#define MAXREFRESHDELAYCOUNT 20
 	int iRefreshDelays[MAXREFRESHDELAYCOUNT];
 	int iRefreshDelayCount;
+	BOOL ClipCursorToggleState;
 };
 
 class dxwSStack

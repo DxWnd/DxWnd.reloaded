@@ -14,6 +14,8 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+extern int KillProcByName(char *, BOOL, BOOL);
+
 /////////////////////////////////////////////////////////////////////////////
 // CDxwndhostApp
 
@@ -105,8 +107,7 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 		}
 		if (sParam.MakeLower() == "e"){
 			// Exit (kill) existing DxWnd session
-			extern int KillProcByName(char *, BOOL);
-			KillProcByName("DxWnd.exe", TRUE);
+			KillProcByName("DxWnd.exe", TRUE, FALSE);
 			exit(0);
 		}
 		if (sParam.Left(2).MakeLower() == "r:"){

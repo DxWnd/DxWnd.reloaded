@@ -434,6 +434,28 @@ void dxwCore::FixNCHITCursorPos(LPPOINT lppoint)
 	if(lppoint->y > (LONG)dxw.GetScreenHeight()-CLIP_TOLERANCE) lppoint->y=dxw.GetScreenHeight()-1;
 }
 
+void dxwCore::InitializeClipCursorState(void)
+{
+	RECT cliprect;
+	BOOL clipret;
+	clipret = (*pGetClipCursor)(&cliprect);
+	// v2.04.06: you always get a clipper area. To tell that the clipper is NOT active for your window 
+	// you can compare the clipper area with the whole desktop. If they are equivalent, you have no 
+	// clipper (or you are in fullscreen mode, but that is equivalent).
+	ClipCursorToggleState = TRUE;
+	if (((cliprect.right - cliprect.left) == (*pGetSystemMetrics)(SM_CXVIRTUALSCREEN)) && 
+		((cliprect.bottom - cliprect.top) == (*pGetSystemMetrics)(SM_CYVIRTUALSCREEN))) 
+		ClipCursorToggleState = FALSE;
+	OutTraceDW("Initial clipper status=%x\n", ClipCursorToggleState);
+}
+
+BOOL dxwCore::IsClipCursorActive(void)
+{
+	static BOOL bDoOnce = TRUE;
+	if (bDoOnce) InitializeClipCursorState();
+	return ClipCursorToggleState;
+}
+
 void dxwCore::SetClipCursor()
 {
 	RECT Rect;
@@ -463,13 +485,22 @@ void dxwCore::SetClipCursor()
 	Rect.top+=UpLeftCorner.y;
 	Rect.bottom+=UpLeftCorner.y;
 
-//	if(0) {
-//		if(GetMenu(hWnd)) Rect.top -= (*pGetSystemMetrics)(SM_CYMENU);
-//	}
+	if(dwFlags8 & CLIPMENU) {
+		// v2.04.11:
+		// if flag set and the window has a menu, extend the mouse clipper area to allow reaching the manu
+		// implementation is partial: doesn't take in account multi-lines menues or menus positioned
+		// not on the top of the window client area, but it seems good for the most cases.
+		if(GetMenu(hWnd)) Rect.top -= (*pGetSystemMetrics)(SM_CYMENU);
+	}
 
 	(*pClipCursor)(NULL);
-	if(!(*pClipCursor)(&Rect))
+	if((*pClipCursor)(&Rect)){
+		ClipCursorToggleState = TRUE;
+	}
+	else{
 		OutTraceE("SetClipCursor: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	}
+
 	OutTraceDW("SetClipCursor: rect=(%d,%d)-(%d,%d)\n",
 		Rect.left, Rect.top, Rect.right, Rect.bottom);
 }
@@ -478,6 +509,7 @@ void dxwCore::EraseClipCursor()
 {
 	OutTraceDW("EraseClipCursor:\n");
 	(*pClipCursor)(NULL);
+	ClipCursorToggleState = FALSE;
 }
 
 void dxwCore::SethWnd(HWND hwnd) 

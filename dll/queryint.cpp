@@ -83,7 +83,7 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 		iObjectType=TYPE_OBJECT_DIRECT3D; iObjectVersion=3; break;
 	case 0xf5049e77: // IID_IDirect3D7
 		iObjectType=TYPE_OBJECT_DIRECT3D; iObjectVersion=7; break;
-	// Direct3DDevice
+	// Direct3DDevice 
 	case 0x84e63de0: // IID_IDirect3DHALDevice
 		iObjectType=TYPE_OBJECT_D3DDEVICE; iObjectVersion=1; break;
 	case 0xA4665C60: // IID_IDirect3DRGBDevice

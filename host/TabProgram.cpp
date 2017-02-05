@@ -106,6 +106,7 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_TERMINATEONCLOSE, cTarget->m_TerminateOnClose);
 	DDX_Check(pDX, IDC_FULLSCREENONLY, cTarget->m_FullScreenOnly);
 	DDX_Check(pDX, IDC_SHOWHINTS, cTarget->m_ShowHints);
+	DDX_Check(pDX, IDC_BACKGROUNDPRIORITY, cTarget->m_BackgroundPriority);
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);
 	DDX_Check(pDX, IDC_HIDEDESKTOP, cTarget->m_HideDesktop);

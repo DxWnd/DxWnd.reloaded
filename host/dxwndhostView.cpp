@@ -33,7 +33,7 @@ extern UINT m_StartToTray;
 extern UINT m_InitialState;
 extern char m_ConfigFileName[20+1];
 extern BOOL Inject(DWORD, const char *);
-extern int KillProcByName(char *, BOOL);
+extern int KillProcByName(char *, BOOL, BOOL);
 extern BOOL gTransientMode;
 extern BOOL gAutoHideMode;
 extern BOOL gbDebug;
@@ -126,6 +126,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_PDUPLICATE, OnDuplicate)
 	ON_COMMAND(ID_PEXPORT, OnExport)
 	ON_COMMAND(ID_PKILL, OnProcessKill)
+	ON_COMMAND(ID_PKILLALL, OnProcessKillAll)
 	ON_COMMAND(ID_FILE_IMPORT, OnImport)
 	ON_COMMAND(ID_DELETE, OnDelete)
 	ON_COMMAND(ID_FILE_SORTPROGRAMSLIST, OnSort)
@@ -225,9 +226,11 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_HotPatch) t->flags4 |= HOTPATCH;
 	if(dlg->m_FullScreenOnly) t->flags3 |= FULLSCREENONLY;
 	if(dlg->m_ShowHints) t->flags7 |= SHOWHINTS;
+	if(dlg->m_BackgroundPriority) t->flags8 |= BACKGROUNDPRIORITY;
 	if(dlg->m_PeekAllMessages) t->flags3 |= PEEKALLMESSAGES;
 	if(dlg->m_NoWinPosChanges) t->flags5 |= NOWINPOSCHANGES;
 	if(dlg->m_MessagePump) t->flags5 |= MESSAGEPUMP;
+	if(dlg->m_ClipMenu) t->flags8 |= CLIPMENU;
 
 	switch(dlg->m_InjectionMode){
 		case 0: break;
@@ -585,9 +588,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoBanner = t->flags2 & NOBANNER ? 1 : 0;
 	dlg->m_FullScreenOnly = t->flags3 & FULLSCREENONLY ? 1 : 0;
 	dlg->m_ShowHints = t->flags7 & SHOWHINTS ? 1 : 0;
+	dlg->m_BackgroundPriority = t->flags8 & BACKGROUNDPRIORITY ? 1 : 0;
 	dlg->m_PeekAllMessages = t->flags3 & PEEKALLMESSAGES ? 1 : 0;
 	dlg->m_NoWinPosChanges = t->flags5 & NOWINPOSCHANGES ? 1 : 0;
 	dlg->m_MessagePump = t->flags5 & MESSAGEPUMP ? 1 : 0;
+	dlg->m_ClipMenu = t->flags8 & CLIPMENU ? 1 : 0;
 
 	dlg->m_InjectionMode = 0;
 	if(t->flags2 & STARTDEBUG) dlg->m_InjectionMode = 1;
@@ -2035,12 +2040,49 @@ void CDxwndhostView::OnProcessKill()
 		strcat(lpProcName, ".noshim");
 	}
 
-	if(!KillProcByName(lpProcName, FALSE)){
+	if(!KillProcByName(lpProcName, FALSE, FALSE)){
 		wchar_t *wcstring = new wchar_t[48+1];
 		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[i].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
-		KillProcByName(lpProcName, TRUE);
+		KillProcByName(lpProcName, TRUE, FALSE);
+	}
+	else{
+		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
+	}
+
+	ClipCursor(NULL);
+	RevertScreenChanges(&this->InitDevMode);
+}
+
+void CDxwndhostView::OnProcessKillAll() 
+{
+	// to do .....
+	int i;
+	POSITION pos;
+	CListCtrl& listctrl = GetListCtrl();
+	char FilePath[MAX_PATH+1];
+	char *lpProcName, *lpNext;
+	HRESULT res;
+
+	if(!listctrl.GetSelectedCount()) return ;
+	pos = listctrl.GetFirstSelectedItemPosition();
+	i = listctrl.GetNextSelectedItem(pos);
+
+	strnncpy(FilePath, TargetMaps[i].path, MAX_PATH);
+	lpProcName=FilePath;
+	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
+
+	if(TargetMaps[i].flags7 & COPYNOSHIMS){
+		strcat(lpProcName, ".noshim");
+	}
+
+	if(!KillProcByName(lpProcName, FALSE, FALSE)){
+		wchar_t *wcstring = new wchar_t[48+1];
+		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[i].title, _TRUNCATE);
+		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
+		if(res!=IDYES) return;
+		KillProcByName(lpProcName, TRUE, TRUE);
 	}
 	else{
 		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
@@ -2662,6 +2704,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	case ID_PKILL:
 		OnProcessKill();
 		break;
+	case ID_PKILLALL:
+		OnProcessKillAll();
+		break;	
 	case ID_TASK_PAUSE:
 		OnPause();
 		break;
@@ -2748,10 +2793,10 @@ static DWORD WINAPI TransientWaitForChildDeath(void *p)
 		Sleep(2000);
 		bIsSomeoneAlive = FALSE;
 		if(sPath[0]) {
-			if (!(ret=KillProcByName(sPath, FALSE))) bIsSomeoneAlive = TRUE;
+			if (!(ret=KillProcByName(sPath, FALSE, FALSE))) bIsSomeoneAlive = TRUE;
 		}
 		if(sLaunch[0]) {
-			if (!(ret=KillProcByName(sLaunch, FALSE))) bIsSomeoneAlive = TRUE;
+			if (!(ret=KillProcByName(sLaunch, FALSE, FALSE))) bIsSomeoneAlive = TRUE;
 		}
 		if(!bIsSomeoneAlive) {
 			break;

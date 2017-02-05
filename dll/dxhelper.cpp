@@ -841,6 +841,18 @@ char *ExplainWinMessage(DWORD c)
 		case WM_IME_KEYDOWN: 		 	eb="WM_IME_KEYDOWN"; break;
 		case WM_IME_KEYUP: 		 		eb="WM_IME_KEYUP"; break;
 #endif /* WINVER >= 0x0400 */
+		case WM_MOUSEHOVER:				eb="WM_MOUSEHOVER"; break;
+		case WM_MOUSELEAVE:				eb="WM_MOUSELEAVE"; break;
+		case WM_NCMOUSEHOVER:			eb="WM_NCMOUSEHOVER"; break;
+		case WM_NCMOUSELEAVE:			eb="WM_NCMOUSELEAVE"; break;
+		case WM_DWMCOMPOSITIONCHANGED:	eb="WM_DWMCOMPOSITIONCHANGED"; break;
+		case WM_DWMNCRENDERINGCHANGED:	eb="WM_DWMNCRENDERINGCHANGED"; break;
+		case WM_DWMCOLORIZATIONCOLORCHANGED: eb="WM_DWMCOLORIZATIONCOLORCHANGED"; break;
+		case WM_DWMWINDOWMAXIMIZEDCHANGE: eb="WM_DWMWINDOWMAXIMIZEDCHANGE"; break;
+		case WM_GETTITLEBARINFOEX:		eb="WM_GETTITLEBARINFOEX"; break;
+		case WM_HANDHELDFIRST:			eb="WM_HANDHELDFIRST"; break;
+		case WM_HANDHELDLAST:			eb="WM_HANDHELDLAST"; break;
+		case WM_PENWINFIRST:			eb="WM_PENWINFIRST"; break;
 		default:						eb="???"; break;
 	}
 	return eb;

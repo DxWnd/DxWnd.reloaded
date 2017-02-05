@@ -74,6 +74,7 @@ protected:
 	afx_msg void OnExplore();
 	afx_msg void OnKill();
 	afx_msg void OnProcessKill();
+	afx_msg void OnProcessKillAll();
 	afx_msg void OnPause();
 	afx_msg void OnResume();
 	afx_msg void OnWindowRestore();

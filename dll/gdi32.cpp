@@ -789,8 +789,9 @@ UINT WINAPI extGetPaletteEntries(HPALETTE hpal, UINT iStartIndex, UINT nEntries,
 		res = nEntries;
 		OutTraceDW("GDI.GetPaletteEntries: faking missing entries=%d\n", res);
 	}
+	// GDI Palette applied to ddraw: needed to color the gameplay 3D screen of "Hyperblade".
+	if ((dxw.dwFlags1 & EMULATESURFACE) && (dxw.dwFlags6 & SYNCPALETTE)) mySetPalette(0, nEntries, lppe); 
 	if(IsDebug && res) dxw.DumpPalette(res, lppe);
-	//mySetPalette(0, nEntries, lppe); 
 	return res;
 }
 

@@ -1505,3 +1505,18 @@ fix: logging of log flags
 fix: D3D8/9 QueryInterface fully revisited 
 add: (very) preliminary texture transparency hack
 
+v2.04.11
+GUI:
+add: "Kill all" menu command on expert mode
+add: "Lower background priority" flag
+add: "Include menu in clipper area" flag
+DLL:
+fix: decrement virtual reference counter in case of 3D surfaces with ZBuffer (experimental): fixes "Microsoft International Soccer 2000".
+add: more message types in window message logging
+fix: fixed mouse clipper logic and moved code in dxwCore class
+fix: fixed GDI palette syncronization with ddraw: recovers "Hyperblade" black screen in gameplay
+fix: unhooked USER32 GetParent() call, causing recursion in hot patch mode, blanked dialogs ("Galapagos") and in general more problems than benefits 
+fix: fixed AdjustWindowRect/Ex() wrapper to always neutralize window changes (good for "Man TT Superbike")
+fix: fixed message processing for FORCEWINRESIZE: now "Man TT Superbike" can be moved and resized (at least on Win10).
+add: added BACKGROUNDPRIORITY handling
+add: added CLIPMENU handling

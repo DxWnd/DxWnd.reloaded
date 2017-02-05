@@ -85,12 +85,13 @@ public:
 	BOOL	m_Wow32Registry;
 	BOOL	m_FullScreenOnly;
 	BOOL	m_ShowHints;
+	BOOL	m_BackgroundPriority;
 	BOOL	m_NeedAdminCaps;
 	BOOL	m_PeekAllMessages;
 	BOOL	m_NoWinPosChanges;
 	BOOL	m_MessagePump;
+	BOOL	m_ClipMenu;
 	BOOL	m_NoBanner;
-	//BOOL	m_StartDebug;
 	int		m_InjectionMode;
 	BOOL	m_HookEnabled;
 	BOOL	m_ReplacePrivOps;
@@ -102,7 +103,6 @@ public:
 	CString	m_OpenGLLib;
 	CString	m_Notes;
 	CString	m_Registry;
-	//BOOL	m_SaveLoad;
 	BOOL	m_SlowDown;
 	BOOL	m_BlitFromBackBuffer;
 	BOOL	m_NoFlipEmulation;

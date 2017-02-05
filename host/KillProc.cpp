@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <tlhelp32.h>
 
-int KillProcByName(char *sProcessTail, BOOL bKill)
+int KillProcByName(char *sProcessTail, BOOL bKill, BOOL bKillAll)
 // Created: 6/23/2000  (RK)
 // Last modified: 3/10/2002  (RK)
 // Please report any problems or bugs to kochhar@physiology.wisc.edu
@@ -38,84 +38,65 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
 //					      Jonathan Richard-Brochu (handles to Proc and Snapshot
 //                        were not getting closed properly in some cases)
 {
-	BOOL bResult,bResultm;
-	DWORD aiPID[1000],iCb=1000,iNumProc,iV2000=0;
-	DWORD iCbneeded,i,iFound=0;
-	char szName[MAX_PATH],szToTermUpper[MAX_PATH];
-	HANDLE hProc,hSnapShot,hSnapShotm;
-	OSVERSIONINFO osvi;
-    HINSTANCE hInstLib;
+	BOOL bResult;
 	int iLen,iLenP,indx;
-    HMODULE hMod;
-	PROCESSENTRY32 procentry;      
-	MODULEENTRY32 modentry;
+	OSVERSIONINFO osvi;
+	char szToTermUpper[MAX_PATH];
+	DWORD iFound=0;
+    HINSTANCE hInstLib;
 
 	// Transfer Process name into "szToTermUpper" and
 	// convert it to upper case
 	iLenP=strlen(sProcessTail);
 	if(iLenP<1 || iLenP>MAX_PATH) return 632;
-	for(indx=0;indx<iLenP;indx++)
-		szToTermUpper[indx]=toupper(sProcessTail[indx]);
+	for(indx=0;indx<iLenP;indx++) szToTermUpper[indx]=toupper(sProcessTail[indx]);
 	szToTermUpper[iLenP]=0;
-
-     // PSAPI Function Pointers.
-     BOOL (WINAPI *lpfEnumProcesses)( DWORD *, DWORD cb, DWORD * );
-     BOOL (WINAPI *lpfEnumProcessModules)( HANDLE, HMODULE *,
-        DWORD, LPDWORD );
-     DWORD (WINAPI *lpfGetModuleBaseName)( HANDLE, HMODULE,
-        LPTSTR, DWORD );
-
-      // ToolHelp Function Pointers.
-      HANDLE (WINAPI *lpfCreateToolhelp32Snapshot)(DWORD,DWORD) ;
-      BOOL (WINAPI *lpfProcess32First)(HANDLE,LPPROCESSENTRY32) ;
-      BOOL (WINAPI *lpfProcess32Next)(HANDLE,LPPROCESSENTRY32) ;
-      BOOL (WINAPI *lpfModule32First)(HANDLE,LPMODULEENTRY32) ;
-      BOOL (WINAPI *lpfModule32Next)(HANDLE,LPMODULEENTRY32) ;
 
 	// First check what version of Windows we're in
 	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
     bResult=GetVersionEx(&osvi);
-	if(!bResult)     // Unable to identify system version
-	    return 606;
-
+	if(!bResult) return 606;    // Unable to identify system version
+	    
 	// At Present we only support Win/NT/2000/XP or Win/9x/ME
 	if((osvi.dwPlatformId != VER_PLATFORM_WIN32_NT) &&
 		(osvi.dwPlatformId != VER_PLATFORM_WIN32_WINDOWS))
 		return 607;
 
-    if(osvi.dwPlatformId>=VER_PLATFORM_WIN32_NT)
-	{
+    if(osvi.dwPlatformId>=VER_PLATFORM_WIN32_NT){
 		// Win/NT or 2000 or XP or greater
 
-         // Load library and get the procedures explicitly. We do
-         // this so that we don't have to worry about modules using
-         // this code failing to load under Windows 9x, because
-         // it can't resolve references to the PSAPI.DLL.
-         hInstLib = LoadLibraryA("PSAPI.DLL");
-         if(hInstLib == NULL)
-            return 605;
+		// PSAPI Function Pointers.
+		BOOL (WINAPI *lpfEnumProcesses)( DWORD *, DWORD cb, DWORD * );
+		BOOL (WINAPI *lpfEnumProcessModules)( HANDLE, HMODULE *, DWORD, LPDWORD );
+		DWORD (WINAPI *lpfGetModuleBaseName)( HANDLE, HMODULE, LPTSTR, DWORD );
 
-         // Get procedure addresses.
-         lpfEnumProcesses = (BOOL(WINAPI *)(DWORD *,DWORD,DWORD*))
-            GetProcAddress( hInstLib, "EnumProcesses" ) ;
-         lpfEnumProcessModules = (BOOL(WINAPI *)(HANDLE, HMODULE *,
-            DWORD, LPDWORD)) GetProcAddress( hInstLib,
-            "EnumProcessModules" ) ;
-         lpfGetModuleBaseName =(DWORD (WINAPI *)(HANDLE, HMODULE,
-            LPTSTR, DWORD )) GetProcAddress( hInstLib,
-            "GetModuleBaseNameA" ) ;
+		DWORD aiPID[1000],iCb=1000,iNumProc,iV2000=0;
+		DWORD iCbneeded,i;
+		char szName[MAX_PATH];
+		HANDLE hProc;
+		HMODULE hMod;
 
-         if(lpfEnumProcesses == NULL ||
-            lpfEnumProcessModules == NULL ||
-            lpfGetModuleBaseName == NULL)
-            {
-               FreeLibrary(hInstLib);
-               return 700;
-            }
+		// Load library and get the procedures explicitly. We do
+		// this so that we don't have to worry about modules using
+		// this code failing to load under Windows 9x, because
+		// it can't resolve references to the PSAPI.DLL.
+		hInstLib = LoadLibraryA("PSAPI.DLL");
+		if(hInstLib == NULL) return 605;
+
+		// Get procedure addresses.
+		lpfEnumProcesses = (BOOL(WINAPI *)(DWORD *,DWORD,DWORD*))GetProcAddress( hInstLib, "EnumProcesses");
+		lpfEnumProcessModules = (BOOL(WINAPI *)(HANDLE, HMODULE *, DWORD, LPDWORD))GetProcAddress( hInstLib, "EnumProcessModules");
+		lpfGetModuleBaseName =(DWORD (WINAPI *)(HANDLE, HMODULE, LPTSTR, DWORD )) GetProcAddress( hInstLib, "GetModuleBaseNameA");
+
+		if (lpfEnumProcesses == NULL ||
+			lpfEnumProcessModules == NULL ||
+			lpfGetModuleBaseName == NULL){
+			FreeLibrary(hInstLib);
+			return 700;
+		}
 		 
 		bResult=lpfEnumProcesses(aiPID,iCb,&iCbneeded);
-		if(!bResult)
-		{
+		if(!bResult){
 			// Unable to get process list, EnumProcesses failed
             FreeLibrary(hInstLib);
 			return 701;
@@ -125,30 +106,24 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
 		iNumProc=iCbneeded/sizeof(DWORD);
 
 		// Get and match the name of each process
-		for(i=0;i<iNumProc;i++)
-		{
+		for(i=0;i<iNumProc;i++){
 			// Get the (module) name for this process
-
 	        strcpy(szName,"Unknown");
 			// First, get a handle to the process
-	        hProc=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,FALSE,
-				aiPID[i]);
+	        hProc=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,FALSE, aiPID[i]);
 	        // Now, get the process name
-	        if(hProc)
-			{
-               if(lpfEnumProcessModules(hProc,&hMod,sizeof(hMod),&iCbneeded) )
-			   {
+	        if(hProc){
+               if(lpfEnumProcessModules(hProc,&hMod,sizeof(hMod),&iCbneeded)){
                   iLen=lpfGetModuleBaseName(hProc,hMod,szName,MAX_PATH);
 			   }
 			}
 	        CloseHandle(hProc);
 			// We will match regardless of lower or upper case
 #ifdef BORLANDC
-            if(strcmp(strupr(szName),szToTermUpper)==0)
+			if(strcmp(strupr(szName),szToTermUpper)==0){
 #else
-			if(strcmp(_strupr(szName),szToTermUpper)==0)
+			if(strcmp(_strupr(szName),szToTermUpper)==0){
 #endif
-			{
 				// Process found, now terminate it
 				iFound=1;
 
@@ -164,36 +139,59 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
 						if(TerminateProcess(hProc,0)){
 							// process terminated
 							CloseHandle(hProc);
-							FreeLibrary(hInstLib);
-							return 0;
+							if (!bKillAll) {
+								FreeLibrary(hInstLib);
+								return 0;
+							}
 						}
 						else{
 							// Unable to terminate process
 							CloseHandle(hProc);
-							FreeLibrary(hInstLib);
-							return 602;
+							if (!bKillAll) {
+								FreeLibrary(hInstLib);
+								return 602;
+							}
 						}
 					}
 					else{
 						// Unable to open process for termination
-						FreeLibrary(hInstLib);
-						return 604;
+						if (!bKillAll) {
+							FreeLibrary(hInstLib);
+							return 604;
+						}
 					}
 				}
 				else {
 					// this will kill the whole process tree - though with no feedback retcode.
 					extern void KillProcessTree(DWORD);
 					KillProcessTree(aiPID[i]);
-					FreeLibrary(hInstLib);	
-					return 0;
+					if (!bKillAll) {
+						FreeLibrary(hInstLib);	
+						return 0;
+					}
 				}
 			}
 		}
+		//return 0;
 	}
+
+#if 0 // useless ..... 
 
 	if(osvi.dwPlatformId==VER_PLATFORM_WIN32_WINDOWS)
 	{
 		// Win/95 or 98 or ME
+
+		// ToolHelp Function Pointers.
+		BOOL (WINAPI *lpfModule32First)(HANDLE,LPMODULEENTRY32) ;
+		BOOL (WINAPI *lpfModule32Next)(HANDLE,LPMODULEENTRY32) ;
+		BOOL (WINAPI *lpfProcess32First)(HANDLE,LPPROCESSENTRY32) ;
+		BOOL (WINAPI *lpfProcess32Next)(HANDLE,LPPROCESSENTRY32) ;
+		HANDLE (WINAPI *lpfCreateToolhelp32Snapshot)(DWORD,DWORD) ;
+
+		HANDLE hSnapShot,hSnapShotm;
+		BOOL bResultm;
+		PROCESSENTRY32 procentry;      
+		MODULEENTRY32 modentry;
 			
 		hInstLib = LoadLibraryA("Kernel32.DLL");
 		if( hInstLib == NULL )
@@ -290,7 +288,7 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
 							CloseHandle(hSnapShot);
 							CloseHandle(hProc);
 			                FreeLibrary(hInstLib);
-						    return 0;
+						    if (!bKillAll) return 0;
 						}
 					    else
 						{
@@ -299,7 +297,7 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
 							CloseHandle(hSnapShot);
 							CloseHandle(hProc);
 			                FreeLibrary(hInstLib);
-						    return 602;
+						    if (!bKillAll) return 602;
 						}
 					}
 				    else
@@ -308,7 +306,7 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
 						CloseHandle(hSnapShotm);
 						CloseHandle(hSnapShot);
 			            FreeLibrary(hInstLib);
-					    return 604;
+					    if (!bKillAll) return 604;
 					}
 				}
 				else
@@ -325,6 +323,8 @@ int KillProcByName(char *sProcessTail, BOOL bKill)
         }
 		CloseHandle(hSnapShot);
 	}
+#endif 
+
 	if(iFound==0)
 	{
 		FreeLibrary(hInstLib);

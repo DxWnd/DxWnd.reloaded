@@ -43,6 +43,7 @@ void CTabInput::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_VIRTUALJOYSTICK, cTarget->m_VirtualJoystick);
 	// Cursor Clipper
 	DDX_Radio(pDX, IDC_CLIPPERAUTO, cTarget->m_MouseClipper);
+	DDX_Check(pDX, IDC_CLIPMENU, cTarget->m_ClipMenu);
 	// DirectInput
 	DDX_Check(pDX, IDC_HOOKDI, cTarget->m_HookDI);
 	DDX_Check(pDX, IDC_HOOKDI8, cTarget->m_HookDI8);

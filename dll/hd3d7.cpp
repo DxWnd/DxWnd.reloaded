@@ -2032,4 +2032,3 @@ HRESULT WINAPI extSetTransform3(void *lpd3dd, D3DTRANSFORMSTATETYPE tstype, LPD3
 { return SetTransform(3, pSetTransform3, lpd3dd, tstype, matrix); }
 HRESULT WINAPI extSetTransform7(void *lpd3dd, D3DTRANSFORMSTATETYPE tstype, LPD3DMATRIX matrix)
 { return SetTransform(7, pSetTransform7, lpd3dd, tstype, matrix); }
-
