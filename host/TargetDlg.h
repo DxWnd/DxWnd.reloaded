@@ -106,16 +106,13 @@ public:
 	BOOL	m_SlowDown;
 	BOOL	m_BlitFromBackBuffer;
 	BOOL	m_NoFlipEmulation;
+	BOOL	m_OffscreenZBuffer;
 	BOOL	m_LockColorDepth;
-	//BOOL	m_SuppressClipping;
-	//BOOL	m_ForceClipper;
 	BOOL	m_DisableGammaRamp;
 	BOOL	m_AutoRefresh;
 	BOOL	m_IndependentRefresh;
 	BOOL	m_TextureFormat;
 	BOOL	m_FixWinFrame;
-	//BOOL	m_EnableClipping;
-	//BOOL	m_CursorClipping;
 	BOOL	m_VideoToSystemMem;
 	BOOL	m_FixTextOut;
 	BOOL	m_SharedDC;

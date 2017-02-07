@@ -513,7 +513,6 @@ void HookDirect3DDevice(void **lpd3ddev, int d3dversion)
 		SetHook((void *)(**(DWORD **)lpd3ddev +  16), extD3DGetCaps1, (void **)&pD3DGetCaps1, "GetCaps(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  20), extSwapTextureHandles, (void **)&pSwapTextureHandles, "SwapTextureHandles(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  32), extExecute, (void **)&pExecute, "Execute(1)");
-		//SetHook((void *)(**(DWORD **)lpd3ddev +  32), extExecute, NULL, "Execute(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  36), extAddViewport1, (void **)&pAddViewport1, "AddViewport(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  40), extDeleteViewport1, (void **)&pDeleteViewport1, "DeleteViewport(1)");
 		SetHook((void *)(**(DWORD **)lpd3ddev +  44), extNextViewport1, (void **)&pNextViewport1, "NextViewport(1)");
@@ -1035,8 +1034,17 @@ HRESULT WINAPI extSetViewport(int dxversion, SetViewport_Type pSetViewport, void
 
 	// v2.03.48: scaled dvScaleX/Y fields. Fixes "Dark Vengeance" viewport size when using D3D interface.
 	// no.... see Forsaken
-	//dxw.MapClient(&vpd->dvScaleX, &vpd->dvScaleY);
-	//OutTraceDW("SetViewport: FIXED scale=(%fx%f)\n", vpd->dvScaleX, vpd->dvScaleY);
+	// no good (useless) also for "Spearhead"
+	//if(dxw.Windowize){
+	//	dxw.MapClient(&vpd->dvScaleX, &vpd->dvScaleY);
+	//	OutTraceDW("SetViewport: FIXED scale=(%fx%f)\n", vpd->dvScaleX, vpd->dvScaleY);
+	//	int w = (int) vpd->dwWidth;
+	//	int h = (int) vpd->dwHeight;
+	//	dxw.MapClient(&w, &h);
+	//	vpd->dwWidth = (DWORD) w;
+	//	vpd->dwHeight = (DWORD) h;
+	//	OutTraceDW("SetViewport: FIXED scale=(%dx%d)\n", vpd->dwWidth, vpd->dwHeight);
+	//}
 
 	res=(*pSetViewport)(lpvp, vpd);
 	if(res) OutTraceE("SetViewport ERROR: err=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);

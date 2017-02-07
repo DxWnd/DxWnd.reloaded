@@ -110,8 +110,6 @@ void CTabProgram::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_KEEPASPECTRATIO, cTarget->m_KeepAspectRatio);
 	DDX_Check(pDX, IDC_NOBANNER, cTarget->m_NoBanner);
 	DDX_Check(pDX, IDC_HIDEDESKTOP, cTarget->m_HideDesktop);
-	//DDX_Text(pDX, IDC_POSX, cTarget->m_PosX);
-	//DDX_Text(pDX, IDC_POSY, cTarget->m_PosY);
 	DDX_CBIndex(pDX, IDC_MONITOR_ID, cTarget->m_MonitorId);
 	DDX_Text(pDX, IDC_POSX, sPosX);
 	DDX_Text(pDX, IDC_POSY, sPosY);

@@ -902,6 +902,10 @@ HDC WINAPI extGDICreateCompatibleDC(HDC hdc)
 	BOOL bSwitchedToMainWin = FALSE;
 
 	OutTraceDW("GDI.CreateCompatibleDC: hdc=%x\n", hdc);
+	// n.b. useful? hdc == 0 doesn't imply the desktop but rather the current window
+	// from MSDN:
+	// hdc[in] A handle to an existing DC. If this handle is NULL the function creates
+	// a memory DC compatible with the application's current screen.
 	if(hdc==0 || (WindowFromDC(hdc)==0)) { // v2.03.99: Star Trek Armada
 		hdc=(*pGDIGetDC)(dxw.GethWnd()); // potential DC leakage
 		bSwitchedToMainWin = TRUE;

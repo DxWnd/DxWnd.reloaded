@@ -440,6 +440,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_SlowDown) t->flags |= SLOWDOWN;
 	if(dlg->m_BlitFromBackBuffer) t->flags |= BLITFROMBACKBUFFER;
 	if(dlg->m_NoFlipEmulation) t->flags4 |= NOFLIPEMULATION;
+	if(dlg->m_OffscreenZBuffer) t->flags8 |= OFFSCREENZBUFFER;
 	if(dlg->m_LockColorDepth) t->flags7 |= LOCKCOLORDEPTH;
 	if(dlg->m_DisableGammaRamp) t->flags2 |= DISABLEGAMMARAMP;
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
@@ -768,6 +769,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_SlowDown = t->flags & SLOWDOWN ? 1 : 0;
 	dlg->m_BlitFromBackBuffer = t->flags & BLITFROMBACKBUFFER ? 1 : 0;
 	dlg->m_NoFlipEmulation = t->flags4 & NOFLIPEMULATION ? 1 : 0;
+	dlg->m_OffscreenZBuffer = t->flags8 & OFFSCREENZBUFFER ? 1 : 0;
 	dlg->m_LockColorDepth = t->flags7 & LOCKCOLORDEPTH ? 1 : 0;
 	dlg->m_DisableGammaRamp = t->flags2 & DISABLEGAMMARAMP ? 1 : 0;
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
@@ -2019,7 +2021,9 @@ void CDxwndhostView::OnKill()
 	RevertScreenChanges(&this->InitDevMode);
 }
 
-void CDxwndhostView::OnProcessKill() 
+// void CDxwndhostView::OnProcessKill(BOOL bAll): kills one instance (bAll==FALSE) or all instances (bAll==TRUE)
+// of the process whose name corresponds to the selected program's list entry.
+void CDxwndhostView::OnProcessKill(BOOL bAll)
 {
 	int i;
 	POSITION pos;
@@ -2045,7 +2049,7 @@ void CDxwndhostView::OnProcessKill()
 		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[i].title, _TRUNCATE);
 		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
 		if(res!=IDYES) return;
-		KillProcByName(lpProcName, TRUE, FALSE);
+		KillProcByName(lpProcName, TRUE, bAll);
 	}
 	else{
 		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
@@ -2055,41 +2059,14 @@ void CDxwndhostView::OnProcessKill()
 	RevertScreenChanges(&this->InitDevMode);
 }
 
+void CDxwndhostView::OnProcessKill() 
+{
+	OnProcessKill(FALSE);
+}
+
 void CDxwndhostView::OnProcessKillAll() 
 {
-	// to do .....
-	int i;
-	POSITION pos;
-	CListCtrl& listctrl = GetListCtrl();
-	char FilePath[MAX_PATH+1];
-	char *lpProcName, *lpNext;
-	HRESULT res;
-
-	if(!listctrl.GetSelectedCount()) return ;
-	pos = listctrl.GetFirstSelectedItemPosition();
-	i = listctrl.GetNextSelectedItem(pos);
-
-	strnncpy(FilePath, TargetMaps[i].path, MAX_PATH);
-	lpProcName=FilePath;
-	while (lpNext=strchr(lpProcName,'\\')) lpProcName=lpNext+1;
-
-	if(TargetMaps[i].flags7 & COPYNOSHIMS){
-		strcat(lpProcName, ".noshim");
-	}
-
-	if(!KillProcByName(lpProcName, FALSE, FALSE)){
-		wchar_t *wcstring = new wchar_t[48+1];
-		mbstowcs_s(NULL, wcstring, 48, PrivateMaps[i].title, _TRUNCATE);
-		res=MessageBoxLangArg(DXW_STRING_KILLTASK, DXW_STRING_WARNING, MB_YESNO | MB_ICONQUESTION, wcstring);
-		if(res!=IDYES) return;
-		KillProcByName(lpProcName, TRUE, TRUE);
-	}
-	else{
-		MessageBoxLang(DXW_STRING_NOKILLTASK, DXW_STRING_INFO, MB_ICONEXCLAMATION);
-	}
-
-	ClipCursor(NULL);
-	RevertScreenChanges(&this->InitDevMode);
+	OnProcessKill(TRUE);
 }
 
 void CDxwndhostView::OnAdd()

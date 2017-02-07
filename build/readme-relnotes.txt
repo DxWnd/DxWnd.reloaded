@@ -1520,3 +1520,10 @@ fix: fixed AdjustWindowRect/Ex() wrapper to always neutralize window changes (go
 fix: fixed message processing for FORCEWINRESIZE: now "Man TT Superbike" can be moved and resized (at least on Win10).
 add: added BACKGROUNDPRIORITY handling
 add: added CLIPMENU handling
+
+v2.04.12
+GUI:
+add: "Support offscreen 3D" flag (OFFSCREENZBUFFER)
+DLL:
+fix: recursion bug in CreateWindowExA hooker
+add: OFFSCREENZBUFFER flag

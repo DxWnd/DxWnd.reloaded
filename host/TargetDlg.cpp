@@ -153,6 +153,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_SlowDown = FALSE;
 	m_BlitFromBackBuffer = FALSE;
 	m_NoFlipEmulation = FALSE;
+	m_OffscreenZBuffer = FALSE;
 	m_LockColorDepth = FALSE;
 	m_DisableGammaRamp = FALSE;
 	m_AutoRefresh = FALSE;

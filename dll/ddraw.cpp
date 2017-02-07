@@ -285,6 +285,7 @@ HRESULT WINAPI extSetSurfaceDesc7(LPDIRECTDRAWSURFACE, LPDDSURFACEDESC, DWORD);
 // DirectDrawClipper
 HRESULT WINAPI extReleaseC(LPDIRECTDRAWCLIPPER);
 HRESULT WINAPI extGetClipList(LPDIRECTDRAWCLIPPER, LPRECT, LPRGNDATA, LPDWORD);
+HRESULT WINAPI extSetClipList(LPDIRECTDRAWCLIPPER, LPRGNDATA, DWORD);
 HRESULT WINAPI extSetHWnd(LPDIRECTDRAWCLIPPER, DWORD, HWND);
 
 // DirectDrawPalette
@@ -399,10 +400,10 @@ QueryInterface_Type pQueryInterfaceC;
 AddRefC_Type pAddRefC;
 ReleaseC_Type pReleaseC;
 GetClipList_Type pGetClipList;
+SetClipList_Type pSetClipList;
 GetHWnd_Type pGetHWnd;
 InitializeC_Type pInitializeC;
 IsClipListChanged_Type pIsClipListChanged;
-SetClipList_Type pSetClipList;
 SetHWnd_Type pSetHWnd;
 
 /* DirectDrawPalette hook pointers */
@@ -1326,6 +1327,7 @@ static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
 
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 8), extReleaseC, (void **)&pReleaseC, "Release(C)");
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 12), extGetClipList, (void **)&pGetClipList, "GetClipList(C)");
+	SetHook((void *)(**(DWORD **)lplpDDClipper + 28), extSetClipList, (void **)&pSetClipList, "SetClipList(C)");
 	SetHook((void *)(**(DWORD **)lplpDDClipper + 32), extSetHWnd, (void **)&pSetHWnd, "SetHWnd(C)");
 }
 
@@ -2315,7 +2317,7 @@ HRESULT WINAPI extSetCooperativeLevel4(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwfla
 HRESULT WINAPI extSetCooperativeLevel7(LPDIRECTDRAW lpdd, HWND hwnd, DWORD dwflags)
 { return extSetCooperativeLevel(7, pSetCooperativeLevel7, lpdd, hwnd, dwflags); }
 
-void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
+void FixSurfaceCapsInner(LPDDSURFACEDESC2 lpddsd, int dxversion)
 {	
 	// rules of thumb:
 	// 1) textures should be left untouched (switching to SYSTEMMEMORY when forcing HEL may even fail!)
@@ -2328,9 +2330,6 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 
 	if(!(lpddsd->dwFlags & DDSD_CAPS)) lpddsd->ddsCaps.dwCaps = 0;
 
-	OutTraceDW("FixSurfaceCaps: Flags=%x(%s) Caps=%x(%s)\n",
-		lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags), lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
-
 	// DDSCAPS_TEXTURE surfaces must be left untouched, unless you set FORCESHEL: in this case switch VIDEOMEMORY to SYSTEMMEMORY
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_TEXTURE)){
 		if (dxw.dwFlags3 & FORCESHEL) {
@@ -2341,6 +2340,8 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			// TEXTURE: enforce PIXELFORMAT on MEMORY
 			lpddsd->dwFlags |= DDSD_PIXELFORMAT;
 			GetPixFmt(lpddsd); 
+			// trytry
+			// lpddsd->ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN; // OFFSCREENPLAIN to set a different pixel format
 		}
 		if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && 
 			(lpddsd->ddpfPixelFormat.dwFlags & DDPF_FOURCC) &&
@@ -2349,19 +2350,11 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 			lpddsd->ddpfPixelFormat.dwFourCC = 0;
 			lpddsd->ddpfPixelFormat.dwFlags &= ~DDPF_FOURCC;
 		}
-
-		//// try
-		//if((lpddsd->dwFlags & DDSD_PIXELFORMAT) && (lpddsd->ddpfPixelFormat.dwRGBBitCount == 16)){
-		//	lpddsd->ddpfPixelFormat.dwRGBAlphaBitMask = 0x8000;
-		//	lpddsd->ddpfPixelFormat.dwBBitMask = 0x001F;
-		//	lpddsd->ddpfPixelFormat.dwGBitMask = 0x03E0;
-		//	lpddsd->ddpfPixelFormat.dwRBitMask = 0x7C00;
-		//}
-		//// try
 		return;
 	}
 
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) { // z-buffer surface - set to memory
+		if(dxw.dwFlags8 & OFFSCREENZBUFFER) return; 
 		lpddsd->ddsCaps.dwCaps = DDSCAPS_ZBUFFER;  
 		if (dxw.dwFlags8 & ALLOWSYSMEMON3DDEV) lpddsd->ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY|DDSCAPS_ZBUFFER;  
 		return;
@@ -2369,13 +2362,14 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 
 	// this is valid just in case the above block eliminated TEXTURE surfaces....
 	if (lpddsd->dwFlags & DDSD_PIXELFORMAT){ // pixel format defined
-		if (lpddsd->ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN; // to allow for pixel format conversion (Quest for Glory 5 - GOG version)
+		// trytry
+		//if (lpddsd->ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) lpddsd->ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN; // to allow for pixel format conversion (Quest for Glory 5 - GOG version)
+		lpddsd->ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
 		return;
 	}
 
-	if ((lpddsd->dwFlags & (DDSD_WIDTH|DDSD_HEIGHT)) == DDSD_WIDTH) { // buffer surface
-		return;
-	}
+	// buffer surface
+	if ((lpddsd->dwFlags & (DDSD_WIDTH|DDSD_HEIGHT)) == DDSD_WIDTH) return;
 
 	// 3DDEVICE no TEXTURE: enforce PIXELFORMAT
 	// v2.02.90: added for "Zoo Tycoon" textures
@@ -2385,21 +2379,39 @@ void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
 	// we try to manage them by checking for the DDSCAPS_VIDEOMEMORY capability ...
 	if((lpddsd->dwFlags & DDSD_CAPS) && (lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE)){ 
 		lpddsd->dwFlags |= DDSD_PIXELFORMAT;
+		GetPixFmt(lpddsd);
+		if(dxw.dwFlags8 & OFFSCREENZBUFFER) {
+			// add OFFSCREENPLAIN to set a different pixel format
+			lpddsd->ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN; 
+			return; 
+		}
 		if(lpddsd->ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) 
 			lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE|DDSCAPS_SYSTEMMEMORY); // good for "Bunnies must die", NO "Arx Fatalis"
 		else
 			lpddsd->ddsCaps.dwCaps = (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_3DDEVICE); // good for "Arx Fatalis", NO "Bunnies must die"
-		GetPixFmt(lpddsd);
 		return;
 	}
 
 	// default case: adjust pixel format
 	OutTraceB("FixSurfaceCaps: suppress DDSCAPS_VIDEOMEMORY case\n");
 	lpddsd->dwFlags |= (DDSD_CAPS|DDSD_PIXELFORMAT); 
-	lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); // v2.02.43
-	lpddsd->ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	if(!(dxw.dwFlags8 & OFFSCREENZBUFFER)){
+		lpddsd->ddsCaps.dwCaps &= ~(DDSCAPS_VIDEOMEMORY|DDSCAPS_LOCALVIDMEM); // v2.02.43
+		lpddsd->ddsCaps.dwCaps |= (DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN);
+	}
 	if(!(dxw.dwFlags3 & NOPIXELFORMAT)) GetPixFmt(lpddsd);
 	return;
+}
+
+void FixSurfaceCaps(LPDDSURFACEDESC2 lpddsd, int dxversion)
+{
+	OutTraceDW("FixSurfaceCaps:  INPUT Flags=%x(%s) Caps=%x(%s)\n",
+		lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags), lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
+
+	FixSurfaceCapsInner(lpddsd, dxversion);
+
+	OutTraceDW("FixSurfaceCaps: OUTPUT Flags=%x(%s) Caps=%x(%s)\n",
+		lpddsd->dwFlags, ExplainFlags(lpddsd->dwFlags), lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
 }
 
 HRESULT WINAPI extCreateSurface1(LPDIRECTDRAW lpdd, DDSURFACEDESC *lpddsd, LPDIRECTDRAWSURFACE *lplpdds, void *pu)
@@ -4985,6 +4997,15 @@ HRESULT WINAPI extGetClipList(LPDIRECTDRAWCLIPPER lpddClip, LPRECT lpRect, LPRGN
 			}
 		}
 	}
+	return res;
+}
+
+HRESULT WINAPI extSetClipList(LPDIRECTDRAWCLIPPER lpddClip, LPRGNDATA lpClipList, DWORD dwFlags)
+{
+	HRESULT res;
+	OutTraceP("SetClipList(C): lpddClip=%x lpcliplist=%x flags=%x\n", lpddClip, lpClipList, dwFlags);
+	res = (*pSetClipList)(lpddClip, lpClipList, dwFlags);
+	if(res) OutTraceP("SetClipList(C): ERROR err=%x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
 

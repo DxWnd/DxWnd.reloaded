@@ -164,7 +164,7 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutW", (FARPROC)TabbedTextOutW, (FARPROC *)&pTabbedTextOutW, (FARPROC)extTabbedTextOutW},
 	{HOOK_IAT_CANDIDATE, 0, "ScrollDC", (FARPROC)ScrollDC, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
-	{HOOK_IAT_CANDIDATE, 0, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
+	{HOOK_HOT_CANDIDATE, 0, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
 	{HOOK_IAT_CANDIDATE, 0, "DrawTextA", (FARPROC)DrawTextA, (FARPROC *)&pDrawTextA, (FARPROC)extDrawTextA},
 	{HOOK_IAT_CANDIDATE, 0, "DrawTextExA", (FARPROC)DrawTextExA, (FARPROC *)&pDrawTextExA, (FARPROC)extDrawTextExA},
 	{HOOK_IAT_CANDIDATE, 0, "DrawTextW", (FARPROC)DrawTextW, (FARPROC *)&pDrawTextW, (FARPROC)extDrawTextW},
@@ -1882,7 +1882,7 @@ HWND WINAPI extCreateWindowExA(
 		nHeight = MainWin.bottom;
 	}
 
-	return CreateWindowCommon("CreateWindowExA", (CreateWindow_Type)CreateWindowExA, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
+	return CreateWindowCommon("CreateWindowExA", (CreateWindow_Type)pCreateWindowExA, dwExStyle, (void *)lpClassName, (void *)lpWindowName, dwStyle, x, y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam); 
 }
 
 extern void ExplainMsg(char *, HWND, UINT, WPARAM, LPARAM);

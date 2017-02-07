@@ -274,6 +274,7 @@
 #define ALLOWSYSMEMON3DDEV	0x00400000 // Suppress DDSCAPS_SYSTEMMEMORY option when DDSCAPS_3DDEVICE is set
 #define CLIPMENU			0x00800000 // Include window menu in mouse clipper area
 #define BACKGROUNDPRIORITY	0x01000000 // Lower process priority when in background state
+#define OFFSCREENZBUFFER	0x02000000 // Allow building plain surfaces and ZBuffer on offscreen videomemory surfaces
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
