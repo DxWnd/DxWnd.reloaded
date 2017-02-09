@@ -408,7 +408,7 @@ void dxwSDC::setClippingRegion(HDC compatDc, HDC origDc, POINT origin)
 			RgnBox.left, RgnBox.top, RgnBox.right, RgnBox.bottom, RgnBox.right-RgnBox.left, RgnBox.bottom-RgnBox.top);
 	}
 	// end of scaling
-	SelectClipRgn(compatDc, isEmptyClipRgn ? NULL : clipRgn);
+	(*pSelectClipRgn)(compatDc, isEmptyClipRgn ? NULL : clipRgn);
 	DeleteObject(clipRgn);
 
 	HRGN origClipRgn = (*pCreateRectRgn)(0, 0, 0, 0);

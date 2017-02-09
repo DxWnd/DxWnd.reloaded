@@ -13,7 +13,6 @@
 #include "dxhelper.h"
 #include "syslibs.h"
 
-#define EMULATEZBUFFERATTACH FALSE
 #define HANDLEFLIPPABLE
 
 #ifdef CHECKMETHODPOINTERS
@@ -4922,6 +4921,7 @@ static HRESULT WINAPI extCreateClipper(CreateClipper_Type pCreateClipper, LPDIRE
 		OutTraceE("CreateClipper: ERROR res=%x(%s)\n", lpdd, res, ExplainDDError(res));
 		return res;
 	}
+	OutTraceDDRAW("CreateClipper: OK lpddclipper=%x\n", *lplpDDClipper);
 	HookDDClipper(lplpDDClipper); // there is a single Clipper intrface!
 	return res;
 }
@@ -5318,6 +5318,7 @@ HRESULT WINAPI extDirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 		OutTraceE("DirectDrawCreateClipper: ERROR res=%x(%s)\n", res, ExplainDDError(res));
 		return res;
 	}
+	OutTraceDW("DirectDrawCreateClipper: OK lpclipper=%x\n", *lplpDDClipper);
 	HookDDClipper(lplpDDClipper);
 	return res;
 }

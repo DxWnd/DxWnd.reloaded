@@ -303,6 +303,7 @@ static DWORD GetKeyValue(
 						case '{':{
 							pData++; // skip '{'
 							pData += ReplaceVar(pData, &lpb, lpcbData);
+							continue; // v2.04.13 fix
 							}
 							break;
 						default: 

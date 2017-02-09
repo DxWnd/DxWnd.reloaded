@@ -153,6 +153,7 @@ static HookEntryEx_Type RemapHooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "GetUpdateRgn", (FARPROC)GetUpdateRgn, (FARPROC *)&pGetUpdateRgn, (FARPROC)extGetUpdateRgn},
 	//{HOOK_IAT_CANDIDATE, 0, "GetUpdateRect", (FARPROC)GetUpdateRect, (FARPROC *)&pGetUpdateRect, (FARPROC)extGetUpdateRect},
 	{HOOK_IAT_CANDIDATE, 0, "RedrawWindow", (FARPROC)RedrawWindow, (FARPROC *)&pRedrawWindow, (FARPROC)extRedrawWindow},
+	{HOOK_HOT_CANDIDATE, 0, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -164,7 +165,6 @@ static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutW", (FARPROC)TabbedTextOutW, (FARPROC *)&pTabbedTextOutW, (FARPROC)extTabbedTextOutW},
 	{HOOK_IAT_CANDIDATE, 0, "ScrollDC", (FARPROC)ScrollDC, (FARPROC *)&pScrollDC, (FARPROC)extScrollDC},
-	{HOOK_HOT_CANDIDATE, 0, "InvalidateRect", (FARPROC)InvalidateRect, (FARPROC *)&pInvalidateRect, (FARPROC)extInvalidateRect},
 	{HOOK_IAT_CANDIDATE, 0, "DrawTextA", (FARPROC)DrawTextA, (FARPROC *)&pDrawTextA, (FARPROC)extDrawTextA},
 	{HOOK_IAT_CANDIDATE, 0, "DrawTextExA", (FARPROC)DrawTextExA, (FARPROC *)&pDrawTextExA, (FARPROC)extDrawTextExA},
 	{HOOK_IAT_CANDIDATE, 0, "DrawTextW", (FARPROC)DrawTextW, (FARPROC *)&pDrawTextW, (FARPROC)extDrawTextW},
@@ -632,26 +632,28 @@ BOOL WINAPI extInvalidateRect(HWND hwnd, RECT *lpRect, BOOL bErase)
 		OutTrace("InvalidateRect: hwnd=%x rect=%s erase=%x\n", hwnd, sRect, bErase);
 	}
 
-	if(dxw.IsRealDesktop(hwnd)){
-		hwnd = dxw.GethWnd();
-	}
+	if(dxw.Windowize){
+		if(dxw.IsRealDesktop(hwnd)){
+			hwnd = dxw.GethWnd();
+		}
 
-	RECT ScaledRect;
-	if(dxw.IsFullScreen()) { 
-		switch(dxw.GDIEmulationMode){
-			case GDIMODE_STRETCHED:
-			case GDIMODE_SHAREDDC:
-			case GDIMODE_EMULATED:
-				if(lpRect) {
-					// v2.03.55: the lpRect area must NOT be altered by the call
-					// effect visible in partial updates of Deadlock 2 main menu buttons
-					ScaledRect = *lpRect;
-					dxw.MapClient(&ScaledRect);
-					lpRect = &ScaledRect;
-				}
-				break;
-			default:
-				break;
+		RECT ScaledRect;
+		if(dxw.IsFullScreen()) { 
+			switch(dxw.GDIEmulationMode){
+				case GDIMODE_STRETCHED:
+				case GDIMODE_SHAREDDC:
+				case GDIMODE_EMULATED:
+					if(lpRect) {
+						// v2.03.55: the lpRect area must NOT be altered by the call
+						// effect visible in partial updates of Deadlock 2 main menu buttons
+						ScaledRect = *lpRect;
+						dxw.MapClient(&ScaledRect);
+						lpRect = &ScaledRect;
+					}
+					break;
+				default:
+					break;
+			}
 		}
 	}
 
@@ -3693,6 +3695,22 @@ static HHOOK WINAPI extSetWindowsHookEx(SetWindowsHookEx_Type pSetWindowsHookEx,
 		dwThreadId = GetCurrentThreadId();
 		OutTraceDW("SetWindowsHookEx: fixing WH_KEYBOARD thread=0->%x\n", dwThreadId);
 	}
+
+	// v2.04.13: "Starsiege" mouse control fix
+	if((idHook == WH_CBT) && (dwThreadId == NULL)) {
+		dwThreadId = GetCurrentThreadId();
+		OutTraceDW("SetWindowsHookEx: fixing WH_CBT thread=0->%x\n", dwThreadId);
+	}
+
+	// "Starsiege" .....
+	//if((idHook == WH_MOUSE_LL) && (dwThreadId == NULL)) {
+	//	dwThreadId = GetCurrentThreadId();
+	//	OutTraceDW("SetWindowsHookEx: fixing WH_MOUSE_LL thread=0->%x\n", dwThreadId);
+	//}
+	//if((idHook == WH_KEYBOARD_LL) && (dwThreadId == NULL)) {
+	//	dwThreadId = GetCurrentThreadId();
+	//	OutTraceDW("SetWindowsHookEx: fixing WH_KEYBOARD_LL thread=0->%x\n", dwThreadId);
+	//}
 
 	// v2.03.54: disable the disable Alt-Tab fix
 	if((dxw.dwFlags7 & DISABLEDISABLEALTTAB) && (idHook == WH_KEYBOARD_LL)) {

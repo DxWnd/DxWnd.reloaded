@@ -1527,3 +1527,10 @@ add: "Support offscreen 3D" flag (OFFSCREENZBUFFER)
 DLL:
 fix: recursion bug in CreateWindowExA hooker
 add: OFFSCREENZBUFFER flag
+
+v2.04.13
+fix: moved USER32/InvalidateRect hooker to always activate it and further reduce desktop flickering
+fix: fixed virtual registry tags that introduced extra characters in key string expansion
+add: hooked SelectClipRgn - preliminary to attempt fixing "Sid Meier's Alpha Centauri"
+fix: fixed unsupported call to SetWindowsHook(WH_CBT, NULL). Fixes "Starsiege" deaf mouse control.
+fix: completed and rebuilt proxy dlls to be aligned with current DxWnd structure

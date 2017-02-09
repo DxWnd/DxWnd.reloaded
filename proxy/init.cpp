@@ -37,26 +37,34 @@ void InitDxWnd(void)
             GetModuleFileNameA(NULL, target.path, MAX_PATH);
 
 			target.FakeVersionId = GetIntEntry("winver0", 0);
-			target.flags   = GetIntEntry("flag0", EMULATESURFACE|MODIFYMOUSE|USERGB565);
-			target.flags2  = GetIntEntry("flagg0", WINDOWIZE|SETCOMPATIBILITY);
-			target.flags3  = GetIntEntry("flagh0", HOOKDLLS|HOOKENABLED);
-			target.flags4  = GetIntEntry("flagi0", SUPPORTSVGA);
-			target.flags5  = GetIntEntry("flagj0", AEROBOOST|CENTERTOWIN);
-			target.flags6  = GetIntEntry("flagk0", 0);
-			target.tflags  = GetIntEntry("tflag0", 0);
-			target.posx    = GetIntEntry("posx0", 0);
-			target.posy    = GetIntEntry("posy0", 0);
-            target.sizx    = GetIntEntry("sizx0", 0);
-            target.sizy    = GetIntEntry("sizy0", 0);
-            target.coordinates = GetIntEntry("coord0", 1); // centered to desktop
-            target.MaxFPS  = GetIntEntry("maxfps0", 0);
-			target.dxversion = GetIntEntry("ver0", 0);
+			target.flags		= GetIntEntry("flag0", EMULATESURFACE|MODIFYMOUSE|USERGB565);
+			target.flags2		= GetIntEntry("flagg0", WINDOWIZE|SETCOMPATIBILITY);
+			target.flags3		= GetIntEntry("flagh0", HOOKDLLS|HOOKENABLED);
+			target.flags4		= GetIntEntry("flagi0", SUPPORTSVGA);
+			target.flags5		= GetIntEntry("flagj0", AEROBOOST|CENTERTOWIN);
+			target.flags6		= GetIntEntry("flagk0", 0);
+			target.flags7		= GetIntEntry("flagl0", 0);
+			target.flags8		= GetIntEntry("flagm0", 0);
+			target.tflags		= GetIntEntry("tflag0", 0);
+			target.dflags		= GetIntEntry("dflag0", 0);
+			target.posx			= GetIntEntry("posx0", 0);
+			target.posy			= GetIntEntry("posy0", 0);
+            target.sizx			= GetIntEntry("sizx0", 0);
+            target.sizy			= GetIntEntry("sizy0", 0);
+            target.coordinates	= GetIntEntry("coord0", 1); // centered to desktop
+            target.MaxFPS		= GetIntEntry("maxfps0", 0);
+			target.dxversion	= GetIntEntry("ver0", 0);
 			if(target.dxversion > 1) target.dxversion += 5;
-			target.FakeVersionId = GetIntEntry("winver0", 0);
+			target.FakeVersionId= GetIntEntry("winver0", 0);
 			target.MaxScreenRes = GetIntEntry("maxres0", 0);
-			target.SwapEffect = GetIntEntry("swapeffect0", 0);
-			target.InitTS = GetIntEntry("initts0", 0);
-                   
+			target.SwapEffect	= GetIntEntry("swapeffect0", 0);
+			target.InitTS		= GetIntEntry("initts0", 0);
+            target.monitorid	= GetIntEntry("monitorid0", -1);
+			target.resw			= GetIntEntry("initresw0", 800);
+			target.resh			= GetIntEntry("initresh0", 600);
+            target.MaxDdrawInterface = GetIntEntry("maxddinterface0", 7);    
+			target.ScanLine		= GetIntEntry("scanline0", 0);
+
             setTarget((TARGETMAP *)&target);
             startHook();
         }

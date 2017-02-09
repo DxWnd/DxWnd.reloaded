@@ -160,6 +160,7 @@ static HookEntryEx_Type SyscallHooks[]={
 };
 
 static HookEntryEx_Type ScaledHooks[]={
+	{HOOK_HOT_CANDIDATE, 0, "SelectClipRgn", (FARPROC)SelectClipRgn, (FARPROC *)&pSelectClipRgn, (FARPROC)extSelectClipRgn}, // Sid Meier's Alpha Centaury
 	// commented out since they alter text on screen...... (see Imperialism II difficulty level menu)
 	// v2.03.47 - restored: needed for "688(I) Hunter Killer" periscope ....
 	{HOOK_IAT_CANDIDATE, 0, "CreateEllipticRgn", (FARPROC)CreateEllipticRgn, (FARPROC *)&pCreateEllipticRgn, (FARPROC)extCreateEllipticRgn},
@@ -3713,3 +3714,13 @@ BOOL WINAPI extDeleteObject(HGDIOBJ hgdiobj)
 	ret = (*pDeleteObject)(hgdiobj);
 	return ret;
 }
+
+int WINAPI extSelectClipRgn(HDC hdc, HRGN hrgn)
+{
+	int ret;
+	// just proxy, right now ....
+	OutTrace("SelectClipRgn: hdc=%x hrgn=%x\n", hdc, hrgn);
+	ret = (*pSelectClipRgn)(hdc, NULL);
+	return ret;
+}
+

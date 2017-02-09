@@ -144,6 +144,7 @@ typedef BOOL	(WINAPI *GetTextExtentPointA_Type)(HDC, LPCTSTR, int, LPSIZE);
 typedef BOOL	(WINAPI *GetTextExtentPoint32A_Type)(HDC, LPCTSTR, int, LPSIZE);
 typedef HGDIOBJ (WINAPI *SelectObject_Type)(HDC, HGDIOBJ);
 typedef BOOL	(WINAPI *DeleteObject_Type)(HGDIOBJ);
+typedef int		(WINAPI *SelectClipRgn_Type)(HDC, HRGN);
 
 // Kernel32.dll:
 typedef BOOL	(WINAPI *GetDiskFreeSpaceA_Type)(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
@@ -462,6 +463,7 @@ DXWEXTERN GetTextExtentPointA_Type pGetTextExtentPointA DXWINITIALIZED;
 DXWEXTERN GetTextExtentPoint32A_Type pGetTextExtentPoint32A DXWINITIALIZED;
 DXWEXTERN SelectObject_Type pSelectObject DXWINITIALIZED;
 DXWEXTERN DeleteObject_Type pDeleteObject DXWINITIALIZED;
+DXWEXTERN SelectClipRgn_Type pSelectClipRgn DXWINITIALIZED;
 
 
 // Kernel32.dll:
@@ -771,6 +773,7 @@ extern BOOL WINAPI extGetTextExtentPointA(HDC, LPCTSTR, int, LPSIZE);
 extern BOOL WINAPI extGetTextExtentPoint32A(HDC, LPCTSTR, int, LPSIZE);
 extern HGDIOBJ WINAPI extSelectObject(HDC, HGDIOBJ);
 extern BOOL WINAPI extDeleteObject(HGDIOBJ);
+extern int WINAPI extSelectClipRgn(HDC, HRGN);
 
 // Kernel32.dll:
 extern BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
