@@ -227,4 +227,3 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 
 	return res;
 }
-

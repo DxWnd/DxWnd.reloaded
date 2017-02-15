@@ -468,6 +468,10 @@ void dxwCore::SetClipCursor()
 	}
 
 	// check for errors to avoid setting random clip regions
+	//if((*pIsWindowVisible)(hWnd)){
+	//	OutTraceE("SetClipCursor: not visible\n");
+	//	return;
+	//}
 	if(!(*pGetClientRect)(hWnd, &Rect)){
 		OutTraceE("SetClipCursor: GetClientRect ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		return;

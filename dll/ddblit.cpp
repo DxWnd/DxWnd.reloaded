@@ -112,6 +112,11 @@ static HRESULT sBltNoPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 #endif
 		}
 		break;
+	case DDERR_SURFACELOST:
+		lpdds->Restore();
+		res= (*pBlt)(lpdds, lpdestrect, lpddssrc, lpsrcrect ? &srcrect : NULL, dwflags, lpddbltfx);
+		OutTraceDW("Blt SURFACELOST RETRY: ret=%x(%s)\n", res, ExplainDDError(res)); 
+		break;
 	default:
 		break;
 	}
@@ -266,6 +271,11 @@ static HRESULT sBltToPrimary(int dxversion, Blt_Type pBlt, char *api, LPDIRECTDR
 				if(res) OutTraceE("Blt: ERROR %x(%s) at %d", res, ExplainDDError(res), __LINE__);
 				if (res) BlitError(res, lpsrcrect, lpdestrect, __LINE__);
 				(*pReleaseSMethod(dxversion))((LPDIRECTDRAWSURFACE)lpddsTmp);
+			}
+			if(res==DDERR_SURFACELOST){
+				lpdds->Restore();
+				res=(*pPrimaryBlt)(dxversion, pBlt, lpdds, lpdestrect, lpddssrc, lpsrcrect, lpddbltfx);
+				OutTraceDW("Blt SURFACELOST RETRY: ret=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__); 
 			}
 			if(dxw.dwFlags1 & SUPPRESSDXERRORS) res=DD_OK;
 		}

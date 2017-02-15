@@ -43,6 +43,7 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_UNLOCKZORDER, cTarget->m_UnlockZOrder);
 	DDX_Check(pDX, IDC_NODESTROYWINDOW, cTarget->m_NoDestroyWindow);
 	DDX_Check(pDX, IDC_ACTIVATEAPP, cTarget->m_ActivateApp);
+	DDX_Check(pDX, IDC_SUPPRESSIME, cTarget->m_SuppressIME);
 
 	DDX_Radio(pDX, IDC_FREEMOVE, cTarget->m_WinMovementType);
 

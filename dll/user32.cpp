@@ -77,7 +77,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "GetWindowLongA", (FARPROC)GetWindowLongA, (FARPROC *)&pGetWindowLongA, (FARPROC)extGetWindowLongA}, 
 	{HOOK_HOT_CANDIDATE, 0, "SetWindowLongW", (FARPROC)SetWindowLongW, (FARPROC *)&pSetWindowLongW, (FARPROC)extSetWindowLongW},
 	{HOOK_HOT_CANDIDATE, 0, "GetWindowLongW", (FARPROC)GetWindowLongW, (FARPROC *)&pGetWindowLongW, (FARPROC)extGetWindowLongW}, 
-	{HOOK_IAT_CANDIDATE, 0, "IsWindowVisible", (FARPROC)NULL, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible},
+	{HOOK_IAT_CANDIDATE, 0, "IsWindowVisible", (FARPROC)IsWindowVisible, (FARPROC *)&pIsWindowVisible, (FARPROC)extIsWindowVisible}, // ref. in dxw.SetClipper, CreateWindowCommon
 	{HOOK_IAT_CANDIDATE, 0, "GetTopWindow", (FARPROC)GetTopWindow, (FARPROC *)&pGetTopWindow, (FARPROC)extGetTopWindow},
 	// hot by MinHook since v2.03.07
 	{HOOK_HOT_CANDIDATE, 0, "SystemParametersInfoA", (FARPROC)SystemParametersInfoA, (FARPROC *)&pSystemParametersInfoA, (FARPROC)extSystemParametersInfoA},
@@ -674,6 +674,13 @@ BOOL WINAPI extShowWindow(HWND hwnd, int nCmdShow)
 		// v2.03.85: suppress attempts to hide the tray window
 		OutTraceDW("ShowWindow: suppress tray window hide\n");
 		return TRUE;
+	}
+
+	if(dxw.Windowize && dxw.IsFullScreen() && dxw.IsDesktop(hwnd)){
+		if(dxw.dwFlags1 & CLIPCURSOR){
+			OutTraceDW("ShowWindow: clipper on main win %s\n", (nCmdShow==SW_HIDE)?"OFF":"ON");
+			(nCmdShow==SW_HIDE) ? dxw.EraseClipCursor() : dxw.SetClipCursor();
+		}
 	}
 
 	nOrigCmd = nCmdShow;
@@ -1756,6 +1763,8 @@ static HWND WINAPI CreateWindowCommon(
 		(*pShowWindow)(hwnd, SW_SHOWNORMAL);
 	}
 
+	//if (isNewDesktop) dxw.SethWnd(hwnd);
+
 	if ((dxw.dwFlags1 & FIXWINFRAME) && !(dwStyle & WS_CHILD) && dxw.IsDesktop(hwnd))
 		dxw.FixWindowFrame(hwnd);
 
@@ -1929,31 +1938,29 @@ LRESULT WINAPI extCallWindowProcW(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg, WP
 		return res;
 }
 
-LRESULT WINAPI extDefWindowProcA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+static LRESULT WINAPI DefWindowProcCommon(char *Label, DefWindowProc_Type pDefWindowProc, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	// v2.02.30: fix (Imperialism II): apply to main window only !!!
 	// v2.03.50: fix - do clip cursor only after the window has got focus
+	// v2.04.14: fix - erase clip cursor when window loses focus !!!
 	HRESULT res;
 	res = (HRESULT)-1;
-	if(IsTraceW) ExplainMsg("DefWindowProcA", hwnd, Msg, wParam, lParam);
-	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcA", hwnd, Msg, wParam, &lParam);
-	if (res==(HRESULT)-1) res = (*pDefWindowProcA)(hwnd, Msg, wParam, lParam);
-	if((Msg == WM_SETFOCUS) && (dxw.dwFlags1 & CLIPCURSOR)) dxw.SetClipCursor();
+	if(IsTraceW) ExplainMsg(Label, hwnd, Msg, wParam, lParam);
+	if(hwnd == dxw.GethWnd()) res=FixWindowProc(Label, hwnd, Msg, wParam, &lParam);
+	if (res==(HRESULT)-1) res = (*pDefWindowProc)(hwnd, Msg, wParam, lParam);
+	if(dxw.dwFlags1 & CLIPCURSOR){
+		switch(Msg){
+			case WM_SETFOCUS: dxw.SetClipCursor(); break;
+			case WM_KILLFOCUS: dxw.EraseClipCursor(); break; // v2.04.14: forgotten case ....
+		}
+	}
 	return res;
 }
 
 LRESULT WINAPI extDefWindowProcW(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-	// v2.02.30: fix (Imperialism II): apply to main window only !!!
-	// v2.03.50: fix - do clip cursor only after the window has got focus
-	HRESULT res;
-	res = (HRESULT)-1;
-	if(IsTraceW) ExplainMsg("DefWindowProcW", hwnd, Msg, wParam, lParam);
-	if(hwnd == dxw.GethWnd()) res=FixWindowProc("DefWindowProcW", hwnd, Msg, wParam, &lParam);
-	if (res==(HRESULT)-1) res = (*pDefWindowProcW)(hwnd, Msg, wParam, lParam);
-	if((Msg == WM_SETFOCUS) && (dxw.dwFlags1 & CLIPCURSOR)) dxw.SetClipCursor();
-	return res;
-}
+{ return DefWindowProcCommon("DefWindowProcW", pDefWindowProcW, hwnd, Msg, wParam, lParam); }
+LRESULT WINAPI extDefWindowProcA(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{ return DefWindowProcCommon("DefWindowProcA", pDefWindowProcA, hwnd, Msg, wParam, lParam); }
 
 static int HandleRect(char *ApiName, void *pFun, HDC hdc, const RECT *lprc, HBRUSH hbr)
 {
@@ -2031,14 +2038,9 @@ static int HandleRect(char *ApiName, void *pFun, HDC hdc, const RECT *lprc, HBRU
 }
 
 int WINAPI extFillRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
-{
-	return HandleRect("FillRect", (void *)pFillRect, hdc, lprc, hbr);
-}
-
+{ return HandleRect("FillRect", (void *)pFillRect, hdc, lprc, hbr); }
 int WINAPI extFrameRect(HDC hdc, const RECT *lprc, HBRUSH hbr)
-{
-	return HandleRect("FrameRect", (void *)pFrameRect, hdc, lprc, hbr);
-}
+{ return HandleRect("FrameRect", (void *)pFrameRect, hdc, lprc, hbr); }
 
 BOOL WINAPI extInvertRect(HDC hdc, const RECT *lprc)
 {

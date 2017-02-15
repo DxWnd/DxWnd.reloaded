@@ -43,6 +43,7 @@ BOOL gAutoHideMode = FALSE;
 BOOL gQuietMode = FALSE;
 BOOL gMustDie = FALSE;
 int iProgIndex;
+DWORD SysColors[32];
 extern char m_ConfigFileName[20+1] = "dxwnd.ini";
 
 class CNewCommandLineInfo : public CCommandLineInfo
@@ -239,7 +240,11 @@ BOOL CDxwndhostApp::InitInstance()
     if (bCheckAdminRights && (GetVersionEx(&osver)) && (osver.dwMajorVersion >= 6)){
 		DxSelfElevate((CDxwndhostView *)NULL);
 	}
-	return TRUE;
+
+	// save system colors for later recovery
+	for(int index=COLOR_SCROLLBAR; index<=COLOR_MENUBAR; index++) SysColors[index]=0; // initialize
+	for(int index=COLOR_SCROLLBAR; index<=COLOR_MENUBAR; index++) SysColors[index]=::GetSysColor(index);
+	return TRUE; 
 }
 
 
@@ -250,17 +255,20 @@ class CAboutDlg : public CDialog
 {
 public:
 	CAboutDlg();
+	virtual BOOL OnInitDialog();
 
 // Data Dialog 
 	//{{AFX_DATA(CAboutDlg)
 	enum { IDD = IDD_ABOUTBOX };
 	CString	m_Version;
+	CString	m_Thanks;
 	//}}AFX_DATA
 
 	// ClassWizard generated virtual function overrides.
 	//{{AFX_VIRTUAL(CAboutDlg)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV Support
+	virtual void OnTimer(UINT_PTR);
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -283,13 +291,52 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CAboutDlg)
 	DDX_Text(pDX, IDC_VERSION, m_Version);
+	DDX_Text(pDX, IDC_THANKS, m_Thanks);
 	//}}AFX_DATA_MAP
 }
 
+#define ID_HELP_SCROLL 999
+
+BOOL CAboutDlg::OnInitDialog()
+{
+	CDialog::OnInitDialog();
+	SetTimer(ID_HELP_SCROLL, 600, NULL);
+	return TRUE;  // return TRUE unless you set the focus to a control
+}
+
+CString Thanks[] = {
+"Aqrit for proxies, many tweaks & hot patching schema",
+"AxXxB and Old-Games.ru teammates for ZBUFFER fix",
+"Fabian \"ryg\" Giesen & others for DXT1/5 compression",
+"FunkyFr3sh for fixes in proxy dll",
+"Gsky916 for chinese translation",
+"Jari Kommpa for ddraw wrapper source and d3d hints",
+"Jiri Dvorak for his d3d8 wrapper with 16bpp emulation",
+"Luigi Auriemma for injection syncronization",
+"Michael Koch for d3d9 proxy dll",
+"Narzoul for sharing DC handling code",
+"Olly (www.ollydbg.de) for OllyDBG & disasm lib",
+"RomSteady for his kind encouragement",
+"Ryan Geiss for his bilinear filter code",
+"TigerhawkT3 for html manual pages",
+"Tsuda Kageyu for MinHook dll",
+""};
+
+#define THANKSKOUNT 15
+
+void CAboutDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	static int i=0;
+	int j;
+	CString RolledThanks;
+	for(j=i; j<THANKSKOUNT; j++) RolledThanks.AppendFormat("%s\n", Thanks[j]);
+	for(j=0; j<i          ; j++) RolledThanks.AppendFormat("%s\n", Thanks[j]);
+	this->SetDlgItemTextA(IDC_THANKS, RolledThanks);
+	i=(i+1)%THANKSKOUNT;
+}
+
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
-	//{{AFX_MSG_MAP(CAboutDlg)
-		// There is no message handler.
-	//}}AFX_MSG_MAP
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 // The application command to run the dialog
@@ -300,7 +347,26 @@ void CDxwndhostApp::OnAppAbout()
 	GetDllVersion(tmp);
 	sprintf(ver, "DLL version %s", tmp);
 	aboutDlg.m_Version = ver;
+	aboutDlg.m_Thanks = "";
+//	aboutDlg.m_Thanks = "\
+//Aqrit for proxies, many tweaks & hot patching schema\n\
+//AxXxB and Old-Games.ru teammates for ZBUFFER fix\n\
+//Fabian \"ryg\" Giesen & others for DXT1/5 compression\n\
+//FunkyFr3sh for fixes in proxy dll\n\
+//Gsky916 for chinese translation\n\
+//Jari Kommpa for ddraw wrapper source and d3d hints\n\
+//Jiri Dvorak for his d3d8 wrapper with 16bpp emulation\n\
+//Luigi Auriemma for injection syncronization\n\
+//Michael Koch for d3d9 proxy dll\n\
+//Narzoul for sharing DC handling code\n\
+//Olly (www.ollydbg.de) for OllyDBG & disasm lib\n\
+//RomSteady for his kind encouragement\n\
+//Ryan Geiss for his bilinear filter code\n\
+//TigerhawkT3 for html manual pages\n\
+//Tsuda Kageyu for MinHook dll\n\
+//";
 	aboutDlg.DoModal();
+	aboutDlg.KillTimer(ID_HELP_SCROLL);
 }
 
 void CDxwndhostApp::OnViewHelp()

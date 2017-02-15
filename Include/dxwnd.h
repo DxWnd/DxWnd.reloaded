@@ -275,6 +275,8 @@
 #define CLIPMENU			0x00800000 // Include window menu in mouse clipper area
 #define BACKGROUNDPRIORITY	0x01000000 // Lower process priority when in background state
 #define OFFSCREENZBUFFER	0x02000000 // Allow building plain surfaces and ZBuffer on offscreen videomemory surfaces
+#define VIRTUALHEAP			0x04000000 // Remap heap calls to C library memory allocation routines
+#define ZBUFFERHARDCLEAN	0x08000000 // Clean ZBUFFER the hard way (memset 0xFF on whole surface buffer ....)
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general

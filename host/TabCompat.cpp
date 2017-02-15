@@ -32,8 +32,8 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SINGLEPROCAFFINITY, cTarget->m_SingleProcAffinity);
 	DDX_Check(pDX, IDC_USELASTCORE, cTarget->m_UseLastCore);
 	DDX_Check(pDX, IDC_HANDLEEXCEPTIONS, cTarget->m_HandleExceptions);
+	DDX_Check(pDX, IDC_VIRTUALHEAP, cTarget->m_VirtualHeap);
 	DDX_Check(pDX, IDC_LIMITRESOURCES, cTarget->m_LimitResources);
-	DDX_Check(pDX, IDC_SUPPRESSIME, cTarget->m_SuppressIME);
 	DDX_Check(pDX, IDC_CDROMDRIVETYPE, cTarget->m_CDROMDriveType);
 	DDX_Check(pDX, IDC_FONTBYPASS, cTarget->m_FontBypass);
 	DDX_Check(pDX, IDC_BUFFEREDIOFIX, cTarget->m_BufferedIOFix);

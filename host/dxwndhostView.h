@@ -113,6 +113,7 @@ protected:
 	afx_msg void OnDesktopcolordepth32bpp();
 	afx_msg void OnRecoverScreenMode();
 	afx_msg void OnClearCompatibilityFlags();
+	afx_msg void OnRecoverSystemColors();
 	afx_msg void OnMoveTop();
 	afx_msg void OnMoveUp();
 	afx_msg void OnMoveDown();

@@ -20,6 +20,14 @@ LPVOID WINAPI extVirtualAlloc(LPVOID, SIZE_T, DWORD, DWORD);
 UINT WINAPI extWinExec(LPCSTR, UINT);
 BOOL WINAPI extSetPriorityClass(HANDLE, DWORD);
 BOOL WINAPI extGlobalUnlock(HGLOBAL);
+LPVOID WINAPI extHeapAlloc(HANDLE, DWORD, SIZE_T);
+LPVOID WINAPI extHeapReAlloc(HANDLE, DWORD, LPVOID, SIZE_T);
+HANDLE WINAPI extHeapCreate(DWORD, SIZE_T, SIZE_T);
+BOOL WINAPI extHeapFree(HANDLE, DWORD, LPVOID);
+BOOL WINAPI extHeapValidate(HANDLE, DWORD, LPVOID);
+SIZE_T WINAPI extHeapCompact(HANDLE, DWORD);
+HANDLE WINAPI extGetProcessHeap(void);
+BOOL WINAPI extHeapDestroy(HANDLE);
 
 typedef LPVOID (WINAPI *VirtualAlloc_Type)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, 
@@ -27,12 +35,26 @@ typedef BOOL (WINAPI *CreateProcessA_Type)(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTE
 typedef BOOL (WINAPI *SetPriorityClass_Type)(HANDLE, DWORD);
 typedef UINT (WINAPI *WinExec_Type)(LPCSTR, UINT);
 typedef BOOL (WINAPI *GlobalUnlock_Type)(HGLOBAL);
+typedef LPVOID (WINAPI *HeapAlloc_Type)(HANDLE, DWORD, SIZE_T);
+typedef LPVOID (WINAPI *HeapReAlloc_Type)(HANDLE, DWORD, LPVOID, SIZE_T);
+typedef HANDLE (WINAPI *HeapCreate_Type)(DWORD, SIZE_T, SIZE_T);
+typedef BOOL (WINAPI *HeapFree_Type)(HANDLE, DWORD, LPVOID);
+typedef SIZE_T (WINAPI *HeapCompact_Type)(HANDLE, DWORD);
+typedef HANDLE (WINAPI *GetProcessHeap_Type)(void);
+typedef BOOL (WINAPI *HeapDestroy_Type)(HANDLE);
 
 CreateProcessA_Type pCreateProcessA = NULL;
 VirtualAlloc_Type pVirtualAlloc = NULL;
 WinExec_Type pWinExec = NULL;
 SetPriorityClass_Type pSetPriorityClass = NULL;
 GlobalUnlock_Type pGlobalUnlock = NULL;
+HeapAlloc_Type pHeapAlloc;
+HeapReAlloc_Type pHeapReAlloc;
+HeapCreate_Type pHeapCreate;
+HeapFree_Type pHeapFree, pHeapValidate;
+HeapCompact_Type pHeapCompact;
+GetProcessHeap_Type pGetProcessHeap;
+HeapDestroy_Type pHeapDestroy;
 
 typedef BOOL (WINAPI *FreeLibrary_Type)(HMODULE);
 FreeLibrary_Type pFreeLibrary = NULL;
@@ -76,6 +98,18 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "SetPriorityClass", (FARPROC)SetPriorityClass, (FARPROC *)&pSetPriorityClass, (FARPROC)extSetPriorityClass},
 	{HOOK_HOT_CANDIDATE, 0, "GlobalUnlock", (FARPROC)GlobalUnlock, (FARPROC *)&pGlobalUnlock, (FARPROC)extGlobalUnlock},
 	{HOOK_HOT_CANDIDATE, 0, "FreeLibrary", (FARPROC)FreeLibrary, (FARPROC *)&pFreeLibrary, (FARPROC)extFreeLibrary},
+	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
+};
+
+static HookEntryEx_Type HeapHooks[]={
+	{HOOK_IAT_CANDIDATE, 0, "HeapCreate", (FARPROC)HeapCreate, (FARPROC *)&pHeapCreate, (FARPROC)extHeapCreate},
+	{HOOK_IAT_CANDIDATE, 0, "HeapAlloc", (FARPROC)HeapAlloc, (FARPROC *)&pHeapAlloc, (FARPROC)extHeapAlloc},
+	{HOOK_IAT_CANDIDATE, 0, "HeapReAlloc", (FARPROC)HeapReAlloc, (FARPROC *)&pHeapReAlloc, (FARPROC)extHeapReAlloc},
+	{HOOK_IAT_CANDIDATE, 0, "HeapFree", (FARPROC)HeapFree, (FARPROC *)&pHeapFree, (FARPROC)extHeapFree},
+	{HOOK_IAT_CANDIDATE, 0, "HeapValidate", (FARPROC)HeapFree, (FARPROC *)&pHeapFree, (FARPROC)extHeapFree},
+	{HOOK_IAT_CANDIDATE, 0, "HeapCompact", (FARPROC)HeapCompact, (FARPROC *)&pHeapCompact, (FARPROC)extHeapCompact},
+	{HOOK_IAT_CANDIDATE, 0, "HeapDestroy", (FARPROC)HeapDestroy, (FARPROC *)&pHeapDestroy, (FARPROC)extHeapDestroy},
+	{HOOK_IAT_CANDIDATE, 0, "GetProcessHeap", (FARPROC)GetProcessHeap, (FARPROC *)&pGetProcessHeap, (FARPROC)extGetProcessHeap},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -127,6 +161,7 @@ void HookKernel32(HMODULE module)
 	if(dxw.dwFlags2 & TIMESTRETCH) HookLibraryEx(module, TimeHooks, libname);
 	if(dxw.dwFlags2 & FAKEVERSION) HookLibraryEx(module, VersionHooks, libname);
 	if(dxw.dwFlags6 & LEGACYALLOC) HookLibraryEx(module, FixAllocHooks, libname);
+	if(dxw.dwFlags8 & VIRTUALHEAP) HookLibraryEx(module, HeapHooks, libname);
 }
 
 void HookKernel32Init()
@@ -137,6 +172,7 @@ void HookKernel32Init()
 	HookLibInitEx(TimeHooks);
 	HookLibInitEx(VersionHooks);
 	HookLibInitEx(FixAllocHooks);
+	HookLibInitEx(HeapHooks);
 }
 
 FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
@@ -167,6 +203,10 @@ FARPROC Remap_kernel32_ProcAddress(LPCSTR proc, HMODULE hModule)
 
 	if(dxw.dwFlags6 & LEGACYALLOC)
 		if (addr=RemapLibraryEx(proc, hModule, FixAllocHooks)) return addr;
+
+	if(dxw.dwFlags8 & VIRTUALHEAP)
+		if (addr=RemapLibraryEx(proc, hModule, HeapHooks)) return addr;
+
 	return NULL;
 }
 
@@ -1496,3 +1536,229 @@ BOOL WINAPI extGlobalUnlock(HGLOBAL hMem)
 	}
 	return ret;
 }
+
+// ---------------------------------------------------------------------
+// Virtual Heap
+// ---------------------------------------------------------------------
+
+static LPVOID VHeapMin = (LPVOID)0xFFFFFFFF;
+static LPVOID VHeapMax = (LPVOID)0x00000000;
+static int iProg = 1;
+
+#if 0
+
+LPVOID WINAPI extHeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes)
+{
+	LPVOID ret;
+	OutTraceB("HeapAlloc: heap=%x flags=%x bytes=%d\n", hHeap, dwFlags, dwBytes);
+	if(((DWORD)hHeap >= 0xDEADBEEF) && ((DWORD)hHeap < 0xDEADBEEF + iProg)){
+		ret = malloc(dwBytes);
+		if(ret){
+			if(ret > VHeapMax) VHeapMax = ret;
+			if(ret < VHeapMin) VHeapMin = ret;
+		}
+		OutTraceB("HeapAlloc: (virtual) ret=%x\n", ret);
+	}
+	else {
+		ret = (*pHeapAlloc)(hHeap, dwFlags, dwBytes);
+		OutTraceB("HeapAlloc: ret=%x\n", ret);
+	}
+	return ret;
+}
+
+LPVOID WINAPI extHeapReAlloc(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem, SIZE_T dwBytes)
+{
+	LPVOID ret;
+	OutTraceB("HeapReAlloc: heap=%x flags=%x mem=%x bytes=%d\n", hHeap, dwFlags, lpMem, dwBytes);
+	if(((DWORD)hHeap >= 0xDEADBEEF) && ((DWORD)hHeap < 0xDEADBEEF + iProg)){
+		ret = realloc(lpMem, dwBytes);
+		if(ret){
+			if(ret > VHeapMax) VHeapMax = ret;
+			if(ret < VHeapMin) VHeapMin = ret;
+		}
+		OutTraceB("HeapReAlloc: (virtual) ret=%x\n", ret);
+	}
+	else {
+		ret = (*pHeapReAlloc)(hHeap, dwFlags, lpMem, dwBytes);
+		OutTraceB("HeapReAlloc: ret=%X\n", ret);
+	}
+	return ret;
+}
+
+BOOL WINAPI extHeapFree(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
+{
+	BOOL ret;
+	OutTraceB("HeapFree: heap=%x flags=%x mem=%x\n", hHeap, dwFlags, lpMem);
+	if((lpMem >= VHeapMin) && (lpMem <= VHeapMax)){
+		free(lpMem);
+		ret = TRUE;
+		OutTraceB("HeapFree: (virtual) ret=%x\n", ret);
+	}
+	else {
+		ret = (*pHeapFree)(hHeap, dwFlags, lpMem);
+		OutTraceB("HeapFree: ret=%x\n", ret);
+	}
+	return ret;
+}
+
+BOOL WINAPI extHeapValidate(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
+{
+	BOOL ret;
+	OutTraceB("HeapValidate: heap=%x flags=%x mem=%x\n", hHeap, dwFlags, lpMem);
+	if((lpMem >= VHeapMin) && (lpMem <= VHeapMax)){
+		ret = TRUE;
+		OutTraceB("HeapValidate: (virtual) ret=%x\n", ret);
+	}
+	else {
+		ret = (*pHeapValidate)(hHeap, dwFlags, lpMem);
+		OutTraceB("HeapValidate: ret=%x\n", ret);
+	}
+	return ret;
+}
+
+SIZE_T WINAPI extHeapCompact(HANDLE hHeap, DWORD dwFlags)
+{
+	SIZE_T ret;
+	OutTraceB("HeapCompact: heap=%x flags=%x\n", hHeap, dwFlags);
+	if(((DWORD)hHeap >= 0xDEADBEEF) && ((DWORD)hHeap < 0xDEADBEEF + iProg)){
+		ret = 100000; // just a number ....
+		OutTraceB("HeapCompact: (virtual) ret=%d\n", ret);
+	}
+	else {
+		ret = (*pHeapCompact)(hHeap, dwFlags);
+		OutTraceB("HeapCompact: ret=%d\n", ret);
+	}
+	return ret;
+}
+
+HANDLE WINAPI extHeapCreate(DWORD flOptions, SIZE_T dwInitialSize, SIZE_T dwMaximumSize)
+{
+	HANDLE ret;
+	OutTraceB("HeapCreate: flags=%x size(init-max)=(%d-%d)\n", flOptions, dwInitialSize, dwMaximumSize);
+	//flOptions &= ~HEAP_NO_SERIALIZE;
+	//ret = (*pHeapCreate)(flOptions, dwInitialSize, dwMaximumSize);
+	ret = (HANDLE)(0xDEADBEEF + iProg++);
+	OutTraceB("HeapCreate: (virtual) ret=%X\n", ret);
+	return ret;
+}
+
+HANDLE WINAPI extGetProcessHeap(void)
+{
+	OutTraceB("GetProcessHeap: (virtual) ret=0xDEADBEEF\n");
+	return (HANDLE)0xDEADBEEF;
+}
+
+BOOL WINAPI extHeapDestroy(HANDLE hHeap)
+{
+	BOOL ret;
+	OutTraceB("HeapDestroy: heap=%x\n", hHeap);
+	if(((DWORD)hHeap >= 0xDEADBEEF) && ((DWORD)hHeap < 0xDEADBEEF + iProg))
+		ret = TRUE;
+	else 
+		ret = (*pHeapDestroy)(hHeap);
+	OutTraceB("HeapDestroy: ret=%x\n", ret);
+	return ret;
+}
+
+#else
+
+LPVOID WINAPI extHeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes)
+{
+	LPVOID ret;
+	OutTraceB("HeapAlloc: heap=%x flags=%x bytes=%d\n", hHeap, dwFlags, dwBytes);
+	ret = malloc(dwBytes);
+	if(ret){
+		if(ret > VHeapMax) VHeapMax = ret;
+		if(ret < VHeapMin) VHeapMin = ret;
+	}
+	OutTraceB("HeapAlloc: (virtual) ret=%x\n", ret);
+	return ret;
+}
+
+LPVOID WINAPI extHeapReAlloc(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem, SIZE_T dwBytes)
+{
+	LPVOID ret;
+	OutTraceB("HeapReAlloc: heap=%x flags=%x mem=%x bytes=%d\n", hHeap, dwFlags, lpMem, dwBytes);
+	ret = realloc(lpMem, dwBytes);
+	if(ret){
+		if(ret > VHeapMax) VHeapMax = ret;
+		if(ret < VHeapMin) VHeapMin = ret;
+	}
+	OutTraceB("HeapReAlloc: (virtual) ret=%x\n", ret);
+	return ret;
+}
+
+BOOL WINAPI extHeapFree(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
+{
+	BOOL ret;
+	OutTraceB("HeapFree: heap=%x flags=%x mem=%x\n", hHeap, dwFlags, lpMem);
+	if((lpMem >= VHeapMin) && (lpMem <= VHeapMax)){
+		free(lpMem);
+		ret = TRUE;
+		OutTraceB("HeapFree: (virtual) ret=%x\n", ret);
+	}
+	else {
+		ret = (*pHeapFree)(hHeap, dwFlags, lpMem);
+		OutTraceB("HeapFree: ret=%x\n", ret);
+	}
+	return ret;
+}
+
+BOOL WINAPI extHeapValidate(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
+{
+	BOOL ret;
+	OutTraceB("HeapValidate: heap=%x flags=%x mem=%x\n", hHeap, dwFlags, lpMem);
+	if((lpMem >= VHeapMin) && (lpMem <= VHeapMax)){
+		ret = TRUE;
+		OutTraceB("HeapValidate: (virtual) ret=%x\n", ret);
+	}
+	else {
+		ret = (*pHeapValidate)(hHeap, dwFlags, lpMem);
+		OutTraceB("HeapValidate: ret=%x\n", ret);
+	}
+	return ret;
+}
+
+SIZE_T WINAPI extHeapCompact(HANDLE hHeap, DWORD dwFlags)
+{
+	SIZE_T ret;
+	OutTraceB("HeapCompact: heap=%x flags=%x\n", hHeap, dwFlags);
+	if(((DWORD)hHeap >= 0xDEADBEEF) && ((DWORD)hHeap < 0xDEADBEEF + iProg)){
+		ret = 100000; // just a number ....
+		OutTraceB("HeapCompact: (virtual) ret=%d\n", ret);
+	}
+	else {
+		ret = (*pHeapCompact)(hHeap, dwFlags);
+		OutTraceB("HeapCompact: ret=%d\n", ret);
+	}
+	return ret;
+}
+
+HANDLE WINAPI extHeapCreate(DWORD flOptions, SIZE_T dwInitialSize, SIZE_T dwMaximumSize)
+{
+	HANDLE ret;
+	OutTraceB("HeapCreate: flags=%x size(init-max)=(%d-%d)\n", flOptions, dwInitialSize, dwMaximumSize);
+	ret = (HANDLE)(0xDEADBEEF + iProg++);
+	OutTraceB("HeapCreate: (virtual) ret=%X\n", ret);
+	return ret;
+}
+
+HANDLE WINAPI extGetProcessHeap(void)
+{
+	OutTraceB("GetProcessHeap: (virtual) ret=0xDEADBEEF\n");
+	return (HANDLE)0xDEADBEEF;
+}
+
+BOOL WINAPI extHeapDestroy(HANDLE hHeap)
+{
+	BOOL ret;
+	OutTraceB("HeapDestroy: heap=%x\n", hHeap);
+	if(((DWORD)hHeap >= 0xDEADBEEF) && ((DWORD)hHeap < 0xDEADBEEF + iProg))
+		ret = TRUE;
+	else 
+		ret = (*pHeapDestroy)(hHeap);
+	OutTraceB("HeapDestroy: ret=%x\n", ret);
+	return ret;
+}
+
+#endif

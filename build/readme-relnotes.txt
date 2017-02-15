@@ -1534,3 +1534,16 @@ fix: fixed virtual registry tags that introduced extra characters in key string 
 add: hooked SelectClipRgn - preliminary to attempt fixing "Sid Meier's Alpha Centauri"
 fix: fixed unsupported call to SetWindowsHook(WH_CBT, NULL). Fixes "Starsiege" deaf mouse control.
 fix: completed and rebuilt proxy dlls to be aligned with current DxWnd structure
+
+v2.04.14
+fix: virtual registry parser, token names now case insensitive (es. "path" = "Path")
+fix: virtual registry crash when replacing tokens and lplpData is NULL
+fix: virtual registry return code, must not return ERROR_MORE_DATA when lpData is NULL (fixes "Rollcage II")
+fix: eliminated error message in virtual palette processing when color depth is 8 bits
+fix: improved logging in EnumDisplayModes wrapper
+fix: EnumDisplayModes wrapper for nonemulated nonwindowed mode
+fix: deleted improper input clipper destruction after primary surface destruction. Fixes "Settlers III" clipper problems
+add: virtual heap (makes some "Wing Commander" games work)
+fix: freak help->about...
+add: GUI "Tools->Recover system colors" utility
+

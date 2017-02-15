@@ -163,12 +163,9 @@ public:
 	BOOL	m_NoDDExclusiveMode;
 	BOOL	m_CreateDesktop;
 	BOOL	m_AllowSysmemOn3DDev;
-	//BOOL	m_ForceVSync;
-	//BOOL	m_ForceNoVSync;
-	//BOOL	m_ForceWait;
-	//BOOL	m_ForceNoWait;
 	BOOL	m_HandleAltF4;
 	BOOL	m_HandleExceptions;
+	BOOL	m_VirtualHeap;
 	BOOL	m_SkipFPS;
 	BOOL	m_LimitFPS;
 	BOOL	m_ShowFPS;
@@ -221,6 +218,7 @@ public:
 	BOOL	m_ZBufferClean;
 	BOOL	m_ZBuffer0Clean;
 	BOOL	m_DynamicZClean;
+	BOOL	m_ZBufferHardClean;
 	BOOL	m_ZBufferAlways;
 	BOOL	m_HotPatchAlways;
 	BOOL	m_FreezeInjectedSon;

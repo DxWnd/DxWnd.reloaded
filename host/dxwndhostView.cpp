@@ -151,6 +151,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_32BPP, OnDesktopcolordepth32bpp)
 	ON_COMMAND(ID_TOOLS_RECOVERSCREENMODE, OnRecoverScreenMode)
 	ON_COMMAND(ID_TOOLS_CLEARCOMPATIBILITYFLAGS, OnClearCompatibilityFlags)
+	ON_COMMAND(ID_TOOLS_RECOVERSYSTEMCOLORS, OnRecoverSystemColors)
 	ON_COMMAND(ID_MOVE_TOP, OnMoveTop)
 	ON_COMMAND(ID_MOVE_UP, OnMoveUp)
 	ON_COMMAND(ID_MOVE_DOWN, OnMoveDown)
@@ -376,6 +377,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_RegistryOp) t->tflags |= OUTREGISTRY;
 	if(dlg->m_TraceHooks) t->tflags |= TRACEHOOKS;
 	if(dlg->m_HandleExceptions) t->flags |= HANDLEEXCEPTIONS;
+	if(dlg->m_VirtualHeap) t->flags8 |= VIRTUALHEAP;
 	if(dlg->m_LimitResources) t->flags2 |= LIMITRESOURCES;
 	if(dlg->m_CDROMDriveType) t->flags3 |= CDROMDRIVETYPE;
 	if(dlg->m_HideCDROMEmpty) t->flags4 |= HIDECDROMEMPTY;
@@ -386,6 +388,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ZBufferClean) t->flags4 |= ZBUFFERCLEAN;
 	if(dlg->m_ZBuffer0Clean) t->flags4 |= ZBUFFER0CLEAN;
 	if(dlg->m_DynamicZClean) t->flags8 |= DYNAMICZCLEAN;
+	if(dlg->m_ZBufferHardClean) t->flags8 |= ZBUFFERHARDCLEAN;
 	if(dlg->m_ZBufferAlways) t->flags4 |= ZBUFFERALWAYS;
 	if(dlg->m_HotPatchAlways) t->flags4 |= HOTPATCHALWAYS;
 	if(dlg->m_FreezeInjectedSon) t->flags5 |= FREEZEINJECTEDSON;
@@ -705,6 +708,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_RegistryOp = t->tflags & OUTREGISTRY ? 1 : 0;
 	dlg->m_TraceHooks = t->tflags & TRACEHOOKS ? 1 : 0;
 	dlg->m_HandleExceptions = t->flags & HANDLEEXCEPTIONS ? 1 : 0;
+	dlg->m_VirtualHeap = t->flags8 & VIRTUALHEAP ? 1 : 0;
 	dlg->m_SuppressIME = t->flags2 & SUPPRESSIME ? 1 : 0;
 	dlg->m_SuppressD3DExt = t->flags3 & SUPPRESSD3DEXT ? 1 : 0;
 	dlg->m_Enum16bitModes = t->flags7 & ENUM16BITMODES ? 1 : 0;
@@ -756,6 +760,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ZBufferClean = t->flags4 & ZBUFFERCLEAN ? 1 : 0;
 	dlg->m_ZBuffer0Clean = t->flags4 & ZBUFFER0CLEAN ? 1 : 0;
 	dlg->m_DynamicZClean = t->flags8 & DYNAMICZCLEAN ? 1 : 0;
+	dlg->m_ZBufferHardClean = t->flags8 & ZBUFFERHARDCLEAN ? 1 : 0;
 	dlg->m_ZBufferAlways = t->flags4 & ZBUFFERALWAYS ? 1 : 0;
 	dlg->m_HotPatchAlways = t->flags4 & HOTPATCHALWAYS ? 1 : 0;
 	dlg->m_FreezeInjectedSon = t->flags5 & FREEZEINJECTEDSON ? 1 : 0;
@@ -2714,6 +2719,9 @@ void CDxwndhostView::OnRButtonDown(UINT nFlags, CPoint point)
 	case ID_TOOLS_CLEARCOMPATIBILITYFLAGS:
 		OnClearCompatibilityFlags();
 		break;
+	case ID_TOOLS_RECOVERSYSTEMCOLORS:
+		OnRecoverSystemColors();
+		break;
 	case ID_MOVE_TOP:
 		OnMoveTop();
 		break;
@@ -3515,6 +3523,19 @@ void CDxwndhostView::OnDesktopcolordepth32bpp()
 void CDxwndhostView::OnRecoverScreenMode()
 {
 	RevertScreenChanges(&this->InitDevMode);
+}
+
+void CDxwndhostView::OnRecoverSystemColors()
+{
+	extern DWORD SysColors[];
+	//for(int index=COLOR_SCROLLBAR; index<=COLOR_MENUBAR; index++) {
+	for(int index=COLOR_SCROLLBAR; index<=COLOR_BTNHIGHLIGHT; index++) { // don't mess with taskbar ...
+		if(SysColors[index]) {
+			INT colors[1];
+			colors[0]=index;
+			::SetSysColors(1, colors, &SysColors[index]);
+		}
+	}
 }
 
 void CDxwndhostView::OnClearCompatibilityFlags()

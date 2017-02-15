@@ -1052,7 +1052,11 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 			// v2.03.82: save ZBUFFER capabilities for later fix in D3D CreateDevice
 			OutTraceDW("CreateSurface: lpDDZBuffer=%x save ZBUFFER caps=%x(%s)\n", *lplpdds, lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
 			lpDDZBuffer = *lplpdds;
+			// save surface size expressed in bytes
+			extern int ZBufferSize;
+			ZBufferSize = lpddsd->dwWidth * lpddsd->dwHeight * (lpddsd->ddpfPixelFormat.dwZBufferBitDepth >> 3); 
 			dxwcdb.PushCaps(*lplpdds, lpddsd->ddsCaps.dwCaps);
+			OutTraceDW("CreateSurface: ZBufferSize=%d\n", ZBufferSize);
 		}
 	}
 

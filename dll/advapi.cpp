@@ -84,7 +84,7 @@ static int ReplaceVar(char *pData, LPBYTE *lplpData, LPDWORD lpcbData)
 	char sTokenValue[MAX_PATH];
 	// search for a matching token
 	for(iTokenIndex=0; sTokenLabels[iTokenIndex]; iTokenIndex++){
-		if(!strncmp(pData, sTokenLabels[iTokenIndex], strlen(sTokenLabels[iTokenIndex]))) break;
+		if(!_strnicmp(pData, sTokenLabels[iTokenIndex], strlen(sTokenLabels[iTokenIndex]))) break;
 	}
 	// set token label length
 	iLabelLength = strlen(sTokenLabels[iTokenIndex]);
@@ -102,7 +102,7 @@ static int ReplaceVar(char *pData, LPBYTE *lplpData, LPDWORD lpcbData)
 	// set output vars if not NULL
 	iTokenLength = strlen(sTokenValue);
 	OutTraceR("REPLACED token=%d val=\"%s\" len=%d\n", iTokenIndex, sTokenValue, iTokenLength);
-	if(lplpData) {
+	if(*lplpData) {
 		strcpy((char *)*lplpData, sTokenValue);
 		*lplpData += iTokenLength;
 	}
@@ -316,9 +316,12 @@ static DWORD GetKeyValue(
 			}
 			if(lpcbData) (*lpcbData)++; // extra space for string terminator ?
 			if(lpData && lpcbData) if(*lpcbData < cbData) *lpb = 0; // string terminator
-			OutTraceR("%s: type=REG_SZ cbData=%x Data=\"%s\"\n", 
+			OutTraceR("%s: type=REG_SZ cbData=%d Data=\"%s\"\n", 
 				ApiName, lpcbData ? *lpcbData : 0, lpData ? (char *)lpData : "(NULL)");
-			res=(*lpcbData > cbData) ? ERROR_MORE_DATA : ERROR_SUCCESS;
+			// v2.04.14 fix: ERROR_MORE_DATA should be returned only in case lpData is not NULL
+			res=ERROR_SUCCESS;
+			if(lpData && lpcbData)
+				if (*lpcbData > cbData) res = ERROR_MORE_DATA;
 			break;
 		}
 		if(!strncmp(pData,"dword:",strlen("dword:"))){ //dword value
@@ -378,10 +381,10 @@ static void LogKeyValue(char *ApiName, LONG res, LPDWORD lpType, LPBYTE lpData, 
 {
 	char sInfo[1024];
 	if(res) {
-		OutTrace("%s: ERROR res=%x\n", ApiName, res);
+		OutTrace("%s: ERROR res=%d\n", ApiName, res);
 		return;
 	}
-	sprintf(sInfo, "%s: res=0 size=%d type=%x(%s)", 
+	sprintf(sInfo, "%s: res=ERROR_SUCCESS size=%d type=%x(%s)", 
 		ApiName, lpcbData?*lpcbData:0, lpType?*lpType:0, lpType?ExplainRegType(*lpType):"none");
 	if(lpType && lpData && lpcbData) {
 		DWORD cbData = *lpcbData;
