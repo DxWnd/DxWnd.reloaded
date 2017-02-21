@@ -5,6 +5,7 @@ extern char *ExplainFlags(DWORD);
 extern char *ExplainDDSCaps(DWORD);
 extern char *ExplainDDSCaps2(DWORD);
 extern char *ExplainDDSCaps3(DWORD);
+extern char *ExplainDDSCaps4(DWORD);
 extern char *ExplainDDDCaps(DWORD);
 extern char *ExplainDDDCaps2(DWORD);
 extern char *ExplainDDPalCaps(DWORD);

@@ -1547,3 +1547,15 @@ add: virtual heap (makes some "Wing Commander" games work)
 fix: freak help->about...
 add: GUI "Tools->Recover system colors" utility
 
+v2.04.15
+fix: suppress DDERR_EXCLUSIVEMODEALREADYSET error in ddraw::SetCooperativeLevel(). Fixes program termination in "Sid Meier's Alpha centauri".
+fix: exception caught on DirectDrawSurface::Release(): it may fix problems when using ddraw proxies
+fix: added clipper object to ddraw QueryInterface management
+fix: added IID_UNKNOWN object to ddraw QueryInterface management
+fix: better implementation of LIMITRESOURCES flag: now HD virtual space is 100MB free in a 120MB disk.
+fix: SLOWDOWN flag in PeekMessage now uses dxw.DoSlow(1) instead of *pSleep(1), preserves more messages
+add: more cases in mciSendCommand wrapper for BYPASSMCI flag
+fix: in mciSendCommand using ANSI MCI_OVLY_WINDOW_PARMS instead of WIDECHAR version
+fix: DirectDraw:GetCaps wrapper crash when setting SUPPRESSOVERLAY and the hw or sw caps pointer is NULL
+fix: exception when trying to use ddraw SetAppCompatData and LoadLibrary failed
+fix: error messages on LoadLibrary errors

@@ -17,7 +17,7 @@
 
 extern void SetPixFmt(LPDDSURFACEDESC2);
 extern void GetPixFmt(LPDDSURFACEDESC2);
-extern CHAR *LogSurfaceAttributes(LPDDSURFACEDESC, char *, int);
+extern CHAR *LogSurfaceAttributes(LPDDSURFACEDESC2, char *, int);
 extern void DumpPixFmt(LPDDSURFACEDESC2);
 extern void DescribeSurface(LPDIRECTDRAWSURFACE, int, char *, int);
 extern void HookDDSurface(LPDIRECTDRAWSURFACE *, int,  BOOL);
@@ -95,7 +95,7 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 		// try DDSCAPS_SYSTEMMEMORY first, then suppress it if not supported
 		// no, DDSCAPS_SYSTEMMEMORY cause screen flickering while moving the window (and other troubles?)
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-		OutTraceDW("BuildRealSurfaces: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuPrim]", __LINE__));
+		OutTraceDW("BuildRealSurfaces: %s\n", LogSurfaceAttributes(&ddsd, "[EmuPrim]", __LINE__));
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Prim, 0);
 		if(res==DDERR_PRIMARYSURFACEALREADYEXISTS){
 			OutTraceDW("BuildRealSurfaces: ASSERT DDSEmu_Prim already exists\n");
@@ -146,11 +146,11 @@ static void BuildRealSurfaces(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurfa
 			ddsd.dwHeight = dxw.GetScreenHeight() << 1;
 		}
 
-		OutTraceDW("BuildRealSurfaces: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuBack]", __LINE__));
+		OutTraceDW("BuildRealSurfaces: %s\n", LogSurfaceAttributes(&ddsd, "[EmuBack]", __LINE__));
 		res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Back, 0);
 		if(res) {
 			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_SYSTEMMEMORY;
-			OutTraceDW("BuildRealSurfaces: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[EmuBack]", __LINE__));
+			OutTraceDW("BuildRealSurfaces: %s\n", LogSurfaceAttributes(&ddsd, "[EmuBack]", __LINE__));
 			res=(*pCreateSurface)(lpdd, &ddsd, &lpDDSEmu_Back, 0);
 		}
 		if(res){
@@ -213,7 +213,7 @@ static HRESULT BuildPrimaryEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	ddsd.dwHeight = dxw.GetScreenHeight();
 
 	// create Primary surface
-	OutTraceDW("BuildPrimaryEmu: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]" , __LINE__));
+	OutTraceDW("BuildPrimaryEmu: %s\n", LogSurfaceAttributes(&ddsd, "[Primary]" , __LINE__));
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res){
 		OutTraceE("BuildPrimaryEmu: CreateSurface ERROR on DDSPrim res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -293,7 +293,7 @@ static HRESULT BuildPrimaryFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pCrea
 	ddsd.dwHeight = dxw.GetScreenHeight();
 
 	// create Primary surface
-	OutTraceDW("BuildPrimaryFlippable: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]" , __LINE__));
+	OutTraceDW("BuildPrimaryFlippable: %s\n", LogSurfaceAttributes(&ddsd, "[Primary]" , __LINE__));
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res){
 		OutTraceE("BuildPrimaryFlippable: CreateSurface ERROR on DDSPrim res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -346,7 +346,7 @@ static HRESULT BuildPrimaryFullscreen(LPDIRECTDRAW lpdd, CreateSurface_Type pCre
 	memcpy((void *)&ddsd, lpddsd, lpddsd->dwSize);
 
 	// create Primary surface
-	OutTraceDW("BuildPrimaryFullscreen: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]", __LINE__));
+	OutTraceDW("BuildPrimaryFullscreen: %s\n", LogSurfaceAttributes(&ddsd, "[Primary]", __LINE__));
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res){
 		if (res==DDERR_PRIMARYSURFACEALREADYEXISTS){
@@ -398,7 +398,7 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	}
 
 	// create Primary surface
-	OutTraceDW("BuildPrimaryDir: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Primary]", __LINE__));
+	OutTraceDW("BuildPrimaryDir: %s\n", LogSurfaceAttributes(&ddsd, "[Primary]", __LINE__));
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res){
 		if (res==DDERR_PRIMARYSURFACEALREADYEXISTS){
@@ -431,7 +431,7 @@ static HRESULT BuildPrimaryDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 		ddsd.dwHeight = dxw.GetScreenHeight();
 		ddsd.ddsCaps.dwCaps = 0;
 		if (dxversion >= 4) ddsd.ddsCaps.dwCaps |= DDSCAPS_OFFSCREENPLAIN;
-		OutTraceDW("BuildPrimaryDir: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Dir FixBuf]", __LINE__));
+		OutTraceDW("BuildPrimaryDir: %s\n", LogSurfaceAttributes(&ddsd, "[Dir FixBuf]", __LINE__));
 		res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 		if(res){
 			OutTraceE("BuildPrimaryDir: CreateSurface ERROR on DDSPrim res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
@@ -478,7 +478,7 @@ static HRESULT BuildBackBufferEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	GetPixFmt(&ddsd);
 
-	OutTraceDW("BuildBackBufferEmu: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Backbuf]", __LINE__));
+	OutTraceDW("BuildBackBufferEmu: %s\n", LogSurfaceAttributes(&ddsd, "[Backbuf]", __LINE__));
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res) {
 		OutTraceE("BuildBackBufferEmu: CreateSurface ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -537,7 +537,7 @@ static HRESULT BuildBackBufferFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pC
 	ddsd.dwHeight = dxw.GetScreenHeight();
 	GetPixFmt(&ddsd);
 
-	OutTraceDW("BuildBackBufferFlippable: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Backbuf]", __LINE__));
+	OutTraceDW("BuildBackBufferFlippable: %s\n", LogSurfaceAttributes(&ddsd, "[Backbuf]", __LINE__));
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res) {
 		OutTraceE("BuildBackBufferFlippable: CreateSurface ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
@@ -664,7 +664,7 @@ static HRESULT BuildBackBufferDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateS
 		ddsd.dwHeight = prim.dwHeight;
 		OutTraceDW("BuildBackBufferDir: BMX FIX res=%x(%s) wxh=(%dx%d)\n", res, ExplainDDError(res),ddsd.dwWidth, ddsd.dwHeight);
 	}
-	OutTraceDW("BuildBackBufferDir: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Backbuf]", __LINE__));
+	OutTraceDW("BuildBackBufferDir: %s\n", LogSurfaceAttributes(&ddsd, "[Backbuf]", __LINE__));
 	res=(*pCreateSurface)(lpdd, &ddsd, lplpdds, 0);
 	if(res) {
 		if ((dxw.dwFlags1 & SWITCHVIDEOMEMORY) && (res==DDERR_OUTOFVIDEOMEMORY)){
@@ -732,7 +732,7 @@ static HRESULT BuildGenericEmu(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	}
 
 	OutTraceDW("BuildGenericEmu: CREATED lpddsd=%x version=%d %s\n", 
-		*lplpdds, dxversion, LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]", __LINE__));
+		*lplpdds, dxversion, LogSurfaceAttributes(&ddsd, "[Emu Generic]", __LINE__));
 		
 	// v2.02.66: if 8BPP paletized surface and a primary palette exixts, apply.
 	// fixes "Virtua Fighter PC" palette bug
@@ -785,7 +785,7 @@ static HRESULT BuildGenericFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pCrea
 	}
 
 	OutTraceDW("BuildGenericFlippable: CREATED lpddsd=%x version=%d %s\n", 
-		*lplpdds, dxversion, LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Emu Generic]", __LINE__));
+		*lplpdds, dxversion, LogSurfaceAttributes(&ddsd, "[Emu Generic]", __LINE__));
 		
 	// v2.02.66: if 8BPP paletized surface and a primary palette exixts, apply.
 	// fixes "Virtua Fighter PC" palette bug
@@ -810,7 +810,7 @@ static HRESULT BuildGenericDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	HRESULT res;
 
 	OutTraceDW("BuildGenericDir: lpdd=%x pCreateSurface=%x lpddsd=%x version=%d\n", lpdd, pCreateSurface, lpddsd, dxversion);
-	OutTraceDW("BuildGenericDir: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)lpddsd, "[Dir Generic]", __LINE__));
+	OutTraceDW("BuildGenericDir: %s\n", LogSurfaceAttributes(lpddsd, "[Dir Generic]", __LINE__));
 
 	res = (*pCreateSurface)(lpdd, lpddsd, lplpdds, 0); 
 	if(res){
@@ -828,7 +828,7 @@ static HRESULT BuildGenericDir(LPDIRECTDRAW lpdd, CreateSurface_Type pCreateSurf
 	}
 
 	OutTraceDW("BuildGenericDir: CREATED lpddsd=%x version=%d %s\n", 
-		*lplpdds, dxversion, LogSurfaceAttributes((LPDDSURFACEDESC)lpddsd, "[Dir Generic]", __LINE__));
+		*lplpdds, dxversion, LogSurfaceAttributes(lpddsd, "[Dir Generic]", __LINE__));
 
 	// hooks ....
 	HookDDSurface(lplpdds, dxversion, FALSE);
@@ -858,7 +858,7 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 	} SurfaceMode;
 
 	OutTraceDDRAW("CreateSurface(%d): lpdd=%x %s\n", 
-		dxversion, lpdd, LogSurfaceAttributes((LPDDSURFACEDESC)lpddsd, "[CreateSurface]", __LINE__));
+		dxversion, lpdd, LogSurfaceAttributes(lpddsd, "[CreateSurface]", __LINE__));
 	
 	// v2.03.95.fx1 - deleted: some texture handling REQUIRES a proper FourCC codec. 
 	// maybe it could be suppressed by a dedicated config. flag and on primary surfaces only?

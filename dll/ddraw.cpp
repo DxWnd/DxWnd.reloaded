@@ -190,11 +190,11 @@ HRESULT WINAPI extFlip2(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, DWORD);
 HRESULT WINAPI extFlip3(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, DWORD);
 HRESULT WINAPI extFlip4(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, DWORD);
 HRESULT WINAPI extFlip7(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, DWORD);
-HRESULT WINAPI extGetAttachedSurface1(LPDIRECTDRAWSURFACE, DDSCAPS *, LPDIRECTDRAWSURFACE *);
-HRESULT WINAPI extGetAttachedSurface2(LPDIRECTDRAWSURFACE, DDSCAPS *, LPDIRECTDRAWSURFACE *);
-HRESULT WINAPI extGetAttachedSurface3(LPDIRECTDRAWSURFACE, DDSCAPS *, LPDIRECTDRAWSURFACE *);
-HRESULT WINAPI extGetAttachedSurface4(LPDIRECTDRAWSURFACE, DDSCAPS *, LPDIRECTDRAWSURFACE *);
-HRESULT WINAPI extGetAttachedSurface7(LPDIRECTDRAWSURFACE, DDSCAPS *, LPDIRECTDRAWSURFACE *);
+HRESULT WINAPI extGetAttachedSurface1(LPDIRECTDRAWSURFACE, LPDDSCAPS, LPDIRECTDRAWSURFACE *);
+HRESULT WINAPI extGetAttachedSurface2(LPDIRECTDRAWSURFACE, LPDDSCAPS, LPDIRECTDRAWSURFACE *);
+HRESULT WINAPI extGetAttachedSurface3(LPDIRECTDRAWSURFACE, LPDDSCAPS, LPDIRECTDRAWSURFACE *);
+HRESULT WINAPI extGetAttachedSurface4(LPDIRECTDRAWSURFACE, LPDDSCAPS2, LPDIRECTDRAWSURFACE *);
+HRESULT WINAPI extGetAttachedSurface7(LPDIRECTDRAWSURFACE, LPDDSCAPS2, LPDIRECTDRAWSURFACE *);
 HRESULT WINAPI extGetCaps1S(LPDIRECTDRAWSURFACE, LPDDSCAPS);
 HRESULT WINAPI extGetCaps2S(LPDIRECTDRAWSURFACE, LPDDSCAPS);
 HRESULT WINAPI extGetCaps3S(LPDIRECTDRAWSURFACE, LPDDSCAPS);
@@ -581,7 +581,7 @@ char *DumpPixelFormat(LPDDSURFACEDESC2 lpddsd)
 	return ExplainPixelFormat(&(lpddsd->ddpfPixelFormat));
 }
 
-CHAR *LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
+CHAR *LogSurfaceAttributes(LPDDSURFACEDESC2 lpddsd, char *label, int line)
 {
 	static char sInfo[1024];
 	sprintf(sInfo, "SurfaceDesc: %s Flags=%x(%s)",
@@ -595,9 +595,10 @@ CHAR *LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 	if (lpddsd->dwFlags & DDSD_CAPS) {
 		sprintf(sInfo, "%s Caps=%x(%s)", sInfo, lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
 		if(lpddsd->dwSize==sizeof(DDSURFACEDESC2)){
-			LPDDSURFACEDESC2 lpddsd2=(LPDDSURFACEDESC2)lpddsd;
+			LPDDSURFACEDESC2 lpddsd2=lpddsd;
 			sprintf(sInfo, "%s Caps2=%x(%s)", sInfo, lpddsd2->ddsCaps.dwCaps2, ExplainDDSCaps2(lpddsd2->ddsCaps.dwCaps2));
 			sprintf(sInfo, "%s Caps3=%x(%s)", sInfo, lpddsd2->ddsCaps.dwCaps3, ExplainDDSCaps3(lpddsd2->ddsCaps.dwCaps3));
+			sprintf(sInfo, "%s Caps4=%x(%s)", sInfo, lpddsd2->ddsCaps.dwCaps4, ExplainDDSCaps4(lpddsd2->ddsCaps.dwCaps4));
 		}
 	}
 	if (lpddsd->dwFlags & DDSD_CKDESTBLT ) sprintf(sInfo, "%s CKDestBlt=(%x,%x)", sInfo, lpddsd->ddckCKDestBlt.dwColorSpaceLowValue, lpddsd->ddckCKDestBlt.dwColorSpaceHighValue);
@@ -606,7 +607,7 @@ CHAR *LogSurfaceAttributes(LPDDSURFACEDESC lpddsd, char *label, int line)
 	if (lpddsd->dwFlags & DDSD_CKSRCOVERLAY ) sprintf(sInfo, "%s CKSrcOverlay=(%x,%x)", sInfo, lpddsd->ddckCKSrcOverlay.dwColorSpaceLowValue, lpddsd->ddckCKSrcOverlay.dwColorSpaceHighValue);
 	if (lpddsd->dwFlags & DDSD_PIXELFORMAT ) sprintf(sInfo, "%s %s", sInfo, DumpPixelFormat((LPDDSURFACEDESC2)lpddsd));
 	if (lpddsd->dwFlags & DDSD_LPSURFACE) sprintf(sInfo, "%s Surface=%x", sInfo, lpddsd->lpSurface);
-	if (lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH) sprintf(sInfo, "%s ZBufferBitDepth=%d", sInfo, lpddsd->dwZBufferBitDepth);
+	if ((lpddsd->dwFlags & DDSD_ZBUFFERBITDEPTH) && (lpddsd->dwSize==sizeof(DDSURFACEDESC))) sprintf(sInfo, "%s ZBufferBitDepth=%d", sInfo, ((LPDDSURFACEDESC)lpddsd)->dwZBufferBitDepth);
 	if (lpddsd->dwFlags & DDSD_ALPHABITDEPTH) sprintf(sInfo, "%s AlphaBitDepth=%d", sInfo, lpddsd->dwAlphaBitDepth);
 	if (lpddsd->dwReserved) sprintf(sInfo, "%s Reserved=%d", sInfo, lpddsd->dwReserved);
 	if (lpddsd->dwFlags & DDSD_REFRESHRATE) sprintf(sInfo, "%s RefreshRate=%d", sInfo, lpddsd->dwRefreshRate);
@@ -809,6 +810,9 @@ static void ddSetCompatibility()
 	HINSTANCE hinst;
 
 	hinst=(*pLoadLibraryA)("ddraw.dll");
+	if(!hinst){
+		OutTraceDW("LoadLibrary ddraw.dll ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	}
 	pSetAppCompatData=(SetAppCompatData_Type)(*pGetProcAddress)(hinst, "SetAppCompatData");
 	if(pSetAppCompatData) {
 		if (dxw.dwFlags2 & SETCOMPATIBILITY){
@@ -822,9 +826,10 @@ static void ddSetCompatibility()
 			OutTraceDW("HookDirectDraw: SetAppCompatData(12,0) ret=%x(%s)\n", res, ExplainDDError(res));
 		}
 	}
-	else
+	else{
 		OutTraceDW("HookDirectDraw: missing SetAppCompatData call\n");
-	FreeLibrary(hinst);
+	}
+	(*pFreeLibrary)(hinst);
 }
 
 static void BypassGOGDDrawRedirector()
@@ -886,6 +891,7 @@ int HookDirectDraw(HMODULE module, int version)
 		HookLibraryEx(module, ddHooks, "ddraw.dll");
 		if(!pDirectDrawCreate){ // required for IAT patching 
 			hinst = (*pLoadLibraryA)("ddraw.dll");
+			if(!hinst) OutTraceE("LoadLibrary ddraw.dll ERROR err=%d at %d\n", GetLastError(), __LINE__);
 			pDirectDrawCreate = (DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
 			pDirectDrawEnumerateA = (DirectDrawEnumerateA_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");		
 		}
@@ -901,10 +907,10 @@ int HookDirectDraw(HMODULE module, int version)
 		}
 		break;
 	case 7:
-		//hinst = LoadLibrary("ddraw.dll");
 		HookLibraryEx(module, ddHooks, "ddraw.dll");
 		if(!pDirectDrawCreate){ // required for IAT patching in "Crimson skies"
 			hinst = (*pLoadLibraryA)("ddraw.dll");
+			if(!hinst) OutTraceE("LoadLibrary ddraw.dll ERROR err=%d at %d\n", GetLastError(), __LINE__);
 			pDirectDrawEnumerateA = (DirectDrawEnumerateA_Type)GetProcAddress(hinst, "DirectDrawEnumerateA");
 			pDirectDrawEnumerateExA = (DirectDrawEnumerateExA_Type)GetProcAddress(hinst, "DirectDrawEnumerateExA");
 			pDirectDrawCreate = (DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
@@ -1126,7 +1132,7 @@ void DescribeSurface(LPDIRECTDRAWSURFACE lpdds, int dxversion, char *label, int 
 	res=(*pGetSurfaceDescMethod())((LPDIRECTDRAWSURFACE2)lpdds, &ddsd);
 	if(res)return;
 	OutTraceDW("Surface %s: ddsd=%x dxversion=%d %s\n", 
-		label, lpdds, dxversion, LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, label, line));
+		label, lpdds, dxversion, LogSurfaceAttributes(&ddsd, label, line));
 }
 
 void RegisterPixelFormat(int dxversion, LPDIRECTDRAWSURFACE lpdds)
@@ -1325,7 +1331,7 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 	}
 }
 
-static void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
+void HookDDClipper(LPDIRECTDRAWCLIPPER FAR* lplpDDClipper)
 {
 	OutTraceDW("Hooking directdraw clipper dd=%x\n", *lplpDDClipper);
 
@@ -1706,20 +1712,25 @@ static HRESULT WINAPI extGetCapsD(int dxversion, GetCapsD_Type pGetCapsD, LPDIRE
 
 	if(dxw.dwFlags3 & CAPMASK) MaskCapsD(c1, c2);
 
-	if(dxw.dwFlags7 & SUPPRESSOVERLAY){
 #define OVERLAYLAYERCAPS \
 	(DDCAPS_OVERLAY|DDCAPS_OVERLAYCANTCLIP|\
 	DDCAPS_OVERLAYFOURCC|DDCAPS_OVERLAYSTRETCH)
-		c1->ddsCaps.dwCaps &= ~OVERLAYLAYERCAPS;
-		c2->ddsCaps.dwCaps &= ~OVERLAYLAYERCAPS;
 #define OVERLAYKEYCAPS \
 	(DDCKEYCAPS_DESTOVERLAY|DDCKEYCAPS_DESTOVERLAYYUV|\
 	DDCKEYCAPS_SRCOVERLAY|DDCKEYCAPS_SRCOVERLAYYUV|\
 	DDCKEYCAPS_SRCOVERLAYCLRSPACE|DDCKEYCAPS_SRCOVERLAYCLRSPACEYUV)
-		c1->dwCKeyCaps &= ~OVERLAYKEYCAPS;
-		c2->dwCKeyCaps &= ~OVERLAYKEYCAPS;
-		c1->dwMaxVisibleOverlays = c1->dwCurrVisibleOverlays = 0;
-		c2->dwMaxVisibleOverlays = c2->dwCurrVisibleOverlays = 0;
+
+	if(dxw.dwFlags7 & SUPPRESSOVERLAY){
+		if(c1){
+			c1->ddsCaps.dwCaps &= ~OVERLAYLAYERCAPS;
+			c1->dwCKeyCaps &= ~OVERLAYKEYCAPS;
+			c1->dwMaxVisibleOverlays = c1->dwCurrVisibleOverlays = 0;
+		}
+		if(c2){
+			c2->ddsCaps.dwCaps &= ~OVERLAYLAYERCAPS;
+			c2->dwCKeyCaps &= ~OVERLAYKEYCAPS;
+			c2->dwMaxVisibleOverlays = c2->dwCurrVisibleOverlays = 0;
+		}
 	}
 
 	return res;
@@ -1747,7 +1758,7 @@ HRESULT WINAPI extDirectDrawCreate(GUID FAR *lpguid, LPDIRECTDRAW FAR *lplpdd, I
 		HINSTANCE hinst;
 		hinst = (*pLoadLibraryA)("ddraw.dll");
 		if(!hinst){
-			OutTraceE("LoadLibrary ERROR err=%d at %d\n", GetLastError(), __LINE__);
+			OutTraceE("LoadLibrary ddraw.dll ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		}
 		pDirectDrawCreate =
 			(DirectDrawCreate_Type)GetProcAddress(hinst, "DirectDrawCreate");
@@ -1841,7 +1852,7 @@ HRESULT WINAPI extDirectDrawCreateEx(GUID FAR *lpguid,
 		HINSTANCE hinst;
 		hinst = (*pLoadLibraryA)("ddraw.dll");
 		if(!hinst){
-			OutTraceE("LoadLibrary ERROR err=%d at %d\n", GetLastError(), __LINE__);
+			OutTraceE("LoadLibrary ddraw.dll ERROR err=%d at %d\n", GetLastError(), __LINE__);
 		}
 		pDirectDrawCreateEx =
 			(DirectDrawCreateEx_Type)GetProcAddress(hinst, "DirectDrawCreateEx");
@@ -2278,14 +2289,22 @@ HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pS
 
 	res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
 	if(res){
-		if(res == DDERR_INVALIDPARAMS){
-			//hwnd = GetForegroundWindow();
-			PostMessage(hwnd, WM_SYSCOMMAND, SC_RESTORE, 0);
-			Sleep(1000);
-			res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
+		switch(res){
+			case DDERR_EXCLUSIVEMODEALREADYSET: // v2.04.15 - "Sid Meier's Alpha Centauri" in non-windowed mode
+				OutTraceDW("SetCooperativeLevel: bypass DDERR_EXCLUSIVEMODEALREADYSET\n");
+				res = 0;
+				break;
+			case DDERR_INVALIDPARAMS:
+				//hwnd = GetForegroundWindow();
+				PostMessage(hwnd, WM_SYSCOMMAND, SC_RESTORE, 0);
+				Sleep(1000);
+				res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
+				break;
 		}
-		OutTraceE("SetCooperativeLevel: ERROR lpdd=%x hwnd=%x Flags=%x err=%x(%s) at %d\n", 
-			lpdd, hwnd, dwflags, res, ExplainDDError(res), __LINE__);
+		if(res){
+			OutTraceE("SetCooperativeLevel: ERROR lpdd=%x hwnd=%x Flags=%x err=%x(%s) at %d\n", 
+				lpdd, hwnd, dwflags, res, ExplainDDError(res), __LINE__);
+		}
 	}
 
 	if(bFixFrame){
@@ -2431,7 +2450,7 @@ HRESULT WINAPI extCreateSurface7(LPDIRECTDRAW lpdd, DDSURFACEDESC2 *lpddsd, LPDI
 
 
 HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGetAttachedSurface,
-	LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
+	LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
 {
 	HRESULT res;
 	BOOL IsPrim;
@@ -2439,8 +2458,14 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	IsBack=dxwss.IsABackBufferSurface(lpdds);
-	OutTraceDDRAW("GetAttachedSurface(%d): lpdds=%x%s caps=%x(%s)\n", 
-		dxversion, lpdds, (IsPrim?"(PRIM)":(IsBack ? "(BACK)":"")), lpddsc->dwCaps, ExplainDDSCaps(lpddsc->dwCaps));
+	if(IsTraceDDRAW){
+		char sCaps2[60];
+		strcpy(sCaps2, "");
+		if(dxversion >= 4) sprintf(sCaps2, " caps2=%x caps3=%x caps4=%x", lpddsc->dwCaps2, lpddsc->dwCaps3, lpddsc->dwCaps4);
+		OutTrace("GetAttachedSurface(%d): lpdds=%x%s caps=%x(%s)%s\n", 
+			dxversion, lpdds, (IsPrim?"(PRIM)":(IsBack ? "(BACK)":"")), 
+			lpddsc->dwCaps, ExplainDDSCaps(lpddsc->dwCaps), sCaps2);
+	}
 
 	if(dxw.dwFlags1 & EMULATESURFACE){
 
@@ -2499,7 +2524,7 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 
 	// proxy the call...
 
-	res=(*pGetAttachedSurface)(lpdds, lpddsc, lplpddas);
+	res=(*pGetAttachedSurface)(lpdds, (LPDDSCAPS)lpddsc, lplpddas);
 	if(res) {
 		// if possible, simulate a backbuffer attached to primary surface
 		if (IsPrim && (DDSD_Prim.dwBackBufferCount > 0) && (lpddsc->dwCaps & (DDSCAPS_BACKBUFFER|DDSCAPS_FLIP))){ 
@@ -2548,7 +2573,9 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 				}
 				else sMode = "unknown";
 			}
-			else sMode = "known";
+			else {
+				sMode = "known";
+			}
 			OutTraceDW("GetAttachedSurface(%d): ZBUFFER caps=%x(%s) (%s)\n", dxversion, dwCaps, ExplainDDSCaps(dwCaps), sMode);
 		}
 
@@ -2559,14 +2586,14 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 }
 
 HRESULT WINAPI extGetAttachedSurface1(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
-{ return extGetAttachedSurface(1, pGetAttachedSurface1, lpdds, lpddsc, lplpddas); }
+{ return extGetAttachedSurface(1, pGetAttachedSurface1, lpdds, (LPDDSCAPS2)lpddsc, lplpddas); }
 HRESULT WINAPI extGetAttachedSurface2(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
-{ return extGetAttachedSurface(2, pGetAttachedSurface2, lpdds, lpddsc, lplpddas); }
+{ return extGetAttachedSurface(2, pGetAttachedSurface2, lpdds, (LPDDSCAPS2)lpddsc, lplpddas); }
 HRESULT WINAPI extGetAttachedSurface3(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
-{ return extGetAttachedSurface(3, pGetAttachedSurface3, lpdds, lpddsc, lplpddas); }
-HRESULT WINAPI extGetAttachedSurface4(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
+{ return extGetAttachedSurface(3, pGetAttachedSurface3, lpdds, (LPDDSCAPS2)lpddsc, lplpddas); }
+HRESULT WINAPI extGetAttachedSurface4(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
 { return extGetAttachedSurface(4, pGetAttachedSurface4, lpdds, lpddsc, lplpddas); }
-HRESULT WINAPI extGetAttachedSurface7(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
+HRESULT WINAPI extGetAttachedSurface7(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 lpddsc, LPDIRECTDRAWSURFACE *lplpddas)
 { return extGetAttachedSurface(7, pGetAttachedSurface7, lpdds, lpddsc, lplpddas); }
 
 void BlitError(HRESULT res, LPRECT lps, LPRECT lpd, int line)
@@ -2709,7 +2736,7 @@ HRESULT WINAPI PrimaryStretchBlt(int dxversion, Blt_Type pBlt, LPDIRECTDRAWSURFA
 	res=(*pCreateSurface)(lpPrimaryDD, (LPDDSURFACEDESC)&ddsd, &lpddsTmp, NULL);
 	if(res) {
 		OutTraceE("PrimaryStretchBlt: CreateSurface ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-		OutTraceB("PrimaryStretchBlt: CreateSurface %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Gateway]", __LINE__));
+		OutTraceB("PrimaryStretchBlt: CreateSurface %s\n", LogSurfaceAttributes(&ddsd, "[Gateway]", __LINE__));
 		return res;
 	}
 	// stretch-blit to target size on OFFSCREENPLAIN temp surface
@@ -3117,7 +3144,7 @@ HRESULT WINAPI extFlip(int dxversion, Flip_Type pFlip, LPDIRECTDRAWSURFACE lpdds
 		if(res2) {
 			OutTraceE("CreateSurface: ERROR %x(%s) at %d\n", res2, ExplainDDError(res2), __LINE__);
 			OutTraceE("Size=%d lpPrimaryDD=%x lpDDSBack=%x %s\n", 
-				ddsd.dwSize, lpPrimaryDD, lpDDSBack, LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[FlipBuf]", __LINE__));
+				ddsd.dwSize, lpPrimaryDD, lpDDSBack, LogSurfaceAttributes(&ddsd, "[FlipBuf]", __LINE__));
 		}
 		//OutTrace("DEBUG: copied surface size=(%dx%d)\n", ddsd.dwWidth, ddsd.dwHeight);
 		// copy front buffer 
@@ -3518,12 +3545,12 @@ HRESULT WINAPI extSetEntries(LPDIRECTDRAWPALETTE lpddp, DWORD dwflags, DWORD dws
 	return res;
 }
 
-static HRESULT WINAPI extSetClipper(SetClipper_Type pSetClipper, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
+static HRESULT WINAPI extSetClipper(int dxversion, SetClipper_Type pSetClipper, LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
 {
 	HRESULT res;
 	BOOL isPrim;
 	isPrim=dxwss.IsAPrimarySurface(lpdds);
-	OutTraceDDRAW("SetClipper: lpdds=%x%s lpddc=%x\n", lpdds, isPrim?"(PRIM)":"", lpddc);
+	OutTraceDDRAW("SetClipper(%d): lpdds=%x%s lpddc=%x\n", dxversion, lpdds, isPrim?"(PRIM)":"", lpddc);
 
 	// v2.1.84: SUPPRESSCLIPPING flag - improves "Monopoly Edition 3D" where continuous
 	// clipping ON & OFF affects blitting on primary surface.
@@ -3562,15 +3589,15 @@ static HRESULT WINAPI extSetClipper(SetClipper_Type pSetClipper, LPDIRECTDRAWSUR
 }
 
 HRESULT WINAPI extSetClipper1(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
-{ return extSetClipper(pSetClipper1, lpdds, lpddc); }
+{ return extSetClipper(1, pSetClipper1, lpdds, lpddc); }
 HRESULT WINAPI extSetClipper2(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
-{ return extSetClipper(pSetClipper2, lpdds, lpddc); }
+{ return extSetClipper(2, pSetClipper2, lpdds, lpddc); }
 HRESULT WINAPI extSetClipper3(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
-{ return extSetClipper(pSetClipper3, lpdds, lpddc); }
+{ return extSetClipper(3, pSetClipper3, lpdds, lpddc); }
 HRESULT WINAPI extSetClipper4(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
-{ return extSetClipper(pSetClipper4, lpdds, lpddc); }
+{ return extSetClipper(4, pSetClipper4, lpdds, lpddc); }
 HRESULT WINAPI extSetClipper7(LPDIRECTDRAWSURFACE lpdds, LPDIRECTDRAWCLIPPER lpddc)
-{ return extSetClipper(pSetClipper7, lpdds, lpddc); }
+{ return extSetClipper(7, pSetClipper7, lpdds, lpddc); }
 
 DDSURFACEDESC SaveSurfaceDesc;
 LPDIRECTDRAWSURFACE SaveSurface = NULL;
@@ -3624,8 +3651,8 @@ static HRESULT WINAPI extLock(int dxversion, Lock_Type pLock, LPDIRECTDRAWSURFAC
 		OutTraceDW("Lock SURFACELOST RETRY: ret=%x(%s)\n", res, ExplainDDError(res));
 	}
 	if(res) OutTraceE("Lock ERROR: ret=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	OutTraceB("Lock: lPitch=%d lpSurface=%x ZBufferBitDepth=%d %s\n", 
-		lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface, lpDDSurfaceDesc->dwZBufferBitDepth, LogSurfaceAttributes(lpDDSurfaceDesc, "[Locked]", __LINE__));
+	OutTraceB("Lock: lPitch=%d lpSurface=%x %s\n", 
+		lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface, LogSurfaceAttributes((LPDDSURFACEDESC2)lpDDSurfaceDesc, "[Locked]", __LINE__));
 
 	// v2.03.60: necessary for "Mech Commander 2"
 	if(dxw.dwFlags6 & SETZBUFFERBITDEPTHS) 
@@ -3699,7 +3726,7 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 				ddsd.dwWidth = dxw.GetScreenWidth();
 				ddsd.dwHeight = dxw.GetScreenHeight();
 				ddsd.ddsCaps.dwCaps = 0;
-				OutTraceB("Lock: %s\n", LogSurfaceAttributes((LPDDSURFACEDESC)&ddsd, "[Dir FixBuf]" , __LINE__));
+				OutTraceB("Lock: %s\n", LogSurfaceAttributes(&ddsd, "[Dir FixBuf]" , __LINE__));
 				res=(*pCreateSurface1)(lpPrimaryDD, (DDSURFACEDESC *)&ddsd, (LPDIRECTDRAWSURFACE *)&lpDDSBuffer, 0);
 				if(res){
 					OutTraceE("CreateSurface: ERROR on DDSBuffer res=%x(%s) at %d\n",res, ExplainDDError(res), __LINE__);
@@ -3743,8 +3770,8 @@ static HRESULT WINAPI extLockDir(int dxversion, Lock_Type pLock, LPDIRECTDRAWSUR
 	}
 
 	if(res) OutTraceE("Lock ERROR: ret=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
-	OutTraceB("Lock: lPitch=%d lpSurface=%x ZBufferBitDepth=%d %s\n", 
-		lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface, lpDDSurfaceDesc->dwZBufferBitDepth, LogSurfaceAttributes(lpDDSurfaceDesc, "[Locked]", __LINE__));
+	OutTraceB("Lock: lPitch=%d lpSurface=%x %s\n", 
+		lpDDSurfaceDesc->lPitch, lpDDSurfaceDesc->lpSurface, LogSurfaceAttributes((LPDDSURFACEDESC2)lpDDSurfaceDesc, "[Locked]", __LINE__));
 
 	// v2.03.60: necessary for "Mech Commander 2"
 	if(dxw.dwFlags6 & SETZBUFFERBITDEPTHS) 
@@ -4307,7 +4334,7 @@ HRESULT WINAPI extEnumDisplayModes(int dxversion, EnumDisplayModes1_Type pEnumDi
 	NewContext_Type NewContext;
 
 	OutTraceDDRAW("EnumDisplayModes(D%d): lpdd=%x flags=%x lpddsd=%x callback=%x\n", dxversion, lpdd, dwflags, lpddsd, cb);
-	if(lpddsd) OutTraceDDRAW("EnumDisplayModes(D): %s\n", LogSurfaceAttributes(lpddsd, "EnumDisplayModes", __LINE__));
+	if(lpddsd) OutTraceDDRAW("EnumDisplayModes(D): %s\n", LogSurfaceAttributes((LPDDSURFACEDESC2)lpddsd, "EnumDisplayModes", __LINE__));
 
 	if ((dxw.dwFlags4 & NATIVERES) ||
 		(!(dxw.dwFlags1 & EMULATESURFACE) && !dxw.Windowize)){ // v2.04.14 - make nonemulated nonwindowed mode work ...
@@ -4470,7 +4497,13 @@ HRESULT WINAPI extReleaseS(ReleaseS_Type pReleaseS, LPDIRECTDRAWSURFACE lpdds)
 		return 0;
 	}
 
-	res = (*pReleaseS)(lpdds);
+	__try { // try/except useful when using proxy dll 
+		res = (*pReleaseS)(lpdds);
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER){ 
+		OutTraceE("Release(S): EXCEPTION lpdds=%x%s res=0\n", lpdds, dxwss.ExplainSurfaceRole(lpdds));
+		res = 0;
+	}
 
 	OutTraceDDRAW("Release(S): lpdds=%x%s refcount=%d\n", lpdds, dxwss.ExplainSurfaceRole(lpdds), res);
 	if (res==0) { // common precondition
@@ -4694,13 +4727,16 @@ static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttached
 			// v2.02.13: emulate ZBUFFER attach to backbuffer/plain surface
 			if ((sd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) && (dxw.dwFlags1 & EMULATESURFACE)){
 				DWORD dwCaps;
-				OutTraceDW("AddAttachedSurface: registering ZBUFFER attach on %s surface\n", IsBack ? "BACKBUFFER" : "PLAIN");
-				dwCaps = dxwcdb.GetCaps(lpdds);
-				if(dwCaps){
-					dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);
-					dwCaps |= DDSCAPS_ZBUFFER;
-					//if(dwCaps & DDSCAPS_VIDEOMEMORY) dwCaps|=DDSCAPS_LOCALVIDMEM;
-					dxwcdb.PushCaps(lpddsadd, dwCaps);
+				dwCaps = dxwcdb.GetCaps(lpddsadd);
+				if(!dwCaps){
+					OutTraceDW("AddAttachedSurface: registering ZBUFFER attach on %s surface\n", IsBack ? "BACKBUFFER" : "PLAIN");
+					dwCaps = dxwcdb.GetCaps(lpdds);
+					if(dwCaps){
+						dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);
+						dwCaps |= DDSCAPS_ZBUFFER;
+						//if(dwCaps & DDSCAPS_VIDEOMEMORY) dwCaps|=DDSCAPS_LOCALVIDMEM;
+						dxwcdb.PushCaps(lpddsadd, dwCaps);
+					}
 				}
 			}
 		}
@@ -4859,7 +4895,7 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 	if(IsBack) sLabel="(BACK)";
 	if(IsZBuf) sLabel="(ZBUFFER)";
 
-	OutTraceDDRAW("GetSurfaceDesc(%d): lpdds=%x%s %s\n", dxversion, lpdds, sLabel, LogSurfaceAttributes(lpddsd, "GetSurfaceDesc", __LINE__));
+	OutTraceDDRAW("GetSurfaceDesc(%d): lpdds=%x%s %s\n", dxversion, lpdds, sLabel, LogSurfaceAttributes((LPDDSURFACEDESC2)lpddsd, "GetSurfaceDesc", __LINE__));
 
 	if(!(dxw.IsEmulated || dxw.Windowize)) return res;
 
@@ -4887,7 +4923,7 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 	}
 	
 	if(IsFixed){
-		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes(lpddsd, sLabel, __LINE__));
+		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes((LPDDSURFACEDESC2)lpddsd, sLabel, __LINE__));
 		//if(IsDebug) HexTrace((unsigned char *)lpddsd, sizeof(DDSURFACEDESC));
 	}
 
@@ -4969,11 +5005,11 @@ ULONG WINAPI extReleaseD4(LPDIRECTDRAW lpdd)
 ULONG WINAPI extReleaseD7(LPDIRECTDRAW lpdd)
 { return extReleaseD(7, pReleaseD7, lpdd); }
 
-static HRESULT WINAPI extCreateClipper(CreateClipper_Type pCreateClipper, LPDIRECTDRAW lpdd, DWORD dwflags, 
+static HRESULT WINAPI extCreateClipper(int dxversion, CreateClipper_Type pCreateClipper, LPDIRECTDRAW lpdd, DWORD dwflags, 
 		LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
 {
 	HRESULT res;
-	OutTraceDDRAW("CreateClipper: lpdd=%x flags=%x\n", lpdd, dwflags);
+	OutTraceDDRAW("CreateClipper(%d): lpdd=%x flags=%x\n", dxversion, lpdd, dwflags);
 	res=(*pCreateClipper)(lpdd, dwflags, lplpDDClipper, pUnkOuter);
 	if(res) {
 		OutTraceE("CreateClipper: ERROR res=%x(%s)\n", lpdd, res, ExplainDDError(res));
@@ -4985,15 +5021,15 @@ static HRESULT WINAPI extCreateClipper(CreateClipper_Type pCreateClipper, LPDIRE
 }
 
 HRESULT WINAPI extCreateClipper1(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
-{ return extCreateClipper(pCreateClipper1, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
+{ return extCreateClipper(1, pCreateClipper1, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
 HRESULT WINAPI extCreateClipper2(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
-{ return extCreateClipper(pCreateClipper2, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
+{ return extCreateClipper(2, pCreateClipper2, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
 HRESULT WINAPI extCreateClipper3(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
-{ return extCreateClipper(pCreateClipper3, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
+{ return extCreateClipper(3, pCreateClipper3, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
 HRESULT WINAPI extCreateClipper4(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
-{ return extCreateClipper(pCreateClipper4, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
+{ return extCreateClipper(4, pCreateClipper4, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
 HRESULT WINAPI extCreateClipper7(LPDIRECTDRAW lpdd, DWORD dwflags, LPDIRECTDRAWCLIPPER FAR* lplpDDClipper, IUnknown FAR* pUnkOuter)
-{ return extCreateClipper(pCreateClipper7, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
+{ return extCreateClipper(7, pCreateClipper7, lpdd, dwflags, lplpDDClipper, pUnkOuter); }
 
 HRESULT WINAPI extReleaseC(LPDIRECTDRAWCLIPPER lpddClip)
 {
@@ -5292,9 +5328,11 @@ static HRESULT WINAPI extGetAvailableVidMem(int dxversion, GetAvailableVidMem4_T
 		return res; 
 	}
 
-	if(dxversion == 2){
-		OutTraceDW("GetAvailableVidMem(D2): DDSCaps=%x(%s) Total=%x Free=%x\n", 
-			lpDDSCaps->dwCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
+	if(dxversion < 4){ // fix: should include also dxversion 3!!!
+		OutTraceDW("GetAvailableVidMem(D%d): DDSCaps=%x(%s) Total=%x Free=%x\n", 
+			dxversion,
+			lpDDSCaps->dwCaps, ExplainDDSCaps(lpDDSCaps->dwCaps), 
+			lpdwTotal?*lpdwTotal:0, lpdwFree?*lpdwFree:0);
 	}
 	else{
 		OutTraceDW("GetAvailableVidMem(D%d): DDSCaps=%x(%s).%x.%x.%x volumedepth=%d Total=%x Free=%x\n", 

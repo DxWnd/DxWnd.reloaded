@@ -74,3 +74,5 @@ extern void HookLibraryEx(HMODULE, HookEntryEx_Type *, char *);
 extern void PinLibraryEx(HookEntryEx_Type *, char *);
 extern void HookLibInitEx(HookEntryEx_Type *);
 extern BOOL IsHotPatchedEx(HookEntryEx_Type *, char *);
+
+#define MISSING ((FARPROC)-1)

@@ -288,7 +288,8 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 	RECT saverect;
 	MCIERROR ret;
 	MCI_ANIM_RECT_PARMS *pr;
-	MCI_OVLY_WINDOW_PARMSW *pw;
+	MCI_OVLY_WINDOW_PARMSA *pw;
+	MCI_OPEN_PARMSA *po;
 
 	OutTraceDW("mciSendCommand%c: IDDevice=%x msg=%x(%s) Command=%x(%s)\n",
 		isAnsi ? 'A' : 'W', 
@@ -302,6 +303,11 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 		//MCI_OPEN_PARMS *op;
 		MCI_STATUS_PARMS *sp;
 		switch(uMsg){
+			case MCI_OPEN:
+				po = (MCI_OPEN_PARMSA *)dwParam;
+				po->wDeviceID = 1;
+				ret = 0;
+				break;
 			case MCI_STATUS:
 				if(fdwCommand & MCI_STATUS_ITEM){
 					// fix for Tie Fighter 95: when bypassing, let the caller know you have no CD tracks
@@ -319,6 +325,7 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 							if(sp->dwItem == MCI_STATUS_CURRENT_TRACK) sp->dwTrack = 1;
 							if(sp->dwItem == MCI_STATUS_NUMBER_OF_TRACKS) sp->dwTrack = 1;
 							if(sp->dwItem == MCI_STATUS_LENGTH) sp->dwTrack = 200;
+							if(sp->dwItem == MCI_STATUS_MEDIA_PRESENT) sp->dwTrack = 1;
 							sp->dwReturn = 0;
 							break;
 					}
@@ -336,7 +343,7 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 	if(dxw.IsFullScreen()){
 		switch(uMsg){
 			case MCI_WINDOW:
-				pw = (MCI_OVLY_WINDOW_PARMSW *)dwParam;
+				pw = (MCI_OVLY_WINDOW_PARMSA *)dwParam;
 				OutTraceB("mciSendCommand: hwnd=%x CmdShow=%x\n",
 					pw->hWnd, pw->nCmdShow);
 				if(dxw.IsRealDesktop(pw->hWnd)) {
@@ -374,6 +381,9 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 				if(dxw.dwFlags6 & NOMOVIES) return 275; // quite brutal, but working ....
 				break;
 			case MCI_STOP:
+				if(dxw.dwFlags6 & NOMOVIES) return 0; // ???
+				break;
+			case MCI_CLOSE:
 				if(dxw.dwFlags6 & NOMOVIES) return 0; // ???
 				break;
 		}

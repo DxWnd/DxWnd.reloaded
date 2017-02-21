@@ -56,28 +56,6 @@ HeapCompact_Type pHeapCompact;
 GetProcessHeap_Type pGetProcessHeap;
 HeapDestroy_Type pHeapDestroy;
 
-typedef BOOL (WINAPI *FreeLibrary_Type)(HMODULE);
-FreeLibrary_Type pFreeLibrary = NULL;
-BOOL WINAPI extFreeLibrary(HMODULE hModule)
-{ 
-	BOOL ret;
-	static HMODULE hLastModule;
-	OutTraceB("FreeLibrary: hModule=%x\n", hModule);
-	ret = (*pFreeLibrary)(hModule);
-	if(ret){
-		OutTrace("FreeLibrary: ret=%x\n", ret);
-		if((hModule == hLastModule) && (dxw.dwFlags7 & FIXFREELIBRARY)) {
-			OutTraceDW("FreeLibrary: FIXFREELIBRARY hack ret=0\n");
-			ret = 0;
-		}
-		hLastModule = hModule;
-	}
-	else {
-		OutTraceE("FreeLibrary ERROR: err=%d\n", GetLastError());
-	}
-	return ret; 
-}
-
 // v2.02.96: the GetSystemInfo API is NOT hot patchable on Win7. This can cause problems because it can't be hooked by simply
 // enabling hot patch. A solution is making all LoadLibrary* calls hot patchable, so that when loading the module, the call
 // can be hooked by the IAT lookup. This fixes a problem after movie playing in Wind Fantasy SP.
@@ -225,8 +203,21 @@ BOOL WINAPI extGetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerClus
 	BOOL ret;
 	OutTraceDW("GetDiskFreeSpace: RootPathName=\"%s\"\n", lpRootPathName);
 	ret=(*pGetDiskFreeSpaceA)(lpRootPathName, lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters);
-	if(!ret) OutTraceE("GetDiskFreeSpace: ERROR err=%d at %d\n", GetLastError(), __LINE__);
-	*lpNumberOfFreeClusters = 16000;
+	if(ret) {
+		OutTraceDW("GetDiskFreeSpace: SectXCluster=%d BytesXSect=%d FreeClusters=%d TotalClusters=%d\n", 
+			*lpSectorsPerCluster, *lpBytesPerSector, *lpNumberOfFreeClusters, *lpTotalNumberOfClusters);
+	}
+	else {
+		OutTraceE("GetDiskFreeSpace: ERROR err=%d at %d\n", GetLastError(), __LINE__);
+	}
+	// try to define 100MB free space in a 120MB hard disk
+	DWORD BytesXCluster = *lpBytesPerSector * *lpSectorsPerCluster;
+	if(BytesXCluster){
+		*lpNumberOfFreeClusters = 100000000 / BytesXCluster;
+		*lpTotalNumberOfClusters = 120000000 / BytesXCluster;
+		OutTraceDW("GetDiskFreeSpace: FIXED SectXCluster=%d BytesXSect=%d FreeClusters=%d TotalClusters=%d\n", 
+			*lpSectorsPerCluster, *lpBytesPerSector, *lpNumberOfFreeClusters, *lpTotalNumberOfClusters);
+	}
 	return ret;
 }
 
@@ -655,6 +646,26 @@ HMODULE WINAPI extLoadLibraryExA(LPCTSTR lpFileName, HANDLE hFile, DWORD dwFlags
 HMODULE WINAPI extLoadLibraryExW(LPCWSTR lpFileName, HANDLE hFile, DWORD dwFlags)
 { return LoadLibraryExWrapper((LPVOID)lpFileName, TRUE, hFile, dwFlags, "LoadLibraryExW"); }
 
+BOOL WINAPI extFreeLibrary(HMODULE hModule)
+{ 
+	BOOL ret;
+	static HMODULE hLastModule;
+	OutTraceB("FreeLibrary: hModule=%x\n", hModule);
+	ret = (*pFreeLibrary)(hModule);
+	if(ret){
+		OutTrace("FreeLibrary: ret=%x\n", ret);
+		if((hModule == hLastModule) && (dxw.dwFlags7 & FIXFREELIBRARY)) {
+			OutTraceDW("FreeLibrary: FIXFREELIBRARY hack ret=0\n");
+			ret = 0;
+		}
+		hLastModule = hModule;
+	}
+	else {
+		OutTraceE("FreeLibrary ERROR: err=%d\n", GetLastError());
+	}
+	return ret; 
+}
+
 extern DirectDrawCreate_Type pDirectDrawCreate;
 extern DirectDrawCreateEx_Type pDirectDrawCreateEx;
 extern HRESULT WINAPI extDirectDrawCreate(GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
@@ -681,88 +692,96 @@ FARPROC WINAPI extGetProcAddress(HMODULE hModule, LPCSTR proc)
 
 	// to do: the else condition: the program COULD load addresses by ordinal value ... done ??
 	if((DWORD)proc & 0xFFFF0000){
-		FARPROC remap;
+		FARPROC remap = 0;
 		switch(idx){
 			case SYSLIBIDX_AVIFIL32:
-			if (remap=Remap_AVIFil32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_AVIFil32_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DIRECTDRAW:
-			if (remap=Remap_ddraw_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_ddraw_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_USER32:
-			if (remap=Remap_user32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_user32_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_GDI32:
-			if (remap=Remap_GDI32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_GDI32_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_KERNEL32:
-			if (remap=Remap_kernel32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_kernel32_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_IMELIB:
-			if (remap=Remap_ImeLib_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_ImeLib_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_WINMM:
-			if (remap=Remap_WinMM_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_WinMM_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_OLE32: 
-			if (remap=Remap_ole32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_ole32_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DIRECT3D8:
-			if (remap=Remap_d3d8_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_d3d8_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DIRECT3D9:
-			if (remap=Remap_d3d9_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_d3d9_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DIRECT3D10:
-			if (remap=Remap_d3d10_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_d3d10_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DIRECT3D10_1:
-			if (remap=Remap_d3d10_1_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_d3d10_1_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DIRECT3D11:
-			if (remap=Remap_d3d11_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_d3d11_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_OPENGL:
-			if(dxw.Windowize) if (remap=Remap_gl_ProcAddress(proc, hModule)) return remap;
+			if(dxw.Windowize) remap=Remap_gl_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_MSVFW:
-			if (remap=Remap_vfw_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_vfw_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_WINTRUST:
-			if (remap=Remap_trust_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_trust_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_ADVAPI32:
-			if (remap=Remap_AdvApi32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_AdvApi32_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DIRECT3D:
-			if (remap=Remap_d3d7_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_d3d7_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DIRECT3D700:
-			if (remap=Remap_d3d7_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_d3d7_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_IMAGEHLP:
-			if (remap=Remap_Imagehlp_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_Imagehlp_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DINPUT:
-			if (remap=Remap_DInput_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_DInput_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DINPUT8:
-			if (remap=Remap_DInput8_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_DInput8_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_COMCTL32:
-			if (remap=Remap_ComCtl32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_ComCtl32_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_COMDLG32:
-			if (remap=Remap_ComDlg32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_ComDlg32_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_DSOUND:
-			if (remap=Remap_DSound_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_DSound_ProcAddress(proc, hModule);
 			break;
 		case SYSLIBIDX_WING32:
-			if (remap=Remap_WinG32_ProcAddress(proc, hModule)) return remap;
+			remap=Remap_WinG32_ProcAddress(proc, hModule);
 			break;
 		default:
 			break;			
+		}
+		if(remap == (FARPROC)-1) {
+			OutTraceDW("GetProcAddress: FAKE ret=0\n");
+			return 0; // pretend the call isn't there ....
+		}
+		if(remap) {
+			OutTraceDW("GetProcAddress: HOOK ret=%x\n", remap);
+			return remap;
 		}
 	}
 	else {

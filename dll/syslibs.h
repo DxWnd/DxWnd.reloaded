@@ -180,6 +180,7 @@ typedef BOOL	(WINAPI *QueryPerformanceFrequency_Type)(LARGE_INTEGER *);
 typedef BOOL	(WINAPI *QueryPerformanceCounter_Type)(LARGE_INTEGER *);
 typedef BOOL	(WINAPI *QueryPerformanceFrequency_Type)(LARGE_INTEGER *);
 typedef BOOL	(WINAPI *GetExitCodeProcess_Type)(HANDLE, LPDWORD);
+typedef BOOL	(WINAPI *FreeLibrary_Type)(HMODULE);
 
 // ole32.dll:
 typedef HRESULT (STDAPICALLTYPE *CoCreateInstance_Type)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);
@@ -494,7 +495,7 @@ DXWEXTERN CloseHandle_Type pCloseHandle DXWINITIALIZED;
 DXWEXTERN QueryPerformanceFrequency_Type pQueryPerformanceFrequency DXWINITIALIZED;
 DXWEXTERN QueryPerformanceCounter_Type pQueryPerformanceCounter DXWINITIALIZED;
 DXWEXTERN GetExitCodeProcess_Type pGetExitCodeProcess DXWINITIALIZED;
-
+DXWEXTERN FreeLibrary_Type pFreeLibrary DXWINITIALIZED;
 
 // ole32.dll:
 DXWEXTERN CoCreateInstance_Type pCoCreateInstance DXWINITIALIZED;
@@ -806,6 +807,7 @@ extern BOOL WINAPI extCreateProcessA(LPCTSTR, LPTSTR, LPSECURITY_ATTRIBUTES, LPS
 extern BOOL WINAPI extGetExitCodeProcess(HANDLE, LPDWORD);
 extern BOOL WINAPI extQueryPerformanceFrequency(LARGE_INTEGER *);
 extern BOOL WINAPI extQueryPerformanceCounter(LARGE_INTEGER *);
+extern BOOL WINAPI extFreeLibrary(HMODULE);
 
 // ole32.dll:
 extern HRESULT STDAPICALLTYPE extCoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID FAR*);

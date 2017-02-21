@@ -171,6 +171,10 @@ void HookDirectInput(HMODULE module)
 	HookLibraryEx(module, diHooks, "dinput.dll");
 	if(!pDirectInputCreateA && !pDirectInputCreateW && !pDirectInputCreateEx){
 		hinst = LoadLibrary("dinput.dll");
+		if(!hinst) {
+			OutTraceE("LoadLibrary dinput.dll ERROR err=%d at %d\n", GetLastError(), __LINE__);
+			return;
+		}
 		pDirectInputCreateA = (DirectInputCreateA_Type)GetProcAddress(hinst, "DirectInputCreateA");
 		if(pDirectInputCreateA)
 			if(!extDirectInputCreateA(GetModuleHandle(0), DIRECTINPUT_VERSION,
@@ -193,6 +197,10 @@ void HookDirectInput8(HMODULE module)
 	HookLibraryEx(module, di8Hooks, "dinput8.dll");
 	if(!pDirectInput8Create){
 		hinst = LoadLibrary("dinput8.dll");
+		if(!hinst) {
+			OutTraceE("LoadLibrary dinput8.dll ERROR err=%d at %d\n", GetLastError(), __LINE__);
+			return;
+		}
 		pDirectInput8Create = (DirectInput8Create_Type)GetProcAddress(hinst, "DirectInput8Create");
 		if(pDirectInput8Create)
 			if(!extDirectInput8Create(GetModuleHandle(0), DIRECTINPUT8_VERSION,

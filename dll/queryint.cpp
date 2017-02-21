@@ -16,6 +16,7 @@ extern void HookDDSession(LPDIRECTDRAW *, int);
 extern void HookDirect3DSession(LPDIRECTDRAW *, int);
 extern void HookDirect3DDevice(LPVOID *, int);
 extern void HookViewport(LPDIRECT3DVIEWPORT *, int);
+extern void HookDDClipper(LPDIRECTDRAWCLIPPER FAR *);
 
 // extQueryInterfaceDX: this is the single procedure that manages all QueryInterface methods within the DirectX classes
 // it is better to have it unique because of the transitive and reflexive properties of QueryInterface, that means
@@ -28,6 +29,7 @@ typedef enum {
 	TYPE_OBJECT_UNKNOWN = 0,
 	TYPE_OBJECT_DIRECTDRAW,
 	TYPE_OBJECT_DDRAWSURFACE,
+	TYPE_OBJECT_CLIPPER,
 	TYPE_OBJECT_DIRECT3D,
 	TYPE_OBJECT_D3DDEVICE,
 	TYPE_OBJECT_GAMMARAMP,
@@ -53,6 +55,10 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 	iObjectType = TYPE_OBJECT_UNKNOWN;
 	switch(riid.Data1){
 	// DirectDraw
+	case 0xD7B70EE0: // CLSID_DirectDraw
+		iObjectType=TYPE_OBJECT_DIRECTDRAW; iObjectVersion=1; break;
+	case 0x3c305196: // CLSID_DirectDraw7
+		iObjectType=TYPE_OBJECT_DIRECTDRAW; iObjectVersion=7; break;
 	case 0x6C14DB80: // IID_IDirectDraw
 		iObjectType=TYPE_OBJECT_DIRECTDRAW; iObjectVersion=1; break;
 	case 0xB3A6F3E0: // IID_IDirectDraw2
@@ -122,6 +128,8 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 		iObjectType=TYPE_OBJECT_VIEWPORT; iObjectVersion=2; break;
 	case 0xb0ab3b61: //IID_IDirect3DViewport3
 		iObjectType=TYPE_OBJECT_VIEWPORT; iObjectVersion=3; break;
+	case 0x593817A0: //CLSID_DirectDrawClipper 
+		iObjectType=TYPE_OBJECT_CLIPPER; iObjectVersion=1; break;
 	} 
 
 	char *sLabel;
@@ -129,6 +137,7 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 		case TYPE_OBJECT_UNKNOWN: sLabel = "(unknown)"; break;
 		case TYPE_OBJECT_DIRECTDRAW: sLabel = "IID_IDirectDraw"; break;
 		case TYPE_OBJECT_DDRAWSURFACE: sLabel = "IID_IDirectDrawSurface"; break;
+		case TYPE_OBJECT_CLIPPER: sLabel = "CLSID_DirectDrawClipper"; break;
 		case TYPE_OBJECT_DIRECT3D: sLabel = "IID_IDirect3D"; break;
 		case TYPE_OBJECT_D3DDEVICE: sLabel = "IID_IDirect3DDevice"; break;
 		case TYPE_OBJECT_GAMMARAMP: sLabel = "IID_IDirectDrawGammaRamp"; break;
@@ -162,6 +171,13 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 				dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds)) 
 				lpdds = lpDDSEmu_Prim; 
 			break;
+#ifdef YEARDEAD
+		//case TYPE_OBJECT_UNKNOWN:
+		//	OutTraceDW("QueryInterface: returning same object\n");
+		//	((LPDIRECTDRAWSURFACE)lpdds)->AddRef();
+		//	*obp = lpdds;
+		//	return DD_OK;
+#endif
 	}
 
 	res = (*pQueryInterface)(lpdds, riid, obp);
@@ -182,7 +198,33 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 		lpdds, riid.Data1, *obp, sLabel, iObjectVersion);
 
 	switch(iObjectType){
-		// simulate unavailable interfaces (useful?)
+		case TYPE_OBJECT_UNKNOWN:
+			dwCaps = dxwcdb.GetCaps((LPDIRECTDRAWSURFACE)lpdds);
+			if (dwCaps) {
+				OutTraceDW("QueryInterface(S): PASS lpdds=%x->%x caps=%x(%s)\n", lpdds, *obp, dwCaps, ExplainDDSCaps(dwCaps));
+				dxwcdb.PushCaps(*(LPDIRECTDRAWSURFACE *)obp, dwCaps);
+			}	
+			else {
+				OutTraceDW("QueryInterface(S): NO CAPS\n");
+			}
+			break;
+#ifdef YEARDEAD
+		case TYPE_OBJECT_UNKNOWN:
+			// triky: some games (actually, only one: "Year Dead") perform a QueryInterface with IID_UNKNOWN
+			// to duplicate the object. In this case, the CAPS should be passed, but maybe the new object 
+			// also needs hooking?
+			dwCaps = dxwcdb.GetCaps((LPDIRECTDRAWSURFACE)lpdds);
+			if (dwCaps) {
+				OutTraceDW("QueryInterface(S): PASS lpdds=%x->%x caps=%x(%s)\n", lpdds, *obp, dwCaps, ExplainDDSCaps(dwCaps));
+				dxwcdb.PushCaps(*(LPDIRECTDRAWSURFACE *)obp, dwCaps);
+				if(dwCaps & DDSCAPS_PRIMARYSURFACE) {
+					HookDDSurface((LPDIRECTDRAWSURFACE *)obp, 1, TRUE);
+					dxwss.PushPrimarySurface((LPDIRECTDRAWSURFACE)*obp, dxversion);
+				}
+				else HookDDSurface((LPDIRECTDRAWSURFACE *)obp, 1, FALSE);
+			}	
+			break;
+#endif
 		case TYPE_OBJECT_DIRECTDRAW:
 			HookDDSession((LPDIRECTDRAW *)obp, iObjectVersion);
 			break;
@@ -207,6 +249,9 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 			else {
 				OutTraceDW("QueryInterface(S): NO CAPS\n");
 			}
+			break;
+		case TYPE_OBJECT_CLIPPER:
+			HookDDClipper((LPDIRECTDRAWCLIPPER *)obp); // there is a single Clipper intrface!
 			break;
 		case TYPE_OBJECT_DIRECT3D:
 			HookDirect3DSession((LPDIRECTDRAW *)obp, iObjectVersion);

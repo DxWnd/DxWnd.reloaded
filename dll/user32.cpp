@@ -29,6 +29,9 @@ extern HDC hFlippedDC;
 //EnumDisplayMonitors_Type pEnumDisplayMonitors = NULL;
 //BOOL WINAPI extEnumDisplayMonitors(HDC, LPCRECT, MONITORENUMPROC, LPARAM);
 
+typedef BOOL (WINAPI *ValidateRgn_Type)(HWND, HRGN);
+ValidateRgn_Type pValidateRgn;
+BOOL WINAPI extValidateRgn(HWND, HRGN);
 
 #ifdef TRACEPALETTE
 typedef UINT (WINAPI *GetDIBColorTable_Type)(HDC, UINT, UINT, RGBQUAD *);
@@ -58,7 +61,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "MoveWindow", (FARPROC)MoveWindow, (FARPROC *)&pMoveWindow, (FARPROC)extMoveWindow},
 	{HOOK_HOT_CANDIDATE, 0, "EnumDisplaySettingsA", (FARPROC)EnumDisplaySettingsA, (FARPROC *)&pEnumDisplaySettings, (FARPROC)extEnumDisplaySettings},
 	{HOOK_IAT_CANDIDATE, 0, "GetClipCursor", (FARPROC)GetClipCursor, (FARPROC*)&pGetClipCursor, (FARPROC)extGetClipCursor},
-	{HOOK_IAT_CANDIDATE, 0, "ClipCursor", (FARPROC)ClipCursor, (FARPROC *)&pClipCursor, (FARPROC)extClipCursor},
+	{HOOK_HOT_CANDIDATE, 0, "ClipCursor", (FARPROC)ClipCursor, (FARPROC *)&pClipCursor, (FARPROC)extClipCursor},
 	{HOOK_IAT_CANDIDATE, 0, "DefWindowProcA", (FARPROC)DefWindowProcA, (FARPROC *)&pDefWindowProcA, (FARPROC)extDefWindowProcA},
 	{HOOK_IAT_CANDIDATE, 0, "DefWindowProcW", (FARPROC)DefWindowProcW, (FARPROC *)&pDefWindowProcW, (FARPROC)extDefWindowProcW},
 	{HOOK_HOT_CANDIDATE, 0, "CreateWindowExA", (FARPROC)CreateWindowExA, (FARPROC *)&pCreateWindowExA, (FARPROC)extCreateWindowExA},
@@ -186,7 +189,8 @@ static HookEntryEx_Type SyscallHooks[]={
 };
 
 static HookEntryEx_Type ScaledHooks[]={
-	{HOOK_IAT_CANDIDATE, 0, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
+	{HOOK_HOT_CANDIDATE, 0, "ValidateRect", (FARPROC)ValidateRect, (FARPROC *)&pValidateRect, (FARPROC)extValidateRect},
+	{HOOK_HOT_CANDIDATE, 0, "ValidateRgn", (FARPROC)ValidateRgn, (FARPROC *)&pValidateRgn, (FARPROC)extValidateRgn},
 	{HOOK_IAT_CANDIDATE, 0, "ScrollWindow", (FARPROC)ScrollWindow, (FARPROC *)&pScrollWindow, (FARPROC)extScrollWindow},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -1127,8 +1131,10 @@ BOOL WINAPI extSetCursorPos(int x, int y)
 static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HWND hwnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
 {
 	BOOL res;
+	char *sLabel;
 
 	if(dxw.dwFlags3 & PEEKALLMESSAGES){
+		sLabel="(ANY) ";
 		if((wMsgFilterMin==0) && (wMsgFilterMax == 0)){
 			// no filtering, everything is good
 			res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
@@ -1142,22 +1148,19 @@ static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HW
 			if(wMsgFilterMax<WM_KEYFIRST)(*pPeekMessage)(&Dummy, hwnd, wMsgFilterMax+1, WM_KEYFIRST-1, TRUE); // don't touch above WM_KEYFIRST !!!!
 		}
 
-		if(res)
-			OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-				lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
-				lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
-				lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
-		else
-			OutTraceW("PeekMessage: ANY lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) res=%x\n", 
-				lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg), res);
 	}
 	else {
+		sLabel="";
 		res=(*pPeekMessage)(lpMsg, hwnd, wMsgFilterMin, wMsgFilterMax, (wRemoveMsg & 0x000F));
-		OutTraceW("PeekMessage: lpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
-			lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
+	}
+	if(res)
+		OutTraceW("PeekMessage: %slpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) msg=%x(%s) wparam=%x, lparam=%x pt=(%d,%d) res=%x\n", 
+			sLabel, lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg),
 			lpMsg->message, ExplainWinMessage(lpMsg->message & 0xFFFF), 
 			lpMsg->wParam, lpMsg->lParam, lpMsg->pt.x, lpMsg->pt.y, res);
-	}
+	else
+		OutTraceW("PeekMessage: %slpmsg=%x hwnd=%x filter=(%x-%x) remove=%x(%s) res=%x\n", 
+			sLabel, lpMsg, lpMsg->hwnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, ExplainPeekRemoveMsg(wRemoveMsg), res);
 
 	if((dxw.dwFlags1 & MODIFYMOUSE) && dxw.GethWnd()){
 		POINT point;
@@ -1180,7 +1183,7 @@ static BOOL WINAPI extPeekMessage(PeekMessage_Type pPeekMessage, LPMSG lpMsg, HW
 	//	}
 	//}
 
-	if(dxw.dwFlags1 & SLOWDOWN) (*pSleep)(1);
+	if(dxw.dwFlags1 & SLOWDOWN) dxw.DoSlow(1);
 
 	return res;
 }
@@ -2079,10 +2082,10 @@ int WINAPI extValidateRect(HWND hwnd, const RECT *lprc)
 
 	if(IsTraceDW){
 		if (lprc)
-			OutTrace("ValidateRect: rect=(%d,%d)-(%d,%d)\n", 
-				lprc->left, lprc->top, lprc->right, lprc->bottom);
+			OutTrace("ValidateRect: hwnd=%x rect=(%d,%d)-(%d,%d)\n", 
+				hwnd, lprc->left, lprc->top, lprc->right, lprc->bottom);
 		else 
-			OutTrace("ValidateRect: rect=(NULL)\n");
+			OutTrace("ValidateRect: hwnd=%x rect=(NULL)\n", hwnd);
 	}
 
 	if(lprc){
@@ -4191,6 +4194,15 @@ BOOL WINAPI extAdjustWindowRectEx(LPRECT lpRect, DWORD dwStyle, BOOL bMenu, DWOR
 	else{
 		OutTraceE("AdjustWindowRectEx ERROR: err=%d\n", GetLastError());
 	}
+	return ret;
+}
+
+BOOL WINAPI extValidateRgn(HWND hwnd, HRGN hrgn)
+{
+	BOOL ret;
+	OutTraceDW("ValidateRgn: hwnd=%x hrgn=%x\n", hwnd, hrgn);
+
+	ret = (*pValidateRgn)(hwnd, hrgn);
 	return ret;
 }
 

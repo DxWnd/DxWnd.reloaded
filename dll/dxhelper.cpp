@@ -154,6 +154,19 @@ char *ExplainDDSCaps3(DWORD c)
 	return(eb);
 }
 
+char *ExplainDDSCaps4(DWORD c)
+{
+	static char eb[256];
+	unsigned int l;
+	strcpy(eb,"DDSCAPS4_");
+	// insert here ....
+	// if (c & DDSCAPS4_XXX) strcat(eb, "XXX+");
+	l=strlen(eb);
+	if (l>strlen("DDSCAPS4_")) eb[l-1]=0; // delete last '+' if any
+	else eb[0]=0;
+	return(eb);
+}
+
 char *ExplainDDDCaps(DWORD c)
 {
 	static char eb[512];
