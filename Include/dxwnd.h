@@ -340,6 +340,15 @@ typedef struct TARGETMAP
 	short ScanLine;
 }TARGETMAP;
 
+// VJoyStatus flags
+#define VJOYPRESENT		0x00000001 // Virtual joystick configured for the program
+#define VJOYENABLED		0x00000002 // Virtual Joystick enabled and sending input coordinates
+#define CROSSENABLED	0x00000004 // Crossfire display enabled
+#define INVERTYAXIS		0x00000008 // Invert virtual joystick Y axis
+#define INVERTXAXIS		0x00000010 // Invert virtual joystick X axis
+#define B1AUTOFIRE		0x00000020 // Button 1 auto fire
+#define B2AUTOFIRE		0x00000040 // Button 2 auto fire
+
 typedef struct
 {
 	short Status;
@@ -358,11 +367,14 @@ typedef struct
 	short CursorX, CursorY;
 	PALETTEENTRY Palette[256];
 	BOOL AllowMultiTask;
+	DWORD VJoyStatus;
+	short joyposx;
+	short joyposy;
 } DXWNDSTATUS;
 
 extern DXWNDSTATUS DxWndStatus;
 
-int SetTarget(TARGETMAP *);
+int SetTarget(DXWNDSTATUS *, TARGETMAP *);
 int StartHook(void);
 int EndHook(void);
 void GetDllVersion(char *);

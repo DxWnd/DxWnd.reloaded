@@ -16,6 +16,7 @@
 #include "DesktopDialog.h"
 #include "PaletteDialog.h"
 #include "TimeSliderDialog.h"
+#include "VJoyDialog.h"
 #include "ShimsDialog.h"
 #include "ViewFlagsDialog.h"
 #include "CGlobalSettings.h"
@@ -145,6 +146,7 @@ BEGIN_MESSAGE_MAP(CDxwndhostView, CListView)
 	ON_COMMAND(ID_VIEW_DESKTOP, OnViewDesktop)
 	ON_COMMAND(ID_VIEW_PALETTE, OnViewPalette)
 	ON_COMMAND(ID_VIEW_TIMESLIDER, OnViewTimeSlider)
+	ON_COMMAND(ID_VIEW_VIRTUALJOYSTICK, OnViewVirtualJoystick)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_8BPP, OnDesktopcolordepth8bpp)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_16BPP, OnDesktopcolordepth16bpp)
 	ON_COMMAND(ID_DESKTOPCOLORDEPTH_24BPP, OnDesktopcolordepth24bpp)
@@ -1354,6 +1356,7 @@ void CDxwndhostView::OnInitialUpdate()
 	LV_COLUMN listcol;
 	LV_ITEM listitem;
 	int i;
+	DXWNDSTATUS StatusMap;
 	typedef BOOL (WINAPI *ChangeWindowMessageFilter_Type)(UINT, DWORD);
 	ChangeWindowMessageFilter_Type pChangeWindowMessageFilter;
 
@@ -1398,6 +1401,8 @@ void CDxwndhostView::OnInitialUpdate()
 	strcat_s(gInitPath, sizeof(gInitPath), m_ConfigFileName);
 	listctrl.InsertColumn(0, &listcol);
 
+	StatusMap.VJoyStatus = GetPrivateProfileInt("joystick", "flags", VJOYENABLED|CROSSENABLED|INVERTYAXIS, gInitPath);
+
 	for(i = 0; i < MAXTARGETS; i ++){
 		if (!LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], i, gInitPath)) break;
 		listitem.mask = LVIF_TEXT | LVIF_IMAGE;
@@ -1412,7 +1417,7 @@ void CDxwndhostView::OnInitialUpdate()
 		PrivateMaps[i].title[0] = 0;
 	}
 	Resize();
-	SetTarget(TargetMaps);
+	SetTarget(&StatusMap, TargetMaps);
 	if(m_InitialState == DXW_ACTIVE)
 		this->OnHookStart();
 	else
@@ -1522,7 +1527,7 @@ BOOL CDxwndhostView::OnImport(CString sFilePath)
 		listctrl.InsertItem(&listitem);
 	}
 	Resize();
-	SetTarget(TargetMaps);	
+	SetTarget(NULL, TargetMaps);	
 	this->isUpdated=TRUE;
 	this->isRegistryUpdated=TRUE;
 	return TRUE;
@@ -1602,7 +1607,7 @@ void CDxwndhostView::OnImport()
 			}
 		}
 		Resize();
-		SetTarget(TargetMaps);	
+		SetTarget(NULL, TargetMaps);	
 		this->isUpdated=TRUE;
 		this->isRegistryUpdated=TRUE;
 	}
@@ -1643,7 +1648,7 @@ void CDxwndhostView::OnModify()
 		listitem.pszText = PrivateMaps[i].title;
 		listctrl.SetItem(&listitem);
 		Resize();
-		SetTarget(TargetMaps);	
+		SetTarget(NULL, TargetMaps);	
 		this->isUpdated=TRUE;
 	}
 }
@@ -1875,7 +1880,7 @@ void CDxwndhostView::OnSort()
 		TargetMaps[i].index = i; // renumber
 	}
 
-	SetTarget(TargetMaps);
+	SetTarget(NULL, TargetMaps);
 	this->isUpdated=TRUE;
 	this->isRegistryUpdated=TRUE;
 }
@@ -2130,7 +2135,7 @@ void CDxwndhostView::OnAdd(char *sInitialPath)
 		listitem.pszText = PrivateMaps[i].title;
 		listctrl.InsertItem(&listitem);
 		Resize();
-		SetTarget(TargetMaps);	
+		SetTarget(NULL, TargetMaps);	
 		this->isUpdated=TRUE;
 		this->isRegistryUpdated=TRUE;
 	}
@@ -2165,7 +2170,7 @@ void CDxwndhostView::OnDuplicate()
 		listctrl.InsertItem(&listitem);
 		TargetMaps[i].index = i;
 	}
-	SetTarget(TargetMaps);
+	SetTarget(NULL, TargetMaps);
 	this->isUpdated=TRUE;
 	this->isRegistryUpdated=TRUE;
 }
@@ -2202,7 +2207,7 @@ void CDxwndhostView::OnMoveTop()
 		listctrl.SetItem(&listitem);
 		listctrl.InsertItem(&listitem);
 	}
-	SetTarget(TargetMaps);
+	SetTarget(NULL, TargetMaps);
 	this->isUpdated=TRUE;
 	this->isRegistryUpdated=TRUE;
 }
@@ -2237,7 +2242,7 @@ void CDxwndhostView::OnMoveUp()
 		listctrl.SetItem(&listitem);
 		listctrl.InsertItem(&listitem);
 	}
-	SetTarget(TargetMaps);
+	SetTarget(NULL, TargetMaps);
 	this->isUpdated=TRUE;
 	this->isRegistryUpdated=TRUE;
 }
@@ -2272,7 +2277,7 @@ void CDxwndhostView::OnMoveDown()
 		listctrl.SetItem(&listitem);
 		listctrl.InsertItem(&listitem);
 	}
-	SetTarget(TargetMaps);
+	SetTarget(NULL, TargetMaps);
 	this->isUpdated=TRUE;
 	this->isRegistryUpdated=TRUE;
 }
@@ -2310,7 +2315,7 @@ void CDxwndhostView::OnMoveBottom()
 		listctrl.SetItem(&listitem);
 		listctrl.InsertItem(&listitem);
 	}
-	SetTarget(TargetMaps);
+	SetTarget(NULL, TargetMaps);
 	this->isUpdated=TRUE;
 	this->isRegistryUpdated=TRUE;
 }
@@ -2346,7 +2351,7 @@ void CDxwndhostView::OnDelete()
 	}
 	TargetMaps[i].path[0]=0; // clear last one, in case there were MAXTARGETS entries
 	Resize();
-	SetTarget(TargetMaps);
+	SetTarget(NULL, TargetMaps);
 	this->isUpdated=TRUE;
 	this->isRegistryUpdated=TRUE;
 }
@@ -2613,6 +2618,13 @@ void CDxwndhostView::OnViewTimeSlider()
 {
 	CTimeSliderDialog *pDlg = new CTimeSliderDialog();
 	BOOL ret = pDlg->Create(CTimeSliderDialog::IDD, this); 
+	pDlg->ShowWindow(SW_SHOW);
+}
+
+void CDxwndhostView::OnViewVirtualJoystick()
+{
+	CVJoyDialog *pDlg = new CVJoyDialog();
+	BOOL ret = pDlg->Create(CVJoyDialog::IDD, this); 
 	pDlg->ShowWindow(SW_SHOW);
 }
 
@@ -3208,7 +3220,7 @@ void InjectSuspended(char *exepath, char *dirpath)
 DWORD RecoverTargetMaps(LPVOID TargetMaps)
 {
 	Sleep(5000);
-	SetTarget((TARGETMAP *)TargetMaps);	
+	SetTarget(NULL, (TARGETMAP *)TargetMaps);	
 	return 0;
 }
 
@@ -3388,7 +3400,7 @@ void CDxwndhostView::OnRun(BOOL bForceNoHook)
 		strncpy(RestrictedMaps[0].path, exepath, MAX_PATH);
 	}
 	if(bForceNoHook) RestrictedMaps[0].flags3 &= ~HOOKENABLED;
-	SetTarget(RestrictedMaps);	
+	SetTarget(NULL, RestrictedMaps);	
 	OutTrace("OnRun idx=%d prog=\"%s\" unhooked=%x\n", i, TargetMaps[i].path, bForceNoHook);
 
 	if(TargetMaps[i].flags7 & HOOKNORUN){

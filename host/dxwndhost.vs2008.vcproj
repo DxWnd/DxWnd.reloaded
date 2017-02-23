@@ -511,6 +511,10 @@
 				RelativePath=".\ViewFlagsDialog.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\VJoyDialog.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -648,6 +652,10 @@
 				RelativePath=".\ViewFlagsDialog.h"
 				>
 			</File>
+			<File
+				RelativePath=".\VJoyDialog.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -751,19 +759,19 @@
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\alt-ctrl-shift.png"
-			>
-		</File>
-		<File
 			RelativePath=".\res\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
-			RelativePath=".\res\alt.png"
+			RelativePath=".\alt-ctrl-shift.png"
 			>
 		</File>
 		<File
 			RelativePath=".\alt.png"
+			>
+		</File>
+		<File
+			RelativePath=".\res\alt.png"
 			>
 		</File>
 		<File

@@ -1559,3 +1559,7 @@ fix: in mciSendCommand using ANSI MCI_OVLY_WINDOW_PARMS instead of WIDECHAR vers
 fix: DirectDraw:GetCaps wrapper crash when setting SUPPRESSOVERLAY and the hw or sw caps pointer is NULL
 fix: exception when trying to use ddraw SetAppCompatData and LoadLibrary failed
 fix: error messages on LoadLibrary errors
+
+v2.04.16
+add: improved virtual joystick with configuration and monitoring panel, invert axis options, show crossfire.
+fix: GetAttachedSurface now simulates also the primary surface as attach to backbuffer. Fixes GTA first episode windows version.

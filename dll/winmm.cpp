@@ -549,10 +549,22 @@ static MMRESULT GetJoy(char *apiname, DWORD uJoyID, LPJOYINFO lpj)
 	DWORD dwButtons;
 	static BOOL bJoyLock = FALSE;
 	static DWORD dwLastClick = 0;
+	extern DXWNDSTATUS *pStatus;
+	DWORD dwVJoyStatus;
+
+	dwVJoyStatus = GetHookInfo()->VJoyStatus;
+	if(!(dwVJoyStatus & VJOYENABLED)) {
+		lpj->wXpos = 0;
+		lpj->wYpos = 0;
+		lpj->wZpos = 0;
+		pStatus->joyposx = (short)0;
+		pStatus->joyposy = (short)0;
+		return JOYERR_NOERROR;
+	}
 
 	dwButtons = 0;
-	if (GetKeyState(VK_LBUTTON) < 0) dwButtons |= JOY_BUTTON1;
-	if (GetKeyState(VK_RBUTTON) < 0) dwButtons |= JOY_BUTTON2;
+	if ((GetKeyState(VK_LBUTTON) < 0) || (dwVJoyStatus & B1AUTOFIRE)) dwButtons |= JOY_BUTTON1;
+	if ((GetKeyState(VK_RBUTTON) < 0) || (dwVJoyStatus & B2AUTOFIRE)) dwButtons |= JOY_BUTTON2;
 	if (GetKeyState(VK_MBUTTON) < 0) dwButtons |= JOY_BUTTON3;
 	OutTraceB("%s: Virtual Joystick buttons=%x\n", apiname, dwButtons);
 
@@ -595,19 +607,21 @@ static MMRESULT GetJoy(char *apiname, DWORD uJoyID, LPJOYINFO lpj)
 			if(pt.y > client.bottom) pt.y = client.bottom;
 			CenterX = (client.right - client.left) >> 1;
 			CenterY = (client.bottom - client.top) >> 1;
+
 			x = ((pt.x - CenterX) * XSPAN) / client.right;
-			if(INVERTJOYAXIS)
-				y = ((CenterY - pt.y) * YSPAN) / client.bottom; // inverted y axis
-			else
-				y = ((pt.y - CenterY) * YSPAN) / client.bottom;
+			y = ((pt.y - CenterY) * YSPAN) / client.bottom;
+			if(dwVJoyStatus & INVERTXAXIS) x = -x;
+			if(dwVJoyStatus & INVERTYAXIS) y = -y;
 		}
-		ShowJoystick(pt.x, pt.y, dwButtons);
+		if (dwVJoyStatus & CROSSENABLED) ShowJoystick(pt.x, pt.y, dwButtons);
 	}
 	lpj->wXpos = x;
 	lpj->wYpos = y;
 	lpj->wZpos = 0;
 	lpj->wButtons = dwButtons;
 	OutTraceC("%s: joyid=%d pos=(%d,%d)\n", apiname, uJoyID, lpj->wXpos, lpj->wYpos);
+	pStatus->joyposx = (short)x;
+	pStatus->joyposy = (short)y;
 	return JOYERR_NOERROR;
 }
 
@@ -632,7 +646,7 @@ MMRESULT WINAPI extjoyGetPosEx(DWORD uJoyID, LPJOYINFOEX pji)
 MMRESULT WINAPI extjoyGetPos(DWORD uJoyID, LPJOYINFO pji)
 {
 	MMRESULT res;
-	res=GetJoy("joyGetPosEx", uJoyID, pji);
+	res=GetJoy("joyGetPos", uJoyID, pji);
 	return res;
 }
 
@@ -651,6 +665,8 @@ static void ShowJoystick(LONG x, LONG y, DWORD dwButtons)
 	RECT client;
 	RECT win;
 	POINT PrevViewPort;
+
+	//return;
 
 	// don't show when system cursor is visible
 	CURSORINFO ci;

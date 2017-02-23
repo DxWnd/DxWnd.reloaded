@@ -376,7 +376,7 @@ void CTargetDlg::OnBnClickedTry()
 	memset(&RestrictedMaps[1], 0, sizeof(TARGETMAP));
 	strcpy_s(path, sizeof(path), m_FilePath.GetBuffer());
 	PathRemoveFileSpec(path);
-	SetTarget(RestrictedMaps);	
+	SetTarget(NULL, RestrictedMaps);	
 	iHookStatus=GetHookStatus(NULL);
 	if(iHookStatus == DXW_IDLE) StartHook();
 	switch(m_InjectionMode){

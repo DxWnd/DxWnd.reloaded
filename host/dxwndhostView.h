@@ -106,6 +106,7 @@ protected:
 	afx_msg void OnViewDesktop();
 	afx_msg void OnViewPalette();
 	afx_msg void OnViewTimeSlider();
+	afx_msg void OnViewVirtualJoystick();
 	afx_msg void OnExit();
 	afx_msg void OnDesktopcolordepth8bpp();
 	afx_msg void OnDesktopcolordepth16bpp();

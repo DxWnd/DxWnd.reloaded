@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.04.15"
+#define VERSION "2.04.16"
 
 #define DDTHREADLOCK 1
 
@@ -108,7 +108,7 @@ static BOOL GetMultiTaskEnabling(){
 	return GetPrivateProfileInt("window", "multiprocesshook", 0, inipath);
 }
 
-int SetTarget(TARGETMAP *targets){
+int SetTarget(DXWNDSTATUS *statusmap, TARGETMAP *targets){
 	int i;
 	char path[MAX_PATH+1];
 
@@ -122,6 +122,8 @@ int SetTarget(TARGETMAP *targets){
 	pStatus->Height = pStatus->Width = 0;
 	pStatus->DXVersion = 0;
 	pStatus->AllowMultiTask=GetMultiTaskEnabling();
+	//pStatus->VJoyStatus=VJOYENABLED|CROSSENABLED|INVERTYAXIS;
+	if(statusmap) pStatus->VJoyStatus=statusmap->VJoyStatus;
 	for(i = 0; targets[i].path[0]; i ++){
 		char *c;
 		pMapping[i] = targets[i];

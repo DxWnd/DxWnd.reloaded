@@ -724,6 +724,7 @@ void InitScreenParameters(int dxversion)
 	extern void FixPixelFormat(int , DDPIXELFORMAT *);
 	DEVMODE CurrDevMode;
 	static int DoOnce = FALSE;
+	DWORD dwVJoyStatus;
 
 	if(DoOnce) return;
 	DoOnce = TRUE;
@@ -736,6 +737,11 @@ void InitScreenParameters(int dxversion)
 	GetHookInfo()->ColorDepth=0; // unknown
 	GetHookInfo()->DXVersion=0; // unknown
 	GetHookInfo()->isLogging=(dxw.dwTFlags & OUTTRACE);
+	
+	dwVJoyStatus = GetHookInfo()->VJoyStatus;
+	dwVJoyStatus &= ~VJOYPRESENT;
+	if(dxw.dwFlags6 & VIRTUALJOYSTICK) dwVJoyStatus |= VJOYPRESENT;
+	GetHookInfo()->VJoyStatus = dwVJoyStatus;
 
 	if(!(*pEnumDisplaySettings)(NULL, ENUM_CURRENT_SETTINGS, &CurrDevMode)){
 		OutTraceE("EnumDisplaySettings: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -4607,9 +4613,10 @@ HRESULT WINAPI extGetColorKey7(LPDIRECTDRAWSURFACE lpdds, DWORD flags, LPDDCOLOR
 static HRESULT WINAPI extEnumAttachedSurfaces(EnumAttachedSurfaces_Type pEnumAttachedSurfaces, LPDIRECTDRAWSURFACE lpdds, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
 {
 	HRESULT res;
-	BOOL IsPrim;
+	BOOL IsPrim, IsBack;
 
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
+	IsBack=dxwss.IsABackBufferSurface(lpdds);
 
 	OutTraceDDRAW("EnumAttachedSurfaces: lpdds=%x%s Context=%x Callback=%x\n", 
 		lpdds, (IsPrim ? "(PRIM)":""), lpContext, lpEnumSurfacesCallback);
@@ -4635,13 +4642,35 @@ static HRESULT WINAPI extEnumAttachedSurfaces(EnumAttachedSurfaces_Type pEnumAtt
 			res=(lpEnumSurfacesCallback)(lpDDSBack, (LPDDSURFACEDESC)&ddsd, lpContext);
 			OutTraceDW("EnumSurfacesCallback: on DDSBack res=%x(%s)\n", res, ExplainDDError(res));
 		}
-		res=DD_OK; // for Black Dahlia
+		return DD_OK; // for Black Dahlia
 	}
-	else {
+
+	if(IsBack){
+		LPDIRECTDRAWSURFACE lpDDSPrim;
+		// A Primary surface has not backbuffer attached surfaces actually, 
+		// so don't rely on ddraw and call the callback function directly.
+		// Needed to make Nox working.
+		DDSURFACEDESC2 ddsd;
+		// first, call hooked function
 		res=(*pEnumAttachedSurfaces)(lpdds, lpContext, lpEnumSurfacesCallback);
 		if (res) 
 			OutTraceE("EnumAttachedSurfaces: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
+		if(lpDDSPrim = dxwss.GetPrimarySurface()){
+			ddsd.dwSize=Set_dwSize_From_Surface();
+			res=lpDDSPrim->GetSurfaceDesc((LPDDSURFACEDESC)&ddsd);
+			if(res){
+				OutTraceE("EnumAttachedSurfaces: GetSurfaceDesc ERROR %x(%s)\n",
+				res, ExplainDDError(res));
+				return res;
+			}
+			res=(lpEnumSurfacesCallback)(lpDDSPrim, (LPDDSURFACEDESC)&ddsd, lpContext);
+			OutTraceDW("EnumSurfacesCallback: on DDSPrim res=%x(%s)\n", res, ExplainDDError(res));
+		}
+		return DD_OK; // for GTA (first episode, window version "gtawin.exe")
 	}
+	res=(*pEnumAttachedSurfaces)(lpdds, lpContext, lpEnumSurfacesCallback);
+	if (res) 
+		OutTraceE("EnumAttachedSurfaces: ERROR %x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 	return res;
 }
 

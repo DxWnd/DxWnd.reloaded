@@ -3707,16 +3707,6 @@ static HHOOK WINAPI extSetWindowsHookEx(SetWindowsHookEx_Type pSetWindowsHookEx,
 		OutTraceDW("SetWindowsHookEx: fixing WH_CBT thread=0->%x\n", dwThreadId);
 	}
 
-	// "Starsiege" .....
-	//if((idHook == WH_MOUSE_LL) && (dwThreadId == NULL)) {
-	//	dwThreadId = GetCurrentThreadId();
-	//	OutTraceDW("SetWindowsHookEx: fixing WH_MOUSE_LL thread=0->%x\n", dwThreadId);
-	//}
-	//if((idHook == WH_KEYBOARD_LL) && (dwThreadId == NULL)) {
-	//	dwThreadId = GetCurrentThreadId();
-	//	OutTraceDW("SetWindowsHookEx: fixing WH_KEYBOARD_LL thread=0->%x\n", dwThreadId);
-	//}
-
 	// v2.03.54: disable the disable Alt-Tab fix
 	if((dxw.dwFlags7 & DISABLEDISABLEALTTAB) && (idHook == WH_KEYBOARD_LL)) {
 		OutTraceDW("SetWindowsHookEx: DISABLEDISABLEALTTAB bypass active\n");
