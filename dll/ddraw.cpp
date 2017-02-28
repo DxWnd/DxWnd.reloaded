@@ -2568,7 +2568,10 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 			DWORD dwCaps;
 			lpDDZBuffer = *lplpddas;
 			dwCaps = dxwcdb.GetCaps(*lplpddas);
-			if(!dwCaps){
+			// v2.04.17 - beware: the caps db is not properly cleaned on surface destruction, so it may happen 
+			// that you get a fake-known case where the caps are referred to some other surface type.
+			// Happened in "Star Treck: Armada" where the ZBUFFER collects an old PRIMARY caps entry.
+			if(!dwCaps || !(dwCaps & DDSCAPS_ZBUFFER)){
 				dwCaps = dxwcdb.GetCaps(lpdds);
 				if(dwCaps){
 					dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);

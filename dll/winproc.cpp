@@ -13,6 +13,7 @@ extern void SuppressIMEWindow();
 extern void RecoverScreenMode();
 extern void dx_FullScreenToggle(HWND);
 extern void dx_DesktopToggle(HWND, BOOL);
+extern BOOL JoyProcessMouseWheelMessage(WPARAM, LPARAM);
 
 static void dx_ToggleLogging()
 {
@@ -494,6 +495,10 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 		break;	
 	// fall through cases:
 	case WM_MOUSEWHEEL:
+		if(dxw.dwFlags6 & VIRTUALJOYSTICK) {
+			if(dxw.Windowize && (dxw.dwFlags1 & CLIPCURSOR) && !dxw.IsClipCursorActive()) dxw.SetClipCursor();
+			if (JoyProcessMouseWheelMessage(wparam, lparam)) return 0;	
+		} // fall through
 	case WM_LBUTTONDOWN:
 	case WM_LBUTTONUP:
 	case WM_LBUTTONDBLCLK:

@@ -427,6 +427,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ColorFix) t->flags3 |= COLORFIX;
 	if(dlg->m_FixGlobalUnlock) t->flags7 |= FIXGLOBALUNLOCK;
 	if(dlg->m_FixFreeLibrary) t->flags7 |= FIXFREELIBRARY;
+	if(dlg->m_LoadLibraryErr) t->flags8 |= LOADLIBRARYERR;
 	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
 	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
 	if(dlg->m_FixRefCounter) t->flags4 |= FIXREFCOUNTER;
@@ -538,6 +539,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_NoGDIBlt) t->flags3 |= NOGDIBLT;
 	if(dlg->m_NoFillRect) t->flags4 |= NOFILLRECT;
 	if(dlg->m_FixClipperArea) t->flags7 |= FIXCLIPPERAREA;
+	if(dlg->m_SharedDCHybrid) t->flags8 |= SHAREDDCHYBRID;
 	if(dlg->m_SyncPalette) t->flags6 |= SYNCPALETTE;
 	if(dlg->m_NoWinErrors) t->flags7 |= NOWINERRORS;
 	if(dlg->m_PretendVisible) t->flags8 |= PRETENDVISIBLE;
@@ -737,6 +739,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ColorFix = t->flags3 & COLORFIX ? 1 : 0;
 	dlg->m_FixGlobalUnlock = t->flags7 & FIXGLOBALUNLOCK ? 1 : 0;
 	dlg->m_FixFreeLibrary = t->flags7 & FIXFREELIBRARY ? 1 : 0;
+	dlg->m_LoadLibraryErr = t->flags8 & LOADLIBRARYERR ? 1 : 0;
 	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
 	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
 	dlg->m_FixRefCounter = t->flags4 & FIXREFCOUNTER ? 1 : 0;
@@ -870,6 +873,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_NoGDIBlt = t->flags3 & NOGDIBLT ? 1 : 0;
 	dlg->m_NoFillRect = t->flags4 & NOFILLRECT ? 1 : 0;
 	dlg->m_FixClipperArea = t->flags7 & FIXCLIPPERAREA ? 1 : 0;
+	dlg->m_SharedDCHybrid = t->flags8 & SHAREDDCHYBRID ? 1 : 0;
 	dlg->m_SyncPalette = t->flags6 & SYNCPALETTE ? 1 : 0;
 	dlg->m_NoWinErrors = t->flags7 & NOWINERRORS ? 1 : 0;
 	dlg->m_PretendVisible = t->flags8 & PRETENDVISIBLE ? 1 : 0;
@@ -1401,7 +1405,8 @@ void CDxwndhostView::OnInitialUpdate()
 	strcat_s(gInitPath, sizeof(gInitPath), m_ConfigFileName);
 	listctrl.InsertColumn(0, &listcol);
 
-	StatusMap.VJoyStatus = GetPrivateProfileInt("joystick", "flags", VJOYENABLED|CROSSENABLED|INVERTYAXIS, gInitPath);
+	StatusMap.VJoyStatus = GetPrivateProfileInt("joystick", "flags", VJOYENABLED|CROSSENABLED|INVERTYAXIS|VJMOUSEMAP|VJKEYBOARDMAP, gInitPath);
+	StatusMap.VJoySensivity = GetPrivateProfileInt("joystick", "sensivity", 100, gInitPath);
 
 	for(i = 0; i < MAXTARGETS; i ++){
 		if (!LoadConfigItem(&TargetMaps[i], &PrivateMaps[i], i, gInitPath)) break;

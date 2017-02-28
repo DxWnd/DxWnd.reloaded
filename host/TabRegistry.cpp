@@ -27,7 +27,14 @@ void CTabRegistry::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
+
+	// Registry management
+	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
+	DDX_Check(pDX, IDC_OVERRIDEREGISTRY, cTarget->m_OverrideRegistry);
+	DDX_Check(pDX, IDC_WOW64REGISTRY, cTarget->m_Wow64Registry);
+	DDX_Check(pDX, IDC_WOW32REGISTRY, cTarget->m_Wow32Registry);
 	DDX_Text(pDX, IDC_REGISTRY, cTarget->m_Registry);
+
 }
 
 BEGIN_MESSAGE_MAP(CTabRegistry, CDialog)

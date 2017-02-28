@@ -980,7 +980,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 					case 1: // memory to screen
 					case 3: // screen to screen
 						dxw.HandleFPS(); // handle refresh delays
-						sdc.GetPrimaryDC(hdcDest);
+						sdc.GetPrimaryDC(hdcDest, hdcSrc);
 						res=(*pGDIBitBlt)(sdc.GetHdc(), nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 						sdc.PutPrimaryDC(hdcDest, TRUE, nXDest, nYDest, nWidth, nHeight);
 						break;
@@ -1027,7 +1027,7 @@ BOOL WINAPI extGDIBitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nH
 				if (hdcDest==dxw.RealHDC) { 
 					hdcDest=dxw.VirtualHDC;
 					dxw.HandleFPS(); // handle refresh delays
-					}
+				}
 			    res=(*pGDIBitBlt)(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
 				OutTraceB("GDI.BitBlt: DEBUG emulated hdc dest=%x->%x\n", dxw.RealHDC, hdcDest);
 				break;
@@ -1097,7 +1097,7 @@ BOOL WINAPI extGDIStretchBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, in
 						break;
 					case 1: // memory to screen
 					case 3: // screen to screen
-						sdc.GetPrimaryDC(hdcDest);
+						sdc.GetPrimaryDC(hdcDest, hdcSrc);
 						res=(*pGDIStretchBlt)(sdc.GetHdc(), nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, nWSrc, nHSrc, dwRop);
 						sdc.PutPrimaryDC(hdcDest, TRUE, nXDest, nYDest, nWidth, nHeight);
 						break;

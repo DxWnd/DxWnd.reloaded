@@ -34,10 +34,9 @@ void CTabSysLibs::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_QUALITYFONTS, cTarget->m_QualityFonts);
 	DDX_Check(pDX, IDC_NOFILLRECT, cTarget->m_NoFillRect);
 	DDX_Check(pDX, IDC_FIXCLIPPERAREA, cTarget->m_FixClipperArea);
+	DDX_Check(pDX, IDC_SHAREDDCHYBRID, cTarget->m_SharedDCHybrid);
 	DDX_Check(pDX, IDC_SYNCPALETTE, cTarget->m_SyncPalette);
 	DDX_Check(pDX, IDC_NOWINERRORS, cTarget->m_NoWinErrors);
-	DDX_Check(pDX, IDC_PRETENDVISIBLE, cTarget->m_PretendVisible);
-	DDX_Check(pDX, IDC_WININSULATION, cTarget->m_WinInsulation);
 
 	// OpenGL
 	DDX_Check(pDX, IDC_HOOKOPENGL, cTarget->m_HookOpenGL); // duplicated

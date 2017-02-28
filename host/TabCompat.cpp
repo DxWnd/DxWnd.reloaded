@@ -50,12 +50,9 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_COLORFIX, cTarget->m_ColorFix);
 	DDX_Check(pDX, IDC_FIXGLOBALUNLOCK, cTarget->m_FixGlobalUnlock);
 	DDX_Check(pDX, IDC_FIXFREELIBRARY, cTarget->m_FixFreeLibrary);
-
-	// Registry management
-	DDX_Check(pDX, IDC_EMULATEREGISTRY, cTarget->m_EmulateRegistry);
-	DDX_Check(pDX, IDC_OVERRIDEREGISTRY, cTarget->m_OverrideRegistry);
-	DDX_Check(pDX, IDC_WOW64REGISTRY, cTarget->m_Wow64Registry);
-	DDX_Check(pDX, IDC_WOW32REGISTRY, cTarget->m_Wow32Registry);
+	DDX_Check(pDX, IDC_LOADLIBRARYERR, cTarget->m_LoadLibraryErr);
+	DDX_Check(pDX, IDC_PRETENDVISIBLE, cTarget->m_PretendVisible);
+	DDX_Check(pDX, IDC_WININSULATION, cTarget->m_WinInsulation);
 
 	// GOG patches
 	DDX_Check(pDX, IDC_HOOKGOGLIBS, cTarget->m_HookGOGLibs);

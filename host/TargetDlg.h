@@ -201,6 +201,7 @@ public:
 	BOOL	m_NoGDIBlt;
 	BOOL	m_NoFillRect;
 	BOOL	m_FixClipperArea;
+	BOOL	m_SharedDCHybrid;
 	BOOL	m_SyncPalette;
 	BOOL	m_NoWinErrors;
 	BOOL	m_PretendVisible;
@@ -251,6 +252,7 @@ public:
 	BOOL	m_ColorFix;
 	BOOL	m_FixGlobalUnlock;
 	BOOL	m_FixFreeLibrary;
+	BOOL	m_LoadLibraryErr;
 	BOOL	m_NoPixelFormat;
 	BOOL	m_NoAlphaChannel;
 	BOOL	m_FixRefCounter;

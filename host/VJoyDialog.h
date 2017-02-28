@@ -27,6 +27,9 @@ protected:
 	virtual void OnOK();
 	//virtual void OnCancel();
 private:
+	int GetSliderPos(int);
+	int SetSensivity(int);
+	void InitSensivity(void);
 	BOOL m_VJoyPresent;
 	BOOL m_VJoyEnabled;
 	BOOL m_CrossEnabled;
@@ -34,7 +37,14 @@ private:
 	BOOL m_InvertXAxis;
 	BOOL m_B1AutoFire;
 	BOOL m_B2AutoFire;
+	BOOL m_VJAutoCenter;
+	BOOL m_VJMouseWheel;
+	int m_UseMode;
+	int m_VJoySensivity;
+	int m_Slider;
 	CBrush *Background;
 	CPen *CenterPen;
 	CPen *FinderPen;
+	CPen *SensivityPen;
+	int Multipliers[41];
 };

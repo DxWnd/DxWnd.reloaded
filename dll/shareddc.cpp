@@ -53,16 +53,24 @@ static IDirect3DSurface9 *pDestSurface = NULL;
 
 HDC dxwSDC::GetPrimaryDC(HDC hdc)
 {
+	return GetPrimaryDC(hdc, NULL);
+}
+
+HDC dxwSDC::GetPrimaryDC(HDC hdc, HDC hdcsrc)
+{
 	HRESULT res;
 	extern HandleDDThreadLock_Type pReleaseDDThreadLock;
 	extern void *lpD3DActiveDevice;
 
 	OutTraceB("dxwSDC::GetPrimaryDC: hdc=%x\n", hdc);
 
+	CurrentHDCSrc = hdcsrc;
+	CurrentHDC = hdc;
+
 	// look for ddraw first
 	//if(pReleaseDDThreadLock)(*pReleaseDDThreadLock)();
 	lpDDSPrimary = dxwss.GetPrimarySurface();
-	if (lpDDSPrimary) {
+	if (lpDDSPrimary) { 
 		if(pReleaseDDThreadLock)(*pReleaseDDThreadLock)();
 		res=((*pGetDCMethod())(lpDDSPrimary, &PrimaryDC));
 		while((PrimaryDC == NULL) && lpDDSPrimary) { 
@@ -242,6 +250,7 @@ BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen, int XDest, int YDest, int 
 	if(UpdateScreen){
 		switch(VirtualSurfaceType){
 			case VIRTUAL_ON_DDRAW: 
+
 				ret=(*pGDIBitBlt)(PrimaryDC, XDest+VirtualOffset.x, YDest+VirtualOffset.y, nDestWidth, nDestHeight, VirtualHDC, XDest, YDest, SRCCOPY);
 				if(!ret || (ret==GDI_ERROR)) {
 					OutTraceE("dxwSDC::PutPrimaryDC: BitBlt ERROR ret=%x err=%d\n", ret, GetLastError()); 
@@ -251,8 +260,28 @@ BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen, int XDest, int YDest, int 
 					OutTraceE("dxwSDC::PutPrimaryDC: ReleaseDC ERROR res=%x\n", res); 
 				}
 				dxw.ScreenRefresh();
+
+				// trick: duplicate the operation using the stretched mode to blit over clipped areas.
+				// good for "Star Treck: Armada".
+				if((dxw.dwFlags8 & SHAREDDCHYBRID) && CurrentHDCSrc && (WindowFromDC(CurrentHDC)!=dxw.GethWnd())){
+					int nWDest, nHDest, nXDest, nYDest;
+					OutTraceB("dxwSDC::PutPrimaryDC: StretchBlt over ddraw\n");
+					nXDest= XDest;
+					nYDest= YDest;
+					nWDest= nDestWidth;
+					nHDest= nDestHeight;
+					dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
+					res=(*pGDIStretchBlt)(
+						CurrentHDC, nXDest, nYDest, nWDest, nHDest, 
+						CurrentHDCSrc, XDest, YDest, nDestWidth, nDestHeight, SRCCOPY);
+					if(!res) OutTraceE("dxwSDC::PutPrimaryDC: StretchBlt ERROR err=%d\n", GetLastError()); 
+					//res=(*pGDIReleaseDC)(WindowFromDC(CurrentHDC), CurrentHDC);
+					//if(!res) OutTraceE("dxwSDC::PutPrimaryDC: ReleaseDC ERROR err=%d\n", GetLastError()); 
+				}
+
 				break;
 			case VIRTUAL_ON_WINDOW:
+
 				SetStretchBltMode(PrimaryDC, HALFTONE);
 				RECT RealArea, VirtualArea;
 				// some fullscreen games ("Imperialism II") blitted from negative coordinates -2,-2 !!
@@ -275,6 +304,7 @@ BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen, int XDest, int YDest, int 
 				if(PrimaryDC)ret=(*pGDIStretchBlt)(PrimaryDC, RealArea.left, RealArea.top, RealArea.right, RealArea.bottom, VirtualHDC, VirtualArea.left, VirtualArea.top, VirtualArea.right, VirtualArea.bottom, SRCCOPY);
 				ret=(*pGDIReleaseDC)(dxw.GethWnd(), PrimaryDC);
 				break;
+
 		}
 	}
 	else {

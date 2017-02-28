@@ -20,6 +20,7 @@ public:
 // Operations
 public: // methods
 	HDC		GetPrimaryDC(HDC);
+	HDC		GetPrimaryDC(HDC, HDC);
 	HDC		GetHdc(void);
 	BOOL	PutPrimaryDC(HDC, BOOL, int, int, int, int);
 	BOOL	PutPrimaryDC(HDC, BOOL);
@@ -31,6 +32,7 @@ private:
 	HDC PrimaryDC;
 	HDC VirtualHDC;
 	HDC CurrentHDC;
+	HDC CurrentHDCSrc;
 	HWND CurrenthWnd;
 	LPDIRECTDRAWSURFACE lpDDSPrimary;
 	HBITMAP VirtualPic;

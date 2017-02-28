@@ -599,6 +599,10 @@ HMODULE WINAPI LoadLibraryExWrapper(LPVOID lpFileName, BOOL IsWidechar, HANDLE h
 	if(!libhandle){
 		OutTraceE("%s: ERROR FileName=%s err=%d\n", api, lpFileName, GetLastError());
 		Recursed = FALSE;
+	
+		// compatibility issue: some games (Nightmare Creatures) check for the ERROR_DLL_NOT_FOUND
+		// errorcode or assume the library is there, hence the dialog box about a SDL.DLL file to delete.
+		if((dxw.dwFlags8 & LOADLIBRARYERR) && (GetLastError()==ERROR_MOD_NOT_FOUND)) SetLastError(ERROR_DLL_NOT_FOUND);
 		return libhandle;
 	}
 

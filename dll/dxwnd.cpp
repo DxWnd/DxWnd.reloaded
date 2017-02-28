@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.04.16"
+#define VERSION "2.04.17"
 
 #define DDTHREADLOCK 1
 
@@ -123,7 +123,10 @@ int SetTarget(DXWNDSTATUS *statusmap, TARGETMAP *targets){
 	pStatus->DXVersion = 0;
 	pStatus->AllowMultiTask=GetMultiTaskEnabling();
 	//pStatus->VJoyStatus=VJOYENABLED|CROSSENABLED|INVERTYAXIS;
-	if(statusmap) pStatus->VJoyStatus=statusmap->VJoyStatus;
+	if(statusmap) {
+		pStatus->VJoyStatus=statusmap->VJoyStatus;
+		pStatus->VJoySensivity=statusmap->VJoySensivity;
+	}
 	for(i = 0; targets[i].path[0]; i ++){
 		char *c;
 		pMapping[i] = targets[i];
@@ -362,7 +365,7 @@ static char *FlagNames[9][32] ={{
 	"MARKWING32", "DYNAMICZCLEAN", "MARKGDI32", "DUMPDIBSECTION",
 	"DUMPDEVCONTEXT", "QUALITYFONTS", "ALLOWSYSMEMON3DDEV", "CLIPMENU",
 	"BACKGROUNDPRIORITY", "OFFSCREENZBUFFER", "VIRTUALHEAP", "ZBUFFERHARDCLEAN",
-	"", "", "", "",
+	"LOADLIBRARYERR", "SHAREDDCHYBRID", "", "",
 	},{
 	// TFlags
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",

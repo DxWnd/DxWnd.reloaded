@@ -2918,8 +2918,9 @@ int WINAPI extDrawTextA(HDC hdc, LPCTSTR lpchText, int nCount, LPRECT lpRect, UI
 				ret=(*pDrawTextA)(sdc.GetHdc(), lpchText, nCount, lpRect, uFormat);
 				if(nCount)
 					sdc.PutPrimaryDC(hdc, TRUE, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
-				else
-					sdc.PutPrimaryDC(hdc, FALSE); // Diablo makes a DrawText of nuull string in the intro ...
+				else {
+					sdc.PutPrimaryDC(hdc, FALSE); // Diablo makes a DrawText of null string in the intro ...
+				}
 				return ret;
 				break;
 			case GDIMODE_STRETCHED: 
@@ -2949,14 +2950,14 @@ int WINAPI extDrawTextExA(HDC hdc, LPTSTR lpchText, int nCount, LPRECT lpRect, U
 	int ret;
 	OutTraceDW("DrawTextExA: hdc=%x rect=(%d,%d)-(%d,%d) DTFormat=%x Text=(%d)\"%s\"\n", 
 		hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom, dwDTFormat, nCount, lpchText);
-       if (IsDebug){
-            if(lpDTParams)
-                  OutTrace("DTParams: size=%d (L,R)margins=(%d,%d) TabLength=%d lDrawn=%d\n",
-                  lpDTParams->cbSize, lpDTParams->iLeftMargin, lpDTParams->iRightMargin,
-                  lpDTParams->iTabLength, lpDTParams->uiLengthDrawn);
-            else
-                  OutTrace("DTParams: NULL\n");
-      }
+	if (IsDebug){
+        if(lpDTParams)
+              OutTrace("DTParams: size=%d (L,R)margins=(%d,%d) TabLength=%d lDrawn=%d\n",
+              lpDTParams->cbSize, lpDTParams->iLeftMargin, lpDTParams->iRightMargin,
+              lpDTParams->iTabLength, lpDTParams->uiLengthDrawn);
+        else
+              OutTrace("DTParams: NULL\n");
+	}
 
     gFixed = TRUE; // semaphore to avoid multiple scaling with HOT patching
 	if(dxw.IsToRemap(hdc)){
@@ -2964,7 +2965,10 @@ int WINAPI extDrawTextExA(HDC hdc, LPTSTR lpchText, int nCount, LPRECT lpRect, U
 			case GDIMODE_SHAREDDC:
 				sdc.GetPrimaryDC(hdc);
 				ret=(*pDrawTextExA)(sdc.GetHdc(), lpchText, nCount, lpRect, dwDTFormat, lpDTParams);
-				sdc.PutPrimaryDC(hdc, TRUE, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
+				if(nCount)
+					sdc.PutPrimaryDC(hdc, TRUE, lpRect->left, lpRect->top, lpRect->right-lpRect->left, lpRect->bottom-lpRect->top);
+				else
+					sdc.PutPrimaryDC(hdc, FALSE); // in cases like Diablo that makes a DrawText of null string in the intro ...
 				return ret;
 				break;
 			case GDIMODE_STRETCHED: 

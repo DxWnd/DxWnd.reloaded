@@ -277,6 +277,11 @@
 #define OFFSCREENZBUFFER	0x02000000 // Allow building plain surfaces and ZBuffer on offscreen videomemory surfaces
 #define VIRTUALHEAP			0x04000000 // Remap heap calls to C library memory allocation routines
 #define ZBUFFERHARDCLEAN	0x08000000 // Clean ZBUFFER the hard way (memset 0xFF on whole surface buffer ....)
+#define LOADLIBRARYERR		0x10000000 // When LoadLibrary* fail for missing file returns ... instead of ....
+#define SHAREDDCHYBRID		0x20000000 // Hybrid mode for shared dc GDI emulation - blits both on ddraw surface and window surface
+
+// 9th flags DWORD dxw.dwFlags9:
+// 10th flags DWORD dxw.dwFlags10:
 
 // logging Tflags DWORD:
 #define OUTTRACE			0x00000001 // enables tracing to dxwnd.log in general
@@ -321,6 +326,8 @@ typedef struct TARGETMAP
 	int flags6;
 	int flags7;
 	int flags8;
+	int flags9;
+	int flags10;
 	int tflags; // trace flags (cleared when exported/imported)
 	int dflags; // debug flags (cleared when exported/imported)
 	int monitorid;
@@ -348,6 +355,11 @@ typedef struct TARGETMAP
 #define INVERTXAXIS		0x00000010 // Invert virtual joystick X axis
 #define B1AUTOFIRE		0x00000020 // Button 1 auto fire
 #define B2AUTOFIRE		0x00000040 // Button 2 auto fire
+#define VJAUTOCENTER	0x00000080 // auto-center feature
+#define VJKEYBOARDMAP	0x00000100 // mapvirtual joystick lever & buttons to keyboard
+#define VJMOUSEMAP		0x00000200 // mapvirtual joystick lever & buttons to mouse
+#define VJSENSIVITY		0x00000400 // tune sensibility through mouse wheel
+#define VJMOUSEWHEEL	0x00000800 // tune sensibility through mouse wheel
 
 typedef struct
 {
@@ -368,6 +380,7 @@ typedef struct
 	PALETTEENTRY Palette[256];
 	BOOL AllowMultiTask;
 	DWORD VJoyStatus;
+	DWORD VJoySensivity;
 	short joyposx;
 	short joyposy;
 } DXWNDSTATUS;

@@ -176,6 +176,8 @@ public: // simple data variables
 	DWORD dwFlags6;
 	DWORD dwFlags7;
 	DWORD dwFlags8;
+	DWORD dwFlags9;
+	DWORD dwFlags10;
 	DWORD dwTFlags;
 	HWND hParentWnd;
 	HWND hChildWnd;

@@ -1563,3 +1563,11 @@ fix: error messages on LoadLibrary errors
 v2.04.16
 add: improved virtual joystick with configuration and monitoring panel, invert axis options, show crossfire.
 fix: GetAttachedSurface now simulates also the primary surface as attach to backbuffer. Fixes GTA first episode windows version.
+
+v2.04.17
+add: 2 more DWORD flags, unused for now
+add: virtual joystick sensivity control
+fix: check on ZBUFFER capability attribution in case the capsdb holds a wrong capability belonging to a different surface that was deleted
+add: "Fix LoadLibrary error" flag (LOADLIBRARYERR) to return ERROR_DLL_NOT_FOUND instead of ERROR_MOD_NOT_FOUND error code. Fixes "Nightmare Creatures".
+add: "Hybrid" flag for "Shared ddraw & GDI DC" mode - reduces "Star Treck: Armada" problems. 
+

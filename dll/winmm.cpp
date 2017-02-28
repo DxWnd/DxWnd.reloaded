@@ -540,6 +540,27 @@ MMRESULT WINAPI extjoyGetDevCapsA(DWORD uJoyID, LPJOYCAPS pjc, UINT cbjc)
 	return JOYERR_NOERROR;
 }
 
+BOOL JoyProcessMouseWheelMessage(WPARAM wParam, LPARAM lParam)
+{
+	int zDelta;
+	DWORD dwSensivity = GetHookInfo()->VJoySensivity;
+	DWORD dwJoyStatus =	GetHookInfo()->VJoyStatus;
+
+	if(!(dwJoyStatus & VJMOUSEWHEEL)) return FALSE;
+	
+	if(!dwSensivity) dwSensivity=100;
+	//fwKeys = GET_KEYSTATE_WPARAM(wParam);
+	zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+	if(zDelta >  4 * WHEEL_DELTA) zDelta =  4 * WHEEL_DELTA;
+	if(zDelta < -4 * WHEEL_DELTA) zDelta = -4 * WHEEL_DELTA;
+	if(zDelta > 0) dwSensivity = (dwSensivity * 110 *  zDelta) / (100 * WHEEL_DELTA);
+	if(zDelta < 0) dwSensivity = (dwSensivity * 100 * -zDelta) / (110 * WHEEL_DELTA);
+	if(dwSensivity < 32) dwSensivity = 32;
+	if(dwSensivity > 250) dwSensivity = 250;
+	GetHookInfo()->VJoySensivity = dwSensivity;
+	return TRUE;
+}
+
 static MMRESULT GetJoy(char *apiname, DWORD uJoyID, LPJOYINFO lpj)
 {
 	OutTraceC("%s: joyid=%d\n", apiname, uJoyID);
@@ -601,19 +622,58 @@ static MMRESULT GetJoy(char *apiname, DWORD uJoyID, LPJOYINFO lpj)
 		}
 		else{
 			OutTraceB("%s: ACTIVE mouse=(%d,%d)\n", apiname, pt.x, pt.y);
-			if(pt.x < client.left) pt.x = client.left;
-			if(pt.x > client.right) pt.x = client.right;
-			if(pt.y < client.top) pt.y = client.top;
-			if(pt.y > client.bottom) pt.y = client.bottom;
 			CenterX = (client.right - client.left) >> 1;
 			CenterY = (client.bottom - client.top) >> 1;
 
-			x = ((pt.x - CenterX) * XSPAN) / client.right;
-			y = ((pt.y - CenterY) * YSPAN) / client.bottom;
+			if(dwVJoyStatus & VJMOUSEMAP){
+				if(pt.x < client.left) pt.x = client.left;
+				if(pt.x > client.right) pt.x = client.right;
+				if(pt.y < client.top) pt.y = client.top;
+				if(pt.y > client.bottom) pt.y = client.bottom;
+
+				x = ((pt.x - CenterX) * XSPAN) / client.right;
+				y = ((pt.y - CenterY) * YSPAN) / client.bottom;
+
+				if(dwVJoyStatus & VJAUTOCENTER) {
+					// autocenter: each time, moves 1/20 distance toward centered 0,0 position
+					// 1/20 = 0.05, changing value changes the autocenter speed (must be >0.0 and <1.0)
+					int x1, y1;
+					x1 = (int)(pt.x + upleft.x - ((pt.x - CenterX) * 0.05));
+					y1 = (int)(pt.y + upleft.y - ((pt.y - CenterY) * 0.05));
+					if((x1 != pt.x+upleft.x) || (y1 != pt.y+upleft.y)) (*pSetCursorPos)(x1, y1);
+				}
+			}
+
+			if(dwVJoyStatus & VJKEYBOARDMAP){
+				if (GetKeyState(VK_LEFT) < 0)  x = -XSPAN/2;
+				if (GetKeyState(VK_RIGHT) < 0) x = +XSPAN/2;
+				if (GetKeyState(VK_UP) < 0)    y = -YSPAN/2;
+				if (GetKeyState(VK_DOWN) < 0)  y = +YSPAN/2;
+				if (GetKeyState(VK_SPACE) < 0)    dwButtons |= JOY_BUTTON1;
+				if (GetKeyState(VK_LCONTROL) < 0) dwButtons |= JOY_BUTTON2;
+			}
+
 			if(dwVJoyStatus & INVERTXAXIS) x = -x;
 			if(dwVJoyStatus & INVERTYAXIS) y = -y;
+			//if(dwVJoyStatus & VJSENSIVITY){
+			{
+				DWORD dwSensivity = GetHookInfo()->VJoySensivity;
+				if(dwSensivity){
+					x = (x * (LONG)dwSensivity) / 100; 
+					y = (y * (LONG)dwSensivity) / 100;
+					if(x > +XSPAN) x = +XSPAN;
+					if(x < -XSPAN) x = -XSPAN;
+					if(y > +YSPAN) y = +YSPAN;
+					if(y < -YSPAN) y = -YSPAN;
+				}
+			}
 		}
-		if (dwVJoyStatus & CROSSENABLED) ShowJoystick(pt.x, pt.y, dwButtons);
+		if (dwVJoyStatus & CROSSENABLED) {
+			int jx, jy;
+			jx  = CenterX + (x * client.right) / XSPAN;
+			jy  = CenterY + (y * client.bottom) / YSPAN;
+			ShowJoystick(jx, jy, dwButtons);
+		}
 	}
 	lpj->wXpos = x;
 	lpj->wYpos = y;
