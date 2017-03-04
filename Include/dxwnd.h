@@ -279,6 +279,8 @@
 #define ZBUFFERHARDCLEAN	0x08000000 // Clean ZBUFFER the hard way (memset 0xFF on whole surface buffer ....)
 #define LOADLIBRARYERR		0x10000000 // When LoadLibrary* fail for missing file returns ... instead of ....
 #define SHAREDDCHYBRID		0x20000000 // Hybrid mode for shared dc GDI emulation - blits both on ddraw surface and window surface
+#define FIXADJUSTWINRECT	0x40000000 // Hybrid mode for shared dc GDI emulation - blits both on ddraw surface and window surface
+#define HOOKDLGWIN			0x80000000 // Hook dialog WindowProc
 
 // 9th flags DWORD dxw.dwFlags9:
 // 10th flags DWORD dxw.dwFlags10:

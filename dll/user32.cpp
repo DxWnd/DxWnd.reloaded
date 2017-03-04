@@ -88,7 +88,6 @@ static HookEntryEx_Type Hooks[]={
 
 #ifdef GALAPAGOSTEST
 	// test for Galapagos
-	{HOOK_HOT_CANDIDATE, 0, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 	{HOOK_HOT_CANDIDATE, 0, "GetFocus", (FARPROC)GetFocus, (FARPROC *)&pGetFocus, (FARPROC)extGetFocus},
 	{HOOK_HOT_CANDIDATE, 0, "SetFocus", (FARPROC)SetFocus, (FARPROC *)&pSetFocus, (FARPROC)extSetFocus},
 	{HOOK_HOT_CANDIDATE, 0, "IsWindow", (FARPROC)IsWindow, (FARPROC *)&pIsWindow, (FARPROC)extIsWindow},
@@ -143,6 +142,7 @@ static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "AdjustWindowRect", (FARPROC)NULL, (FARPROC *)&pAdjustWindowRect, (FARPROC)extAdjustWindowRect},
 	{HOOK_IAT_CANDIDATE, 0, "AdjustWindowRectEx", (FARPROC)AdjustWindowRectEx, (FARPROC *)&pAdjustWindowRectEx, (FARPROC)extAdjustWindowRectEx},
 	{HOOK_HOT_CANDIDATE, 0, "GetActiveWindow", (FARPROC)NULL, (FARPROC *)&pGetActiveWindow, (FARPROC)extGetActiveWindow},
+	{HOOK_HOT_CANDIDATE, 0, "GetForegroundWindow", (FARPROC)GetForegroundWindow, (FARPROC *)&pGetForegroundWindow, (FARPROC)extGetForegroundWindow},
 
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
@@ -163,7 +163,7 @@ static HookEntryEx_Type RemapHooks[]={
 static HookEntryEx_Type SyscallHooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "FrameRect", (FARPROC)FrameRect, (FARPROC *)&pFrameRect, (FARPROC)extFrameRect}, 
 	// commented ot, dangerous: see comments
-	//{HOOK_IAT_CANDIDATE, 0, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
+	{HOOK_IAT_CANDIDATE, 0, "GetParent", (FARPROC)GetParent, (FARPROC *)&pGetParent, (FARPROC)extGetParent},
 	{HOOK_HOT_CANDIDATE, 0, "InvalidateRgn", (FARPROC)InvalidateRgn, (FARPROC *)&pInvalidateRgn, (FARPROC)extInvalidateRgn},
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutA", (FARPROC)TabbedTextOutA, (FARPROC *)&pTabbedTextOutA, (FARPROC)extTabbedTextOutA},
 	{HOOK_IAT_CANDIDATE, 0, "TabbedTextOutW", (FARPROC)TabbedTextOutW, (FARPROC *)&pTabbedTextOutW, (FARPROC)extTabbedTextOutW},
@@ -843,7 +843,7 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 				}
 
 				// hook extDlgWindowProc to dialog win ....
-				if((WinStyle & DWL_DLGPROC) && (dxw.dwFlags1 & HOOKCHILDWIN)){
+				if((WinStyle & DWL_DLGPROC) && (dxw.dwFlags8 & HOOKDLGWIN)){
 					if(OldProc==extDialogWindowProc) OldProc=dxwws.GetProc(hwnd);
 					dxwws.PutProc(hwnd, (WNDPROC)dwNewLong);
 					res=(LONG)OldProc;
@@ -2541,15 +2541,13 @@ HWND WINAPI extCreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpT
 		hInstance, 
 		lpTemplate->style, lpTemplate->dwExtendedStyle, lpTemplate->cdit, lpTemplate->x, lpTemplate->y, lpTemplate->cx, lpTemplate->cy,
 		hWndParent, lpDialogFunc, lParamInit);
-	if(dxw.IsFullScreen() && hWndParent==NULL) hWndParent=dxw.GethWnd();
-	// v2.03.98: commented out the temporary return to windowed mode to make Red Alert 2 dialog work again!
-	//InMainWinCreation++;
+	
+	if(dxw.IsFullScreen() && dxw.IsRealDesktop(hWndParent)) hWndParent=dxw.GethWnd();
+	
 	RetHWND=(*pCreateDialogIndirectParam)(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit);
-	//InMainWinCreation--;
 
-	// v2.02.73: redirect lpDialogFunc only when it is nor NULL
-	if(	lpDialogFunc &&
-		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug option
+	// v2.02.73: redirect lpDialogFunc only when it is nor NULL: fix for "LEGO Stunt Rally"
+	if(lpDialogFunc && (dxw.dwFlags8 & HOOKDLGWIN)){	// v2.03.41 - debug option
 		dxwws.PutProc(RetHWND, (WNDPROC)lpDialogFunc);
 		if(!(*pSetWindowLong)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 			OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -2564,14 +2562,14 @@ HWND WINAPI extCreateDialogParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HW
 	HWND RetHWND;
 	OutTraceDW("CreateDialogParam: hInstance=%x lpTemplateName=%s hWndParent=%x lpDialogFunc=%x lParamInit=%x\n",
 		hInstance, sTemplateName(lpTemplateName), hWndParent, lpDialogFunc, lParamInit);
-	if(hWndParent==NULL) hWndParent=dxw.GethWnd();
-	//InMainWinCreation++;
+	
+	if(dxw.IsFullScreen() && dxw.IsRealDesktop(hWndParent)) hWndParent=dxw.GethWnd();
+	
 	RetHWND=(*pCreateDialogParam)(hInstance, lpTemplateName, hWndParent, lpDialogFunc, lParamInit);
-	//InMainWinCreation--;
 
 	// v2.02.73: redirect lpDialogFunc only when it is nor NULL: fix for "LEGO Stunt Rally"
-	if(	lpDialogFunc &&
-		!(dxw.dwFlags6 & NOWINDOWHOOKS)){	// v2.03.41 - debug option
+	// v2.04.18: HOOKDLGWIN (not to be checked to fix "PBA Bowling 2")
+	if(lpDialogFunc && (dxw.dwFlags8 & HOOKDLGWIN)){	// v2.03.41 - debug option
 		dxwws.PutProc(RetHWND, (WNDPROC)lpDialogFunc);
 		if(!(*pSetWindowLong)(RetHWND, DWL_DLGPROC, (LONG)extDialogWindowProc))
 			OutTraceE("SetWindowLong: ERROR err=%d at %d\n", GetLastError(), __LINE__);
@@ -3179,14 +3177,18 @@ BOOL WINAPI extGetWindowPlacement(HWND hwnd, WINDOWPLACEMENT *lpwndpl)
 		lpwndpl->ptMaxPosition.x, lpwndpl->ptMaxPosition.y,
 		lpwndpl->rcNormalPosition.left, lpwndpl->rcNormalPosition.top, lpwndpl->rcNormalPosition.right, lpwndpl->rcNormalPosition.bottom);
 
-	switch (lpwndpl->showCmd){
-	case SW_SHOW:
-		if (dxw.IsFullScreen()){
-			lpwndpl->showCmd = SW_MAXIMIZE;
-			OutTraceDW("GetWindowPlacement: forcing SW_MAXIMIZE state\n");
-		}
-		break;
+	if (ret && dxw.Windowize && dxw.IsFullScreen()){
+		lpwndpl->showCmd = SW_SHOWNORMAL;
+		lpwndpl->ptMinPosition.x = -1; lpwndpl->ptMinPosition.y = -1;
+		lpwndpl->ptMaxPosition.x = -1; lpwndpl->ptMaxPosition.y = -1;
+		OutTrace("GetWindowPlacement: FIXED showCmd=%x MinPosition=(%d,%d) MaxPosition=(%d,%d) NormalPosition=(%d,%d)-(%d,%d)\n",
+			lpwndpl->showCmd, 
+			lpwndpl->ptMinPosition.x, lpwndpl->ptMinPosition.y,
+			lpwndpl->ptMaxPosition.x, lpwndpl->ptMaxPosition.y,
+			lpwndpl->rcNormalPosition.left, lpwndpl->rcNormalPosition.top, 
+			lpwndpl->rcNormalPosition.right, lpwndpl->rcNormalPosition.bottom);
 	}
+
 	if(!ret) OutTraceE("GetWindowPlacement: ERROR er=%d\n", GetLastError());
 	return ret;
 }
@@ -3245,7 +3247,7 @@ HWND WINAPI extGetForegroundWindow(void)
 {
 	HWND ret;
 	ret=(*pGetForegroundWindow)();
-	if(dxw.Windowize && dxw.IsFullScreen()) {
+	if((dxw.dwFlags8 & WININSULATION) && dxw.Windowize && dxw.IsFullScreen()) {
 		OutTraceDW("GetForegroundWindow: ret=%x->%x\n", ret, dxw.GethWnd());
 		return dxw.GethWnd();
 	}
@@ -3454,6 +3456,7 @@ BOOL extGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpmi, GetMonitorInfo_Typ
 	BOOL res;
 	OutTraceDW("GetMonitorInfo: hMonitor=%x mi=MONITORINFO%s\n", hMonitor, lpmi->cbSize==sizeof(MONITORINFO)?"":"EX");
 	res=(*pGetMonitorInfo)(hMonitor, lpmi);
+
 	//v2.03.15 - must fix the coordinates also in case of error: that may depend on the windowed mode.
 	if(dxw.Windowize){
 		OutTraceDW("GetMonitorInfo: FIX Work=(%d,%d)-(%d,%d) Monitor=(%d,%d)-(%d,%d) -> (%d,%d)-(%d,%d)\n", 
@@ -3462,10 +3465,17 @@ BOOL extGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpmi, GetMonitorInfo_Typ
 			0, 0, dxw.GetScreenWidth(), dxw.GetScreenHeight());
 		lpmi->rcWork = dxw.GetScreenRect();
 		lpmi->rcMonitor = dxw.GetScreenRect();
-		res=TRUE;
+		return TRUE;
 	}
-	else
+		
+	if(res) {
+		OutTraceDW("GetMonitorInfo: Work=(%d,%d)-(%d,%d) Monitor=(%d,%d)-(%d,%d)\n", 
+			lpmi->rcWork.left, lpmi->rcWork.top, lpmi->rcWork.right, lpmi->rcWork.bottom,
+			lpmi->rcMonitor.left, lpmi->rcMonitor.top, lpmi->rcMonitor.right, lpmi->rcMonitor.bottom);
+	}
+	else {
 		OutTraceE("GetMonitorInfo: ERROR err=%d\n", GetLastError());
+	}
 
 	return res;
 }
@@ -3857,6 +3867,12 @@ HWND WINAPI extGetParent(HWND hWnd)
 
 	return ret;
 }
+#else
+// just proxy, but the pGetParent pointer must stay initialized
+// P.s.so far, GetParent wrapping is useless, could be eliminated, but 
+// replacing *pGetParent with unhooked GetParent invokations.
+HWND WINAPI extGetParent(HWND hWnd)
+{ return (*pGetParent)(hWnd); }
 #endif
 
 BOOL WINAPI extInvalidateRgn(HWND hWnd, HRGN hRgn, BOOL bErase)
@@ -4154,8 +4170,7 @@ BOOL WINAPI extAdjustWindowRect(LPRECT lpRect, DWORD dwStyle, BOOL bMenu)
 		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom,
 		dwStyle, ExplainStyle(dwStyle), bMenu);
 
-	//if(dxw.dwFlags2 & FORCEWINRESIZE) 
-	if(dxw.Windowize) RedirectCoordinates(lpRect);
+	if(dxw.Windowize && (dxw.dwFlags8 & FIXADJUSTWINRECT)) RedirectCoordinates(lpRect);
 
 	ret = pAdjustWindowRect(lpRect, dwStyle, bMenu);
 
@@ -4176,8 +4191,7 @@ BOOL WINAPI extAdjustWindowRectEx(LPRECT lpRect, DWORD dwStyle, BOOL bMenu, DWOR
 		lpRect->left, lpRect->top, lpRect->right, lpRect->bottom,
 		dwStyle, ExplainStyle(dwStyle), bMenu, dwExStyle, ExplainExStyle(dwExStyle));
 
-	//if(dxw.dwFlags2 & FORCEWINRESIZE) 
-	if(dxw.Windowize) RedirectCoordinates(lpRect);
+	if(dxw.Windowize && (dxw.dwFlags8 & FIXADJUSTWINRECT)) RedirectCoordinates(lpRect);
 
 	ret = pAdjustWindowRectEx(lpRect, dwStyle, bMenu, dwExStyle);
 

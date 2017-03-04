@@ -39,6 +39,7 @@ void CTabHook::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HOOKNOUPDATE, cTarget->m_HookNoUpdate);
 	DDX_Check(pDX, IDC_SEQUENCEDIAT, cTarget->m_SequencedIAT);
 	DDX_Check(pDX, IDC_HOOKCHILDWIN, cTarget->m_HookChildWin);
+	DDX_Check(pDX, IDC_HOOKDLGWIN, cTarget->m_HookDlgWin);
 
 	// Kernel32
 	DDX_Radio(pDX, IDC_SONDEFAULT, cTarget->m_SonProcessMode);

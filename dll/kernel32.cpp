@@ -1685,10 +1685,14 @@ BOOL WINAPI extHeapDestroy(HANDLE hHeap)
 
 #else
 
+#define HEAPTRACE FALSE
+
 LPVOID WINAPI extHeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes)
 {
 	LPVOID ret;
 	OutTraceB("HeapAlloc: heap=%x flags=%x bytes=%d\n", hHeap, dwFlags, dwBytes);
+	if(HEAPTRACE) return (*pHeapAlloc)(hHeap, dwFlags, dwBytes);
+
 	ret = malloc(dwBytes);
 	if(ret){
 		if(ret > VHeapMax) VHeapMax = ret;
@@ -1702,6 +1706,8 @@ LPVOID WINAPI extHeapReAlloc(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem, SIZE_T d
 {
 	LPVOID ret;
 	OutTraceB("HeapReAlloc: heap=%x flags=%x mem=%x bytes=%d\n", hHeap, dwFlags, lpMem, dwBytes);
+	if(HEAPTRACE) return (*pHeapReAlloc)(hHeap, dwFlags, lpMem, dwBytes);
+
 	ret = realloc(lpMem, dwBytes);
 	if(ret){
 		if(ret > VHeapMax) VHeapMax = ret;
@@ -1715,6 +1721,8 @@ BOOL WINAPI extHeapFree(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
 {
 	BOOL ret;
 	OutTraceB("HeapFree: heap=%x flags=%x mem=%x\n", hHeap, dwFlags, lpMem);
+	if(HEAPTRACE) return (*pHeapFree)(hHeap, dwFlags, lpMem);
+
 	if((lpMem >= VHeapMin) && (lpMem <= VHeapMax)){
 		free(lpMem);
 		ret = TRUE;
@@ -1731,6 +1739,8 @@ BOOL WINAPI extHeapValidate(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
 {
 	BOOL ret;
 	OutTraceB("HeapValidate: heap=%x flags=%x mem=%x\n", hHeap, dwFlags, lpMem);
+	if(HEAPTRACE) return (*pHeapValidate)(hHeap, dwFlags, lpMem);
+
 	if((lpMem >= VHeapMin) && (lpMem <= VHeapMax)){
 		ret = TRUE;
 		OutTraceB("HeapValidate: (virtual) ret=%x\n", ret);
@@ -1746,6 +1756,8 @@ SIZE_T WINAPI extHeapCompact(HANDLE hHeap, DWORD dwFlags)
 {
 	SIZE_T ret;
 	OutTraceB("HeapCompact: heap=%x flags=%x\n", hHeap, dwFlags);
+	if(HEAPTRACE) return (*pHeapCompact)(hHeap, dwFlags);
+
 	if(((DWORD)hHeap >= 0xDEADBEEF) && ((DWORD)hHeap < 0xDEADBEEF + iProg)){
 		ret = 100000; // just a number ....
 		OutTraceB("HeapCompact: (virtual) ret=%d\n", ret);
@@ -1761,6 +1773,8 @@ HANDLE WINAPI extHeapCreate(DWORD flOptions, SIZE_T dwInitialSize, SIZE_T dwMaxi
 {
 	HANDLE ret;
 	OutTraceB("HeapCreate: flags=%x size(init-max)=(%d-%d)\n", flOptions, dwInitialSize, dwMaximumSize);
+	if(HEAPTRACE) return (*pHeapCreate)(flOptions, dwInitialSize, dwMaximumSize);
+
 	ret = (HANDLE)(0xDEADBEEF + iProg++);
 	OutTraceB("HeapCreate: (virtual) ret=%X\n", ret);
 	return ret;
@@ -1769,6 +1783,8 @@ HANDLE WINAPI extHeapCreate(DWORD flOptions, SIZE_T dwInitialSize, SIZE_T dwMaxi
 HANDLE WINAPI extGetProcessHeap(void)
 {
 	OutTraceB("GetProcessHeap: (virtual) ret=0xDEADBEEF\n");
+	if(HEAPTRACE) return (*pGetProcessHeap)();
+
 	return (HANDLE)0xDEADBEEF;
 }
 
@@ -1776,6 +1792,8 @@ BOOL WINAPI extHeapDestroy(HANDLE hHeap)
 {
 	BOOL ret;
 	OutTraceB("HeapDestroy: heap=%x\n", hHeap);
+	if(HEAPTRACE) return (*pHeapDestroy)(hHeap);
+
 	if(((DWORD)hHeap >= 0xDEADBEEF) && ((DWORD)hHeap < 0xDEADBEEF + iProg))
 		ret = TRUE;
 	else 

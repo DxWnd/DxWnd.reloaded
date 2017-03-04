@@ -51,6 +51,7 @@ void CTabCompat::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FIXGLOBALUNLOCK, cTarget->m_FixGlobalUnlock);
 	DDX_Check(pDX, IDC_FIXFREELIBRARY, cTarget->m_FixFreeLibrary);
 	DDX_Check(pDX, IDC_LOADLIBRARYERR, cTarget->m_LoadLibraryErr);
+	DDX_Check(pDX, IDC_FIXADJUSTWINRECT, cTarget->m_FixAdjustWinRect);
 	DDX_Check(pDX, IDC_PRETENDVISIBLE, cTarget->m_PretendVisible);
 	DDX_Check(pDX, IDC_WININSULATION, cTarget->m_WinInsulation);
 

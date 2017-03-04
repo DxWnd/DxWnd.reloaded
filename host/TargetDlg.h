@@ -151,6 +151,7 @@ public:
 	BOOL	m_FixD3DFrame;
 	BOOL	m_NoWindowMove;
 	BOOL	m_HookChildWin;
+	BOOL	m_HookDlgWin;
 	BOOL	m_MessageProc;
 	BOOL	m_FixMouseHook;
 	BOOL	m_FixNCHITTEST;
@@ -253,6 +254,7 @@ public:
 	BOOL	m_FixGlobalUnlock;
 	BOOL	m_FixFreeLibrary;
 	BOOL	m_LoadLibraryErr;
+	BOOL	m_FixAdjustWinRect;
 	BOOL	m_NoPixelFormat;
 	BOOL	m_NoAlphaChannel;
 	BOOL	m_FixRefCounter;

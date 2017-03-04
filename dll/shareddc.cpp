@@ -205,6 +205,12 @@ HDC dxwSDC::GetPrimaryDC(HDC hdc, HDC hdcsrc)
 	return VirtualHDC;
 }
 
+void dxwSDC::SetOrigin(int x, int y)
+{
+	HybridX = x;
+	HybridY = y;
+}
+
 /*---------------------------------------------------------------------------------+
 |                                                                                  |
 | GetHdc: returns the DC to write for the GDI call                                 |
@@ -273,10 +279,10 @@ BOOL dxwSDC::PutPrimaryDC(HDC hdc, BOOL UpdateScreen, int XDest, int YDest, int 
 					dxw.MapClient(&nXDest, &nYDest, &nWDest, &nHDest);
 					res=(*pGDIStretchBlt)(
 						CurrentHDC, nXDest, nYDest, nWDest, nHDest, 
-						CurrentHDCSrc, XDest, YDest, nDestWidth, nDestHeight, SRCCOPY);
+						CurrentHDCSrc, HybridX, HybridY, nDestWidth, nDestHeight, SRCCOPY);
 					if(!res) OutTraceE("dxwSDC::PutPrimaryDC: StretchBlt ERROR err=%d\n", GetLastError()); 
-					//res=(*pGDIReleaseDC)(WindowFromDC(CurrentHDC), CurrentHDC);
-					//if(!res) OutTraceE("dxwSDC::PutPrimaryDC: ReleaseDC ERROR err=%d\n", GetLastError()); 
+					//RECT rect = {nXDest, nYDest, nXDest+nWDest, nYDest+nHDest};
+					//res = (*pFrameRect)(CurrentHDC, &rect, 0);
 				}
 
 				break;

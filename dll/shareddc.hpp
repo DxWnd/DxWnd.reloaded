@@ -24,6 +24,7 @@ public: // methods
 	HDC		GetHdc(void);
 	BOOL	PutPrimaryDC(HDC, BOOL, int, int, int, int);
 	BOOL	PutPrimaryDC(HDC, BOOL);
+	void	SetOrigin(int, int);
 
 private:
 	void copyDcAttributes(HDC, HDC, POINT);
@@ -51,6 +52,8 @@ private:
 		POINT origin;
 		HWND rootWnd;
 	};
+	int HybridX;
+	int HybridY;
 
 };
 

@@ -1571,3 +1571,8 @@ fix: check on ZBUFFER capability attribution in case the capsdb holds a wrong ca
 add: "Fix LoadLibrary error" flag (LOADLIBRARYERR) to return ERROR_DLL_NOT_FOUND instead of ERROR_MOD_NOT_FOUND error code. Fixes "Nightmare Creatures".
 add: "Hybrid" flag for "Shared ddraw & GDI DC" mode - reduces "Star Treck: Armada" problems. 
 
+v2.04.18
+add: "Fix AdjustWindowRect" flag (FIXADJUSTWINDOWRECT) to selectively turn the AdjustWindowRect coordinate patching. The flag must be checked for "Man TT Super Bike" and unckecked for "Imperialism II".
+add: "Hook child WindowProc" and "Hook dialog WindowProc" flags for better control over these risky operations.
+fix: bad GetParent hook: caused crash when checking "Hook child WindowProc" flag.
+fix: improvements in "Hybrid" emulation mode

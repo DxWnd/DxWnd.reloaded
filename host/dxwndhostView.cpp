@@ -428,6 +428,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FixGlobalUnlock) t->flags7 |= FIXGLOBALUNLOCK;
 	if(dlg->m_FixFreeLibrary) t->flags7 |= FIXFREELIBRARY;
 	if(dlg->m_LoadLibraryErr) t->flags8 |= LOADLIBRARYERR;
+	if(dlg->m_FixAdjustWinRect) t->flags8 |= FIXADJUSTWINRECT;
 	if(dlg->m_NoPixelFormat) t->flags3 |= NOPIXELFORMAT;
 	if(dlg->m_NoAlphaChannel) t->flags4 |= NOALPHACHANNEL;
 	if(dlg->m_FixRefCounter) t->flags4 |= FIXREFCOUNTER;
@@ -489,6 +490,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_FixD3DFrame) t->flags3 |= FIXD3DFRAME;
 	if(dlg->m_NoWindowMove) t->flags3 |= NOWINDOWMOVE;
 	if(dlg->m_HookChildWin) t->flags |= HOOKCHILDWIN;
+	if(dlg->m_HookDlgWin) t->flags8 |= HOOKDLGWIN;
 	if(dlg->m_MessageProc) t->flags |= MESSAGEPROC;
 	if(dlg->m_FixMouseHook) t->flags8 |= FIXMOUSEHOOK;
 	if(dlg->m_FixNCHITTEST) t->flags2 |= FIXNCHITTEST;
@@ -740,6 +742,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FixGlobalUnlock = t->flags7 & FIXGLOBALUNLOCK ? 1 : 0;
 	dlg->m_FixFreeLibrary = t->flags7 & FIXFREELIBRARY ? 1 : 0;
 	dlg->m_LoadLibraryErr = t->flags8 & LOADLIBRARYERR ? 1 : 0;
+	dlg->m_FixAdjustWinRect = t->flags8 & FIXADJUSTWINRECT ? 1 : 0;
 	dlg->m_NoPixelFormat = t->flags3 & NOPIXELFORMAT ? 1 : 0;
 	dlg->m_NoAlphaChannel = t->flags4 & NOALPHACHANNEL ? 1 : 0;
 	dlg->m_FixRefCounter = t->flags4 & FIXREFCOUNTER ? 1 : 0;
@@ -823,6 +826,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_FixD3DFrame = t->flags3 & FIXD3DFRAME ? 1 : 0;
 	dlg->m_NoWindowMove = t->flags3 & NOWINDOWMOVE ? 1 : 0;
 	dlg->m_HookChildWin = t->flags & HOOKCHILDWIN ? 1 : 0;
+	dlg->m_HookDlgWin = t->flags8 & HOOKDLGWIN ? 1 : 0;
 	dlg->m_MessageProc = t->flags & MESSAGEPROC ? 1 : 0;
 	dlg->m_FixMouseHook = t->flags8 & FIXMOUSEHOOK ? 1 : 0;
 	dlg->m_FixNCHITTEST = t->flags2 & FIXNCHITTEST ? 1 : 0;

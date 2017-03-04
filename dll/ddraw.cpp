@@ -275,6 +275,16 @@ HRESULT WINAPI extAddOverlayDirtyRect2(LPDIRECTDRAWSURFACE, LPRECT);
 HRESULT WINAPI extAddOverlayDirtyRect3(LPDIRECTDRAWSURFACE, LPRECT);
 HRESULT WINAPI extAddOverlayDirtyRect4(LPDIRECTDRAWSURFACE, LPRECT);
 HRESULT WINAPI extAddOverlayDirtyRect7(LPDIRECTDRAWSURFACE, LPRECT);
+HRESULT WINAPI extGetOverlayPosition1(LPDIRECTDRAWSURFACE, LPLONG, LPLONG);
+HRESULT WINAPI extGetOverlayPosition2(LPDIRECTDRAWSURFACE, LPLONG, LPLONG);
+HRESULT WINAPI extGetOverlayPosition3(LPDIRECTDRAWSURFACE, LPLONG, LPLONG);
+HRESULT WINAPI extGetOverlayPosition4(LPDIRECTDRAWSURFACE, LPLONG, LPLONG);
+HRESULT WINAPI extGetOverlayPosition7(LPDIRECTDRAWSURFACE, LPLONG, LPLONG);
+HRESULT WINAPI extSetOverlayPosition1(LPDIRECTDRAWSURFACE, LONG, LONG);
+HRESULT WINAPI extSetOverlayPosition2(LPDIRECTDRAWSURFACE, LONG, LONG);
+HRESULT WINAPI extSetOverlayPosition3(LPDIRECTDRAWSURFACE, LONG, LONG);
+HRESULT WINAPI extSetOverlayPosition4(LPDIRECTDRAWSURFACE, LONG, LONG);
+HRESULT WINAPI extSetOverlayPosition7(LPDIRECTDRAWSURFACE, LONG, LONG);
 
 extern HRESULT WINAPI extCreateSurface(int, CreateSurface_Type, LPDIRECTDRAW, DDSURFACEDESC2 *, LPDIRECTDRAWSURFACE *, void *);
 HRESULT WINAPI extSetSurfaceDesc3(LPDIRECTDRAWSURFACE, LPDDSURFACEDESC, DWORD);
@@ -370,7 +380,8 @@ GetClipper_Type pGetClipper;
 GetColorKey_Type pGetColorKey1, pGetColorKey2, pGetColorKey3, pGetColorKey4, pGetColorKey7;
 GetDC_Type pGetDC1, pGetDC2, pGetDC3, pGetDC4, pGetDC7;
 GetFlipStatus_Type pGetFlipStatus;
-GetOverlayPosition_Type pGetOverlayPosition;
+GetOverlayPosition_Type pGetOverlayPosition1, pGetOverlayPosition2, pGetOverlayPosition3, pGetOverlayPosition4, pGetOverlayPosition7;
+SetOverlayPosition_Type pSetOverlayPosition1, pSetOverlayPosition2, pSetOverlayPosition3, pSetOverlayPosition4, pSetOverlayPosition7;
 GetPalette_Type pGetPalette1, pGetPalette2, pGetPalette3, pGetPalette4, pGetPalette7;
 GetPixelFormat_Type pGetPixelFormat1, pGetPixelFormat2, pGetPixelFormat3, pGetPixelFormat4, pGetPixelFormat7;
 GetSurfaceDesc_Type pGetSurfaceDesc1, pGetSurfaceDesc2, pGetSurfaceDesc3;
@@ -1380,12 +1391,14 @@ void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPrim)
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps1S, (void **)&pGetCaps1S, "GetCaps(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 64), extGetColorKey1, (void **)&pGetColorKey1, "GetColorKey(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 68), extGetDC1, (void **)&pGetDC1, "GetDC(S1)");	
+		SetHook((void *)(**(DWORD **)lplpdds + 76), extGetOverlayPosition1, (void **)&pGetOverlayPosition1, "GetOverlayPosition(S1)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 80), extGetPalette1, (void **)&pGetPalette1, "GetPalette(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 84), extGetPixelFormat1, (void **)&pGetPixelFormat1, "GetPixelFormat(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc1, (void **)&pGetSurfaceDesc1, "GetSurfaceDesc(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock1 : extLockDir1, (void **)&pLock1, "Lock(S1)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock1 : extUnlockDir1, (void **)&pUnlock1, "Unlock(S1)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC1, (void **)&pReleaseDC1, "ReleaseDC(S1)");
+		SetHook((void *)(**(DWORD **)lplpdds + 120), extSetOverlayPosition1, (void **)&pSetOverlayPosition1, "SetOverlayPosition(S1)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette1, (void **)&pSetPalette1, "SetPalette(S1)");
 		break;
 	case 2:
@@ -1403,12 +1416,14 @@ void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPrim)
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps2S, (void **)&pGetCaps2S, "GetCaps(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 64), extGetColorKey2, (void **)&pGetColorKey2, "GetColorKey(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 68), extGetDC2, (void **)&pGetDC2, "GetDC(S2)");	
+		SetHook((void *)(**(DWORD **)lplpdds + 76), extGetOverlayPosition2, (void **)&pGetOverlayPosition2, "GetOverlayPosition(S2)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 80), extGetPalette2, (void **)&pGetPalette2, "GetPalette(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 84), extGetPixelFormat2, (void **)&pGetPixelFormat2, "GetPixelFormat(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc2, (void **)&pGetSurfaceDesc2, "GetSurfaceDesc(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock2 : extLockDir2, (void **)&pLock2, "Lock(S2)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock2 : extUnlockDir2, (void **)&pUnlock2, "Unlock(S2)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC2, (void **)&pReleaseDC2, "ReleaseDC(S2)");
+		SetHook((void *)(**(DWORD **)lplpdds + 120), extSetOverlayPosition2, (void **)&pSetOverlayPosition2, "SetOverlayPosition(S2)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette2, (void **)&pSetPalette2, "SetPalette(S2)");
 		break;
 	case 3:
@@ -1426,12 +1441,14 @@ void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPrim)
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps3S, (void **)&pGetCaps3S, "GetCaps(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 64), extGetColorKey3, (void **)&pGetColorKey3, "GetColorKey(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 68), extGetDC3, (void **)&pGetDC3, "GetDC(S3)");	
+		SetHook((void *)(**(DWORD **)lplpdds + 76), extGetOverlayPosition3, (void **)&pGetOverlayPosition3, "GetOverlayPosition(S3)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 80), extGetPalette3, (void **)&pGetPalette3, "GetPalette(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 84), extGetPixelFormat3, (void **)&pGetPixelFormat3, "GetPixelFormat(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc3, (void **)&pGetSurfaceDesc3, "GetSurfaceDesc(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock3 : extLockDir3, (void **)&pLock3, "Lock(S3)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock3 : extUnlockDir3, (void **)&pUnlock3, "Unlock(S3)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC3, (void **)&pReleaseDC3, "ReleaseDC(S3)");
+		SetHook((void *)(**(DWORD **)lplpdds + 120), extSetOverlayPosition3, (void **)&pSetOverlayPosition3, "SetOverlayPosition(S3)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette3, (void **)&pSetPalette3, "SetPalette(S3)");
 		// added in interface version 3
 		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc3, (void **)&pSetSurfaceDesc3, "SetSurfaceDesc(S3)");
@@ -1451,12 +1468,14 @@ void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPrim)
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps4S, (void **)&pGetCaps4S, "GetCaps(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 64), extGetColorKey4, (void **)&pGetColorKey4, "GetColorKey(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 68), extGetDC4, (void **)&pGetDC4, "GetDC(S4)");	
+		SetHook((void *)(**(DWORD **)lplpdds + 76), extGetOverlayPosition4, (void **)&pGetOverlayPosition4, "GetOverlayPosition(S4)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 80), extGetPalette4, (void **)&pGetPalette4, "GetPalette(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 84), extGetPixelFormat4, (void **)&pGetPixelFormat4, "GetPixelFormat(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc4, (void **)&pGetSurfaceDesc4, "GetSurfaceDesc(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock4 : extLockDir4, (void **)&pLock4, "Lock(S4)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock4 : extUnlockDir4, (void **)&pUnlock4, "Unlock(S4)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC4, (void **)&pReleaseDC4, "ReleaseDC(S4)");
+		SetHook((void *)(**(DWORD **)lplpdds + 120), extSetOverlayPosition4, (void **)&pSetOverlayPosition4, "SetOverlayPosition(S4)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette4, (void **)&pSetPalette4, "SetPalette(S4)");
 		// added in interface version 3
 		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc4, (void **)&pSetSurfaceDesc4, "SetSurfaceDesc(S4)");
@@ -1476,12 +1495,14 @@ void HookDDSurface(LPDIRECTDRAWSURFACE *lplpdds, int dxversion, BOOL isPrim)
 		SetHook((void *)(**(DWORD **)lplpdds + 56), extGetCaps7S, (void **)&pGetCaps7S, "GetCaps(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 64), extGetColorKey7, (void **)&pGetColorKey7, "GetColorKey(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 68), extGetDC7, (void **)&pGetDC7, "GetDC(S7)");	
+		SetHook((void *)(**(DWORD **)lplpdds + 76), extGetOverlayPosition7, (void **)&pGetOverlayPosition7, "GetOverlayPosition(S7)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 80), extGetPalette7, (void **)&pGetPalette7, "GetPalette(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 84), extGetPixelFormat7, (void **)&pGetPixelFormat7, "GetPixelFormat(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 88), extGetSurfaceDesc7, (void **)&pGetSurfaceDesc7, "GetSurfaceDesc(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 100), bEmu ? extLock7 : extLockDir7, (void **)&pLock7, "Lock(S7)"); 
 		SetHook((void *)(**(DWORD **)lplpdds + 128), bEmu ? extUnlock7 : extUnlockDir7, (void **)&pUnlock7, "Unlock(S7)");
 		SetHook((void *)(**(DWORD **)lplpdds + 104), extReleaseDC7, (void **)&pReleaseDC7, "ReleaseDC(S7)");
+		SetHook((void *)(**(DWORD **)lplpdds + 120), extSetOverlayPosition7, (void **)&pSetOverlayPosition7, "SetOverlayPosition(S7)");	
 		SetHook((void *)(**(DWORD **)lplpdds + 124), extSetPalette7, (void **)&pSetPalette7, "SetPalette(S7)");
 		// added in interface version 3
 		SetHook((void *)(**(DWORD **)lplpdds + 156), extSetSurfaceDesc7, (void **)&pSetSurfaceDesc7, "SetSurfaceDesc(S7)");
@@ -4120,7 +4141,7 @@ HRESULT WINAPI extReleaseDC(int dxversion, ReleaseDC_Type pReleaseDC, LPDIRECTDR
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	OutTraceDDRAW("ReleaseDC: lpdss=%x%s hdc=%x\n",lpdds, IsPrim?"(PRIM)":"", hdc);	
 	res=(*pReleaseDC)(lpdds, hdc);
-	if((IsPrim) && (dxw.dwFlags1 & EMULATESURFACE)) {\
+	if((IsPrim) && (dxw.dwFlags1 & EMULATESURFACE)) {
 		Blt_Type pBlt;
 		GetGDISurface_Type pGetGDISurface;
 		// v2.04.09: for IDirectDraw methods use iBakBufferVersion instead of dxversion ...
@@ -5525,3 +5546,49 @@ HRESULT WINAPI extDuplicateSurface4(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE4 lpdd
 { return extDuplicateSurface(4, (DuplicateSurface_Type)pDuplicateSurface4, lpdd, (LPDIRECTDRAWSURFACE)lpddssrc, (LPDIRECTDRAWSURFACE *)lpddsdest); }
 HRESULT WINAPI extDuplicateSurface7(LPDIRECTDRAW lpdd, LPDIRECTDRAWSURFACE7 lpddssrc, LPDIRECTDRAWSURFACE7 FAR *lpddsdest)
 { return extDuplicateSurface(7, (DuplicateSurface_Type)pDuplicateSurface7, lpdd, (LPDIRECTDRAWSURFACE)lpddssrc, (LPDIRECTDRAWSURFACE *)lpddsdest); }
+
+static HRESULT WINAPI extSetOverlayPosition(int dxversion, SetOverlayPosition_Type pSetOverlayPosition, LPDIRECTDRAWSURFACE lpdds, LONG lX, LONG lY)
+{
+	HRESULT res;
+	OutTrace("SetOverlayPosition(%d): lpdds=%x pos=(%ld,%ld)\n", dxversion, lpdds, lX, lY);
+	res = (*pSetOverlayPosition)(lpdds, lX, lY);
+	if(res) 
+		OutTraceE("SetOverlayPosition: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	return res;
+}
+
+HRESULT WINAPI extSetOverlayPosition1(LPDIRECTDRAWSURFACE lpdds, LONG lX, LONG lY)
+{ return extSetOverlayPosition(1, pSetOverlayPosition1, lpdds, lX, lY); }
+HRESULT WINAPI extSetOverlayPosition2(LPDIRECTDRAWSURFACE lpdds, LONG lX, LONG lY)
+{ return extSetOverlayPosition(2, pSetOverlayPosition2, lpdds, lX, lY); }
+HRESULT WINAPI extSetOverlayPosition3(LPDIRECTDRAWSURFACE lpdds, LONG lX, LONG lY)
+{ return extSetOverlayPosition(3, pSetOverlayPosition3, lpdds, lX, lY); }
+HRESULT WINAPI extSetOverlayPosition4(LPDIRECTDRAWSURFACE lpdds, LONG lX, LONG lY)
+{ return extSetOverlayPosition(4, pSetOverlayPosition4, lpdds, lX, lY); }
+HRESULT WINAPI extSetOverlayPosition7(LPDIRECTDRAWSURFACE lpdds, LONG lX, LONG lY)
+{ return extSetOverlayPosition(7, pSetOverlayPosition7, lpdds, lX, lY); }
+
+static HRESULT WINAPI extGetOverlayPosition(int dxversion, GetOverlayPosition_Type pGetOverlayPosition, LPDIRECTDRAWSURFACE lpdds, LPLONG lX, LPLONG lY)
+{
+	HRESULT res;
+	OutTrace("GetOverlayPosition(%d): lpdds=%x\n", dxversion, lpdds);
+	res = (*pGetOverlayPosition)(lpdds, lX, lY);
+	if(res) 
+		OutTraceE("GetOverlayPosition: ERROR res=%x(%s)\n", res, ExplainDDError(res));
+	else{
+		OutTraceDW("GetOverlayPosition: pos=(%ld,%ld)\n", *lX, *lY);
+	}
+	return res;
+}
+
+HRESULT WINAPI extGetOverlayPosition1(LPDIRECTDRAWSURFACE lpdds, LPLONG lX, LPLONG lY)
+{ return extGetOverlayPosition(1, pGetOverlayPosition1, lpdds, lX, lY); }
+HRESULT WINAPI extGetOverlayPosition2(LPDIRECTDRAWSURFACE lpdds, LPLONG lX, LPLONG lY)
+{ return extGetOverlayPosition(2, pGetOverlayPosition2, lpdds, lX, lY); }
+HRESULT WINAPI extGetOverlayPosition3(LPDIRECTDRAWSURFACE lpdds, LPLONG lX, LPLONG lY)
+{ return extGetOverlayPosition(3, pGetOverlayPosition3, lpdds, lX, lY); }
+HRESULT WINAPI extGetOverlayPosition4(LPDIRECTDRAWSURFACE lpdds, LPLONG lX, LPLONG lY)
+{ return extGetOverlayPosition(4, pGetOverlayPosition4, lpdds, lX, lY); }
+HRESULT WINAPI extGetOverlayPosition7(LPDIRECTDRAWSURFACE lpdds, LPLONG lX, LPLONG lY)
+{ return extGetOverlayPosition(7, pGetOverlayPosition7, lpdds, lX, lY); }
+

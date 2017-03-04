@@ -19,6 +19,9 @@
 
 BOOL IsWithinMCICall = FALSE;
 
+typedef MMRESULT (WINAPI *timeGetDevCaps_Type)(LPTIMECAPS, UINT);
+timeGetDevCaps_Type ptimeGetDevCaps = NULL;
+MMRESULT WINAPI exttimeGetDevCaps(LPTIMECAPS, UINT);
 typedef MCIDEVICEID (WINAPI *mciGetDeviceIDA_Type)(LPCTSTR);
 mciGetDeviceIDA_Type pmciGetDeviceIDA = NULL;
 MCIDEVICEID WINAPI extmciGetDeviceIDA(LPCTSTR);
@@ -52,6 +55,13 @@ UINT WINAPI extwaveOutGetNumDevs(void);
 typedef UINT (WINAPI *mixerGetNumDevs_Type)(void);
 mixerGetNumDevs_Type pmixerGetNumDevs;
 UINT WINAPI extmixerGetNumDevs(void);
+typedef UINT (WINAPI *timeBeginPeriod_Type)(UINT);
+timeBeginPeriod_Type ptimeBeginPeriod;
+UINT WINAPI exttimeBeginPeriod(UINT);
+typedef UINT (WINAPI *timeEndPeriod_Type)(UINT);
+timeEndPeriod_Type ptimeEndPeriod;
+UINT WINAPI exttimeEndPeriod(UINT);
+
 
 static HookEntryEx_Type Hooks[]={
 	{HOOK_IAT_CANDIDATE, 0, "mciSendCommandA", NULL, (FARPROC *)&pmciSendCommandA, (FARPROC)extmciSendCommandA},
@@ -66,6 +76,9 @@ static HookEntryEx_Type TimeHooks[]={
 	{HOOK_HOT_CANDIDATE, 0, "timeGetTime", NULL, (FARPROC *)&ptimeGetTime, (FARPROC)exttimeGetTime},
 	{HOOK_HOT_CANDIDATE, 0, "timeKillEvent", NULL, (FARPROC *)&ptimeKillEvent, (FARPROC)exttimeKillEvent},
 	{HOOK_HOT_CANDIDATE, 0, "timeSetEvent", NULL, (FARPROC *)&ptimeSetEvent, (FARPROC)exttimeSetEvent},
+	{HOOK_HOT_CANDIDATE, 0, "timeGetDevCaps", NULL, (FARPROC *)&ptimeGetDevCaps, (FARPROC)exttimeGetDevCaps},
+	{HOOK_HOT_CANDIDATE, 0, "timeBeginPeriod", NULL, (FARPROC *)&ptimeBeginPeriod, (FARPROC)exttimeBeginPeriod},
+	{HOOK_HOT_CANDIDATE, 0, "timeEndPeriod", NULL, (FARPROC *)&ptimeEndPeriod, (FARPROC)exttimeEndPeriod},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 
@@ -118,6 +131,19 @@ FARPROC Remap_WinMM_ProcAddress(LPCSTR proc, HMODULE hModule)
 	return NULL;
 }
 
+MMRESULT WINAPI exttimeGetDevCaps(LPTIMECAPS ptc, UINT cbtc)
+{
+	MMRESULT res;
+	res = (*ptimeGetDevCaps)(ptc, cbtc);
+	if(res) {
+		OutTraceE("timeGetDevCaps ERROR: res=%x err=%d\n", res, GetLastError());
+	}
+	else {
+		OutTraceDW("timeGetDevCaps: period min=%d max=%d\n", ptc->wPeriodMin, ptc->wPeriodMax);
+	}
+	return MMSYSERR_NOERROR;
+}
+
 DWORD WINAPI exttimeGetTime(void)
 {
 	DWORD ret;
@@ -146,6 +172,24 @@ MMRESULT WINAPI exttimeKillEvent(UINT uTimerID)
 	res=(*ptimeKillEvent)(uTimerID);
 	if(res==TIMERR_NOERROR) dxw.PopTimer(uTimerID);
 	OutTraceDW("timeKillEvent: ret=%x\n", res);
+	return res;
+}
+
+MMRESULT WINAPI exttimeBeginPeriod(UINT uPeriod)
+{
+	MMRESULT res;
+	OutTraceDW("timeBeginPeriod: period=%d\n", uPeriod);
+	res=(*ptimeBeginPeriod)(uPeriod);
+	OutTraceDW("timeBeginPeriod: ret=%x\n", res);
+	return res;
+}
+
+MMRESULT WINAPI exttimeEndPeriod(UINT uPeriod)
+{
+	MMRESULT res;
+	OutTraceDW("timeEndPeriod: period=%d\n", uPeriod);
+	res=(*ptimeEndPeriod)(uPeriod);
+	OutTraceDW("timeEndPeriod: ret=%x\n", res);
 	return res;
 }
 
@@ -194,6 +238,26 @@ static char *sDeviceType(DWORD dt)
 		case MCI_DEVTYPE_OTHER: s="OTHER"; break;
 		case MCI_DEVTYPE_WAVEFORM_AUDIO: s="WAVEFORM_AUDIO"; break;
 		case MCI_DEVTYPE_SEQUENCER: s="SEQUENCER"; break;
+		default: s="unknown"; break;
+	}
+	return s;
+}
+
+static char *sTimeFormat(DWORD tf)
+{
+	char *s;
+	switch(tf){
+		case MCI_FORMAT_MILLISECONDS: s="MILLISECONDS"; break;
+		case MCI_FORMAT_HMS: s="HMS"; break;
+		case MCI_FORMAT_MSF: s="MSF"; break;
+		case MCI_FORMAT_FRAMES: s="FRAMES"; break;
+		case MCI_FORMAT_SMPTE_24: s="SMPTE_24"; break;
+		case MCI_FORMAT_SMPTE_25: s="SMPTE_25"; break;
+		case MCI_FORMAT_SMPTE_30: s="SMPTE_30"; break;
+		case MCI_FORMAT_SMPTE_30DROP: s="SMPTE_30DROP"; break;
+		case MCI_FORMAT_BYTES: s="BYTES"; break;
+		case MCI_FORMAT_SAMPLES: s="SAMPLES"; break;
+		case MCI_FORMAT_TMSF: s="TMSF"; break;
 		default: s="unknown"; break;
 	}
 	return s;
@@ -271,6 +335,13 @@ static void DumpMciMessage(char *label, BOOL isAnsi, UINT uMsg, DWORD_PTR fdwCom
 					api, label, lpSysInfo->dwCallback, lpSysInfo->dwRetSize, lpSysInfo->dwNumber, lpSysInfo->wDeviceType, sDeviceType(lpSysInfo->wDeviceType));
 			}
 			break;
+		case MCI_SET:
+			{
+				LPMCI_SET_PARMS lpSetInfo = (LPMCI_SET_PARMS)dwParam;
+				OutTrace("%s%s: MCI_SET cb=%x audio=%x timeformat=%x(%s)\n",
+					api, label, lpSetInfo->dwCallback, lpSetInfo->dwAudio, lpSetInfo->dwTimeFormat, sTimeFormat(lpSetInfo->dwTimeFormat));
+			}
+			break;
 		default:
 			{
 				LPMCI_GENERIC_PARMS lpGeneric = (LPMCI_GENERIC_PARMS)dwParam;
@@ -287,9 +358,9 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 {
 	RECT saverect;
 	MCIERROR ret;
-	MCI_ANIM_RECT_PARMS *pr;
-	MCI_OVLY_WINDOW_PARMSA *pw;
-	MCI_OPEN_PARMSA *po;
+	LPMCI_ANIM_RECT_PARMS pr;
+	LPMCI_OVLY_WINDOW_PARMSA pw;
+	LPMCI_OPEN_PARMSA po;
 
 	OutTraceDW("mciSendCommand%c: IDDevice=%x msg=%x(%s) Command=%x(%s)\n",
 		isAnsi ? 'A' : 'W', 
@@ -302,11 +373,11 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 	if(dxw.dwFlags6 & BYPASSMCI){
 		//MCI_OPEN_PARMS *op;
 		MCI_STATUS_PARMS *sp;
+		ret = 0;
 		switch(uMsg){
 			case MCI_OPEN:
 				po = (MCI_OPEN_PARMSA *)dwParam;
 				po->wDeviceID = 1;
-				ret = 0;
 				break;
 			case MCI_STATUS:
 				if(fdwCommand & MCI_STATUS_ITEM){
@@ -330,10 +401,8 @@ MCIERROR WINAPI extmciSendCommand(BOOL isAnsi, mciSendCommand_Type pmciSendComma
 							break;
 					}
 				}
-				ret = 0;
 				break;
 			default:
-				ret = 0;
 				break;
 		}
 		if(IsDebug) DumpMciMessage("<<", isAnsi, uMsg, fdwCommand, dwParam);

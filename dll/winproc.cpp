@@ -53,8 +53,8 @@ LRESULT CALLBACK extDialogWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPA
 	// optimization: don't invalidate too often!
 	// 200mSec seems a good compromise.
 	if (tn-t > 200) {
-		(*pInvalidateRect)(hwnd, NULL, TRUE);
 		t=tn;
+		(*pInvalidateRect)(hwnd, NULL, TRUE);
 	}
 
 	pWindowProc=dxwws.GetProc(hwnd);
@@ -678,7 +678,6 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 		// v2.02.36: use CallWindowProc that handles WinProc handles
 		ret=(*pCallWindowProcA)(pWindowProc, hwnd, message, wparam, lparam);
-
 
 		switch(message){
 			case WM_SIZE:
