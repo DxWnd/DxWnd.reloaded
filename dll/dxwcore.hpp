@@ -4,6 +4,13 @@
 #define DDSQLEN 0x20
 #define MAXFONTS 0x40
 
+#define WS_OVERLAPPEDTHIN   (WS_OVERLAPPED     | \
+                             WS_CAPTION        | \
+                             WS_SYSMENU        | \
+                             WS_THICKFRAME     | \
+                             WS_MINIMIZEBOX    | \
+                             WS_MAXIMIZEBOX)
+
 typedef struct {
 	DWORD dwTimerType;
 	union{
@@ -40,7 +47,9 @@ typedef struct {
 typedef enum {
 	SURFACE_ROLE_PRIMARY = 0,
 	SURFACE_ROLE_BACKBUFFER,
-	SURFACE_ROLE_ZBUFFER
+	SURFACE_ROLE_ZBUFFER,
+	SURFACE_ROLE_3DREF,
+	SURFACE_ROLE_UNKNOWN
 } Enum_Surface_Role_Type;
 
 typedef struct {
@@ -259,15 +268,21 @@ public:
 	LPDIRECTDRAWSURFACE GetZBufferSurface(void);
 	void PushZBufferSurface(LPDIRECTDRAWSURFACE, int, DWORD);
 	BOOL IsAZBufferSurface(LPDIRECTDRAWSURFACE);
-	LPDIRECTDRAWSURFACE GetBackBufferSurface(void);	void PopSurface(LPDIRECTDRAWSURFACE);
-	void DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, int);
+	LPDIRECTDRAWSURFACE GetBackBufferSurface(void);	
+	void Push3DRefSurface(LPDIRECTDRAWSURFACE, int, DWORD);
+	BOOL IsA3DRefSurface(LPDIRECTDRAWSURFACE);
+	LPDIRECTDRAWSURFACE Get3DRefBufferSurface(void);	
+	void PopSurface(LPDIRECTDRAWSURFACE);
+	DWORD DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, int);
 	DWORD GetCaps(LPDIRECTDRAWSURFACE);
+	SurfaceDB_Type *GetSurface(LPDIRECTDRAWSURFACE);
 
 protected:
 	SurfaceDB_Type SurfaceDB[DDSQLEN+1];
 	LPDIRECTDRAWSURFACE lpDDSPrimary;
 	LPDIRECTDRAWSURFACE lpDDSBackBuffer;
 	LPDIRECTDRAWSURFACE lpDDSZBuffer;
+	LPDIRECTDRAWSURFACE lpDDS3DRef;
 
 private:
 	void PushSurface(LPDIRECTDRAWSURFACE, USHORT, USHORT, DWORD);

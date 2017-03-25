@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TlHelp32.h"
 
-#define VERSION "2.04.19.fx1"
+#define VERSION "2.04.20"
 
 #define DDTHREADLOCK 1
 
@@ -286,7 +286,7 @@ void InjectHook()
 	}
 }
 
-static char *FlagNames[9][32] ={{
+static char *FlagNames[11][32] ={{
 	// Flags1
 	"UNNOTIFY", "EMULATESURFACE", "CLIPCURSOR", "NEEDADMINCAPS",
 	"HOOKDI", "MODIFYMOUSE", "HANDLEEXCEPTIONS", "SAVELOAD",
@@ -367,6 +367,24 @@ static char *FlagNames[9][32] ={{
 	"BACKGROUNDPRIORITY", "OFFSCREENZBUFFER", "VIRTUALHEAP", "ZBUFFERHARDCLEAN",
 	"LOADLIBRARYERR", "SHAREDDCHYBRID", "FIXADJUSTWINRECT", "HOOKDLGWIN",
 	},{
+	// Flags9
+	"FIXTHINFRAME", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",	},{
+	// Flags10
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",
+	"", "", "", "",	},{
 	// TFlags
 	"OUTTRACE", "OUTDDRAWTRACE", "OUTWINMESSAGES", "OUTCURSORTRACE",
 	"OUTSEPARATED", "**", "ASSERTDIALOG", "OUTIMPORTTABLE",
@@ -382,7 +400,7 @@ LPCSTR GetFlagCaption(int flag, int bit)
 {
 	//if((flag<0) || (flag>(9*32))) return "";
 	//return FlagNames[flag >> 5][flag & 0x1F];
-	if((flag<0) || (flag>8)) return "";
+	if((flag<0) || (flag>10)) return "";
 	if((bit<0) || (bit>31)) return "";
 	return FlagNames[flag][bit];
 }

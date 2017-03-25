@@ -354,6 +354,13 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 		case 2: t->flags8 |= DDSFORMAT; break;
 	}
 
+	switch(dlg->m_WindowStyle){
+		case 0: break;
+		case 1: t->flags2 |= MODALSTYLE; break;
+		case 2: t->flags |= FIXWINFRAME; break;
+		case 3:	t->flags9 |= FIXTHINFRAME; break;
+	}
+
 	if(dlg->m_HookDI) t->flags |= HOOKDI;
 	if(dlg->m_HookDI8) t->flags |= HOOKDI8;
 	if(dlg->m_EmulateRelMouse) t->flags6 |= EMULATERELMOUSE;
@@ -453,7 +460,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_AutoRefresh) t->flags |= AUTOREFRESH;
 	if(dlg->m_IndependentRefresh) t->flags2 |= INDEPENDENTREFRESH;
 	if(dlg->m_TextureFormat) t->flags5 |= TEXTUREFORMAT;
-	if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
+	//if(dlg->m_FixWinFrame) t->flags |= FIXWINFRAME;
 	if(dlg->m_VideoToSystemMem) t->flags |= SWITCHVIDEOMEMORY;
 	if(dlg->m_FixTextOut) t->flags |= FIXTEXTOUT;
 	if(dlg->m_HookGlide) t->flags4 |= HOOKGLIDE;
@@ -483,7 +490,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_ClientRemapping) t->flags |= CLIENTREMAPPING;
 	if(dlg->m_LockWinStyle) t->flags |= LOCKWINSTYLE;
 	if(dlg->m_FixParentWin) t->flags |= FIXPARENTWIN;
-	if(dlg->m_ModalStyle) t->flags2 |= MODALSTYLE;
+	//if(dlg->m_ModalStyle) t->flags2 |= MODALSTYLE;
 	if(dlg->m_KeepAspectRatio) t->flags2 |= KEEPASPECTRATIO;
 	if(dlg->m_ForceWinResize) t->flags2 |= FORCEWINRESIZE;
 	if(dlg->m_HideMultiMonitor) t->flags2 |= HIDEMULTIMONITOR;
@@ -689,6 +696,11 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	if( t->flags8 & RAWFORMAT) dlg->m_TextureFileFormat = 1;
 	if( t->flags8 & DDSFORMAT) dlg->m_TextureFileFormat = 2;
 
+	dlg->m_WindowStyle = 0;
+	if(t->flags2 & MODALSTYLE) dlg->m_WindowStyle = 1;
+	if(t->flags & FIXWINFRAME) dlg->m_WindowStyle = 2;
+	if(t->flags9 & FIXTHINFRAME) dlg->m_WindowStyle = 3;
+
 	dlg->m_HookDI = t->flags & HOOKDI ? 1 : 0;
 	dlg->m_HookDI8 = t->flags & HOOKDI8 ? 1 : 0;
 	dlg->m_EmulateRelMouse = t->flags6 & EMULATERELMOUSE ? 1 : 0;
@@ -788,7 +800,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_AutoRefresh = t->flags & AUTOREFRESH ? 1 : 0;
 	dlg->m_IndependentRefresh = t->flags2 & INDEPENDENTREFRESH ? 1 : 0;
 	dlg->m_TextureFormat = t->flags5 & TEXTUREFORMAT ? 1 : 0;
-	dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
+	//dlg->m_FixWinFrame = t->flags & FIXWINFRAME ? 1 : 0;
 	dlg->m_VideoToSystemMem = t->flags & SWITCHVIDEOMEMORY ? 1 : 0;
 	dlg->m_FixTextOut = t->flags & FIXTEXTOUT ? 1 : 0;
 	dlg->m_SharedDC = t->flags6 & SHAREDDC ? 1 : 0;
@@ -819,7 +831,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_ClientRemapping = t->flags & CLIENTREMAPPING ? 1 : 0;
 	dlg->m_LockWinStyle = t->flags & LOCKWINSTYLE ? 1 : 0;
 	dlg->m_FixParentWin = t->flags & FIXPARENTWIN ? 1 : 0;
-	dlg->m_ModalStyle = t->flags2 & MODALSTYLE ? 1 : 0;
+	//dlg->m_ModalStyle = t->flags2 & MODALSTYLE ? 1 : 0;
 	dlg->m_KeepAspectRatio = t->flags2 & KEEPASPECTRATIO ? 1 : 0;
 	dlg->m_ForceWinResize = t->flags2 & FORCEWINRESIZE ? 1 : 0;
 	dlg->m_HideMultiMonitor = t->flags2 & HIDEMULTIMONITOR ? 1 : 0;
@@ -973,6 +985,14 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	sprintf_s(val, sizeof(val), "%i", TargetMap->flags8);
 	WritePrivateProfileString("target", key, val, InitPath);
 	// -------
+	sprintf_s(key, sizeof(key), "flagn%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags9);
+	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "flago%i", i);
+	sprintf_s(val, sizeof(val), "%i", TargetMap->flags10);
+	WritePrivateProfileString("target", key, val, InitPath);
+	// -------
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	sprintf_s(val, sizeof(val), "%i", TargetMap->tflags);
 	WritePrivateProfileString("target", key, val, InitPath);
@@ -1041,6 +1061,16 @@ static void SaveConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, 
 	EscBuf = NULL;
 }
 
+static void SaveExportStamp(char *InitPath)
+{
+	char val[32];
+	GetDllVersion(val);
+	time_t _tm = time(NULL);
+	struct tm *curtime = localtime(& _tm);
+	WritePrivateProfileString("stamp", "version", val, InitPath);
+	WritePrivateProfileString("stamp", "time", asctime(curtime), InitPath);
+}
+
 static void ClearTarget(int i, char *InitPath)
 {
 	char key[32];
@@ -1069,6 +1099,10 @@ static void ClearTarget(int i, char *InitPath)
 	sprintf_s(key, sizeof(key), "flagl%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "flagm%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flagn%i", i);
+	WritePrivateProfileString("target", key, 0, InitPath);
+	sprintf_s(key, sizeof(key), "flago%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	WritePrivateProfileString("target", key, 0, InitPath);
@@ -1185,6 +1219,12 @@ static int LoadConfigItem(TARGETMAP *TargetMap, PRIVATEMAP *PrivateMap, int i, c
 	// -------
 	sprintf_s(key, sizeof(key), "flagm%i", i);
 	TargetMap->flags8 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "flagn%i", i);
+	TargetMap->flags9 = GetPrivateProfileInt("target", key, 0, InitPath);
+	// -------
+	sprintf_s(key, sizeof(key), "flago%i", i);
+	TargetMap->flags10= GetPrivateProfileInt("target", key, 0, InitPath);
 	// -------
 	sprintf_s(key, sizeof(key), "tflag%i", i);
 	TargetMap->tflags = GetPrivateProfileInt("target", key, 0, InitPath);
@@ -1508,6 +1548,7 @@ void CDxwndhostView::OnExport()
 		TFlags = TargetMap->tflags;
 		TargetMap->tflags = 0;
 		SaveConfigItem(&TargetMaps[i], &PrivateMaps[i], 0, path);
+		SaveExportStamp(path);
 		TargetMap->tflags = TFlags;
 		if(GetPrivateProfileInt("window", "updatepaths", 1, gInitPath)) {
 			GetFolderFromPath(path);

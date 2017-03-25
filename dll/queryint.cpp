@@ -44,6 +44,7 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 	int iObjectType;
 	int iObjectVersion;
 	extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
+	DWORD caps;
 
 	IsPrim=dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds);
 	IsBack=dxwss.IsABackBufferSurface((LPDIRECTDRAWSURFACE)lpdds);
@@ -203,16 +204,18 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 
 	switch(iObjectType){
 		case TYPE_OBJECT_UNKNOWN:
-			if(*obp != lpdds) dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp); // clear any past attribution
-			dxwss.DuplicateSurface((LPDIRECTDRAWSURFACE)lpdds, (LPDIRECTDRAWSURFACE)*obp, iObjectVersion);
+			if(caps=dxwss.DuplicateSurface((LPDIRECTDRAWSURFACE)lpdds, (LPDIRECTDRAWSURFACE)*obp, iObjectVersion)){
+				OutTraceDW("QueryInterface: MOVE caps=%x(%s)\n", caps, ExplainDDSCaps(caps));
+			}
 			break;
 		case TYPE_OBJECT_DIRECTDRAW:
 			HookDDSession((LPDIRECTDRAW *)obp, iObjectVersion);
 			break;
 		case TYPE_OBJECT_DDRAWSURFACE:
 			dxw.dwDDVersion=iObjectVersion;
-			if(*obp != lpdds) dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp); // clear any past attribution
-			dxwss.DuplicateSurface((LPDIRECTDRAWSURFACE)lpdds, (LPDIRECTDRAWSURFACE)*obp, iObjectVersion);
+			if(caps=dxwss.DuplicateSurface((LPDIRECTDRAWSURFACE)lpdds, (LPDIRECTDRAWSURFACE)*obp, iObjectVersion)){
+				OutTraceDW("QueryInterface: MOVE caps=%x(%s)\n", caps, ExplainDDSCaps(caps));
+			}
 			if(IsPrim){
 				OutTraceDW("QueryInterface(S): primary=%x new=%x\n", lpdds, *obp);
 				HookDDSurface((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion, TRUE);

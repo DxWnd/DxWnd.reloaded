@@ -45,6 +45,8 @@ void InitDxWnd(void)
 			target.flags6		= GetIntEntry("flagk0", 0);
 			target.flags7		= GetIntEntry("flagl0", 0);
 			target.flags8		= GetIntEntry("flagm0", 0);
+			target.flags9		= GetIntEntry("flagn0", 0);
+			target.flags10		= GetIntEntry("flago0", 0);
 			target.tflags		= GetIntEntry("tflag0", 0);
 			target.dflags		= GetIntEntry("dflag0", 0);
 			target.posx			= GetIntEntry("posx0", 0);

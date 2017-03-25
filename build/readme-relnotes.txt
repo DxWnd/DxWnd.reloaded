@@ -1584,3 +1584,15 @@ fix: joystick api promoted to hot patching to get a more powerful hooking
 add: hooking of WM_STYLECHANGING/STYLECHANGED messages to allow D3D rendering within the window borders instead of over the  whole window area - fixes "Nightmare Creatures" and others.
 fix: fixed "Need fos Speed 5" peculiarity: QueryInterface of an object on top of itself.
 
+v2.04.20
+GUI:
+add: two more 32bit words for additional flags
+add: timestamp and dxwnd version added to exported files
+fix: window style selector through radio buttons
+fix: implementation of View->Shims
+DLL:
+add: management of 3DREF surfaces to handle D3D CreateDevice with offscreen surface
+add: FIXTHINFRAME option to get overlapped window with thin border
+fix: revised implementation for DirectDrawSurface getCaps and GetSurfaceDesc wrappers
+add: hooker for SetWindowsHookEx WH_MOUSE_LL events - used by "Royal Tramp 2"
+fix: added WM_NCMOUSELEAVE to the list of potentially offending messages

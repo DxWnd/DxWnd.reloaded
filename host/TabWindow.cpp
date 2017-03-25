@@ -29,12 +29,15 @@ void CTabWindow::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	CTargetDlg *cTarget = ((CTargetDlg *)(this->GetParent()->GetParent()));
 
-	// window management
-	DDX_Check(pDX, IDC_FIXWINFRAME, cTarget->m_FixWinFrame);
-	DDX_Check(pDX, IDC_PREVENTMAXIMIZE, cTarget->m_PreventMaximize);
+	// window style
+	DDX_Radio(pDX, IDC_DEFAULTSTYLE, cTarget->m_WindowStyle);
 	DDX_Check(pDX, IDC_LOCKWINSTYLE, cTarget->m_LockWinStyle);
+
+	// window management
+	//DDX_Check(pDX, IDC_FIXWINFRAME, cTarget->m_FixWinFrame);
+	DDX_Check(pDX, IDC_PREVENTMAXIMIZE, cTarget->m_PreventMaximize);
 	DDX_Check(pDX, IDC_FIXPARENTWIN, cTarget->m_FixParentWin);
-	DDX_Check(pDX, IDC_MODALSTYLE, cTarget->m_ModalStyle);
+	//DDX_Check(pDX, IDC_MODALSTYLE, cTarget->m_ModalStyle);
 	DDX_Check(pDX, IDC_FORCEWINRESIZE, cTarget->m_ForceWinResize);
 	DDX_Check(pDX, IDC_HIDEMULTIMONITOR, cTarget->m_HideMultiMonitor);
 	DDX_Check(pDX, IDC_RECOVERSCREENMODE, cTarget->m_RecoverScreenMode);

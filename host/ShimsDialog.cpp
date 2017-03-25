@@ -6,12 +6,13 @@
 #include "ShimsDialog.h"
 
 // http://msdn2.microsoft.com/en-us/library/bb432457
-// PDB WINAPI SdbOpenDatabase(
+// HSDB WINAPI SdbOpenDatabase(
 //  LPCTSTR pwszPath,
 //  PATH_TYPE eType
 //);
-// What is PDB!? Assuming it is a pointer to somewhere => "void*"
-typedef void* PDB;
+
+// What is HSDB!? Assuming it is a pointer to somewhere => "void*"
+typedef void* HSDB;
 
 // http://msdn2.microsoft.com/en-us/library/bb432389.aspx
 typedef enum _PATH_TYPE
@@ -61,6 +62,14 @@ typedef DWORD TAGREF;
 #define TAG_APP_ID (0x11 | TAG_TYPE_BINARY)
 #define CONTEXT_PLATFORM_ID (0x8 | TAG_TYPE_BINARY)
 
+#define HID_DOS_PATHS				0x00000001
+#define HID_DATABASE_FULLPATH		0x00000002
+#define HID_NO_DATABASE				0x00000004
+#define HID_DATABASE_TYPE_MASK		0xF00F0000
+
+#define SDB_DATABASE_MAIN_SHIM		0x80030000
+#define SDB_DATABASE_MAIN_MSI		0x80020000
+#define SDB_DATABASE_MAIN_DRIVERS	0x80040000
 
 typedef struct TAG_RC_Entry
 {
@@ -91,44 +100,55 @@ static DWORD s_TagGuids[] =
 // APIs:
 
 // http://msdn.microsoft.com/en-us/library/bb432457.aspx
-//PDB WINAPI SdbOpenDatabase(
+//HSDB WINAPI SdbOpenDatabase(
 //  __in  LPCTSTR pwszPath,
 //  __in  PATH_TYPE eType
 //);
-typedef PDB (WINAPI *PSdbOpenDatabase)(
-  LPCWSTR pwszPath, // Docu wrong? LPCTSTR shouldn't it be LPCWSTR!?
+typedef HSDB (WINAPI *PSdbOpenDatabase)(
+  LPCTSTR pwszPath, // Docu wrong? LPCTSTR shouldn't it be LPCWSTR!?
   PATH_TYPE eType
 );
 PSdbOpenDatabase pSdbOpenDatabase = NULL;
 
+// http://msdn.microsoft.com/en-us/library/bb432452.aspx
+//HSDB WINAPI SdbInitDatabase(
+//	__in DWORD	dwFlags,
+//  __in LPCTSTR pszDatabasePath
+//);
+typedef HSDB (WINAPI *PSdbInitDatabase)(
+  DWORD dwFlags,
+  LPCTSTR pszDatabasePath 
+);
+PSdbInitDatabase pSdbInitDatabase = NULL;
+
 // http://msdn.microsoft.com/en-us/library/cc895520
 //void WINAPI SdbCloseDatabase(
-//  __inout  PDB pdb
+//  __inout  HSDB pdb
 //);
 typedef VOID (WINAPI *PSdbCloseDatabase)(
-  PDB handle  // assuming the passed handle...
+  HSDB handle  // assuming the passed handle...
 );
 PSdbCloseDatabase pSdbCloseDatabase = NULL;
 
 // http://msdn2.microsoft.com/en-us/library/bb432446
 //TAGID WINAPI SdbGetFirstChild(
-//  PDB pdb,
+//  HSDB pdb,
 //  TAGID tiParent
 //);
 typedef TAGID (WINAPI *PSdbGetFirstChild)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiParent
 );
 PSdbGetFirstChild pSdbGetFirstChild = NULL;
 
 // http://msdn2.microsoft.com/en-us/library/bb432449
 //TAGID WINAPI SdbGetNextChild(
-//  PDB pdb,
+//  HSDB pdb,
 //  TAGID tiParent,
 //  TAGID tiPrev
 //);
 typedef TAGID (WINAPI *PSdbGetNextChild)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiParent,
   TAGID tiPrev
 );
@@ -136,11 +156,11 @@ PSdbGetNextChild pSdbGetNextChild = NULL;
 
 // http://msdn2.microsoft.com/en-us/library/bb432451
 //TAG WINAPI SdbGetTagFromTagID(
-//  PDB pdb,
+//  HSDB pdb,
 //  TAGID tiWhich
 //);
 typedef TAG (WINAPI *PSdbGetTagFromTagID)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiWhich
 );
 PSdbGetTagFromTagID pSdbGetTagFromTagID = NULL;
@@ -156,13 +176,13 @@ PSdbTagToString pSdbTagToString = NULL;
 
 // http://msdn2.microsoft.com/en-us/library/bb432464
 //BOOL WINAPI SdbReadStringTag(
-//  PDB pdb,
+//  HSDB pdb,
 //  TAGID tiWhich,
 //  LPTSTR pwszBuffer,
 //  DWORD cchBufferSize
 //);
 typedef BOOL (WINAPI *PSdbReadStringTag)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiWhich,
   LPTSTR pwszBuffer,
   DWORD cchBufferSize
@@ -171,23 +191,23 @@ PSdbReadStringTag pSdbReadStringTag = NULL;
 
 // http://msdn2.microsoft.com/en-us/library/bb432450.aspx
 //LPWSTR WINAPI SdbGetStringTagPtr(
-//  PDB pdb,
+//  HSDB pdb,
 //  TAGID tiWhich
 //);
 typedef LPWSTR (WINAPI *PSdbGetStringTagPtr)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiWhich
 );
 PSdbGetStringTagPtr pSdbGetStringTagPtr = NULL;
 
 // http://msdn2.microsoft.com/en-us/library/bb432462.aspx
 //DWORD WINAPI SdbReadDWORDTag(
-//  PDB pdb,
+//  HSDB pdb,
 //  TAGID tiWhich,
 //  DWORD dwDefault
 //);
 typedef DWORD (WINAPI *PSdbReadDWORDTag)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiWhich,
   DWORD dwDefault
 );
@@ -195,22 +215,22 @@ PSdbReadDWORDTag pSdbReadDWORDTag = NULL;
 
 // http://msdn2.microsoft.com/en-us/library/bb432463.aspx
 //ULONGLONG WINAPI SdbReadQWORDTag(
-//  PDB pdb,
+//  HSDB pdb,
 //  TAGID tiWhich,
 //  ULONGLONG qwDefault
 //);
 typedef ULONGLONG (WINAPI *PSdbReadQWORDTag)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiWhich,
   ULONGLONG qwDefault
 );
 PSdbReadQWORDTag pSdbReadQWORDTag = NULL;
 
 // http://msdn2.microsoft.com/en-us/library/bb432455
-//PDB WINAPI SdbOpenApphelpDetailsDatabase(
+//HSDB WINAPI SdbOpenApphelpDetailsDatabase(
 //  LPCWSTR pwsDetailsDatabasePath
 //);
-typedef PDB (WINAPI *PSdbOpenApphelpDetailsDatabase)(
+typedef HSDB (WINAPI *PSdbOpenApphelpDetailsDatabase)(
   LPCWSTR pwsDetailsDatabasePath
 );
 PSdbOpenApphelpDetailsDatabase pSdbOpenApphelpDetailsDatabase = NULL;
@@ -226,22 +246,22 @@ PSdbOpenApphelpResourceFile pSdbOpenApphelpResourceFile = NULL;
 
 // http://msdn.microsoft.com/en-us/library/bb432443
 //PVOID WINAPI SdbGetBinaryTagData(
-//  __in  PDB pdb,
+//  __in  HSDB pdb,
 //  __in  TAGID tiWhich
 //);
 typedef PVOID (WINAPI *PSdbGetBinaryTagData)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiWhich
 );
 PSdbGetBinaryTagData pSdbGetBinaryTagData = NULL;
 
 // ???
 //DWORD WINAPI SdbGetTagDataSize(
-//  __in  PDB pdb,
+//  __in  HSDB pdb,
 //  __in  TAGID tiWhich
 //);
 typedef DWORD (WINAPI *PSdbGetTagDataSize)(
-  PDB pdb,
+  HSDB pdb,
   TAGID tiWhich
 );
 PSdbGetTagDataSize pSdbGetTagDataSize = NULL;
@@ -263,8 +283,6 @@ typedef struct tagSDBQUERYRESULT {
   DWORD  dwCustomSDBMap;
   GUID   rgGuidDB[SDB_MAX_SDBS];
 } SDBQUERYRESULT, *PSDBQUERYRESULT;
-
-typedef void* HSDB;
 
 // http://msdn.microsoft.com/en-us/library/bb432448
 typedef BOOL (WINAPI *PSdbGetMatchingExe)(
@@ -360,10 +378,17 @@ char * MatchExe(char *FileName)
 	static char sBuf[10000];
 	LPWSTR szFileName = (LPWSTR)malloc((strlen(FileName)+1)*sizeof(WCHAR));
 	MultiByteToWideChar(CP_ACP, 0, FileName, -1, szFileName, strlen(FileName));
+	BOOL bRet;
+	HSDB hSDB;
 
 	HINSTANCE hAppHelp = LoadLibrary(_T("apphelp.dll"));
+	if(!hAppHelp){
+		sprintf(sBuf, "error %d loading apphelp.dll\n", GetLastError());
+		return sBuf;
+	}
 
 	pSdbOpenDatabase = (PSdbOpenDatabase) GetProcAddress(hAppHelp, "SdbOpenDatabase");
+	pSdbInitDatabase = (PSdbInitDatabase) GetProcAddress(hAppHelp, "SdbInitDatabase");
 	pSdbCloseDatabase = (PSdbCloseDatabase) GetProcAddress(hAppHelp, "SdbCloseDatabase");
 	pSdbGetFirstChild = (PSdbGetFirstChild) GetProcAddress(hAppHelp, "SdbGetFirstChild");
 	pSdbGetNextChild = (PSdbGetNextChild) GetProcAddress(hAppHelp, "SdbGetNextChild");
@@ -384,55 +409,67 @@ char * MatchExe(char *FileName)
 	if(pSdbGetMatchingExe == NULL){
 		// rough protection: we assume that if this is found, then all fpointers are there.
 		sprintf(sBuf, "Unsupported Shim DB\n", FileName);
+		FreeLibrary(hAppHelp);
 		return sBuf;
 	}
 
-	BOOL bRet = pSdbGetMatchingExe(NULL, (LPCWSTR)szFileName, NULL, NULL, 0, &result);
-	if (bRet){
-		sprintf(sBuf, "Shim found for file: %s\n", FileName);
-		const size_t flagsLen = 1024;
-		char szFlagsStr[flagsLen];
-		Flags2String(result.dwFlags, szFlagsStr, flagsLen);
-		sprintf(sBuf, "%sFlags: 0x%x: %s\n", sBuf, result.dwFlags, szFlagsStr);
-
-		if (result.trApphelp != TAGREF_NULL) sprintf(sBuf, "%sAppHelp-Message: 0x%x\n", sBuf, result.trApphelp);
-
-		for(DWORD i=0; i<result.dwExeCount; i++){
-			sprintf(sBuf, "%sExe-Shim: 0x%x, ", sBuf, result.atrExes[i]);
-			Flags2String(result.adwExeFlags[i], szFlagsStr, flagsLen);
-			sprintf(sBuf, "%sFlags: 0x%x: %s\n", sBuf, result.adwExeFlags[i], szFlagsStr);
-		}
-
-		for(DWORD i=0; i<result.dwLayerCount; i++){
-			sprintf(sBuf, "%sLayer-Shim: 0x%x\n", sBuf, result.atrLayers[i]);
-		}
-
-		Flags2String(result.dwLayerFlags, szFlagsStr, flagsLen);
-		sprintf(sBuf, "%sLayer-Flags: 0x%x: %s\n", sBuf, result.dwLayerFlags, szFlagsStr);
-		
-		for(DWORD i=0; i<SDB_MAX_SDBS; i++){
-			if (result.rgGuidDB[i] != GUID_NULL){
-				sprintf(sBuf, "%sShim-Database: %8.8X-%4.4X-%4.4X-%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X\n", 
-				sBuf,
-				result.rgGuidDB[i].Data1,
-				result.rgGuidDB[i].Data2,
-				result.rgGuidDB[i].Data3,
-				result.rgGuidDB[i].Data4[0],
-				result.rgGuidDB[i].Data4[1],
-				result.rgGuidDB[i].Data4[2],
-				result.rgGuidDB[i].Data4[3],
-				result.rgGuidDB[i].Data4[4],
-				result.rgGuidDB[i].Data4[5],
-				result.rgGuidDB[i].Data4[6],
-				result.rgGuidDB[i].Data4[7]
-				);
-			}
-		}
-		//pSdbReleaseMatchingExe( ??? );
+	//hSDB = pSdbInitDatabase(HID_DATABASE_TYPE_MASK|SDB_DATABASE_MAIN_SHIM, NULL);
+	hSDB = pSdbInitDatabase(SDB_DATABASE_MAIN_SHIM, NULL);
+	if(!hSDB){
+		sprintf(sBuf, "Can't initialize shims database\n");
+		return (sBuf);
 	}
-	else{
+
+	bRet = pSdbGetMatchingExe(NULL, (LPCWSTR)szFileName, NULL, NULL, 0, &result);
+	if(!bRet){
 		sprintf(sBuf, "No Shim found for file: %s\n", FileName);
+		FreeLibrary(hAppHelp);
+		return (sBuf);
 	}
+
+	sprintf(sBuf, "Shim found for file: %s\n", FileName);
+	const size_t flagsLen = 1024;
+	char szFlagsStr[flagsLen];
+	Flags2String(result.dwFlags, szFlagsStr, flagsLen);
+	sprintf(sBuf, "%sFlags: 0x%x: %s\n", sBuf, result.dwFlags, szFlagsStr);
+
+	if (result.trApphelp != TAGREF_NULL) sprintf(sBuf, "%sAppHelp-Message: 0x%x\n", sBuf, result.trApphelp);
+
+	for(DWORD i=0; i<result.dwExeCount; i++){
+		sprintf(sBuf, "%sExe-Shim: 0x%x, ", sBuf, result.atrExes[i]);
+		Flags2String(result.adwExeFlags[i], szFlagsStr, flagsLen);
+		sprintf(sBuf, "%sFlags: 0x%x: %s\n", sBuf, result.adwExeFlags[i], szFlagsStr);
+	}
+
+	for(DWORD i=0; i<result.dwLayerCount; i++){
+		sprintf(sBuf, "%sLayer-Shim: 0x%x\n", sBuf, result.atrLayers[i]);
+	}
+
+	Flags2String(result.dwLayerFlags, szFlagsStr, flagsLen);
+	sprintf(sBuf, "%sLayer-Flags: 0x%x: %s\n", sBuf, result.dwLayerFlags, szFlagsStr);
+
+	sprintf(sBuf, "%sCustomSDBMap: 0x%x\n", sBuf, result.dwCustomSDBMap);
+	for(DWORD i=0; i<SDB_MAX_SDBS; i++){
+		if (result.rgGuidDB[i] != GUID_NULL){
+			sprintf(sBuf, "%sShim-Database: %8.8X-%4.4X-%4.4X-%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X%2.2X\n", 
+			sBuf,
+			result.rgGuidDB[i].Data1,
+			result.rgGuidDB[i].Data2,
+			result.rgGuidDB[i].Data3,
+			result.rgGuidDB[i].Data4[0],
+			result.rgGuidDB[i].Data4[1],
+			result.rgGuidDB[i].Data4[2],
+			result.rgGuidDB[i].Data4[3],
+			result.rgGuidDB[i].Data4[4],
+			result.rgGuidDB[i].Data4[5],
+			result.rgGuidDB[i].Data4[6],
+			result.rgGuidDB[i].Data4[7]
+			);
+		}
+	}
+
+	pSdbReleaseMatchingExe(hSDB, (TAGREF)&result);
+	FreeLibrary(hAppHelp);
 	return sBuf;
 }
 

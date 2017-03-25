@@ -283,6 +283,8 @@
 #define HOOKDLGWIN			0x80000000 // Hook dialog WindowProc
 
 // 9th flags DWORD dxw.dwFlags9:
+#define FIXTHINFRAME		0x00000001 // Fix window style like OVERLAPPEDWINDOW but with thin border
+
 // 10th flags DWORD dxw.dwFlags10:
 
 // logging Tflags DWORD:

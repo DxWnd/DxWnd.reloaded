@@ -110,7 +110,9 @@ static void OutTraceHeader(FILE *fp, DWORD tflags)
 	for(i=0, dword=dxw.dwFlags6; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(5,i));
 	for(i=0, dword=dxw.dwFlags7; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(6,i));
 	for(i=0, dword=dxw.dwFlags8; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(7,i));
-	for(i=0, dword=tflags      ; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(8,i));
+	for(i=0, dword=dxw.dwFlags9; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(8,i));
+	for(i=0, dword=dxw.dwFlags10;i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(9,i));
+	for(i=0, dword=tflags      ; i<32; i++, dword>>=1) if(dword & 0x1) fprintf(fp, "%s ", GetFlagCaption(10,i));
 	fprintf(fp, "***\n");
 }
 
@@ -1400,10 +1402,10 @@ void HookInit(TARGETMAP *target, HWND hwnd)
 	// update window styles: just this window or, when FIXPARENTWIN is set, the father one as well. 
 
 	if (hwnd && dxw.Windowize && dxw.IsFullScreen()) {
-		if(dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(dxw.hChildWnd);
+		if((dxw.dwFlags1 & FIXWINFRAME) || (dxw.dwFlags9 & FIXTHINFRAME)) dxw.FixWindowFrame(dxw.hChildWnd);
 		AdjustWindowPos(dxw.hChildWnd, target->sizx, target->sizy);
 		if(dxw.dwFlags1 & FIXPARENTWIN) {
-			if(dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(dxw.hParentWnd);
+			if((dxw.dwFlags1 & FIXWINFRAME) || (dxw.dwFlags9 & FIXTHINFRAME)) dxw.FixWindowFrame(dxw.hParentWnd);
 			AdjustWindowPos(dxw.hParentWnd, target->sizx, target->sizy);
 		}
 	}

@@ -55,8 +55,12 @@ BOOL CViewFlagsDialog::OnInitDialog()
 	for(i=0, dword = t->flags7; i<32; i++, dword>>=1) if(dword & 0x1) sflags.AppendFormat("%s ", GetFlagCaption(6,i));
 	sflags.Append("\nFlags8: ");
 	for(i=0, dword = t->flags8; i<32; i++, dword>>=1) if(dword & 0x1) sflags.AppendFormat("%s ", GetFlagCaption(7,i));
+	sflags.Append("\nFlags9: ");
+	for(i=0, dword = t->flags8; i<32; i++, dword>>=1) if(dword & 0x1) sflags.AppendFormat("%s ", GetFlagCaption(8,i));
+	sflags.Append("\nFlags10: ");
+	for(i=0, dword = t->flags8; i<32; i++, dword>>=1) if(dword & 0x1) sflags.AppendFormat("%s ", GetFlagCaption(9,i));
 	sflags.Append("\nTFlags: ");
-	for(i=0, dword = t->tflags; i<32; i++, dword>>=1) if(dword & 0x1) sflags.AppendFormat("%s ", GetFlagCaption(8,i));
+	for(i=0, dword = t->tflags; i<32; i++, dword>>=1) if(dword & 0x1) sflags.AppendFormat("%s ", GetFlagCaption(10,i));
 
 	this->SetDlgItemTextA(IDC_DESKTOPINFO, sflags);
 	this->SetWindowTextA(t->path);

@@ -8,8 +8,8 @@
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-//#define DXW_SURFACE_STACK_TRACING
-//#define OutTraceSDB OutTrace
+#define DXW_SURFACE_STACK_TRACING
+#define OutTraceSDB OutTrace
 
 dxwSStack::dxwSStack()
 {
@@ -17,6 +17,7 @@ dxwSStack::dxwSStack()
 	lpDDSPrimary = NULL;
 	lpDDSBackBuffer = NULL;
 	lpDDSZBuffer = NULL;
+	lpDDS3DRef = NULL;
 	memset(SurfaceDB, 0, sizeof(SurfaceDB));
 }
 
@@ -31,6 +32,7 @@ static char *sRole(USHORT role)
 		case SURFACE_ROLE_PRIMARY: s="(PRIM)"; break;
 		case SURFACE_ROLE_BACKBUFFER: s="(BACK)"; break;
 		case SURFACE_ROLE_ZBUFFER: s="(ZBUF)"; break;
+		case SURFACE_ROLE_3DREF: s="(3DREF)"; break;
 		default: s="??"; break; // should never happen ...
 	}
 	return s;
@@ -43,10 +45,12 @@ static void CheckSurfaceList(SurfaceDB_Type *SurfaceDB)
 	char sMsg[81];
 	int iPCount = 0;
 	int iBCount = 0;
+	int iZCount = 0;
 	for (int i=0;i<DDSQLEN;i++) {
 		if (SurfaceDB[i].lpdds == NULL) break;
 		if ((SurfaceDB[i].uRole == SURFACE_ROLE_PRIMARY)	&& SurfaceDB[i].uRef) iPCount++;
 		if ((SurfaceDB[i].uRole == SURFACE_ROLE_BACKBUFFER) && SurfaceDB[i].uRef) iBCount++;
+		if ((SurfaceDB[i].uRole == SURFACE_ROLE_ZBUFFER)    && SurfaceDB[i].uRef) iZCount++;
 	}
 	if(iPCount > 1) {
 		sprintf(sMsg, "Primary count = %d", iPCount);
@@ -54,6 +58,10 @@ static void CheckSurfaceList(SurfaceDB_Type *SurfaceDB)
 	}
 	if(iBCount > 1) {
 		sprintf(sMsg, "Backbuffer count = %d", iPCount);
+		MessageBox(0, sMsg, "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
+	}
+	if(iZCount > 1) {
+		sprintf(sMsg, "Zbuffer count = %d", iZCount);
 		MessageBox(0, sMsg, "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
 	}
 }
@@ -87,53 +95,33 @@ char *dxwSStack::ExplainSurfaceRole(LPDIRECTDRAWSURFACE ps)
 void dxwSStack::ClearSurfaceList()
 {
 #ifdef DXW_SURFACE_STACK_TRACING
-	OutTrace(">>> SURFACELIST CLEAR ALL\n");
+	OutTrace(">>> SURFACELIST CLEAR UNREF\n");
 #endif
 	// v2.03.91.fx5: emptying the list entirely is no good for "Warhammer 40K Rites of War"
 	// better leave the last used primary and backbuffer surfaces.
-	int i;
-	SurfaceDB_Type LastEntries[3];
-	LastEntries[0].lpdds = 0;
-	LastEntries[1].lpdds = 0;
-	LastEntries[2].lpdds = 0;
+	int i, j;
+	SurfaceDB_Type NewEntries[DDSQLEN];
 	lpDDSPrimary = NULL;
 	lpDDSBackBuffer = NULL;
 	lpDDSZBuffer = NULL;
-	// search for last (more recent) entries and copy to safe place
-	for (i=0;i<DDSQLEN;i++) {
+	lpDDS3DRef = NULL;
+	// search for valid entries and copy to safe place
+	for (i=0, j=0; i<DDSQLEN; i++) {
 		if(SurfaceDB[i].lpdds == NULL) break;
-		LastEntries[SurfaceDB[i].uRole]=SurfaceDB[i];
+		if(SurfaceDB[i].uRef) NewEntries[j++]=SurfaceDB[i];
 	}
-	// clear all
-	for (i=0;i<DDSQLEN;i++) {
-		SurfaceDB[i].lpdds = NULL;
-		SurfaceDB[i].uRef = FALSE;
-		SurfaceDB[i].uRole = 0;
-		SurfaceDB[i].uVersion = 0;
+	NewEntries[j].lpdds = NULL; // terminator
+	// move back to original list
+	for (i=0; i<DDSQLEN; i++) {
+		if(NewEntries[i].lpdds == NULL) break;
+		SurfaceDB[i]=NewEntries[i];
+		switch(SurfaceDB[i].uRole){
+			case SURFACE_ROLE_PRIMARY: lpDDSPrimary = SurfaceDB[i].lpdds; break;
+			case SURFACE_ROLE_BACKBUFFER: lpDDSBackBuffer = SurfaceDB[i].lpdds; break;
+			case SURFACE_ROLE_ZBUFFER: lpDDSZBuffer = SurfaceDB[i].lpdds; break;
+		}
 	}
-	// bring back the valid entries to db
-	i = 0;
-	if(LastEntries[0].lpdds) {
-		SurfaceDB[i++]=LastEntries[0];
-		lpDDSPrimary = LastEntries[0].lpdds;
-#ifdef DXW_SURFACE_STACK_TRACING
-		OutTrace(">>> SAVED lpDDSPrimary=%x\n", lpDDSPrimary);
-#endif
-	}
-	if(LastEntries[1].lpdds) {
-		SurfaceDB[i++]=LastEntries[1];
-		lpDDSBackBuffer = LastEntries[1].lpdds;
-#ifdef DXW_SURFACE_STACK_TRACING
-		OutTrace(">>> SAVED lpDDSBackBuffer=%x\n", lpDDSBackBuffer);
-#endif
-	}
-	if(LastEntries[2].lpdds) {
-		SurfaceDB[i++]=LastEntries[2];
-		lpDDSZBuffer = LastEntries[2].lpdds;
-#ifdef DXW_SURFACE_STACK_TRACING
-		OutTrace(">>> SAVED lpDDSZBuffer=%x\n", lpDDSZBuffer);
-#endif
-	}
+	SurfaceDB[i].lpdds = 0; // terminator
 #ifdef DXW_SURFACE_STACK_TRACING
 	DumpSurfaceList(SurfaceDB);
 #endif
@@ -204,30 +192,49 @@ void dxwSStack::PushZBufferSurface(LPDIRECTDRAWSURFACE ps, int version, DWORD dw
 	PushSurface(ps, SURFACE_ROLE_ZBUFFER, (USHORT)version, dwCaps);
 }
 
-void dxwSStack::DuplicateSurface(LPDIRECTDRAWSURFACE psfrom, LPDIRECTDRAWSURFACE psto, int version)
+void dxwSStack::Push3DRefSurface(LPDIRECTDRAWSURFACE ps, int version, DWORD dwCaps)
 {
-	int i, j;
+	PushSurface(ps, SURFACE_ROLE_3DREF, (USHORT)version, dwCaps);
+}
+
+DWORD dxwSStack::DuplicateSurface(LPDIRECTDRAWSURFACE psfrom, LPDIRECTDRAWSURFACE psto, int version)
+{
+	int i;
 	SurfaceDB_Type *e;
+	SurfaceDB_Type sentry;
 #ifdef DXW_SURFACE_STACK_TRACING
 	OutTraceSDB(">>> SURFACELIST DUPL: from=%x to=%x vers=%d\n", psfrom, psto, version);
 #endif
+	// search for source or empty slot
 	for (i=0;i<DDSQLEN;i++) {
 		e=&SurfaceDB[i];
 		if ((e->lpdds==psfrom) || (e->lpdds==(DWORD)0)) break; // got matching entry or end of the list
 	}
 	// if not found, return
-	if (!e->lpdds) return;
-	// search for an empty slot
-	j = i;
-	for (j=0;j<DDSQLEN;j++) if (!SurfaceDB[j].lpdds) break;
+	if (!e->lpdds) return 0;
+	// save surface entry
+	sentry = *e;
+	// search for destination or empty slot
+	for (i=0;i<DDSQLEN;i++) {
+		e=&SurfaceDB[i];
+		if ((e->lpdds==psto) || (e->lpdds==(DWORD)0)) break; // got matching entry or end of the list
+	}
+	if(i == DDSQLEN) {
+		//MessageBox(0, "Surface stack is full", "DxWnd SurfaceList", MB_OK | MB_ICONEXCLAMATION);
+		//return;
+		for(int j=0;j<DDSQLEN-1;j++) SurfaceDB[j]=SurfaceDB[j+1]; // scale down the whole stack one entry
+		e=&SurfaceDB[DDSQLEN-1];
+	}
 	// duplicate the entry with the new lpdds and version but old role / capabilities
-	SurfaceDB[j] = SurfaceDB[i];
-	SurfaceDB[j].lpdds = psto;
-	SurfaceDB[j].uVersion = version;
-
+	// either overriding the old entry or writing a new one
+	*e = sentry;
+	e->lpdds = psto;
+	e->uVersion = version;
+	e->uRef = TRUE;
 #ifdef DXW_SURFACE_STACK_TRACING
 	DumpSurfaceList(SurfaceDB);
 #endif
+	return e->dwCaps;
 }
 
 void dxwSStack::PopSurface(LPDIRECTDRAWSURFACE ps)
@@ -302,6 +309,18 @@ BOOL dxwSStack::IsAZBufferSurface(LPDIRECTDRAWSURFACE ps)
 	return FALSE;
 }
 
+BOOL dxwSStack::IsA3DRefSurface(LPDIRECTDRAWSURFACE ps)
+{
+	int i;
+	// treat NULL surface ptr as a non primary
+	if(!ps) return FALSE;
+	for (i=0;i<DDSQLEN;i++) {
+		if (SurfaceDB[i].lpdds==0) return FALSE;
+		if (SurfaceDB[i].lpdds==ps) return (SurfaceDB[i].uRole == SURFACE_ROLE_3DREF);
+	}
+	return FALSE;
+}
+
 LPDIRECTDRAWSURFACE dxwSStack::GetSurfaceByRole(USHORT role)
 {
 	// Get a surface marked for the desired role (either PRIMARY or BACKBUFFER) and
@@ -350,4 +369,18 @@ DWORD dxwSStack::GetCaps(LPDIRECTDRAWSURFACE ps)
 		}
 	}
 	return 0;
+}
+
+SurfaceDB_Type *dxwSStack::GetSurface(LPDIRECTDRAWSURFACE ps)
+{
+	for (int i=0;i<DDSQLEN;i++) {
+		if (SurfaceDB[i].lpdds==0) return NULL;
+		if (SurfaceDB[i].lpdds==ps) {
+#ifdef DXW_SURFACE_STACK_TRACING
+			OutTraceSDB(">>> GETCAPS: lpdds=%x caps=%x(%s)\n", ps, SurfaceDB[i].dwCaps, ExplainDDSCaps(SurfaceDB[i].dwCaps));
+#endif		
+			return &SurfaceDB[i];
+		}
+	}
+	return NULL;
 }

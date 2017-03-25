@@ -541,10 +541,8 @@ static DWORD GetFlipWaitFlags(DWORD dwFlipFlags)
 
 static DWORD SetPrimaryCaps(DWORD dwCaps)
 {
-	dwCaps |= DDSD_Prim.ddsCaps.dwCaps;
 	dwCaps |= (DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_FRONTBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_VISIBLE); // primary surfaces must be this way
 	dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // primary surfaces can't be this way
-	if(dwCaps & DDSCAPS_3DDEVICE) dwCaps |= DDSCAPS_LOCALVIDMEM;
 	return dwCaps;
 }
 
@@ -553,8 +551,6 @@ static DWORD SetBackBufferCaps(DWORD dwCaps)
 	// v2.03.11: added DDSCAPS_FLIP capability to backbuffer surface: "Ignition" checks for it before Flip-ping to primary
 	dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY|DDSCAPS_FLIP|DDSCAPS_LOCALVIDMEM); // you never know....
 	dwCaps &= ~(DDSCAPS_SYSTEMMEMORY|DDSCAPS_OFFSCREENPLAIN); // backbuffer surfaces can't be this way
-	if(dwCaps & DDSCAPS_3DDEVICE) dwCaps |= DDSCAPS_LOCALVIDMEM;
-	//if(dwCaps & DDSCAPS_3DDEVICE) dwCaps |= (DDSCAPS_LOCALVIDMEM | DDSCAPS_COMPLEX);
 	return dwCaps;
 }
 
@@ -2336,7 +2332,7 @@ HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pS
 
 	if(bFixFrame){
 		AdjustWindowFrame(hwnd, dxw.GetScreenWidth(), dxw.GetScreenHeight());
-		if (dxw.dwFlags1 & FIXWINFRAME) dxw.FixWindowFrame(hwnd);
+		if ((dxw.dwFlags1 & FIXWINFRAME) || (dxw.dwFlags9 & FIXTHINFRAME)) dxw.FixWindowFrame(hwnd);
 	}
 
 	GetHookInfo()->IsFullScreen=dxw.IsFullScreen();
@@ -2563,19 +2559,12 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 				return DD_OK;
 			}
 		}
-		// arguable utility ....
-		// commented out: causes "Arx Fatalis" crash assigning ZBUFFER to the wrong surface?
-		// would that be necessary on some game?
-		//if(dxw.dwFlags6 & SETZBUFFERBITDEPTHS){
-		//	if (lpDDZBuffer && (lpddsc->dwCaps & DDSCAPS_ZBUFFER)){ 
-		//		*lplpddas = lpDDZBuffer;
-		//		OutTraceDW("GetAttachedSurface(%d): SIMULATE ZBUFFER attach to %s=%x add=%x\n", 
-		//			dxversion, IsPrim?"PRIM":(IsBack?"BACK":"PLAIN"), lpdds, lpDDZBuffer); 
-		//		//if (pAddRefS) (*pAddRefS)(lpDDZBuffer); 
-		//		lpDDZBuffer->AddRef();
-		//		return DD_OK;
-		//	}
-		//} 
+
+		// Warning: AVOID simulating a ZBUFFER attach to any surface that has not it really attached
+		// otherwise the program steps over but crashes afterwards, as soon as it tries to use the ZBUFFER.
+		// Better return the error (most programs overcome the problem) or change caps policy so that the
+		// ZBUFFER becomes attached.
+		// Ref: "Arx Fatalis", "TOCA Touring Car Championship"
 
 		OutTraceE("GetAttachedSurface(%d): ERROR res=%x(%s) at %d\n", dxversion, res, ExplainDDError(res), __LINE__);
 	}
@@ -2608,7 +2597,6 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 			}
 			OutTraceDW("GetAttachedSurface(%d): ZBUFFER caps=%x(%s) (%s)\n", dxversion, dwCaps, ExplainDDSCaps(dwCaps), sMode);
 		}
-
 	}
 
 	return res;
@@ -4824,44 +4812,58 @@ HRESULT WINAPI cbDump(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
 static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS caps)
 {
 	HRESULT res;
-	BOOL IsPrim, IsBack, IsZBuf, IsFixed;
-	IsPrim=dxwss.IsAPrimarySurface(lpdds);
-	IsBack=dxwss.IsABackBufferSurface(lpdds);
-	IsFixed=FALSE;
+	BOOL IsFixed=FALSE;
+	int role;
+	SurfaceDB_Type *ps;
 	char *sLabel;
 
-	sLabel = "";
-	if(IsPrim) sLabel="(PRIM)";
-	if(IsBack) sLabel="(BACK)";
+	ps = dxwss.GetSurface(lpdds);
 
+	// BEWARE: ZBUFFER surfaces could be created automatically so that they could exist without
+	// being regisered in surface stack. You must query the actual surface capabilities.
 	res=(*pGetCapsS)(lpdds, caps);
 	if(res) 
-		OutTraceE("GetCaps(S%d): ERROR lpdds=%x%s err=%x(%s)\n", dxInterface, lpdds, sLabel, res, ExplainDDError(res));
+		OutTraceE("GetCaps(S%d): ERROR lpdds=%x err=%x(%s)\n", dxInterface, lpdds, res, ExplainDDError(res));
 	else
-		OutTraceDDRAW("GetCaps(S%d): lpdds=%x%s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
+		OutTraceDDRAW("GetCaps(S%d): lpdds=%x caps=%x(%s)\n", dxInterface, lpdds, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
 
-	IsZBuf=(caps->dwCaps & DDSCAPS_ZBUFFER);
-	if(IsZBuf) sLabel="(ZBUFFER)";
+	sLabel="";
+	role = SURFACE_ROLE_UNKNOWN;
+	if (ps) {
+		role = ps->uRole;
+		switch(role){
+			case SURFACE_ROLE_PRIMARY: sLabel="(PRIM)"; break;
+			case SURFACE_ROLE_BACKBUFFER: sLabel="(BACK)"; break;
+			case SURFACE_ROLE_ZBUFFER: sLabel="(ZBUF)"; break;
+			case SURFACE_ROLE_3DREF: sLabel="(3DREF)"; break;
+		}
+	}
+	else {
+		if (caps->dwCaps & DDSCAPS_ZBUFFER) {
+			sLabel="(ZBUF)";
+			role = SURFACE_ROLE_ZBUFFER;
+		}
+	}
 
 	if(!(dxw.IsEmulated || dxw.Windowize)) return res;
 
-	while(TRUE){ // fake loop
-		if (IsPrim) {
+	switch(role) {
+		case SURFACE_ROLE_PRIMARY:
 			IsFixed=TRUE;
-			caps->dwCaps = SetPrimaryCaps(caps->dwCaps);
+			caps->dwCaps = SetPrimaryCaps(dxwss.GetCaps(lpdds));
 			break;
-		}
-		if (IsBack) {
+		case SURFACE_ROLE_BACKBUFFER:
 			IsFixed=TRUE;
-			caps->dwCaps = SetBackBufferCaps(caps->dwCaps);
+			caps->dwCaps = SetBackBufferCaps(dxwss.GetCaps(lpdds));
 			break;
-		}
-		if (IsZBuf) {
+		case SURFACE_ROLE_ZBUFFER:
 			IsFixed=TRUE;
 			caps->dwCaps = SetZBufferCaps(dxwss.GetCaps(lpdds));
 			break;
-		}
-		break; // inconditional break;
+		case SURFACE_ROLE_3DREF:
+			IsFixed=TRUE;
+			caps->dwCaps = dxwss.GetCaps(lpdds);
+			break;
 	}
 
 	if(IsFixed) OutTraceDW("GetCaps(S%d): lpdds=%x FIXED %s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
@@ -4883,16 +4885,17 @@ HRESULT WINAPI extGetCaps7S(LPDIRECTDRAWSURFACE lpdds, LPDDSCAPS2 caps)
 static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetSurfaceDesc, LPDIRECTDRAWSURFACE lpdds, LPDDSURFACEDESC lpddsd)
 {
 	HRESULT res;
-	BOOL IsPrim, IsBack, IsZBuf, IsFixed;
-	IsPrim=dxwss.IsAPrimarySurface(lpdds);
-	IsBack=dxwss.IsABackBufferSurface(lpdds);
-	IsFixed=FALSE;
+	BOOL IsFixed = FALSE;
+	SurfaceDB_Type *ps;
+	int role;
 	char *sLabel;
 
 	if (!pGetSurfaceDesc) {
 		OutTraceE("GetSurfaceDesc: ERROR no hooked function\n");
 		return DDERR_INVALIDPARAMS;
 	}
+
+	ps = dxwss.GetSurface(lpdds);
 
 	int prevsize = lpddsd->dwSize;
 	switch(dxversion){
@@ -4913,37 +4916,51 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 		OutTraceE("GetSurfaceDesc(%d): ERROR err=%x(%s)\n", dxversion, res, ExplainDDError(res));
 		return res;
 	}
-	IsZBuf=(lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER);
+
 	sLabel="";
-	if(IsPrim) sLabel="(PRIM)";
-	if(IsBack) sLabel="(BACK)";
-	if(IsZBuf) sLabel="(ZBUFFER)";
+	role = SURFACE_ROLE_UNKNOWN;
+	if (ps) {
+		role = ps->uRole;
+		switch(role){
+			case SURFACE_ROLE_PRIMARY: sLabel="(PRIM)"; break;
+			case SURFACE_ROLE_BACKBUFFER: sLabel="(BACK)"; break;
+			case SURFACE_ROLE_ZBUFFER: sLabel="(ZBUF)"; break;
+			case SURFACE_ROLE_3DREF: sLabel="(3DREF)"; break;
+		}
+	}
+	else {
+		if (lpddsd->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) {
+			sLabel="(ZBUF)";
+			role = SURFACE_ROLE_ZBUFFER;
+		}
+	}
 
 	OutTraceDDRAW("GetSurfaceDesc(%d): lpdds=%x%s %s\n", dxversion, lpdds, sLabel, LogSurfaceAttributes((LPDDSURFACEDESC2)lpddsd, "GetSurfaceDesc", __LINE__));
 
 	if(!(dxw.IsEmulated || dxw.Windowize)) return res;
 
-	while(TRUE){ // fake loop
-		if (IsPrim) {
+	switch(role) {
+		case SURFACE_ROLE_PRIMARY:
 			IsFixed=TRUE;
-			if (dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
-			lpddsd->ddsCaps.dwCaps = SetPrimaryCaps(lpddsd->ddsCaps.dwCaps);
+			//if (dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat;
+			lpddsd->ddsCaps.dwCaps = SetPrimaryCaps(dxwss.GetCaps(lpdds));
 			lpddsd->dwBackBufferCount=DDSD_Prim.dwBackBufferCount;
 			lpddsd->dwHeight=dxw.GetScreenHeight();
 			lpddsd->dwWidth=dxw.GetScreenWidth();
 			break;
-		}
-		if (IsBack) {
+		case SURFACE_ROLE_BACKBUFFER:
 			IsFixed=TRUE;
-			lpddsd->ddsCaps.dwCaps = SetBackBufferCaps(lpddsd->ddsCaps.dwCaps);
+			//if (dxw.dwFlags1 & EMULATESURFACE) lpddsd->ddpfPixelFormat = dxw.VirtualPixelFormat; // v2.04.20
+			lpddsd->ddsCaps.dwCaps = SetBackBufferCaps(dxwss.GetCaps(lpdds));
 			break;
-		}
-		if (IsZBuf) {
+		case SURFACE_ROLE_ZBUFFER:
 			IsFixed=TRUE;
 			lpddsd->ddsCaps.dwCaps = SetZBufferCaps(dxwss.GetCaps(lpdds));
 			break;
-		}
-		break; // inconditional break
+		case SURFACE_ROLE_3DREF:
+			IsFixed=TRUE;
+			lpddsd->ddsCaps.dwCaps = dxwss.GetCaps(lpdds);
+			break;
 	}
 	
 	if(IsFixed){

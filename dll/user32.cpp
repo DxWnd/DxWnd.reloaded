@@ -16,6 +16,13 @@
 #include <Winuser.h>
 
 #define FIXCHILDSIZE FALSE
+//#define TRANSLATEMESSAGEHOOK
+
+#ifdef TRANSLATEMESSAGEHOOK
+typedef BOOL (WINAPI *TranslateMessage_Type)(MSG *);
+BOOL WINAPI extTranslateMessage(MSG *);
+TranslateMessage_Type pTranslateMessage;
+#endif
 
 #define _Warn(s) MessageBox(0, s, "to do", MB_ICONEXCLAMATION)
 
@@ -43,9 +50,9 @@ UINT WINAPI extSetDIBColorTable(HDC, UINT, UINT, const RGBQUAD *);
 #endif
 
 static HookEntryEx_Type Hooks[]={
-	
-	//{HOOK_IAT_CANDIDATE, 0, "TranslateMessage", (FARPROC)TranslateMessage, (FARPROC *)&pTranslateMessage, (FARPROC)extTranslateMessage}, 
-	
+#ifdef TRANSLATEMESSAGEHOOK	
+	{HOOK_IAT_CANDIDATE, 0, "TranslateMessage", (FARPROC)TranslateMessage, (FARPROC *)&pTranslateMessage, (FARPROC)extTranslateMessage}, 
+#endif
 	{HOOK_IAT_CANDIDATE, 0, "UpdateWindow", (FARPROC)UpdateWindow, (FARPROC *)&pUpdateWindow, (FARPROC)extUpdateWindow}, // v2.04.04: needed for "Hide Desktop" option
 	//{HOOK_IAT_CANDIDATE, 0, "GetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pGetWindowPlacement, (FARPROC)extGetWindowPlacement},
 	//{HOOK_IAT_CANDIDATE, 0, "SetWindowPlacement", (FARPROC)NULL, (FARPROC *)&pSetWindowPlacement, (FARPROC)extSetWindowPlacement},
@@ -798,6 +805,15 @@ LONG WINAPI extSetWindowLong(HWND hwnd, int nIndex, LONG dwNewLong, SetWindowLon
 			if((nIndex==GWL_STYLE) && !(dwNewLong & WS_CHILD) && dxw.IsDesktop(hwnd)){
 				OutTraceDW("SetWindowLong: GWL_STYLE %x force OVERLAPPEDWINDOW\n", dwNewLong);
 				dwNewLong |= WS_OVERLAPPEDWINDOW; 
+				dwNewLong &= ~WS_CLIPSIBLINGS; 
+			}
+		}
+
+		if (dxw.dwFlags1 & FIXTHINFRAME){
+			//if((nIndex==GWL_STYLE) && !(dwNewLong & WS_CHILD)){
+			if((nIndex==GWL_STYLE) && !(dwNewLong & WS_CHILD) && dxw.IsDesktop(hwnd)){
+				OutTraceDW("SetWindowLong: GWL_STYLE %x force OVERLAPPEDWINDOW\n", dwNewLong);
+				dwNewLong |= WS_OVERLAPPEDTHIN; 
 				dwNewLong &= ~WS_CLIPSIBLINGS; 
 			}
 		}
@@ -3664,6 +3680,7 @@ LRESULT CALLBACK extMouseHookProc(int code, WPARAM wParam, LPARAM lParam)
 
 HOOKPROC glpMessageHookProcessFunction;
 HOOKPROC glpMouseHookProcessFunction;
+HOOKPROC glpMouseHookProcessFunctionLL;
 
 LRESULT CALLBACK extMessageHookProc(int code, WPARAM wParam, LPARAM lParam)
 {
@@ -3682,17 +3699,48 @@ LRESULT CALLBACK extMessageHookProc(int code, WPARAM wParam, LPARAM lParam)
 	return ret;
 }
 
+static POINT FixMousePoint(POINT pt)
+{
+	dxw.UnmapWindow(&pt);
+	if(pt.x < 0) pt.x = 0;
+	if(pt.x >= (LONG)dxw.GetScreenWidth()) pt.x = dxw.GetScreenWidth()-1;
+	if(pt.y < 0) pt.y = 0;
+	if(pt.y >= (LONG)dxw.GetScreenHeight()) pt.y = dxw.GetScreenHeight()-1;
+	return pt;
+}
+
 LRESULT CALLBACK extMouseHookProc(int code, WPARAM wParam, LPARAM lParam)
 {
-	LRESULT ret;
 	OutTraceC("MouseHookProc: code=%x wParam=%x lParam=%x\n", code, wParam, lParam);
-    MOUSEHOOKSTRUCT *pMouseStruct = (MOUSEHOOKSTRUCT *)lParam;
-    if (pMouseStruct != NULL){
-		OutTraceC("MouseHookProc: event=%s pos=(%d,%d)\n", ExplainWinMessage(wParam), pMouseStruct->pt.x, pMouseStruct->pt.y);
-		extGetCursorPos(&(pMouseStruct->pt)); 
-    }
-    ret = (*glpMouseHookProcessFunction)(code, wParam, lParam);
-	return ret;
+	if(code < 0) return CallNextHookEx(0, code, wParam, lParam);
+
+	if(lParam){
+		MOUSEHOOKSTRUCT MouseStruct = *(MOUSEHOOKSTRUCT *)lParam;
+		MouseStruct.pt = FixMousePoint(MouseStruct.pt);
+		OutTraceC("MouseHookProc: event=%s pos=(%d,%d)->(%d,%d)\n", 
+			ExplainWinMessage(wParam), 
+			((MOUSEHOOKSTRUCT *)lParam)->pt.x,  ((MOUSEHOOKSTRUCT *)lParam)->pt.y, 
+			MouseStruct.pt.x, MouseStruct.pt.y);
+		return (*glpMouseHookProcessFunction)(code, wParam, (LPARAM)&MouseStruct);
+	}
+	return (*glpMouseHookProcessFunction)(code, wParam, lParam);
+}
+
+LRESULT CALLBACK extMouseHookProcLL(int code, WPARAM wParam, LPARAM lParam)
+{
+	OutTraceC("MouseHookProcLL: code=%x wParam=%x lParam=%x\n", code, wParam, lParam);
+	if(code < 0) return CallNextHookEx(0, code, wParam, lParam);
+
+	if(lParam){
+		MSLLHOOKSTRUCT MouseStruct = *(MSLLHOOKSTRUCT *)lParam;
+		MouseStruct.pt = FixMousePoint(MouseStruct.pt);
+		OutTraceC("MouseHookProcLL: event=%s pos=(%d,%d)->(%d,%d)\n", 
+			ExplainWinMessage(wParam), 
+			((MSLLHOOKSTRUCT *)lParam)->pt.x,  ((MSLLHOOKSTRUCT *)lParam)->pt.y, 
+			MouseStruct.pt.x, MouseStruct.pt.y);
+		return (*glpMouseHookProcessFunctionLL)(code, wParam, (LPARAM)&MouseStruct);
+	}
+    return (*glpMouseHookProcessFunctionLL)(code, wParam, lParam);
 }
 
 static HHOOK WINAPI extSetWindowsHookEx(SetWindowsHookEx_Type pSetWindowsHookEx, int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWORD dwThreadId)
@@ -3709,6 +3757,7 @@ static HHOOK WINAPI extSetWindowsHookEx(SetWindowsHookEx_Type pSetWindowsHookEx,
 			lpfn=extMessageHookProc;
 		}
 	}
+
 	// v2.03.39: "One Must Fall Battlegrounds" keyboard fix
 	if((idHook == WH_KEYBOARD) && (dwThreadId == NULL)) {
 		dwThreadId = GetCurrentThreadId();
@@ -3727,10 +3776,17 @@ static HHOOK WINAPI extSetWindowsHookEx(SetWindowsHookEx_Type pSetWindowsHookEx,
 		return NULL;
 	}
 
-	if((dxw.dwFlags8 & FIXMOUSEHOOK) && (idHook == WH_MOUSE)){
-		OutTraceDW("SetWindowsHookEx: FIXMOUSEHOOK filter active\n");
-		glpMouseHookProcessFunction = lpfn;
-		lpfn=extMouseHookProc;
+	if(dxw.dwFlags8 & FIXMOUSEHOOK){
+		if(idHook == WH_MOUSE){
+			OutTraceDW("SetWindowsHookEx: FIXMOUSEHOOK filter active on WH_MOUSE\n");
+			glpMouseHookProcessFunction = lpfn;
+			lpfn=extMouseHookProc;
+		}
+		if (idHook == WH_MOUSE_LL){
+			OutTraceDW("SetWindowsHookEx: FIXMOUSEHOOK filter active on WH_MOUSE_LL\n");
+			glpMouseHookProcessFunctionLL = lpfn;
+			lpfn=extMouseHookProcLL;
+		}
 	}
 
 	ret=(*pSetWindowsHookEx)(idHook, lpfn, hMod, dwThreadId);
@@ -4053,7 +4109,7 @@ BOOL WINAPI extDrawMenuBar(HWND hWnd)
 	return ret;
 }
 
-#if 0
+#ifdef TRANSLATEMESSAGEHOOK
 BOOL WINAPI extTranslateMessage(MSG *pMsg)
 {
 	BOOL ret;
@@ -4063,8 +4119,8 @@ BOOL WINAPI extTranslateMessage(MSG *pMsg)
 		pMsg->pt=dxw.ScreenToClient(pMsg->pt);
 		pMsg->pt=dxw.FixCursorPos(pMsg->pt);
 		
-		pMsg->pt.x *= 4;
-		pMsg->pt.y *= 4;
+		//pMsg->pt.x *= 4;
+		//pMsg->pt.y *= 4;
 		//if((pMsg->message <= WM_MOUSELAST) && (pMsg->message >= WM_MOUSEFIRST)) 
 		//	pMsg->lParam = MAKELPARAM(pMsg->pt.x, pMsg->pt.y); 
 		OutTraceDW("TranslateMessage: new pos=(%d,%d)\n", pMsg->pt.x, pMsg->pt.y);

@@ -42,6 +42,7 @@ public:
 	int		m_LogMode;
 	int		m_MonitorId;
 	int		m_WinMovementType;
+	int		m_WindowStyle;
 	BOOL	m_HookDI;
 	BOOL	m_HookDI8;
 	BOOL	m_EmulateRelMouse;
@@ -112,7 +113,7 @@ public:
 	BOOL	m_AutoRefresh;
 	BOOL	m_IndependentRefresh;
 	BOOL	m_TextureFormat;
-	BOOL	m_FixWinFrame;
+	//BOOL	m_FixWinFrame;
 	BOOL	m_VideoToSystemMem;
 	BOOL	m_FixTextOut;
 	BOOL	m_SharedDC;
@@ -144,7 +145,7 @@ public:
 	BOOL	m_ClientRemapping;
 	BOOL	m_LockWinStyle;
 	BOOL	m_FixParentWin;
-	BOOL	m_ModalStyle;
+	//BOOL	m_ModalStyle;
 	BOOL	m_KeepAspectRatio;
 	BOOL	m_ForceWinResize;
 	BOOL	m_HideMultiMonitor;

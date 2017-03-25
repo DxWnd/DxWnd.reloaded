@@ -1054,6 +1054,12 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 			dxwss.PushZBufferSurface(*lplpdds, dxversion, lpddsd->ddsCaps.dwCaps);
 			OutTraceDW("CreateSurface: ZBufferSize=%d\n", ZBufferSize);
 		}
+		else {
+			if(lpddsd->ddsCaps.dwCaps & DDSCAPS_3DDEVICE) {
+			OutTraceDW("CreateSurface: lpDD3DRef=%x save 3DREF caps=%x(%s)\n", *lplpdds, lpddsd->ddsCaps.dwCaps, ExplainDDSCaps(lpddsd->ddsCaps.dwCaps));
+				dxwss.Push3DRefSurface(*lplpdds, dxversion, lpddsd->ddsCaps.dwCaps);
+			}
+		}
 	}
 
 	return res;

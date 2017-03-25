@@ -279,6 +279,7 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 
 	if(dxw.dwFlags3 & (FILTERMESSAGES|DEFAULTMESSAGES)){
 		switch(message){
+		case WM_NCMOUSELEAVE: 
 		case WM_NCMOUSEMOVE:
 		case WM_NCLBUTTONDOWN:
 		case WM_NCLBUTTONUP:

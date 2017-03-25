@@ -94,6 +94,8 @@ void dxwCore::InitTarget(TARGETMAP *target)
 	dwFlags6 = target->flags6;
 	dwFlags7 = target->flags7;
 	dwFlags8 = target->flags8;
+	dwFlags9 = target->flags9;
+	dwFlags10= target->flags10;
 	dwTFlags = target->tflags;
 	Windowize = (dwFlags2 & WINDOWIZE) ? TRUE : FALSE;
 	IsVisible = TRUE;
@@ -1256,7 +1258,10 @@ void dxwCore::FixStyle(char *ApiName, HWND hwnd, WPARAM wParam, LPARAM lParam)
 		OutTraceDW("%s: new Style=%x(%s)\n", 
 			ApiName, lpSS->styleNew, ExplainStyle(lpSS->styleNew));
 		if (dxw.dwFlags1 & FIXWINFRAME){ // set canonical style
-			lpSS->styleNew= WS_OVERLAPPEDWINDOW;
+			lpSS->styleNew=  WS_OVERLAPPEDWINDOW;
+		}
+		if (dxw.dwFlags9 & FIXTHINFRAME){ // set canonical style with thin border
+			lpSS->styleNew=  WS_OVERLAPPEDTHIN;
 		}
 		if (dxw.dwFlags1 & LOCKWINSTYLE){ // set to current value
 			lpSS->styleNew= (*pGetWindowLong)(hwnd, GWL_STYLE);
