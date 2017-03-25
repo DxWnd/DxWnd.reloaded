@@ -146,6 +146,9 @@ HRESULT WINAPI extGetScanLine2(LPDIRECTDRAW, LPDWORD);
 HRESULT WINAPI extGetScanLine3(LPDIRECTDRAW, LPDWORD);
 HRESULT WINAPI extGetScanLine4(LPDIRECTDRAW, LPDWORD);
 HRESULT WINAPI extGetScanLine7(LPDIRECTDRAW, LPDWORD);
+    /*** Added in the V7 Interface ??? ***/
+HRESULT WINAPI extStartModeTest(LPDIRECTDRAW, LPSIZE, DWORD, DWORD);
+HRESULT WINAPI extEvaluateMode(LPDIRECTDRAW, DWORD, DWORD *);
 
 // DirectDrawSurface
 HRESULT WINAPI extQueryInterfaceS1(void *, REFIID, LPVOID *);
@@ -321,6 +324,8 @@ DirectDrawEnumerateExW_Type pDirectDrawEnumerateExW = NULL;
 DirectDrawCreateClipper_Type pDirectDrawCreateClipper = NULL;
 HandleDDThreadLock_Type pAcquireDDThreadLock = NULL;
 HandleDDThreadLock_Type pReleaseDDThreadLock = NULL;
+StartModeTest_Type pStartModeTest = NULL;
+EvaluateMode_Type pEvaluateMode = NULL; 
 
 /* DirectDraw hook pointers */
 QueryInterface_Type pQueryInterfaceD1, pQueryInterfaceD2, pQueryInterfaceD3, pQueryInterfaceD4, pQueryInterfaceD7;
@@ -1340,6 +1345,9 @@ void HookDDSession(LPDIRECTDRAW *lplpdd, int dxversion)
 		SetHook((void *)(**(DWORD **)lplpdd + 92), extGetAvailableVidMem7, (void **)&pGetAvailableVidMem7, "GetAvailableVidMem(D7)");
 		// added in v4 interface
 		SetHook((void *)(**(DWORD **)lplpdd + 104), extTestCooperativeLevel7, (void **)&pTestCooperativeLevel7, "TestCooperativeLevel(D7)");
+		// added in v7 interface
+		SetHook((void *)(**(DWORD **)lplpdd + 112), extStartModeTest, (void **)&pStartModeTest, "StartModeTest(D7)");
+		SetHook((void *)(**(DWORD **)lplpdd + 116), extEvaluateMode, (void **)&pEvaluateMode, "EvaluateMode(D7)");
 		break;
 	}
 }
@@ -1651,7 +1659,7 @@ static void HandleCapsD(char *sLabel, LPDDCAPS c)
 		sLabel, c->dwVidMemTotal, c->dwVidMemFree, c->dwZBufferBitDepths, ExplainZBufferBitDepths(c->dwZBufferBitDepths));
 	OutTraceDDRAW("GetCaps(%s): MaxVisibleOverlays=%x CurrVisibleOverlays=%x\n",
 		sLabel, c->dwMaxVisibleOverlays, c->dwCurrVisibleOverlays);
-	if(IsDebug) HexTrace((unsigned char *)c, c->dwSize);
+	if(IsTraceHex) HexTrace((unsigned char *)c, c->dwSize);
 
 	if(dxw.bHintActive){
 		if(c->dwVidMemTotal > dwMaxMem) ShowHint(HINT_LIMITMEM);
@@ -2233,6 +2241,19 @@ HRESULT WINAPI extSetCooperativeLevel(int dxversion, SetCooperativeLevel_Type pS
 
 	OutTraceDDRAW("SetCooperativeLevel(D%d): lpdd=%x hwnd=%x dwFlags=%x(%s)\n",
 		dxversion, lpdd, hwnd, dwflags,ExplainCoopFlags(dwflags));
+
+	// when SetCooperativeLevel is called for the only purpose of setting the FPU policy,
+	// just proxy the call. Seen in "G-Darius".
+	switch(dwflags){
+		case DDSCL_FPUSETUP:
+		case DDSCL_FPUPRESERVE:
+			res=(*pSetCooperativeLevel)(lpdd, hwnd, dwflags);
+			if(res){
+				OutTraceE("SetCooperativeLevel: ERROR bypass err=%x(%s)\n", res, ExplainDDError(res));
+			}
+			return DD_OK;
+			break;
+	}
 
 	DDSURFACEDESC2 ddsd;
 	switch(dxversion){
@@ -3868,7 +3889,9 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 			// v2.02.92: found in Fifa 2000: lpRect is completely ignored, receiving bogus values like (-1, -1, -1, -1}
 			// or {0, 0, 0, 0}, or {-109119151, -109119151, -109119151, -109119151}.
 			// better use the Lock-ed rect
-			lprect = PopLockedRect(lpdds, lprect);
+			// v2.04.21: the fix is proper only when lprect is not NULL, when NULL better leave it unaltered.
+			// Fixing the lprect value unconditionally breaks "Shadow Watch" text blitting on game menus.
+			if(lprect) lprect = PopLockedRect(lpdds, lprect);
 			break;
 		case 7:
 			if(lprect){
@@ -3998,7 +4021,9 @@ static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECT
 			// v2.02.92: found in Fifa 2000: lpRect is completely ignored, receiving bogus values like (-1, -1, -1, -1}
 			// or {0, 0, 0, 0}, or {-109119151, -109119151, -109119151, -109119151}.
 			// better use the Lock-ed rect
-			lprect = PopLockedRect(lpdds, lprect);
+			// v2.04.21: the fix is proper only when lprect is not NULL, when NULL better leave it unaltered.
+			// Fixing the lprect value unconditionally breaks "Shadow Watch" text blitting on game menus.
+			if(lprect) lprect = PopLockedRect(lpdds, lprect);
 			break;
 		case 7:
 			if(lprect){
@@ -4867,7 +4892,7 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 	}
 
 	if(IsFixed) OutTraceDW("GetCaps(S%d): lpdds=%x FIXED %s caps=%x(%s)\n", dxInterface, lpdds, sLabel, caps->dwCaps, ExplainDDSCaps(caps->dwCaps));
-	//if(IsDebug) HexTrace((unsigned char *)caps, sizeof(DDSCAPS));
+	if(IsTraceHex) HexTrace((unsigned char *)caps, sizeof(DDSCAPS));
 	return res;
 }
 
@@ -4963,11 +4988,8 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 			break;
 	}
 	
-	if(IsFixed){
-		OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes((LPDDSURFACEDESC2)lpddsd, sLabel, __LINE__));
-		//if(IsDebug) HexTrace((unsigned char *)lpddsd, sizeof(DDSURFACEDESC));
-	}
-
+	if(IsFixed) OutTraceDW("GetSurfaceDesc: FIXED lpdds=%x %s\n", lpdds, LogSurfaceAttributes((LPDDSURFACEDESC2)lpddsd, sLabel, __LINE__));
+	if(IsTraceHex) HexTrace((unsigned char *)lpddsd, sizeof(DDSURFACEDESC));
 	return DD_OK;
 }
 
@@ -5182,6 +5204,20 @@ HRESULT WINAPI extReleaseP(LPDIRECTDRAWPALETTE lpddPalette)
 	return ref;
 }
 
+static BOOL IsMatchingDeviceW(LPWSTR lpDriverName)
+{
+	WCHAR MatchDev[20];
+	wsprintfW(MatchDev, L"DISPLAY%d", dxw.MonitorId+1);
+	return (wcsstr(lpDriverName, MatchDev) != NULL);
+}
+
+static BOOL IsMatchingDeviceA(LPCSTR lpDriverName)
+{
+	CHAR MatchDev[20];
+	sprintf(MatchDev, "DISPLAY%d", dxw.MonitorId+1);
+	return (strstr(lpDriverName, MatchDev) != NULL);
+}
+
 BOOL FAR PASCAL DDEnumerateCallbackFilterW(GUID FAR *lpGuid, LPWSTR lpDriverDescription, LPWSTR lpDriverName, LPVOID lpContext)
 {
 	BOOL res;
@@ -5189,8 +5225,20 @@ BOOL FAR PASCAL DDEnumerateCallbackFilterW(GUID FAR *lpGuid, LPWSTR lpDriverDesc
 	Context_Type *p=(Context_Type *)lpContext;
 	OutTraceDW("DDEnumerateCallback: guid=%x DriverDescription=\"%ls\" DriverName=\"%ls\" Context=%x\n", 
 		lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
-	if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
-	if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	if(dxw.MonitorId != -1){
+		if(IsMatchingDeviceW(lpDriverName)){
+			(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
+			res=FALSE;
+		}
+		else {
+			OutTraceDW("DDEnumerateCallback: SKIP DriverName=\"%ls\"\n", lpDriverName);
+			res=TRUE;
+		}
+	}
+	else{
+		if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
+		if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	}
 	OutTraceDW("DDEnumerateCallback: res=%x(%s)\n", res, res?"continue":"break");
 	return res;
 }
@@ -5203,8 +5251,21 @@ BOOL FAR PASCAL DDEnumerateCallbackExFilterW(GUID FAR *lpGuid, LPWSTR lpDriverDe
 	OutTraceDW("DDEnumerateCallbackEx: guid=%x DriverDescription=\"%ls\" DriverName=\"%ls\" Context=%x hm=%x\n", 
 		lpGuid, lpDriverDescription, lpDriverName, lpContext, hm);
 	res=TRUE;
-	if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext, hm);
-	if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	// single monitor handling
+	if(dxw.MonitorId != -1){
+		if(IsMatchingDeviceW(lpDriverName)){
+			(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext, hm);
+			res=FALSE;
+		}
+		else{
+			OutTraceDW("DDEnumerateCallbackEx: SKIP DriverName=\"%ls\"\n", lpDriverName);
+			res=TRUE;
+		}
+	}
+	else{
+		if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext, hm);
+		if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	}
 	OutTraceDW("DDEnumerateCallbackEx: res=%x(%s)\n", res, res?"continue":"break");
 	return res;
 }
@@ -5216,8 +5277,21 @@ BOOL FAR PASCAL DDEnumerateCallbackFilterA(GUID FAR *lpGuid, LPSTR lpDriverDescr
 	Context_Type *p=(Context_Type *)lpContext;
 	OutTraceDW("DDEnumerateCallback: guid=%x DriverDescription=\"%s\" DriverName=\"%s\" Context=%x\n", 
 		lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
-	if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
-	if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	res=TRUE;
+	if(dxw.MonitorId != -1){
+		if(IsMatchingDeviceA(lpDriverName)){
+			(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
+			res=FALSE;
+		}
+		else{
+			OutTraceDW("DDEnumerateCallback: SKIP DriverName=\"%s\"\n", lpDriverName);
+			res=TRUE;
+		}
+	}
+	else{
+		if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext);
+		if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	}
 	OutTraceDW("DDEnumerateCallback: res=%x(%s)\n", res, res?"continue":"break");
 	return res;
 }
@@ -5230,8 +5304,20 @@ BOOL FAR PASCAL DDEnumerateCallbackExFilterA(GUID FAR *lpGuid, LPSTR lpDriverDes
 	OutTraceDW("DDEnumerateCallbackEx: guid=%x DriverDescription=\"%s\" DriverName=\"%s\" Context=%x hm=%x\n", 
 		lpGuid, lpDriverDescription, lpDriverName, lpContext, hm);
 	res=TRUE;
-	if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext, hm);
-	if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	if(dxw.MonitorId != -1){
+		if(IsMatchingDeviceA(lpDriverName)){
+			(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext, hm);
+			res=FALSE;
+		}
+		else{
+			OutTraceDW("DDEnumerateCallbackEx: SKIP DriverName=\"%s\"\n", lpDriverName);
+			res=TRUE;
+		}
+	}
+	else{
+		if((lpGuid==NULL) || !(dxw.dwFlags2 & HIDEMULTIMONITOR)) res=(*p->lpCallback)(lpGuid, lpDriverDescription, lpDriverName, p->lpContext, hm);
+		if((lpGuid==NULL) && (dxw.dwFlags2 & HIDEMULTIMONITOR)) res=FALSE;
+	}
 	OutTraceDW("DDEnumerateCallbackEx: res=%x(%s)\n", res, res?"continue":"break");
 	return res;
 }
@@ -5239,8 +5325,8 @@ BOOL FAR PASCAL DDEnumerateCallbackExFilterA(GUID FAR *lpGuid, LPSTR lpDriverDes
 HRESULT WINAPI extDirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
 	HRESULT ret;
-	OutTraceDDRAW("DirectDrawEnumerate: lpCallback=%x lpContext=%x\n", lpCallback, lpContext);
-	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG)){
+	OutTraceDDRAW("DirectDrawEnumerate[A]: lpCallback=%x lpContext=%x\n", lpCallback, lpContext);
+	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG) || (dxw.MonitorId != -1)){
 		struct {LPDDENUMCALLBACKA lpCallback; LPVOID lpContext;} myContext;
 		myContext.lpCallback=lpCallback;
 		myContext.lpContext=lpContext;
@@ -5255,8 +5341,8 @@ HRESULT WINAPI extDirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 HRESULT WINAPI extDirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
 {
 	HRESULT ret;
-	OutTraceDDRAW("DirectDrawEnumerate: lpCallback=%x lpContext=%x\n", lpCallback, lpContext);
-	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG)){
+	OutTraceDDRAW("DirectDrawEnumerate[W]: lpCallback=%x lpContext=%x\n", lpCallback, lpContext);
+	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG) || (dxw.MonitorId != -1)){
 		struct {LPDDENUMCALLBACKW lpCallback; LPVOID lpContext;} myContext;
 		myContext.lpCallback=lpCallback;
 		myContext.lpContext=lpContext;
@@ -5271,12 +5357,15 @@ HRESULT WINAPI extDirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 HRESULT WINAPI extDirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
 	HRESULT ret;
-	OutTraceDDRAW("DirectDrawEnumerateEx: lpCallback=%x lpContext=%x Flags=%x(%s)\n", 
+	OutTraceDDRAW("DirectDrawEnumerateEx[A]: lpCallback=%x lpContext=%x Flags=%x(%s)\n", 
 		lpCallback, lpContext, dwFlags, ExplainDDEnumerateFlags(dwFlags));
-	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG)){
+	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG) || (dxw.MonitorId != -1)){
 		struct {LPDDENUMCALLBACKEXA lpCallback; LPVOID lpContext;} myContext;
 		myContext.lpCallback=lpCallback;
 		myContext.lpContext=lpContext;
+		if(dxw.dwFlags2 & HIDEMULTIMONITOR){
+			dwFlags &= ~(DDENUM_ATTACHEDSECONDARYDEVICES|DDENUM_DETACHEDSECONDARYDEVICES|DDENUM_NONDISPLAYDEVICES);
+		}
 		ret=(*pDirectDrawEnumerateExA)(DDEnumerateCallbackExFilterA, (LPVOID)&myContext, dwFlags);
 	}
 	else{
@@ -5290,12 +5379,15 @@ HRESULT WINAPI extDirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 HRESULT WINAPI extDirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
 	HRESULT ret;
-	OutTraceDDRAW("DirectDrawEnumerateEx: lpCallback=%x lpContext=%x Flags=%x(%s)\n", 
+	OutTraceDDRAW("DirectDrawEnumerateEx[W]: lpCallback=%x lpContext=%x Flags=%x(%s)\n", 
 		lpCallback, lpContext, dwFlags, ExplainDDEnumerateFlags(dwFlags));
-	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG)){
+	if((dxw.dwFlags2 & HIDEMULTIMONITOR) || (dxw.dwTFlags & OUTDEBUG) || (dxw.MonitorId != -1)){
 		struct {LPDDENUMCALLBACKEXW lpCallback; LPVOID lpContext;} myContext;
 		myContext.lpCallback=lpCallback;
 		myContext.lpContext=lpContext;
+		if(dxw.dwFlags2 & HIDEMULTIMONITOR){
+			dwFlags &= ~(DDENUM_ATTACHEDSECONDARYDEVICES|DDENUM_DETACHEDSECONDARYDEVICES|DDENUM_NONDISPLAYDEVICES);
+		}
 		ret=(*pDirectDrawEnumerateExW)(DDEnumerateCallbackExFilterW, (LPVOID)&myContext, dwFlags);
 	}
 	else{
@@ -5579,4 +5671,29 @@ HRESULT WINAPI extGetOverlayPosition4(LPDIRECTDRAWSURFACE lpdds, LPLONG lX, LPLO
 { return extGetOverlayPosition(4, pGetOverlayPosition4, lpdds, lX, lY); }
 HRESULT WINAPI extGetOverlayPosition7(LPDIRECTDRAWSURFACE lpdds, LPLONG lX, LPLONG lY)
 { return extGetOverlayPosition(7, pGetOverlayPosition7, lpdds, lX, lY); }
+
+HRESULT WINAPI extStartModeTest(LPDIRECTDRAW lpdds, LPSIZE lpModesToTest, DWORD dwNumEntries, DWORD dwFlags)
+{
+	HRESULT res;
+	if(IsTraceDW){
+		char sBuf[80];
+		OutTrace("StartModeTest(7): lpdds=%x flags=%x num=%d modes=", lpdds, dwFlags, dwNumEntries);
+		for(DWORD i=0; i<dwNumEntries; i++) {
+			sprintf(sBuf, "(%d x %d)", lpModesToTest[i].cx, lpModesToTest[i].cy);
+			OutTrace(sBuf);
+		}
+	}
+	res=(*pStartModeTest)(lpdds, lpModesToTest, dwNumEntries, dwFlags);
+	OutTraceDW("StartModeTest: res=%x\n", res);
+	return res;
+}
+
+HRESULT WINAPI extEvaluateMode(LPDIRECTDRAW lpdds, DWORD dwFlags, DWORD *pSecondsUntilTimeout)
+{
+	HRESULT res;
+	OutTraceDW("EvaluateMode(7): lpdds=%x flags=%x\n", lpdds, dwFlags);
+	res = (*pEvaluateMode)(lpdds, dwFlags, pSecondsUntilTimeout);
+	OutTraceDW("EvaluateMode: res=%x timeout=%d\n", res, *pSecondsUntilTimeout);
+	return res;
+}
 

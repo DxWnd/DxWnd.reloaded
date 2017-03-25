@@ -1,0 +1,43 @@
+[target]
+title0=Microsoft Motocross Madness 2 trial
+path0=D:\Games\Motocross Madness 2 trial\mcm2.exe
+startfolder0=
+launchpath0=
+module0=
+opengllib0=
+notes0=Runs better with accelerated video card, \nthe software mode is very slow and foggy.\nIn case of troubles, it may be necessary to delete the registry entries to force a \nnew clean configuration.
+registry0=
+ver0=0
+monitorid0=0
+coord0=0
+flag0=136314914
+flagg0=1207959552
+flagh0=20
+flagi0=138412036
+flagj0=4224
+flagk0=65536
+flagl0=0
+flagm0=0
+flagn0=0
+flago0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=1
+scanline0=1
+initresw0=0
+initresh0=0
+[stamp]
+version=2.04.21.a2
+time=Thu Mar 16 13:33:34 2017
+
+

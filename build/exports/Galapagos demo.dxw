@@ -1,0 +1,42 @@
+[target]
+title0=Galapagos demo
+path0=D:\Games\Galapagos Demo\Galapagos Demo.exe
+startfolder0=
+launchpath0=
+module0=
+opengllib0=
+notes0=
+registry0=
+ver0=0
+monitorid0=-1
+coord0=0
+flag0=674250814
+flagg0=1208221696
+flagh0=33300
+flagi0=138412036
+flagj0=469766272
+flagk0=67616
+flagl0=92340240
+flagm0=0
+flagn0=0
+flago0=0
+tflag0=0
+dflag0=0
+posx0=150
+posy0=150
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=-1
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2
+scanline0=1
+initresw0=640
+initresh0=480
+[stamp]
+version=2.04.20.a2
+time=Mon Mar 13 13:51:23 2017
+

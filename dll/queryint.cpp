@@ -80,6 +80,9 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 		iObjectType=TYPE_OBJECT_DDRAWSURFACE; iObjectVersion=4; break;
 	case 0x06675a80:
 		iObjectType=TYPE_OBJECT_DDRAWSURFACE; iObjectVersion=7; break;
+	case 0x6C14DB84:
+		OutTraceDW("QueryInterface: IID_IDirectDrawPalette\n");
+		break;           
 	// Direct3D
 	case 0x3BBA0080: // IID_IDirect3D
 		iObjectType=TYPE_OBJECT_DIRECT3D; iObjectVersion=1; break;
@@ -114,6 +117,9 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 		iObjectType=TYPE_OBJECT_D3DDEVICE; iObjectVersion=7; break;
 	case 0x4B9F0EE0:
 		OutTraceDW("QueryInterface: IID_IDirectDrawColorControl\n");
+		break;
+	case 0x6C14DB85:
+		OutTraceDW("QueryInterface: IID_IDirectDrawClipper\n");
 		break;
 	case 0x69C11C3E:
 		iObjectType=TYPE_OBJECT_GAMMARAMP; iObjectVersion=1; break;

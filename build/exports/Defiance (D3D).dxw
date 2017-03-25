@@ -14,9 +14,9 @@ flagg0=1224736768
 flagh0=32788
 flagi0=138412036
 flagj0=4224
-flagk0=77824
+flagk0=65536
 flagl0=0
-flagm0=0
+flagm0=4
 tflag0=0
 dflag0=0
 posx0=50
@@ -30,3 +30,13 @@ maxres0=-1
 swapeffect0=0
 maxddinterface0=7
 slowratio0=2
+monitorid0=0
+flagn0=0
+flago0=0
+scanline0=1
+initresw0=0
+initresh0=0
+[stamp]
+version=2.04.21.a2
+time=Wed Mar 15 22:49:07 2017
+

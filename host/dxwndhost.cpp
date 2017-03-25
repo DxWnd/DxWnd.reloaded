@@ -44,7 +44,7 @@ BOOL gQuietMode = FALSE;
 BOOL gMustDie = FALSE;
 int iProgIndex;
 DWORD SysColors[32];
-extern char m_ConfigFileName[20+1] = "dxwnd.ini";
+//char m_ConfigFileName[MAX_PATH+1] = "dxwnd.ini";
 
 class CNewCommandLineInfo : public CCommandLineInfo
 {
@@ -103,7 +103,7 @@ void CNewCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast)
 			return;
 		}
 		if (sParam.Left(2).MakeLower() == "c:"){
-			strcpy_s(m_ConfigFileName, sizeof(m_ConfigFileName)-1, sParam.Mid(2,sizeof(m_ConfigFileName)-1));
+			strcpy_s(gInitPath, sizeof(gInitPath)-1, sParam.Mid(2,sizeof(gInitPath)-1));
 			return;
 		}
 		if (sParam.MakeLower() == "e"){

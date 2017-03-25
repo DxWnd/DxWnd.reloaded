@@ -32,7 +32,7 @@ static char THIS_FILE[] = __FILE__;
 
 extern UINT m_StartToTray;
 extern UINT m_InitialState;
-extern char m_ConfigFileName[20+1];
+//extern char m_ConfigFileName[MAX_PATH+1];
 extern BOOL Inject(DWORD, const char *);
 extern int KillProcByName(char *, BOOL, BOOL);
 extern BOOL gTransientMode;
@@ -46,7 +46,8 @@ TARGETMAP *pTargets; // idem.
 
 #define LOCKINJECTIONTHREADS
 
-char gInitPath[MAX_PATH]; // don't put it into the class because it must be used after destructor
+char gInitPath[MAX_PATH+1] = ""; // don't put it into the class because it must be used after destructor
+char gExportPath[MAX_PATH+1]; 
 CWnd *pParent;
 
 // beware: it must operate upon count+1 sized arrays
@@ -207,6 +208,8 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	t->flags6 = 0;
 	t->flags7 = 0;
 	t->flags8 = 0;
+	t->flags9 = 0;
+	t->flags10 = 0;
 	t->tflags = 0;
 	t->dflags = 0;
 	if(dlg->m_UnNotify) t->flags |= UNNOTIFY;
@@ -378,6 +381,7 @@ void SetTargetFromDlg(TARGETMAP *t, CTargetDlg *dlg)
 	if(dlg->m_OutWinMessages) t->tflags |= OUTWINMESSAGES;
 	if(dlg->m_OutDWTrace) t->tflags |= OUTDXWINTRACE;
 	if(dlg->m_OutOGLTrace) t->tflags |= OUTOGLTRACE;
+	if(dlg->m_OutHexTrace) t->tflags |= OUTHEXTRACE;
 	if(dlg->m_OutWGTrace) t->tflags |= OUTWINGTRACE;
 	if(dlg->m_OutDDRAWTrace) t->tflags |= OUTDDRAWTRACE;
 	if(dlg->m_OutD3DTrace) t->tflags |= OUTD3DTRACE;
@@ -718,6 +722,7 @@ static void SetDlgFromTarget(TARGETMAP *t, CTargetDlg *dlg)
 	dlg->m_OutWinMessages = t->tflags & OUTWINMESSAGES ? 1 : 0;
 	dlg->m_OutDWTrace = t->tflags & OUTDXWINTRACE ? 1 : 0;
 	dlg->m_OutOGLTrace = t->tflags & OUTOGLTRACE ? 1 : 0;
+	dlg->m_OutHexTrace = t->tflags & OUTHEXTRACE ? 1 : 0;
 	dlg->m_OutWGTrace = t->tflags & OUTWINGTRACE ? 1 : 0;
 	dlg->m_OutD3DTrace = t->tflags & OUTD3DTRACE ? 1 : 0;
 	dlg->m_OutDDRAWTrace = t->tflags & OUTDDRAWTRACE ? 1 : 0;
@@ -1443,10 +1448,12 @@ void CDxwndhostView::OnInitialUpdate()
 	listcol.mask = LVCF_WIDTH;
 	listcol.cx = 100;
 	
-	listctrl.InsertColumn(0, &listcol);
-	GetCurrentDirectory(MAX_PATH, gInitPath);
-	strcat_s(gInitPath, sizeof(gInitPath), "\\");
-	strcat_s(gInitPath, sizeof(gInitPath), m_ConfigFileName);
+	listctrl.InsertColumn(0, &listcol); 
+	if(!strlen(gInitPath)){
+		GetCurrentDirectory(MAX_PATH, gInitPath);
+		strcat_s(gInitPath, sizeof(gInitPath), "\\");
+		strcat_s(gInitPath, sizeof(gInitPath), "dxwnd.ini");
+	}
 	listctrl.InsertColumn(0, &listcol);
 
 	StatusMap.VJoyStatus = GetPrivateProfileInt("joystick", "flags", VJOYENABLED|CROSSENABLED|INVERTYAXIS|VJMOUSEMAP|VJKEYBOARDMAP, gInitPath);
@@ -2154,6 +2161,7 @@ void CDxwndhostView::OnAdd(char *sInitialPath)
 	dlg.m_PosY = GetPrivateProfileInt("window", "defaultposy", 50, gInitPath);
 	dlg.m_SizX = GetPrivateProfileInt("window", "defaultsizx", 800, gInitPath);
 	dlg.m_SizY = GetPrivateProfileInt("window", "defaultsizy", 600, gInitPath);
+	dlg.m_LogMode = 0; // ???
 
 	if(dlg.DoModal() == IDOK && dlg.m_FilePath.GetLength()){
 		strnncpy(PrivateMaps[i].title, (char *)dlg.m_Title.GetString(), MAX_TITLE);

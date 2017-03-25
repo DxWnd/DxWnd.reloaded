@@ -1,6 +1,6 @@
 [target]
 title0=The Sting!
-path0=F:\Games\The Sting!\TheSting!\Sting.exe
+path0=D:\Games\The Sting!\Sting.exe
 launchpath0=
 module0=
 opengllib0=
@@ -8,7 +8,7 @@ notes0=
 ver0=0
 coord0=0
 flag0=136314914
-flagg0=1207959552
+flagg0=1476395008
 flagh0=16
 flagi0=138412036
 flagj0=4224
@@ -40,3 +40,10 @@ slowratio0=1
 scanline0=1
 initresw0=0
 initresh0=0
+flagn0=0
+flago0=0
+[stamp]
+version=2.04.21.a2
+time=Thu Mar 16 09:25:20 2017
+
+

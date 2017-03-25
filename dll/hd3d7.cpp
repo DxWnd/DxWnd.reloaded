@@ -402,6 +402,7 @@ int HookDirect3D7(HMODULE module, int version){
 	LPDIRECT3D lpd3d=NULL;
 	HRESULT res;
 
+	OutTraceDW("HookDirect3D7: module=%x version=%d\n", module, version);
 	switch(version){
 	case 0:
 	case 1:
@@ -776,7 +777,7 @@ static void DumpD3DDeviceDesc(LPD3DDEVICEDESC d3, char *label)
 			if(d3->dwFlags & D3DDD_MAXBUFFERSIZE) OutTrace("MaxBufferSize=%d ", d3->dwMaxBufferSize);
 			if(d3->dwFlags & D3DDD_MAXVERTEXCOUNT) OutTrace("MaxVertexCount=%d ", d3->dwMaxVertexCount);
 			OutTrace("Texture min=(%dx%d) max=(%dx%d)\n", d3->dwMinTextureWidth, d3->dwMinTextureHeight, d3->dwMaxTextureWidth, d3->dwMaxTextureHeight);
-			HexTrace((unsigned char *)d3, d3->dwSize);
+			if(IsTraceHex) HexTrace((unsigned char *)d3, d3->dwSize);
 		}
 		else
 			OutTrace("EnumDevices: CALLBACK dev=%s ddesc=NULL\n", label);
@@ -803,7 +804,7 @@ static void DumpD3DDeviceDesc7(LPD3DDEVICEDESC7 d3, char *label)
 			OutTrace("Texture min=(%dx%d) max=(%dx%d)\n", d3->dwMinTextureWidth, d3->dwMinTextureHeight, d3->dwMaxTextureWidth, d3->dwMaxTextureHeight);
 			// to be completed ....
 			//OutTrace("\n");
-			HexTrace((unsigned char *)d3, sizeof(D3DDEVICEDESC7));
+			if(IsTraceHex) HexTrace((unsigned char *)d3, sizeof(D3DDEVICEDESC7));
 		}
 		else
 			OutTrace("EnumDevices: CALLBACK dev=%s ddesc=NULL\n", label);

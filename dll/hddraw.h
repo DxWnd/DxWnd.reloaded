@@ -55,8 +55,8 @@ typedef HRESULT (WINAPI *RestoreAllSurfaces_Type)(LPDIRECTDRAW);
 typedef HRESULT (WINAPI *TestCooperativeLevel_Type)(LPDIRECTDRAW);
 typedef HRESULT (WINAPI *GetDeviceIdentifier_Type)(LPDIRECTDRAW, LPDDDEVICEIDENTIFIER, DWORD);
 typedef HRESULT (WINAPI *GetScanLine_Type)(LPDIRECTDRAW, LPDWORD);
-//    STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD ) PURE;
-//    STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD * ) PURE;
+typedef HRESULT (WINAPI *StartModeTest_Type)(LPDIRECTDRAW, LPSIZE, DWORD, DWORD);
+typedef HRESULT (WINAPI *EvaluateMode_Type)(LPDIRECTDRAW, DWORD, DWORD *);
 
 // DirectDrawSurface
 typedef ULONG (WINAPI *AddRefS_Type)(LPDIRECTDRAWSURFACE);

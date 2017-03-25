@@ -1596,3 +1596,19 @@ add: FIXTHINFRAME option to get overlapped window with thin border
 fix: revised implementation for DirectDrawSurface getCaps and GetSurfaceDesc wrappers
 add: hooker for SetWindowsHookEx WH_MOUSE_LL events - used by "Royal Tramp 2"
 fix: added WM_NCMOUSELEAVE to the list of potentially offending messages
+
+v2.04.21
+fix: proxed calls to SetCooperativeLevel with no specification for screen mode changes
+fix: locked rect fix applied only in case of not NULL rect specification. Fixes "Shadow Watch" font blitting problems.
+fix: DirectDrawEnumerate/Ex wrappers now filter video devices properly when a given monitor is selected. Partially fixes "The Sting!" behaviour on multi-monitor environment.
+fix: aligned primary surface capabilities for flipped native and emulated modes
+add: wrappers for ddraw7 StartModeTest and EvaluateMode methods only for logging 
+fix: wrapper for SetCooperativeLevel proxy the call when flags is DDSCL_FPUPRESERVE or DDSCL_FPUSETUP only. Seen in "G-Darius"
+add: separated logging flag for structures hexdump
+fix: eliminated initial logging for undefined virtual keys (useless)
+fix: fixed unconditional logging for USER32:PolyLine
+add: diagniostic DC dump in GDI32:SetDIBitsToDevice wrapper
+fix: GDI32:SetViewportOrgEx wrapper when ddraw surface is still missing
+add: in ddraw::QueryInterface, logging for detection of Clipper or Palette objects
+fix: fix for /c:path argument of DxWnd command line usage, now can accept full file paths
+fix: log=none as default value for new dxwnd program entries

@@ -8,7 +8,9 @@
 #include "dxwnd.h"
 #include "dxwcore.hpp"
 
-#define DXW_SURFACE_STACK_TRACING
+// uncomment line below to activate surface stack tracing
+//#define DXW_SURFACE_STACK_TRACING
+
 #define OutTraceSDB OutTrace
 
 dxwSStack::dxwSStack()
@@ -211,7 +213,12 @@ DWORD dxwSStack::DuplicateSurface(LPDIRECTDRAWSURFACE psfrom, LPDIRECTDRAWSURFAC
 		if ((e->lpdds==psfrom) || (e->lpdds==(DWORD)0)) break; // got matching entry or end of the list
 	}
 	// if not found, return
-	if (!e->lpdds) return 0;
+	if (!e->lpdds) {
+#ifdef DXW_SURFACE_STACK_TRACING
+		OutTraceSDB("--- NO ENTRY: from=%x\n", psfrom);
+#endif
+		return 0;
+	}
 	// save surface entry
 	sentry = *e;
 	// search for destination or empty slot

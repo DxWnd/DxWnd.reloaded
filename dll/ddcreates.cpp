@@ -278,6 +278,8 @@ static HRESULT BuildPrimaryFlippable(LPDIRECTDRAW lpdd, CreateSurface_Type pCrea
 	// dwFlags
 	ddsd.dwFlags &= ~(DDSD_REFRESHRATE);
 	ddsd.dwFlags |= (DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT|DDSD_PIXELFORMAT|DDSD_BACKBUFFERCOUNT);
+	// DDSCAPS_OFFSCREENPLAIN seems required to support the palette in memory surfaces
+	ddsd.ddsCaps.dwCaps |= (DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY);
 
 	// dwBackBufferCount: set to at least 1
 	if(!(lpddsd->dwFlags & DDSD_BACKBUFFERCOUNT) || (lpddsd->dwBackBufferCount == 0)) ddsd.dwBackBufferCount = 1;

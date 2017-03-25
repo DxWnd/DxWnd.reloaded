@@ -49,6 +49,7 @@ CTargetDlg::CTargetDlg(CWnd* pParent /*=NULL*/)
 	m_OutWinMessages = FALSE;
 	m_OutDWTrace = FALSE;
 	m_OutOGLTrace = FALSE;
+	m_OutHexTrace = FALSE;
 	m_OutWGTrace = FALSE;
 	m_OutD3DTrace = FALSE;
 	m_OutDDRAWTrace = FALSE;

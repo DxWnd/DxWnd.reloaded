@@ -1,7 +1,7 @@
 [target]
 title0=Taz Wanted
 path0=D:\Games\Taz Wanted\Taz.exe
-launchpath0=
+launchpath0=D:\Games\Taz Wanted\TazLauncher.exe
 module0=
 opengllib0=
 notes0=
@@ -9,7 +9,7 @@ registry0=
 ver0=8
 coord0=0
 flag0=136314914
-flagg0=1744830464
+flagg0=1207959552
 flagh0=20
 flagi0=138412036
 flagj0=4224
@@ -29,3 +29,14 @@ maxres0=-1
 swapeffect0=0
 maxddinterface0=7
 slowratio0=2
+startfolder0=
+monitorid0=0
+flagn0=0
+flago0=0
+scanline0=1
+initresw0=0
+initresh0=0
+[stamp]
+version=2.04.21.a6
+time=Tue Mar 21 19:49:05 2017
+

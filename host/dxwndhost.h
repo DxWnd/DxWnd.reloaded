@@ -42,7 +42,7 @@ typedef struct {
 } ThreadInfo_Type;
 ThreadInfo_Type;
 
-extern char gInitPath[MAX_PATH];
+extern char gInitPath[MAX_PATH+1];
 extern void OutTrace(const char *, ...);
 
 /////////////////////////////////////////////////////////////////////////////

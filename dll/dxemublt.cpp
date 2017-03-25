@@ -321,7 +321,7 @@ static HRESULT WINAPI EmuBlt_16_to_32(int dxversion, Blt_Type pBlt, LPDIRECTDRAW
 
 	memset(&ddsd_dst,0,sizeof(DDSURFACEDESC2));
 	ddsd_dst.dwSize = Set_dwSize_From_Surface();
-	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH;
+	ddsd_dst.dwFlags = DDSD_LPSURFACE | DDSD_PITCH; // useless ...?
 	if(res=(*pLockMethod(dxversion))(lpddsdst, 0, (LPDDSURFACEDESC)&ddsd_dst, DDLOCK_SURFACEMEMORYPTR|DDLOCK_WRITEONLY|DDLOCK_WAIT, 0)){	
 		OutTraceE("EmuBlt16_32: Lock ERROR res=%x(%s) at %d\n", res, ExplainDDError(res), __LINE__);
 		return res;

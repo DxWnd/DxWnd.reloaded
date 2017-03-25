@@ -27,5 +27,22 @@ maxres0=-1
 launchpath0=
 notes0=
 flagj0=130
-flagk0=73728
+flagk0=65536
 swapeffect0=0
+startfolder0=
+registry0=
+monitorid0=0
+flagl0=0
+flagm0=0
+flagn0=0
+flago0=0
+dflag0=0
+maxddinterface0=7
+slowratio0=1
+scanline0=1
+initresw0=0
+initresh0=0
+[stamp]
+version=2.04.21.a2
+time=Wed Mar 15 22:14:01 2017
+

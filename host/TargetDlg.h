@@ -62,6 +62,7 @@ public:
 	BOOL	m_OutWinMessages;
 	BOOL	m_OutDWTrace;
 	BOOL	m_OutOGLTrace;
+	BOOL	m_OutHexTrace;
 	BOOL	m_OutWGTrace;
 	BOOL	m_OutD3DTrace;
 	BOOL	m_OutDDRAWTrace;

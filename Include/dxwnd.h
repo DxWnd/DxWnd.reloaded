@@ -303,6 +303,7 @@
 #define OUTDXWINTRACE		0x00001000 // traces DxWnd internal operations
 #define OUTWINGTRACE		0x00002000 // traces WinG32 hooked calls
 #define OUTOGLTRACE			0x00004000 // traces OpenGL hooked calls
+#define OUTHEXTRACE			0x00008000 // traces hexdump of critical structures
 #define ADDRELATIVETIME		0x08000000 // log timestamp is relative to previous line
 //#define NOLOGCLOSE			0x10000000 // avoid closing the log file handle ("Riven, during CD changes ...)
 #define ADDTIMESTAMP		0x20000000 // add timestamp (GetTickCount) to log file
@@ -431,6 +432,7 @@ LRESULT CALLBACK dw_Hider_Message_Handler(HWND, UINT, WPARAM, LPARAM);
 #define OutTraceE OutTrace
 #define OutTraceWG if(dxw.dwTFlags & OUTWINGTRACE) OutTrace
 #define OutTraceOGL if(dxw.dwTFlags & OUTOGLTRACE) OutTrace
+#define OutHex if(dxw.dwTFlags & OUTHEXTRACE) OutTrace
 
 #define IsTraceW (dxw.dwTFlags & OUTWINMESSAGES)
 //#define IsTraceX (dxw.dwTFlags & OUTPROXYTRACE)
@@ -444,6 +446,7 @@ LRESULT CALLBACK dw_Hider_Message_Handler(HWND, UINT, WPARAM, LPARAM);
 #define IsTraceE (TRUE)
 #define IsTraceWG (dxw.dwTFlags & OUTWINGTRACE)
 #define IsTraceOGL (dxw.dwTFlags & OUTOGLTRACE)
+#define IsTraceHex (dxw.dwTFlags & OUTHEXTRACE)
 #define IsDebug  (dxw.dwTFlags & OUTDEBUG)
 #define IsAssertEnabled (dxw.dwTFlags & ASSERTDIALOG)
 #define STEP OutTrace("STEP at %s:%d\n", __FILE__, __LINE__)

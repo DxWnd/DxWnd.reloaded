@@ -664,7 +664,8 @@ HPALETTE WINAPI extSelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
 	OutTraceDW("GDI.SelectPalette: hdc=%x hpal=%x ForceBackground=%x\n", hdc, hpal, bForceBackground);
 	if(hdc==dxw.RealHDC) hdc= dxw.VirtualHDC;
 
-	if((dxw.dwFlags1 & EMULATESURFACE)  && (dxw.dwFlags6 & SYNCPALETTE) && bFlippedDC){
+	//if((dxw.dwFlags1 & EMULATESURFACE)  && (dxw.dwFlags6 & SYNCPALETTE) && bFlippedDC){
+	if((dxw.dwFlags1 & EMULATESURFACE)  && (dxw.dwFlags6 & SYNCPALETTE)){
 		hDesktopPalette=hpal;
 		if(hFlippedDC){
 			hdc = hFlippedDC;
@@ -1416,13 +1417,12 @@ BOOL WINAPI extPolyline(HDC hdc, const POINT *lppt, int cPoints)
 				return ret;
 				break;
 			case GDIMODE_STRETCHED:
-				int i;
-				OutTrace("Polyline: fixed cPoints=%d pt=", cPoints); 
-				for(i=0; i<cPoints; i++) {
-					dxw.MapClient((LPPOINT)&lppt[i]);
-					OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+				for(int i=0; i<cPoints; i++) dxw.MapClient((LPPOINT)&lppt[i]);
+				if(IsTraceDW){
+					OutTrace("Polyline: fixed cPoints=%d pt=", cPoints); 
+					for(int i=0; i<cPoints; i++) OutTrace("(%d,%d) ", lppt[i].x, lppt[i].y);
+					OutTrace("\n");
 				}
-				OutTrace("\n");
 				break;
 		}
 	}
@@ -1900,6 +1900,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 			case GDIMODE_SHAREDDC: 
 				sdc.GetPrimaryDC(hdc);
 				ret=(*pSetDIBitsToDevice)(sdc.GetHdc(), XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
+				if(dxw.dwFlags8 & DUMPDEVCONTEXT) DumpHDC(sdc.GetHdc(), XDest, YDest, dwWidth, dwHeight);
 				sdc.PutPrimaryDC(hdc, TRUE, XDest, YDest, dwWidth, dwHeight);
 				bGDIRecursionFlag = FALSE;
 				return ret;
@@ -1920,6 +1921,7 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 				if(!(ret=(*pSetDIBitsToDevice)(hTempDc, 0, 0, OrigWidth, OrigHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse)))
 					OutTraceE("SetDIBitsToDevice: ERROR err=%d at=%d\n", GetLastError(), __LINE__);
 				bGDIRecursionFlag = FALSE;
+				if(dxw.dwFlags8 & DUMPDEVCONTEXT) DumpHDC(hTempDc, 0, 0, OrigWidth, OrigHeight);
 				// v2.02.94: set HALFTONE stretching. Fixes "Celtic Kings Rage of War"
 				SetStretchBltMode(hdc,HALFTONE);
 				if(!(ret=(*pGDIStretchBlt)(hdc, XDest, YDest, dwWidth, dwHeight, hTempDc, 0, 0, OrigWidth, OrigHeight, SRCCOPY)))
@@ -1939,10 +1941,12 @@ int WINAPI extSetDIBitsToDevice(HDC hdc, int XDest, int YDest, DWORD dwWidth, DW
 					XDest, YDest, dxw.VirtualOffsetX, dxw.VirtualOffsetY, X, Y);
 				ret=(*pSetDIBitsToDevice)(hdc, X, Y, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines, lpvBits, lpbmi, fuColorUse);
 				bGDIRecursionFlag = FALSE;
+				if(dxw.dwFlags8 & DUMPDEVCONTEXT) DumpHDC(hdc, X, Y, dwWidth, dwHeight);
 				if(!ret || (ret==GDI_ERROR)) OutTraceE("SetDIBitsToDevice: ERROR ret=%x err=%d\n", ret, GetLastError()); 
 				if(dxw.dwFlags8 & MARKGDI32) dxw.Mark(hdc, FALSE, RGB(255, 255, 255),  XDest, YDest, dwWidth, dwHeight);
 				return ret;
 			default:
+				if(dxw.dwFlags8 & DUMPDEVCONTEXT) DumpHDC(hdc, XDest, YDest, dwWidth, dwHeight);
 				break;
 		}
 	}
@@ -2273,23 +2277,24 @@ BOOL WINAPI extSetViewportOrgEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
 	if(dxw.IsToRemap(hdc)){
 		switch(dxw.GDIEmulationMode){
 			case GDIMODE_EMULATED:
+				dxw.VirtualOffsetX = X;
+				dxw.VirtualOffsetY = Y;
 				if(dxw.IsVirtual(hdc)) {
 					OutTraceDW("SetViewportOrgEx: virtual hdc\n");
 					if(lpPoint){
 						lpPoint->x = dxw.VirtualOffsetX;
 						lpPoint->y = dxw.VirtualOffsetY;
 					}
-					dxw.VirtualOffsetX = X;
-					dxw.VirtualOffsetY = Y;
 					ret = TRUE;
 				}
-				else
+				else {
 					ret=(*pSetViewportOrgEx)(hdc, X, Y, lpPoint);
-				break;
-			case GDIMODE_SHAREDDC:
-				sdc.GetPrimaryDC(hdc);
-				ret=(*pSetViewportOrgEx)(sdc.GetHdc(), X, Y, lpPoint);
-				sdc.PutPrimaryDC(hdc, FALSE);				
+					if(ret && lpPoint) {
+						OutTraceDW("SetViewportOrgEx: previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+						dxw.UnmapClient(lpPoint);
+						OutTraceDW("SetViewportOrgEx: fixed previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
+					}
+				}
 				break;
 			case GDIMODE_STRETCHED:
 				dxw.MapClient(&X, &Y);
@@ -2301,6 +2306,12 @@ BOOL WINAPI extSetViewportOrgEx(HDC hdc, int X, int Y, LPPOINT lpPoint)
 					OutTraceDW("SetViewportOrgEx: fixed previous ViewPort=(%d,%d)\n", lpPoint->x, lpPoint->y);
 				}
 				break;
+			case GDIMODE_SHAREDDC:
+				sdc.GetPrimaryDC(hdc);
+				ret=(*pSetViewportOrgEx)(sdc.GetHdc(), X, Y, lpPoint);
+				sdc.PutPrimaryDC(hdc, FALSE);				
+				break;
+
 			default:
 				ret=(*pSetViewportOrgEx)(hdc, X, Y, lpPoint);
 				break;

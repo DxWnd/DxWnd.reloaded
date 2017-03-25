@@ -1,0 +1,42 @@
+[target]
+title0=Prince of Persia The Two Thrones (GOG)
+path0=D:\Games\Prince of Persia The Two Thrones\pop3.exe
+startfolder0=
+launchpath0=D:\Games\Prince of Persia The Two Thrones\PrinceOfPersia.exe
+module0=
+opengllib0=
+notes0=
+registry0=
+ver0=9
+monitorid0=-1
+coord0=0
+flag0=673202214
+flagg0=1207959552
+flagh0=20
+flagi0=138412036
+flagj0=4224
+flagk0=65536
+flagl0=67108880
+flagm0=0
+flagn0=0
+flago0=0
+tflag0=0
+dflag0=0
+posx0=50
+posy0=50
+sizx0=800
+sizy0=600
+maxfps0=0
+initts0=0
+winver0=0
+maxres0=0
+swapeffect0=0
+maxddinterface0=7
+slowratio0=2
+scanline0=0
+initresw0=800
+initresh0=600
+[stamp]
+version=2.04.21.a4
+time=Sun Mar 19 11:59:24 2017
+

@@ -1484,7 +1484,7 @@ void dxwCore::MapKeysInit()
 	VKeyConfig[DXVK_NONE]=DXVK_NONE;
 	for(KeyIdx=1; KeyIdx<DXVK_SIZE; KeyIdx++){
 		VKeyConfig[KeyIdx]=GetPrivateProfileInt("keymapping", VKeyLabels[KeyIdx], KeyIdx==DXVK_ALTF4 ? 0x73 : 0x00, InitPath);
-		OutTrace("keymapping[%d](%s)=%x\n", KeyIdx, VKeyLabels[KeyIdx], VKeyConfig[KeyIdx]);
+		if(VKeyConfig[KeyIdx]) OutTrace("keymapping[%d](%s)=%x\n", KeyIdx, VKeyLabels[KeyIdx], VKeyConfig[KeyIdx]);
 	}
 }
 
