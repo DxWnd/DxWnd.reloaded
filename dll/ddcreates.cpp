@@ -985,8 +985,7 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 		res=BuildPrimary(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, NULL);
 		if(res) return res;
 		lpDDSPrim = *lplpdds;
-		dxwss.PushPrimarySurface(lpDDSPrim, dxversion);
-		dxwcdb.PushCaps(*lplpdds, lpddsd->ddsCaps.dwCaps);
+		dxwss.PushPrimarySurface(lpDDSPrim, dxversion, lpddsd->ddsCaps.dwCaps);
 		RegisterPixelFormat(dxversion, lpDDSPrim);
 
 		if (BBCount){
@@ -994,12 +993,11 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 			// build emulated backbuffer surface
 			res=AttachBackBuffer(lpdd, pCreateSurface, lpddsd, dxversion, &lpDDSBack, NULL);
 			if(res) return res;
-			dxwss.PushBackBufferSurface(lpDDSBack, dxversion);
 			// here we try to guess what sort of capabilities would expose a built-in backbuffer surface
 			dwCaps = lpddsd->ddsCaps.dwCaps;
 			dwCaps &= ~DDSCAPS_PRIMARYSURFACE;
 			dwCaps |= (DDSCAPS_BACKBUFFER|DDSCAPS_VIDEOMEMORY);
-			dxwcdb.PushCaps(lpDDSBack, dwCaps);
+			dxwss.PushBackBufferSurface(lpDDSBack, dxversion, dwCaps);
 		}
 
 		if(IsTraceDDRAW){
@@ -1036,14 +1034,12 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 		}
 
 		res=BuildBackBuffer(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, NULL);
-		if(res == DD_OK) {
-			dxwss.PushBackBufferSurface(*lplpdds, dxversion);
-			dxwcdb.PushCaps(*lplpdds, lpddsd->ddsCaps.dwCaps);
-		}
+		if(res == DD_OK) dxwss.PushBackBufferSurface(*lplpdds, dxversion, lpddsd->ddsCaps.dwCaps);
 		return res;
 	}
 
 	// if nothing else, it's a generic/zbuffer surface
+	// Note: should DxWnd trace a memory 3D surface that will be used as reference surface for D3D CreateDevice?
 
 	res=BuildGeneric(lpdd, pCreateSurface, lpddsd, dxversion, lplpdds, pu);
 	if(!res) {
@@ -1055,7 +1051,7 @@ HRESULT WINAPI extCreateSurface(int dxversion, CreateSurface_Type pCreateSurface
 			// save surface size expressed in bytes
 			extern int ZBufferSize;
 			ZBufferSize = lpddsd->dwWidth * lpddsd->dwHeight * (lpddsd->ddpfPixelFormat.dwZBufferBitDepth >> 3); 
-			dxwcdb.PushCaps(*lplpdds, lpddsd->ddsCaps.dwCaps);
+			dxwss.PushZBufferSurface(*lplpdds, dxversion, lpddsd->ddsCaps.dwCaps);
 			OutTraceDW("CreateSurface: ZBufferSize=%d\n", ZBufferSize);
 		}
 	}

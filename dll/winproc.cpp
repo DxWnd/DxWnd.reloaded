@@ -206,22 +206,31 @@ void SetIdlePriority(BOOL idle)
 
 void ExplainMsg(char *ApiName, HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-	char sPos[161];
-	sPos[160]=0;
+	char sPos[321];
+	sPos[320]=0;
 	sPos[0]=0;
 	switch(Msg){
 	case WM_WINDOWPOSCHANGING:
 	case WM_WINDOWPOSCHANGED:
 		LPWINDOWPOS wp;
 		wp = (LPWINDOWPOS)lParam;
-		sprintf_s(sPos, 160, " pos=(%d,%d) size=(%dx%d) flags=%x(%s)", wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
+		sprintf_s(sPos, 320, " pos=(%d,%d) size=(%dx%d) flags=%x(%s)", wp->x, wp->y, wp->cx, wp->cy, wp->flags, ExplainWPFlags(wp->flags));
 		break;
 	case WM_MOVE:
-		sprintf_s(sPos, 160, " pos=(%d,%d)", HIWORD(lParam), LOWORD(lParam));
+		sprintf_s(sPos, 320, " pos=(%d,%d)", HIWORD(lParam), LOWORD(lParam));
+		break;
+	case WM_STYLECHANGING:
+	case WM_STYLECHANGED:
+		LPSTYLESTRUCT style;
+		style = (LPSTYLESTRUCT)lParam;
+		if(wParam == GWL_STYLE) sprintf_s(sPos, 320, "style=%x(%s)->%x(%s)", 
+			style->styleOld, ExplainStyle(style->styleOld), style->styleNew, ExplainStyle(style->styleNew));
+		if(wParam == GWL_EXSTYLE) sprintf_s(sPos, 320, "exstyle=%x(%s)->%x(%s)", 
+			style->styleOld, ExplainExStyle(style->styleOld), style->styleNew, ExplainExStyle(style->styleNew));
 		break;
 	case WM_SIZE:
 		static char *modes[5]={"RESTORED", "MINIMIZED", "MAXIMIZED", "MAXSHOW", "MAXHIDE"};
-		sprintf_s(sPos, 160, " mode=SIZE_%s size=(%dx%d)", modes[wParam % 5], HIWORD(lParam), LOWORD(lParam));
+		sprintf_s(sPos, 320, " mode=SIZE_%s size=(%dx%d)", modes[wParam % 5], HIWORD(lParam), LOWORD(lParam));
 		break;	
 	}
 	OutTrace("%s[%x]: WinMsg=[0x%x]%s(%x,%x) %s\n", ApiName, hwnd, Msg, ExplainWinMessage(Msg), wParam, lParam, sPos);
@@ -383,6 +392,13 @@ LRESULT CALLBACK extWindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lp
 			// let rparam (color depth) change, but override lparam (screen width & height.)
 			lparam = MAKELPARAM((LONG)dxw.GetScreenWidth(), (LONG)dxw.GetScreenHeight());
 			//return 0;
+		}
+		break;
+	case WM_STYLECHANGING:
+	case WM_STYLECHANGED:
+		if(dxw.dwFlags1 & LOCKWINSTYLE) {
+			OutTraceDW("WindowProc: %s - suppressed\n", message==WM_STYLECHANGING ? "WM_STYLECHANGING" : "WM_STYLECHANGED");
+			return 1;
 		}
 		break;
 	case WM_WINDOWPOSCHANGING:

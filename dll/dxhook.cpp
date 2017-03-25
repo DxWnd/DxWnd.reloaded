@@ -29,7 +29,6 @@
 dxwCore dxw;
 dxwSStack dxwss;
 dxwWStack dxwws;
-dxwCapsDB dxwcdb;
 dxwSDC sdc;
 dxwFStack fontdb;
 GetWindowLong_Type pGetWindowLong;

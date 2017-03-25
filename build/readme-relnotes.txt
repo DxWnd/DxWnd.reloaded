@@ -1576,3 +1576,11 @@ add: "Fix AdjustWindowRect" flag (FIXADJUSTWINDOWRECT) to selectively turn the A
 add: "Hook child WindowProc" and "Hook dialog WindowProc" flags for better control over these risky operations.
 fix: bad GetParent hook: caused crash when checking "Hook child WindowProc" flag.
 fix: improvements in "Hybrid" emulation mode
+
+v2.04.19/fx1
+fix: major code reorganization: caps database & surface stack merged into a single object class, including ZBUFFER surfaces
+fix: eliminated arbitrary surface properties settings
+fix: joystick api promoted to hot patching to get a more powerful hooking
+add: hooking of WM_STYLECHANGING/STYLECHANGED messages to allow D3D rendering within the window borders instead of over the  whole window area - fixes "Nightmare Creatures" and others.
+fix: fixed "Need fos Speed 5" peculiarity: QueryInterface of an object on top of itself.
+

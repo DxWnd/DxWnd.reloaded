@@ -1,6 +1,6 @@
 [target]
-title0=Nightmare Creatures demo
-path0=f:\Games\nightmare creatures demo\nc.exe
+title0=GTA2
+path0=D:\Games\gta2\gta2.exe
 startfolder0=
 launchpath0=
 module0=
@@ -11,13 +11,13 @@ ver0=0
 monitorid0=-1
 coord0=0
 flag0=673194018
-flagg0=1207959616
+flagg0=1208221696
 flagh0=20
 flagi0=138412036
 flagj0=4224
 flagk0=65536
 flagl0=0
-flagm0=301989888
+flagm0=0
 tflag0=0
 dflag0=0
 posx0=50

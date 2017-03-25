@@ -43,7 +43,6 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 	BOOL IsBack;
 	int iObjectType;
 	int iObjectVersion;
-	DWORD dwCaps;
 	extern LPDIRECTDRAWSURFACE lpDDSEmu_Prim;
 
 	IsPrim=dxwss.IsAPrimarySurface((LPDIRECTDRAWSURFACE)lpdds);
@@ -197,57 +196,30 @@ HRESULT WINAPI extQueryInterfaceDX(int dxversion, QueryInterface_Type pQueryInte
 	OutTraceDW("QueryInterface: lpdds=%x REFIID=%x obp=%x obj=%s version=%d ret=0\n",
 		lpdds, riid.Data1, *obp, sLabel, iObjectVersion);
 
+	// v2.04.19.fx1: Beware! "Need for Speed 5" performs QueryInterface of one sorface on top of itself!
+	// This is allowed, but in this case calling dxwss.PopSurface before dxwss.DuplicateSurface would
+	// clear the capabilities to be copied over to the (not) new surface.
+	// fixed by inserting an "if" statement before PopSurface
+
 	switch(iObjectType){
 		case TYPE_OBJECT_UNKNOWN:
-			dwCaps = dxwcdb.GetCaps((LPDIRECTDRAWSURFACE)lpdds);
-			if (dwCaps) {
-				OutTraceDW("QueryInterface(S): PASS lpdds=%x->%x caps=%x(%s)\n", lpdds, *obp, dwCaps, ExplainDDSCaps(dwCaps));
-				dxwcdb.PushCaps(*(LPDIRECTDRAWSURFACE *)obp, dwCaps);
-			}	
-			else {
-				OutTraceDW("QueryInterface(S): NO CAPS\n");
-			}
+			if(*obp != lpdds) dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp); // clear any past attribution
+			dxwss.DuplicateSurface((LPDIRECTDRAWSURFACE)lpdds, (LPDIRECTDRAWSURFACE)*obp, iObjectVersion);
 			break;
-#ifdef YEARDEAD
-		case TYPE_OBJECT_UNKNOWN:
-			// triky: some games (actually, only one: "Year Dead") perform a QueryInterface with IID_UNKNOWN
-			// to duplicate the object. In this case, the CAPS should be passed, but maybe the new object 
-			// also needs hooking?
-			dwCaps = dxwcdb.GetCaps((LPDIRECTDRAWSURFACE)lpdds);
-			if (dwCaps) {
-				OutTraceDW("QueryInterface(S): PASS lpdds=%x->%x caps=%x(%s)\n", lpdds, *obp, dwCaps, ExplainDDSCaps(dwCaps));
-				dxwcdb.PushCaps(*(LPDIRECTDRAWSURFACE *)obp, dwCaps);
-				if(dwCaps & DDSCAPS_PRIMARYSURFACE) {
-					HookDDSurface((LPDIRECTDRAWSURFACE *)obp, 1, TRUE);
-					dxwss.PushPrimarySurface((LPDIRECTDRAWSURFACE)*obp, dxversion);
-				}
-				else HookDDSurface((LPDIRECTDRAWSURFACE *)obp, 1, FALSE);
-			}	
-			break;
-#endif
 		case TYPE_OBJECT_DIRECTDRAW:
 			HookDDSession((LPDIRECTDRAW *)obp, iObjectVersion);
 			break;
 		case TYPE_OBJECT_DDRAWSURFACE:
 			dxw.dwDDVersion=iObjectVersion;
+			if(*obp != lpdds) dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp); // clear any past attribution
+			dxwss.DuplicateSurface((LPDIRECTDRAWSURFACE)lpdds, (LPDIRECTDRAWSURFACE)*obp, iObjectVersion);
 			if(IsPrim){
 				OutTraceDW("QueryInterface(S): primary=%x new=%x\n", lpdds, *obp);
-				dxwss.PushPrimarySurface((LPDIRECTDRAWSURFACE)*obp, iObjectVersion);
 				HookDDSurface((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion, TRUE);
 			}
 			else{
-				if(IsBack) dxwss.PushBackBufferSurface((LPDIRECTDRAWSURFACE)*obp, iObjectVersion);
-				else dxwss.PopSurface((LPDIRECTDRAWSURFACE)*obp); // no primary, no backbuffer, then pop.
 				// v2.02.13: seems that hooking inconditionally gives troubles. What is the proper safe hook condition?
 				HookDDSurface((LPDIRECTDRAWSURFACE *)obp, dxw.dwDDVersion, FALSE);
-			}
-			dwCaps = dxwcdb.GetCaps((LPDIRECTDRAWSURFACE)lpdds);
-			if (dwCaps) {
-				OutTraceDW("QueryInterface(S): PASS lpdds=%x->%x caps=%x(%s)\n", lpdds, *obp, dwCaps, ExplainDDSCaps(dwCaps));
-				dxwcdb.PushCaps(*(LPDIRECTDRAWSURFACE *)obp, dwCaps);
-			}	
-			else {
-				OutTraceDW("QueryInterface(S): NO CAPS\n");
 			}
 			break;
 		case TYPE_OBJECT_CLIPPER:

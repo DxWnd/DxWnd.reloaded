@@ -29,6 +29,7 @@ typedef struct {
 	USHORT	uRef;
 	USHORT	uRole;
 	USHORT	uVersion;
+	DWORD	dwCaps;
 } SurfaceDB_Type;
 
 typedef struct {
@@ -37,8 +38,9 @@ typedef struct {
 } CapsDB_Type;
 
 typedef enum {
-	SURFACE_ROLE_PRIMARY = 1,
-	SURFACE_ROLE_BACKBUFFER
+	SURFACE_ROLE_PRIMARY = 0,
+	SURFACE_ROLE_BACKBUFFER,
+	SURFACE_ROLE_ZBUFFER
 } Enum_Surface_Role_Type;
 
 typedef struct {
@@ -248,39 +250,29 @@ public:
 public:
 	char *ExplainSurfaceRole(LPDIRECTDRAWSURFACE);
 	void ClearSurfaceList();
-	void PushPrimarySurface(LPDIRECTDRAWSURFACE, int);
+	void PushPrimarySurface(LPDIRECTDRAWSURFACE, int, DWORD);
 	BOOL IsAPrimarySurface(LPDIRECTDRAWSURFACE);
 	void UnrefSurface(LPDIRECTDRAWSURFACE);
 	LPDIRECTDRAWSURFACE GetPrimarySurface(void);
-	void PushBackBufferSurface(LPDIRECTDRAWSURFACE, int);
+	void PushBackBufferSurface(LPDIRECTDRAWSURFACE, int, DWORD);
 	BOOL IsABackBufferSurface(LPDIRECTDRAWSURFACE);
-	LPDIRECTDRAWSURFACE GetBackBufferSurface(void);
-	void PopSurface(LPDIRECTDRAWSURFACE);
+	LPDIRECTDRAWSURFACE GetZBufferSurface(void);
+	void PushZBufferSurface(LPDIRECTDRAWSURFACE, int, DWORD);
+	BOOL IsAZBufferSurface(LPDIRECTDRAWSURFACE);
+	LPDIRECTDRAWSURFACE GetBackBufferSurface(void);	void PopSurface(LPDIRECTDRAWSURFACE);
+	void DuplicateSurface(LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE, int);
+	DWORD GetCaps(LPDIRECTDRAWSURFACE);
 
 protected:
 	SurfaceDB_Type SurfaceDB[DDSQLEN+1];
 	LPDIRECTDRAWSURFACE lpDDSPrimary;
 	LPDIRECTDRAWSURFACE lpDDSBackBuffer;
+	LPDIRECTDRAWSURFACE lpDDSZBuffer;
 
 private:
-	void PushSurface(LPDIRECTDRAWSURFACE, USHORT, USHORT);
+	void PushSurface(LPDIRECTDRAWSURFACE, USHORT, USHORT, DWORD);
 	LPDIRECTDRAWSURFACE GetSurfaceByRole(USHORT);
 	void SetSurfaceEntry(LPDIRECTDRAWSURFACE, USHORT, USHORT);
-};
-
-class dxwCapsDB
-{
-public:
-    dxwCapsDB();
-    virtual ~dxwCapsDB();
-
-public:
-	// void ClearCapsDB();
-	void PushCaps(LPDIRECTDRAWSURFACE, DWORD);
-	DWORD GetCaps(LPDIRECTDRAWSURFACE);
-
-protected:
-	CapsDB_Type CapsDB[DDSQLEN+1];
 };
 
 typedef struct {
@@ -327,7 +319,6 @@ protected:
 extern dxwCore dxw;
 extern dxwSStack dxwss;
 extern dxwWStack dxwws;
-extern dxwCapsDB dxwcdb;
 extern dxwFStack fontdb;
 
 typedef enum {

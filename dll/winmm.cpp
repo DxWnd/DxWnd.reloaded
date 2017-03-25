@@ -89,10 +89,10 @@ static HookEntryEx_Type RemapHooks[]={
 };
 
 static HookEntryEx_Type JoyHooks[]={
-	{HOOK_IAT_CANDIDATE, 0, "joyGetNumDevs", NULL, (FARPROC *)&pjoyGetNumDevs, (FARPROC)extjoyGetNumDevs},
-	{HOOK_IAT_CANDIDATE, 0, "joyGetDevCapsA", NULL, (FARPROC *)&pjoyGetDevCapsA, (FARPROC)extjoyGetDevCapsA},
-	{HOOK_IAT_CANDIDATE, 0, "joyGetPosEx", NULL, (FARPROC *)&pjoyGetPosEx, (FARPROC)extjoyGetPosEx},
-	{HOOK_IAT_CANDIDATE, 0, "joyGetPos", NULL, (FARPROC *)&pjoyGetPos, (FARPROC)extjoyGetPos},
+	{HOOK_HOT_CANDIDATE, 0, "joyGetNumDevs", NULL, (FARPROC *)&pjoyGetNumDevs, (FARPROC)extjoyGetNumDevs},
+	{HOOK_HOT_CANDIDATE, 0, "joyGetDevCapsA", NULL, (FARPROC *)&pjoyGetDevCapsA, (FARPROC)extjoyGetDevCapsA},
+	{HOOK_HOT_CANDIDATE, 0, "joyGetPosEx", NULL, (FARPROC *)&pjoyGetPosEx, (FARPROC)extjoyGetPosEx},
+	{HOOK_HOT_CANDIDATE, 0, "joyGetPos", NULL, (FARPROC *)&pjoyGetPos, (FARPROC)extjoyGetPos},
 	{HOOK_IAT_CANDIDATE, 0, 0, NULL, 0, 0} // terminator
 };
 

@@ -567,7 +567,7 @@ static DWORD SetZBufferCaps(DWORD dwCaps)
 	if(dwCaps & ~DDSCAPS_ZBUFFER) return dwCaps;
 
 	// ... else try to cope with primary surface caps
-	dwCaps = dxwcdb.GetCaps(dxwss.GetPrimarySurface());
+	dwCaps = dxwss.GetCaps(dxwss.GetPrimarySurface());
 	dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);
 	dwCaps |= DDSCAPS_ZBUFFER;
 	return dwCaps;
@@ -2588,17 +2588,17 @@ HRESULT WINAPI extGetAttachedSurface(int dxversion, GetAttachedSurface_Type pGet
 			// compatible with those of the original surface!
 			DWORD dwCaps;
 			lpDDZBuffer = *lplpddas;
-			dwCaps = dxwcdb.GetCaps(*lplpddas);
+			dwCaps = dxwss.GetCaps(*lplpddas);
 			// v2.04.17 - beware: the caps db is not properly cleaned on surface destruction, so it may happen 
 			// that you get a fake-known case where the caps are referred to some other surface type.
 			// Happened in "Star Treck: Armada" where the ZBUFFER collects an old PRIMARY caps entry.
 			if(!dwCaps || !(dwCaps & DDSCAPS_ZBUFFER)){
-				dwCaps = dxwcdb.GetCaps(lpdds);
+				dwCaps = dxwss.GetCaps(lpdds);
 				if(dwCaps){
 					dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);
 					dwCaps |= DDSCAPS_ZBUFFER;
 					//if(dwCaps & DDSCAPS_VIDEOMEMORY) dwCaps|=DDSCAPS_LOCALVIDMEM;
-					dxwcdb.PushCaps(*lplpddas, dwCaps);
+					dxwss.PushZBufferSurface(*lplpddas, dxversion, dwCaps);
 					sMode = "derived";
 				}
 				else sMode = "unknown";
@@ -3303,6 +3303,7 @@ static HRESULT WINAPI extBltFast(int dxversion, Blt_Type pBlt, BltFast_Type pBlt
 	}
 
 	// consistency check ....
+	// situation found for instance in "Warlords Battlecry II demo".
 	if (lpsrcrect)
 		if((lpsrcrect->left >= lpsrcrect->right) || (lpsrcrect->top >= lpsrcrect->bottom)) {
 			OutTraceDW("BltFast: ASSERT bad rect at %d\n", __LINE__);
@@ -3859,7 +3860,7 @@ static HRESULT WINAPI extUnlock(int dxversion, Unlock4_Type pUnlock, LPDIRECTDRA
 		OutTrace("Unlock(%d): lpdds=%x%s %s\n", dxversion, lpdds, (IsPrim ? "(PRIM)": (IsBack ? "(BACK)" : "")), sRect);
 	}
 
-	if ((dxw.dwFlags8 & ZBUFFERHARDCLEAN) && (dxwcdb.GetCaps(lpdds) & DDSCAPS_ZBUFFER)){
+	if ((dxw.dwFlags8 & ZBUFFERHARDCLEAN) && dxwss.IsAZBufferSurface(lpdds)){
 		DWORD dwSize = (dxversion<4)?sizeof(DDSURFACEDESC):sizeof(DDSURFACEDESC2);
 		DDSURFACEDESC2 ddsd;
 		memset(&ddsd, 0, dwSize);
@@ -3989,7 +3990,7 @@ static HRESULT WINAPI extUnlockDir(int dxversion, Unlock4_Type pUnlock, LPDIRECT
 		OutTrace("Unlock(%d): lpdds=%x%s %s\n", dxversion, lpdds, (IsPrim ? "(PRIM)": (IsBack ? "(BACK)" : "")), sRect);
 	}
 
-	if ((dxw.dwFlags8 & ZBUFFERHARDCLEAN) && (dxwcdb.GetCaps(lpdds) & DDSCAPS_ZBUFFER)){
+	if ((dxw.dwFlags8 & ZBUFFERHARDCLEAN) && dxwss.IsAZBufferSurface(lpdds)){
 		DWORD dwSize = (dxversion<4)?sizeof(DDSURFACEDESC):sizeof(DDSURFACEDESC2);
 		DDSURFACEDESC2 ddsd;
 		memset(&ddsd, 0, dwSize);
@@ -4720,6 +4721,13 @@ static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttached
 	// just remember this for further handling in the Flip operation.
 	// But beware: this holds to BACKBUFFER surfaces only, and NOT for attached ZBUFFERS or similar!
 
+	// If the surface was created with DDSCAPS_BACKBUFFER/ZBUFFER capabilities, it should be in the 
+	// surface stack already, so better avoid setting unknown version and capabilities here... 
+
+	// Note: should DxWnd trace the difference between a potential BACK/ZBUFFER surface and an active one?
+	// The program can create a surface with backbuffer/zbuffer capabilities, but assign the effective 
+	// role afterwards, here while performing the attach to the master surface.
+
 	IsPrim=dxwss.IsAPrimarySurface(lpdds);
 	IsBack=dxwss.IsABackBufferSurface(lpdds);
 	OutTraceDDRAW("AddAttachedSurface: lpdds=%x%s lpddsadd=%x%s\n", lpdds, IsPrim?"(PRIM)":(IsBack?"(BACK)":""), lpddsadd, (lpddsadd==lpDDZBuffer)?"(ZBUF)":"");
@@ -4742,7 +4750,6 @@ static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttached
 			if ((dxw.dwFlags1 & EMULATESURFACE) && (res==DDERR_CANNOTATTACHSURFACE) ||
 				(res==DDERR_NOEXCLUSIVEMODE))
 			OutTraceDW("AddAttachedSurface: emulating BACKBUFFER attach on PRIMARY\n");
-			dxwss.PushBackBufferSurface(lpddsadd, 1);
 			res=DD_OK;
 		}
 		//else if (IsBack) {
@@ -4757,43 +4764,7 @@ static HRESULT WINAPI extAddAttachedSurface(AddAttachedSurface_Type pAddAttached
 			}
 		}
 	}
-	else {
-		// AddAttachedSurface successful, manage CAPS propagation
-		if ((dxw.dwFlags1 & EMULATESURFACE) && (IsPrim || IsBack)){
-		}
-		HRESULT sdres;
-		DDSURFACEDESC2 sd;
-		sd.dwSize=Set_dwSize_From_Surface();
-		sdres=lpddsadd->GetSurfaceDesc((DDSURFACEDESC *)&sd);
-		if (sdres) 
-			OutTraceE("AddAttachedSurface: GetSurfaceDesc ERROR res=%x at %d\n", sdres, __LINE__);
-		else
-			OutTraceDW("AddAttachedSurface: GetSurfaceDesc dwCaps=%x(%s)\n", 
-				sd.ddsCaps.dwCaps, ExplainDDSCaps(sd.ddsCaps.dwCaps));
-		if (IsPrim){
-			if (sd.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER)
-			OutTraceDW("AddAttachedSurface: registering BACKBUFFER attach on PRIMARY\n");
-			dxwss.PushBackBufferSurface(lpddsadd, 1);
-		}
-		//else if (IsBack) or plain surface for ZBUFFER {
-		else {
-			// v2.02.13: emulate ZBUFFER attach to backbuffer/plain surface
-			if ((sd.ddsCaps.dwCaps & DDSCAPS_ZBUFFER) && (dxw.dwFlags1 & EMULATESURFACE)){
-				DWORD dwCaps;
-				dwCaps = dxwcdb.GetCaps(lpddsadd);
-				if(!dwCaps){
-					OutTraceDW("AddAttachedSurface: registering ZBUFFER attach on %s surface\n", IsBack ? "BACKBUFFER" : "PLAIN");
-					dwCaps = dxwcdb.GetCaps(lpdds);
-					if(dwCaps){
-						dwCaps &= ~(DDSCAPS_PRIMARYSURFACE|DDSCAPS_FLIP|DDSCAPS_BACKBUFFER|DDSCAPS_3DDEVICE|DDSCAPS_COMPLEX);
-						dwCaps |= DDSCAPS_ZBUFFER;
-						//if(dwCaps & DDSCAPS_VIDEOMEMORY) dwCaps|=DDSCAPS_LOCALVIDMEM;
-						dxwcdb.PushCaps(lpddsadd, dwCaps);
-					}
-				}
-			}
-		}
-	}
+
 	if (res) OutTraceE("AddAttachedSurface: ERROR %x(%s)\n", res, ExplainDDError(res));
 	return res;
 }
@@ -4887,7 +4858,7 @@ static HRESULT WINAPI extGetCapsS(int dxInterface, GetCapsS_Type pGetCapsS, LPDI
 		}
 		if (IsZBuf) {
 			IsFixed=TRUE;
-			caps->dwCaps = SetZBufferCaps(dxwcdb.GetCaps(lpdds));
+			caps->dwCaps = SetZBufferCaps(dxwss.GetCaps(lpdds));
 			break;
 		}
 		break; // inconditional break;
@@ -4969,7 +4940,7 @@ static HRESULT WINAPI extGetSurfaceDesc(int dxversion, GetSurfaceDesc_Type pGetS
 		}
 		if (IsZBuf) {
 			IsFixed=TRUE;
-			lpddsd->ddsCaps.dwCaps = SetZBufferCaps(dxwcdb.GetCaps(lpdds));
+			lpddsd->ddsCaps.dwCaps = SetZBufferCaps(dxwss.GetCaps(lpdds));
 			break;
 		}
 		break; // inconditional break
